@@ -33,12 +33,12 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %   measurements (D1, D2).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Stefano Caldera
@@ -60,7 +60,7 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (isempty(sysId)) %RINEX v2.xx
@@ -72,61 +72,61 @@ if (isempty(sysId)) %RINEX v2.xx
     s2 = strfind(Obs_types{1}, 'LA');
     s = [s1 s2];
     col_L1 = (s+1)/2;
-    
+
     %search L2 column
     s1 = strfind(Obs_types{1}, 'L2');
     s2 = strfind(Obs_types{1}, 'LC');
     s = [s1 s2];
     col_L2 = (s+1)/2;
-    
+
     %search C1 column
     s1 = strfind(Obs_types{1}, 'C1');
     s2 = strfind(Obs_types{1}, 'CA');
     s = [s1 s2];
     col_C1 = (s+1)/2;
-    
+
     %search P1 column
     s1 = strfind(Obs_types{1}, 'P1');
     s2 = strfind(Obs_types{1}, 'CA'); %QZSS does not use P1
     s = [s1 s2];
     col_P1 = (s+1)/2;
-    
+
     %if RINEX v2.12 and GPS/GLONASS P1 observations are not available
     if (length(col_P1) ~= 2 && ~isempty(s2))
         %keep QZSS CA observations as C1
         col_P1 = [];
     end
-    
+
     %search P2 column
     s1 = strfind(Obs_types{1}, 'P2');
     s2 = strfind(Obs_types{1}, 'CC');
     s = [s1 s2];
     col_P2 = (s+1)/2;
-    
+
     %search S1 column
     s1 = strfind(Obs_types{1}, 'S1');
     s2 = strfind(Obs_types{1}, 'SA');
     s = [s1 s2];
     col_S1 = (s+1)/2;
-    
+
     %search S2 column
     s1 = strfind(Obs_types{1}, 'S2');
     s2 = strfind(Obs_types{1}, 'SC');
     s = [s1 s2];
     col_S2 = (s+1)/2;
-    
+
     %search D1 column
     s1 = strfind(Obs_types{1}, 'D1');
     s2 = strfind(Obs_types{1}, 'DA');
     s = [s1 s2];
     col_D1 = (s+1)/2;
-    
+
     %search D2 column
     s1 = strfind(Obs_types{1}, 'D2');
     s2 = strfind(Obs_types{1}, 'DC');
     s = [s1 s2];
     col_D2 = (s+1)/2;
-    
+
     Obs_columns.L1 = col_L1;
     Obs_columns.L2 = col_L2;
     Obs_columns.C1 = col_C1;
@@ -136,12 +136,12 @@ if (isempty(sysId)) %RINEX v2.xx
     Obs_columns.S2 = col_S2;
     Obs_columns.D1 = col_D1;
     Obs_columns.D2 = col_D2;
-    
+
 else %RINEX v3.xx
     for c = 1 : length(sysId)
-        
+
         nObs_types.(sysId{c}) = size(Obs_types.(sysId{c}),2)/3;
-        
+
         switch sysId{c}
             case 'G' %GPS
                 idC1 = {'C1C'};               %L1
@@ -227,49 +227,49 @@ else %RINEX v3.xx
             s = strfind(Obs_types.(sysId{c}), idL1{i}); if (~isempty(s)), break, end;
         end
         col_L1 = (s+2)/3;
-        
+
         %search L2 column
         for i = 1 : length(idL2)
             s = strfind(Obs_types.(sysId{c}), idL2{i}); if (~isempty(s)), break, end;
         end
         col_L2 = (s+2)/3;
-        
+
         %search C1 column
         for i = 1 : length(idC1)
             s = strfind(Obs_types.(sysId{c}), idC1{i}); if (~isempty(s)), break, end;
         end
         col_C1 = (s+2)/3;
-        
+
         %search P1 column
         for i = 1 : length(idP1)
             s = strfind(Obs_types.(sysId{c}), idP1{i}); if (~isempty(s)), break, end;
         end
         col_P1 = (s+2)/3;
-        
+
         %search P2 column
         for i = 1 : length(idP2)
             s = strfind(Obs_types.(sysId{c}), idP2{i}); if (~isempty(s)), break, end;
         end
         col_P2 = (s+2)/3;
-        
+
         %search S1 column
         for i = 1 : length(idS1)
             s = strfind(Obs_types.(sysId{c}), idS1{i}); if (~isempty(s)), break, end;
         end
         col_S1 = (s+2)/3;
-        
+
         %search S2 column
         for i = 1 : length(idS2)
             s = strfind(Obs_types.(sysId{c}), idS2{i}); if (~isempty(s)), break, end;
         end
         col_S2 = (s+2)/3;
-        
+
         %search D1 column
         for i = 1 : length(idD1)
             s = strfind(Obs_types.(sysId{c}), idD1{i}); if (~isempty(s)), break, end;
         end
         col_D1 = (s+2)/3;
-        
+
         %search D2 column
         for i = 1 : length(idD2)
             s = strfind(Obs_types.(sysId{c}), idD2{i}); if (~isempty(s)), break, end;

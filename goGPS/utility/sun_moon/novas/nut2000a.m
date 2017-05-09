@@ -4,7 +4,7 @@ function [dpsi, deps] = nut2000a (date1, date2)
 
 % input
 
-%  date1, date2 = tt julian date 
+%  date1, date2 = tt julian date
 %  (julian date = date1 + date2)
 
 % output
@@ -27,31 +27,31 @@ function [dpsi, deps] = nut2000a (date1, date2)
 global inutate nals napl icpl cls
 
 if (inutate == 1)
-    
+
     % read data files
-    
+
     nals = csvread('nals.csv');
-    
+
     napl = csvread('napl.csv');
-    
+
     icpl = csvread('icpl.csv');
-    
+
     cls = csvread('cls.csv');
-    
+
     % transpose matrices
-    
+
     nals = nals';
-    
+
     napl = napl';
-    
+
     icpl = icpl';
-    
+
     cls = cls';
-    
+
     % reset flag
-    
+
     inutate = 0;
-    
+
 end
 
 % arc seconds to radians
@@ -127,7 +127,7 @@ om = mod (450160.398036d0 + t * (-6962890.5431d0 ...
     + t * (-0.00005939d0)))), turnas) * das2r;
 
 % summation of luni-solar nutation series (in reverse order)
-    
+
 arg = mod ((nals(1, :)) * el  + (nals(2, :)) * elp + (nals(3, :)) * f ...
     + (nals(4, :)) * d  + (nals(5, :)) * om, d2pi);
 

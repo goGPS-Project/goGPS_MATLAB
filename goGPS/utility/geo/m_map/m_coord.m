@@ -27,11 +27,11 @@ switch coordsys,
 
    case 'get',
       disp(' ');
-      disp('Available coordinate systems are:'); 
+      disp('Available coordinate systems are:');
       for k=1:length(coords.name),
         disp(['     ' coords.name{k}]);
       end;
-   
+
    case 'set',
       if isempty(MAP_COORDS),
          disp('No coordinate system initialized');
@@ -41,9 +41,9 @@ switch coordsys,
            disp(MAP_COORDS.name);
 	 else
 	   coordsys=MAP_COORDS;
-	 end;    
+	 end;
       end;
- 
+
    case 'usage',
       disp(' ');
       disp('Possible calling options are:');
@@ -51,10 +51,10 @@ switch coordsys,
       disp('  ''set''                      - list of coordinate systems');
       disp('  ''get''                      - get current coordinate (if defined)');
       disp('  ''system''                   - initialize coordinate system\n');
-   
+
    otherwise
      k=strmatch(coordsys,lower(coords.name));
      MAP_COORDS=mc_coords('parameters',coords.name{k});
-   
-end;   
+
+end;
     % Check to see if a non-lat/long coordinate system is being used.

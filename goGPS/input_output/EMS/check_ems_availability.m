@@ -18,16 +18,16 @@ function [ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc
 %   and after the survey timespan.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
-%  Contributors:     Giuliano Sironi 2011, 
+%  Contributors:     Giuliano Sironi 2011,
 %                    Eugenio Realini 2013, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -46,7 +46,7 @@ function [ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %buffer
@@ -54,8 +54,8 @@ buf_min = 15; %minutes
 buf_dtn = datenum([0 0 0 0 buf_min 0]);
 
 %survey start and end timings (plus buffer)
-ts = week_R(1)*604800   + round(time_R(1))   - buf_dtn;     
-te = week_R(end)*604800 + round(time_R(end)) + buf_dtn; 
+ts = week_R(1)*604800   + round(time_R(1))   - buf_dtn;
+te = week_R(end)*604800 + round(time_R(end)) + buf_dtn;
 
 %EMS corrections timings
 t_fc  = GPS_time_fc(:,1)*604800  + GPS_time_fc(:,2);
@@ -83,7 +83,7 @@ t_ic  = GPS_time_ic(:,1)*604800  + GPS_time_ic(:,2);
 [dist_start_ems26, start_ems26] = min(abs(t_ic-ts));
 [dist_end_ems26,     end_ems26] = min(abs(t_ic-te));
 
-clear ts te t_fc t_ltc t_ic 
+clear ts te t_fc t_ltc t_ic
 
 %boolean flag
 ems_data_available = 1;
@@ -98,8 +98,8 @@ if ( isempty(start_ems02) | isempty(end_ems02) | ...
      dist_start_ems02/sday > 1 | dist_end_ems02/sday > 1 | ...
      dist_start_ems25/sday > 1 | dist_end_ems25/sday > 1 | ...
      dist_start_ems26/sday > 1 | dist_end_ems26/sday > 1 )
- 
+
     ems_data_available = 0;
- 
+
     fprintf('EMS data not sufficient: additional data are needed.\n')
 end

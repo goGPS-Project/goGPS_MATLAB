@@ -47,14 +47,14 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Andrea Nardo, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -177,7 +177,7 @@ if (length(frequencies) == 2)
                 (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
     if (frequencies == 1)
-        sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );        
+        sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
         sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
                     (ph1_R ~= 0) & (ph1_M ~= 0) );
     else
@@ -221,9 +221,9 @@ sigma2_N = zeros(nN,1);
 min_nsat_LS = 3 + n_sys;
 
 if (length(sat_pr) >= min_nsat_LS)
-    
+
     sat_pr_old = sat_pr;
-    
+
     if (frequencies(1) == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
@@ -233,15 +233,15 @@ if (length(sat_pr) >= min_nsat_LS)
         if (length(sat_pr_M) < min_nsat_LS); return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
     end
-    
+
     err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
     err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
-    
+
     if flag_XR==2
         cov_XR=eye(3).*(0.01^2);  % da sistemare pi? accurata
         cond_num=0;
     end
-    
+
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     err_tropo_R = err_tropo_R(iR);
@@ -250,11 +250,11 @@ if (length(sat_pr) >= min_nsat_LS)
     err_iono1_M = err_iono1_M(iM);
     err_iono2_R = err_iono2_R(iR);
     err_iono2_M = err_iono2_M(iM);
-    
+
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
-    
+
     for i = 1:size(sat_pr)
         if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && any(Eph(:)))
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
@@ -264,18 +264,18 @@ if (length(sat_pr) >= min_nsat_LS)
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %--------------------------------------------------------------------------------------------
-    
+
     %satellites configuration: code only (-1), both code and phase (+1);
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
-    
+
     %cycle-slip configuration (no cycle-slip)
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %current pivot
     if ~isempty(sat)
         [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
@@ -284,11 +284,11 @@ if (length(sat_pr) >= min_nsat_LS)
         [null_max_elR, pivot_index] = max(elR(sat_pr)); %#ok<ASGLU>
         pivot = sat_pr(pivot_index);
     end
-    
+
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (size(sat_pr,1) >= min_nsat_LS && cond_num < cond_num_threshold)
-        
+
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end
@@ -304,14 +304,14 @@ end
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
 if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 || size(sat,1) <= min_nsat_LS)
-    
+
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
     N1 = zeros(nSatTot,1);
     N2 = zeros(nSatTot,1);
     sigma2_N1 = zeros(nSatTot,1);
     sigma2_N2 = zeros(nSatTot,1);
-    
+
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
         [N1(sat), sigma2_N1(sat)] = amb_estimate_observ(pr1_R(sat), pr1_M(sat), ph1_R(sat), ph1_M(sat), pivot, sat, lambda(sat,1));
@@ -330,18 +330,18 @@ if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 || size(sat,1) <= mi
             sigma2_N = sigma2_N2;
         end
     end
-    
+
 %use least squares ambiguity estimation
 else
-    
+
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
     N1 = zeros(nSatTot,1);
     N2 = zeros(nSatTot,1);
-    
+
     %find the indices of the satellites with phase available
     [~, index] = intersect(sat_pr,sat);
-    
+
     % if fixed apriori rover coordinates are available, estimation of
     % ambiguities from geometrical range
     if flag_XR==2
@@ -350,28 +350,28 @@ else
         cov_N1=diag(sum(sigma2_XR) ./ (lambda(sat).^2));
         N=N1;
         sigma2_N(sat) = diag(cov_N1);
-        
+
     else
-        
+
         %ROVER positioning improvement with code and phase double differences
         if ~isempty(sat)
             [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono1_R(index), err_tropo_M(index), err_iono1_M(index), pivot_index, lambda(sat,1), 0);
             [null_XR, N2(sat), null_cov_XR, cov_N2]                   = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono2_R(index), err_tropo_M(index), err_iono2_M(index), pivot_index, lambda(sat,2), 0); %#ok<ASGLU>
         end
-        
+
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end
         sigma2_XR = diag(cov_XR);
-        
+
         if isempty(cov_N1) %if it was not possible to compute the covariance matrix
             cov_N1 = sigmaq0_N * eye(length(sat));
         end
-        
+
         if isempty(cov_N2) %if it was not possible to compute the covariance matrix
             cov_N2 = sigmaq0_N * eye(length(sat));
         end
-        
+
         if (length(frequencies) == 2)
             N = [N1; N2];
             sigma2_N(sat) = diag(cov_N1);
@@ -390,11 +390,11 @@ end
 
 %a-priori tropospheric delay
 if (flag_tropo)
-    
+
     [week, sow] = time2weektow(time_rx + zero_time);
     date = gps2date(week, sow);
     [~, mjd] = date2jd(date);
-    
+
     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
     [phi_M, lam_M, h_M] = cart2geod(XM(1), XM(2), XM(3));
 
@@ -402,7 +402,7 @@ if (flag_tropo)
 
     [pressure_R, temperature_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R); %#ok<ASGLU>
     ZWD_R = saast_wet(temperature_R, goGNSS.STD_HUMI, h_R - undu_R);
-    
+
     [pressure_M, temperature_M, undu_M] = gpt(mjd, phi_M, lam_M, h_M); %#ok<ASGLU>
     ZWD_M = saast_wet(temperature_M, goGNSS.STD_HUMI, h_M - undu_M);
 else

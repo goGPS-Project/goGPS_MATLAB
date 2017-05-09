@@ -14,15 +14,15 @@ function [file_tro] = download_tro(week_start, week_end, down_dir)
 %   Download of .tro files from the EUREF FTP server.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ function [file_tro] = download_tro(week_start, week_end, down_dir)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -67,7 +67,7 @@ for week = week_start : week_end
     for day = 0 : 6
         cd(ftp_server, '/');
         cd(ftp_server, s);
-        
+
         cd(ftp_server, num2str(week,'%04d'));
         s2 = ['asi' num2str(week,'%04d') num2str(day) '.tro.Z'];
         try

@@ -7,10 +7,10 @@ function inv = betainv (x, a, b)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 % Copyright (C) 1995-2011 Kurt Hornik
@@ -72,13 +72,13 @@ if (any (k))
         y = a / (a + b) * ones (size (k));
     end
     x = x (k);
-    
+
     if (isa (y, 'single'))
         myeps = eps ('single');
     else
         myeps = eps;
     end
-    
+
     l = find (y < myeps);
     if (any (l))
         y(l) = sqrt (myeps) * ones (length (l), 1);
@@ -87,7 +87,7 @@ if (any (k))
     if (any (l))
         y(l) = 1 - sqrt (myeps) * ones (length (l), 1);
     end
-    
+
     y_old = y;
     for i = 1 : 10000
         h     = (betacdf (y_old, a, b) - x) ./ betapdf (y_old, a, b);
@@ -106,6 +106,6 @@ if (any (k))
         end
         y_old = y_new;
     end
-    
+
     inv (k) = y_new;
 end

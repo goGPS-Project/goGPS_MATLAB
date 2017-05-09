@@ -14,7 +14,7 @@ function  [X,Y,vals,labI]=mp_utm(optn,varargin)
 %
 % Mathematical formulas for the projections and their inverses are taken from
 %
-%      Snyder, John P., Map Projections used by the US Geological Survey, 
+%      Snyder, John P., Map Projections used by the US Geological Survey,
 %      Geol. Surv. Bull. 1532, 2nd Edition, USGPO, Washington D.C., 1983.
 %
 
@@ -50,7 +50,7 @@ switch optn,
     X=name;
 
   case {'usage','set'}
-    
+
     m_names=fieldnames(MAP_ELLIP);
 
     X=char({['     ''' varargin{1} ''''],...
@@ -87,7 +87,7 @@ switch optn,
     MAP_VAR_LIST.rectbox='off';
     k=2;
 
-    while k<length(varargin),   
+    while k<length(varargin),
       switch varargin{k}(1:3),
 	case 'lon',
 	  MAP_VAR_LIST.ulongs=varargin{k+1};
@@ -108,21 +108,21 @@ switch optn,
     end;
 
     % set the zone and hemisphere if not specified
-    
+
     if (~MAP_VAR_LIST.zone)
       MAP_VAR_LIST.zone = 1 + fix((mod(mean(MAP_VAR_LIST.ulongs)+180,360))/6);
     end
-    
+
     if MAP_VAR_LIST.hemisphere==-1,
       MAP_VAR_LIST.hemisphere=mean(MAP_VAR_LIST.ulats)<0;
     end;
 
     % check for a valid ellipsoid. if not, use the normalized sphere
-    
+
     if ~isfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid),
        MAP_VAR_LIST.ellipsoid = 'normal';
     end
-    
+
     % Get X/Y and (if rectboxs are desired) recompute lat/long limits.
 
     mu_util('xylimits');
@@ -135,7 +135,7 @@ switch optn,
     vals=zeros(size(long));
 
     % Clip out-of-range values (lat/long boxes)
-    
+
     if  strcmp(MAP_VAR_LIST.rectbox,'off') & ~strcmp(varargin{4},'off'),
         vals=vals | long<=MAP_VAR_LIST.longs(1)+eps*10 | long>=MAP_VAR_LIST.longs(2)-eps*10 | ...
 	              lat<=MAP_VAR_LIST.lats(1)+eps*10 |   lat>=MAP_VAR_LIST.lats(2)-eps*10;
@@ -149,7 +149,7 @@ switch optn,
 
     [X,Y] = mu_ll2utm(lat,long,MAP_VAR_LIST.zone,MAP_VAR_LIST.hemisphere, ...
 	getfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid));
-    
+
     % Clip out-of-range values (rectboxes)
 
     if strcmp(MAP_VAR_LIST.rectbox,'on')  & ~strcmp(varargin{4},'off'),
@@ -165,13 +165,13 @@ switch optn,
 
     [Y,X] = mu_utm2ll(varargin{1}, varargin{2}, MAP_VAR_LIST.zone, ...
 	MAP_VAR_LIST.hemisphere, getfield(MAP_ELLIP,MAP_VAR_LIST.ellipsoid));
-        
+
   case 'xgrid',
-   
+
     [X,Y,vals,labI]=mu_util('xgrid',MAP_VAR_LIST.longs,MAP_VAR_LIST.lats,varargin{1},31,varargin{2:3});
 
   case 'ygrid',
-   
+
     [X,Y,vals,labI]=mu_util('ygrid',MAP_VAR_LIST.lats,MAP_VAR_LIST.longs,varargin{1},31,varargin{2:3});
 
   case 'box',
@@ -188,7 +188,7 @@ function [x,y] = mu_ll2utm (lat,lon, zone, hemisphere,ellipsoid)
 %
 %	[x,y] = mu_ll2utm (lat, lon, zone, hemisphere,ellipsoid)
 %
-%	input is latitude and longitude vectors, zone number, 
+%	input is latitude and longitude vectors, zone number,
 %		hemisphere(N=0,S=1), ellipsoid info [eq-rad, flat]
 %	output is X/Y vectors
 %
@@ -286,7 +286,7 @@ return
 %-------------------------------------------------------------------
 
 function [lat,lon] = mu_utm2ll (x,y, zone, hemisphere,ellipsoid)
-%mu_utm2ll		Convert X/Y UTM coordinates to geodetic lat,lon 
+%mu_utm2ll		Convert X/Y UTM coordinates to geodetic lat,lon
 %
 %	[lat,lon] = mu_utm2ll (x,y, zone, hemisphere,ellipsoid)
 %

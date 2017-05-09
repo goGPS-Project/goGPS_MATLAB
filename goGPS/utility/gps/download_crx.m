@@ -8,21 +8,21 @@ function [file_crx] = download_crx(gps_week, gps_time)
 %   gps_time = starting and ending GPS time [vector]
 %
 % OUTPUT:
-%   file_crx = donwloaded .CRX file names 
+%   file_crx = donwloaded .CRX file names
 %
 % DESCRIPTION:
 %   Download of .CRX files from the AIUB FTP server.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ function [file_crx] = download_crx(gps_week, gps_time)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
@@ -83,20 +83,20 @@ end
 fprintf('\n');
 
 for y = 1 : length(year)
-    
+
     %target directory
     s = '/aiub/BSWUSER52/GEN';
-    
+
     cd(ftp_server, '/');
     cd(ftp_server, s);
-    
+
     %target file
     s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
     mget(ftp_server,s2,down_dir);
-    
+
     %cell array with the paths to the downloaded files
     file_crx{y} = [down_dir, '/', s2];
-    
+
     fprintf(['Downloaded CRX file: ' s2 '\n']);
 end
 

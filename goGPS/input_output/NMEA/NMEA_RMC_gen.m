@@ -14,15 +14,15 @@ function nmeastring = NMEA_RMC_gen(pos_R, time)
 %   Returns a $GPRMC sentence in NMEA 0183 format.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ function nmeastring = NMEA_RMC_gen(pos_R, time)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %date
@@ -135,17 +135,17 @@ second = sprintf('%05.2f', date(1,6));
 % if (nchar == 1)
 %     [hour] = sprintf('0%s',hour);
 % end
-% 
+%
 % [null, nchar] = size(minute); %#ok<ASGLU>
 % if (nchar == 1)
 %     [minute] = sprintf('0%s',minute);
 % end
-% 
+%
 % [null, nchar] = size(second); %#ok<ASGLU>
 % if (nchar == 1)
 %     [second] = sprintf('0%s',second);
 % end
-% 
+%
 % decsec = '.00';
 
 day = sprintf('%02d', date(1,3));
@@ -156,12 +156,12 @@ year = sprintf('%02d', date(1,1));
 % if (nchar == 1)
 %     [day] = sprintf('0%s',day);
 % end
-% 
+%
 % [null, nchar] = size(month); %#ok<ASGLU>
 % if (nchar == 1)
 %     [month] = sprintf('0%s',month);
 % end
-% 
+%
 % [null, nchar] = size(year); %#ok<ASGLU>
 % if (nchar == 1)
 %     [year] = sprintf('0%s',year);

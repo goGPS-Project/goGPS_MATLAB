@@ -15,7 +15,7 @@ function [X,Y,vals,labI]=mp_azim(optn,varargin);
 %
 % Mathematical formulas for the projections and their inverses are taken from
 %
-%      Snyder, John P., Map Projections used by the US Geological Survey, 
+%      Snyder, John P., Map Projections used by the US Geological Survey,
 %      Geol. Surv. Bull. 1532, 2nd Edition, USGPO, Washington D.C., 1983.
 %
 % These are azimuthal projections, best suited for circular areas. The
@@ -24,7 +24,7 @@ function [X,Y,vals,labI]=mp_azim(optn,varargin);
 %   Orthographic   - neither conformal nor equal-area, but looks like globe
 %                    with viewpoint at infinity.
 %   Az Equal-area  - equal area, but not conformal (by Lambert)
-%   Az Equidistant - distance and direction from center are true 
+%   Az Equidistant - distance and direction from center are true
 %   Gnomonic       - all great circles are straight lines.
 %   Satellite      - a perspective view from a finite distance
 
@@ -82,7 +82,7 @@ switch optn,
          otherwise
            disp(['Unknown option: ' varargin{k}]);
        end;
-      k=k+2;    
+      k=k+2;
      end;
     if strcmp(MAP_VAR_LIST.rectbox,'off'), MAP_VAR_LIST.rectbox='circle'; end;
 
@@ -110,13 +110,13 @@ switch optn,
       % do some sperical trig
       edge=MAP_VAR_LIST.uradius*pi180 - [MAP_VAR_LIST.rlong 0];
       cosc=sin(MAP_VAR_LIST.rlat)*sin(edge(2))+cos(MAP_VAR_LIST.rlat)*cos(edge(2))*cos(edge(1));
-      sinc=sqrt( ( cos(edge(2))*sin(edge(1)))^2 + ... 
+      sinc=sqrt( ( cos(edge(2))*sin(edge(1)))^2 + ...
                  (cos(MAP_VAR_LIST.rlat)*sin(edge(2))-sin(MAP_VAR_LIST.rlat)*cos(edge(2))*cos(edge(1)))^2);
       rradius=atan2(sinc,cosc);
       MAP_VAR_LIST.radius=rradius/pi180;
     end;
-    MAP_VAR_LIST.cosradius=cos(rradius);  
- 
+    MAP_VAR_LIST.cosradius=cos(rradius);
+
     switch MAP_PROJECTION.name,
       case name(1),
         MAP_VAR_LIST.rhomax=2*tan(rradius/2);
@@ -130,12 +130,12 @@ switch optn,
         MAP_VAR_LIST.rhomax=tan(rradius);
       case name(6),
         MAP_VAR_LIST.rhomax=sin(rradius)/(1+(1-cos(rradius))/MAP_VAR_LIST.uradius);
-    end;  
+    end;
 
     if strcmp(MAP_VAR_LIST.rectbox,'on'),
       if length(MAP_VAR_LIST.uradius)==1,
         MAP_VAR_LIST.xlims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;
-        MAP_VAR_LIST.ylims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;        
+        MAP_VAR_LIST.ylims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;
       else
         [X,Y]=mp_azim('ll2xy',MAP_VAR_LIST.uradius(1),MAP_VAR_LIST.uradius(2),'clip','off');
         MAP_VAR_LIST.xlims=[-abs(X) abs(X)];
@@ -147,8 +147,8 @@ switch optn,
     end;
 
     mu_util('lllimits');
- 
-    
+
+
 
   case 'll2xy',
 
@@ -156,12 +156,12 @@ switch optn,
     lat=varargin{2}*pi180;
     vals=zeros(size(long));
 
-    pi180=pi/180;     
+    pi180=pi/180;
     cosc     =sin(MAP_VAR_LIST.rlat)*sin(lat)+cos(MAP_VAR_LIST.rlat)*(cos(lat).*cos(long));
     sinAzsinc=sin(long).*cos(lat);
     cosAzsinc=cos(MAP_VAR_LIST.rlat)*sin(lat)-sin(MAP_VAR_LIST.rlat)*(cos(lat).*cos(long));
     sinc=sqrt(sinAzsinc.^2+cosAzsinc.^2);
-  
+
     switch MAP_PROJECTION.name,
       case name(1),
         cosc(cosc==-1)=-1+eps;
@@ -176,7 +176,7 @@ switch optn,
       case name(5),
         rho=sinc./cosc; % = tan(c)
       case name(6),
-        rho=sinc./(1+(1-cosc)/MAP_VAR_LIST.uradius); % 
+        rho=sinc./(1+(1-cosc)/MAP_VAR_LIST.uradius); %
      end;
 
     sinc(sinc==0)=eps;
@@ -187,9 +187,9 @@ switch optn,
     % distance from map center) rather than directly against rhomax, because
     % in the orthographic map rho->0 for points on the other side of the
     % globe whereas c does not!
-    
-    % Also, we clip on rho even if we later clip on X/Y because in some projections (e.g. the 
-    % orthographic) the X/Y locations wrap back. 
+
+    % Also, we clip on rho even if we later clip on X/Y because in some projections (e.g. the
+    % orthographic) the X/Y locations wrap back.
     if ~strcmp(varargin{4},'off'),
         vals = vals | cosc<=MAP_VAR_LIST.cosradius+eps*10;
         [rho,Az]=mu_util('clip',varargin{4},rho,MAP_VAR_LIST.rhomax,cosc<MAP_VAR_LIST.cosradius,Az);
@@ -215,7 +215,7 @@ switch optn,
     Z=exp(i*(atan2(varargin{2},varargin{1})-MAP_VAR_LIST.rotang*pi180));
     V1=rho.*real(Z);
     V2=rho.*imag(Z);
-    
+
     ir=rho==0;  % To prevent /0 warnings when rho is 0
     rho(ir)=eps;
 
@@ -246,7 +246,7 @@ switch optn,
 %        X=(MAP_VAR_LIST.rlong+atan2(varargin{1},varargin{2}))/pi180;
 %      otherwise
 %        X=(MAP_VAR_LIST.rlong+atan2( varargin{1}.*sin(c), ...
-%          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*varargin{2}.*sin(c) ) )/pi180; 
+%          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*varargin{2}.*sin(c) ) )/pi180;
 %     end;
 
     Y=(asin(cos(c)*sin(MAP_VAR_LIST.rlat) + ...
@@ -259,11 +259,11 @@ switch optn,
         X=(MAP_VAR_LIST.rlong+atan2(V1,V2))/pi180;
       otherwise
         X=(MAP_VAR_LIST.rlong+atan2( V1.*sin(c), ...
-          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*V2.*sin(c) ) )/pi180; 
+          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*V2.*sin(c) ) )/pi180;
      end;
 
   case 'xgrid',
-   
+
     [X,Y,vals,labI]=mu_util('xgrid',MAP_VAR_LIST.longs,MAP_VAR_LIST.lats,varargin{1},31,varargin{2:3});
 
   case 'ygrid',

@@ -36,16 +36,16 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   Parses RINEX observation files.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
-%  Contributors:     Damianop Triglione, 
+%  Written by:
+%  Contributors:     Damianop Triglione,
 %                    Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -64,7 +64,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 global report
@@ -118,40 +118,40 @@ for f = 1 : nFiles
     else
         current_file = filename;
     end
-    
+
     fprintf('%s',['Reading RINEX file ' current_file ': ... ']);
-    
+
     %open RINEX observation file
     fid = fopen(current_file,'r');
-    
+
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg,['RINEX file ' current_file ': parsing header...'])
     end
-    
+
     %parse RINEX header
     [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}, marker{1,1,f}] = RINEX_parse_hdr(fid);
-    
+
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
         error(['RINEX file ' current_file ': basic data is missing in the file header'])
     end
-    
+
     %find observation type columns
     [obsColumns, nObsTypes] = obs_type_find(obs_type, sysId);
-    
+
     if (wait_dlg_PresenceFlag)
         waitbar(1,wait_dlg)
     end
-    
+
     %-------------------------------------------------------------------------------
-    
+
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg,['RINEX file ' current_file ': reading observations...'])
     end
-    
+
     k = 1;
     while (~feof(fid))
-        
+
         %read data for the current epoch (ROVER)
         [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
         if ~isnan(time(k,1,f))
@@ -165,13 +165,13 @@ for f = 1 : nFiles
                 dop2(:,k,f) = zeros(nSatTot,1);
                 snr1(:,k,f) = zeros(nSatTot,1);
                 snr2(:,k,f) = zeros(nSatTot,1);
-                
+
                 nEpochs = nEpochs  + 1;
             end
-            
+
             %read ROVER observations
             obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, cc);
-            
+
             idx_P1 = obs.P1 ~= 0;
             idx_C1 = obs.C1 ~= 0;
             idx_codeC1 = idx_P1 - idx_C1;
@@ -179,7 +179,7 @@ for f = 1 : nFiles
             pr1(:,k,f) = zeros(size(pr1(:,k,f)));
             pr1(idx_P1,k,f) = obs.P1(idx_P1);
             pr1(find(codeC1(:,k,f)),k,f) = obs.C1(find(codeC1(:,k,f))); %#ok<FNDSB>
-            
+
             %         %read ROVER observations
             %         if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
             %             pr1(:,k,f) = obs.P1;
@@ -197,24 +197,24 @@ for f = 1 : nFiles
             k = k + 1;
         end
     end
-    
+
     if (wait_dlg_PresenceFlag)
         waitbar(1,wait_dlg)
     end
-    
+
     %GPS week number
     week(:,1,f) = date2gps(date(:,:,f));
-    
+
     %observation rate
     if (interval(:,1,f) == 0)
         interval(:,1,f) = round((median(time(2:k-1,1,f) - time(1:k-2,1,f)))*1000)/1000;
     end
-    
+
     %-------------------------------------------------------------------------------
-    
+
     %close RINEX files
     fclose(fid);
-    
+
 %     if (processing_interval > interval(:,1,f))
 %         interval(:,1,f) = processing_interval;
 %     end
@@ -244,7 +244,7 @@ for f = 1 : nFiles
         report.obs_raw.interval(f) = interval(1,1,f);
         report.obs_raw.time_start(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f)));
         report.obs_raw.time_end(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(k-1,1,f),date(k-1,2,f),date(k-1,3,f),date(k-1,4,f),date(k-1,5,f),date(k-1,6,f)));
-        
+
         stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
         if any(stat_sat(:))
             report.obs_raw.nfreq(f)=2;
@@ -258,9 +258,9 @@ for f = 1 : nFiles
             report.obs_raw.L1L2_completeness(f) = cellstr(sprintf('%6.1f', report.obs_raw.n_ph2(f)/report.obs_raw.n_ph1(f)*100));
         else
             report.obs_raw.L1L2_completeness(f) = cellstr(sprintf('%6s', '0'));
-        end        
+        end
     end
-    
+
     fprintf('done\n');
 end
 
@@ -286,7 +286,7 @@ end
 
 if (~isempty(report) && report.opt.write == 1)
     % extract quality parameters for report
-    for f = 1 : nFiles        
+    for f = 1 : nFiles
          % create statistics on observations
         stat_sat = ((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f))) + (ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ...
             (pr1(:,:,f)~=0 & isfinite(pr1(:,:,f))) + (pr2(:,:,f)~=0 & isfinite(pr2(:,:,f))) + ...
@@ -302,7 +302,7 @@ if (~isempty(report) && report.opt.write == 1)
         report.obs_sync.interval(f) = interval;
         report.obs_sync.time_start(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f)));
         report.obs_sync.time_end(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(size(date,1),1,f),date(size(date,1),2,f),date(size(date,1),3,f),date(size(date,1),4,f),date(size(date,1),5,f),date(size(date,1),6,f)));
-        
+
         stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
         if any(stat_sat(:))
             report.obs_sync.nfreq(f)=2;
@@ -316,7 +316,7 @@ if (~isempty(report) && report.opt.write == 1)
             report.obs_sync.L1L2_completeness(f) = cellstr(sprintf('%6.1f', report.obs_sync.n_ph2(f)/report.obs_sync.n_ph1(f)*100));
         else
             report.obs_sync.L1L2_completeness(f) = cellstr(sprintf('%6s', '0'));
-        end        
+        end
     end
 end
-        
+

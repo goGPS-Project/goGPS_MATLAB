@@ -25,15 +25,15 @@ function varargout = gui_decode_stream(varargin)
 % Last Modified by GUIDE v2.5 22-Aug-2013 17:15:47
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function varargout = gui_decode_stream(varargin)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % Begin initialization code - DO NOT EDIT
@@ -116,7 +116,7 @@ if (~isempty(varargin))
         set(handles.cBeiDou, 'Value', constellations.BeiDou.enabled);
         set(handles.cQZSS, 'Value', constellations.QZSS.enabled);
         set(handles.cSBAS, 'Value', constellations.SBAS.enabled);
-        
+
         %set RINEX output
         set(handles.out_gogps_binary, 'Value', 0);
         set(handles.out_rinex, 'Value', 1);
@@ -321,7 +321,7 @@ elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     if (get(handles.flag_rover_stream,'Value'))
         week = streamR2RINEX(filerootIN, filerootOUT_path, rinex_metadata, constellations, wait_dlg);
     end
-    
+
     if (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
         if (~week)
             week = gui_GPS_week;
@@ -348,7 +348,7 @@ close(handles.converter_panel)
 
 % --- Executes when selected object is changed in output_type.
 function output_type_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in output_type 
+% hObject    handle to the selected object in output_type
 % eventdata  structure with the following fields (see UIBUTTONGROUP)
 %	EventName: string 'SelectionChanged' (read only)
 %	OldValue: handle of the previously selected object or empty if none was selected

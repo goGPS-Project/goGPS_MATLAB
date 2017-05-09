@@ -15,15 +15,15 @@ function [sbas] = load_ems(data_dir_ems, gps_week, time_R)
 %   Tool for loading EMS files and reading SBAS data.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -42,18 +42,18 @@ function [sbas] = load_ems(data_dir_ems, gps_week, time_R)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %EMS data initialization
 sv_e   = [];
-year   = []; 
-month  = []; 
+year   = [];
+month  = [];
 day    = [];
-hour   = []; 
-minute = []; 
-second = []; 
-MT     = []; 
+hour   = [];
+minute = [];
+second = [];
+MT     = [];
 msg    = [];
 
 %output initialization
@@ -73,27 +73,27 @@ n = 0;
 
 %find files with ".ems" extension
 for j = 1 : nmax
-    
+
     %read the name of the j-th file
     ems_file_name = getfield(data_dir,{j,1},'name');
-    
+
     %get the number of characters in the filename
     ems_fn_length = size(ems_file_name,2);
-    
+
     %check if the filename corresponds to that expected from a standard EMS file (i.e. "h??.ems", with 0 <= '??' <= 23),
     % or if it corresponds to that expected from .ems files downloaded by goGPS (e.g. 2012_d347_h11.ems)
     if (((ems_fn_length == 7  && strcmpi(ems_file_name(1), 'h') && (str2num(ems_file_name(2:3))   >= 0 && str2num(ems_file_name(2:3))   <= 23))  || ...
          (ems_fn_length == 17 && strcmpi(ems_file_name(11),'h') && (str2num(ems_file_name(12:13)) >= 0 && str2num(ems_file_name(12:13)) <= 23))) && ...
           strcmpi(ems_file_name(ems_fn_length - 3 : ems_fn_length), '.ems'))
-        
+
         n = n + 1;
-        
+
         %full path to the target file
         ems_file_target  = strcat(data_dir_ems, '/', ems_file_name);
-        
+
         %open .ems file
         fid_fd = fopen(ems_file_target,'r');
-        
+
         %warnings
         if (fid_fd ~= -1)
             %fprintf(['Reading EMS file ', ems_file_name, '\n']);
@@ -107,13 +107,13 @@ for j = 1 : nmax
 
         %rewind pointer
         %frewind(fid_fd)
-        
+
         %read the whole file. Each line contains:
         %PRN SV EGNOS, year, month, day, hour, minutes, seconds, MT, message
         data = textscan(fid_fd, '%n%n%n%n%n%n%n%n%64c');
-        
+
         fclose(fid_fd);
-        
+
         sv_e   = [sv_e;   data{1}];
         year   = [year;   data{2}];
         month  = [month;  data{3}];
@@ -139,7 +139,7 @@ year = four_digit_year(year);
 time_E(:,1) = GPS_wk_e;     % GPS week
 time_E(:,2) = GPS_sec_wk_e; % GPS seconds
 
-time_E_sec = time_E(:,1)*7*86400 + time_E(:,2); 
+time_E_sec = time_E(:,1)*7*86400 + time_E(:,2);
 
 index = find(time_E_sec >= (time_R(1)-60*60) & time_E_sec <= (time_R(end)+60*60));
 
@@ -161,7 +161,7 @@ end
 
 
 %%count lost messages
-% dt = diff(time_E(:,2)); 
+% dt = diff(time_E(:,2));
 % tt = dt - 1;
 % lost_mess = sum(tt);
 
@@ -170,9 +170,9 @@ clear GPS_wk_e GPS_sec_wk_e sv_e year month day hour minute second time_E_sec
 %CRC check
 check_mt = zeros(length(MT), 1);
 for i = 1 : length(MT)
-     
+
      [crc, parity] = ems_parity(msg(i,:));
-     
+
      if (crc == parity)
          check_mt(i) = 1;
      end
@@ -199,19 +199,19 @@ msg(:,:) = msg(ii,:);
 clear check_mt crc parity mt_ok t_abs yy ii
 
 %load PRN masks
-[iodp_mask, prn_mask] = load_prnmask(MT, msg); 
+[iodp_mask, prn_mask] = load_prnmask(MT, msg);
 
 %load IGP masks
-[iodi_mask, band_mask, igp_mask] = load_igpmask(MT, msg); 
+[iodi_mask, band_mask, igp_mask] = load_igpmask(MT, msg);
 
 %load fast corrections (or pseudorange corrections)
-[prc_E, GPS_time_fc] = load_fc(iodp_mask, prn_mask, MT, msg, time_E); 
+[prc_E, GPS_time_fc] = load_fc(iodp_mask, prn_mask, MT, msg, time_E);
 
 %load long term corrections (delta position SV and delta clock SV)
-[dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time_ltc] = load_ltc(iodp_mask, prn_mask, MT, msg, time_E); 
+[dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time_ltc] = load_ltc(iodp_mask, prn_mask, MT, msg, time_E);
 
 %load the coordinates of IGP nodes and the corresponding vertical ionospheric correction
-[igp, ivd_E, lat_igp, lon_igp, GPS_time_ic] = load_ic(iodi_mask, band_mask, igp_mask, MT, msg, time_E); 
+[igp, ivd_E, lat_igp, lon_igp, GPS_time_ic] = load_ic(iodi_mask, band_mask, igp_mask, MT, msg, time_E);
 
 %check that there are sufficient EMS data matching the survey timespan
 [ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc, GPS_time_ic, gps_week, gps_tow);

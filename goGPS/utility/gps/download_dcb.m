@@ -8,7 +8,7 @@ function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 %   gps_time = starting and ending GPS time [vector]
 %
 % OUTPUT:
-%   file_dcb = donwloaded .DCB file names 
+%   file_dcb = donwloaded .DCB file names
 %   compressed = flag to let the calling function know whether the
 %                downloaded files are still compressed
 %
@@ -16,15 +16,15 @@ function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 %   Download of .DCB files from the AIUB FTP server.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -43,7 +43,7 @@ function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -86,7 +86,7 @@ else
     month = date_f(2) : 1 : 12;
     year  = date_f(1).*ones(size(month));
     for y = 2 : length(year_orig)-1
-        month = [month 1 : 1 : 12]; 
+        month = [month 1 : 1 : 12];
         year = [year (year+y-1).*ones(1,12)];
     end
     month = [month 1 : 1 : date_l(2)];
@@ -106,19 +106,19 @@ fprintf('\n');
 m = 0;
 
 for y = 1 : length(year_orig)
-    
+
     %target directory
     s = ['/aiub/CODE/', num2str(year_orig(y))];
-    
+
     cd(ftp_server, '/');
     cd(ftp_server, s);
-    
+
     while(m <= length(month)-1)
-        
+
         m = m + 1;
-        
+
         ff = {'P1C1','P1P2'};
-        
+
         for p = 1 : length(ff)
             %target file
             s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
@@ -146,12 +146,12 @@ for y = 1 : length(year_orig)
                 movefile([down_dir '/' s1], [down_dir '/' s2]);
                 fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
             end
-            
+
             %cell array with the paths to the downloaded files
             entry = {[down_dir, '/', s2]};
             file_dcb = [file_dcb; entry]; %#ok<AGROW>
         end
-        
+
         if (month(m) == 12)
             break
         end

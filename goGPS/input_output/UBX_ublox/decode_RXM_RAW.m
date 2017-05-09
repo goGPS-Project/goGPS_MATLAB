@@ -27,15 +27,15 @@ function [data] = decode_RXM_RAW(msg, constellations)
 %   RXM-RAW binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -54,7 +54,7 @@ function [data] = decode_RXM_RAW(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -148,19 +148,19 @@ for j = 1 : NSV
     D1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    
+
     % satellite number decoding
     SV = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
-    
+
     % quality index decoding
     MQI = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
-    
+
     % signal-to-noise ratio decoding (in dBHz)
     CNO = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
-    
+
     % signal loss index decoding
     LLI = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
@@ -170,12 +170,12 @@ for j = 1 : NSV
     if (SV <= 32 && constellations.GPS.enabled)
         idx = constellations.GPS.indexes(SV);
     end
-        
+
     % phase, code and doppler measure save
     CPM = L1;
     PRM = C1;
     DOM = D1;
-    
+
     % data output save
     data{3}(idx,1) = CPM;
     data{3}(idx,2) = PRM;

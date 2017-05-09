@@ -24,8 +24,8 @@ function [data] = decode_FTX_PSEUDO(msg, constellations)
 %          3.4) PRN          = space vehicle number
 %          3.5) ObsFlags     = Status bitfield. The values of this field are defined by the PSEUDO_OBS_ flags.
 %          3.6) SNR          = S/N [dBHz] range [0,63]
-%          3.7) Corrections        = Which corrections have been applied. See PSEUDO_OBS_CORRECTED_ flags. 
-%          3.8) LoopDopplerOffset  = Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].   
+%          3.7) Corrections        = Which corrections have been applied. See PSEUDO_OBS_CORRECTED_ flags.
+%          3.8) LoopDopplerOffset  = Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].
 %          3.9) RangeErrEstim      = Error estimate for range measurement.
 %          3.10) RateErrEstim      = Error estimate rate measurement.
 %          3.11) EpochCount        = Counter of PRN code epochs since channel initialisation. The least significant 15 bits contain the epoch count (which will wrap around after 32767 epochs). The most significant bit is set to 1 after the first wraparound has happened.
@@ -34,15 +34,15 @@ function [data] = decode_FTX_PSEUDO(msg, constellations)
 %   PSEUDO binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -61,7 +61,7 @@ function [data] = decode_FTX_PSEUDO(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -131,8 +131,8 @@ for j = 1 : NumObs
     % PSEUDO.Obs[n].wPrn 	WORD 	LS byte: SV PRN. MS byte: reserved.
     [PRN, pos,PRN_part] = FTX_TypeConv('WORD', msg, pos);
     PRN = PRN_part(1);
-    clear PRN_part    
-    
+    clear PRN_part
+
     % PSEUDO.Obs[n].wSnr 	WORD 	LS byte: S/N [dBHz] range [0,63]. MS byte: reserved.
     [SNR, pos,SNR_part] = FTX_TypeConv('WORD', msg, pos);
     SNR = SNR_part(1);
@@ -146,17 +146,17 @@ for j = 1 : NumObs
 
     % PSEUDO.Obs[n].dPseudoRange 	DOUBLE 	Code pseudorange [m] (corrected and possibly smoothed).
     [PseudoRange, pos]  = FTX_TypeConv('DOUBLE', msg, pos);
-    
+
     % PSEUDO.Obs[n].dDoppler 	DOUBLE 	Doppler [m/s].
     [Doppler, pos]      = FTX_TypeConv('DOUBLE', msg, pos);
     Doppler = Doppler / lambda;
 
-    % PSEUDO.Obs[n].iLoopDopplerOffset 	INT16 	Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].   
+    % PSEUDO.Obs[n].iLoopDopplerOffset 	INT16 	Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].
     [LoopDopplerOffset, pos] = FTX_TypeConv('INT16', msg, pos);
-    
+
     % NOT IMPLEMENTED - PSEUDO.Obs[n].iOffsetEstim 	INT16 	Reserved for future use.
     pos = pos +16;
-    
+
     % PSEUDO.Obs[n].iCarrierPhase 	INT16 	Carrier phase. (degree)
     [CarrierPhase, pos]  = FTX_TypeConv('INT16', msg, pos);
     %CarrierPhase = CarrierPhase / 360;                      %Convert to cycles
@@ -173,7 +173,7 @@ for j = 1 : NumObs
     EpochCount2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     EpochCount  = EpochCount1 + (EpochCount1 * 2^8);
     clear EpochCount1 EpochCount2
-        
+
     % NOT IMPLEMENTED - PSEUDO.Obs[n].dwReserved4 	DWORD 	Reserved for future use.
     pos = pos +32;
 
@@ -215,7 +215,7 @@ for j = 1 : NumObs
     if (SV <= 32 && (SNR > 0))
         idx = constellations.GPS.indexes(SV);
     end
-    
+
     %data output save
     data{3}(idx, 1) = CarrierPhase;
     data{3}(idx, 2) = PseudoRange;
@@ -233,9 +233,9 @@ end
 end
 
 
-% 
+%
 % Data flags in the PSEUDO structure
-% 
+%
 % These flags indicate the quality of the data in the PSEUDO .
 % Name 	Value 	Description
 % PSEUDO_OBS_DOPPLER_OK 	0x0001 	The doppler is valid
@@ -257,7 +257,7 @@ end
 % PSEUDO_OBS_MEAS_OK 	( PSEUDO_OBS_ELEV_OK | PSEUDO_OBS_SNR_OK | PSEUDO_OBS_PRN_OK | PSEUDO_OBS_NO_CROSS_CORR | PSEUDO_OBS_SV_HEALTHY | PSEUDO_OBS_DATA_EXISTS | PSEUDO_OBS_DATA_GOOD | PSEUDO_OBS_PSEUDORANGE_OK ) 	A common mask that can be used to determine if the pseudorange measurement is valid for navigation.
 % PSEUDO_OBS_DOPPLER_MEAS_OK 	( PSEUDO_OBS_ELEV_OK | PSEUDO_OBS_SNR_OK | PSEUDO_OBS_PRN_OK | PSEUDO_OBS_NO_CROSS_CORR | PSEUDO_OBS_SV_HEALTHY | PSEUDO_OBS_DATA_EXISTS | PSEUDO_OBS_DATA_GOOD | PSEUDO_OBS_DOPPLER_OK ) 	A common mask that can be used to determine if the pseudorange measurement is valid for navigation.
 % Flags in the pseudodata header
-% 
+%
 % These flags are common to all channels in the PSEUDO structure.
 % Name 	Value 	Description
 % PSEUDO_TOW_WEEK_OK 	0x0001 	This flag is set in the PSEUDO header if the reference TOW week is valid.
@@ -266,7 +266,7 @@ end
 % PSEUDO_FIRST_MEAS 	0x0008 	This flag is set in the PSEUDO header if this is the first PSEUDO message after the obs task has been started.
 % PSEUDO_UNSCHEDULED 	0x0010 	This flag is set in the PSEUDO header if the corresponding NAV_FIX should not be output.
 % Correction flags in the PSEUDO structure
-% 
+%
 % These flags indicate the corrections that have been applied to the data in the PSEUDO structure.
 % Name 	Value 	Description
 % PSEUDO_OBS_CORRECTED_AMBIGUOUS 	0x0001 	The observation has been corrected for millisecond ambiguity.
@@ -278,5 +278,5 @@ end
 % PSEUDO_OBS_CORRECTED_BY_SLOW_CORR 	0x0080 	Waas long term corrections have been applied
 % PSEUDO_OBS_CORRECTED_BY_WAAS_IONO 	0x0100 	Waas ionospheric corrections have been applied
 % PSEUDO_OBS_CORR_FRAME_LOCK 	0x8000u 	The channel has frame lock.
-% PSEUDO_OBS_CORR_POSSIBLE_XCORR 	0x4000u 	
+% PSEUDO_OBS_CORR_POSSIBLE_XCORR 	0x4000u
 % PSEUDO_OBS_CORRECTED_BY_WAAS 	( PSEUDO_OBS_CORRECTED_BY_WAAS_IONO | PSEUDO_OBS_CORRECTED_BY_FAST_CORR) 	TBA: for now only waas ionos corretions

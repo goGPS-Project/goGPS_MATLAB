@@ -26,14 +26,14 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -72,16 +72,16 @@ time_tx_RAW = time_rx - (range - err_tropo - err_iono) / goGNSS.V_LIGHT + dtR;
 % end
 
 if (isempty(SP3))
-    
+
     %if GLONASS
     if (strcmp(char(Eph(31)),'R'))
-        
+
         dtS = sat_clock_error_correction(time_tx_RAW, Eph);
         dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
     else
         %relativistic correction term
         dtrel = relativistic_clock_error_correction(time_tx_RAW, Eph, SP3);
-        
+
         %group delay correction term
         if (nargin > 9 && ~strcmp(obs_comb,'IONO_FREE'))
             tgd = Eph(28);
@@ -96,7 +96,7 @@ if (isempty(SP3))
         else
             tgd = 0;
         end
-        
+
         dtS = sat_clock_error_correction(time_tx_RAW, Eph);
         dtS = dtS + dtrel - tgd + dtsbas;
         dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);

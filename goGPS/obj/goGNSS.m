@@ -13,12 +13,12 @@
 
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -40,21 +40,21 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef goGNSS < handle & Mode_Settings
-    
+
     % Constant values
     % => to discriminate them from function (in autocompletion) they are
     % written in capital letters
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
-        
+
         V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
-        
+
         MAX_SAT = 32                          % Maximum number of active satellites in a constellation
-        
+
         % CONSTELLATION REF -----------------------------------------------
         % CRS parameters, according to each GNSS system CRS definition
         % (ICD document in brackets):
@@ -64,25 +64,25 @@ classdef goGNSS < handle & Mode_Settings
         % *_GAL --> GTRF     (Galileo-ICD 1.1)
         % *_BDS --> CGCS2000 (BeiDou-ICD 1.0)
         % *_QZS --> GRS80   (IS-QZSS 1.5D)
-        
+
         ELL_A_GPS = 6378137;                          % GPS (WGS-84)      Ellipsoid semi-major axis [m]
         ELL_A_GLO = 6378136;                          % GLONASS (PZ-90)   Ellipsoid semi-major axis [m]
         ELL_A_GAL = 6378137;                          % Galileo (GTRF)    Ellipsoid semi-major axis [m]
         ELL_A_BDS = 6378136;                          % BeiDou (CGCS2000) Ellipsoid semi-major axis [m]
         ELL_A_QZS = 6378137;                          % QZSS (WGS-84)     Ellipsoid semi-major axis [m]
-        
+
         ELL_F_GPS = 1/298.257223563;                  % GPS (WGS-84)      Ellipsoid flattening
         ELL_F_GLO = 1/298.25784;                      % GLONASS (PZ-90)   Ellipsoid flattening
         ELL_F_GAL = 1/298.257222101;                  % Galileo (GTRF)    Ellipsoid flattening
         ELL_F_BDS = 1/298.257222101;                  % BeiDou (CGCS2000) Ellipsoid flattening
         ELL_F_QZS = 1/298.257222101;                  % QZSS (WGS-84)     Ellipsoid flattening
-        
+
         ELL_E_GPS = sqrt(1-(1-goGNSS.ELL_F_GPS)^2);   % GPS (WGS-84)      Eccentricity
         ELL_E_GLO = sqrt(1-(1-goGNSS.ELL_F_GLO)^2);   % GLONASS (PZ-90)   Eccentricity
         ELL_E_GAL = sqrt(1-(1-goGNSS.ELL_F_GAL)^2);   % Galileo (GTRF)    Eccentricity
         ELL_E_BDS = sqrt(1-(1-goGNSS.ELL_F_BDS)^2);   % BeiDou (CGCS2000) Eccentricity
         ELL_E_QZS = sqrt(1-(1-goGNSS.ELL_F_QZS)^2);   % QZSS (WGS-84)     Eccentricity
-        
+
         GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_GLO = 3.986004418e14;                  % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -92,64 +92,64 @@ classdef goGNSS < handle & Mode_Settings
                                                   %        by ecc_anomaly.m for computation time reasons; if
                                                   %        it's needed to change them, please update also
                                                   %        the values in ecc_anomaly.m)
-        
+
         OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GLO = 7.292115e-5;                 % GLONASS Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GAL = 7.2921151467e-5;             % Galileo Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_BDS = 7.292115e-5;                 % BeiDou  Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_QZS = 7.2921151467e-5;             % QZSS    Angular velocity of the Earth rotation [rad/s]
-        
+
         J2_GLO = 1.0826257e-3;                        % GLONASS second zonal harmonic of the geopotential
-        
+
         PI_ORBIT = 3.1415926535898;                   % pi value used for orbit computation
         CIRCLE_RAD = 2*goGNSS.PI_ORBIT;               % 2 pi (NOTE: this value is not actually called from goGNSS.m
                                                       %             for computation time reasons; if it's needed to
                                                       %             change it, please update also ecc_anomaly.m and
                                                       %             satellite_orbits.m)
-                                                      
+
                                                       % Standard atmosphere - Berg, 1948
         STD_PRES = 1013.25;                           % pressure [mbar]
         STD_TEMP = 291.15;                            % temperature [K]
         STD_HUMI = 50.0;                              % humidity [%]
-        
+
         % CONSTELLATION SPECIFIC ------------------------------------------
-        
+
         FL1 = 1575.420;  % GPS [MHz]
         FL2 = 1227.600;  %
         FL5 = 1176.450;  %
-        
+
         FR1_base  = 1602.000;  % GLONASS [MHz]
         FR2_base  = 1246.000;  %
         FR1_delta = 0.5625;    %
         FR2_delta = 0.4375;    %
         FR_channels = 6:-1:-7;
-        
+
         FE1  = goGNSS.FL1;     % Galileo [MHz]
         FE5a = goGNSS.FL5;     %
         FE5b = 1207.140;       %
         FE5  = 1191.795;       %
         FE6  = 1278.750;       %
-        
+
         FC1  = 1589.740;       % BeiDou [MHz]
         FC2  = 1561.098;       %
         FC5b = goGNSS.FE5b;    %
         FC6  = 1268.520;       %
-        
+
         FJ1 = goGNSS.FL1;      % QZSS [MHz]
         FJ2 = goGNSS.FL2;      %
         FJ5 = goGNSS.FL5;      %
         FJ6 = goGNSS.FE6;      %
-        
+
         FS1 = goGNSS.FL1;      % SBAS [MHz]
         FS5 = goGNSS.FL5;      %
-        
+
         FG = [goGNSS.FL1 goGNSS.FL2 goGNSS.FL5]*1e6;                % GPS carriers frequencies [Hz]
         LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;                      % GPS carriers wavelengths [m]
         ALPHA1G = goGNSS.FG(1)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
         ALPHA2G = goGNSS.FG(2)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
         ALPHATG = 77;% round(goGNSS.FL1/10.23/2);                   % GPS iono-free combination parameter
         ALPHANG = 60;% round(goGNSS.FL2/10.23/2);                   % GPS iono-free combination parameter
-        
+
         FR_base  = [goGNSS.FR1_base goGNSS.FR2_base];                         % GLONASS carriers base frequencies [Hz]
         FR_delta = [goGNSS.FR1_delta goGNSS.FR2_delta];                       % GLONASS carriers delta frequencies [Hz/n]
         FR1 = goGNSS.FR_channels' .* goGNSS.FR_delta(1) + goGNSS.FR_base(1);
@@ -160,28 +160,28 @@ classdef goGNSS < handle & Mode_Settings
         ALPHA2R = goGNSS.FR(:,2).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
         ALPHATR = 9;                                                          % GLONASS iono-free combination parameter
         ALPHANR = 7;                                                          % GLONASS iono-free combination parameter
-        
+
         FE = [goGNSS.FE1 goGNSS.FE5a goGNSS.FE5b goGNSS.FE5 goGNSS.FE6]*1e6; % Galileo carriers frequencies [Hz]
         LAMBDAE = goGNSS.V_LIGHT ./ goGNSS.FE;                               % Galileo carriers wavelengths [m]
         ALPHA1E = goGNSS.FE(1)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
         ALPHA2E = goGNSS.FE(2)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
         ALPHATE = 154;% round(goGNSS.FE1/10.23);                             % Galileo iono-free combination parameter
         ALPHANE = 115;% round(goGNSS.FE5a/10.23);                            % Galileo iono-free combination parameter
-        
+
         FC = [goGNSS.FC2 goGNSS.FC5b goGNSS.FC6 goGNSS.FC1]*1e6;             % BeiDou carriers frequencies [Hz]
         LAMBDAC = goGNSS.V_LIGHT ./ goGNSS.FC;                               % BeiDou carriers wavelengths [m]
         ALPHA1C = goGNSS.FC(1)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
         ALPHA2C = goGNSS.FC(2)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
         ALPHATC = 763;% round(goGNSS.FC2/2.046);                             % BeiDou iono-free combination parameter
         ALPHANC = 590;% round(goGNSS.FC5b/2.046);                            % BeiDou iono-free combination parameter
-        
+
         FJ = [goGNSS.FJ1 goGNSS.FJ2 goGNSS.FJ5 goGNSS.FJ6]*1e6;     % QZSS carriers frequencies [Hz]
         LAMBDAJ = goGNSS.V_LIGHT ./ goGNSS.FJ;                      % QZSS carriers wavelengths [m]
         ALPHA1J = goGNSS.FJ(1)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
         ALPHA2J = goGNSS.FJ(2)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
         ALPHATJ = 77;% round(goGNSS.FJ1/10.23/2);                   % QZSS iono-free combination parameter
         ALPHANJ = 60;% round(goGNSS.FJ2/10.23/2);                   % QZSS iono-free combination parameter
-        
+
         FS = [goGNSS.FS1 goGNSS.FS5]*1e6;                           % SBAS carriers frequencies [Hz]
         LAMBDAS = goGNSS.V_LIGHT ./ goGNSS.FS;                      % SBAS carriers wavelengths [m]
         ALPHA1S = goGNSS.FS(1)^2/(goGNSS.FS(1)^2 - goGNSS.FS(2)^2); % SBAS iono-free combination parameter
@@ -190,22 +190,22 @@ classdef goGNSS < handle & Mode_Settings
         ALPHANS = 115;% round(goGNSS.FE5a/10.23);                   % SBAS iono-free combination parameter
 
         % CONSTELLATIONS IDs ----------------------------------------------
-        
+
         ID_GPS     = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO = 3 % Id of Galileo constellation for goGPS internal use
         ID_BEIDOU  = 4 % Id of BeiDou constellation for goGPS internal use
         ID_QZSS    = 5 % Id of QZSS constellation for goGPS internal use
-        ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use        
+        ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use
     end
-    
+
     % Creator (empty)
     methods
         % Object to manage a useful functions / standard parameters of goGPS
         function obj = goGNSS()
         end
     end
-    
+
     %   COMPATIBILITY FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     % function to keep compatibility with the past
@@ -218,7 +218,7 @@ classdef goGNSS < handle & Mode_Settings
             % GPS carriers frequencies F2
             f1 = goGNSS.FG(2);
         end
-        
+
         function lambda1 = LAMBDA1()
             % GPS carriers frequency 1 [Hz]
             lambda1 = goGNSS.LAMBDAG(1);
@@ -226,16 +226,16 @@ classdef goGNSS < handle & Mode_Settings
         function lambda2 = LAMBDA2()
             % GPS carriers frequency 2 [Hz]
             lambda2 = goGNSS.LAMBDAG(2);
-            
+
         end
-    end        
-    
+    end
+
     %   CONSTELLATION FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     methods (Static, Access = 'public')
-        
+
         function [constellations] = initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
-            
+
             % SYNTAX:
             %   [constellations] = initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
             %
@@ -252,24 +252,24 @@ classdef goGNSS < handle & Mode_Settings
             %
             % DESCRIPTION:
             %   Multi-constellation settings and initialization.
-            
+
             GPS_PRN = [1:32];
             GLO_PRN = [1:24];
             GAL_PRN = [1:30];
             BDS_PRN = [1:37];
             QZS_PRN = [193:196];
             SBS_PRN = 0; %SBAS ranging not supported yet
-            
+
             constellations.GPS     = struct('numSat', numel(GPS_PRN), 'enabled', GPS_flag, 'indexes', 0, 'PRN', GPS_PRN, 'sysID', 'G');
             constellations.GLONASS = struct('numSat', numel(GLO_PRN), 'enabled', GLO_flag, 'indexes', 0, 'PRN', GLO_PRN, 'sysID', 'R');
             constellations.Galileo = struct('numSat', numel(GAL_PRN), 'enabled', GAL_flag, 'indexes', 0, 'PRN', GAL_PRN, 'sysID', 'E');
             constellations.BeiDou  = struct('numSat', numel(BDS_PRN), 'enabled', BDS_flag, 'indexes', 0, 'PRN', BDS_PRN, 'sysID', 'C');
             constellations.QZSS    = struct('numSat', numel(QZS_PRN), 'enabled', QZS_flag, 'indexes', 0, 'PRN', QZS_PRN, 'sysID', 'J');
             constellations.SBAS    = struct('numSat', numel(SBS_PRN), 'enabled', 0,        'indexes', 0, 'PRN', SBS_PRN, 'sysID', 'S'); %SBAS ranging not supported yet
-            
+
             nSatTot = 0; %total number of satellites used given the enabled constellations
             q = 0;       %counter for enabled constellations
-            
+
             systems = fieldnames(constellations);
             constellations.indexes = [];
             constellations.PRN = [];
@@ -289,10 +289,10 @@ classdef goGNSS < handle & Mode_Settings
                     constellations.systems = [constellations.systems char(ones(size(constellations.(systems{i}).indexes))*constellations.(systems{i}).sysID)];
                 end
             end
-            
+
             constellations.nEnabledSat = nSatTot;
         end
-        
+
         function [lambda] = getGNSSWavelengths(Eph, SP3, nSatTot)
             lambda = zeros(nSatTot,7);
             for s = 1 : nSatTot
@@ -356,7 +356,7 @@ classdef goGNSS < handle & Mode_Settings
                 end
             end
         end
-        
+
         function [lambda] = getWavelength(idCostellation, freq, GLOFreqNum)
             switch idCostellation
                 case goGNSS.ID_GPS
@@ -374,37 +374,37 @@ classdef goGNSS < handle & Mode_Settings
                     lambda = goGNSS.LAMBDAS(freq);
             end
         end
-        
+
         function [GLOFreqNum] = getGLOFreqNum(satNum, Eph)
             pos1 = find(Eph(30,:) == satNum,1);
             pos2 = find(strcmp(char(Eph(31,:)),'R'));
             pos = interesct(pos1, pos2);
             GLOFreqNum = Eph(15,pos);
         end
-        
+
         function [IonoFactor] = getInterFreqIonoFactor(lambda)
             IonoFactor = (lambda(:,1:2)./goGNSS.LAMBDAG(1)).^2;
         end
     end
-    
+
     %   USEFUL FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     methods (Static, Access = 'public')
-        
+
         function [XR, dtR] = getBancroftPos(XS, dtS, prR)
             % get a bancroft solution from one receiver
-            
+
             matB = [XS(:,:), prR(:) + goGNSS.V_LIGHT * dtS(:)]; % Bancroft matrix
             b = goGNSS.bancroft(matB);
             XR = b(1:3);
             dtR = b(4)/goGNSS.V_LIGHT;
         end
-        
+
         function RinReader(fileNameObs, constellations)
             if (isempty(constellations)) %then use only GPS as default
                 [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
             end
-            tic;            
+            tic;
             %number of satellite slots for enabled constellations
             nSatTot = constellations.nEnabledSat;
 
@@ -413,19 +413,19 @@ classdef goGNSS < handle & Mode_Settings
             txtRin = textscan(fid,'%s','Delimiter','\n','whitespace','');
             fclose(fid);
             txtRin = txtRin{1};
-            
+
             %parse RINEX header
             [version obsTypes knownPos flagFoundTypes interval sysId line] = goGNSS.RinParseHDR(txtRin);
             [obsCols, nType] = obs_type_find(obsTypes, sysId);
-            
+
         end
-        
+
         function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, time, time_R, time_M, week_R, week_M, ...
                 date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
                 loadRINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3, wait_dlg)
-            
+
             % Check the input arguments
             if (nargin < 6)
                 wait_dlg_PresenceFlag = false;
@@ -441,33 +441,33 @@ classdef goGNSS < handle & Mode_Settings
                 [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
             end
             tic;
-            
+
             %number of satellite slots for enabled constellations
             nSatTot = constellations.nEnabledSat;
-            
+
             %fraction of INTERVAL (epoch-to-epoch timespan, as specified in the header)
             %that is allowed as maximum difference between rover and master timings
             %during synchronization
             max_desync_frac = 0.1;
-            
+
             %read navigation files
             if (~flag_SP3)
                 if (wait_dlg_PresenceFlag)
                     waitbar(0.5,wait_dlg,'Reading navigation files...')
                 end
-                
+
                 Eph_G = []; iono_G = zeros(8,1);
                 Eph_R = []; iono_R = zeros(8,1);
                 Eph_E = []; iono_E = zeros(8,1);
                 Eph_C = []; iono_C = zeros(8,1);
                 Eph_J = []; iono_J = zeros(8,1);
-                
+
                 if (strcmpi(filename_nav(end),'p'))
                     flag_mixed = 1;
                 else
                     flag_mixed = 0;
                 end
-                
+
                 if (constellations.GPS.enabled || flag_mixed)
                     if (exist(filename_nav,'file'))
                         %parse RINEX navigation file (GPS) NOTE: filename expected to
@@ -478,7 +478,7 @@ classdef goGNSS < handle & Mode_Settings
                         constellations.GPS.enabled = 0;
                     end
                 end
-                
+
                 if (constellations.GLONASS.enabled)
                     if (exist([filename_nav(1:end-1) 'g'],'file'))
                         %parse RINEX navigation file (GLONASS)
@@ -488,7 +488,7 @@ classdef goGNSS < handle & Mode_Settings
                         constellations.GLONASS.enabled = 0;
                     end
                 end
-                
+
                 if (constellations.Galileo.enabled)
                     if (exist([filename_nav(1:end-1) 'l'],'file'))
                         %parse RINEX navigation file (Galileo)
@@ -498,7 +498,7 @@ classdef goGNSS < handle & Mode_Settings
                         constellations.Galileo.enabled = 0;
                     end
                 end
-                
+
                 if (constellations.BeiDou.enabled)
                     if (exist([filename_nav(1:end-1) 'b'],'file'))
                         parse RINEX navigation file (BeiDou)
@@ -508,7 +508,7 @@ classdef goGNSS < handle & Mode_Settings
                         constellations.BeiDou.enabled = 0;
                     end
                 end
-                
+
                 if (constellations.QZSS.enabled)
                     if (exist([filename_nav(1:end-1) 'q'],'file'))
                         %parse RINEX navigation file (QZSS)
@@ -518,9 +518,9 @@ classdef goGNSS < handle & Mode_Settings
                         constellations.QZSS.enabled = 0;
                     end
                 end
-                
+
                 Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J];
-                
+
                 if (any(iono_G))
                     iono = iono_G;
                 elseif (any(iono_R))
@@ -535,7 +535,7 @@ classdef goGNSS < handle & Mode_Settings
                     iono = zeros(8,1);
                     fprintf('... WARNING: ionosphere parameters not found in navigation file(s).\n');
                 end
-                
+
                 if (wait_dlg_PresenceFlag)
                     waitbar(1,wait_dlg)
                 end
@@ -543,60 +543,60 @@ classdef goGNSS < handle & Mode_Settings
                 Eph = zeros(33,nSatTot);
                 iono = zeros(8,1);
             end
-            
+
             %-------------------------------------------------------------------------------
-            
+
             %open RINEX observation file (ROVER)
             FR_oss = fopen(filename_R_obs,'r');
             txtRin = textscan(FR_oss,'%s','Delimiter','\n','whitespace','');
             txtRin = txtRin{1};
             fclose(FR_oss);
-            
+
             if (filename_M_obs_PresenceFlag)
                 %open RINEX observation file (MASTER)
                 FM_oss = fopen(filename_M_obs,'r');
             end
-            
+
             %-------------------------------------------------------------------------------
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
             end
-            
+
             %parse RINEX header
             [RINEX_version obs_typ_R, pos_R, info_base_R, interval_R, sysId, line] = goGNSS.RinParseHDR(txtRin);
-            
+
             %check RINEX version
             if (isempty(sysId))
                 RINEX_version = 2;
             else
                 RINEX_version = 3;
             end
-            
+
             %check the availability of basic data to parse the RINEX file (ROVER)
             if (info_base_R == 0)
                 error('Basic data is missing in the ROVER RINEX header')
             end
-            
+
             %find observation type columns
             [obs_col_R, nObsTypes_R] = goGNSS.obs_type_find(obs_typ_R, sysId);
-            
+
             %number of lines to be read for each epoch (only for RINEX v2.xx)
             if (RINEX_version == 2)
                 nLinesToRead_R = ceil(nObsTypes_R/5);  %maximum of 5 obs per line
             end
-            
+
             if (filename_M_obs_PresenceFlag)
                 [obs_typ_M, pos_M, info_base_M, interval_M, sysId] = RINEX_parse_hdr(FM_oss);
-                
+
                 %check the availability of basic data to parse the RINEX file (MASTER)
                 if (info_base_M == 0)
                     error('Basic data is missing in the ROVER RINEX header')
                 end
-                
+
                 %find observation type columns
                 [obs_col_M, nObsTypes_M] = obs_type_find(obs_typ_M, sysId);
-                
+
                 %number of lines to be read for each epoch (only for RINEX v2.xx)
                 if (~isstruct(nObsTypes_M))
                     nLinesToRead_M = ceil(nObsTypes_M/5);  %maximum of 5 obs per line
@@ -605,17 +605,17 @@ classdef goGNSS < handle & Mode_Settings
                 pos_M = zeros(3,1);
                 interval_M = [];
             end
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(1,wait_dlg)
             end
-            
+
             interval = min([interval_R, interval_M]);
-            
+
             %-------------------------------------------------------------------------------
-            
+
             nEpochs = 10800;
-            
+
             %variable initialization (GPS)
             time_R = zeros(nEpochs,1);
             time_M = zeros(nEpochs,1);
@@ -637,64 +637,64 @@ classdef goGNSS < handle & Mode_Settings
             dop2_M = zeros(nSatTot,nEpochs);
             date_R = zeros(nEpochs,6);
             date_M = zeros(nEpochs,6);
-            
+
             %read data for the first epoch (ROVER)
             [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R, line] = goGNSS.RinGetEpoch(txtRin, line);
-            
+
             %-------------------------------------------------------------------------------
-            
+
             if (filename_M_obs_PresenceFlag)
                 %read data for the first epoch (MASTER)
                 [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
             end
             %-------------------------------------------------------------------------------
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
             end
-            
+
             if (filename_M_obs_PresenceFlag)
                 while ((time_M(1) - time_R(1)) < 0 && abs(time_M(1) - time_R(1)) >= max_desync_frac*interval)
-                    
+
                     %number of lines to be skipped
                     if (RINEX_version == 2)
                         nSkipLines = num_sat_M*nLinesToRead_M;
                     else
                         nSkipLines = num_sat_M;
                     end
-                    
+
                     %skip observations
                     for s = 1 : nSkipLines
                         fgetl(FM_oss);
                     end
-                    
+
                     %read data for the current epoch (MASTER)
                     [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
                 end
-                
+
                 while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
-                    
+
                     %number of lines to be skipped
                     if (RINEX_version == 2)
                         nSkipLines = num_sat_R*nLinesToRead_R;
                     else
                         nSkipLines = num_sat_R;
                     end
-                    
+
                     %skip observations
                     for s = 1 : nSkipLines
                         fgetl(FR_oss);
                     end
-                    
+
                     %read data for the current epoch (ROVER)
                     [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
                 end
             end
-            
+
             %read first batch of observations
             %ROVER
             [obs_R, line] = goGNSS.RinGetObs(txtRin, line, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
-            
+
             %read ROVER observations
             if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
                 pr1_R(:,1) = obs_R.P1;
@@ -708,11 +708,11 @@ classdef goGNSS < handle & Mode_Settings
             dop2_R(:,1) = obs_R.D2;
             snr1_R(:,1) = obs_R.S1;
             snr2_R(:,1) = obs_R.S2;
-            
+
             if (filename_M_obs_PresenceFlag)
                 %MASTER
                 obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
-                
+
                 %read MASTER observations
                 if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
                     pr1_M(:,1) = obs_M.P1;
@@ -727,27 +727,27 @@ classdef goGNSS < handle & Mode_Settings
                 snr1_M(:,1) = obs_M.S1;
                 snr2_M(:,1) = obs_M.S2;
             end
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(1,wait_dlg)
             end
-            
+
             %-------------------------------------------------------------------------------
-            
+
             %define the reference time
             time(1,1) = roundmod(time_R(1),interval);
             date_R(1,:) = epoch_R(1,:);
             if (filename_M_obs_PresenceFlag)
                 date_M(1,:) = epoch_M(1,:);
             end
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(0.5,wait_dlg,'Reading RINEX observations...')
             end
-            
+
             k = 2;
             while (line < length(txtRin))
-                
+
                 if (abs((time_R(k-1) - time(k-1))) < max_desync_frac*interval)
                     %read data for the current epoch (ROVER)
                     [time_R(k), epoch_R, num_sat_R, sat_R, sat_types_R, line] = goGNSS.RinGetEpoch(txtRin, line);
@@ -758,7 +758,7 @@ classdef goGNSS < handle & Mode_Settings
                     end
                     time_R(k-1) = 0;
                 end
-                
+
                 if (filename_M_obs_PresenceFlag)
                     if (abs((time_M(k-1) - time(k-1))) < max_desync_frac*interval)
                         %read data for the current epoch (MASTER)
@@ -771,7 +771,7 @@ classdef goGNSS < handle & Mode_Settings
                         time_M(k-1) = 0;
                     end
                 end
-                
+
                 if (k > nEpochs)
                     %variable initialization (GPS)
                     pr1_R(:,k) = zeros(nSatTot,1);
@@ -790,22 +790,22 @@ classdef goGNSS < handle & Mode_Settings
                     snr2_M(:,k) = zeros(nSatTot,1);
                     dop1_M(:,k) = zeros(nSatTot,1);
                     dop2_M(:,k) = zeros(nSatTot,1);
-                    
+
                     nEpochs = nEpochs  + 1;
                 end
-                
+
                 date_R(k,:) = epoch_R(1,:);
                 if (filename_M_obs_PresenceFlag)
                     date_M(k,:) = epoch_M(1,:);
                 end
-                
+
                 time(k,1) = time(k-1,1) + interval;
-                
+
                 if (abs(time_R(k)-time(k)) < max_desync_frac*interval)
-                    
+
                     %read ROVER observations
                     [obs_R line] = goGNSS.RinGetObs(txtRin, line, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
-                    
+
                     %read ROVER observations
                     if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
                         pr1_R(:,k) = obs_R.P1;
@@ -832,14 +832,14 @@ classdef goGNSS < handle & Mode_Settings
                     %             fgetl(FR_oss);
                     %         end
                 end
-                
+
                 if (filename_M_obs_PresenceFlag)
-                    
+
                     if (abs(time_M(k) - time(k)) < max_desync_frac*interval)
-                        
+
                         %read MASTER observations
                         obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
-                        
+
                         %read MASTER observations
                         if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
                             pr1_M(:,k) = obs_M.P1;
@@ -867,10 +867,10 @@ classdef goGNSS < handle & Mode_Settings
                         %             end
                     end
                 end
-                
+
                 k = k + 1;
             end
-            
+
             %remove empty slots
             time_R(k:nEpochs) = [];
             time_M(k:nEpochs) = [];
@@ -892,7 +892,7 @@ classdef goGNSS < handle & Mode_Settings
             dop2_M(:,k:nEpochs) = [];
             date_R(k:nEpochs,:) = [];
             date_M(k:nEpochs,:) = [];
-            
+
             %remove rover tail
             if (filename_M_obs_PresenceFlag)
                 flag_tail = 1;
@@ -924,18 +924,18 @@ classdef goGNSS < handle & Mode_Settings
                     end
                 end
             end
-            
+
             if (wait_dlg_PresenceFlag)
                 waitbar(1,wait_dlg)
             end
-            
+
             %-------------------------------------------------------------------------------
-            
+
             %close RINEX files
             if (filename_M_obs_PresenceFlag)
                 fclose(FM_oss);
             end
-            
+
             %GPS week number
             week_R = date2gps(date_R);
             week_M = date2gps(date_M);
@@ -943,7 +943,7 @@ classdef goGNSS < handle & Mode_Settings
             toc
         end
     end
-    
+
     methods (Static, Access = 'private')
         % Bancroft algorithm for the computation of ground coordinates
         % having at least 4 visible satellites.
@@ -966,11 +966,11 @@ classdef goGNSS < handle & Mode_Settings
             %
             % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
             %----------------------------------------------------------------------------------------------
-            
+
             pos = zeros(4,1);   % Init position of the receiver
-            
+
             nSat = size(matB,1);
-            
+
             for iter = 1:2
                 % Compute correctionon XS coordinates
                 % due to the rotation of the Earth
@@ -992,7 +992,7 @@ classdef goGNSS < handle & Mode_Settings
                     matB(s,1) =	cosa*x + sina*y;
                     matB(s,2) = -sina*x + cosa*y;
                 end % i-loop
-                
+
                 % Criptical way to implement Bancroft
                 if nSat > 4
                     BBB = (matB'*matB)\matB';
@@ -1017,7 +1017,7 @@ classdef goGNSS < handle & Mode_Settings
                     possible_pos(:,s) = r(s)*BBBe+BBBalpha;
                     possible_pos(4,s) = -possible_pos(4,s);
                 end
-                
+
                 abs_omc = zeros(2,1);
                 for s =1:nSat
                     for i = 1:2
@@ -1027,7 +1027,7 @@ classdef goGNSS < handle & Mode_Settings
                         abs_omc(i) = abs(omc);
                     end
                 end; % j-loop
-                
+
                 % discrimination between roots
                 if abs_omc(1) > abs_omc(2)
                     pos = possible_pos(:,2);
@@ -1036,7 +1036,7 @@ classdef goGNSS < handle & Mode_Settings
                 end
             end;
         end
-        
+
         function [version, obsTypes, knownPos, flagFoundTypes, interval, sysId, curLine] = RinParseHDR(txtRin)
             flagFoundTypes = 0;
             obsTypes = cell(0,0);
@@ -1044,21 +1044,21 @@ classdef goGNSS < handle & Mode_Settings
             knownPos = [];
             interval = 1; %default to 1 second (1 Hz observations)
             version = 2;
-            
+
             %parse first line
             curLine = 1; txtLine = txtRin{curLine};
-            
+
             %constellation counter for RINEX v3.xx
             c = 1;
-            
+
             %check if the end of the header or the end of the file has been reached
             while isempty(strfind(txtLine,'END OF HEADER'))
-                
+
                 answer = strfind(txtLine,'RINEX VERSION'); %RINEX v2.xx
                 if ~isempty(answer)
                     version = floor(sscanf(txtLine(1:15),'%f'));
-                end    
-                
+                end
+
                 answer = strfind(txtLine,'# / TYPES OF OBSERV'); %RINEX v2.xx
                 if ~isempty(answer)
                     obsTypes{1} = [];
@@ -1075,10 +1075,10 @@ classdef goGNSS < handle & Mode_Settings
                         end
                         nObs = nObs - 9;
                     end
-                    
+
                     flagFoundTypes = 1;
                 end
-                
+
                 answer = strfind(txtLine,'SYS / # / OBS TYPES'); %RINEX v3.xx
                 if ~isempty(answer)
                     sysId{c} = sscanf(txtLine(1),'%s');
@@ -1096,11 +1096,11 @@ classdef goGNSS < handle & Mode_Settings
                         end
                         nObs = nObs - 13;
                     end
-                    
+
                     c = c + 1;
                     flagFoundTypes = 1;
                 end
-                
+
                 answer = strfind(txtLine,'APPROX POSITION XYZ');
                 if ~isempty(answer)
                     X = sscanf(txtLine(1:14),'%f');
@@ -1112,74 +1112,74 @@ classdef goGNSS < handle & Mode_Settings
                 if ~isempty(answer)
                     interval = sscanf(txtLine(1:10),'%f');
                 end
-                
+
                 %parse next line
                 curLine = curLine +1; txtLine = txtRin{curLine};
             end
-            
+
             %check RINEX version
             if (~isempty(sysId) && (version == 2))
                 version = 3;
             end
         end
-        
+
         function [obsCols, nType] = obs_type_find(obsTypes, sysId)
-            
+
             if (isempty(sysId)) %RINEX v2.xx does not have sysId
-                
+
                 nType = size(obsTypes{1},2)/2;
-                
+
                 %search L1 column
                 s1 = strfind(obsTypes{1}, 'L1');
                 s2 = strfind(obsTypes{1}, 'LA');
                 col_L1 = [s1 s2];
-                
+
                 %search L2 column
                 s1 = strfind(obsTypes{1}, 'L2');
                 s2 = strfind(obsTypes{1}, 'LC');
                 col_L2 = [s1 s2];
-                
+
                 %search C1 column
                 s1 = strfind(obsTypes{1}, 'C1');
                 s2 = strfind(obsTypes{1}, 'CA');
                 col_C1 = [s1 s2];
-                
+
                 %search P1 column
                 s1 = strfind(obsTypes{1}, 'P1');
                 s2 = strfind(obsTypes{1}, 'CA'); %QZSS does not use P1
                 col_P1 = [s1 s2];
-                
+
                 %if RINEX v2.12 and GPS/GLONASS P1 observations are not available
                 if (length(col_P1) ~= 2 && ~isempty(s2))
                     %keep QZSS CA observations as C1
                     col_P1 = [];
                 end
-                
+
                 %search P2 column
                 s1 = strfind(obsTypes{1}, 'P2');
                 s2 = strfind(obsTypes{1}, 'CC');
                 col_P2 = [s1 s2];
-                
+
                 %search S1 column
                 s1 = strfind(obsTypes{1}, 'S1');
                 s2 = strfind(obsTypes{1}, 'SA');
                 col_S1 = [s1 s2];
-                
+
                 %search S2 column
                 s1 = strfind(obsTypes{1}, 'S2');
                 s2 = strfind(obsTypes{1}, 'SC');
                 col_S2 = [s1 s2];
-                
+
                 %search D1 column
                 s1 = strfind(obsTypes{1}, 'D1');
                 s2 = strfind(obsTypes{1}, 'DA');
                 col_D1 = [s1 s2];
-                
+
                 %search D2 column
                 s1 = strfind(obsTypes{1}, 'D2');
                 s2 = strfind(obsTypes{1}, 'DC');
                 col_D2 = [s1 s2];
-                
+
                 obsCols.L1 = (col_L1+1)/2;
                 obsCols.L2 = (col_L2+1)/2;
                 obsCols.C1 = (col_C1+1)/2;
@@ -1189,12 +1189,12 @@ classdef goGNSS < handle & Mode_Settings
                 obsCols.S2 = (col_S2+1)/2;
                 obsCols.D1 = (col_D1+1)/2;
                 obsCols.D2 = (col_D2+1)/2;
-                
+
             else %RINEX v3.xx
                 for c = 1 : length(sysId)
-                    
+
                     nType.(sysId{c}) = size(obsTypes.(sysId{c}),2)/3;
-                    
+
                     switch sysId{c}
                         case 'G' %GPS
                             idL1 = 'L1C';
@@ -1247,7 +1247,7 @@ classdef goGNSS < handle & Mode_Settings
                             idD1 = 'D1C';
                             idD2 = 'D2C';
                     end
-                    
+
                     %search L1, L2, C1, P1, P2, S1, S2, D1, D2 columns
                     col_L1 = strfind(obsTypes.(sysId{c}), idL1);
                     col_L2 = strfind(obsTypes.(sysId{c}), idL2);
@@ -1271,7 +1271,7 @@ classdef goGNSS < handle & Mode_Settings
                 end
             end
         end
-        
+
         function [time, datee, num_sat, sat, sat_types, line] = RinGetEpoch(txtRin, line)
             %variable initialization
             time = 0;
@@ -1285,7 +1285,7 @@ classdef goGNSS < handle & Mode_Settings
                 datee_RequestedInOutputFlag = false;
             end% if
             eoEpoch = 0;
-            
+
             %search data
             while (eoEpoch==0)
                 %read the string
@@ -1313,12 +1313,12 @@ classdef goGNSS < handle & Mode_Settings
                 if (line==length(txtRin));
                     return
                 end
-                
+
                 %check RINEX version
                 if (~strcmp(lin(1),'>')) %RINEX v2.xx
                     %check if it is a string that should be analyzed
                     if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
-                        
+
                         %save time information
                         data   = textscan(lin(1:26),'%f%f%f%f%f%f');
                         year   = data{1};
@@ -1327,20 +1327,20 @@ classdef goGNSS < handle & Mode_Settings
                         hour   = data{4};
                         minute = data{5};
                         second = data{6};
-                        
+
                         %computation of the GPS time in weeks and seconds of week
                         year = four_digit_year(year);
                         [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
-                        
+
                         %number of visible satellites
                         [num_sat] = sscanf(lin(30:32),'%d');
-                        
+
                         %keep just the satellite data
                         lin = ExtractSubstring(lin, 33, 68);
-                        
+
                         %remove 'blank spaces' and unwanted characters at the end of the string
                         lin = RemoveUnwantedTrailingSpaces(lin);
-                        
+
                         %read additional lines, depending on the number of satellites
                         nlines = ceil(num_sat/12);
                         for n = 1 : nlines - 1
@@ -1348,7 +1348,7 @@ classdef goGNSS < handle & Mode_Settings
                             lin = [lin ExtractSubstring(txtRin{line}, 33, 68)];
                             lin = RemoveUnwantedTrailingSpaces(lin);
                         end
-                        
+
                         pos = 1;
                         sat = zeros(num_sat,1);
                         sat_types = char(32*uint8(ones(num_sat,1))');
@@ -1365,15 +1365,15 @@ classdef goGNSS < handle & Mode_Settings
                             sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
                             pos = pos + 3;
                         end
-                        
+
                         eoEpoch = 1;
                     end
-                    
+
                 else %RINEX v3.xx
-                    
+
                     %check if it is a string that should be analyzed
                     if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
-                        
+
                         %save time information
                         data   = textscan(lin(2:29),'%f%f%f%f%f%f');
                         year   = data{1};
@@ -1382,30 +1382,30 @@ classdef goGNSS < handle & Mode_Settings
                         hour   = data{4};
                         minute = data{5};
                         second = data{6};
-                        
+
                         %computation of the GPS time in weeks and seconds of week
                         [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
-                        
+
                         %number of visible satellites
                         [num_sat] = sscanf(lin(33:35),'%d');
-                        
+
                         eoEpoch = 1;
                     end
                 end
             end
-            
+
             if datee_RequestedInOutputFlag
                 datee = [year month day hour minute second];
             end %if
         end
-        
+
         function [obs_struct, line] = RinGetObs(txtRin, line, nSat, sat, sat_types, obs_col, nObsTypes, constellations)
             %total number of satellites (according to enabled constellations)
             nSatTot = constellations.nEnabledSat;
-            
+
             %array to contain the starting index for each constellation in the total array (with length = nSatTot)
             sat_types_id = zeros(size(sat_types));
-            
+
             %starting index in the total array for the various constellations
             idGPS = constellations.GPS.indexes(1);
             idGLONASS = constellations.GLONASS.indexes(1);
@@ -1413,18 +1413,18 @@ classdef goGNSS < handle & Mode_Settings
             idBeiDou = constellations.BeiDou.indexes(1);
             idQZSS = constellations.QZSS.indexes(1);
             idSBAS = constellations.SBAS.indexes(1);
-            
+
             %output observations structure initialization
             obs_struct = struct('L1', zeros(nSatTot,1), 'L2', zeros(nSatTot,1), ...
                 'C1', zeros(nSatTot,1), ...
                 'P1', zeros(nSatTot,1), 'P2', zeros(nSatTot,1), ...
                 'S1', zeros(nSatTot,1), 'S2', zeros(nSatTot,1), ...
                 'D1', zeros(nSatTot,1), 'D2', zeros(nSatTot,1));
-            
+
             obs_tmp = struct('TMP1', zeros(nSatTot,1), 'TMP2', zeros(nSatTot,1));
-            
+
             if (~isempty(sat_types)) %RINEX v2.xx
-                
+
                 %convert constellations letter to starting index in the total array
                 sat_types_id(sat_types == 'G') = idGPS*constellations.GPS.enabled;
                 sat_types_id(sat_types == 'R') = idGLONASS*constellations.GLONASS.enabled;
@@ -1432,14 +1432,14 @@ classdef goGNSS < handle & Mode_Settings
                 sat_types_id(sat_types == 'C') = idBeiDou*constellations.BeiDou.enabled;
                 sat_types_id(sat_types == 'J') = idQZSS*constellations.QZSS.enabled;
                 sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
-                
+
                 %observation types
                 nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
                 nObsToRead = nLinesToRead * 5;     % Each line contains 5 observations
-                
+
                 %data read and assignment
                 lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
-                
+
                 % Mask to filter all the possible observations (max 15)
                 mask = false(16,nObsToRead);
                 mask(2:14,:) = true;
@@ -1448,16 +1448,16 @@ classdef goGNSS < handle & Mode_Settings
                 % the first character is added as a padding to separate the strings for
                 % the command sscanf that now can be launched once for each satellite
                 strObs = char(ones(14,nObsToRead)*32);
-                
+
                 for s = 1 : nSat
-                    
+
                     %DEBUG
                     if (sat(s) > 32)
                         sat(s) = 32; %this happens only with SBAS; it's already fixed in the multi-constellation version
                     end
-                    
+
                     lin = char(lin*0+32); % clear line -> fill with spaces
-                    
+
                     if (sat_types_id(s) ~= 0)
                         % read all the lines containing the observations needed
                         for l = 1 : (nLinesToRead)
@@ -1466,7 +1466,7 @@ classdef goGNSS < handle & Mode_Settings
                             lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
                         end
                         linLength = 80*(nLinesToRead-1)+linLengthTmp;
-                        
+
                         % convert the lines read from the RINEX file to a single matrix
                         % containing all the observations
                         strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
@@ -1480,7 +1480,7 @@ classdef goGNSS < handle & Mode_Settings
                                 obsId = obsId+1;
                                 %obs = sscanf(lin(mask(:,k)), '%f');
                                 obs = fltObs(obsId);
-                                
+
                                 %check and assign the observation type
                                 if (any(~(k-obs_col.L1)))
                                     obs_struct.L1(sat_types_id(s)+sat(s)-1) = obs;
@@ -1528,34 +1528,34 @@ classdef goGNSS < handle & Mode_Settings
                         end
                     end
                 end
-                
+
             else %RINEX v3.xx
-                
+
                 for s = 1 : nSat
-                    
+
                     %read the line for satellite 's'
                     line = line+1; linTmp = txtRin{line};
-                    
+
                     %read the constellation ID
                     sysId = linTmp(1);
-                    
+
                     %read the satellite PRN/slot number
                     satId = str2num(linTmp(2:3));
-                    
+
                     %number of observations to be read on this line
                     nObsToRead = nObsTypes.(sysId);
-                    
+
                     %data read and assignment
                     lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
-                    
+
                     %keep only the part of 'lin' containing the observations
                     linTmp = linTmp(4:end);
                     linLengthTmp = length(linTmp);
-                    
+
                     %fill in the 'lin' variable with the actual line read (may be shorter than expected)
                     lin(1:linLengthTmp) = linTmp;
                     linLength = length(lin);
-                    
+
                     %compute the index in the total array and check if the current
                     %constellation is required (if not, skip the line)
                     switch (sysId)
@@ -1596,7 +1596,7 @@ classdef goGNSS < handle & Mode_Settings
                                 continue
                             end
                     end
-                    
+
                     % Mask to filter all the possible observations
                     mask = false(16,nObsToRead);
                     mask(2:14,:) = true;
@@ -1605,7 +1605,7 @@ classdef goGNSS < handle & Mode_Settings
                     % the first character is added as a padding to separate the strings for
                     % the command sscanf that now can be launched once for each satellite
                     strObs = char(ones(14,nObsToRead)*32);
-                    
+
                     % convert the lines read from the RINEX file to a single matrix
                     % containing all the observations
                     strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
@@ -1618,7 +1618,7 @@ classdef goGNSS < handle & Mode_Settings
                             obsId = obsId+1;
                             %obs = sscanf(lin(mask(:,k)), '%f');
                             obs = fltObs(obsId);
-                            
+
                             %check and assign the observation type
                             if (any(~(k-obs_col.(sysId).L1)))
                                 obs_struct.L1(index) = obs;
@@ -1661,9 +1661,9 @@ classdef goGNSS < handle & Mode_Settings
                     end
                 end
             end
-            
+
             clear obs_tmp
         end
     end
-    
+
 end

@@ -18,12 +18,12 @@ function [latpp, lonpp, fpp] = iono_pierce_point(latR, lonR, azS, elS)
 %   Computation of the ionosphere piercing point (IPP).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Antonio Herrera Olmo, 2012
@@ -45,7 +45,7 @@ function [latpp, lonpp, fpp] = iono_pierce_point(latR, lonR, azS, elS)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 R  = 6378.1363; %Earth radius [km]
@@ -60,7 +60,7 @@ latpp = asin(sin(latR)*cos(phipp) + cos(latR)*sin(phipp)*cos(azS));
 %longitude of the ionosphere piercing point
 if ((latpp >  70*pi/180) & (tan(phipp)*cos(azS)      > tan((pi/2) - latR))) | ...
    ((latpp < -70*pi/180) & (tan(phipp)*cos(azS + pi) > tan((pi/2) + latR)))
-    
+
     lonpp = lonR + pi - asin(sin(phipp)*sin(azS/cos(latpp)));
 else
     lonpp = lonR + asin(sin(phipp)*sin(azS/cos(latpp)));

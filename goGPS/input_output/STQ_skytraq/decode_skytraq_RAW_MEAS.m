@@ -24,15 +24,15 @@ function [data] = decode_skytraq_RAW_MEAS(msg, constellations)
 %   RAW_MEAS binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -51,7 +51,7 @@ function [data] = decode_skytraq_RAW_MEAS(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -82,7 +82,7 @@ data{2}(2) = NMEAS;
 
 %read the measurements of every satellite
 for j = 1 : NMEAS
-    
+
     % satellite PRN decoding
     PRN = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
@@ -96,13 +96,13 @@ for j = 1 : NMEAS
     % C/A pseudorange measurement decoding (in meters)
     C1field = msg(pos:pos+63);
     pos = pos + 64;
-    
+
     % floating point value decoding (double floating point)
     sign = fbin2dec(C1field(1));
     esp  = fbin2dec(C1field(2:12));
     mant = fbin2dec(C1field(13:64)) / 2^52;
     C1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    
+
     %------------------------------------------------
 
     % L1 phase measurement decoding (in cycles)
@@ -138,12 +138,12 @@ for j = 1 : NMEAS
     if (PRN <= 32)
         idx = constellations.GPS.indexes(PRN);
     end
-    
+
     % phase, code and doppler measure save
     CPM = L1;
     PRM = C1;
     DOM = D1;
-    
+
     % data output save
     data{3}(idx,1) = PRN;
     data{3}(idx,2) = CN0;

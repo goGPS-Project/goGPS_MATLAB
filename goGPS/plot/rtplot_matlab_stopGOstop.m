@@ -21,14 +21,14 @@ function rtplot_matlab_stopGOstop (t, pos_R, pos_M, P1, P2, origin, ref, matrix,
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -115,7 +115,7 @@ Z = pos_R(3);
 %conversion into metric coordinates
 [EAST, NORTH] = cart2plan(X, Y, Z);
 
-%plot the estimated points (static in blue, kinematic in green) 
+%plot the estimated points (static in blue, kinematic in green)
 if (flag_dyn == 1) && (pid(1) == 0)
     pid(1) = plot(EAST-EAST_O, NORTH-NORTH_O, '.b');
 elseif (flag_dyn == 1) && (pid(1) ~= 0)

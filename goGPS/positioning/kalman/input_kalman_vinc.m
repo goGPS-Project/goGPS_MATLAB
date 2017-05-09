@@ -46,14 +46,14 @@ function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, p
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -88,12 +88,12 @@ pivot_index = find(pivot == sat);
 %curvilinear coordinate localization
 j = find((X_t1_t(1) >= s0(1:end-1)) & (X_t1_t(1) < s0(2:end)));
 
-%design matrix (full geometry, for DOP computation) 
+%design matrix (full geometry, for DOP computation)
 A0 = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
       ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
       ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index))];    %column for Z coordinate
 
-%design matrix (projected on the constraint) 
+%design matrix (projected on the constraint)
 A = ax(j)*A0(:,1) + ay(j)*A0(:,2) + az(j)*A0(:,3);
 
 %observed pseudoranges

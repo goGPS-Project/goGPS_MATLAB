@@ -31,14 +31,14 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -80,14 +80,14 @@ sys_idx = zeros(nsat,1);
 gamma = (lambda(:,2)/lambda(:,1))^2;
 
 for i = 1 : nsat
-    
+
     k = find_eph(Eph, sat(i), time_rx);
-    
+
     if (isempty(k) & isempty(SP3))
         no_eph(i) = 1;
         continue
     end
-    
+
     %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR, frequencies, obs_comb, lambda(i,:));
 
@@ -95,12 +95,12 @@ for i = 1 : nsat
         no_eph(i) = 1;
         continue
     end
-    
+
     if (isempty(SP3))
-        
+
         %compute satellite position and velocity at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = satellite_orbits(time_tx(i,1), Eph(:,k), sat(i), sbas);
-        
+
         %detect satellite constellation
         sys = Eph(31,k);
     else
@@ -108,10 +108,10 @@ for i = 1 : nsat
             no_eph(i) = 1;
             continue
         end
-        
+
         %interpolate SP3 coordinates at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
-        
+
         %relativistic correction term
         dtrel = relativistic_clock_error_correction(time_tx(i,1), Eph, SP3, XS_tx(i,:), VS_tx(i,:));
         time_tx(i,1) = time_tx(i,1) - dtrel;
@@ -134,14 +134,14 @@ for i = 1 : nsat
                 end
             end
         end
-        
+
         %second iteration for taking into account the relativistic effect and group delay corrections
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
-        
+
         %detect satellite constellation
         sys = SP3.sys(sat(i));
     end
-    
+
     %computation of ECEF satellite position at time_rx
     traveltime = time_rx - time_tx(i,1);
     switch char(sys)
@@ -160,7 +160,7 @@ for i = 1 : nsat
             Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
     end
     XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);
-    
+
     if (~isempty(SP3))
         %check eclipse condition
         eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3, sat(i));

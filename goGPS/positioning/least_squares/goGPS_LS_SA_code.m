@@ -24,14 +24,14 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -61,7 +61,7 @@ global azR elR distR
 global PDOP HDOP VDOP
 
 global residuals_float outliers
-residuals_float(:)=NaN; 
+residuals_float(:)=NaN;
 outliers(:)=NaN;
 
 %covariance matrix initialization
@@ -129,34 +129,34 @@ if (size(sat,1) >= min_nsat)
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
-    
+
     if ~isempty(dtR)
         residuals_float(residuals(:,2))=residuals(:,1);
         outliers(find(obs_outlier==1))=1;  %#ok<FNDSB>
     end
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat,1) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %current pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 
-    %if less than min_nsat satellites are available after the cutoffs, or if the 
+    %if less than min_nsat satellites are available after the cutoffs, or if the
     % condition number in the least squares exceeds the threshold
     if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
-        
+
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);
             pivot = 0;

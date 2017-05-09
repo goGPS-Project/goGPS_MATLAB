@@ -1,20 +1,20 @@
-function hmf = NiellMF(DOY,lat,h,elev) 
+function hmf = NiellMF(DOY,lat,h,elev)
 
-% Niell Mapping Function 
-% 
-% %%%%%%%%%% HELP %%%%%%%%%% 
-% 
-%hmf = NiellMF(DOY,lat,h,elev) 
-% 
-% Input Data 
-% DOY is day of year. 
-% lat is latitude, degrees. 
-% long is longitude, degrees. 
-% h is height, meters. 
-% elev is elevation angle, degrees. 
-% 
-% Transwritten by Phakphong Homniam 
-% September 20, 2002 
+% Niell Mapping Function
+%
+% %%%%%%%%%% HELP %%%%%%%%%%
+%
+%hmf = NiellMF(DOY,lat,h,elev)
+%
+% Input Data
+% DOY is day of year.
+% lat is latitude, degrees.
+% long is longitude, degrees.
+% h is height, meters.
+% elev is elevation angle, degrees.
+%
+% Transwritten by Phakphong Homniam
+% September 20, 2002
 % Original Mathcad source code by Boonsap Witchayangkoon, 2000
 % http://gps-ppp.blogspot.com/2009/05/neill-mapping-function-source-code-for.html
 

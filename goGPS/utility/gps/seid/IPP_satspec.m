@@ -1,15 +1,15 @@
 function [ipp_lat, ipp_lon, elS] = IPP_satspec(elev_series, azim_series, commontime, stations_idx, PRN, pos_RM)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function [ipp_lat, ipp_lon, elS] = IPP_satspec(elev_series, azim_series, commont
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -42,15 +42,15 @@ for s = 1 : n_sta
     azS = azim_series{s}(PRN,stations_idx(s,:));
     pos = find(azS > 180);
     azS(pos) = azS(pos) - 360;
-    
+
     %extract elevation
     elS = elev_series{s}(PRN,stations_idx(s,:));
-    
+
     azS = azS*pi/180;
     elS = elS*pi/180;
-    
+
     [latR, lonR] = cart2geod(pos_RM(1,1,s), pos_RM(2,1,s), pos_RM(3,1,s));
-    
+
     for e = 1 : length(commontime)
         [latpp, lonpp] = iono_pierce_point(latR, lonR, azS(e), elS(e));
         ipp_lat(s,e) = latpp*180/pi;

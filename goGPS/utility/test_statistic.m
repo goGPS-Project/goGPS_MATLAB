@@ -15,21 +15,21 @@ function [identify, BNR_xhat, BNR_y] = test_statistic(Qy_hat, Qy, A, alpha, e_ha
 %   T        = T-test, detection
 %   w        = w-test, identification
 %   BNR_xhat = bias-to-noise ratio of estimate x
-%   BNR_y    = bias-to_noise ratio of y 
+%   BNR_y    = bias-to_noise ratio of y
 %
 % DESCRIPTION:
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -57,7 +57,7 @@ m  = size(A,1);
 n  = size(A,2);
 
 q1 = 1;
-qmn= m - n; 
+qmn= m - n;
 
 %%Local Redundancy (r)
 %----------------------
@@ -102,7 +102,7 @@ end
 w = w';
 
 identify =0;
-if T > ka  
+if T > ka
     %Detection
      disp('Ho rejected')
 

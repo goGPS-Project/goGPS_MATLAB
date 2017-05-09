@@ -40,7 +40,7 @@ if (tjd1 ~= t0 && tjd2 ~= t0 )
     fprintf('\npreces error: precession from jd %14.8f to %14.8f not to/from j2000\n', tjd1, tjd2);
 
     return
-    
+
 end
 
 % t is time in tdb centuries between the two epochs
@@ -48,9 +48,9 @@ end
 t = (tjd2 - tjd1) / 36525.0d0;
 
 if (tjd2 == t0)
-    
+
     t = -t;
-    
+
 end
 
 % numerical coefficients of psi_a, omega_a, and chi_a, along with

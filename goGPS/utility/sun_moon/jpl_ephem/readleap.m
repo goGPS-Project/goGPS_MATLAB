@@ -22,6 +22,6 @@ leapdata = csvread('tai-utc.dat');
 ndata = length(leapdata);
 
 % put julian dates and leap seconds into data arrays
-    
+
 jdateleap = leapdata(:, 1);
 leapsec = leapdata(:, 2);

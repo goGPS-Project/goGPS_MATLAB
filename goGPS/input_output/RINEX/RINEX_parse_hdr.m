@@ -22,15 +22,15 @@ function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod, marke
 %   RINEX observation file header analysis.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Damiano Triglione 2012, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod, marke
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 ifound_types = 0;
 Obs_types = cell(0,0);
@@ -67,7 +67,7 @@ c = 1;
 %check if the end of the header or the end of the file has been reached
 while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     %NOTE: ischar is better than checking if line is the number -1.
-    
+
     answer = strfind(line,'# / TYPES OF OBSERV'); %RINEX v2.xx
     if ~isempty(answer)
         Obs_types{1} = [];
@@ -84,10 +84,10 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
             end
             nObs = nObs - 9;
         end
-        
+
         ifound_types = 1;
     end
-    
+
     answer = strfind(line,'SYS / # / OBS TYPES'); %RINEX v3.xx
     if ~isempty(answer)
         sysId{c} = sscanf(line(1),'%s');
@@ -109,7 +109,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         c = c + 1;
         ifound_types = 1;
     end
-    
+
     answer = strfind(line,'APPROX POSITION XYZ');
     if ~isempty(answer)
         X = sscanf(line(1:14),'%f');
@@ -117,7 +117,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         Z = sscanf(line(29:42),'%f');
         pos_M = [X; Y; Z];
     end
-    
+
     answer = strfind(line,'ANTENNA: DELTA H/E/N');
     if ~isempty(answer)
         dU = sscanf(line(1:14),'%f');
@@ -135,17 +135,17 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         end
         antmod = [antmod radtyp];
     end
-    
+
     answer = strfind(line,'INTERVAL');
     if ~isempty(answer)
         interval = sscanf(line(1:10),'%f');
     end
-    
+
     answer = strfind(line,'MARKER NAME');
     if ~isempty(answer)
         marker = sscanf(line(1:4),'%s');
     end
-    
+
     %parse next line
     line = fgetl(file);
 end

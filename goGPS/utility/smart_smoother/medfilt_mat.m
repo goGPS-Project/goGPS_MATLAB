@@ -6,12 +6,12 @@
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -33,7 +33,7 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 function filtered_data = medfilt_mat(data, filter_size)
@@ -44,7 +44,7 @@ function filtered_data = medfilt_mat(data, filter_size)
     half_size = (filter_size-1) / 2;
 
     if (filter_size <= length(data))
-        
+
         % Solution with increasing window at the left border
         win = data(1);
         filtered_data(1) = data(1);
@@ -53,7 +53,7 @@ function filtered_data = medfilt_mat(data, filter_size)
             win = inSortedData(win, data((i-1) * 2));
             filtered_data(i) = win((length(win)+1)/2);
         end
-        
+
         % Solution with constant median in the borders
 %         % init the win with the first "part" of the dataset sorted
 %         win = sort(data_in(1 : filter_size));
@@ -61,13 +61,13 @@ function filtered_data = medfilt_mat(data, filter_size)
 %         m = win(half_size + 1);
 %         % first half window values will be equal to the median of the first window
 %         filtered_data(1:half_size + 1) = m;
-        
+
         for i = (half_size + 2) : (length(data) - half_size)
             % fprintf('Center: %d  In: %f(%2d)  Out %f(%2d)\n', i, data_in(i+half_size), i+half_size, data_in(i-half_size-1), i-half_size-1);
             win = inOutSortedData(win, data(i + half_size), data(i - half_size - 1));
             filtered_data(i) = win(half_size + 1);
         end
-        
+
         % Solution with decreasing window at the right border
         for i = length(data) - half_size + 1 : length(data) -1
             win = outSortedData(win, data(-length(data) + 2 * (i - 1)));

@@ -21,12 +21,12 @@ function [band, block, ivd, givei, igp] = ems2idc(msg, iodi_mask, band_mask, igp
 %   Find the ionospheric vertical delays.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -48,7 +48,7 @@ function [band, block, ivd, givei, igp] = ems2idc(msg, iodi_mask, band_mask, igp
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %msg = ('536A53FDFFEF05C02DC16E0A7053829C14FFEFFF7FFBFFDFFEFFF7803BEF9280');
@@ -72,7 +72,7 @@ block = fbin2dec(s(19:22));
 %start bit and end bit of the 15 ivd
 start_bit = [23 : 13 : 205];
 end_bit   = [31 : 13 : 213];
-    
+
 %allocate the 15 binary numbers that correspond to the iono vertical delays
 for j = 1 : 15
     num_bin(j,:) = s(start_bit(j) : end_bit(j));
@@ -88,7 +88,7 @@ ivd = num_int' * risoluzione; % m
 %start bit and end bit of the 15 GIVEIs
 start_bit_g = [32 : 13 : 214];
 end_bit_g   = [35 : 13 : 217];
-    
+
 %allocate the 15 binary numbers that correspond to the GIVEIs
 for j = 1 : 15
     num_bin_g(j,:) = s(start_bit_g(j) : end_bit_g(j));
@@ -101,6 +101,6 @@ IODI = fbin2dec(s(218:219));
 
 %find the right IGP mask
 i_band = find(band_mask == band);
-    
+
 i_iodi = find(iodi_mask(i_band) == IODI);
 igp = igp_mask(i_band(i_iodi),:); %#ok<FNDSB>

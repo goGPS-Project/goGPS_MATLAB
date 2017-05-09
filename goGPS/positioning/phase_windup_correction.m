@@ -18,14 +18,14 @@ function [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -51,7 +51,7 @@ function [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup)
 [phi, lam] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
 a = [-sin(lam); cos(lam); 0];
 b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
-    
+
 for s = 1 : size(XS,1)
     %satellite-fixed local unit vectors
     [i, j, k] = satellite_fixed_frame(time, XS(s,:)', SP3);
@@ -59,7 +59,7 @@ for s = 1 : size(XS,1)
     %receiver and satellites effective dipole vectors
     Dr = a - k*dot(k,a) + cross(k,b);
     Ds = i - k*dot(k,i) - cross(k,j);
-    
+
     %phase wind-up computation
     psi = dot(k, cross(Ds, Dr));
     arg = dot(Ds,Dr)/(norm(Ds)*norm(Dr));

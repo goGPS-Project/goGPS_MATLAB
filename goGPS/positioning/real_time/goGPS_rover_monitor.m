@@ -13,21 +13,21 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %                   (see goGNSS.initConstellation - empty if not available)
 %
 % DESCRIPTION:
-%   Monitor of receiver operations: stream reading, data visualization 
+%   Monitor of receiver operations: stream reading, data visualization
 %   and output data saving. Simulataneous monitor of different receivers,
 %   also including different protocols.
 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -144,11 +144,11 @@ for r = 1 : nrec
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
     %   Eph      --> double, [33,num_sat]
     fid_eph{r} = fopen([filerootOUT '_' recname '_eph_000.bin'],'w+');
-    
+
     %write number of satellites
     fwrite(fid_obs{r}, num_sat, 'int8');
     fwrite(fid_eph{r}, num_sat, 'int8');
-    
+
     if (flag_var_dyn_model) || (flag_stopGOstop)
         %dynamical model
         %  order      --> int8,   [1,1]
@@ -159,7 +159,7 @@ for r = 1 : nrec
         %  sigmaq0_N  --> double, [1,1] - not used
         fid_dyn{r} = fopen([filerootOUT '_' recname '_dyn_000.bin'],'w+'); %#ok<AGROW>
     end
-    
+
     % nmea sentences
     fid_nmea{r} = fopen([filerootOUT '_' recname '_NMEA.txt'],'wt');
 end
@@ -220,10 +220,10 @@ for r = 1 : nrec
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (fastrax n.%d)\n',r);
-        
+
         % only one connection can be opened in writing mode
         fopen(rover{r});
-        
+
         [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
@@ -235,7 +235,7 @@ for r = 1 : nrec
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (skytraq n.%d)\n',r);
-        
+
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
@@ -250,7 +250,7 @@ for r = 1 : nrec
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (nvs n.%d)\n',r);
-        
+
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
@@ -269,7 +269,7 @@ for r = 1 : nrec
     fopen(rover{r});
 end
 pause(0.1);
- 
+
 %------------------------------------------------------
 % absolute time startup
 %------------------------------------------------------
@@ -352,7 +352,7 @@ while (sum(test) > 0) && (nTry < 100)
 
     %starting time
     current_time = toc;
-    
+
     for r = 1 : nrec
 
         %serial port checking
@@ -495,32 +495,32 @@ while flag
 
     %time reading (relative to start_time)
     current_time = toc;
-    
+
     %-------------------------------------
     % hourly files
     %-------------------------------------
     for r = 1 : nrec
         if (floor(current_time/3600) > hour)
-            
+
             hour = floor(current_time/3600);
             hour_str = num2str(hour,'%03d');
-            
+
             fclose(fid_rover{r});
             fclose(fid_obs{r});
             fclose(fid_eph{r});
             if (flag_var_dyn_model) || (flag_stopGOstop)
                 fclose(fid_dyn{r});
             end
-            
+
             recname = [prot_par{r}{1,1} num2str(r)];
-            
+
             fid_rover{r}  = fopen([filerootOUT '_' recname '_rover_'  hour_str '.bin'],'w+');
             fid_obs{r}    = fopen([filerootOUT '_' recname '_obs_'    hour_str '.bin'],'w+');
             fid_eph{r}    = fopen([filerootOUT '_' recname '_eph_'    hour_str '.bin'],'w+');
             if (flag_var_dyn_model) || (flag_stopGOstop)
                 fid_dyn{r}    = fopen([filerootOUT '_' recname '_dyn_'    hour_str '.bin'],'w+');
             end
-            
+
             %write number of satellites
             fwrite(fid_obs{r}, num_sat, 'int8');
             fwrite(fid_eph{r}, num_sat, 'int8');
@@ -541,11 +541,11 @@ while flag
 
         %test if the package writing is finished
         if (rover_1 == rover_2) && (rover_1 ~= 0)
-            
+
             %visualization
             fprintf('\n');
             fprintf('---------------------------------------------------\n')
-            
+
             data_rover = fread(rover{r},rover_1,'uint8');  %serial port reading
             fwrite(fid_rover{r},data_rover,'uint8');       %transmitted stream save
             if (protocol(r) == 3), data_rover = remove_double_10h(data_rover); end
@@ -626,7 +626,7 @@ while flag
                         end
                         nRAW = nRAW + 1;
                     end
-                    
+
                     %NVS specific fields
                     if (protocol(r) == 3)
                         rdf_R = cell_rover{3,i}(:,5); %#ok<NASGU>
@@ -647,7 +647,7 @@ while flag
 
                     %satellites with observations available
                     satObs = find(pr_R(:,1) ~= 0);
-                    
+
                     min_nsat_LS = 3 + n_sys;
 
                     %if all the visible satellites ephemerides have been transmitted
@@ -689,7 +689,7 @@ while flag
                         %manage "nearly null" data
                         pr_R(abs(pr_R) < 1e-100) = 0;
                         ph_R(abs(ph_R) < 1e-100) = 0;
-                        
+
                         %manage phase without code
                         ph_R(abs(pr_R) == 0) = 0;
 
@@ -698,17 +698,17 @@ while flag
 
                         %counter increment
                         t(r) = t(r)+1;
-                        
+
                         %satellites with ephemerides available
                         satEph = find(sum(abs(Eph{r}))~=0);
-                        
+
                         %satellites with observations available
                         satObs = find(pr_R(:,1) ~= 0);
-                        
+
                         %if all the visible satellites ephemerides have been transmitted
                         %and the total number of satellites is >= min_nsat_LS
                         if (~isempty(satObs) && ~isempty(satEph) && ismember(satObs,satEph)) && (length(satObs) >= min_nsat_LS)
-                            
+
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                             fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
@@ -720,13 +720,13 @@ while flag
 
                 %Hui message data save (AID-HUI | 4Ah)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{3,2}))
-                    
+
                     %u-blox fields
                     if (protocol(r) == 0)
                         %ionosphere parameters
                         iono{r}(:, 1) = cell_rover{3,i}(9:16);
                     end
-                    
+
                     %NVS fields
                     if (protocol(r) == 3)
                         %ionosphere parameters
@@ -871,7 +871,7 @@ while flag
     %test if the cycle execution has ended
     flag = getappdata(gcf, 'run');
     drawnow
-    
+
     if (flag_var_dyn_model) && (~flag_stopGOstop)
         % check the changing of kalman filter model
         if get(h1, 'SelectedObject') == u1
@@ -900,7 +900,7 @@ for r = 1 : nrec
 
     % u-blox configuration
     if (protocol(r) == 0)
-        
+
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (u-blox n.%d)\n',r);
@@ -971,7 +971,7 @@ if (nrec == 1)
             %visualization
             fprintf('\n');
             fprintf('RINEX CONVERSION\n');
-            
+
             r = nrec;
             recname = [prot_par{r}{1,1} num2str(r)];
             gui_decode_stream([filerootOUT '_' recname], constellations);

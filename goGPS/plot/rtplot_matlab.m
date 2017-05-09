@@ -21,14 +21,14 @@ function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -72,15 +72,15 @@ if (t == 1)
     title('b:ok k:+1sat r:-1sat m:pivot g:cycle-slip y:only-dyn');
     grid; axis equal
     hold on
-    
+
     % fixing of the origin O
     %EAST_O = 0; %NORTH_O = 0;
     %EAST_O = EST_M; %NORTH_O = NORD_M;
     [EAST_O, NORTH_O] = cart2plan(pos_R(1), pos_R(2), pos_R(3));
-    
+
     if ~isempty(ref.path) % & ~isempty(ref.adj_mat)
         [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref.path(:,1), ref.path(:,2), ref.path(:,3)); %#ok<NASGU>
-        
+
         plot(EAST_ref-EAST_O, NORTH_ref-NORTH_O, 'm', 'LineWidth', 2);
         for i = 1 : length(EAST_ref)-1
             for j = i+1 : length(EAST_ref)

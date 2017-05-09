@@ -1,20 +1,20 @@
 function [ position, velocity, acceleration ] = interpolate( s, nrl, target, t )
 % This function differentiates and interpolates a set of Chebyshev coefficients to give position and velocity.
-% 
+%
 % void interpolate (double *buf, double *t, long int ncf, long int na,
-% 
+%
 %                   double *position, double *velocity)
-% 
+%
 % ------------------------------------------------------------------------
-% 
+%
 %    PURPOSE:
 %       This function differentiates and interpolates a set of
 %       Chebyshev coefficients to give position and velocity.
-% 
+%
 %    REFERENCES:
 %       Standish, E.M. and Newhall, X X (1988). "The JPL Export
 %          Planetary Ephemeris"; JPL document dated 17 June 1988.
-% 
+%
 %    INPUT
 %    ARGUMENTS:
 %       *buf (double)
@@ -28,18 +28,18 @@ function [ position, velocity, acceleration ] = interpolate( s, nrl, target, t )
 %       na (long int)
 %          Number of sets of coefficients in full array
 %          (i.e., number of sub-intervals in full interval).
-% 
+%
 %    OUTPUT
 %    ARGUMENTS:
 %       *position (double)
 %          Position array of requested object.
 %       *velocity (double)
 %          Velocity array of requested object.
-% 
+%
 %    RETURNED
 %    VALUE:
 %       None.
-% 
+%
 %    GLOBALS
 %    USED:
 %       NP                eph_manager.h
@@ -47,11 +47,11 @@ function [ position, velocity, acceleration ] = interpolate( s, nrl, target, t )
 %       PC                eph_manager.h
 %       VC                eph_manager.h
 %       TWOT              eph_manager.h
-% 
+%
 %    FUNCTIONS
 %    CALLED:
 %       fmod              math.h
-% 
+%
 %    VER./DATE/
 %    PROGRAMMER:
 %       V1.0/03-93/WTH (USNO/AA): Convert FORTRAN to C.
@@ -63,12 +63,12 @@ function [ position, velocity, acceleration ] = interpolate( s, nrl, target, t )
 %                                 int to long int.
 %       V1.5/10-10/WKP (USNO/AA): Renamed function to lowercase to
 %                                 comply with coding standards.
-% 
+%
 %    NOTES:
 %       None.
-% 
+%
 % ------------------------------------------------------------------------
-  
+
   persistent PC VC AC NP TWOT;
   if isempty(PC)
     PC = zeros(1,15); % ncf <= 15
@@ -91,12 +91,12 @@ function [ position, velocity, acceleration ] = interpolate( s, nrl, target, t )
   else
     NDIM = 3;
   end
-  
+
   buf = s.IPT(1,target) + nrl*s.indexInc + s.indexOffset;
   ncf = s.IPT(2,target);
   na  = s.IPT(3,target);
   table = s.scan;
-  
+
   position = zeros(1,NDIM); % row vector
   velocity = zeros(1,NDIM); % row vector
   acceleration = zeros(1,NDIM); % row vector

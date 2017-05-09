@@ -18,15 +18,15 @@ function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellatio
 %   Tool for loading .DCB files and providing P1P2 (and if needed P1C1) DCB data in output.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellatio
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (isempty(constellations)) %then use only GPS as default
@@ -96,20 +96,20 @@ n_P1P2 = 0;
 
 %find files with ".DCB" extension
 for j = 1 : nmax
-    
+
     %read the name of the j-th file
     dcb_file_name = getfield(data_dir,{j,1},'name');
-    
+
     %get the number of characters in the filename
     dcb_fn_length = size(dcb_file_name,2);
 
     if (dcb_fn_length < 12)
         continue
     end
-    
+
     year = str2num(dcb_file_name(5:6));
     month = str2num(dcb_file_name(7:8));
-    
+
     %check if the filename corresponds to that expected from a standard DCB file required by goGPS (e.g. "P1C1xxyy.DCB",
     % with 'xx' = two-digit year and 'yy' = two-digit month)
     if ((strcmpi(dcb_file_name(1:4), 'P1P2') || strcmpi(dcb_file_name(1:4), 'P1C1')) && ...
@@ -118,22 +118,22 @@ for j = 1 : nmax
         (year == year_end   && month <= month_end))  && ...
         ((dcb_fn_length == 12 && strcmpi(dcb_file_name(dcb_fn_length - 3 : dcb_fn_length), '.DCB')) || ...
          (dcb_fn_length == 16 && strcmpi(dcb_file_name(dcb_fn_length - 7 : dcb_fn_length), '.DCB_TMP')))) %#ok<*ST2NM>
-        
+
         n = n + 1;
-        
+
         switch dcb_file_name(3:4)
             case 'C1'
                 n_P1C1 = n_P1C1 + 1;
             case 'P2'
                 n_P1P2 = n_P1P2 + 1;
         end
-        
+
         %full path to the target file
         dcb_file_target  = strcat(data_dir_dcb, '/', dcb_file_name);
-        
+
         %open .dcb file
         fid_fd = fopen(dcb_file_target,'r');
-        
+
         %warnings
         if (fid_fd ~= -1)
             %fprintf(['Reading DCB file ', dcb_file_name, '\n']);
@@ -144,30 +144,30 @@ for j = 1 : nmax
             fprintf(['WARNING: impossible to open DCB file ', dcb_file_name, '\n']);
             break
         end
-        
+
         line = '';
         while(~feof(fid_fd) && ~strcmp(line, '***   ****************    *****.***   *****.***'))
             line = fgetl(fid_fd);
         end
-        
+
         while(~feof(fid_fd))
             line = fgetl(fid_fd);
-            
+
             if (isempty(line))
                 continue
             end
-            
+
             sys_id = line(1);
             if (strcmp(sys_id,'G') && constellations.GPS.enabled || ...
                 strcmp(sys_id,'R') && constellations.GLONASS.enabled || ...
                 strcmp(sys_id,'E') && constellations.Galileo.enabled || ...
                 strcmp(sys_id,'C') && constellations.BeiDou.enabled || ...
                 strcmp(sys_id,'J') && constellations.QZSS.enabled)
-                
+
                 PRN   = sscanf(line(2:3),'%f');
                 value = sscanf(line(30:35),'%f');
                 rms   = sscanf(line(43:47),'%f');
-                
+
                 switch (sys_id)
                     case 'G'
                         index = idGPS;
@@ -185,13 +185,13 @@ for j = 1 : nmax
                         index = idQZSS;
                         system = 'QZSS';
                 end
-                
+
                 if(~ismember(PRN,constellations.(system).PRN))
                     continue
                 end
-                
+
                 index = index + PRN - 1;
-                
+
                 [w, s] = date2gps([four_digit_year(year) month 15 0 0 0]);
 
                 switch dcb_file_name(3:4)
@@ -210,7 +210,7 @@ for j = 1 : nmax
                 end
             end
         end
-        
+
         fclose(fid_fd);
     end
 end

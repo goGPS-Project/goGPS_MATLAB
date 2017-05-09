@@ -15,14 +15,14 @@ function rtplot_amb (t, delta, stima_amb, sigma_amb, cs)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -71,15 +71,15 @@ if (t == 1)
       axis([dt(1) dt(delta) floor(ax(3)) ceil(ax(4))]);
       title(['SATELLITE ',num2str(sat(i))]);
    end
-   
+
 else
-    
+
     nst = length(stima_amb);
-    
+
     b1 = zeros(nst,delta);
     b2 = zeros(nst,delta);
     b3 = zeros(nst,delta);
-    
+
     subfig = get(1,'Children');
     i = 1;
     for j = 1 : length(subfig)
@@ -90,26 +90,26 @@ else
             i = i + 1;
         end
     end
-    
+
     subfig = get(1,'Children');
-    
+
     tLim = get(subfig(1),'XLim');
     dt = (tLim(1) : tLim(2))';
-    
+
     for i = 1 : length(subfig)
         sat = get(subfig(i),'UserData');
         subobj = get(subfig(i),'Children');
-        
+
         tData = get(subobj(end),'XData')';
         b1(sat,tData-dt(1)+1) = get(subobj(end),'YData');
-        b2(sat,tData-dt(1)+1) = get(subobj(end-1),'YData') - b1(sat,tData-dt(1)+1);        
-        
+        b2(sat,tData-dt(1)+1) = get(subobj(end-1),'YData') - b1(sat,tData-dt(1)+1);
+
         if (length(subobj) > 3)
             tData = get(subobj(1),'XData')';
             b3(sat,tData-dt(1)+1) = get(subobj(1),'YData');
         end
     end
-    
+
     if (t <= delta)
         b1(:,t) = stima_amb;
         b2(:,t) = sigma_amb;
@@ -124,45 +124,45 @@ else
         b3(:,end) = stima_amb .* cs;
         dt = (t-delta+1 : t)';
     end
-    
+
     %----------------------------------------------------------------------------
-    
+
     clf                                          % delete previous sub-figures
-    
+
     sat = find(sum(b1,2) ~= 0);					% satellites in view (not pivot)
     nsat = length(sat);                          % number of satellites in view
-    
+
     for i = 1 : nsat
-        
+
         subfig(i) = subplot(5,3,i+6);
-        
+
         j = find(b1(sat(i),:) ~= 0);
         k = find(b3(sat(i),:) ~= 0);
-        
+
         %assessed N combination
         plot(dt(j), b1(sat(i),j), 'b.-');
         hold on; grid on;
-        
+
         %acceptability range
         plot(dt(j), b1(sat(i),j) + b2(sat(i),j),'r:');
         plot(dt(j), b1(sat(i),j) - b2(sat(i),j),'r:');
-        
+
         %cycle-slips
         plot(dt(k), b3(sat(i),k),'g.');
         hold off
-        
+
         %satellite id
         set(subfig(i),'UserData',sat(i));
-        
+
         yt = get(subfig(i),'YTick');
         set(subfig(i),'YTickLabel', sprintf('%.1f\n',yt))
-        
+
         %axes and title
         ax = axis;
         axis([dt(1) dt(delta) floor(ax(3)) ceil(ax(4))]);
         title(['SATELLITE ',num2str(sat(i))]);
     end
-    
+
     for i = 1 : length(handleOff)
         set(handleOff(i),'HandleVisibility','on');
     end

@@ -2,7 +2,7 @@ function [ rtn ] = TESTPOINTS( denum, testCase )
 %TEST test a wide range of known values from JPL's ephemerides
   output = 1;
   rtn = 0;
-  
+
   if nargin < 1
     denum = 405;
   end

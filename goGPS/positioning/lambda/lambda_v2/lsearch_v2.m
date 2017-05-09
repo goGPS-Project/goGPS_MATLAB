@@ -8,7 +8,7 @@ function [afixed,sqnorm,ierr] = lsearch (afloat,L,D,Chi2,ncands)
 %
 % Input arguments:
 %    afloat : Float ambiguities (\hat{a})
-%    L      : LtDL-decomposition of the decorrelated 
+%    L      : LtDL-decomposition of the decorrelated
 %    D        variance-covariance matrix of the ambiguities
 %    Chi2   : Size of the search ellipsoid
 %    ncands : Number of requested candidates
@@ -73,12 +73,12 @@ while ~ (endsearch);
       end;
    end;
    iold = i;
-   
+
    right(i)   = (right(i+1) - left(i+1)) * dq(i);
    reach      = sqrt(right(i));
    delta      = afloat(i) - reach - lef(i);
    distl(i,1) = ceil(delta) - afloat(i);
-   
+
    if distl(i,1) > reach - lef(i)
 
 %     ----------------------------------------------------
@@ -87,9 +87,9 @@ while ~ (endsearch);
 
       cand_n = False;
       c_stop = False;
-      
+
       while (~ c_stop) & (i < n);
-      
+
          i = i + 1;
          if distl(i) < endd(i);
             distl(i) = distl(i) + 1;
@@ -97,11 +97,11 @@ while ~ (endsearch);
             c_stop   = True;
             if i == n; cand_n = True; end;
          end;
-      
+
       end;
-      
+
       if (i == n) & (~ cand_n); endsearch = True; end;
-      
+
    else
 
 %     ----------------------------
@@ -114,7 +114,7 @@ while ~ (endsearch);
    end
 
    if i == 1;
-   
+
 %     -------------------------------------------------------------------
 %     --- Collect the integer vectors and corresponding               ---
 %     --- squared distances, add to vectors "afixed" and "sqnorm" if: ---                             ---
@@ -124,30 +124,30 @@ while ~ (endsearch);
 
       t       = Chi2 - (right(1)-left(1)) * Dinv(1);
       endd(1) = endd(1) + 1;
-      
+
       while distl(1) <= endd(1);
 
          if ncan < ncands;
-         
+
             ncan             = ncan + 1;
             afixed(1:n,ncan) = distl + afloat;
             sqnorm(ncan)     = t;
 
          else
-         
+
             [maxnorm,ipos] = max(sqnorm);
             if t < maxnorm;
                afixed(1:n,ipos) = distl + afloat;
                sqnorm(ipos)     = t;
             end;
-            
+
          end;
 
          t       = t + (2 * (distl(1) + lef(1)) + 1) * Dinv(1);
          distl(1) = distl(1) + 1;
 
       end;
-      
+
 
 %     -------------------------
 %     --- And backtrack ... ---
@@ -155,7 +155,7 @@ while ~ (endsearch);
 
       cand_n = False;
       c_stop = False;
-      
+
       while (~ c_stop) & (i < n);
 
          i = i + 1;
@@ -166,11 +166,11 @@ while ~ (endsearch);
             c_stop   = True;
             if i == n; cand_n = True; end;
          end;
-      
+
       end;
 
       if (i == n) & (~ cand_n); endsearch = True; end;
-      
+
    end;
 
 end;

@@ -9,7 +9,7 @@ function jdtdb = utc2tdb (jdutc)
 
 % output
 
-%  jdtdb = TDB julian date 
+%  jdtdb = TDB julian date
 
 % note: requires readleap in main script
 
@@ -23,17 +23,17 @@ function jdtdb = utc2tdb (jdutc)
 dtr = pi / 180.0;
 
 % compute TDT julian date
- 
+
 leapsecond = findleap(jdutc);
 
 corr = (32.184 + leapsecond) / 86400.0;
-    
+
 jdtdt = jdutc + corr;
-    
+
 % time argument for correction
 
 t = (jdtdt - 2451545.0) / 36525.0;
-    
+
 % compute correction in microseconds
 
 corr = 1656.675     * sin(dtr * (35999.3729 * t + 357.5287))...

@@ -40,15 +40,15 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Kalman filter output data reading.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -67,7 +67,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 %global variables loading
 global o1 o3 nN nT nC
@@ -337,7 +337,7 @@ while ~isempty(d)
     buf_trp = fread(fid_sat,num_words,'double');                    %file reading
     fclose(fid_trp);                                                %file closing
     ZHD  = [ZHD   zeros(num_packs,1)];                              %observations concatenation
-    STDs = [STDs  zeros(num_sat,num_packs)];                        
+    STDs = [STDs  zeros(num_sat,num_packs)];
     for j = 0 : (num_sat+1) : num_words-1
         i = i+1;                                                    %epoch counter increase
         ZHD(i,1)  = buf_trp(j +  1);

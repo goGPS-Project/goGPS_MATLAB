@@ -12,16 +12,16 @@ function pos2 = wobble (tjd, x, y, pos1)
 
 % input
 
-%  tjd  = tt or ut1 julian date 
+%  tjd  = tt or ut1 julian date
 
 %  x    = conventionally-defined x coordinate of celestial
-%         intermediate pole with respect to itrs pole, in arcseconds 
+%         intermediate pole with respect to itrs pole, in arcseconds
 
 %  y    = conventionally-defined y coordinate of celestial
-%         intermediate pole with respect to itrs pole, in arcseconds 
+%         intermediate pole with respect to itrs pole, in arcseconds
 
 %  pos1 = position vector, geocentric equatorial rectangular
-%         coordinates, referred to itrs axes 
+%         coordinates, referred to itrs axes
 
 % output
 

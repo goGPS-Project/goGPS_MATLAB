@@ -44,14 +44,14 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -188,13 +188,13 @@ Z_app = XR0(3);
 
 %if the number of visible satellites is equal or greater than min_nsat
 if (nsat >= min_nsat)
-    
+
     %----------------------------------------------------------------------------------------
     % SATELLITE POSITION COMPUTATION
     %----------------------------------------------------------------------------------------
-    
+
     sat_pr_old = sat_pr;
-    
+
     if (phase(1) == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
         [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
@@ -202,10 +202,10 @@ if (nsat >= min_nsat)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
         [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     end
-    
+
     err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
     err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
-    
+
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     err_tropo_R = err_tropo_R(iR);
@@ -214,39 +214,39 @@ if (nsat >= min_nsat)
     err_iono1_M = err_iono1_M(iM);
     err_iono2_R = err_iono2_R(iR);
     err_iono2_M = err_iono2_M(iM);
-    
+
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
-    
+
     for i = 1:size(sat_pr)
         if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && sum(sum(Eph)) ~= 0)
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end
-    
+
     %----------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %----------------------------------------------------------------------------------------
-    
+
     %satellite configuration: code only (-1), both code and phase (+1);
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
-    
+
     %cycle-slip configuration
     conf_cs = zeros(nSatTot,1);
-    
+
     %total number of visible satellites
     nsat = size(sat_pr,1);
     n = nsat - 1;
-    
+
     %previous pivot
     pivot_prev = pivot; %pivot at previous epoch (could be = 0)
     if (pivot ~= 0)
         pivot_old = pivot; %last valid pivot (never = 0)
     end
-    
+
     %current pivot
     if ~isempty(sat)
         [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
@@ -255,28 +255,28 @@ if (nsat >= min_nsat)
         [null_max_elR, pivot_index] = max(elR(sat_pr)); %#ok<ASGLU>
         pivot = sat_pr(pivot_index);
     end
-    
+
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
-        
+
         %------------------------------------------------------------------------------------
         % SATELLITE ADDITION/LOSS
         %------------------------------------------------------------------------------------
-        
+
         %search for a lost satellite
         sat_dead = setdiff(sat_old,sat);
-        
+
         if (~isempty(sat_dead))
-            
+
             check_off = 1;
-            
+
             %for lost satellites it is fundamental to set their N-PIVOT
             % combinations to 0. Furthermore it could be convenient to raise
             %their uncertainty (not necessary - done when a new satellite is
             %added)
             N1 = 0;
             N2 = 0;
-            
+
             if (length(phase) == 2)
                 X_t1_t(o1+sat_dead,1) = N1;
                 X_t1_t(o1+nSatTot+sat_dead,1) = N2;
@@ -288,19 +288,19 @@ if (nsat >= min_nsat)
                 end
             end
         end
-        
+
         %search for a new satellite
         sat_born = setdiff(sat,sat_old);
-        
+
         %if first epoch with a sufficient number of observations after one or more dynamics-only epochs
         if (pivot_prev == 0 && pivot > 0)
             sat_born = sat;
         end
-        
+
         if (~isempty(sat_born))
-            
+
             check_on = 1;
-            
+
             %if a new satellite is going to be the pivot, its ambiguity needs
             %to be estimated before applying the pivot change
             if ~isempty(find(sat_born == pivot, 1))
@@ -326,7 +326,7 @@ if (nsat >= min_nsat)
                     if (length(phase) == 2)
                         [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
-                        
+
                         X_t1_t(o1+sat_born,1) = N1_born;
                         X_t1_t(o1+nSatTot+sat_born,1) = N2_born;
                         Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_N1_born);
@@ -339,7 +339,7 @@ if (nsat >= min_nsat)
                         else
                             [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         end
-                        
+
                         X_t1_t(o1+sat_born,1) = N_born;
                         Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_N_born);
                         %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
@@ -349,16 +349,16 @@ if (nsat >= min_nsat)
                 check_on = 0;
             end
         end
-        
+
         %------------------------------------------------------------------------------------
         % PIVOT CHANGE
         %------------------------------------------------------------------------------------
-        
+
         %search for a possible PIVOT change
         if (pivot ~= pivot_old && pivot_old ~= 0)
-            
+
             check_pivot = 1;
-            
+
             %matrix construction to update the PIVOT change
             %sat: vector with the current visible satellites
             %nsat: current satellites vector dimension
@@ -367,12 +367,12 @@ if (nsat >= min_nsat)
             R(sat,pivot) = -1;
             R(pivot_old,pivot_old) = 0;
             R(pivot,pivot) = 0;
-            
+
             I0 = eye(o1);
             Z_ns_o3 = zeros(nSatTot,o1);
             Z_o3_ns = zeros(o1,nSatTot);
             Z_ns_ns = zeros(nSatTot,nSatTot);
-            
+
             %total matrix construction
             %sat_old, sat
             if (length(phase) == 2)
@@ -380,30 +380,30 @@ if (nsat >= min_nsat)
             else
                 A = [I0 Z_o3_ns; Z_ns_o3 R];
             end
-            
+
             %new state estimate
             X_t1_t = A*X_t1_t;
-            
+
             %re-computation of the Cee covariance matrix at the previous epoch
             Cee = A*Cee*A';
         end
-        
+
         %------------------------------------------------------------------------------------
         % CYCLE-SLIP
         %------------------------------------------------------------------------------------
-        
+
         if ~isempty(sat)
-            
+
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is not changed yet
             if (length(phase) == 2)
                 [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o1+1:o1+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o1+1:o1+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
-                
+
                 if (check_cs1 || check_cs2)
                     check_cs = 1;
                 end
-                
+
                 %            %if the pivot slips, all ambiguity combinations must be re-estimated
                 %            if ~isempty(find(sat_slip1 == pivot, 1))
                 %                sat_born = [];
@@ -419,7 +419,7 @@ if (nsat >= min_nsat)
                 else
                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o1+1:o1+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 end
-                
+
                 %            %if the pivot slips, all ambiguity combinations must be re-estimated
                 %            if ~isempty(find(sat_slip == pivot, 1))
                 %                sat_born = [];
@@ -434,16 +434,16 @@ if (nsat >= min_nsat)
             check_cs2 = 0;
             check_cs = 0;
         end
-        
+
         %------------------------------------------------------------------------------------
         % PHASE AMBIGUITY ESTIMATION
         %------------------------------------------------------------------------------------
-        
+
         if (check_on || check_cs)
             if (length(phase) == 2)
                 [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R);
                 [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R);
-                
+
                 if (check_on)
                     X_t1_t(o1+sat_born,1) = N1_born;
                     X_t1_t(o1+nSatTot+sat_born,1) = N2_born;
@@ -452,14 +452,14 @@ if (nsat >= min_nsat)
                     %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                     %Cvv(o1+nSatTot+sat_born,o1+nSatTot+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                 end
-                
+
                 if (check_cs1)
                     conf_cs(sat_slip1) = 1;
                     X_t1_t(o1+sat_slip1) = N1_slip;
                     Cvv(o1+sat_slip1,o1+sat_slip1) = diag(sigmaq_N1_slip);
                     %Cvv(o1+sat_slip1,o1+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
                 end
-                
+
                 if (check_cs2)
                     conf_cs(sat_slip2) = 1;
                     X_t1_t(o1+nSatTot+sat_slip2) = N2_slip;
@@ -472,13 +472,13 @@ if (nsat >= min_nsat)
                 else
                     [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr), sigmaq_pos_R);
                 end
-                
+
                 if (check_on)
-                    X_t1_t(o1+sat_born,1) = N_born;                    
+                    X_t1_t(o1+sat_born,1) = N_born;
                     Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_N_born);
                     %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                 end
-                
+
                 if (check_cs)
                     conf_cs(sat_slip) = 1;
                     X_t1_t(o1+sat_slip) = N_slip;
@@ -487,21 +487,21 @@ if (nsat >= min_nsat)
                 end
             end
         end
-        
+
         %------------------------------------------------------------------------------------
         % OBSERVATION EQUATIONS
         %------------------------------------------------------------------------------------
-        
+
         %rows in which the phase observation is available
         p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
-        
+
         %function that calculates the Kalman filter parameters
         [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, alpha0] = input_kalman_vinc(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
-        
+
         %vectors of zeros useful for the matrix declaration
         Z_n_nN = zeros(n,nN);
         Z_n_om = zeros(n,o1-1);
-        
+
         %H matrix estimation for the code
         H_cod1 = [alpha Z_n_om Z_n_nN];
         H_cod2 = [alpha Z_n_om Z_n_nN];
@@ -514,7 +514,7 @@ if (nsat >= min_nsat)
                 H_cod = H_cod2;
             end
         end
-        
+
         %lambda positions estimate
         L_pha1 = zeros(n,nSatTot);
         L_pha2 = zeros(n,nSatTot);
@@ -527,7 +527,7 @@ if (nsat >= min_nsat)
                 v = v+1;
             end
         end
-        
+
         %H matrix H estimation for the phase
         if ~isempty(p)
             H_pha1 = [alpha(p) Z_n_om(p,:) Z_n_nN(p,:)];
@@ -548,14 +548,14 @@ if (nsat >= min_nsat)
         else
             H_pha = [];
         end
-        
+
         %complete H matrix construction
         H = [H_cod; H_pha];
-        
+
         %Y0 vector estimate for the code
         y0_cod1 = probs_pr1 - prapp_pr1 + alpha*X_t1_t(1);
         y0_cod2 = probs_pr2 - prapp_pr2 + alpha*X_t1_t(1);
-        
+
         %Y0 vector estimate for the phase
         if ~isempty(p)
             y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p)*X_t1_t(1);
@@ -564,7 +564,7 @@ if (nsat >= min_nsat)
             y0_pha1 = [];
             y0_pha2 = [];
         end
-        
+
         %complete Y0 vector construction
         if (length(phase) == 2)
             y0_cod = [y0_cod1; y0_cod2];
@@ -579,17 +579,17 @@ if (nsat >= min_nsat)
             end
         end
         y0 = [y0_cod; y0_pha];
-        
+
         %------------------------------------------------------------------------------------
         % OBSERVATION COVARIANCE MATRIX
         %------------------------------------------------------------------------------------
-        
+
         %construction of the cofactor matrix
         Q = cofactor_matrix(elR(sat_pr), elM(sat_pr), snr_R(sat_pr), snr_M(sat_pr), pivot_index);
-        
+
         %zeroes vector useful in matrix definitions
         Z_n_n = zeros(n,n);
-        
+
         %multiplication by the code variance and the phase variance to build the matrix
         if ~isempty(p)
             if (length(phase) == 2)
@@ -613,24 +613,24 @@ if (nsat >= min_nsat)
                 end
             end
         end
-        
+
         %------------------------------------------------------------------------------------
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
 
         search_for_outlier = flag_outlier;
-        
+
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
-        
+
         y0_residuals=y0;
         H1_residuals=H;
         index_residuals_outlier=[sat_pr_np;nSatTot+sat_np];  %[code;phase]
-                
+
         y0_noamb=y0;
         y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o1+sat_np); %add predicted ambiguity to y0
         H1=H(:,1);
-        
+
         % decomment to use only phase
 %         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
 %         H1=H(length(sat_pr_np)+1:end,1);
@@ -646,11 +646,11 @@ if (nsat >= min_nsat)
 %         H=H(1:length(sat_pr_np),:);
 %         y0=y0(1:length(sat_pr_np));
 %         index_residuals_outlier=sat_pr_np;
-        
+
         index_outlier_i=1:length(y0_noamb);
 
         while (search_for_outlier == 1)
-            
+
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
             if (s02_ls(t) > s02_ls_threshold)
                 index_outlier = 1:length(y0_noamb);
@@ -669,18 +669,18 @@ if (nsat >= min_nsat)
                 search_for_outlier = 0;
             end
         end
-        
+
         %------------------------------------------------------------------------------------
         % DILUTION OF PRECISION
         %------------------------------------------------------------------------------------
-        
+
         cov_XYZ = (alpha0'*alpha0)^-1;
         cov_ENU = global2localCov(cov_XYZ, XR0);
-        
+
         PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
         HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
         VDOP = sqrt(cov_ENU(3,3));
-        
+
         %--------------------------------------------------------------------------------------------
         % DOPPLER-BASED PREDICTION OF PHASE RANGES
         %--------------------------------------------------------------------------------------------
@@ -700,7 +700,7 @@ if (nsat >= min_nsat)
         if (dop2_M(sat))
             doppler_pred_range2_M(sat,1) = ph2_M(sat) - dop2_M(sat);
         end
-        
+
     else
         %to point out that notwithstanding the satellite configuration,
         %data were not analysed (motion by dynamics only).
@@ -722,7 +722,7 @@ if (nsat >= min_nsat)
     K = T*Cee*T' + Cvv;
 
     G = K*H' * (H*K*H' + Cnn)^(-1);
-    
+
     %min_ambfloatRMS(t,1) = min(sqrt(diag(Cee(o1+sat_np,o1+sat_np)))); %#ok<NASGU>
 
     Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
@@ -730,9 +730,9 @@ if (nsat >= min_nsat)
     X_t1_t = T*Xhat_t_t;
 
     Cee = (I-G*H)*K;
-    
+
     %sat_np = sat(sat ~= pivot);
-    
+
 else
     %positioning done only by the system dynamics
 

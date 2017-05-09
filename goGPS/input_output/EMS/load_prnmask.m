@@ -15,12 +15,12 @@ function [iodp_mask, prn_mask] = load_prnmask(MT, msg)
 %   Load the PRN mask.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -42,14 +42,14 @@ function [iodp_mask, prn_mask] = load_prnmask(MT, msg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 r_MT = find(MT == 1);
 
 %decode the MT1 - PRN mask data
 [iodp_mask1, prn_mask1] = ems2prnmask(msg(r_MT(1),:));
-   
+
 %store the first IODP and PRN mask
 iodp_mask(1,1) = iodp_mask1;
 prn_mask(1,:) = prn_mask1;
@@ -57,12 +57,12 @@ prn_mask(1,:) = prn_mask1;
 %counter for different IODPs
 i = 1;
 
-for j = 2 : length(r_MT) 
-    
+for j = 2 : length(r_MT)
+
     [iodp_temp, mask_temp] = ems2prnmask(msg(r_MT(j),:));
-     
+
     if ~isequal( iodp_mask(i,1), iodp_temp )
-        
+
         %if two subsequent IODPs are different, then store the new IODP and
         %the new PRN mask
         i = i + 1;

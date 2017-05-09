@@ -27,12 +27,12 @@
 %
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -54,20 +54,20 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef Ini_Manager < handle
-      
+
     properties (Constant, GetAccess = 'private')
         STD_COMMENT  = '#';       % Character Identifying the start of a comments
     end
-      
+
     properties (GetAccess = 'private', SetAccess = 'private')
         logger = Logger.getInstance(); % Handler to the logger object
         raw_data = {};                 % Cell array containing the file, each cell is a line
     end
-    
+
     properties (GetAccess = 'public', SetAccess = 'protected')
         c_comment  = [';', Ini_Manager.STD_COMMENT];  % Character Identifying the start of a comments
         file_name = 'config.ini';         % Name (and full path) of the ini
@@ -82,15 +82,15 @@ classdef Ini_Manager < handle
         %section{1}.key{1}.name = 'Key name';
         %section{1}.key{1}.data = 100;
     end
-    
+
     % =========================================================================
     %    STANDARD METHODS
     % =========================================================================
     methods
-        
+
         % Creator ---------------------------------------------------------
         function this = Ini_Manager(file_name, raw_data)
-        % Creator of the class    
+        % Creator of the class
         % SYNTAX:  Ini_Manager(<file_name>, <raw_data>) creator
             if (nargin == 0)
                 file_name = '';
@@ -98,7 +98,7 @@ classdef Ini_Manager < handle
             if isempty(file_name)
                 file_name = '';
             end
-            
+
             if (nargin == 1) && iscell(file_name) % ---------------- Parse RAW but do not save it
                 this.setFileName('');
                 this.raw_data = file_name;
@@ -106,7 +106,7 @@ classdef Ini_Manager < handle
                 this.cleanRaw();
                 this.parseData();
                 this.setReadStatus(true)
-                this.raw_data = {};                  
+                this.raw_data = {};
             elseif (nargin == 2) % --------------------------------- Parse and save RAW
                 this.setFileName(file_name);
                 this.raw_data = raw_data;
@@ -120,12 +120,12 @@ classdef Ini_Manager < handle
                 this.setFileName(file_name);
             end
         end
-        
+
         % Distructor ------------------------------------------------------
         function delete(this)
             % Empty Destructor
         end
-        
+
         % Cleaner ---------------------------------------------------------
         function clearAll(this)
             % Reset the object
@@ -135,39 +135,39 @@ classdef Ini_Manager < handle
             this.raw_data = {};
             this.section = {};
         end
-        
+
     end
-    
+
     % =========================================================================
     %  FILE
     % =========================================================================
     methods
-        
+
         % Set file name ---------------------------------------------------
         function setFileName(this, file_name)
             % Set the complete path of the ini file
             this.file_name = file_name;
         end
-        
+
         % Get file name ---------------------------------------------------
         function file_name = getFileName(this)
             % Get the complete path of the ini file
             file_name = this.file_name;
         end
-        
+
     end
 
     % =========================================================================
     %  INI SYNTAX
     % =========================================================================
     methods
-        
+
         % Set Comment Character -------------------------------------------
         function setCommentChar(this, character)
             % define the characters that define comment lines
             this.c_comment = unique([character this.STD_COMMENT]);
         end
-        
+
         % Get Comment Character -------------------------------------------
         function characters = getCommentChar(this)
             % Get the characters that define comment lines
@@ -180,7 +180,7 @@ classdef Ini_Manager < handle
     %  R/W MODES OF THE FILE
     % =========================================================================
     methods
-                
+
         % Set RW mode -----------------------------------------------------
         function setRW(this,rwMode)
             % Set mode for open the ini file
@@ -190,13 +190,13 @@ classdef Ini_Manager < handle
                 this.rw = rwMode;
             end
         end
-        
+
         % Get RW mode -----------------------------------------------------
         function rwMode = getRW(this)
             % Get the current mode of the file
             rwMode = this.rw;
         end
-        
+
         % Read mode? ------------------------------------------------------
         function bool = readMode(this)
             % Is it in read mode?
@@ -206,7 +206,7 @@ classdef Ini_Manager < handle
                 bool = false;
             end
         end
-        
+
         % Write mode? -----------------------------------------------------
         function bool = writeMode(this)
             % Is it in write mode?
@@ -216,17 +216,17 @@ classdef Ini_Manager < handle
                 bool = false;
             end
         end
-        
-        % Get read status mode --------------------------------------------        
+
+        % Get read status mode --------------------------------------------
         function bool = getReadStatus(this)
             % Return if the file has been already parsed
             bool = this.read_status;
         end
-        
+
         % Read File -------------------------------------------------------
         function status = readFile(this)
             % Force reading of the File
-            status = true;            
+            status = true;
             % If the object already contains data - clean it
             if (this.getReadStatus())
                 this.raw_data = {};
@@ -236,16 +236,16 @@ classdef Ini_Manager < handle
                 status = false;
             else
                 this.fid = fopen(this.getFileName(), this.getRW());
-                
+
                 if (this.fid ~= -1)   % If reading is ok
-                    this.raw_data = textscan(this.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');                    
+                    this.raw_data = textscan(this.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');
                     fclose(this.fid);
-                    
+
                     this.read_status = true;
                     this.raw_data = this.raw_data{1};
-                    
+
                     this.logger.addStatusOk('The INI file has been parsed correctly.', 15);
-                    
+
                     this.cleanRaw();      % Strip comments and spaces
                     this.parseData();     % Parse file
                     this.raw_data = {};   % clean RAW temp data
@@ -256,41 +256,41 @@ classdef Ini_Manager < handle
                 end
             end
         end
-       
+
         % Write File -------------------------------------------------------
         function errStatus = writeFile(this)
             % Force reading of the File
-            errStatus = false;            
+            errStatus = false;
             if isempty(this.getFileName())
                 this.logger.addError(sprintf('INI writing  of file "%s" failed', this.getFileName()));
                 errStatus = true;
-            else                
-                if (this.fid ~= -1)   % If file access is ok                    
+            else
+                if (this.fid ~= -1)   % If file access is ok
                     try
                         this.fid = fopen(this.getFileName(), this.getRW());
                         % Convert raw data to string
                         tmp_str = '';
                         for i = 1 : numel(this.raw_data)
                             tmp_str = [tmp_str this.raw_data{i} 10]; %#ok<AGROW>
-                        end                                                
+                        end
                         fwrite(this.fid, tmp_str);
                         fclose(this.fid);
                     catch ex
                         errStatus = true;
                         this.logger.addError(['INI file cannot be written (' this.file_name '): ' ex.message]);
                     end
-                    
+
                     this.logger.addStatusOk('The INI file has been writted correctly', 10);
                 else
                     this.logger.addError(['INI file write failed:' ferror(this.fid)]);
                 end
             end
         end
-        
+
         % Update File (when needed) ---------------------------------------
         function reloaded = update(this, file_name, force_read)
             % Update the object when needed:
-            %  - file_name changed 
+            %  - file_name changed
             %  - force flag == 1
             %  - INI not yet read
             if nargin == 2
@@ -301,16 +301,16 @@ classdef Ini_Manager < handle
                 this.setFileName(file_name);
                 this.readFile();
                 reloaded = 1;
-            end            
+            end
         end
-        
+
     end
-    
+
     % =========================================================================
     %  SEARCH FUNCTIONS
     % =========================================================================
     methods
-        
+
         % Search a section in the object Ini_Manager ----------------------
         function isPresent = containsSection(this, section)
             % Search a section in the object Ini_Manager
@@ -328,7 +328,7 @@ classdef Ini_Manager < handle
                 isPresent = false;
             end
         end
-        
+
         % Search a key in the object Ini_Manager --------------------------
         function isPresent = containsKey(this, section, key)
             % Search a key in the object Ini_Manager
@@ -352,29 +352,29 @@ classdef Ini_Manager < handle
             else
                 isPresent = false;
             end
-        end 
-        
+        end
+
     end
-    
+
     % =========================================================================
     %  GETTER OF THE PARAMETERS
     % =========================================================================
     methods
-        
-        % Get the list of sections present in the file --------------------        
+
+        % Get the list of sections present in the file --------------------
         function section_list = getSections(this)
             % Get the list of available sections
             if (~this.getReadStatus())
                 %this.printWarning('File not yet read!\n');
                 this.readFile();
             end
-            
+
             section_list = cell(length(this.section),1);
             for s=1:length(this.section)
                 section_list{s} = this.section{s}.name;
             end
-        end 
-        
+        end
+
         % Return the presence of a section --------------------------------
         function isS = isSection(this, section)
             % Get the presence of a section
@@ -388,10 +388,10 @@ classdef Ini_Manager < handle
             end
            isS = s == 0;
         end
-        
+
         % Return the presence of a key ------------------------------------
         function isK = isKey(this, section, key)
-            % Get the presence of a key 
+            % Get the presence of a key
             s = 1;
             k = 1;
             while ((s<=length(this.section)) && (s ~= 0))
@@ -411,19 +411,19 @@ classdef Ini_Manager < handle
             end
             isK = k == 0;
         end
-                
+
         % Get the list of keys present in the file ------------------------
         function keyList = getKeys(this, section)
             % Get the list of the keys available
             if (nargin == 1)
                 section = 0;
             end
-            
-            if (~this.getReadStatus())                
+
+            if (~this.getReadStatus())
                 %this.printWarning('File not yet read!\n');
                 this.readFile();
             end
-            
+
             keyList = {};
             l = 1;
             if (section == 0)
@@ -448,9 +448,9 @@ classdef Ini_Manager < handle
                 end
             end
         end
-        
-        % Get data --------------------------------------------------------        
-        function data = getData(this, section, key)            
+
+        % Get data --------------------------------------------------------
+        function data = getData(this, section, key)
             % Get the value of a specified key
             if (~this.getReadStatus() && isempty(this.section))
                %this.printWarning('File not yet read!\n');
@@ -483,7 +483,7 @@ classdef Ini_Manager < handle
                     this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                     data = [];
                 end
-            else                
+            else
                 % Search the key of a specific section
                 s = 1;
                 while ((s<=length(this.section)) && (s > 0))
@@ -508,17 +508,17 @@ classdef Ini_Manager < handle
                     data = [];
                 end
             end
-            
+
         end
-        
+
     end
 
     % =========================================================================
     %  MODIFIER FUNCTIONS
     % =========================================================================
     methods
-        
-        % Add a new section to the object ---------------------------------        
+
+        % Add a new section to the object ---------------------------------
         function addSection(this, new_section)
             % Add a new section to the object
             if ~this.isSection(new_section)
@@ -527,7 +527,7 @@ classdef Ini_Manager < handle
                 this.section{newId}.key = {};
             end
         end
-        
+
         % Add a new keys to the object ------------------------------------
         function addKey(this, section, key, data)
             % Add a new key to the object if the section exist
@@ -550,7 +550,7 @@ classdef Ini_Manager < handle
                 end
             end
         end
-        
+
         % Add a data to the object giving key and section -----------------
         function addData(this, section, key, data)
             % Add a data to the object an eventually create the section and key to store it
@@ -574,7 +574,7 @@ classdef Ini_Manager < handle
                 this.printError(['Section "' section '" not found!\n']);
             end
         end
-        
+
         % Remove a key from the object Ini_Manager ------------------------
         function rmKey(this, section, key)
             % Remove a key from the object Ini_Manager
@@ -600,12 +600,12 @@ classdef Ini_Manager < handle
                 this.printError(['Key "' key '" not found!\n']);
             end
         end
-        
+
         % Edit a key in the object Ini_Manager ----------------------------
         function editKey(this, section, key, data)
             this.setData(section, key, data)
         end
-        
+
         function setData(this, section, key, data)
             % Edit a key in the object Ini_Manager
             s = 1;
@@ -655,33 +655,33 @@ classdef Ini_Manager < handle
                 end
             end
         end
-        
+
     end
-    
+
     % =========================================================================
     %  VISUALIZATION FUNCTIONS (not using LOGGER) - for DEBUG
     % =========================================================================
     methods
-        
+
         % List Sections ---------------------------------------------------
         function listSections(this, color_mode)
             % List the list of available sections
             if (nargin == 1)
                 color_mode = this.logger.getColorMode();
             end
-            
+
             if (~this.getReadStatus())
                 %this.printWarning('File not yet read!\n');
 
                 this.readFile();
             end
-            
+
             fprintf('        List of sections:\n')
             for s=1:length(this.section)
                 this.printSection(this.section{s}.name, color_mode);
             end
         end
-        
+
         % List Key --------------------------------------------------------
         function listKeys(this, section, color_mode)
             % List the list of the keys available
@@ -695,14 +695,14 @@ classdef Ini_Manager < handle
                 else
                     color_mode = section;
                     section = 0;
-                end                
+                end
             end
-            
+
             if (~this.getReadStatus() && isempty(this.section))
                 %this.printWarning('File not yet read!\n');
                 this.readFile();
             end
-            
+
             if (section == 0)
                 fprintf('        List of all the keys:\n')
                 for s = 1:length(this.section)
@@ -741,14 +741,14 @@ classdef Ini_Manager < handle
                 else
                     color_mode = section;
                     section = 0;
-                end                
-            end            
-            
+                end
+            end
+
             if (~this.getReadStatus())
                 %this.printWarning('File not yet read')
                 this.readFile();
             end
-            
+
             if (section == 0)
                 fprintf('        List of all the key values:\n')
                 for s = 1:length(this.section)
@@ -764,7 +764,7 @@ classdef Ini_Manager < handle
                     if (strcmp(this.section{s}.name,section))
                         this.printSection(this.section{s}.name, color_mode);
                         for p = 1:length(this.section{s}.key)
-                            this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)                           
+                            this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)
                         end
                         s = 0;      % Stop searching
                     else
@@ -773,16 +773,16 @@ classdef Ini_Manager < handle
                 end
             end
         end
-        
+
     end
-    
-    
+
+
     % =========================================================================
     %   CUSTOM DISPLAY UTILITIES (not using LOGGER) - for DEBUG
     % =========================================================================
 
     methods (Access = 'protected')
-        
+
         % Display a Section -----------------------------------------------
         function printSection(this, section, color_mode)
             % Display a sections on a tree
@@ -796,7 +796,7 @@ classdef Ini_Manager < handle
                 fprintf('         - "%s"\n', section);
             end
         end
-        
+
         % Display a Key ---------------------------------------------------
         function printKey(this, key, color_mode)
             % Display a key on a tree
@@ -805,12 +805,12 @@ classdef Ini_Manager < handle
             end
             if (color_mode)
                 cprintf('blue','             |- ');
-                cprintf('text', '"%s"\n', key);                
+                cprintf('text', '"%s"\n', key);
             else
                 fprintf('             |- "%s"\n', key);
             end
         end
-        
+
         % Display a Key ---------------------------------------------------
         function printData(this, key, data, color_mode)
             % Display the data of a key
@@ -846,20 +846,20 @@ classdef Ini_Manager < handle
                     % if it iks not an array of string...
                     if (ischar(tmpData))
                         fprintf('             |- "%s" = "%s"\n',key, num2str(tmpData));
-                    else    
+                    else
                         fprintf('             |- "%s" = %s\n',key, num2str(tmpData));
                     end
                 end
             end
         end
-        
+
     end
-    
+
     % =========================================================================
     %    PRIVATE UTILITIES
-    % =========================================================================    
+    % =========================================================================
     methods (Access = 'private')
-        
+
         % Strip empty/comment lines ---------------------------------------
         function cleanRaw(this)
             % Strip empty lines
@@ -873,22 +873,22 @@ classdef Ini_Manager < handle
                     r = r + 1;
                 end
             end
-            
+
             for r=1:length(this.raw_data)
                 % Strip inline comments
-                
+
                 start = regexp(this.raw_data{r}, ['([' this.c_comment ']).*'], 'start');
                 if (~isempty(start))
                     this.raw_data{r}(start:end) = [];
                 end
-                
+
                 start = regexp(this.raw_data{r}, ' *$', 'start');
                 if (~isempty(start))
                     this.raw_data{r}(start:end) = [];
                 end
             end
         end
-        
+
         % Parse the file (cleaned) ----------------------------------------
         function parseData(this)
             p = 0;
@@ -917,7 +917,7 @@ classdef Ini_Manager < handle
                             this.section{s}.key = [];
                         end
                         this.section{s}.key{p}.name = parName{1};
-                        
+
                         % Get the DATA!
                         strData = regexp(this.raw_data{r}, '(?<=\=).*', 'match');
                         if (isempty(strData))
@@ -933,7 +933,7 @@ classdef Ini_Manager < handle
                                 if (~isempty(tmpData))
                                     if (size(tmpData,2) == 1)
                                         this.section{s}.key{p}.data = tmpData{1};
-                                    else                                        
+                                    else
                                         % Strip empty cells
                                         tmpData((cellfun(@length, tmpData)==0)) = [];
                                         % Strip space only cells
@@ -951,24 +951,24 @@ classdef Ini_Manager < handle
                             end
                         end
                     end
-                    
+
                 end
-                
+
             end
-        end 
-        
+        end
+
         % Set read status -------------------------------------------------
         function setReadStatus(this, bool)
             this.read_status = bool;
-        end        
+        end
     end
-    
+
     % =========================================================================
     %  STATIC STRING GENERATION FROM INI TO STR
     % =========================================================================
-    
+
     methods (Static)
-        
+
         % cellStringtoString -----------------------------------------------------
         function str = strCell2Str(value)
             % Converta cell of string to string
@@ -986,11 +986,11 @@ classdef Ini_Manager < handle
                 str = '[]';
             end
         end
-        
+
         % toIniString -----------------------------------------------------
         function cell_str = toIniString(variable_name, value, format, cell_str)
             % Convert any variable to ini string format
-            % SYNTAX: 
+            % SYNTAX:
             %   cell_str = toIniString(variable_name, value)
             %   cell_str = toIniString(variable_name, value, format)
             %   cell_str = toIniString(variable_name, value, cell_str)
@@ -999,10 +999,10 @@ classdef Ini_Manager < handle
                 case 1
                     error('Error in Ini_Manager.toIniString, too few parameters');
                 case 2
-                    
+
                     format = '';
-                    cell_str = {};                    
-                case 3 
+                    cell_str = {};
+                case 3
                     if iscellstr(format)
                         cell_str = format;
                         format = '%g';
@@ -1012,7 +1012,7 @@ classdef Ini_Manager < handle
                 case 4
                     % ok
             end
-            
+
             if ischar(value) % is string
                 cell_str{numel(cell_str) + 1} = [variable_name ' = "' value(:)' '"'];
             elseif isnumeric(value)
@@ -1039,19 +1039,19 @@ classdef Ini_Manager < handle
                     end
                 else
                     cell_str{numel(cell_str) + 1} = [variable_name ' = ' toString(value)];
-                end                
+                end
             end
-            
+
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)
                 cell_str = cell_str';
             end
         end
-        
+
         % toIniString Section ---------------------------------------------
         function cell_str = toIniStringSection(section_name, cell_str)
             % Add a section in ini string format
-            % SYNTAX: 
+            % SYNTAX:
             %   cell_str = toIniStringSection(section_name, cell_str)
             if (nargin == 1)
                 cell_str = {};
@@ -1066,23 +1066,23 @@ classdef Ini_Manager < handle
                 cell_str = cell_str';
             end
         end
-        
+
         % toIniString Comment ---------------------------------------------
         function cell_str = toIniStringComment(comment, cell_str)
             % Add a comment in ini string format
-            % SYNTAX: 
+            % SYNTAX:
             %   cell_str = toIniStringSection(section_name, cell_str)
             if (nargin == 1)
                 cell_str = {};
-            end            
+            end
             cell_str{numel(cell_str) + 1} = [ Ini_Manager.STD_COMMENT ' ' comment];
-            
+
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)
                 cell_str = cell_str';
             end
         end
-        
+
         % toIniString New Line --------------------------------------------
         function cell_str = toIniStringNewLine(cell_str)
             % Add a new line in ini string format
@@ -1090,9 +1090,9 @@ classdef Ini_Manager < handle
             %   cell_str = toIniStringSection(section_name, cell_str)
             if (nargin == 0)
                 cell_str = {};
-            end            
+            end
             cell_str{numel(cell_str) + 1} = '';
-            
+
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)
                 cell_str = cell_str';

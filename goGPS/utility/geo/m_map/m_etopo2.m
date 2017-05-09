@@ -4,7 +4,7 @@ function [values,longs,lats]=m_etopo2(varargin);
 %        M_ETOPO2(OPTN (,LEVELS) (,ARGS,...) ) lets you change various options.
 %        if OPTN=='contour', contour lines are drawn. for OPTN=='contourf',
 %        filled contours are drawn. LEVELS are the levels used, and ARGS
-%        are optional patch arguments of line types, colors, etc. 
+%        are optional patch arguments of line types, colors, etc.
 %
 %        [CS,H]=M_ETOPO2E(...) allows access to the return arguments of the
 %        contour/contourf call.
@@ -44,7 +44,7 @@ decmax=500;
 
 
 
-%%% Don't change anything below this... 
+%%% Don't change anything below this...
 
 efid=fopen([PATHNAME 'etopo2_2006apr.raw'],'r','b'); % in big-endian format
 %efid=fopen([PATHNAME 'etopo2.i2'],'r','b'); % in big-endian format
@@ -57,9 +57,9 @@ if efid==-1,
    m_elev(varargin{:});
   elseif nargout==2,
    [values,longs]=m_elev(varargin{:});
-  elseif nargout==3,	
+  elseif nargout==3,
    [values,longs,lats]=m_elev(varargin{:});
-  end;	
+  end;
   return;
 end;
 
@@ -144,7 +144,7 @@ if draw_map,
    % Set current projection to geographic
    Currentmap=m_coord('set');
    m_coord('geographic');
- 
+
    if nargin==0,
    levels=[-7000:1000:-1000 000:1000:5000];
    optn='contour';
@@ -173,19 +173,19 @@ if draw_map,
    topo=-topo;
    levels=-levels;
   end;
-  
+
  hold on;
  switch optn,
    case 'contour',
       [values,longs]=m_contour(lgs,lts,topo,levels);
    case 'contourf',
       [values,longs]=m_contourf(lgs,lts,topo,levels);
-  end;  
-  set(longs,'tag','m_etopo2');
-  if n_opt<length(varargin), 
-    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end; 
   end;
-  
+  set(longs,'tag','m_etopo2');
+  if n_opt<length(varargin),
+    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end;
+  end;
+
   m_coord(Currentmap.name);
 
 else

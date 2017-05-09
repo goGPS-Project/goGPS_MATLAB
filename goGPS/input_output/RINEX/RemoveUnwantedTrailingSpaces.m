@@ -1,12 +1,12 @@
 function [ String ] = RemoveUnwantedTrailingSpaces( String )
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Damiano Triglione
@@ -28,19 +28,19 @@ function [ String ] = RemoveUnwantedTrailingSpaces( String )
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %REMOVEUNWANTEDTRAILINGSPACES Summary of this function goes here
 %   Detailed explanation goes here
-    
+
     LengthOfString = length(String);
     IndexOfLatestCharInString = LengthOfString;
-            
+
     while (IndexOfLatestCharInString >= 1) && isspace(String(IndexOfLatestCharInString))
         IndexOfLatestCharInString = IndexOfLatestCharInString-1;
     end %while
-    
+
     if IndexOfLatestCharInString == 0
         String = [];
     else

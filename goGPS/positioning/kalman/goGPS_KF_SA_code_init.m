@@ -24,14 +24,14 @@ function [kalman_initialized] = goGPS_KF_SA_code_init(XR0, time_rx, pr1, pr2, sn
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -151,33 +151,33 @@ Z_om_1 = zeros(o1-1,1);
 min_nsat_LS = 3 + n_sys;
 
 if (length(sat) >= min_nsat_LS)
-    
+
     if (phase == 1)
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
     end
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
-    
+
     conf_sat(:,1) = zeros(nSatTot,1);
     conf_sat(sat,1) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     pivot_old = 0;
-    
+
     %current pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
-    
-    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
+
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
-        
+
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end

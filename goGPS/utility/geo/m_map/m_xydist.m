@@ -1,5 +1,5 @@
 function dist = m_xydist(x,y)
-% M_XYDIST Spherical earth distance between points in map projection coordinates.  
+% M_XYDIST Spherical earth distance between points in map projection coordinates.
 %   RANGE=M_XYDIST(X,Y) gives the distance in kilometers between
 %   successive points in the vectors X and Y which are coordinates
 %   in the current map projection. This function is useful for finding

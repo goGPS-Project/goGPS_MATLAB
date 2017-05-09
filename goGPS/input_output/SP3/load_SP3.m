@@ -25,15 +25,15 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 %         http://www.ngs.noaa.gov/orbits/sp3c.txt
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 state = Go_State.getCurrentSettings();
@@ -113,7 +113,7 @@ if (time(end) - weektow2time(week_end, dow_end * 86400, 'G') >= 86400 - n / 2 * 
 else
 end
 
-% find the SP3 files dates needed for the processing 
+% find the SP3 files dates needed for the processing
 % an SP3 file contains data for the entire day, but to interpolate it at
 % the beginning and and I also need the previous and the following file
 week_dow  = [];
@@ -146,12 +146,12 @@ flag_unavail = 0;
 
 % for each part (SP3 file)
 for p = 1 : numel(filename_SP3)
-    
+
     %SP3 file
     f_sp3 = fopen(filename_SP3{p},'r');
 
     if (f_sp3 ~= -1)
-        
+
         % Read the entire sp3 file in memory
         sp3_file = textscan(f_sp3,'%s','Delimiter', '\n');
         if (length(sp3_file) == 1)
@@ -159,23 +159,23 @@ for p = 1 : numel(filename_SP3)
         end
         sp3_cur_line = 1;
         fclose(f_sp3);
-        
+
         % while there are lines to process
         while (sp3_cur_line <= length(sp3_file))
-            
+
             % get the next line
             lin = sp3_file{sp3_cur_line};  sp3_cur_line = sp3_cur_line + 1;
-            
+
             if (strcmp(lin(1:2),'##'))
                 rate = str2num(lin(25:38));
                 SP3.coord_rate = rate;
                 SP3.clock_rate = rate;
             end
-            
+
             if (lin(1) == '*')
-                
+
                 k = k + 1;
-                
+
                 % read the epoch header
                 % example 1: "*  1994 12 17  0  0  0.00000000"
                 data   = sscanf(lin(2:31),'%f');
@@ -188,11 +188,11 @@ for p = 1 : numel(filename_SP3)
 
                 %computation of the GPS time in weeks and seconds of week
                 [w, t] = date2gps([year, month, day, hour, minute, second]);
-                
+
                 %convert GPS time-of-week to continuous time
-                SP3.time(k,1) = weektow2time(w, t, 'G');                
+                SP3.time(k,1) = weektow2time(w, t, 'G');
                 clear w t;
-                
+
             elseif (strcmp(lin(1),'P'))
                 %read position and clock
                 %example 1: "P  1  16258.524750  -3529.015750 -20611.427050    -62.540600"
@@ -201,7 +201,7 @@ for p = 1 : numel(filename_SP3)
                 sys_id = lin(2);
                 if (strcmp(sys_id,' ') || strcmp(sys_id,'G') || strcmp(sys_id,'R') || ...
                     strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J'))
-                    
+
                     index = -1;
                     switch (sys_id)
                         case {'G', ' '}
@@ -225,7 +225,7 @@ for p = 1 : numel(filename_SP3)
                                 index = idQZSS;
                             end
                     end
-                    
+
                     % If the considered line is referred to an active constellation
                     if (index >= 0)
                         PRN = sscanf(lin(3:4),'%f');
@@ -233,18 +233,18 @@ for p = 1 : numel(filename_SP3)
                         Y   = sscanf(lin(19:32),'%f');
                         Z   = sscanf(lin(33:46),'%f');
                         clk = sscanf(lin(47:60),'%f');
-                        
+
                         index = index + PRN - 1;
-                        
+
                         SP3.coord(1, index, k) = X*1e3;
                         SP3.coord(2, index, k) = Y*1e3;
                         SP3.coord(3, index, k) = Z*1e3;
-                        
+
                         SP3.clock(index,k) = clk/1e6; % NOTE: clk >= 999999 stands for bad or absent clock values
-                        
+
                         SP3.prn(index) = PRN;
                         SP3.sys(index) = sys_id;
-                        
+
                         if (SP3.clock(index,k) < 0.9)
                             SP3.avail(index) = index;
                         end
@@ -252,7 +252,7 @@ for p = 1 : numel(filename_SP3)
                 end
             end
         end
-        clear sp3_file;   
+        clear sp3_file;
     else
         fprintf('Missing SP3 file: %s\n', filename_SP3{p});
         flag_unavail = 1;
@@ -260,20 +260,20 @@ for p = 1 : numel(filename_SP3)
 end
 
 if (~flag_unavail)
-    
+
     w = zeros(constellations.nEnabledSat,1);
     t = zeros(constellations.nEnabledSat,1);
     clk = zeros(constellations.nEnabledSat,1);
     q = zeros(constellations.nEnabledSat,1);
-    
+
     % for each part (SP3 file)
     for p = 1 : numel(filename_CLK)
-        
+
         f_clk = fopen(filename_CLK{p},'r');
-                
+
         if (f_clk == -1)
             logger.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
-        else   
+        else
             logger.addMessage(sprintf('Using as clock file: %s', filename_CLK{p}));
             % read the entire clk file in memory
             clk_file = textscan(f_clk,'%s','Delimiter', '\n');
@@ -282,21 +282,21 @@ if (~flag_unavail)
             end
             clk_cur_line = 1;
             fclose(f_clk);
-            
+
             % while there are lines to process
             while (clk_cur_line <= length(clk_file))
 
                 % get the next line
                 lin = clk_file{clk_cur_line};  clk_cur_line = clk_cur_line + 1;
-                
+
                 if (strcmp(lin(1:3),'AS '))
-                    
+
                     sys_id = lin(4);
                     if (strcmp(sys_id,' ') || strcmp(sys_id,'G') || strcmp(sys_id,'R') || ...
                         strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J'))
 
                         data = sscanf(lin([5:35 41:59]),'%f'); % sscanf can read multiple data in one step
-                            
+
                         % read PRN
                         PRN = data(1);
 
@@ -323,9 +323,9 @@ if (~flag_unavail)
                                 index = idQZSS;
                             end
                         end
-                        
+
                         % If the considered line is referred to an active constellation
-                        if (index >= 0)                            
+                        if (index >= 0)
                             %read epoch
                             year   = data(2);
                             month  = data(3);
@@ -335,7 +335,7 @@ if (~flag_unavail)
                             second = data(7);
                             index = index + PRN - 1;
                             q(index) = q(index) + 1;
-                            
+
                             % computation of the GPS time in weeks and seconds of week
                             [w(index,q(index)), t(index,q(index))] = date2gps([year, month, day, hour, minute, second]);
                             clk(index,q(index)) = data(8);
@@ -343,24 +343,24 @@ if (~flag_unavail)
                     end
                 end
             end
-            
+
             clear clk_file;
-            
+
             SP3.clock_rate = median(serialize(diff(t(sum(t,2)~=0,:),1,2)));
-            % rmndr tells how many observations are needed to reach the end of the last day (criptic)          
+            % rmndr tells how many observations are needed to reach the end of the last day (criptic)
             rmndr = 86400 / SP3.clock_rate - mod((SP3.time(k,1) - SP3.time(1,1)) / SP3.clock_rate, 86400 / SP3.clock_rate) - 1;
             % SP3.time_hr is the reference clock time from the first value till the end of the day of the last observation
             SP3.time_hr = (SP3.time(1,1) : SP3.clock_rate : (SP3.time(k,1) + rmndr * SP3.clock_rate))';
             SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
-            
+
             s = 1 : constellations.nEnabledSat;
             idx = round((weektow2time(w(s,:), t(s,:), 'G')-SP3.time(1,1)) / SP3.clock_rate) + 1;
-            for s = 1 : constellations.nEnabledSat                
+            for s = 1 : constellations.nEnabledSat
                 SP3.clock_hr(s,idx(s,w(s,:) > 0)) = clk(s,w(s,:) > 0);
             end
         end
     end
-    
+
     fprintf('Satellite clock rate: ');
     if (SP3.clock_rate >= 60)
         fprintf([num2str(SP3.clock_rate/60) ' minutes.\n']);

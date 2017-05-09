@@ -52,84 +52,84 @@ tdbjd = ttjd + secdif / 86400.0d0;
 mode = getmod;
 
 if (mode == 2)
-    
+
     % equinox-based mode
     % see usno circular 179, section 2.6.2
-    
+
     % get -1 times the mean or true right ascension of the cio
-    
+
     rcio = eqxra (tdbjd, k);
-    
+
     % get earth rotation angle
-    
+
     theta = erot (tjdh, tjdl);
-    
+
     % combine to obtain sidereal time
-    
+
     gst = mod (theta / 15.0d0 - rcio, 24.0d0);
-    
+
     if (gst < 0.0d0)
-        
+
         gst = gst + 24.0d0;
-        
+
     end
-    
+
 else
-    
+
     % cio-based mode
     % see usno circular 179, section 6.5.4
-    
+
     % get earth rotation angle
-    
+
     theta = erot (tjdh, tjdl);
-    
+
     % obtain the basis vectors, in the gcrs, of the celestial
     % intermediate system
-    
+
     [rcio, kcio] = cioloc (tdbjd);
-    
+
     if (rcio == 99.0d0)
-        
+
         pause
-        
+
     end
-    
+
     [x, y, z] = ciobas (tdbjd, rcio, kcio);
-    
+
     % compute the direction of the true equinox in the gcrs
-    
+
     w1 = nutate (-tdbjd, unitx);
-    
+
     w2 = preces (tdbjd, w1, t0);
-    
+
     eq = frame (w2, -1);
-    
+
     % compute the hour angle of the equinox wrt the tio meridian
     % (near greenwich, but passes through the cip and tio)
-    
+
     haeq = theta - atan2 (eq(1) * y(1) + eq(2) * y(2) + eq(3) * y(3), ...
         eq(1) * x(1) + eq(2) * x(2) + eq(3) * x(3)) * degcon;
-    
+
     % for mean sidereal time, obtain the equation of the equinoxes
     % and subtract it
-    
+
     if (k == 0)
-        
+
         [a, a, ee, a, a] = etilt (tdbjd);
-        
+
         haeq = haeq - ee / 240.0d0;
-        
+
     end
-    
+
     haeq = mod (haeq, 360.0d0) / 15.0d0;
-    
+
     if (haeq < 0.0d0)
-        
+
         haeq = haeq + 24.0d0;
-        
+
     end
-    
+
     gst = haeq;
-    
+
 end
 

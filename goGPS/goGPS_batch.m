@@ -33,15 +33,15 @@ function goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, ma
 %   Wrapper function to run goGPS multiple times.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -60,7 +60,7 @@ function goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, ma
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %global min_ambfloatRMS
@@ -365,11 +365,11 @@ fid_extract_ZTD = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_
 fid_extract_ZWD = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_ZWD.txt'],'w');
 
 fid_extract_POS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_position.txt'],'w');
-fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n'); 
+fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
 fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
 
 fid_extract_OBS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_qualityOBS.txt'],'w');
-fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n'); 
+fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 
 n_session=1;
@@ -380,19 +380,19 @@ end
 for year = year_start : 1 : year_end
     year4 = year;
     year2 = two_digit_year(year);
-    
+
     if (year ~= year_start)
         doy_s = 1;
     else
         doy_s = doy_start;
     end
-    
+
     if (year ~= year_end)
         doy_e = 366;
     else
         doy_e = doy_end;
     end
-    
+
     for doy = doy_s : 1 : doy_e
         for session_i=1:n_session
             delete([state.ems_dir filesep '*.ems']);
@@ -415,19 +415,19 @@ for year = year_start : 1 : year_end
             end
             prefixOUT = [markerM_undersc markerR '_' num2str(year2,'%02d') num2str(doy,'%03d') num2str(session_i,'%d')];
             if exist(filename_R_obs,'file')>0 && exist(filename_nav,'file')>0 && (exist(filename_M_obs,'file')>0 || isempty(markerM))
-                
+
                 %-------------------------------------------------------------------------------
                 % INPUT/OUTPUT FILENAME PREFIX
                 %-------------------------------------------------------------------------------
-                
+
                 %dummy values for filerootIN (not used for batch processing)
                 folderIN  = '../data/data_goGPS';
                 prefixIN  = 'yamatogawa';
                 filerootIN  = [folderIN '/' prefixIN];
                 filerootOUT = [folderOUT '/' prefixOUT];
-                
+
                 i = 1;
-                
+
                 j = length(filerootOUT);
                 while (~isempty(dir([filerootOUT '_rover*.bin'])) || ...
                         ~isempty(dir([filerootOUT '_master*.bin'])) || ...
@@ -444,15 +444,15 @@ for year = year_start : 1 : year_end
                         ~isempty(dir([filerootOUT '_NMEA*.txt'])) || ...
                         ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) || ...
                         ~isempty(dir([filerootOUT '.kml'])) )
-                    
+
                     filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
                     i = i + 1;
                 end
-                
+
                 clear X_KAL
                 clear Xhat_t_t
                 goGPS
-                
+
                 idx = size(date_R,1);
                 tropo_vec_ZTD = nan(1,86400/interval);
                 tropo_vec_ZWD = nan(1,86400/interval);
@@ -475,7 +475,7 @@ for year = year_start : 1 : year_end
                     %fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
                     %fprintf(fid_extract_TRP,'\n');
                 end
-                
+
                 % append report information in the database
                 fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
                 if fid_rep_i~=-1
@@ -490,7 +490,7 @@ for year = year_start : 1 : year_end
                     if ~isempty(line2)
                         line2(33:80)='';
                     end
-                    
+
                     fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year2,'%02d'),num2str(doy,'%03d'), line1, line2);
                     fclose(fid_rep_i);
                 end

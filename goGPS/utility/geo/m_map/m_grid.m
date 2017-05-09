@@ -49,8 +49,8 @@ function m_grid(varargin);
 
 
 
-% Note that much of the work in generating line data 
-% is done by calls to the individual projections - 
+% Note that much of the work in generating line data
+% is done by calls to the individual projections -
 % most of M_GRID is concerned with the mechanics of plotting
 
 
@@ -72,7 +72,7 @@ if strcmp(a(1).Name,'Octave'),
 else
  IsOctave=logical(0);
 end;
-  
+
 
 % Otherwise we are drawing a grid!
 
@@ -90,13 +90,13 @@ gcolor='k';
 gbackcolor='w'; %%get(gcf,'color');
 glinestyle=':';
 glinewidth=get(gca,'linewidth');
-gbox='on'; 
+gbox='on';
 gfontsize=get(gca,'fontsize');
 gfontname=get(gca,'fontname');
-gxaxisloc=get(gca,'xaxislocation'); 
+gxaxisloc=get(gca,'xaxislocation');
 gyaxisloc=get(gca,'yaxislocation');
-gtickdir=get(gca,'tickdir'); 
-gticklen=get(gca,'ticklength'); gticklen=gticklen(1); 
+gtickdir=get(gca,'tickdir');
+gticklen=get(gca,'ticklength'); gticklen=gticklen(1);
 gxticklabeldir='middle';
 gyticklabeldir='end';
 gtickstyle='dm';
@@ -156,7 +156,7 @@ while k<=length(varargin),
         case 'tickd',
            gtickdir=varargin{k+1};
 	case 'ticks',
-	   gtickstyle=varargin{k+1};   
+	   gtickstyle=varargin{k+1};
         end;
     case {'get','usa'},
       disp('      ''box'',( ''on'' | ''fancy'' | ''off'' )');
@@ -197,14 +197,14 @@ while k<=length(varargin),
       return;
   end;
   k=k+2;
-end;     
+end;
 
 if IsOctave & strcmp(gbox,'fancy'),
   warning('No fancy box outlines with Octave');
   gbox='on';
 end;
 
-  
+
 if strcmp(gbox,'fancy'),
   if strcmp(MAP_VAR_LIST.rectbox,'on') | strcmp(MAP_VAR_LIST.rectbox,'circle'),
    gbox='on';
@@ -223,14 +223,14 @@ end;
 % Axes background - to defeat the inverthardcopy, I need a non-white border (the edgecolor),
 % but sneakily I can set it's width to (effectively) 0 so it doesn't actually show!
 
- 
+
 if ~IsOctave,
- 
+
    % This is a very problematic part of the code. It turns out the the interaction between
    % PATCH objects and CONTOURF objects does not work correctly in the Painters renderer -
    % this is true in all versions up to 7.7 at least. Patches with large negative Z just
    % don't get drawn under contourgroup patches.
-   % 
+   %
    % There are several possible workarounds:
    %
    %  1) Make sure you use the 'v6' option in contourf calls (see m_contourf.m to see
@@ -299,11 +299,11 @@ if ~isempty(xtick),
  % and then changing it back again later.
  fudge_north='n';fudge_south='n';
  if ~isempty(ytick) & length(ytick)>1,
-  if MAP_VAR_LIST.lats(2)==90, 
+  if MAP_VAR_LIST.lats(2)==90,
     fudge_north='y';
     MAP_VAR_LIST.lats(2)=ytick(end);
   end;
-  if MAP_VAR_LIST.lats(1)==-90, 
+  if MAP_VAR_LIST.lats(1)==-90,
     fudge_south='y';
     MAP_VAR_LIST.lats(1)=ytick(1);
   end;
@@ -311,7 +311,7 @@ if ~isempty(xtick),
 
  [X,Y,lg,lgI]=feval(MAP_PROJECTION.routine,'xgrid',xtick,gxaxisloc,gtickstyle);
  [labs,scl]=m_labels('lon',lg,xlabels,gtickstyle);
- 
+
  % Draw the grid. Every time we draw something, I first reshape the matrices into a long
  % row so that a) it plots faster, and b) all lines are given the same handle (which cuts
  % down on the number of children hanging onto the axes).
@@ -351,12 +351,12 @@ if ~isempty(xtick),
 
  if strcmp(gbox,'fancy'),
     if gtickdir(1)=='i',
-      fancybox(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle); 
+      fancybox(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle);
       drawticks=0;
-    else    
-      fancybox2(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle); 
+    else
+      fancybox2(lg,MAP_VAR_LIST.longs,'xgrid','bottom',dpatch,gticklen,gtickstyle);
     end;
- end;    
+ end;
  if drawticks,
    [n,m]=size(ltx);
    line(reshape([ltx;NaN+ones(1,m)],(n+1)*m,1),reshape([lty;NaN+ones(1,m)],(n+1)*m,1),...
@@ -426,12 +426,12 @@ if ~isempty(ytick),
 
  if strcmp(gbox,'fancy'),
     if gtickdir(1)=='i',
-      fancybox(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle); 
+      fancybox(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle);
       drawticks=0;
-    else    
-      fancybox2(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle); 
+    else
+      fancybox2(lt,MAP_VAR_LIST.lats,'ygrid','left',dpatch,gticklen,gtickstyle);
     end;
- end;    
+ end;
  if drawticks,
    [n,m]=size(ltx);
    line(reshape([ltx;NaN+ones(1,m)],(n+1)*m,1),reshape([lty;NaN+ones(1,m)],(n+1)*m,1),...
@@ -505,12 +505,12 @@ switch vert(1)
    case 'b'
       vert = 'top';
 end
-  
+
 
 %--------------------------------------------------------------------------
 function [L,fs]=m_labels(dir,vals,uservals,tickstyle);
 % M_LONLABEL creates longitude labels
-%         Default values are calculated automatically when the grid is 
+%         Default values are calculated automatically when the grid is
 %         generated. However, the user may wish to specify the labels
 %         as either numeric values or as strings (in the usual way
 %         for axes).
@@ -522,7 +522,7 @@ function [L,fs]=m_labels(dir,vals,uservals,tickstyle);
 
 % If the user has specified [] (i.e. no labels), we return blanks.
 
-if isempty(uservals), 
+if isempty(uservals),
   L=cellstr(char(' '*ones(length(vals),1)));
   fs=1.0*ones(length(L),1);
   return;
@@ -531,7 +531,7 @@ end;
 % If the user has specified strings, we merely need to make
 % sure that there are enough to cover all ticks.
 
-if any(ischar(uservals)), 
+if any(ischar(uservals)),
   L=cellstr( uservals((rem([0:length(vals)-1],length(uservals))+1),:) );
   fs=1.0*ones(length(L),1);
   return;
@@ -551,7 +551,7 @@ else                                       % or ones provided
 end;
 
 % longitudes and latitudes have some differences....
-if findstr(dir,'lat'), 
+if findstr(dir,'lat'),
   labname=['S';'N';' '];
 else
   labname=['W';'E';' '];
@@ -589,7 +589,7 @@ if strcmp(tickstyle,'dm'),
    % but for very small regions (<1 degree in size) this won't happen so we
    % want to force one label to show degrees *and* minutes.
 
-   if ~any(fs==1),  
+   if ~any(fs==1),
     k=round(length(vals)/2);
     nam=find(i(:,k));
     L{k}={sprintf([' %3.0f^o' labname(nam) ' '],fix(vals(k))),...
@@ -615,7 +615,7 @@ elseif strcmp(tickstyle,'dd'),
      end;
    end;
 
-  
+
   % write code.
 end;
 
@@ -666,14 +666,14 @@ global MAP_PROJECTION
 xval=sort([lims(1) vals(vals>lims(1) & vals<lims(2)) lims(2)]);
 % Add all half-way points as well.
 xval=sort([xval,xval(1:end-1)+diff(xval)/2]);
-	
+
 % Interpolate extra points to handle curved boundary conditions.
-	
+
 xval=(xval(1:end-1)'*ones(1,dpatch)+diff(xval)'*[0:dpatch-1]/dpatch)';
 xval=[xval(:);lims(2)];
-	
+
 % Get lat/long positions for everything
-	
+
 [X2,Y2,lg2,lgI2]=feval(MAP_PROJECTION.routine,gridarg1,xval,gridarg2,gridarg3);
 [l2x,l2y,u2x,u2y]=maketicks(X2,Y2,gticklen,'in');
 
@@ -690,7 +690,7 @@ u2y(2,id)=u2y(2,id)+dx.*([dpatch:-1:1 -1:-1:-dpatch]/(dpatch))*sig;
 % Now actually draw the patches.
 
 % Added the z-values 16/Oct/05.
- 
+
 px=prod(size(l2x));
 kk=[0:(dpatch*4):px-3]'*ones(1,dpatch*2+2);
 kk=kk+ones(size(kk,1),1)*[1 2:2:(dpatch*2+2) (dpatch*2+1):-2:3];
@@ -723,17 +723,17 @@ global MAP_PROJECTION
 xval=sort([lims(1) vals(vals>lims(1) & vals<lims(2)) lims(2)]);
 % Add all half-way points as well.
 xval=sort([xval,xval(1:end-1)+diff(xval)/2]);
-	
+
 % Interpolate extra points to handle curved boundary conditions.
-	
+
 xval=(xval(1:end-1)'*ones(1,dpatch)+diff(xval)'*[0:dpatch-1]/dpatch)';
 xval=[xval(:);lims(2)];
-	
+
 % Get lat/long positions for everything
-	
+
 [X2,Y2,lg2,lgI2]=feval(MAP_PROJECTION.routine,gridarg1,xval,gridarg2,gridarg3);
 [l2x,l2y,u2x,u2y]=maketicks(X2,Y2,gticklen,'in');
-	
+
 if gridarg1(1)=='x', sig=1; else sig=-1; end;
 
 id=[1:dpatch size(l2x,2)+[-dpatch+1:0]];
@@ -747,7 +747,7 @@ u2y(2,id)=u2y(2,id)+dx.*([dpatch:-1:1 -1:-1:-dpatch]/(dpatch))*sig;
 % Now actually draw the patches.
 
 % Added large z-values 16/Oct/05
- 
+
 px=prod(size(l2x));
 kk=[0:(dpatch*2):px-3]'*ones(1,dpatch*2+2);
 kk=kk+ones(size(kk,1),1)*[1 2:2:(dpatch*2+2) (dpatch*2+1):-2:3];

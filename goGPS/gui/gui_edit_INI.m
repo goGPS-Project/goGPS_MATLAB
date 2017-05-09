@@ -25,15 +25,15 @@ function varargout = gui_edit_INI(varargin)
 % Last Modified by GUIDE v2.5 06-May-2017 12:48:51
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function varargout = gui_edit_INI(varargin)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % Begin initialization code - DO NOT EDIT
@@ -95,7 +95,7 @@ global goGUI
     goGUI.initEditINI(handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_edit_INI_OutputFcn(hObject, eventdata, handles) 
+function varargout = gui_edit_INI_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -312,7 +312,7 @@ function bBrowse4Ref_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.browse4Ref();
-    
+
 % --- Executes on key press with focus on wEditINI and none of its controls.
 function wEditINI_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to wEditINI (see GCBO)

@@ -3,7 +3,7 @@ function m_proj(proj,varargin)
 %
 %         M_PROJ('get') tells you the current state
 %         M_PROJ('set') gives you a list of all possibilities
-%         M_PROJ('set','proj name') gives info about a projection in the 
+%         M_PROJ('set','proj name') gives info about a projection in the
 %                                   'get' list.
 %         M_PROJ('proj name','property',value,...) initializes a projection.
 %
@@ -16,10 +16,10 @@ function m_proj(proj,varargin)
 % it's mine, so you can't sell it.
 %
 % 20/Sep/01 - Added support for other coordinate systems.
-% 25/Feb/07 - Swapped "get" and "set" at lines 34 and 47 
-%		to make it consistent with the help 
+% 25/Feb/07 - Swapped "get" and "set" at lines 34 and 47
+%		to make it consistent with the help
 %		(and common Matlab style)
-%	    - Added lines 62-70 & 74 
+%	    - Added lines 62-70 & 74
 %		to harden against error when no proj is set
 %             (fixes thanks to Lars Barring)
 
@@ -37,7 +37,7 @@ switch proj,
   case 'set',              % Print out their names
     if nargin==1,
       disp(' ');
-      disp('Available projections are:'); 
+      disp('Available projections are:');
       for k=1:length(projections),
         disp(['     ' projections(k).name]);
       end;
@@ -59,7 +59,7 @@ switch proj,
          disp(X);
       end;
     else
-      if isempty(MAP_PROJECTION),          
+      if isempty(MAP_PROJECTION),
         k=m_match(varargin{1},projections(:).name);
         eval(['X=' projections(k).routine '(''set'',projections(k).name);']);
         X=strvcat(X, ...
@@ -71,7 +71,7 @@ switch proj,
 	k=m_match(varargin{1},projections(:).name);
 	eval(['X=' projections(k).routine '(''get'');']);
 	disp(X);
-      end;	
+      end;
     end;
 
   case 'usage',
@@ -86,15 +86,15 @@ switch proj,
  otherwise                % If a valid name, give the usage.
     k=m_match(proj,projections(:).name);
     MAP_PROJECTION=projections(k);
-        
+
     eval([ projections(k).routine '(''initialize'',projections(k).name,varargin{:});']);
 
     % With the projection store what coordinate system we are using to define it.
     if isempty(MAP_COORDS),
       m_coord('geographic');
-    end;  
+    end;
     MAP_PROJECTION.coordsystem=MAP_COORDS;
-    
+
 end;
 
 %---------------------------------------------------------
@@ -137,8 +137,8 @@ if isempty(w), % Not installed correctly
   disp('*                                                        *');
   disp('*         ...Abandoning m_proj now.                      *');
   error('**********************************************************');
-end;  
-	
+end;
+
 l=1;
 projections=[];
 for k=1:length(w),

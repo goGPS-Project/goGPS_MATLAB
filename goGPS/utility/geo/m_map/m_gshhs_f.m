@@ -1,19 +1,19 @@
 function m_gshhs_f(varargin);
 % M_GSHHS_F Add a coastline to a given map using the 'full' resolution of
-%           the Global Self-consistant Hierarchical High-resolution 
+%           the Global Self-consistant Hierarchical High-resolution
 %           Shorelines.
 %
 %         M_GSHHS_F( (standard line option,...,...) ) draws the coastline
 %         as a simple line.
-%         M_GSHHS_F('patch' ( ,standard patch options,...,...) ) draws the 
-%         coastline as a number of patches. 
+%         M_GSHHS_F('patch' ( ,standard patch options,...,...) ) draws the
+%         coastline as a number of patches.
 %
 %         M_GSHHS_F('save',FILENAME) saves the extracted coastline data
-%         for the current projection in a file FILENAME. This allows 
-%         speedier replotting using M_USERCOAST(FILENAME). 
-%    
-%         See also M_PROJ, M_GRID, M_COAST, M_GSHHS_L, M_GSHHS_I, M_GSHHS_C 
-%         M_USERCOAST    
+%         for the current projection in a file FILENAME. This allows
+%         speedier replotting using M_USERCOAST(FILENAME).
+%
+%         See also M_PROJ, M_GRID, M_COAST, M_GSHHS_L, M_GSHHS_I, M_GSHHS_C
+%         M_USERCOAST
 
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 31/Aug/98
 %

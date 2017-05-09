@@ -10,7 +10,7 @@ function [s,a12,a21] = m_idist(lon1,lat1,lon2,lat2,spheroid)
 % lon1 = longitude of first point (degrees)
 % lat2, lon2 = second point (degrees)
 % spheroid = (Optional) spheroid, defaults to 'wgs84'
-% s = distance in meters 
+% s = distance in meters
 % a12 = azimuth in degrees from first point to second point (forward)
 % a21 = azimuth in degrees from second point to first point (backward)
 %       (Azimuths are in degrees clockwise from north.)
@@ -23,7 +23,7 @@ function [s,a12,a21] = m_idist(lon1,lat1,lon2,lat2,spheroid)
 %  with Application of Nested Equations", Survey Review, vol. 23, no. 176,
 %  April 1975, pp 88-93.
 %  Available at: http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf
-%  
+%
 %  Code slightly modified version of vdist.m (M. Kleder) available
 %  at user-contributed area of www.mathworks.com
 %
@@ -102,7 +102,7 @@ MAP_ELLIP = struct ( 'normal', [1.0, 0], ...
 if nargin<5,
   spheroid='wgs84';
 end;
-ellip=getfield(MAP_ELLIP,spheroid); 
+ellip=getfield(MAP_ELLIP,spheroid);
 if length(ellip)~=2,
  disp(MAP_ELLIP);
  error('Spheroid not chosen from above list');
@@ -124,10 +124,10 @@ for k=1:size(allsize,2),
    if allsize(3,k)==1,lon2=repmat(lon2,j1); end;
    if allsize(4,k)==1,lat2=repmat(lat2,j1); end;
  elseif length(rs)>2,
-  error('incompatible array sizes!');  
+  error('incompatible array sizes!');
  end;
 end;
- 
+
 % reshape inputs
 keepsize = size(lat1);
 lat1=lat1(:);
@@ -201,7 +201,7 @@ while any(k)  % force at least one execution
     lambda(k) = L(k)+(1-C(k)).*f.*sin(alpha(k)).*(sigma(k)+ ...
                 C(k).*sinsigma(k).*(cos2sigmam(k)+ ...
 		C(k).*cossigma(k).*(-1+2.*cos2sigmam(k).^2)));
- 
+
     % correct for convergence failure in the case of essentially antipodal
     % points
     if any(lambda(k) > pi)

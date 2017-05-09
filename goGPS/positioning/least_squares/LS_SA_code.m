@@ -29,7 +29,7 @@ function [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, 
 %   cond_num = condition number on the eigenvalues of the N matrix
 %   bad_obs = vector with ids of observations found as outlier
 %   bad_epoch = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
-%   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m] 
+%   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m]
 %   residuals_obs = vector with residuals of all input observation, computed from the final estimates
 %   y0 = least-squares observation vector
 %   A = least-squares design matrix
@@ -42,14 +42,14 @@ function [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -101,7 +101,7 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
      (XR_approx(2) - XS(:,2)) ./ distR_approx, ... %column for Y coordinate
      (XR_approx(3) - XS(:,3)) ./ distR_approx, ... %column for Z coordinate
       ones(n,1)];        %column for receiver clock delay (multiplied by c)
-  
+
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
 uni_sys = unique(sys(sys ~= 0),'stable');
 num_sys = length(uni_sys);
@@ -140,7 +140,7 @@ bad_obs=[];
 A0=A;
 y00=y0-b;
 index_obs = 1:length(y00); index_obs = index_obs';
-    
+
 if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
     %remove observations with residuals exceeding thresholds
     x = (N^-1)*A'*(invQ)*(y0-b);
@@ -178,7 +178,7 @@ if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     if n==m
         bad_epoch=-1;
     end
-else    
+else
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
@@ -226,7 +226,7 @@ else
     residuals_obs = y00 - A0*x;
     sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
     sigma02_hat(1,3) = n-m;
-    sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);    
+    sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);
     if n>m
         if (sigma02_hat(1)>SPP_threshold^2)
             bad_epoch=1;
@@ -259,7 +259,7 @@ if (n > m)
     end
 else
     cov_XR  = [];
-    var_dtR = []; 
+    var_dtR = [];
     var_ISBs = [];
 end
 

@@ -12,14 +12,14 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -61,7 +61,7 @@ i = 1;
 j = length(filerootOUT);
 while (~isempty(dir([filerootOUT '_obs*.bin'])) || ...
         ~isempty(dir([filerootOUT '_eph*.bin'])) )
-    
+
     filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
     i = i + 1;
 end
@@ -188,7 +188,7 @@ approx_msg_rate = 1;
 
 %infinite loop
 while flag
-    
+
     %time reading
     current_time = toc;
 
@@ -196,18 +196,18 @@ while flag
     % hourly files
     %-------------------------------------
     if (floor(current_time/3600) > hour)
-        
+
         hour = floor(current_time/3600);
         hour_str = num2str(hour,'%03d');
-        
+
         fclose(fid_master);
         fclose(fid_obs);
         fclose(fid_eph);
-        
+
         fid_master = fopen([filerootOUT '_master_'  hour_str '.bin'],'w+');
         fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
         fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
-        
+
         %write number of satellites
         fwrite(fid_obs, num_sat, 'int8');
         fwrite(fid_eph, num_sat, 'int8');
@@ -220,10 +220,10 @@ while flag
 
     %test if the package writing is finished
     if (master_1 == master_2) && (master_1 ~= 0)
-        
+
         %approximate message rate
         approx_msg_rate = max([1 round(current_time - waiting_time_start)]);
-        
+
         %reset waiting time start
         waiting_time_start = current_time;
 
@@ -466,7 +466,7 @@ while flag
                     coordX_M = cell_master{2,i}(8);
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
-                    
+
                     pos_M(:,1) = [coordX_M; coordY_M; coordZ_M];
 
                     type = [type '1005 '];
@@ -479,7 +479,7 @@ while flag
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
                     height_M = cell_master{2,i}(11);
-                    
+
                     pos_M(:,1) = [coordX_M; coordY_M; coordZ_M];
 
                     type = [type '1006 '];
@@ -572,7 +572,7 @@ while flag
 
                 end
             end
-            
+
             if (t > 0) && (any(pos_M))
                 %data save
                 fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(num_sat,1); ph1_M; zeros(num_sat,1); zeros(num_sat,1); snr1_M; zeros(num_sat,1); pos_M(:,1); zeros(8,1)], 'double');
@@ -739,15 +739,15 @@ while flag
     else
         %check waiting time
         waiting_time = current_time - waiting_time_start;
-        
+
         if (waiting_time > 10*approx_msg_rate)
-            
+
             %display message
             fprintf('Not receiving data. Trying to reconnect... ');
 
             %close master connection
             fclose(master);
-            
+
             reconnected = 0;
 
             while (~reconnected)
@@ -760,19 +760,19 @@ while flag
                     pause(5);
                 end
             end
-            
+
             if (flag_NTRIP)
                 ntripstring = NTRIP_string_generator(nmea_init);
                 %fprintf('NTRIP request [%s]',ntripstring);
                 fwrite(master,ntripstring);
             end
-            
+
             %wait until the buffer writing is started before continuing
             while get(master,'BytesAvailable') == 0, end;
-            
+
             %reset waiting time start
             waiting_time_start = current_time;
-            
+
             %display message
             fprintf('done.\n');
         end

@@ -24,7 +24,7 @@ function tmatrix = j2000_icrs(itype)
 
 if (itype == 1)
     % LLR and VLBI
-    
+
     tmatrix(1, 1) = 0.99999999999999332;
     tmatrix(1, 2) = 7.2e-8;
     tmatrix(1, 3) = -8.056e-8;
@@ -40,7 +40,7 @@ end
 
 if (itype == 2)
     % Chapront et al. LLR
-    
+
     tmatrix(1, 1) = 0.9999999999999938;
     tmatrix(1, 2) = 7.1e-8;
     tmatrix(1, 3) = -8.6e-8;

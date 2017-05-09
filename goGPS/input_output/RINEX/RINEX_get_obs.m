@@ -19,15 +19,15 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   Acquisition of RINEX observation data (code, phase and signal-to-noise ratio).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -46,7 +46,7 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %total number of satellites (according to enabled constellations)
@@ -73,7 +73,7 @@ obs_struct = struct('L1', zeros(nSatTot,1), 'L2', zeros(nSatTot,1), ...
 obs_tmp = struct('TMP1', zeros(nSatTot,1), 'TMP2', zeros(nSatTot,1));
 
 if (~isempty(sat_types)) %RINEX v2.xx
-    
+
     %convert constellations letter to starting index in the total array
     sat_types_id(sat_types == 'G') = idGPS;
     sat_types_id(sat_types == 'R') = idGLONASS;
@@ -81,14 +81,14 @@ if (~isempty(sat_types)) %RINEX v2.xx
     sat_types_id(sat_types == 'C') = idBeiDou;
     sat_types_id(sat_types == 'J') = idQZSS;
     sat_types_id(sat_types == 'S') = idSBAS;
-    
+
     %observation types
     nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
     nObsToRead = nLinesToRead * 5;     % Each line contains 5 observations
-    
+
     %data read and assignment
     lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
-    
+
     % Mask to filter all the possible observations (max 15)
     mask = false(16,nObsToRead);
     mask(2:14,:) = true;
@@ -97,16 +97,16 @@ if (~isempty(sat_types)) %RINEX v2.xx
     % the first character is added as a padding to separate the strings for
     % the command sscanf that now can be launched once for each satellite
     strObs = char(ones(14,nObsToRead)*32);
-    
+
     for s = 1 : nSat
-        
+
         %DEBUG
         if (sat(s) > 32)
             sat(s) = 32; %this happens only with SBAS; it's already fixed in the multi-constellation version
         end
-        
+
         lin = char(lin*0+32); % clear line -> fill with spaces
-        
+
         if (sat_types_id(s) ~= 0)
             % read all the lines containing the observations needed
             for l = 1 : (nLinesToRead)
@@ -115,7 +115,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
                 lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
             end
             linLength = 80*(nLinesToRead-1)+linLengthTmp;
-            
+
             % convert the lines read from the RINEX file to a single matrix
             % containing all the observations
             strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
@@ -128,7 +128,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
                     obsId = obsId+1;
                     %obs = sscanf(lin(mask(:,k)), '%f');
                     obs = fltObs(obsId);
-                    
+
                     %check and assign the observation type
                     if (any(~(k-obs_col.L1)))
                         obs_struct.L1(sat_types_id(s)+sat(s)-1) = obs;
@@ -176,30 +176,30 @@ if (~isempty(sat_types)) %RINEX v2.xx
             end
         end
     end
-    
+
 else %RINEX v3.xx
 
     for s = 1 : nSat
-        
+
         %read the line for satellite 's'
         linTmp = fgetl(file_RINEX);
-        
+
         %read the constellation ID
         sysId = linTmp(1);
-        
+
         %read the satellite PRN/slot number
         satId = str2num(linTmp(2:3));
-        
+
         %number of observations to be read on this line
         nObsToRead = nObsTypes.(sysId);
-        
+
         %data read and assignment
         lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
-        
+
         %keep only the part of 'lin' containing the observations
         linTmp = linTmp(4:end);
         linLengthTmp = length(linTmp);
-        
+
         %fill in the 'lin' variable with the actual line read (may be shorter than expected)
         lin(1:linLengthTmp) = linTmp;
         linLength = length(lin);
@@ -253,7 +253,7 @@ else %RINEX v3.xx
         % the first character is added as a padding to separate the strings for
         % the command sscanf that now can be launched once for each satellite
         strObs = char(ones(14,nObsToRead)*32);
-        
+
         % convert the lines read from the RINEX file to a single matrix
         % containing all the observations
         strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
@@ -266,7 +266,7 @@ else %RINEX v3.xx
                 obsId = obsId+1;
                 %obs = sscanf(lin(mask(:,k)), '%f');
                 obs = fltObs(obsId);
-                
+
                 %check and assign the observation type
                 if (any(~(k-obs_col.(sysId).L1)))
                     obs_struct.L1(index) = obs;

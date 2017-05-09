@@ -2,14 +2,14 @@ function [m,q,s2m,s2q] = LSinterp(x0,y0,s2x,s2y,sxy)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -63,4 +63,4 @@ m = par(2);
 q = par(1) - m*xm;
 
 s2m = invN(2,2);
-s2q = invN(1,1);   
+s2q = invN(1,1);

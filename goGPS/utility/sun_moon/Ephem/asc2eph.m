@@ -31,10 +31,10 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
 %
 %
 %      This program, 'asc2eph', requires (via standard input) an ascii
-%      header file ('header.XXX'), followed by one or more ascii ephemeris 
+%      header file ('header.XXX'), followed by one or more ascii ephemeris
 %      data files ('ascSYYYY.XXX').  All files must have the same ephemeris
 %      number, XXX.  Further, the data files must be consecutive in time
-%      with no gaps between them. 
+%      with no gaps between them.
 %
 %      By default, the output ephemeris will span the same interval as the input
 %      text file(s).  if you are interested in only a portion of data, set the
@@ -43,18 +43,18 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
 %
 %      A sample sequence of files might be:
 %
-%        header.405  asc+1920.405 asc+1940.405 asc+1960.405 asc+1980.405  
+%        header.405  asc+1920.405 asc+1940.405 asc+1960.405 asc+1980.405
 %
-%      This program is written in standard Fortran-77.  
+%      This program is written in standard Fortran-77.
 %
 % **********************************************************************************
 %
 %                                    *** NOTE ***
 %
-%      However, the units in which the length of a direct access record is specified 
-%      are PROCESSOR DEPENDENT.  The parameter NRECL, the number of units per word, 
+%      However, the units in which the length of a direct access record is specified
+%      are PROCESSOR DEPENDENT.  The parameter NRECL, the number of units per word,
 %      controls the length of a record in the direct access ephemeris.
-%      The user MUST select the correct value of NRECL by editing one of the 
+%      The user MUST select the correct value of NRECL by editing one of the
 %      comemnted lines defining PARAMETER (NRECL) below.
 %
 % **********************************************************************************
@@ -500,7 +500,7 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
       break;
     end
   end
-  
+
   % We're through.  Wrap it up.
 
   fclose (UNIT);

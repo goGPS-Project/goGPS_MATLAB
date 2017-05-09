@@ -15,15 +15,15 @@ function [obs_out] = remove_short_arcs(obs_in, threshold_gap)
 %   Removal of observation arcs shorter than given threshold.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ function [obs_out] = remove_short_arcs(obs_in, threshold_gap)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2)
@@ -52,16 +52,16 @@ end
 obs_out = obs_in;
 
 for s = 1 : size(obs_in,1)
-    
+
     % find intervals of zeros
     fI = getOutliers(obs_in(s,:) == 0);
-    
+
     % find the intervals of good obs_in
     vI = [[1; fI(:,2)+1] [fI(:,1)-1; size(obs_in,2)]];
     vI = [vI (vI(:,2) - vI(:,1) +1)];
-    
+
     vI = vI(vI(:,3) <= threshold_gap, :);
-    
+
     for i = 1 : size(vI,1)
         obs_out(s,vI(i,1) : vI(i,2)) = 0;
     end

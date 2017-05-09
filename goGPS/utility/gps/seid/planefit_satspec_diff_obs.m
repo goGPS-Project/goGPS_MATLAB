@@ -1,15 +1,15 @@
 function [til_obs] = planefit_satspec_diff_obs(diff_obs, commontime, ipp_lon, ipp_lat, PRN, target_sta, diff_phase_flag)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function [til_obs] = planefit_satspec_diff_obs(diff_obs, commontime, ipp_lon, ip
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -45,20 +45,20 @@ for i=1:length(timestamps)
     %verify the stations used for interpolation
     %notnan stations
     plane_idx=~isnan(ipp_lon(:,timestamps(i)));
-    
+
     %exclude L1 stations
     plane_idx(target_sta)=0;
-    
+
     if any(plane_idx)==1
         %idx for all stations
         raw_idx=1:n_sta;
-        
+
         %stations idx used for interpolation
         interp_idx=intersect(raw_idx,raw_idx(plane_idx));
-        
+
         %execute interpolation
         [interp_dobs(timestamps(i)),~]=plane_fitting(ipp_lon(interp_idx,timestamps(i)),ipp_lat(interp_idx,timestamps(i)),squeeze(diff_obs(PRN,timestamps(i),interp_idx)),ipp_lon(target_sta,timestamps(i)),ipp_lat(target_sta,timestamps(i)));
-        
+
     else
         %apply value of 1 epoch ago
         if i>2 && ~isnan(interp_dobs(timestamps(i-1)))==1
@@ -77,14 +77,14 @@ if (diff_phase_flag)
     if any(notnan_id>length(interp_dobs))
         not_nan_idx(notnan_id(notnan_id>length(interp_dobs)))=0;
     end
-    
+
     dobs_for_sum=interp_dobs(not_nan_idx);
     %  search NaN and replace to zero
     nan_find=isnan(dobs_for_sum);
     if (any(nan_find))==1
         dobs_for_sum(nan_find==1)=0;
     end
-    
+
     sum_dobs=zeros(1,length(dobs_for_sum));
     for i=2:length(dobs_for_sum)
         sum_dobs(i)=sum(dobs_for_sum(1:i-1));

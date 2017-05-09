@@ -14,7 +14,7 @@ function M=m_shaperead(fname,UBR);
 %   format you have to look at M to discover
 %   what is there. The data itself is usually
 %   in the .ncst subfield.
-% 
+%
 %   Note that individual polygons or polylines in
 %   a shapefile sometimes come in parts, these
 %   are translated into a continuous segment with
@@ -41,7 +41,7 @@ function M=m_shaperead(fname,UBR);
 if nargin<2,
  UBR=[-Inf -Inf Inf Inf];
 end;
- 
+
 %
 % Read the .shx file. Some parts are little-endian, and
 % some parts big-endian. It turns out that in Windows
@@ -50,7 +50,7 @@ end;
 % So I have to do different separate reads.
 % (thanks to Doug Popken for reporting this)
 
-% Read header 
+% Read header
 %--------------
 
 fidb=fopen([fname '.shx'],'r','b');  % big-endian open
@@ -59,7 +59,7 @@ fidb=fopen([fname '.shx'],'r','b');  % big-endian open
 if fidb==-1,
  error(['Cannot file filename: ' fname '.shx']);
 end;
- 
+
 head1=fread(fidb,7,'int32'); % unused stuff + file length
 
 % Read index data
@@ -85,7 +85,7 @@ fclose(fidl);
 
 % Read the dbf file. If it isn't there
 % we should stil try to read the shp file.
- 
+
 fidl=fopen([fname '.dbf'],'r','l'); % little-endian read
 
 if fidl==-1,
@@ -103,7 +103,7 @@ else
   rlen=fread(fidl,1,'int16');
 
   nfield=(hlen-32-1)/32;
-  for k=1:nfield,    % 
+  for k=1:nfield,    %
     status=fseek(fidl,32*k,'bof');
     fnam{k}=char(fread(fidl,11,'uchar')');
     fnam{k}=fnam{k}(fnam{k}>0);
@@ -115,10 +115,10 @@ else
   dbf=cell(nrec,nfield);
   for k=1:nrec,
     if rem(k,500)==0, fprintf('-'); end;
-    
+
     status=fseek(fidl,hlen+1+(k-1)*rlen,'bof');
     for l=1:nfield,
-    
+
       switch ftype(l),
 	case 'N',
           str=char([fread(fidl,flen(l),'uchar')']);
@@ -137,9 +137,9 @@ else
           dbf{k,l}=datenum(str,'yyyymmdd');
 	otherwise
           disp(['Unknown field type: ' ftype(l)]);
-       end; 
+       end;
     end;
-  end;  
+  end;
   fprintf('\n');
   fclose(fidl);
 end;
@@ -177,18 +177,18 @@ ikp=ones(lrec,1);
 
 for k=1:lrec,
   if rem(k,500)==0, fprintf('.'); end;
-  
+
   fseek(fidl,recn16(k,1)*2+8,'bof');
   stype=fread(fidl,1,'int32');
   M.type=stype;
   switch stype,
     case 0, % null
-    
+
     case 1, % point
       M.ctype='point';
       pt=fread(fidl,2,'double')';
       M.ncst{k,1}=pt;
-  
+
     case 3, % polyline
       M.ctype='polyline';
       mbr=fread(fidl,4,'double');
@@ -206,13 +206,13 @@ for k=1:lrec,
 	for k2=1:length(parts)-1,
           ncst([parts(k2)+1:parts(k2+1)]+(k2-1),:)=pts([parts(k2)+1:parts(k2+1)],:);
 	end;
-	M.mbr(k,:)=mbr;	
+	M.mbr(k,:)=mbr;
 	M.ncst{k,1}=ncst;
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
-      
+      end;
+
     case 5, % polygon
       M.ctype='polygon';
       mbr=fread(fidl,4,'double');
@@ -229,27 +229,27 @@ for k=1:lrec,
 	 ncst=NaN(length(pts)+length(parts)-2,2);
 	 for k2=1:length(parts)-1,
            ncst([parts(k2)+1:parts(k2+1)]+(k2-1),:)=pts([parts(k2)+1:parts(k2+1)],:);
-	 end;	
-	 M.mbr(k,:)=mbr;	
+	 end;
+	 M.mbr(k,:)=mbr;
 	 M.ncst{k,1}=ncst;
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
-      
+      end;
+
     case 8, % multipoint
       M.ctype='multipoint';
       mbr=fread(fidl,4,'double');
       if mbr(1)<UBR(3) & mbr(3)>UBR(1) & mbr(2)<UBR(4) & mbr(4)>UBR(2),
 	 npts=fread(fidl,1,'int32');
 	 pts=fread(fidl,[2 npts],'double')';
-	 M.mbr(k,:)=mbr;	
+	 M.mbr(k,:)=mbr;
 	 M.ncst{k,1}=pts;
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
-      
+      end;
+
     case 11, % pointZ
       M.ctype='pointZ';
       pt=fread(fidl,3,'double')';
@@ -275,13 +275,13 @@ for k=1:lrec,
            ncst([parts(k2)+1:parts(k2+1)]+(k2-1),1:2)=pts([parts(k2)+1:parts(k2+1)],:);
            ncst([parts(k2)+1:parts(k2+1)]+(k2-1),3)=ptsZ([parts(k2)+1:parts(k2+1)] );
 	 end;
-	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;	
-	 M.mbr(k,:)=[mbr mbrZ];	
+	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;
+	 M.mbr(k,:)=[mbr mbrZ];
 	 M.ncst{k,1}=ncst;
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
+      end;
 
     case 15, % polygonZ
       M.ctype='polygonZ';
@@ -303,13 +303,13 @@ for k=1:lrec,
            ncst([parts(k2)+1:parts(k2+1)]+(k2-1),1:2)=pts([parts(k2)+1:parts(k2+1)],:);
            ncst([parts(k2)+1:parts(k2+1)]+(k2-1),3)=ptsZ([parts(k2)+1:parts(k2+1)] );
 	 end;
-	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;	
-	 M.mbr(k,:)=[mbr mbrZ];	
+	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;
+	 M.mbr(k,:)=[mbr mbrZ];
 	 M.ncst{k,1}=ncst;
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
+      end;
 
     case 18, % multipointZ
       M.ctype='multipointZ';
@@ -319,15 +319,15 @@ for k=1:lrec,
 	 pts=fread(fidl,[2 npts],'double')';
 	 mbrZ=fread(fidl,2,'double')';
 	 ptsZ=fread(fidl,[npts],'double')';
-	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;	
-	 M.mbr(k,:)=[mbr mbrZ];	
+	 if size(M.mbr,2)==4, M.mbr=NaN(size(M.mbr,1),6); end;
+	 M.mbr(k,:)=[mbr mbrZ];
 	 M.ncst{k,1}=[pts ptsZ];
       else
 	M.ncst{k,1}=[];
         ikp(k)=0;
-      end;	  
+      end;
 
-       
+
     otherwise
       disp(['Unknown record type: ' int2str(stype)])
   end;
@@ -342,5 +342,5 @@ for k=1:nfield,
   M.(fnam{k})(irem,:)=[];
 end;
 
-  
-  
+
+

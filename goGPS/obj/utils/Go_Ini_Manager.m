@@ -1,5 +1,5 @@
 % =========================================================================
-%   thisECT Go_Ini_Manager => for goGPS 
+%   thisECT Go_Ini_Manager => for goGPS
 %   father: Ini_Manager
 % =========================================================================
 %
@@ -27,10 +27,10 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -57,13 +57,13 @@
 %--------------------------------------------------------------------------
 
 classdef Go_Ini_Manager < Ini_Manager
-    
+
     properties (GetAccess = 'private', SetAccess = 'private')
         cutoff = 10;
         csThr = 3;
         snrThr = 0;
     end
-    
+
     methods
         function this = Go_Ini_Manager(file_name, raw_data)
             args = {};
@@ -76,15 +76,15 @@ classdef Go_Ini_Manager < Ini_Manager
             this = this@Ini_Manager(args{:});
         end
     end
-    
+
     methods (Access = 'public')
 
-        
+
         function nR = getNumRec(this)
             % Get the number of receiver in the INI
             nR = this.getData('Receivers','nRec');
         end
-        
+
         function rate = getCaptureRate(this)
             % Get the sampling rate (Hz) to be used in monitor mode
             rate = this.getData('Monitor', 'rate');
@@ -92,22 +92,22 @@ classdef Go_Ini_Manager < Ini_Manager
                 rate = 1;
             end
         end
-        
+
         function setCaptureRate(this, rate)
             % Set the sampling rate (Hz) to be used in monitor mode
             rate = str2double(rate(1:2));
             this.addData('Monitor', 'rate', rate);
         end
-                
+
         function [dataPath fileName nR] = getRecFiles(this)
             % Get the dataPath containing the files, file names and number of available receivers
             nR = getNumRec(this);
-            
+
             dataPath = this.getData('Receivers','data_path');
             if (isempty(dataPath))
                 dataPath = '';
             end
-            
+
             fileName = this.getData('Receivers','file_name');
             if (isempty(fileName))
                 fileName = '';
@@ -117,7 +117,7 @@ classdef Go_Ini_Manager < Ini_Manager
                     nR = length(fileName);
                 end
             end
-            
+
             % If I have only one receiver fileName is not a cell => convert it
             if nR == 1
                 tmp = fileName;
@@ -125,7 +125,7 @@ classdef Go_Ini_Manager < Ini_Manager
                 fileName{1} = tmp;
             end
         end
-        
+
         function [geometry ev_point] = getGeometry(this)
             % Get the receiver coordinates in instrumental RF
             geometry = zeros(3,this.getNumRec());
@@ -134,39 +134,39 @@ classdef Go_Ini_Manager < Ini_Manager
             end
             ev_point = this.getData('Antennas RF','XYZ_ev_point');
         end
-        
+
         function cutoff = getCutoff(this)
             % Get the minimum angle of acceptance for a satellite
             cutoff = this.getData('Generic','cutoff');
             if (isempty(cutoff))
                 cutoff = this.cutoff;
-            end            
+            end
         end
-        
+
         function csThr = getCsThr(this)
             % Get the threshold to identify a cycle slip
             csThr = this.getData('Generic','csThr');
             if (isempty(csThr))
                 csThr = this.csThr;
-            end            
+            end
         end
-                
+
         function snrThr = getSnrThr(this)
             % Get the minimum SNR threshold acceptable
             snrThr = this.getData('Generic','snrThr');
             if (isempty(snrThr))
                 snrThr = this.snrThr;
-            end            
+            end
         end
-        
+
         function timeStep = getTimeStep(this)
             % Get time increment (e.g. v = obs(t+timeStep)-obs(t)
             timeStep = this.getData('Variometric','timeStep');
             if (isempty(timeStep))
                 timeStep = 1;
-            end    
+            end
         end
-        
+
     end
-    
+
 end

@@ -23,12 +23,12 @@ function [MT, flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = ems2lt
 %   Extract the long term corrections from MT 24 and 25.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -50,18 +50,18 @@ function [MT, flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = ems2lt
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %MT24: msg = ('C660000003FE8004000003BA5BB9903A640FFF0400D04704FF504FF4BB729AC0');
 %MT25: msg = ('9A6430A00C0DFE01101EFE7DFE5FF2169415FF817FB4C8419F30F0168FC02D40');
 
 flag    = NaN(1,4);
-prn     = NaN(1,4); 
-IODe    = NaN(1,4); 
-delta_x = NaN(1,4); 
-delta_y = NaN(1,4); 
-delta_z = NaN(1,4); 
+prn     = NaN(1,4);
+IODe    = NaN(1,4);
+delta_x = NaN(1,4);
+delta_y = NaN(1,4);
+delta_z = NaN(1,4);
 delta_offset = NaN(1,4);
 
 %EGNOS message length: 250 bits
@@ -83,14 +83,14 @@ if (MT == 25)
    % 1st half
 
    vel_code1 = fbin2dec(s(15));
-   
+
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess1 = s(16:120);
-   
+
    if (vel_code1 == 0)
-       
+
        [flag1, prn1, IODe1, delta_x1, delta_y1, delta_z1, delta_offset1] = v_code0(half_mess1, iodp_mask, prn_mask);
-       
+
        flag(1,1:2)    = flag1;
        prn(1,1:2)     = prn1;
        IODe(1,1:2)    = IODe1;
@@ -98,11 +98,11 @@ if (MT == 25)
        delta_y(1,1:2) = delta_y1;
        delta_z(1,1:2) = delta_z1;
        delta_offset(1,1:2) = delta_offset1;
-       
+
 %    elseif (vel_code1 == 1)
-%        
+%
 %        [f] = v_code1(half_mess1, iodp_mask, prn_mask);
-%        
+%
 %        flag(1,1)    = flag1;
 %        prn(1,1)     = prn1;
 %        IODe(1,1)    = IODe1;
@@ -110,20 +110,20 @@ if (MT == 25)
 %        delta_y(1,1) = delta_y1;
 %        delta_z(1,1) = delta_z1;
 %        delta_offset(1,1) = delta_offset1;
-       
+
    end
 
    % 2nd half
 
    vel_code2 = fbin2dec(s(121));
-   
+
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess2 = s(122:226);
-   
+
    if vel_code2 == 0
-       
+
        [flag2, prn2, IODe2, delta_x2, delta_y2, delta_z2, delta_offset2] = v_code0(half_mess2, iodp_mask, prn_mask);
-       
+
        flag(1,3:4)    = flag2;
        prn(1,3:4)     = prn2;
        IODe(1,3:4)    = IODe2;
@@ -131,11 +131,11 @@ if (MT == 25)
        delta_y(1,3:4) = delta_y2;
        delta_z(1,3:4) = delta_z2;
        delta_offset(1,3:4) = delta_offset2;
-       
+
 %    elseif vel_code2 == 1
-%        
+%
 %        [f] = v_code1(half_mess2, iodp_mask, prn_mask);
-%        
+%
 %        flag(1,3)    = flag2;
 %        prn(1,3)     = prn2;
 %        IODe(1,3)    = IODe2;
@@ -143,7 +143,7 @@ if (MT == 25)
 %        delta_y(1,3) = delta_y2;
 %        delta_z(1,3) = delta_z2;
 %        delta_offset(1,3) = delta_offset2;
-       
+
    end
 
 elseif (MT == 24)
@@ -151,14 +151,14 @@ elseif (MT == 24)
    % ONLY 2nd half
 
    vel_code1 = fbin2dec(s(121));
-   
+
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess1 = s(122:226);
-   
+
    if (vel_code1 == 0)
-       
+
        [flag1, prn1, IODe1, delta_x1, delta_y1, delta_z1, delta_offset1] = v_code0(half_mess1, iodp_mask, prn_mask);
-       
+
        flag(1,1:2)    = flag1;
        prn(1,1:2)     = prn1;
        IODe(1,1:2)    = IODe1;
@@ -166,11 +166,11 @@ elseif (MT == 24)
        delta_y(1,1:2) = delta_y1;
        delta_z(1,1:2) = delta_z1;
        delta_offset(1,1:2) = delta_offset1;
-       
+
 %    elseif (vel_code1 == 1)
-%        
+%
 %        [f] = v_code1(half_mess1, iodp_mask, prn_mask);
-%        
+%
 %        flag(1,1)    = flag1;
 %        prn(1,1)     = prn1;
 %        IODe(1,1)    = IODe1;
@@ -178,6 +178,6 @@ elseif (MT == 24)
 %        delta_y(1,1) = delta_y1;
 %        delta_z(1,1) = delta_z1;
 %        delta_offset(1,1) = delta_offset1;
-       
+
    end
 end

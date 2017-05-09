@@ -19,14 +19,14 @@ function [corr] = relativistic_clock_error_correction(time, Eph, SP3, XS, VS)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -51,7 +51,7 @@ function [corr] = relativistic_clock_error_correction(time, Eph, SP3, XS, VS)
 if (isempty(SP3)) %if not using SP3 ephemeris
     roota = Eph(4);
     ecc   = Eph(6);
-    
+
     Ek = ecc_anomaly(time, Eph);
     corr = -4.442807633e-10 * ecc * roota * sin(Ek);
 else

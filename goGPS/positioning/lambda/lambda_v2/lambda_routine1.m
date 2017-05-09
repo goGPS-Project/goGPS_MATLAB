@@ -1,14 +1,14 @@
 function [afixed,sqnorm,Qahat,Z] = lambda_routine1 (afloat,Qahat,ncands,fidlog)
 %LAMBDA1: Integer ambiguity estimation using LAMBDA (extended version)
 %
-% This routine performs an integer ambiguity estimation using the 
-% LAMBDA-method, as developed by the Delft University of Technology, 
+% This routine performs an integer ambiguity estimation using the
+% LAMBDA-method, as developed by the Delft University of Technology,
 % Mathematical Geodesy and Positioning.
 %
 % This version (lambda1) is intended to be used mainly for research.
 % It has more options than the original code, such as output of
 % intermediate results, optional number of candidates to be returned
-% and so on. If you are not interested in these options, you can use 
+% and so on. If you are not interested in these options, you can use
 % "lambda2"
 %
 % Input arguments:

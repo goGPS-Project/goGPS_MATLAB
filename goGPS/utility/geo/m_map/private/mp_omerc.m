@@ -11,7 +11,7 @@ function  [X,Y,vals,labI]=mp_omerc(optn,varargin)
 %
 % Mathematical formulas for the projections and thie inverses are taken from
 %
-%      Snyder, John P., Map Projections used by the US Geological Survey, 
+%      Snyder, John P., Map Projections used by the US Geological Survey,
 %      Geol. Surv. Bull. 1532, 2nd Edition, USGPO, Washington D.C., 1983.
 %
 % The oblique mercator is a cylindrical projection around an arbitrary
@@ -46,7 +46,7 @@ switch optn,
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs)],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
             [' Aspect ratio: ' num2str(MAP_VAR_LIST.aspect)],...
-            [' Baseline direction ' MAP_VAR_LIST.direc]); 
+            [' Baseline direction ' MAP_VAR_LIST.direc]);
 
   case 'initialize',
 
@@ -59,7 +59,7 @@ switch optn,
     MAP_VAR_LIST.rectbox='on';  % THis is always the case for this projection; it's just
                                 % too difficult to comtemplate the other possibility
     k=2;
-    while k<length(varargin),   
+    while k<length(varargin),
       switch varargin{k}(1:3),
          case 'lon',
            MAP_VAR_LIST.ulongs=varargin{k+1};
@@ -98,11 +98,11 @@ switch optn,
         MAP_VAR_LIST.ylims=[min(MAP_VAR_LIST.ylims) max(MAP_VAR_LIST.ylims)];
         MAP_VAR_LIST.xlims=diff(MAP_VAR_LIST.ylims)*[-0.5 0.5]*MAP_VAR_LIST.aspect;
     end;
-  
+
     % For further use, it is useful to have the max/min lat/longs in the visible area
 
     mu_util('lllimits');
-    
+
   case 'll2xy',
 
     l_0=MAP_VAR_LIST.rpolelong+pi/2;
@@ -134,9 +134,9 @@ switch optn,
     end;
 
   case 'xy2ll',
-    
+
      l_0=MAP_VAR_LIST.rpolelong+pi/2;
-     
+
      switch MAP_VAR_LIST.direc(1:3),
        case 'hor',
          Y=asin( sin(MAP_VAR_LIST.rpolelat)*tanh(varargin{2}) ...
@@ -148,15 +148,15 @@ switch optn,
                 +cos(MAP_VAR_LIST.rpolelat)*sin(varargin{2})./cosh(-varargin{1}) )/pi180;
          X=(l_0+atan2( sin(MAP_VAR_LIST.rpolelat)*sin(varargin{2}) ...
                      -cos(MAP_VAR_LIST.rpolelat)*sinh(-varargin{1}), cos(varargin{2}) ) )/pi180;
-     end;  
-        
+     end;
+
   case 'xgrid',
-   
+
     [X,Y,vals,labI]=mu_util('xgrid',MAP_VAR_LIST.longs,MAP_VAR_LIST.lats,varargin{1},31,varargin{2:3});
-    
+
 
   case 'ygrid',
-   
+
     [X,Y,vals,labI]=mu_util('ygrid',MAP_VAR_LIST.lats,MAP_VAR_LIST.longs,varargin{1},31,varargin{2:3});
 
   case 'box',

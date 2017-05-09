@@ -4,7 +4,7 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
          ph2_M, ph2_R, dop2_M, dop2_R, constellations)
 
 % SYNTAX:
-%   goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, 
+%   goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge,
 %   flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc,
 %   flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R,
 %   ph2_M, ph2_R, dop2_M, dop2_R);
@@ -41,14 +41,14 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -182,7 +182,7 @@ end
 fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 fwrite(fid_conf, nSatTot, 'int8');
 
-%nmea sentences 
+%nmea sentences
 fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
 
 %"file hour" variable
@@ -224,7 +224,7 @@ end
 fopen(rover);
 
 if (protocol == 0)
-    
+
     % u-blox configuration
     [rover, reply_save] = configure_ublox(rover, COMportR, prot_par, 1);
 
@@ -237,7 +237,7 @@ elseif (protocol == 2)
 
     % skytraq configuration
     [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
-    
+
 elseif (protocol == 3)
 
     % nvs configuration
@@ -283,7 +283,7 @@ while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
     rover_1 = get(rover,'BytesAvailable');
     pause(receiver_delay);
     rover_2 = get(rover,'BytesAvailable');
-    
+
     %visualization
     fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
 
@@ -318,7 +318,7 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
     if (protocol == 0)
         %poll available ephemerides
         ublox_poll_message(rover, 'AID', 'EPH', 0);
-        
+
         %wait for asynchronous write to finish
         pause(0.1);
 
@@ -328,7 +328,7 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
         %wait for asynchronous write to finish
         pause(0.1);
     end
-    
+
     if (protocol == 2)
         %poll available ephemerides
         skytraq_poll_message(rover, '30', 0);
@@ -371,10 +371,10 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
     elseif (protocol == 3)
         [cell_rover] = decode_nvs(data_rover, constellations);
     end
-	
+
 	%for SkyTraq
 	IOD_time = -1;
-    
+
     %cell_rover
     for i = 1 : size(cell_rover,2)
 
@@ -384,21 +384,21 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
             %just information needed for basic positioning is saved
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
-        
+
         %Timing message data save (MEAS_TIME)
         elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
-            
+
             IOD_time = cell_rover{2,i}(1);
             time_GPS = cell_rover{2,i}(3);
-            
+
         %Raw message data save (RAW_MEAS)
         elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
-            
+
             IOD_raw = cell_rover{2,i}(1);
             if (IOD_raw == IOD_time)
                 pr_R = cell_rover{3,i}(:,3);
             end
-            
+
         %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
         elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
@@ -412,7 +412,7 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
                 Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
             end
 
-            
+
         %Hui message data save (AID-HUI | 4Ah)
         elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
 
@@ -421,7 +421,7 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
                 %ionosphere parameters
                 iono(:, 1) = cell_rover{3,i}(9:16);
             end
-            
+
             %NVS fields
             if (protocol == 3)
                 %ionosphere parameters
@@ -439,7 +439,7 @@ while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
 
     %satellites with observations available
     satObs = find(pr_R ~= 0);
-    
+
     if (isempty(nsatObs_old) | length(satObs) ~= nsatObs_old)
         %display current number of satellites
         fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
@@ -477,29 +477,29 @@ rover_2 = 0;
 sync_rover = 0;
 
 while (~sync_rover)
-    
+
     %starting epoch determination
     while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
-        
+
         %starting time
         current_time = toc;
-        
+
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
         pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
-        
+
         %visualization
         fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
-        
+
     end
-    
+
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
     if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-    
+
     %message decoding
     if (protocol == 0)
         [cell_rover] = decode_ublox(data_rover, constellations);
@@ -510,24 +510,24 @@ while (~sync_rover)
     elseif (protocol == 3)
         [cell_rover] = decode_nvs(data_rover, constellations);
     end
-    
+
     for i = 1 : size(cell_rover,2)
-        
+
         %Timing/raw message data save (RXM-RAW | PSEUDO)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
-            
+
             %just information about the epoch is saved
             time_GPS = round(cell_rover{2,i}(1));
             week_GPS = cell_rover{2,i}(2);
-            
+
             sync_rover = 1;
-            
+
         %Timing message data save (MEAS_TIME)
         elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
 
             time_GPS = cell_rover{2,i}(3);
             week_GPS = cell_rover{2,i}(2);
-            
+
             sync_rover = 1;
         end
     end
@@ -542,12 +542,12 @@ if flag_NTRIP
     % creation of the connection to the MASTER
     %------------------------------------------------------
     ntripstring = NTRIP_string_generator(nmea_init);
-    
+
     master = tcpip(master_ip,master_port);
     set(master,'InputBufferSize', 16384);
     fopen(master);
     fwrite(master,ntripstring);
-    
+
     %wait until the buffer is written before continuing
     while get(master,'BytesAvailable') == 0, end
 end
@@ -631,7 +631,7 @@ master_waiting = 0;
 
 %loop control initialization
 if (flag_plotproc)
-    
+
     if (~flag_var_dyn_model)
         h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
             'callback', 'setappdata(gcf, ''run'', 0)');
@@ -645,7 +645,7 @@ if (flag_plotproc)
     else
         % Create the button group.
         h1 = uibuttongroup(gcf, 'visible','on');
-        
+
         % Create three radio buttons in the button group.
         u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [390 10 50 30], 'string', 'STOP', ...
             'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
@@ -656,12 +656,12 @@ if (flag_plotproc)
         u3 = uicontrol(gcf, 'Style','Radio','String','const. acceleration dynamic',...
             'pos',[390 60 180 20],'parent', h1);
     end
-    
+
     set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
 else
     f1 = figure;
     s1 = get(0,'ScreenSize');
-    
+
     if (~flag_var_dyn_model)
         set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
         h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
@@ -748,7 +748,7 @@ while flag
         %-------------------------------------
         % mode management
         %-------------------------------------
-        
+
         if (flag == 2) && (order == 1)                  % STOP --> GO
             order = 2;                                  % constant velocity model
             set(h1, 'string', 'STOP');                  % write STOP
@@ -761,7 +761,7 @@ while flag
             set(h2, 'string', 'Current state: "STOP"'); % change current state
             iDIR = iDIR+1;
         end
-        
+
         if (order == 2)
             iDIR = iDIR+1;
         end
@@ -786,7 +786,7 @@ while flag
             fclose(fid_dyn);
         end
         fclose(fid_conf);
-        
+
         fid_master = fopen([filerootOUT '_master_' hour_str '.bin'],'w+');
         fid_rover  = fopen([filerootOUT '_rover_'  hour_str '.bin'],'w+');
         fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
@@ -798,7 +798,7 @@ while flag
             fid_dyn    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+');
         end
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
-        
+
         fwrite(fid_sat,  nSatTot, 'int8');
         fwrite(fid_conf, nSatTot, 'int8');
     end
@@ -911,25 +911,25 @@ while flag
         %data type counters
         nEPH = 0;
         nHUI = 0;
-        
+
         %for Fastrax
         tick_TRACK = 0;
         %                   L1 freq    RF_conv*MCLK      MixerOffeset
         correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
         correction_value = correction_value * (1575420000/(1+1574399750));
         doppler_count = 1;
-        
+
         %for SkyTraq
         IOD_time = -1;
 
         for i = 1 : size(cell_rover,2)
-            
+
             %Tracking message data save (TRACK)
             if (strcmp(cell_rover{1,i},prot_par{6,2}))
 
                 tick_TRACK    = cell_rover{2,i}(1);
                 phase_TRACK   = cell_rover{3,i}(:,6);
-                
+
                 type = [type prot_par{6,2} ' '];
 
             %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
@@ -937,7 +937,7 @@ while flag
 
                 %buffer index computation
                 index = time_GPS - round(cell_rover{2,i}(1)) + 1;
-                
+
                 if (index <= B)
                     while (index < 1)
                         time_GPS = time_GPS + 1;
@@ -968,31 +968,31 @@ while flag
                     ph_R(pos,index) = 0;
                     type = [type prot_par{1,2} ' '];
                 end
-                
+
             %Timing message data save (MEAS_TIME)
             elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
-                
+
                 IOD_time = cell_rover{2,i}(1);
                 time_stq = cell_rover{2,i}(3);
                 week_stq = cell_rover{2,i}(2);
-                
+
                 type = [type prot_par{4,2} ' '];
-                
+
             %Raw message data save (RAW_MEAS)
             elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
-                
+
                 IOD_raw = cell_rover{2,i}(1);
                 if (IOD_raw == IOD_time)
 
                     %buffer index computation
                     index = time_GPS - time_stq + 1;
-                    
+
                     if (index <= B)
                         while (index < 1)
                             time_GPS = time_GPS + 1;
                             index = time_GPS - time_stq + 1;
                         end
-                        
+
                         %buffer writing
                         tick_R(index)  = 1;
                         time_R(index)  = round(time_stq);
@@ -1001,11 +1001,11 @@ while flag
                         ph_R(:,index)  = cell_rover{3,i}(:,4);
                         snr_R(:,index) = cell_rover{3,i}(:,2);
                         dop_R(:,index) = cell_rover{3,i}(:,5);
-                        
+
                         %manage "nearly null" data
                         pos = abs(ph_R(:,index)) < 1e-100;
                         ph_R(pos,index) = 0;
-                        
+
                         type = [type prot_par{5,2} ' '];
                     end
                 end
@@ -1028,22 +1028,22 @@ while flag
                 end
 
                 nEPH = nEPH + 1;
-                
+
             %Hui message data save (AID-HUI | 4Ah)
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
-                
+
                 %u-blox fields
                 if (protocol == 0)
                     %ionosphere parameters
                     iono(:, 1) = cell_rover{3,i}(9:16);
                 end
-                
+
                 %NVS fields
                 if (protocol == 3)
                     %ionosphere parameters
                     iono(:, 1) = cell_rover{2,i}(1:8);
                 end
-                
+
                 if (nHUI == 0)
                     type = [type prot_par{3,2} ' '];
                 end
@@ -1080,7 +1080,7 @@ while flag
     %assign system and PRN code to each satellite
     [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
     [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
-    
+
     fprintf('C1 SAT:');
     for j = 1 : length(sat_pr)
         fprintf(' %s%02d', sys_pr(j), prn_pr(j));
@@ -1178,7 +1178,7 @@ while flag
         master_1 = get(master,'BytesAvailable');
         pause(server_delay);
         master_2 = get(master,'BytesAvailable');
-                
+
         %check if package writing is finished
         if (master_1 == master_2) & (master_1 ~= 0)
 
@@ -1200,7 +1200,7 @@ while flag
                 sixofeight = [sixofeight fliplr(data_master(pos+2:pos+7))];
                 pos = pos + 8;
             end
-            
+
             if(is_rtcm2)
                 cell_master = [cell_master decode_rtcm2(sixofeight, constellations, time_GPS)]; %RTCM 2 decoding
             else
@@ -1222,7 +1222,7 @@ while flag
 
     end
 
-    %visualization 
+    %visualization
     fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
 
     %-------------------------------------
@@ -1236,7 +1236,7 @@ while flag
         ph_M(:,1+dtime:end)  = ph_M(:,1:end-dtime);
         snr_M(:,1+dtime:end) = snr_M(:,1:end-dtime);
         pos_M(:,1+dtime:end) = pos_M(:,1:end-dtime);
-        
+
         %current cell to zero
         tick_M(1:dtime)  = zeros(dtime,1);
         time_M(1:dtime)  = zeros(dtime,1);
@@ -1351,7 +1351,7 @@ while flag
 
                 %message 1002/1004/1010/1012 (RTCM3)
                 case {1002, 1004, 1010, 1012}
-                    
+
                     %message timing
                     if (cell_master{1,i} == 1002 || cell_master{1,i} == 1004)
                         msg_time = round(cell_master{2,i}(2)); %GPS time-of-week
@@ -1363,7 +1363,7 @@ while flag
                         [~, leap_sec] = utc2gps(curr_time);
                         msg_time = msg_time + leap_sec;
                     end
-                    
+
                     %buffer index computation
                     index = time_GPS - msg_time + 1;
 
@@ -1375,7 +1375,7 @@ while flag
 
                         %detect satellite indexes (for multi-GNSS)
                         sat_idx = find(cell_master{3,i}(:,2) ~= 0);
-                        
+
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
@@ -1478,7 +1478,7 @@ while flag
         %assign system and PRN code to each satellite
         [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
         [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
-        
+
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
             fprintf(' %s%02d', sys_pr(p), prn_pr(p));
@@ -1557,10 +1557,10 @@ while flag
 
             %current date reading for Google Earth visualization
             date = clock;
-            
+
             %satellites with ephemerides available
             satEph = find(sum(abs(Eph))~=0);
-            
+
             %delete data if ephemerides are not available
             %the buffer is activated only after the Kalman filter initialization
             delsat = setdiff(1:nSatTot,satEph);
@@ -1571,7 +1571,7 @@ while flag
             dop_R(delsat,1) = 0;
             snr_R(delsat,1) = 0;
             snr_M(delsat,1) = 0;
-            
+
             %satellites with observations available
             %satObs = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) & (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0));
             satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
@@ -1588,11 +1588,11 @@ while flag
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
-                
+
                 %WARNING: with just min_nsat_LS satellites the least squares problem
                 %for double differences is not solvable and the covariance matrix
                 %of the estimation error cannot be computed
-                
+
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
@@ -1603,7 +1603,7 @@ while flag
                 else
                     kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, 1, ref_path, []);
                 end
-                
+
                 if (kalman_initialized)
                     if (flag_stopGOstop)
                         [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
@@ -1615,7 +1615,7 @@ while flag
                         sigma_angleDIR = 0;
                         P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                     end
-                    
+
                     %output data save
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -1626,7 +1626,7 @@ while flag
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    
+
                     %estimated position and velocity
                     if (mode_vinc == 0)
                         pos_t(1,1) = Xhat_t_t(1);
@@ -1639,7 +1639,7 @@ while flag
                         pos_t(3,1) = Yhat_t_t(3);
                         vel_t = Xhat_t_t(2);
                     end
-                    
+
                     %graphical representations
                     if (flag_plotproc)
                         if (flag_cov == 0)
@@ -1664,17 +1664,17 @@ while flag
                             rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot, Eph, []);
                         end
                     end
-                    
+
                     %time reading
                     current_time = toc;
-                    
+
                     %visualization
                     fprintf('kalman(%d): %7.4f sec (initialization)\n', t, current_time-start_time);
                     fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
                     if (o1 ~= 1)
                         fprintf('vel = %.4f km/h\n', vel_t*3.6);
                     end
-                    
+
                     %send a new NMEA string
                     if (flag_NTRIP)
                         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_M(1), HDOP));
@@ -1682,14 +1682,14 @@ while flag
                         fprintf('NMEA sent\n');
                         master_update = 1;
                     end
-                    
+
                     %counter increment
                     t = t + 1;
                 else
                     %visualization
                     fprintf('no position/velocity are computed\n');
                 end
-                
+
             else
 
                 %visualization
@@ -1851,7 +1851,7 @@ while flag
                     fprintf('NMEA sent\n');
                     master_update = 1;
                 end
-                
+
                 %poll a new AID-HUI message
                 if (mod(t,hui_poll_rate) == 0)
                     if (protocol == 0)
@@ -1935,7 +1935,7 @@ while flag
                             angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                             sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                             % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
-                            
+
                         end
                     end
 
@@ -2005,7 +2005,7 @@ while flag
                         fprintf('NMEA sent\n');
                         master_update = 1;
                     end
-                    
+
                     %poll a new AID-HUI message
                     if (mod(t,hui_poll_rate) == 0)
                         if (protocol == 0)
@@ -2114,7 +2114,7 @@ while flag
                         pos_t(3,1) = Yhat_t_t(3);
                         vel_t = Xhat_t_t(2);
                     end
-                    
+
                     %graphical representations
                     if (flag_plotproc)
                         if (flag_cov == 0)
@@ -2157,7 +2157,7 @@ while flag
                         fprintf('NMEA sent\n');
                         master_update = 1;
                     end
-                    
+
                     %poll a new AID-HUI message
                     if (mod(t,hui_poll_rate) == 0)
                         if (protocol == 0)
@@ -2185,26 +2185,26 @@ while flag
                 %if there is still space in the buffer, wait!
                 if (b < B)
                 %if (b < B - safety_B)
-                    
+
                     %visualization
                     fprintf('wait for data (delay=%d sec)\n',b);
-                    
+
                 %otherwise make one or more step using just dynamics
                 else
-                    
+
                     %if the master is interrupted
                     if (tick_M(b) == 0)
-                        
+
                         %check Internet connection
                         try
                             java.net.InetAddress.getByName(master_ip);
 
                             %clear the whole buffer
                             lastB = 1;
-                            
+
                             %close master connection
                             fclose(master);
-                            
+
                             %start a new connection
                             master = tcpip(master_ip,master_port);
                             set(master,'InputBufferSize', 16384);
@@ -2218,14 +2218,14 @@ while flag
                             %clear just the last buffer cell
                             lastB = B;
                         end
-                        
+
                     %if the rover is interrupted
                     else
-                        
+
                         %clear just the last buffer cell
                         lastB = B;
                         %lastB = B - safety_B;
-                        
+
                     end
 
                     %clear the buffer up to the desired position
@@ -2359,7 +2359,7 @@ while flag
                             fprintf('NMEA sent\n');
                             master_update = 1;
                         end
-                        
+
                         %poll a new AID-HUI message
                         if (mod(t,hui_poll_rate) == 0)
                             if (protocol == 0)
@@ -2521,7 +2521,7 @@ while flag
                         fprintf('NMEA sent\n');
                         master_update = 1;
                     end
-                    
+
                     %poll a new AID-HUI message
                     if (mod(t,hui_poll_rate) == 0)
                         if (protocol == 0)
@@ -2646,7 +2646,7 @@ if (flag_stopGOstop)
         %Azimuth computation
         i = find(angleDIR < 0);
         angleDIR(i) = angleDIR(i) + 360;
-        
+
         fprintf('\n')
         fprintf('Estimated azimuth = %8.3f degrees\n', angleDIR);
         fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);

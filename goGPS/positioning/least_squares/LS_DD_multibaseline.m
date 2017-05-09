@@ -62,14 +62,14 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri - add fixed-multibaseline purpose...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -95,7 +95,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
 % global sigmaq_cod1 sigmaq_ph
 
 %number of baseline (n)
-n = Ant-1; %---> INPUT: ant = numbers of antenna      
+n = Ant-1; %---> INPUT: ant = numbers of antenna
 
 %number of DD-obs. in one baseline (m)
 m = 2*(length(pr_M)); %--->INPUT: pr_M = numb. of CA obs. in Master
@@ -139,7 +139,7 @@ err_iono_R   = [err_iono_R1, err_iono_R2, err_iono_R3, err_iono_R4];
 %line-of-sign matrix (code)
 G = [((XR1_approx(1) - XS(:,1)) ./ distR1_approx) - ((XR1_approx(1) - XS(pivot_index,1)) / distR1_approx(pivot_index)), ... %column for X coordinate
      ((XR1_approx(2) - XS(:,2)) ./ distR1_approx) - ((XR1_approx(2) - XS(pivot_index,2)) / distR1_approx(pivot_index)), ... %column for Y coordinate
-     ((XR1_approx(3) - XS(:,3)) ./ distR1_approx) - ((XR1_approx(3) - XS(pivot_index,3)) / distR1_approx(pivot_index))];    %column for Z coordinate]; 
+     ((XR1_approx(3) - XS(:,3)) ./ distR1_approx) - ((XR1_approx(3) - XS(pivot_index,3)) / distR1_approx(pivot_index))];    %column for Z coordinate];
 
 %line-of-sign matrix (phase)
 G = [G; ((XR1_approx(1) - XS(:,1)) ./ distR1_approx) - ((XR1_approx(1) - XS(pivot_index,1)) / distR1_approx(pivot_index)), ... %column for X coordinate
@@ -171,7 +171,7 @@ G(            :, pivot_index+3)        = [];
 b( [pivot_index, pivot_index+m/2]) = [];
 y0([pivot_index, pivot_index+m/2]) = [];
 m = (m - 2);
- 
+
 %observation noise covariance matrix
 Q  = zeros(m);
 Q1 = cofactor_matrix(elR1, elM, snr_R1, snr_M, pivot_index);
@@ -203,29 +203,29 @@ vecZfloat = (kron(eye(n),((A'*(Q^-1)*A)^-1)*A'*(Q^-1)))*(y(:) - (kron(Fn',G))*Rf
 QvecR = kron((Fn*(P^-1)*Fn')^-1,(Gp*(Q^-1)*Gp)^-1);
 %QZrR  = kron(-F'*(F*(P^-1)*F)^-1,((A'*(Q^-1)*A)^-1)*A'*(Q^-1)*G*((Gp'*(Q^-1)*Gp)^-1));
 %QRZr  = QZrR';
-QvecZ = ((kron(P^-1,A'*(Q^-1)))*(eye(m*n)-kron(Pfn,Pg))*(kron(eye(n),A)))^-1; 
- 
+QvecZ = ((kron(P^-1,A'*(Q^-1)))*(eye(m*n)-kron(Pfn,Pg))*(kron(eye(n),A)))^-1;
+
 if (~flag_LAMBDA)
     %apply least squares solution
     R = Rfloat;
-    
+
     %estimated double difference ambiguities (without PIVOT)
     N_hat_nopivot = vecZfloat;
-    
+
     %add a zero at PIVOT position
     N_hat = zeros((m/2)*n+1,1);
     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-    
+
     %covariance matrix of the estimation error
     if (m*n > u)
-        
+
         %rover position covariance matrix
         cov_R = QvecR;
-        
+
         %combined ambiguity covariance matrix
         cov_N_nopivot = QvecZ;
-        
+
         %add one line and one column (zeros) at PIVOT position
         cov_N = zeros((m/2)*n+1);
         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
@@ -234,45 +234,45 @@ if (~flag_LAMBDA)
         cov_R = [];
         cov_N = [];
     end
-    
+
 else %apply LAMBDA
-        
+
     if (m*n > u && sigmaq_ph ~= 1e30)
-                        
+
         [vecZcheck, QvecZhat] = lambdafix(vecZfloat, QvecZ);
-        
+
         R     = ((G'*(Q^-1)*G)^-1)*G'*(Q^-1)*(y-A*vecZcheck)*(P^-1)*Fn'*((Fn*(P^-1)*Fn')^-1);
         cov_R = kron((Fn*(P^-1)*Fn')^-1,(G'*(Q^-1)*G)^-1); % = QRR - QRZr*(QZrZr^-1)*QZrR;
-        
-        
+
+
         %estimated double difference ambiguities (without PIVOT)
         N_hat_nopivot = vecZcheck;
-        
+
         %add a zero at PIVOT position
         N_hat = zeros(m*n/2+1,1);
         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-        
+
         %combined ambiguity covariance matrix
         cov_N_nopivot = QvecZhat;
-        
+
         %add one line and one column (zeros) at PIVOT position
         cov_N = zeros(n/2+1);
         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-        
+
     else
         R = Rfloat;
         N_hat_nopivot = vecZfloat;
-        
+
         %add a zero at PIVOT position
         N_hat = zeros((m/2)*n+1,1);
         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-        
+
         cov_R = [];
         cov_N = [];
     end
 end
- 
+
 

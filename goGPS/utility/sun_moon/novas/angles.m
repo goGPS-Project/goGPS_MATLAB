@@ -8,9 +8,9 @@ function [ra, dec] = angles (pos)
 
 % output
 
-%  ra = right ascension in hours 
+%  ra = right ascension in hours
 
-%  dec = declination in degrees 
+%  dec = declination in degrees
 
 % ported from NOVAS 3.1
 
@@ -23,23 +23,23 @@ xyproj = sqrt(pos(1)^2 + pos(2)^2);
 r = 0.0d0;
 
 if (xyproj > 0.0d0)
-    
+
     r = atan2(pos(2), pos(1));
-    
+
 end
 
 ra = r * seccon / 54000.0d0;
 
 if (ra < 0.0d0)
-    
+
     ra = ra + 24.0d0;
-    
+
 end
 
 if (ra >= 24.0d0)
-    
+
     ra = ra - 24.0d0;
-    
+
 end
 
 d = atan2(pos(3), xyproj);

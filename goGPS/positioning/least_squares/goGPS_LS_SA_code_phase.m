@@ -24,14 +24,14 @@ function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -127,44 +127,44 @@ end
 min_nsat = 4;
 
 if (size(sat,1) >= min_nsat)
-    
+
     sat_pr_old = sat_pr;
-    
+
     if (phase == 1)
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     end
-    
+
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
-    
+
     %if multi-system observations, then an additional parameter to estimate the inter-system bias
     %for each additional system is needed
     uni_sys = unique(sys(sys ~= 0));
     num_sys = length(uni_sys);
     min_nsat = 3 + num_sys;
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = -1;
     conf_sat(sat,1) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %actual pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
-    
+
     %if the number of satellites is not sufficient after the cutoffs, or
     %if the condition number in the least squares exceeds the threshold
     if (size(sat,1) < min_nsat || cond_num > cond_num_threshold)
@@ -197,14 +197,14 @@ phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, phwindup(sat,1))
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
 if (length(sat) < min_nsat)
-    
+
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
     N1 = zeros(nSatTot,1);
     N2 = zeros(nSatTot,1);
     sigma2_N1 = zeros(nSatTot,1);
     sigma2_N2 = zeros(nSatTot,1);
-    
+
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
         [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
@@ -226,7 +226,7 @@ if (length(sat) < min_nsat)
 
 %use least squares ambiguity estimation
 else
-    
+
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
     N1 = zeros(nSatTot,1);
@@ -237,20 +237,20 @@ else
         [XR, dtR, ISBs, N1(sat), cov_XR, var_dtR, var_ISBs, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,1)); %#ok<ASGLU>
         [ ~,   ~, ISBs, N2(sat),      ~,       ~, var_ISBs, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,2));
     end
-    
+
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
         cov_XR = sigmaq0 * eye(3);
     end
     sigma2_XR = diag(cov_XR);
-    
+
     if isempty(cov_N1) %if it was not possible to compute the covariance matrix
         cov_N1 = sigmaq0_N * eye(length(sat));
     end
-    
+
     if isempty(cov_N2) %if it was not possible to compute the covariance matrix
         cov_N2 = sigmaq0_N * eye(length(sat));
     end
-    
+
     if (length(phase) == 2)
         N = [N1; N2];
         sigma2_N(sat) = diag(cov_N1);

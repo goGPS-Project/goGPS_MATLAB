@@ -30,17 +30,17 @@ t1 = t * 36525.0d0;
 % resulting nutation in longitude and obliquity in arc seconds
 
 if (mod (mode, 2) == 0)
-    
+
     % high accuracy mode -- iers 2000a
-    
+
     [dp, de] = nut2000a (t0, t1);
-    
+
 else
-    
+
     % low accuracy mode -- iau 2000k
-    
+
     [dp, de] = nut2000k (t0, t1);
-    
+
 end
 
 dpsi = dp * seccon;

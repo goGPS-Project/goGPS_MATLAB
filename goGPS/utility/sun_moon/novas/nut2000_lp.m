@@ -60,17 +60,17 @@ deps = 0.0d0;
 % sum nutation series terms
 
 for i = 13:-1:1
-    
+
     arg = x(1, i) * el ...
         + x(2, i) * elp ...
         + x(3, i) * f ...
         + x(4, i) * d ...
         + x(5, i) * om;
-    
+
     dpsi = (x(6, i) + x(7, i) * t) * sin(arg) + dpsi;
-    
+
     deps = (x(8, i) + x(9, i) * t) * cos(arg) + deps;
-    
+
 end
 
 % add in out-of-phase component of principal (18.6-year) term

@@ -38,15 +38,15 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   Synchronize different sets of observations. Zeros where not available.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %number of satellite slots
@@ -116,7 +116,7 @@ time_prog = time_i - time_ref(1); % substract the first element to reduce the ma
 time_ref_prog = time_ref - time_ref(1);
 
 for s = 1 : nObsSet
-    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));    
+    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);
     date(idx_t, :, s) = date_i(idx_z, :, s);

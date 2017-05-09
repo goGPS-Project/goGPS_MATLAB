@@ -14,7 +14,7 @@ function  [X,Y,vals,labI]=mp_cyl(optn,varargin)
 %
 % Mathematical formulas for the projections and thie inverses are taken from
 %
-%      Snyder, John P., Map Projections used by the US Geological Survey, 
+%      Snyder, John P., Map Projections used by the US Geological Survey,
 %      Geol. Surv. Bull. 1532, 2nd Edition, USGPO, Washington D.C., 1983.
 %
 % These are cylindrical projections wrapped around the equator
@@ -47,7 +47,7 @@ switch optn,
 
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ],...
-            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ]); 
+            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ]);
 
   case 'initialize',
 
@@ -76,7 +76,7 @@ switch optn,
        end;
        k=k+2;
      end;
-   
+
      if length(MAP_VAR_LIST.ulats)==1,
        MAP_VAR_LIST.ulats=[-1 1]*abs(MAP_VAR_LIST.ulats(1));
      end;
@@ -91,7 +91,7 @@ switch optn,
     vals=zeros(size(long));
 
     % Clip out-of-range values
-    
+
     if ~strcmp(varargin{4},'off'),
         vals=vals | long<=MAP_VAR_LIST.longs(1)+eps*10 | long>=MAP_VAR_LIST.longs(2)-eps*10 | ...
 	              lat<=MAP_VAR_LIST.lats(1)+eps*10 |   lat>=MAP_VAR_LIST.lats(2)-eps*10;
@@ -113,7 +113,7 @@ switch optn,
     end;
 
   case 'xy2ll',
-    
+
     X=varargin{1}/pi180+mean(MAP_VAR_LIST.longs);
 
     switch MAP_PROJECTION.name
@@ -124,13 +124,13 @@ switch optn,
       case name(3),
         Y=varargin{2}*cos(mean(MAP_VAR_LIST.lats)*pi180)/pi180;
     end;
-        
+
   case 'xgrid',
 
     [X,Y,vals,labI]=mu_util('xgrid',MAP_VAR_LIST.longs,MAP_VAR_LIST.lats,varargin{1},3,varargin{2:3});
 
   case 'ygrid',
-   
+
     [X,Y,vals,labI]=mu_util('ygrid',MAP_VAR_LIST.lats,MAP_VAR_LIST.longs,varargin{1},3,varargin{2:3});
 
   case 'box',

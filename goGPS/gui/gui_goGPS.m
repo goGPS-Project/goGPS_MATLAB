@@ -25,16 +25,16 @@ function varargout = gui_goGPS(varargin)
 % Last Modified by GUIDE v2.5 07-Apr-2017 16:29:24
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
-%  Contributors:     
+%  Written by:
+%  Contributors:
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -52,7 +52,7 @@ function varargout = gui_goGPS(varargin)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % Begin initialization code - DO NOT EDIT
@@ -99,10 +99,10 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout{1} = goGUI.okGo();    
+        varargout{1} = goGUI.okGo();
         return
     end
-    
+
     varargout{1} = goGUI.okGo();
 %close main panel
 delete(gcf)
@@ -177,7 +177,7 @@ function kalman_ls_Callback(hObject, eventdata, handles)
 %enable Kalman filters settings
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.lAlgType);
-    
+
 % --- Executes during object creation, after setting all properties.
 function kalman_ls_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to kalman_ls (see GCBO)
@@ -200,7 +200,7 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.lProcType);
-    
+
 % --- Executes during object creation, after setting all properties.
 function code_dd_sa_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to code_dd_sa (see GCBO)
@@ -340,7 +340,7 @@ function constraint_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of constraint
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.cConstraint);
-    
+
 % --- Executes on button press in ref_path.
 function ref_path_Callback(hObject, eventdata, handles)
 % hObject    handle to ref_path (see GCBO)
@@ -380,7 +380,7 @@ function google_earth_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of google_earth
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cGEarth);
-    
+
 % --- Executes on button press in err_ellipse.
 function err_ellipse_Callback(hObject, eventdata, handles)
 % hObject    handle to err_ellipse (see GCBO)
@@ -390,7 +390,7 @@ function err_ellipse_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of err_ellipse
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cErrEllipse);
-    
+
 % --- Executes on button press in plot_master.
 function plot_master_Callback(hObject, eventdata, handles)
 % hObject    handle to plot_master (see GCBO)
@@ -400,7 +400,7 @@ function plot_master_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of plot_master
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cPlotMaster);
-    
+
 % --- Executes on button press in plot_amb.
 function plot_amb_Callback(hObject, eventdata, handles)
 % hObject    handle to plot_amb (see GCBO)
@@ -410,7 +410,7 @@ function plot_amb_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of plot_amb
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cPlotAmb);
-    
+
 % --- Executes on button press in use_ntrip.
 function use_ntrip_Callback(hObject, eventdata, handles)
 % hObject    handle to use_ntrip (see GCBO)
@@ -420,7 +420,7 @@ function use_ntrip_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of use_ntrip
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cUseNTRIP);
-    
+
 % --- Executes on button press in flag_doppler.
 function flag_doppler_Callback(hObject, eventdata, handles)
 % hObject    handle to flag_doppler (see GCBO)
@@ -430,7 +430,7 @@ function flag_doppler_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of flag_doppler
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cDoppler);
-    
+
 % --- Executes on button press in use_SBAS.
 function use_SBAS_Callback(hObject, eventdata, handles)
 % hObject    handle to use_SBAS (see GCBO)
@@ -440,7 +440,7 @@ function use_SBAS_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of use_SBAS
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cUse_SBAS);
-    
+
 % --- Executes on button press in flag_rem_outliers.
 function flag_rem_outliers_Callback(hObject, eventdata, handles)
 % hObject    handle to flag_rem_outliers (see GCBO)
@@ -533,7 +533,7 @@ function nPhaseThr_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-    
+
 %   INPUT/OUTPUT FILE AND FOLDERS
 % ===============================================================
 
@@ -577,7 +577,7 @@ function bEditINI_Callback(hObject, eventdata, handles)
 global goGUI
     goGUI.openEditINI();
 
-% Output ------------------------------------------------------    
+% Output ------------------------------------------------------
 
 function sDirGoOut_Callback(hObject, eventdata, handles)
 % hObject    handle to sDirGoOut (see GCBO)
@@ -608,7 +608,7 @@ function bDirGoOut_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bDirGoOut);
-    
+
 function sPrefixGoOut_Callback(hObject, eventdata, handles)
 % hObject    handle to sPrefixGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -694,7 +694,7 @@ global goGUI
 %   SETTINGS - KALMAN FILTER - STD
 % ===============================================================
 
-% East --------------------------------------------------------            
+% East --------------------------------------------------------
 
 function std_X_Callback(hObject, eventdata, handles)
 % hObject    handle to std_X (see GCBO)
@@ -718,7 +718,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% Nord --------------------------------------------------------            
+% Nord --------------------------------------------------------
 
 function std_Y_Callback(hObject, eventdata, handles)
 % hObject    handle to std_Y (see GCBO)
@@ -799,7 +799,7 @@ function toggle_std_phase_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bStdPhase);
-    
+
 function std_phase_Callback(hObject, eventdata, handles)
 % hObject    handle to std_phase (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -857,7 +857,7 @@ function toggle_std_dtm_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of toggle_std_dtm
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bStdDTM);
-   
+
 function std_dtm_Callback(hObject, eventdata, handles)
 % hObject    handle to std_dtm (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1021,7 +1021,7 @@ function cut_off_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-    
+
 % SNR thr -----------------------------------------------------
 
 function snr_thres_Callback(hObject, eventdata, handles)
@@ -1359,7 +1359,7 @@ function master_h_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of master_h as a double
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.nMh);
-    
+
 % --- Executes during object creation, after setting all properties.
 function master_h_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to master_h (see GCBO)
@@ -1385,7 +1385,7 @@ function num_receivers_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from num_receivers
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.lnPorts);
-    
+
 % --- Executes during object creation, after setting all properties.
 function num_receivers_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to num_receivers (see GCBO)
@@ -1432,7 +1432,7 @@ function com_select_0_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-    
+
 % --- Executes on selection change in protocol_select_0.
 function protocol_select_0_Callback(hObject, eventdata, handles)
 % hObject    handle to protocol_select_0 (see GCBO)
@@ -1466,7 +1466,7 @@ function com_select_1_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from com_select_1
 global goGUI
     goGUI.syncFromGUI(goGUI.idGroup.lPort1);
-    
+
 % --- Executes during object creation, after setting all properties.
 function com_select_1_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to com_select_1 (see GCBO)
@@ -1509,7 +1509,7 @@ function com_select_2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idGroup.lPort2);
-    
+
 % --- Executes during object creation, after setting all properties.
 function com_select_2_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to com_select_2 (see GCBO)
@@ -1555,7 +1555,7 @@ function com_select_3_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from com_select_3
 global goGUI
     goGUI.syncFromGUI(goGUI.idGroup.lPort3);
-    
+
 % --- Executes during object creation, after setting all properties.
 function com_select_3_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to com_select_3 (see GCBO)
@@ -1593,7 +1593,7 @@ end
 
 %   SETTINGS - MASTER SERVER
 % ===============================================================
-            
+
 function IP_address_Callback(hObject, eventdata, handles)
 % hObject    handle to IP_address (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1714,7 +1714,7 @@ global goGUI;
     key = eventdata.Key;
     ch = eventdata.Character;
     goGUI.modifyPassword(key, ch);
-  
+
 % --- Executes on button press in show_password.
 function show_password_Callback(hObject, eventdata, handles)
 % hObject    handle to show_password (see GCBO)
@@ -1799,7 +1799,7 @@ function cLAMBDA_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of cLAMBDA
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cLAMBDA);
- 
+
 % --- Executes on selection change in lLAMBDAMethod.
 function lLAMBDAMethod_Callback(hObject, eventdata, handles)
 % hObject    handle to lLAMBDAMethod (see GCBO)
@@ -1832,7 +1832,7 @@ function cMu_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of cMu
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cMu);
-    
+
 function nP0_Callback(hObject, eventdata, handles)
 % hObject    handle to nP0 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1842,7 +1842,7 @@ function nP0_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of nP0 as a double
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.nP0);
-    
+
 % --- Executes during object creation, after setting all properties.
 function nP0_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to nP0 (see GCBO)
@@ -1864,7 +1864,7 @@ function nMu_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of nMu as a double
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.nMu);
-    
+
 % --- Executes during object creation, after setting all properties.
 function nMu_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to nMu (see GCBO)
@@ -1892,7 +1892,7 @@ global goGUI;
 
 %   BUTTONS
 % ===============================================================
-        
+
 % --- Executes on button press in exit.
 function exit_Callback(hObject, eventdata, handles)
 % hObject    handle to exit (see GCBO)
@@ -1900,7 +1900,7 @@ function exit_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bExit);
-    
+
 % --- Executes on button press in load_button.
 function load_button_Callback(hObject, eventdata, handles)
 % hObject    handle to load_button (see GCBO)
@@ -1909,7 +1909,7 @@ function load_button_Callback(hObject, eventdata, handles)
 %allow the user to choose which settings to load
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bLoad);
-    
+
 % --- Executes on button press in save_button.
 function save_button_Callback(hObject, eventdata, handles)
 % hObject    handle to save_button (see GCBO)
@@ -1931,7 +1931,7 @@ global goGUI
 
 
 
-    
+
 %   MENU
 % ===============================================================
 % The management of the menu, is not yet in the goGUI object

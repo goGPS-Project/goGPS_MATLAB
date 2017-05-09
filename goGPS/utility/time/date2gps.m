@@ -15,15 +15,15 @@ function [gps_week, gps_sow, gps_dow] = date2gps(date)
 %   Conversion from calendar date to GPS time.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ function [gps_week, gps_sow, gps_dow] = date2gps(date)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 gps_start_datenum = 723186; %This is datenum([1980,1,6,0,0,0])
@@ -54,7 +54,7 @@ deltat   = (datenummx(date(:,1:3)) - gps_start_datenum);
 
 gps_week = floor(deltat/7);            %GPS week
 gps_dow  = floor(deltat - gps_week*7); %GPS day of week
-gps_sow  = (deltat - gps_week*7)*86400; 
+gps_sow  = (deltat - gps_week*7)*86400;
 gps_sow = gps_sow + date(:,4)*3600 + date(:,5)*60 + date(:,6); %GPS seconds of week
 
 % %alternative way, using the Julian day

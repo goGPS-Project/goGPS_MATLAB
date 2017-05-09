@@ -17,12 +17,12 @@ function [data] = decode_FTX_TRACK(msg, constellations)
 %          3.1) PRN     = space vehicle number
 %          3.2) ChIdx   = channel index.
 %          3.3) Lock 	= Channel lock status. See the lock bits definitions.
-%          3.4) Power   = Power measurement value from Carrier tracking.	
+%          3.4) Power   = Power measurement value from Carrier tracking.
 %          3.5) CarrCount = Carrier NCO cycle count
 %          3.6) CarrPhase = Carrier phase. The 8 LSB represent the fractional Carrier Count so that the CarrierPhase measurement can be obtained as: dwCarrCount + (wCarrPhase & 0x00ff)/256.
 %          3.7) CarrFreq  = Carrier NCO replica frequency from loop filter.
 %          3.8) PrnTow    = Last decoded TOW.
-%          3.9) ChipPhase = Code chip phase, HW offset 1A. 
+%          3.9) ChipPhase = Code chip phase, HW offset 1A.
 %          3.10) ChipCount   = Code chip count, HW offset 1B.
 %          3.11) EpochCount  = Code epoch count, HW offset 1C.
 %          3.12) CyclesSLTOW = Code cycles since last decoded TOW.
@@ -33,15 +33,15 @@ function [data] = decode_FTX_TRACK(msg, constellations)
 %   TRACK binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -60,7 +60,7 @@ function [data] = decode_FTX_TRACK(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 debug = 0;
@@ -81,13 +81,13 @@ data{3} = zeros(constellations.nEnabledSat,14);
 % output header
 data{1} = 'TRACK';
 
-% TRACK_HDR TRACK.TrackHdr: Common info for carrier and code.		
+% TRACK_HDR TRACK.TrackHdr: Common info for carrier and code.
 % TRACK.TrackHdr.dwTick 	DWORD 	Measurement time (system ticker value)
 [Tick, pos]     = FTX_TypeConv('DWORD', msg, pos);
 
 % TRACK.TrackHdr.swNumChan 	WORD 	<15bit-reserved-8bit><7bit-Number of channel in Lock(track)-0bit>
 [NumChan, pos, NumChan_par] = FTX_TypeConv('WORD', msg, pos);
-NumChan = NumChan_par(1);           
+NumChan = NumChan_par(1);
 
 % TRACK.TrackHdr.swFlags 	WORD 	Flags which are not channel-specific.
 [Flags, pos]	= FTX_TypeConv('WORD', msg, pos);
@@ -103,14 +103,14 @@ for j = 1 : NumChan
     [Temp, pos, LChInfo]    = FTX_TypeConv('WORD', msg, pos);
     PRN     = LChInfo(1);
     ChIdx   = LChInfo(2);
-    
+
     % TRACK.TrackCh[n].swLock 	WORD 	Channel lock status. See the lock bits definitions.
     [Lock, pos]      = FTX_TypeConv('WORD', msg, pos);
     if (debug == 1)
         fprintf('Lock: \t%6d\t  ', Lock);
     end
-    
-    % TRACK_CARRIER TRACK.TrackCh[n].TrackCarrier: Carrier tracking data		
+
+    % TRACK_CARRIER TRACK.TrackCh[n].TrackCarrier: Carrier tracking data
     % TRACK.TrackCh[n].TrackCarrier.dwDet 	DWORD 	Power measurement value from Carrier tracking.
     [Power, pos]     = FTX_TypeConv('DWORD', msg, pos);
 
@@ -119,44 +119,44 @@ for j = 1 : NumChan
     if (debug == 1)
         fprintf('CarrCount: \t%9d\t  ', CarrCount);
     end
-    
+
     % TRACK.TrackCh[n].TrackCarrier.wCarrPhase 	WORD 	Carrier phase. The 8 LSB represent the fractional Carrier Count so that the CarrierPhase measurement can be obtained as: dwCarrCount + (wCarrPhase & 0x00ff)/256.
     [CarrPhase, pos, CarrPhase_par] = FTX_TypeConv('WORD', msg, pos);
     CarrPhase = CarrCount + (CarrPhase_par(1)/256);
     if (debug == 1)
         fprintf('CarrPhase: \t%15.4f\t ', CarrPhase);
     end
-    
+
     % TRACK.TrackCh[n].TrackCarrier.dwCarrNCOFreq 	DWORD 	Carrier NCO replica frequency from loop filter.
     [CarrFreq, pos]  = FTX_TypeConv('DWORD', msg, pos);
-    
-    % TRACK_CODE TRACK.TrackCh[n].TrackCode: Code tracking data		
+
+    % TRACK_CODE TRACK.TrackCh[n].TrackCode: Code tracking data
     % TRACK.TrackCh[n].TrackCode.dwPrnTow 	DWORD 	Last decoded TOW
     [PrnTow, pos]    = FTX_TypeConv('DWORD', msg, pos);
     if (debug == 1)
         fprintf('PrnTow: \t%11d\t ', PrnTow);
     end
-    
-    % CORR_CH_PRN_CNT TRACK.TrackCh[n].TrackCode.TrPrnCnt:		
+
+    % CORR_CH_PRN_CNT TRACK.TrackCh[n].TrackCode.TrPrnCnt:
     % TRACK.TrackCh[n].TrackCode.TrPrnCnt.wChipPhase 	WORD 	Code chip phase, HW offset 1A
-    [ChipPhase, pos]      = FTX_TypeConv('WORD', msg, pos);     
+    [ChipPhase, pos]      = FTX_TypeConv('WORD', msg, pos);
     % TRACK.TrackCh[n].TrackCode.TrPrnCnt.wChipCount 	WORD 	Code chip count, HW offset 1B
-    [ChipCount, pos]      = FTX_TypeConv('WORD', msg, pos);     
+    [ChipCount, pos]      = FTX_TypeConv('WORD', msg, pos);
     % TRACK.TrackCh[n].TrackCode.TrPrnCnt.wEpochCount 	WORD 	Code epoch count, HW offset 1C
-    [EpochCount, pos]     = FTX_TypeConv('WORD', msg, pos);     
+    [EpochCount, pos]     = FTX_TypeConv('WORD', msg, pos);
     % TRACK.TrackCh[n].TrackCode.wCyclesSinceLastTOW 	WORD 	Code cycles since last decoded TOW
-    [CyclesSLTOW, pos]    = FTX_TypeConv('WORD', msg, pos);     
+    [CyclesSLTOW, pos]    = FTX_TypeConv('WORD', msg, pos);
     % TRACK.TrackCh[n].TrackCode.wReserved1 	WORD 	Signal-to-noise ratio (dBHz)
     [Reserved1, pos]      = FTX_TypeConv('WORD', msg, pos);
     % TRACK.TrackCh[n].TrackCode.dwCodeNCOFreq 	DWORD 	Code NCO replica frequency from loop filter
     [CodeNCOFreq, pos]    = FTX_TypeConv('DWORD', msg, pos);
-    
+
     % assign constellation-specific indexes
     idx = [];
     if (SV <= 32)
         idx = constellations.GPS.indexes(SV);
     end
-    
+
     data{3}(idx, 1) = PRN;
     data{3}(idx, 2) = ChIdx;
     data{3}(idx, 3) = Lock;

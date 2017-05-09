@@ -16,15 +16,15 @@ function [out] = remove_double_10h(msg, wait_dlg)
 %   single value.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -43,7 +43,7 @@ function [out] = remove_double_10h(msg, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2)
@@ -58,11 +58,11 @@ pos = find(msg == 16);
 %check the presence of <DLE><DLE>; in case remove the first
 j = 1;
 while (j <= length(pos))
-    
+
     if (nargin == 2)
         waitbar(j/length(pos),wait_dlg)
     end
-    
+
     if (length(msg) >= pos(j)+1)
         if (msg(pos(j)+1) ~= 16)
             %if it's a single <DLE>, leave it be

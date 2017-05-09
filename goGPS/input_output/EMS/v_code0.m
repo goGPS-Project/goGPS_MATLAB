@@ -18,15 +18,15 @@ function [flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = v_code0(ha
 %   delta_offset = delta offset of the clock of the SVs in prn [vector]
 %
 % DESCRIPTION:
-%   
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -48,15 +48,15 @@ function [flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = v_code0(ha
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 flag    = NaN(1,2);
-prn     = NaN(1,2); 
-IODe    = NaN(1,2); 
-delta_x = NaN(1,2); 
-delta_y = NaN(1,2); 
-delta_z = NaN(1,2); 
+prn     = NaN(1,2);
+IODe    = NaN(1,2);
+delta_x = NaN(1,2);
+delta_y = NaN(1,2);
+delta_z = NaN(1,2);
 delta_offset = NaN(1,2);
 
 %resolution of the ECEF coordinates
@@ -80,7 +80,7 @@ param_9 = 2^(9) - 1; %2^(n_bit-1) - 1
 prn_n = fbin2dec(half_msg(1:6));
 
 if (prn_n == 0)
-    
+
     flag(1)    = 1;   %null message
     prn(1)     = NaN;
     IODe(1)    = NaN;
@@ -88,11 +88,11 @@ if (prn_n == 0)
     delta_y(1) = NaN;
     delta_z(1) = NaN;
     delta_offset(1) = NaN;
-    
+
 else
-    
+
     flag(1) = 0; %valid message
-    
+
 	iodp = fbin2dec(half_msg(103:104));
 
     %find the right mask
@@ -103,34 +103,34 @@ else
     prn(1) = i_prn_mask(prn_n);
 
     IODe(1) = fbin2dec(half_msg(7:14));
-    
+
     %delta position
     d_x = fbin2dec(half_msg(15:23));
     d_y = fbin2dec(half_msg(24:32));
     d_z = fbin2dec(half_msg(33:41));
-    
+
     vect_d = [d_x d_y d_z];
-    
+
     %twos complement
     p8 = vect_d > param_8;
     vect_d = vect_d - 2^(9) * p8;
-    
+
     %multiply by the LSB value
-    vect_delta = vect_d * res_ecef; % m 
+    vect_delta = vect_d * res_ecef; % m
     delta_x(1) = vect_delta(1);
     delta_y(1) = vect_delta(2);
     delta_z(1) = vect_delta(3);
 
     %clock offset
     d_offset = fbin2dec(half_msg(42:51));
-    
+
     %twos complement
     p9 = d_offset > param_9;
     d_offset = d_offset - 2^(10) * p9;
-    
+
     %multiply by the LSB value
     delta_offset(1) = d_offset * res_offset; % s
-    
+
 end
 
 %2nd part
@@ -139,7 +139,7 @@ end
 prn_n = fbin2dec(half_msg(52:57));
 
 if (prn_n == 0)
-    
+
     flag(2)    = 1;   %null message
     prn(2)     = NaN;
     IODe(2)    = NaN;
@@ -147,13 +147,13 @@ if (prn_n == 0)
     delta_y(2) = NaN;
     delta_z(2) = NaN;
     delta_offset(2) = NaN;
-    
+
 else
-    
+
     flag(2) = 0; %valid message
-    
+
 % 	iodp = fbin2dec(half_msg(103:104));
-% 
+%
 %     %trovo la mask corretta
 %     i_iodp = find(iodp_mask == iodp);
 %     i_prn_mask = prn_mask(i_iodp,:);
@@ -162,32 +162,32 @@ else
     prn(2) = i_prn_mask(prn_n);
 
     IODe(2) = fbin2dec(half_msg(58:65));
-    
+
     %delta position
     d_x = fbin2dec(half_msg(66:74));
     d_y = fbin2dec(half_msg(75:83));
     d_z = fbin2dec(half_msg(84:92));
-    
+
     vect_d = [d_x d_y d_z];
-    
+
     %twos complement
     p8 = vect_d > param_8;
     vect_d = vect_d - 2^(9) * p8;
-    
+
     %multiply by LSB value
-    vect_delta = vect_d * res_ecef; % m 
+    vect_delta = vect_d * res_ecef; % m
     delta_x(2) = vect_delta(1);
     delta_y(2) = vect_delta(2);
     delta_z(2) = vect_delta(3);
 
     %clock offset
     d_offset = fbin2dec(half_msg(93:102));
-    
+
     %twos complement
     p9 = d_offset > param_9;
     d_offset = d_offset - 2^(10) * p9;
-    
+
     %multiply by LSB value
     delta_offset(2) = d_offset * res_offset; % s
- 
+
 end

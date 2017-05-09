@@ -61,11 +61,11 @@ et2(2) = 0;
 % first entry?
 
 if (iephem == 1)
-    
+
     pvsun = zeros(6, 1);
 
     % read header file data
-    
+
     gs = Go_State.getInstance();
     go_dir = gs.getLocalStorageDir();
     fid = fopen(fullfile(go_dir, ephname), 'r');
@@ -120,9 +120,9 @@ if (iephem == 1)
 end
 
 if (ntarg == ncent)
-    
+
     return;
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -130,9 +130,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%
 
 if (ntarg == 14)
-    
+
     if (ipt(2, 12) > 0)
-        
+
         list(11) = 2;
 
         [pv, rrd] = state(et2, list);
@@ -140,13 +140,13 @@ if (ntarg == 14)
         list(11) = 0;
 
         return;
-        
+
     else
-        
+
         fprintf('\n\njplephem - no nutations on this ephemeris file \n');
-        
+
         return;
-        
+
     end
 end
 
@@ -155,9 +155,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 
 if (ntarg == 15)
-    
+
     if (lpt(2) > 0)
-        
+
         list(12) = 2;
 
         [pv, rrd] = state(et2, list);
@@ -169,15 +169,15 @@ if (ntarg == 15)
         end
 
         return
-        
+
     else
-        
+
         fprintf('\n\n no librations on this ephemeris file \n');
 
         return;
-        
+
     end
-    
+
 end
 
 % force barycentric output by function 'state'
@@ -191,7 +191,7 @@ bary = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for i = 1:1:2
-    
+
     k = ntarg;
 
     if (i == 2)
@@ -213,7 +213,7 @@ for i = 1:1:2
     if (k == 13)
         list(3) = 2;
     end
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%
@@ -404,7 +404,7 @@ pjd(1) = pjd(1) + pjd(3);
 
 if (pjd(1) + pjd(4) < ss(1) || pjd(1) + pjd(4) > ss(2))
     fprintf('\n\n error in state - epoch out of range \n');
-    
+
     return;
 end
 

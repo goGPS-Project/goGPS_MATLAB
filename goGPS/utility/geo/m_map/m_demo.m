@@ -26,7 +26,7 @@ N_EXAMPLES=13;
 
 if nargin==0,
  index=1:N_EXAMPLES;
-end; 
+end;
 
 for i=index,
 
@@ -48,7 +48,7 @@ switch i,
     m_grid('box','fancy','tickdir','in');
     colormap(flipud(copper));
     xlabel('Conic Projection of North America with elevations','visible','on');
-   
+
   case 3,
 
     m_proj('stereographic','lat',90,'long',30,'radius',25);
@@ -58,7 +58,7 @@ switch i,
     xlabel('Polar Stereographic Projection with bathymetry','visible','on');
 
   case 4,
-  
+
     subplot(211);
     Slongs=[-100 0;-75 25;-5 45; 25 145;45 100;145 295;100 290];
     Slats= [  8 80;-80  8; 8 80;-80   8; 8  80;-80   0;  0  80];
@@ -85,7 +85,7 @@ switch i,
     set(gca,'xlimmode','auto','ylimmode','auto');
 
   case 5,
-  
+
     %% Nice looking data
     [lon,lat]=meshgrid([-136:2:-114],[36:2:54]);
     u=sin(lat/6);
@@ -111,7 +111,7 @@ switch i,
     xlabel('Simulated something else');
 
   case 6,
-  
+
     % Plot a circular orbit
     lon=[-180:180];
     lat=atan(tan(60*pi/180)*cos((lon-30)*pi/180))*180/pi;
@@ -123,16 +123,16 @@ switch i,
 
 
   case 7,
-  
+
     m_proj('lambert','lon',[-10 20],'lat',[33 48]);
     m_tbase('contourf');
     m_grid('linestyle','none','tickdir','out','linewidth',3);
     colormap(jet);
 
   case 8,
-  
+
     m_vec;
-    
+
   case 9,
 
     % Example showing the default coastline and all of the GSHHS coastlines.
@@ -168,7 +168,7 @@ switch i,
     m_text(-64.18,46.58,'GSHHS\_H (high)','color','m','fontweight','bold','fontsize',14);
 
   case 10,
-  
+
     % Example showing a trackline plot
 
     clf
@@ -182,12 +182,12 @@ switch i,
     dates=datenum(1997,10,23,15,1:41,zeros(1,41));
 
     m_track(lons,lats,dates,'ticks',0,'times',4,'dates',8,...
-           'clip','off','color','r','orient','upright');  
-           
+           'clip','off','color','r','orient','upright');
+
   case 11,
-  
+
     % example showing range rings
-    
+
     clf
     m_proj('hammer','clong',170);
     m_grid('xtick',[],'ytick',[],'linestyle','-');
@@ -195,11 +195,11 @@ switch i,
     m_line(100.5,13.5,'marker','s','color','r');
     m_range_ring(100.5,13.5,[1000:1000:15000],'color','b','linewidth',2);
     xlabel('1000km range rings from Bangkok');
-    
+
   case 12,
-  
+
     % Example showing speckle
-    
+
     bndry_lon=[-128.8 -128.8 -128.3 -128 -126.8 -126.6 -128.8];
     bndry_lat=[49      50.33  50.33  50   49.5   49     49];
 
@@ -213,32 +213,32 @@ switch i,
     m_grid('linewidth',2,'linestyle','none');
     title('Speckled Boundaries for nice B&W presentation (best in postscript format)','fontsize',14);
     m_text(-128,48,5,{'Pacific','Ocean'},'fontsize',18);
-        
+
   case 13,
-  
+
     % Colouring the ocean blue
-    
+
     clf
     m_proj('miller','lat',[-75 75]);
     set(gca,'color',[.9 .99 1]);
     m_coast('patch',[.7 1 .7],'edgecolor','none');
     m_grid('box','fancy','linestyle','none');
-       
+
     cities={'Cairo','Washington','Buenos Aires'};
     lons=[ 30+2/60  -77-2/60   -58-22/60];
     lats=[ 31+21/60  38+53/60  -34-45/60];
-    
+
     for k=1:3,
       [range,ln,lt]=m_lldist([-123-6/60 lons(k)],[49+13/60  lats(k)],40);
       m_line(ln,lt,'color','r','linewidth',2);
       m_text(ln(end),lt(end),sprintf('%s - %d km',cities{k},round(range)));
     end;
-      
+
     title('Great Circle Routes','fontsize',14,'fontweight','bold');
-       
+
   end;
-  
- if i<length(index), 
+
+ if i<length(index),
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    disp('  hit return to continue');
    pause
@@ -247,4 +247,4 @@ switch i,
  end;
 end;
 
-  
+

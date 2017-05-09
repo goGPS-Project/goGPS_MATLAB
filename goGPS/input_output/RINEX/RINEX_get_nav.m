@@ -15,15 +15,15 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 %   Parse a RINEX navigation file.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  Partially based on RINEXE.M (EASY suite) by Kai Borre
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -43,7 +43,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % ioparam = 0;
@@ -59,7 +59,7 @@ iono_loaded = 0;
 while (isempty(header_end))
     %read the line and search the ionosphere labels
     lin = fgetl(fid);
-    
+
     vers_found =  ~isempty(strfind(lin,'RINEX VERSION / TYPE'));
     iono_found = (~isempty(strfind(lin,'ION ALPHA')) || ~isempty(strfind(lin,'IONOSPHERIC CORR')));
 
@@ -67,7 +67,7 @@ while (isempty(header_end))
     if (vers_found)
         version = str2num(lin(1:9));
     end
-    
+
     %if the ionosphere parameters label was found
     if (iono_found && ~iono_loaded)
         %change flag
@@ -95,7 +95,7 @@ while (isempty(header_end))
         end
         iono_loaded = 1;
     end
-    
+
     header_end = strfind(lin,'END OF HEADER');
 end
 
@@ -108,7 +108,7 @@ i = 0;
 
 %parse the rest of the file and store ephemerides
 while (~feof(fid))
-    
+
     lin1 = [];
     lin2 = [];
     lin3 = [];
@@ -160,7 +160,7 @@ while (~feof(fid))
     else
         return
     end
-    
+
     %read the next 3 lines (common to all systems)
     while isempty(lin2)
         lin2 = fgetl(fid);
@@ -171,7 +171,7 @@ while (~feof(fid))
     while isempty(lin4)
         lin4 = fgetl(fid);
     end
-    
+
     %if not a GLONASS or SBAS entry, read also the next 4 lines
     if (~strcmp(sys_id, 'R') && ~strcmp(sys_id, 'S'))
         while isempty(lin5)
@@ -189,7 +189,7 @@ while (~feof(fid))
             lin8 = RemoveUnwantedTrailingSpaces(lin8);
         end
     end
-    
+
     switch sys_id
         case 'G'
             if (~cc.getGPS().isActive), continue, end
@@ -221,9 +221,9 @@ while (~feof(fid))
         minute = str2num(lin1(o+[16:18]+1));
         second = str2num(lin1(o+[19:21]+1));
     end
-    
+
     i = i+1;
-    
+
     %if not GLONASS
     if (~strcmp(sys_id, 'R'))
 
@@ -235,27 +235,27 @@ while (~feof(fid))
         crs    = str2num(lin2(o+[23:41]));
         deltan = str2num(lin2(o+[42:60]));
         M0     = str2num(lin2(o+[61:79]));
-        
+
         cuc    = str2num(lin3(o+[4:22]));
         ecc    = str2num(lin3(o+[23:41]));
         cus    = str2num(lin3(o+[42:60]));
         roota  = str2num(lin3(o+[61:79]));
-        
+
         toe    = str2num(lin4(o+[4:22]));
         cic    = str2num(lin4(o+[23:41]));
         Omega0 = str2num(lin4(o+[42:60]));
         cis    = str2num(lin4(o+[61:79]));
-        
+
         i0       = str2num(lin5(o+[4:22]));
         crc      = str2num(lin5(o+[23:41]));
         omega    = str2num(lin5(o+[42:60]));
         Omegadot = str2num(lin5(o+[61:79]));
-        
+
         idot       = str2num(lin6(o+[4:22]));
         code_on_L2 = str2num(lin6(o+[23:41]));
         weekno     = str2num(lin6(o+[42:60]));
         L2flag     = str2num(lin6(o+[61:79]));
-        
+
         if (isempty(code_on_L2))
             code_on_L2 = 0;
         end
@@ -274,9 +274,9 @@ while (~feof(fid))
         else
             fit_int = 0;
         end
-        
+
         [~, toc] = date2gps([year month day hour minute second]);
-        
+
         %save ephemerides
         Eph(1,i)  = svprn;
         Eph(2,i)  = af2;
@@ -311,44 +311,44 @@ while (~feof(fid))
         Eph(31,i) = int8(sys_id);
         Eph(32,i) = weektow2time(weekno, toe, sys_id);
         Eph(33,i) = weektow2time(weekno, toc, sys_id);
-        
+
         %if IODC and IODE do not match, issue a warning
         if (iodc ~= IODE && ~strcmp(sys_id, 'C') && ~strcmp(sys_id, 'E'))
             fprintf('... WARNING: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
-        
+
     %if GLONASS
     else
         TauN   = -str2num(lin1(o+[23:41]));
         GammaN = str2num(lin1(o+[42:60]));
         tk     = str2num(lin1(o+[61:79]));
-        
+
         X      = str2num(lin2(o+[4:22]));
         Xv     = str2num(lin2(o+[23:41]));
         Xa     = str2num(lin2(o+[42:60]));
         Bn     = str2num(lin2(o+[61:79])); %health flag
-        
+
         Y      = str2num(lin3(o+[4:22]));
         Yv     = str2num(lin3(o+[23:41]));
         Ya     = str2num(lin3(o+[42:60]));
         freq_num = str2num(lin3(o+[61:79])); %frequency number
-        
+
         Z      = str2num(lin4(o+[4:22]));
         Zv     = str2num(lin4(o+[23:41]));
         Za     = str2num(lin4(o+[42:60]));
         E      = str2num(lin4(o+[61:79])); %age of oper. information  (days)
-        
+
         %frequencies on L1 and L2
         %freq_L1 = freq_num * 0.5625 + 1602.0;
         %freq_L2 = freq_num * 0.4375 + 1246.0;
-        
+
         %convert GLONASS (UTC) date to GPS date
         date_GLO = datenum([year month day hour minute second]);
         date_GPS = utc2gps(date_GLO);
-        
+
         %convert GPS date to seconds of week (used as GLONASS time-of-ephemeris)
         [week_toe, toe] = date2gps(datevec(date_GPS));
-        
+
         %save ephemerides (position, velocity and acceleration vectors in ECEF system PZ-90.02)
         Eph(1,i)  = svprn;
         Eph(2,i)  = TauN;

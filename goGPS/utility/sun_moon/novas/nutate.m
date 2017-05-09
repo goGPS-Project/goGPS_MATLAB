@@ -83,6 +83,6 @@ else
     pos2(2) = xy * pos1(1) + yy * pos1(2) + zy * pos1(3);
 
     pos2(3) = xz * pos1(1) + yz * pos1(2) + zz * pos1(3);
-    
+
 end
 

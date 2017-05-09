@@ -149,11 +149,11 @@ c = astcon ('c(au/day)', 1.0d0);
 % check on earth as an observed object
 
 if (strcmp(object, '=3') == 1 && locatn ~= 2)
-    
+
     fprintf ('\n place: will not process earth as observed object except when locatn = 2');
-    
+
     return
-    
+
 end
 
 % compute tdbjd, the tdb julian date corresponding to ttjd
@@ -173,11 +173,11 @@ tdbjd = ttjd + secdif / 86400.0d0;
 [peb, veb, ierr] = solsys (tdbjd, iearth, 0);
 
 if (ierr ~= 0)
-    
+
     fprintf ('\nplace: cannot obtain coordinates of earth at jd %16.8f', tjd);
-    
+
     return
-    
+
 end
 
 % get position and velocity of the sun wrt barycenter of solar system, in icrs
@@ -187,51 +187,51 @@ end
 [psb, vsb, ierr] = solsys (tdbjd, isun, 0);
 
 if (ierr ~= 0)
-    
+
     fprintf ('\nplace: cannot obtain coordinates of sun at jd %16.8f', tjd);
-    
+
     return
-    
+
 end
 
 % get position and velocity of observer
 
 if (locatn == 1 || locatn == 2)
-    
+
     % for topocentric place, get geocentric position and velocity
     % vectors of observer
-    
+
     % fprintf('\n\nobserver state vector wrt geocenter\n');
-    
+
     [pog, vog] = geopos (ttjd, locatn, observ);
-    
+
     loc = 1;
-    
+
 else
-    
+
     % for geocentric place, there is nothing to do
-    
+
     for j = 1:3
-        
+
         pog(j) = 0.0d0;
-        
+
         vog(j) = 0.0d0;
-        
+
     end
-    
+
     loc = 0;
-    
+
 end
 
 % compute position and velocity of observer wrt barycenter of
 % solar system (galilean transformation from gcrs to bcrs)
 
 for j = 1:3
-    
+
     pob(j) = peb(j) + pog(j);
-    
+
     vob(j) = veb(j) + vog(j);
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -239,85 +239,85 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (strcmp(object, 'star') == 1 || strcmp(object, ' ') == 1 || strcmp(object(1:1), '*'))
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%
     % observed object is star
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     idbody = -9999;
-    
+
     % get position of star updated for its space motion
-    
+
     [pos1, vel1] = vectrs (star(1), star(2), star(3), star(4), star(5), star(6));
-    
+
     dt = dlight (pos1, pob);
-    
+
     pos2 = propmo (t0, pos1, vel1, tdbjd + dt);
-    
+
     % get position of star wrt observer (corrected for parallax)
-    
+
     [pos3, tlight] = geocen (pos2, pob);
-    
+
     dis = 0.0d0;
-    
+
 else
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % observed object is solar system body
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     % get id number of body
-    
+
     if (strcmp(object(1:1), '=') == 1)
-        
+
         idbody = object(2:length(object));
-        
+
     else
-        
+
         idbody = idss_novas (object);
-        
+
         if (idbody == -9999)
-            
+
             fprintf ('\nplace: cannot obtain coordinates of object at jd %16.8f', tjd);
-            
+
             return
-            
+
         end
-        
+
     end
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % get position of body wrt barycenter of solar system
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     % fprintf('\n\nobject state vector wrt barycenter\n');
-    
+
     [pos1, vel1, ierr] = solsys (tdbjd, str2num(idbody), 0);
-    
+
     if (ierr ~= 0)
-        
+
         fprintf ('\nplace: cannot obtain coordinates of object at jd %16.8f', tjd);
-        
+
         return
-        
+
     end
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % get position of body wrt observer, and true (euclidian) distance
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     % fprintf('\n\nobject state vector wrt observer\n');
-    
+
     [pos2, tlight] = geocen (pos1, pob);
-    
+
     dis = tlight * c;
-    
+
     % get position of body wrt observer, antedated for light-time
-    
+
     % fprintf('\n\nobject state vector wrt observer - littim\n');
-    
+
     [pos3, tlight] = littim (tdbjd, idbody, pob, 0.0);
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -325,39 +325,39 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (icoord == 3)
-    
+
     % these calculations are skipped for astrometric place
-    
+
     for j = 1:3
-        
+
         pos5(j) = pos3(j);
-        
+
     end
-    
+
 else
-    
+
     % variable loc determines whether earth deflection is included
-    
+
     if (loc == 1)
-        
+
         [x, frlimb] = limang (pos3, pog);
-        
+
         if (frlimb < 0.8d0)
-            
+
             loc = 0;
-            
+
         end
-        
+
     end
-    
+
     % compute gravitational deflection and aberration
-    
+
     pos4 = grvdef (tdbjd, loc, pos3, pob);
-    
+
     pos5 = aberat (pos4, vob, tlight);
-    
+
     % position vector is now in gcrs
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -365,44 +365,44 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (icoord == 1)
-    
+
     % transform to equator and equinox of date
-    
+
     pos6 = frame (pos5, 1);
-    
+
     pos7 = preces (t0, pos6, tdbjd);
-    
+
     pos8 = nutate (tdbjd, pos7);
-    
+
 elseif (icoord == 2)
-    
+
     % transform to equator and cio of date
-    
+
     % obtain the basis vectors, in the gcrs, of the celestial
     % intermediate system
-    
+
     kcio = cioloc (tdbjd, rcio);
-    
+
     [px, py, pz] = ciobas (tdbjd, rcio, kcio);
-    
+
     % transform position vector to celestial intermediate system
-    
+
     pos8(1) = px(1) * pos5(1) + px(2) * pos5(2) + px(3) * pos5(3);
-    
+
     pos8(2) = py(1) * pos5(1) + py(2) * pos5(2) + py(3) * pos5(3);
-    
+
     pos8(3) = pz(1) * pos5(1) + pz(2) * pos5(2) + pz(3) * pos5(3);
-    
+
 else
-    
+
     % no transformation -- keep coordinates in gcrs (or icrs for astrometric place)
-    
+
     for j = 1:3
-        
+
         pos8(j) = pos5(j);
-        
+
     end
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -410,31 +410,31 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (idbody == -9999)
-    
+
     rvs(1) = star(1);
-    
+
     rvs(2) = star(2);
-    
+
     rvs(3) = star(6);
-    
+
     if (star(5) <= 0.0d0)
-        
+
         vel1(1) = 0.0d0;
-        
+
         vel1(2) = 0.0d0;
-        
+
         vel1(3) = 0.0d0;
-        
+
     end
-    
+
 else
-    
+
     rvs(1) = 0.0d0;
-    
+
     rvs(2) = 0.0d0;
-    
+
     rvs(3) = 0.0d0;
-    
+
 end
 
 % compute distances: observer-geocenter, observer-sun, object-sun
@@ -454,9 +454,9 @@ rv = radvl (pos3, vel1, vob, rvs, rvd);
 x = sqrt (pos8(1)^2 + pos8(2)^2 + pos8(3)^2);
 
 for j = 1:3
-    
+
     skypos(j) = pos8(j) / x;
-    
+
 end
 
 skypos(4) = ra;

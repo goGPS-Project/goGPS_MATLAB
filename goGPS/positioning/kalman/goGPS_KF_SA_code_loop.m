@@ -27,14 +27,14 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(ti
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global n_sys
 
 global residuals_float outliers
-residuals_float(:)=NaN; 
+residuals_float(:)=NaN;
 outliers(:)=NaN;
 
 %----------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ if (o1 > 1)
     Cvv(o1,o1) = sigmaq_vE;
     Cvv(o2,o2) = sigmaq_vN;
     Cvv(o3,o3) = sigmaq_vU;
-    
+
     %propagate diagonal local cov matrix to global cov matrix
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
@@ -145,22 +145,22 @@ end
 %if the number of visible satellites is sufficient
 min_nsat_LS = 3 + n_sys;
 if (size(sat,1) >= min_nsat_LS)
-    
+
     %approximate position
     XR0 = X_t1_t([1,o1+1,o2+1]);
     flag_XR = 1;
-    
+
     if (frequencies == 1)
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
-    
+
     if ~isempty(dtR)
         residuals_float(residuals(:,2))=residuals(:,1);
         outliers(find(obs_outlier==1))=1;  %#ok<FNDSB>
     end
-    
+
     %----------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION (NOT USED)
     %----------------------------------------------------------------------------------------
@@ -168,38 +168,38 @@ if (size(sat,1) >= min_nsat_LS)
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat) = +1;
-    
+
     %no cycle-slips working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     if (pivot ~= 0)
         pivot_old = pivot;
     end
-    
+
     %current pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
-    
-    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
+
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
 
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end
-        
+
         %zeroes vector useful in matrix definitions
         Z_1_om = zeros(1,o1-1);
-        
+
         %computation of the H matrix for code observations
         H = [1 Z_1_om 0 Z_1_om 0 Z_1_om;
             0 Z_1_om 1 Z_1_om 0 Z_1_om;
             0 Z_1_om 0 Z_1_om 1 Z_1_om];
-        
+
         %Y0 vector for code observations
         y0 = XR;
-        
+
         %covariance matrix of observations
         Cnn = cov_XR(1:3,1:3);
     else

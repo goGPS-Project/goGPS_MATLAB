@@ -41,117 +41,117 @@ function rrd = jpleph_mice (et, ntarg, ncent)
 global iephem ephname km au
 
 if (iephem == 1)
-    
+
     % load binary ephemeris data file
-    
+
     gs = Go_State.getInstance();
     go_dir = gs.getLocalStorageDir();
     cspice_furnsh(fullfile(go_dir, ephname));
-    
+
     % reset initialization flag
-    
+
     iephem = 0;
-    
+
 end
 
 % set name of target body
 
 switch ntarg
-    
+
     case (1)
-        
+
         targ = 'mercury';
-        
+
     case (2)
-        
+
         targ = 'venus';
-        
+
     case (3)
-        
+
         targ = 'earth';
-        
+
     case (4)
-        
+
         targ = 'mars';
-        
+
     case(5)
-        
+
         targ = 'jupiter';
-        
+
     case (6)
-        
+
         targ = 'saturn';
-        
+
     case (7)
-        
+
         targ = 'neptune';
-        
+
     case (8)
-        
+
         targ = 'uranus';
-        
+
     case (9)
-        
+
         targ = 'pluto';
-        
+
     case (10)
-        
+
         targ = 'moon';
-        
+
     case (11)
-        
+
         targ = 'sun';
-        
+
 end
 
 % set name of central body
 
 switch ncent
-    
+
     case (1)
-        
+
         obs = 'mercury';
-        
+
     case (2)
-        
+
         obs = 'venus';
-        
+
     case (3)
-        
+
         obs = 'earth';
-        
+
     case (4)
-        
+
         obs = 'mars';
-        
+
     case (5)
-        
+
         obs = 'jupiter';
-        
+
     case (6)
-        
+
         obs = 'saturn';
-        
+
     case (7)
-        
+
         obs = 'neptune';
-        
+
     case (8)
-        
+
         obs = 'uranus';
-        
+
     case (9)
-        
+
         obs = 'pluto';
-        
+
     case (10)
-        
+
         obs = 'moon';
-        
+
     case (11)
-        
+
         obs = 'sun';
-        
+
 end
 
 % compute time, expressed as TDB seconds past J2000 TDB (2451545.0)
@@ -165,21 +165,21 @@ starg = mice_spkezr(targ, etime, 'J2000', 'NONE', obs);
 % provide output in user-requested units
 
 if (km == 1)
-    
+
     % state is kilometers and kilometers/second
-    
+
     rrd = starg.state;
-    
+
 else
-    
+
     % state is au's and au's/day
-    
+
     rrd(1:3) = starg.state(1:3) / au;
-    
+
     rrd(4:6) = 86400.0 * starg.state(4:6) / au;
-    
+
     rrd = rrd';
-    
+
 end
 
 

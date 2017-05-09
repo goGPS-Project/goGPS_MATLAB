@@ -44,52 +44,52 @@ seccon = 180.d0 * 3600.d0 / pi;
 t0 = 2451545.0d0;
 
 if (itype == 1)
-    
+
     psicor = dpole1 * 1.0d-3;
-    
+
     epscor = dpole2 * 1.0d-3;
-    
+
 else
-    
+
     dx = dpole1;
-    
+
     dy = dpole2;
-    
+
     t = (tjd - t0) / 36525.0d0;
-    
+
     % compute sine of mean obliquity of date
-    
+
     sine = sin (obliq(t) / seccon);
-    
+
     % the following algorithm, to transform dx and dy to
     % delta-delta-psi and delta-delta-epsilon, is from g. kaplan
     % (2003), usno/aa technical note 2003-03, eqs. (7)-(9).
-    
+
     % trivial model of pole trajectory in gcrs allows computation of dz
-    
+
     x = (2004.19d0 * t) / seccon;
-    
+
     dz = - (x + 0.5d0 * x^3) * dx;
-    
+
     % form pole offset vector (observed - modeled) in gcrs
-    
+
     dp1(1) = dx * 1.0d-3 / seccon;
-    
+
     dp1(2) = dy * 1.0d-3 / seccon;
-    
+
     dp1(3) = dz * 1.0d-3 / seccon;
-    
+
     % precess pole offset vector to mean equator and equinox of date
-    
+
     dp2 = frame (dp1, 1);
-    
+
     dp3 = preces (t0, dp2, tjd);
-    
+
     % compute delta-delta-psi and delta-delta-epsilon in arcseconds
-    
+
     psicor = (dp3(1) / sine) * seccon;
-    
+
     epscor = (dp3(2)) * seccon;
-    
+
 end
 

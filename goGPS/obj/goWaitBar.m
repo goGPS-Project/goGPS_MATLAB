@@ -32,10 +32,10 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -62,16 +62,16 @@
 %--------------------------------------------------------------------------
 
 classdef goWaitBar < handle
-    
+
     properties (GetAccess = 'public', SetAccess = 'public')
         h  = [];        % handle of the waitbar
         t0 = 0;         % start time of process
         nSteps = 0;     % number of step of the bar
         lastStep = 0;   % Last step done
     end
-    
+
     methods
-        
+
         % Creator
         function obj = goWaitBar(nSteps, msg)
             % Creator
@@ -88,7 +88,7 @@ classdef goWaitBar < handle
             set(0,'defaultTextFontSize', fs);
             drawnow;
         end
-        
+
         % Just update the waitbar
         function go(obj,step)
             % Just update the waitbar
@@ -99,7 +99,7 @@ classdef goWaitBar < handle
             end
             waitbar(min(1,obj.lastStep/obj.nSteps));
         end
-        
+
         % Update the waitbar and accept a message to display within the window
         function goMsg(obj, step, msg)
             % Update the waitbar and accept a message to display within the window
@@ -112,7 +112,7 @@ classdef goWaitBar < handle
             obj.lastStep = min(obj.nSteps, obj.lastStep);
             waitbar(min(obj.lastStep/obj.nSteps),obj.h, msg);
         end
-        
+
         % Update the waitbar and estimate the remaining computational time supposing a linear trend
         function goTime(obj,step)
             % Update the waitbar and estimate the remaining computational time supposing a linear trend
@@ -135,13 +135,13 @@ classdef goWaitBar < handle
             remainingTime = [num2str(hh,'%02d') ':' num2str(mm,'%02d') ':' num2str(ss,'%02d')];
             waitbar(min(1,obj.lastStep/obj.nSteps),obj.h,[' Elapsed time                ' elapsedTime 10 ' Remaining time            ' remainingTime] );
         end
-        
+
         % Change the title of the waitbar
         function titleUpdate(obj, msg)
             % Change the title of the waitbar
             set(obj.h,'Name', msg);
         end
-        
+
         % Shift the waitbar downward (e.g. to make room for processing plots)
         function shiftDown(obj, shf)
             % Shift the waitbar downward (e.g. to make room for processing plots)
@@ -154,7 +154,7 @@ classdef goWaitBar < handle
             end
             set(obj.h,'Position',pos);
         end
-        
+
         % Close the window
         function close(obj)
             % Close the window

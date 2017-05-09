@@ -1,7 +1,7 @@
 function [month, day, year] = gdate (jdate)
 
 % convert Julian date to Gregorian (calendar) date
-   
+
 % input
 
 %  jdate = julian day
@@ -34,19 +34,19 @@ else
    alpha = floor((z - 1867216.25) / 36524.25);
    a = z + 1 + alpha - floor(alpha / 4);
 end
- 
+
 b = a + 1524;
 c = fix((b - 122.1) / 365.25);
 d = fix(365.25 * c);
 e = fix((b - d) / 30.6001);
 day = b - d - fix(30.6001 * e) + fday;
- 
+
 if (e < 14)
    month = e - 1;
 else
    month = e - 13;
 end
- 
+
 if (month > 2)
    year = c - 4716;
 else

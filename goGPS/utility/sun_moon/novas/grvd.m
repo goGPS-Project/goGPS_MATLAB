@@ -43,11 +43,11 @@ gs = astcon ('gs', 1.0d0);
 % construct vector pe from gravitating body to observer
 
 for j = 1:3
-    
+
     pq(j) = pobs(j) + pos1(j) - pbody(j);
-    
+
     pe(j) = pobs(j) - pbody(j);
-    
+
 end
 
 % compute vector magnitudes and unit vectors
@@ -59,13 +59,13 @@ emag = sqrt(pe(1)^2 + pe(2)^2 + pe(3)^2);
 qmag = sqrt(pq(1)^2 + pq(2)^2 + pq(3)^2);
 
 for j = 1:3
-    
+
     phat(j) = pos1(j) / pmag;
-    
+
     ehat(j) =   pe(j) / emag;
-    
+
     qhat(j) =   pq(j) / qmag;
-    
+
 end
 
 % compute dot products of vectors
@@ -81,15 +81,15 @@ qdote = qhat(1) * ehat(1) + qhat(2) * ehat(2) + qhat(3) * ehat(3);
 % deflection is set to zero
 
 if (abs (edotp) > 0.99999999999d0)
-    
+
     for j = 1:3
-        
+
         pos2(j) = pos1(j);
-        
+
     end
-    
+
     return
-    
+
 end
 
 % compute scalar factors
@@ -101,10 +101,10 @@ fac2 = 1.0d0 + qdote;
 % construct corrected position vector pos2
 
 for j = 1:3
-    
+
     p2j = phat(j) + fac1 * (pdotq * ehat(j) - edotp * qhat(j)) / fac2;
-    
+
     pos2(j) = p2j * pmag;
-    
+
 end
 

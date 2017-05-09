@@ -17,14 +17,14 @@ function [data] = decode_F7h(msg, constellations)
 %          2.3) GPS M0
 %          2.4) GPS root A
 %          2.5) GPS delta-N
-%          2.6) GPS eccentricity 
-%          2.7) GPS omega 
+%          2.6) GPS eccentricity
+%          2.7) GPS omega
 %          2.8) GPS Cuc
 %          2.9) GPS Cus
 %          2.10)GPS Crc
 %          2.11)GPS Crs
 %          2.12)GPS i0
-%          2.13)GPS IDOT 
+%          2.13)GPS IDOT
 %          2.14)GPS Cic
 %          2.15)GPS Cis
 %          2.16)GPS omega0
@@ -34,7 +34,7 @@ function [data] = decode_F7h(msg, constellations)
 %          2.20)GPS af1
 %          2.21)GPS toc
 %          2.22)GPS IODE
-%          2.23)GPS codes; 
+%          2.23)GPS codes;
 %          2.24)GPS weekno;
 %          2.25)GPS L2flag;
 %          2.26)GPS svaccur;
@@ -78,15 +78,15 @@ function [data] = decode_F7h(msg, constellations)
 %   BINR F7h binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Daisuke Yoshida, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -105,7 +105,7 @@ function [data] = decode_F7h(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -146,7 +146,7 @@ flag = 1;
 if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 
     %------------------------------------------------
-    % Crs   
+    % Crs
     Crs = msg(pos:pos+31); pos = pos + 32;
     Crs = fliplr(reshape(Crs,8,[]));              % byte order inversion (little endian)
     Crs = Crs(:)';
@@ -160,7 +160,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Crs = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % delta_n 
+    % delta_n
     delta_n = msg(pos:pos+31); pos = pos + 32;
     delta_n = fliplr(reshape(delta_n,8,[]));      % byte order inversion (little endian)
     delta_n = delta_n(:)';
@@ -175,7 +175,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     delta_n = delta_n*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
-    % M0      
+    % M0
     M0 = msg(pos:pos+63); pos = pos + 64;
     M0 = fliplr(reshape(M0,8,[]));                % byte order inversion (little endian)
     M0 = M0(:)';
@@ -189,7 +189,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     M0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % Cuc     
+    % Cuc
     Cuc = msg(pos:pos+31); pos = pos + 32;
     Cuc = fliplr(reshape(Cuc,8,[]));              % byte order inversion (little endian)
     Cuc = Cuc(:)';
@@ -203,7 +203,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Cuc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % e       
+    % e
     e = msg(pos:pos+63); pos = pos + 64;
     e = fliplr(reshape(e,8,[]));                  % byte order inversion (little endian)
     e = e(:)';
@@ -217,7 +217,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     e = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % Cus    
+    % Cus
     Cus = msg(pos:pos+31); pos = pos + 32;
     Cus = fliplr(reshape(Cus,8,[]));              % byte order inversion (little endian)
     Cus = Cus(:)';
@@ -231,7 +231,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Cus = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % root_A  
+    % root_A
     root_A = msg(pos:pos+63); pos = pos + 64;
     root_A = fliplr(reshape(root_A,8,[]));        % byte order inversion (little endian)
     root_A = root_A(:)';
@@ -245,7 +245,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     root_A = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % toe     
+    % toe
     toe = msg(pos:pos+63); pos = pos + 64;
     toe = fliplr(reshape(toe,8,[]));              % byte order inversion (little endian)
     toe = toe(:)';
@@ -258,9 +258,9 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     mant = fbin2dec(toe(13:64)) / 2^52;
 %     toe = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     toe = toe*1e-3; %from ms to s
-  
+
     %------------------------------------------------
-    % Cic   
+    % Cic
     Cic = msg(pos:pos+31); pos = pos + 32;
     Cic = fliplr(reshape(Cic,8,[]));              % byte order inversion (little endian)
     Cic = Cic(:)';
@@ -274,7 +274,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Cic = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % omega0   
+    % omega0
     omega0 = msg(pos:pos+63); pos = pos + 64;
     omega0 = fliplr(reshape(omega0,8,[]));        % byte order inversion (little endian)
     omega0 = omega0(:)';
@@ -288,7 +288,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     omega0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % Cis      
+    % Cis
     Cis = msg(pos:pos+31); pos = pos + 32;
     Cis = fliplr(reshape(Cis,8,[]));              % byte order inversion (little endian)
     Cis = Cis(:)';
@@ -302,7 +302,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Cis = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % i0     
+    % i0
     i0 = msg(pos:pos+63); pos = pos + 64;
     i0 = fliplr(reshape(i0,8,[]));                 % byte order inversion (little endian)
     i0 = i0(:)';
@@ -316,7 +316,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     i0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % Crc     
+    % Crc
     Crc = msg(pos:pos+31); pos = pos + 32;
     Crc = fliplr(reshape(Crc,8,[]));                % byte order inversion (little endian)
     Crc = Crc(:)';
@@ -330,11 +330,11 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     Crc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-    % W  
+    % W
     omega = msg(pos:pos+63); pos = pos + 64;
     omega = fliplr(reshape(omega,8,[]));            % byte order inversion (little endian)
     omega = omega(:)';
-    
+
     % floating point value decoding (double floating point)
     [omega, f] = decode_FP64(omega);
     flag = flag * f;
@@ -344,11 +344,11 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     omega = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
-    % omegadot 
+    % omegadot
     omegadot = msg(pos:pos+63); pos = pos + 64;
     omegadot = fliplr(reshape(omegadot,8,[]));       % byte order inversion (little endian)
     omegadot = omegadot(:)';
-    
+
     % floating point value decoding (double floating point)
     [omegadot, f] = decode_FP64(omegadot);
     flag = flag * f;
@@ -359,11 +359,11 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     omegadot = omegadot*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
-    % IDOT     
+    % IDOT
     IDOT = msg(pos:pos+63); pos = pos + 64;
     IDOT = fliplr(reshape(IDOT,8,[]));                % byte order inversion (little endian)
     IDOT = IDOT(:)';
-    
+
     % floating point value decoding (double floating point)
     [IDOT, f] = decode_FP64(IDOT);
     flag = flag * f;
@@ -374,7 +374,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     IDOT = IDOT*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
-    % tgd   
+    % tgd
     tgd = msg(pos:pos+31); pos = pos + 32;
     tgd = fliplr(reshape(tgd,8,[]));                  % byte order inversion (little endian)
     tgd = tgd(:)';
@@ -387,13 +387,13 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     mant = fbin2dec(tgd(10:32)) / 2^23;
 %     tgd = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     tgd = tgd*1e-3; %from ms to s
-   
+
     %------------------------------------------------
     % toc
     toc = msg(pos:pos+63); pos = pos + 64;
     toc = fliplr(reshape(toc,8,[]));                  % byte order inversion (little endian)
     toc = toc(:)';
-    
+
     % floating point value decoding (double floating point)
     [toc, f] = decode_FP64(toc);
     flag = flag * f;
@@ -402,7 +402,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     mant = fbin2dec(toc(13:64)) / 2^52;
 %     toc = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     toc = toc*1e-3; %from ms to s
-    
+
     %------------------------------------------------
     % af2
     af2 = msg(pos:pos+31); pos = pos + 32;
@@ -417,7 +417,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     mant = fbin2dec(af2(10:32)) / 2^23;
 %     af2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     af2 = af2*1e3; %from ms/ms^2 to s/s^2
-    
+
     %------------------------------------------------
     % af1
     af1 = msg(pos:pos+31); pos = pos + 32;
@@ -431,7 +431,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     esp  = fbin2dec(af1(2:9));
 %     mant = fbin2dec(af1(10:32)) / 2^23;
 %     af1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-    
+
     %------------------------------------------------
     % af0
     af0 = msg(pos:pos+31); pos = pos + 32;
@@ -446,43 +446,43 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 %     mant = fbin2dec(af0(10:32)) / 2^23;
 %     af0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     af0 = af0*1e-3; %from ms to s
-    
+
     %------------------------------------------------
-    % URA (svaccur) 
+    % URA (svaccur)
     svaccur_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     svaccur_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     svaccur = svaccur_1 + (svaccur_2 * 2^8);                 % little endian
 
     %------------------------------------------------
-    %IODE   
+    %IODE
     IODE_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     IODE_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     IODE = IODE_1 + (IODE_2 * 2^8);                          % little endian
-    
+
     %------------------------------------------------
-    % IODC  
+    % IODC
     IODC_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     IODC_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     IODC = IODC_1 + (IODC_2 * 2^8);                          % little endian
 
-    %------------------------------------------------ 
+    %------------------------------------------------
     % code_on_L2
     code_on_L2_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     code_on_L2_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     code_on_L2 = code_on_L2_1 + (code_on_L2_2 * 2^8);        % little endian
-    
-    %------------------------------------------------ 
+
+    %------------------------------------------------
     % L2flag
     L2flag_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     L2flag_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     L2flag = L2flag_1 + (L2flag_2 * 2^8);                    % little endian
-    
-    %------------------------------------------------ 
+
+    %------------------------------------------------
     % weekno
     weekno_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     weekno_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
     weekno = weekno_1 + (weekno_2 * 2^8);                    % little endian
- 
+
     %output and reorder ephemerides data (if IODC == IODE)
     if (IODC == IODE && PRN <= constellations.GPS.numSat && flag) %#ok<BDLGI>
         data{2}(1) = PRN;
@@ -519,20 +519,20 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     end
 
 elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabled)
-    
+
     %disp('GLONASS PRN');
     %disp(PRN);
-    
+
     %------------------------------------------------
     % Carrier Number
     Carrier_num = twos_complement(msg(pos:pos+7)); pos = pos + 8;
-    
+
     %------------------------------------------------
     %X, m
     Xm = msg(pos:pos+63); pos = pos + 64;
     Xm = fliplr(reshape(Xm,8,[]));                    % byte order inversion (little endian)
     Xm = Xm(:)';
-    
+
     % floating point value decoding (double floating point)
     [Xm, f] = decode_FP64(Xm);
     flag = flag * f;
@@ -540,13 +540,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     esp  = fbin2dec(Xm(2:12));
 %     mant = fbin2dec(Xm(13:64)) / 2^52;
 %     Xm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    
+
     %------------------------------------------------
     %Y, m
     Ym = msg(pos:pos+63); pos = pos + 64;
     Ym = fliplr(reshape(Ym,8,[]));                    % byte order inversion (little endian)
     Ym = Ym(:)';
-    
+
     % floating point value decoding (double floating point)
     [Ym, f] = decode_FP64(Ym);
     flag = flag * f;
@@ -560,7 +560,7 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Zm = msg(pos:pos+63); pos = pos + 64;
     Zm = fliplr(reshape(Zm,8,[]));                    % byte order inversion (little endian)
     Zm = Zm(:)';
-    
+
     % floating point value decoding (double floating point)
     [Zm, f] = decode_FP64(Zm);
     flag = flag * f;
@@ -568,13 +568,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     esp  = fbin2dec(Zm(2:12));
 %     mant = fbin2dec(Zm(13:64)) / 2^52;
 %     Zm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    
+
     %------------------------------------------------
     %Vx, m/s
     Vx = msg(pos:pos+63); pos = pos + 64;
     Vx = fliplr(reshape(Vx,8,[]));                  % byte order inversion (little endian)
     Vx = Vx(:)';
-    
+
     % floating point value decoding (double floating point)
     [Vx, f] = decode_FP64(Vx);
     flag = flag * f;
@@ -583,13 +583,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Vx(13:64)) / 2^52;
 %     Vx = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vx = Vx*1e3; %from m/ms to m/s
-    
+
     %------------------------------------------------
     %Vy, m/s
     Vy = msg(pos:pos+63); pos = pos + 64;
     Vy = fliplr(reshape(Vy,8,[]));                  % byte order inversion (little endian)
     Vy = Vy(:)';
-    
+
     % floating point value decoding (double floating point)
     [Vy, f] = decode_FP64(Vy);
     flag = flag * f;
@@ -598,13 +598,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Vy(13:64)) / 2^52;
 %     Vy = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vy = Vy*1e3; %from m/ms to m/s
-    
+
     %------------------------------------------------
     %Vz, m/s
     Vz = msg(pos:pos+63); pos = pos + 64;
     Vz = fliplr(reshape(Vz,8,[]));                  % byte order inversion (little endian)
     Vz = Vz(:)';
-    
+
     % floating point value decoding (double floating point)
     [Vz, f] = decode_FP64(Vz);
     flag = flag * f;
@@ -613,13 +613,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Vz(13:64)) / 2^52;
 %     Vz = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vz = Vz*1e3; %from m/ms to m/s
-    
+
     %------------------------------------------------
     %Ax, m/s^2
     Ax = msg(pos:pos+63); pos = pos + 64;
     Ax = fliplr(reshape(Ax,8,[]));                  % byte order inversion (little endian)
     Ax = Ax(:)';
-    
+
     % floating point value decoding (double floating point)
     [Ax, f] = decode_FP64(Ax);
     flag = flag * f;
@@ -628,13 +628,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Ax(13:64)) / 2^52;
 %     Ax = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Ax = Ax*1e6; %from m/ms^2 to m/s^2
-    
+
     %------------------------------------------------
     %Ay, m/s^2
     Ay = msg(pos:pos+63); pos = pos + 64;
     Ay = fliplr(reshape(Ay,8,[]));                  % byte order inversion (little endian)
     Ay = Ay(:)';
-    
+
     % floating point value decoding (double floating point)
     [Ay, f] = decode_FP64(Ay);
     flag = flag * f;
@@ -643,13 +643,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Ay(13:64)) / 2^52;
 %     Ay = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Ay = Ay*1e6; %from m/ms^2 to m/s^2
-    
+
     %------------------------------------------------
     %Az, m/s^2
     Az = msg(pos:pos+63); pos = pos + 64;
     Az = fliplr(reshape(Az,8,[]));                  % byte order inversion (little endian)
     Az = Az(:)';
-    
+
     % floating point value decoding (double floating point)
     [Az, f] = decode_FP64(Az);
     flag = flag * f;
@@ -658,13 +658,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(Az(13:64)) / 2^52;
 %     Az = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Az = Az*1e6; %from m/ms^2 to m/s^2
-    
+
     %------------------------------------------------
     %tb, s
     tb = msg(pos:pos+63); pos = pos + 64;
     tb = fliplr(reshape(tb,8,[]));                  % byte order inversion (little endian)
     tb = tb(:)';
-    
+
     % floating point value decoding (double floating point)
     [tb, f] = decode_FP64(tb);
     flag = flag * f;
@@ -673,7 +673,7 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(tb(13:64)) / 2^52;
 %     tb = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     tb = tb*1e-3; %from ms to s
-    
+
     %------------------------------------------------
     %gamma n(tb)
     gamma_n = msg(pos:pos+31); pos = pos + 32;
@@ -687,7 +687,7 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     esp  = fbin2dec(gamma_n(2:9));
 %     mant = fbin2dec(gamma_n(10:32)) / 2^23;
 %     gamma_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-    
+
     %------------------------------------------------
     %tn(tb), s
     tn = msg(pos:pos+31); pos = pos + 32;
@@ -702,16 +702,16 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
 %     mant = fbin2dec(tn(10:32)) / 2^23;
 %     tn = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     tn = tn*1e-3; %from ms to s
-    
+
     %------------------------------------------------
     %En
     En_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     En_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
     En = En_1 + (En_2 * 2^8);                       % little endian
-    
+
     %------------------------------------------------
     tk = tb - 10800; %tb is a time interval within the current day (UTC + 3 hours)
-    
+
     %------------------------------------------------
     if (PRN <= constellations.GLONASS.numSat && flag) %#ok<BDLGI>
         data{2}(1) = PRN;

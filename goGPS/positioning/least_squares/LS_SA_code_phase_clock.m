@@ -33,14 +33,14 @@ function [dtR, ISBs, N_hat, var_dtR, var_ISBs, cov_N] = LS_SA_code_phase_clock(p
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -89,7 +89,7 @@ A = [ zeros(nsat_pr,nsat_ph), ... %column for phase ambiguities   (here zero)
 %design matrix (phase)
 A = [A;  diag(-lambda(index)) .* eye(nsat_ph), ...          %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
-     
+
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
 uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
@@ -151,5 +151,5 @@ if (n > m)
     end
 else
     cov_N   = [];
-    var_dtR = []; 
+    var_dtR = [];
 end

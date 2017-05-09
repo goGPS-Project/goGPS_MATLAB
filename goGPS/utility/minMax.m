@@ -4,7 +4,7 @@ function [min_max] = minMax(data)
 %
 % INPUT:
 %   data      the input dataset
-%   
+%
 % OUTPUT:
 %   min_max = [2 x 1] minimum and maximum of a dataset
 %
@@ -14,10 +14,10 @@ function [min_max] = minMax(data)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

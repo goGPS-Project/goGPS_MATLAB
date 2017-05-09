@@ -25,15 +25,15 @@ function [data] = decode_F5h(msg, constellations)
 %   BINR F5h binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Daisuke Yoshida, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function [data] = decode_F5h(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -150,113 +150,113 @@ nGAL = 0;
 
 %read the measurements of every satellite
 for j = 1 : NSV
-    
+
     %signal type 01=GLONASS, 02=GPS/QZSS, 04=SBAS, 08=Galileo
     signal_type = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
-    
+
     %------------------------------------------------
-    
+
     %satellite PRN
     SID = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
-    
+
     %------------------------------------------------
-    
+
     %carrier number for GLONASS
     num4GLONASS = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
-    
+
     %------------------------------------------------
-    
+
     %signal-to-noise ratio (in dBHz)
     CNO = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
-    
+
     %------------------------------------------------
-    
+
     %L1 phase measurement (in cycles)
     L1field = msg(pos:pos+63);
     pos = pos + 64;
-    
+
     %byte order inversion (little endian)
     L1field = fliplr(reshape(L1field,8,[]));
     L1field = L1field(:)';
-    
+
     %floating point value decoding (double floating point)
     sign = fbin2dec(L1field(1));
     esp  = fbin2dec(L1field(2:12));
     mant = fbin2dec(L1field(13:64)) / 2^52;
     L1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);%
-    
+
     %------------------------------------------------
-    
+
     %C/A pseudorange measurement (in ms)
     C1field = msg(pos:pos+63);
     pos = pos + 64;
-    
+
     %byte order inversion (little endian)
     C1field = fliplr(reshape(C1field,8,[]));
     C1field = C1field(:)';
-    
+
     %floating point value decoding (double floating point)
     sign = fbin2dec(C1field(1));
     esp  = fbin2dec(C1field(2:12));
     mant = fbin2dec(C1field(13:64)) / 2^52;
     C1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    
+
     %------------------------------------------------
-    
+
     %doppler measurements decoding (in dB-Hz)
     D1field = msg(pos:pos+63);
     pos = pos + 64;
-    
+
     %byte order inversion (little endian)
     D1field = fliplr(reshape(D1field,8,[]));
     D1field = D1field(:)';
-    
+
     %floating point value decoding (single floating point)
     sign = fbin2dec(D1field(1));
     esp  = fbin2dec(D1field(2:12));
     mant = fbin2dec(D1field(13:64)) / 2^52;
     D1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     if (abs(D1) > 1e5), D1 = 0; end
-    
+
     %------------------------------------------------
-    
+
     %raw data flags
     RDF = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
-    
+
     %------------------------------------------------
-    
+
     %reserved
     pos = pos + 8;
-    
+
     %assign constellation-specific indexes
     idx = [];
     if (SID && signal_type == 1 && constellations.GLONASS.enabled && SID <= constellations.GLONASS.numSat)
-        
+
         idx = constellations.GLONASS.indexes(SID);
         nGLO = nGLO + 1;
-        
+
     elseif (SID && signal_type == 2 && constellations.GPS.enabled && SID <= constellations.GPS.numSat)
-        
+
         idx = constellations.GPS.indexes(SID);
         nGPS = nGPS + 1;
-        
+
     elseif (SID && signal_type == 2 && constellations.QZSS.enabled && SID == 33)
-        
+
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
         nQZS = nQZS + 1;
-        
+
     elseif (SID && signal_type == 8 && constellations.Galileo.enabled && SID <= constellations.Galileo.numSat)
-        
+
         idx = constellations.Galileo.indexes(SID);
         nGAL = nGAL + 1;
     end
-    
+
     %phase, code and doppler measure save
     CPM = L1;
     PRM = C1*goGNSS.V_LIGHT*1e-3; %in meters
     DOM = D1;
-    
+
     if (~isempty(idx))
         %data output save
         data{3}(idx,1) = CPM;

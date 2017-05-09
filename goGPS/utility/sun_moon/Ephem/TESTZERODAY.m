@@ -2,7 +2,7 @@ function [ rtn ] = TESTZERODAY( denum, testCase )
 %TEST test the known zero-day values from JPL's ephemerides
   output = 1;
   rtn = 0;
-  
+
   if nargin < 1
     denum = 405;
   end

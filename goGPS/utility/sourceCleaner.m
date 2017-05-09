@@ -1,21 +1,13 @@
-function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
-
+function sourceCleaner(base_dir)
 % SYNTAX:
-%   [phi, lam, h, phiC] = cart2geod(X, Y, Z);
-%
-% INPUT:
-%   X = X axis cartesian coordinate
-%   Y = Y axis cartesian coordinate
-%   Z = Z axis cartesian coordinate
-%
-% OUTPUT:
-%   phi = latitude
-%   lam = longitude
-%   h = ellipsoidal height
-%   phiC = geocentric latitude
+%    sourceCleaner( base_dir);
+% EXAMPLE:
+%    versionChanger();
 %
 % DESCRIPTION:
-%   Conversion from cartesian coordinates to geodetic coordinates.
+%    Remove all the spaces at the end of the lines
+% header - it requires a unix system
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -26,8 +18,6 @@ function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:
-%  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -48,27 +38,28 @@ function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-%global a_GPS e_GPS
-
-a = goGNSS.ELL_A_GPS;
-e = goGNSS.ELL_E_GPS;
-
-%radius computation
-r = sqrt(X.^2 + Y.^2 + Z.^2);
-
-%longitude
-lam = atan2(Y,X);
-
-%geocentric latitude
-phiC = atan(Z./sqrt(X.^2 + Y.^2));
-
-%coordinate transformation
-psi = atan(tan(phiC)/sqrt(1-e^2));
-
-phi = atan((r.*sin(phiC) + e^2*a/sqrt(1-e^2) * (sin(psi)).^3) ./ ...
-    			(r.*cos(phiC) - e^2*a * (cos(psi)).^3));
-
-N = a ./ sqrt(1 - e^2 * sin(phi).^2);
-
-%height
-h = r .* cos(phiC)./cos(phi) - N;
+% find all the m files in goGPS directory
+if (nargin <= 1)
+    base_dir = '.';
+end
+[~, list] = dos(['find ' base_dir ' -name \*.m']);
+list = textscan(list,'%s','Delimiter','\n','whitespace','');
+list = list{1};
+tic
+for i = 1 : length(list)
+    file_name = list{i};
+    fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
+    fid = fopen(file_name, 'r');
+    txt = fread(fid,'*char')';
+    fclose(fid);
+    clean_txt = regexprep(txt,'([ |\t]*(?=\n))','');
+    if not(isempty(clean_txt))
+        fid = fopen(file_name, 'w');
+        fwrite(fid, clean_txt);
+        fclose(fid);
+        fprintf(' -> changed\n');
+    else
+        fprintf('\n');
+    end
+end
+toc;

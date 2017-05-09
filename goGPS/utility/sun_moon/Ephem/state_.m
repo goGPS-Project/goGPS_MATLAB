@@ -1,20 +1,20 @@
 function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 % position, velocity, and acceleration of target
-% 
+%
 % short int state (double *jed, short int target,
-% 
+%
 %                  double *target_pos, double *target_vel)
-% 
+%
 % ------------------------------------------------------------------------
-% 
+%
 %    PURPOSE:
 %       This function reads and interpolates the JPL planetary
 %       ephemeris file.
-% 
+%
 %    REFERENCES:
 %       Standish, E.M. and Newhall, X X (1988). "The JPL Export
 %          Planetary Ephemeris"; JPL document dated 17 June 1988.
-% 
+%
 %    INPUT
 %    ARGUMENTS:
 %       *jed (double)
@@ -33,7 +33,7 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %                                                13 = Lunar Librations
 %                                                14 = Lunar Euler angle rates
 %                                                15 = TT-TDB
-% 
+%
 %    OUTPUT
 %    ARGUMENTS:
 %       *target_pos (double)
@@ -43,17 +43,17 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %       *target_vel (double)
 %          The barycentric velocity vector array of the requested object,
 %          in AU/Day.
-% 
+%
 %          Both vectors are referenced to the Earth mean equator and
 %          equinox of epoch.
-% 
+%
 %    RETURNED
 %    VALUE:
 %       (short int)
 %          0...everything OK.
 %          1...error reading ephemeris file.
 %          2...epoch out of range.
-% 
+%
 %    GLOBALS
 %    USED:
 %       KM                eph_manager.h
@@ -64,7 +64,7 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %       RECORD_LENGTH     eph_manager.h
 %       SS                eph_manager.h
 %       JPLAU             eph_manager.h
-% 
+%
 %    FUNCTIONS
 %    CALLED:
 %       split             eph_manager.h
@@ -72,7 +72,7 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %       fread             stdio.h
 %       interpolate       eph_manager.h
 %       ephem_close       eph_manager.h
-% 
+%
 %    VER./DATE/
 %    PROGRAMMER:
 %       V1.0/03-93/WTH (USNO/AA): Convert FORTRAN to C.
@@ -83,7 +83,7 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %       V2.1/11-07/WKP (USNO/AA): Updated prolog.
 %       V2.2/10-10/WKP (USNO/AA): Renamed function to lowercase to
 %                                 comply with coding standards.
-% 
+%
 %    NOTES:
 %       1. For ease in programming, the user may put the entire epoch in
 %          jed[0] and set jed[1] = 0. For maximum interpolation accuracy,
@@ -93,12 +93,12 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
 %          prove convenient to set jed[0] = some fixed epoch, such as
 %          start of the integration and jed[1] = elapsed interval between
 %          then and epoch.
-% 
+%
 % ------------------------------------------------------------------------
-   
+
   %   Check epoch.
   jd = zeros(1,4);
-  
+
   if length(jed) == 2
     js = double(jed(1)) - 0.5;
     [jd(1),jd(2)] = Ephem.split (js);
@@ -151,7 +151,7 @@ function [ target_pos, target_vel, target_acc, error ] = state( s, jed, target )
     end
     %error = 99;
   end
-   
+
   %   Set units based on value of the 'KM' flag.
 
   if s.KM == 1

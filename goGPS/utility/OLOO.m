@@ -26,14 +26,14 @@ function [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
 %
 % CREDITS:
 %   1.0: Stefano Caldera, 22.05.2014
-%   1.1: Stefano Caldera, Andrea Gatti 08.12.2016 ( speedup improvements )     
+%   1.1: Stefano Caldera, Andrea Gatti 08.12.2016 ( speedup improvements )
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -68,7 +68,7 @@ n_blocks = length(y);
 uout = NaN;
 
 if m - n > 0
-   
+
     % compute the global solution
     if isdiag(Q) % Q is tipically diagonal -> let's use this information
         Qm = diag(Q);
@@ -79,7 +79,7 @@ if m - n > 0
         xcap = Ninv * At_invQ * y;
         um = y - A * xcap;
         s2cap = um' * invQ * um/(m-n);
-    else        
+    else
         Q = Q ./ (min(diag(Q)));
         At_invQ = A'/Q;
         Ninv = inv(At_invQ * A);
@@ -89,12 +89,12 @@ if m - n > 0
         Qm = diag(Q);
     end
     % convert A in a sparse matrix, faster and lighter
-    
+
     use_sparse_approach = false;
-    
+
     if sum(A(1,:)==0) > size(A,2) / 0.577     % if A is sparse enough
         use_sparse_approach  = true;
-        A = sparse(A);        
+        A = sparse(A);
     end
     if m - n > 1
         %% start outliers rejection
@@ -105,7 +105,7 @@ if m - n > 0
         Kminv = Km.^-1;
         wm = Qm .* Kminv .* um;
         s2m = ((m-n) .* s2cap - um .* Kminv .* um) ./ (m - n - 1);
-        
+
         % original loop
         if use_sparse_approach
             % modified loop to exploit the sparse property of the A matrix
@@ -126,15 +126,15 @@ if m - n > 0
         %toc
         Qwinv = Qw.^-1;
         deg2 = m - n - 1;
-        
+
         F = wm .* Qwinv .* wm ./ s2m;
         Flim = FTABLE(deg2);
-        
-        
+
+
         %% apply final solution
         % find maximum F(i)/Flim(i)
         [Fmax, imax] = max(abs(F ./ Flim));
-        
+
         if (Fmax < 1)
             % no outlier
             imax = 0;
@@ -143,25 +143,25 @@ if m - n > 0
             Ninvfin = Ninv;
             ufin = um;
             Cxx = s2fin * Ninvfin;
-            
+
         else
             % if the maximum ratio exceedes the threshold, the observation is eliminated from the solution
             uout = um(imax);
             xfin = xcap - Bm(:, imax) * Kminv(imax) * um(imax);
             yfin = y;
             yfin(imax) = [];
-            
+
             Afin = A;
             Afin(imax,:) = [];
-                        
+
             s2fin = s2m(imax);
-            
+
             Ninvfin = Ninv + Bm(:, imax) * Kminv(imax) * Bm(:, imax)';
             ufin = yfin - Afin * xfin;
             Cxx = s2fin * Ninvfin;
-            
+
         end
-        
+
     else
         imax = 0;
         xfin = xcap;
@@ -169,7 +169,7 @@ if m - n > 0
         Cxx = s2cap * Ninv;
         ufin = um;
     end
-    
+
 else
     % detection is not possibile
     imax = 0;

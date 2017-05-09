@@ -16,16 +16,16 @@ function [Q] = cofactor_matrix_SA(elR, snr_R)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Andrea Nardo, 22-Apr-2013 - added exponential weighting function (weights == 4)
-%                    
+%
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -53,33 +53,33 @@ global weights snr_a snr_0 snr_1 snr_A elea
 n = length(elR);
 
 if (weights == 0 || (~any(elR) || ~any(snr_R)))
-    
+
     %code-code or phase-phase co-factor matrix Q construction
     Q = eye(n);
-    
+
 else
     if (weights == 1)
-        
+
         %weight vectors (elevation)
         q_R = 1 ./ (sin(elR * pi/180).^2);
-        
+
     elseif (weights == 2)
         %weight vectors (elevation, exponential function)
         eleref = min(elR)* pi/180; % this is the value for the elevation cut-off angle
         q_R = (1 + elea*exp(-(elR * pi/180)/eleref)).^2;
-        
+
     elseif (weights == 3)
-        
+
         %weight vectors (signal-to-noise ratio)
         q_R = 10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1);
         q_R(snr_R >= snr_1) = 1;
-        
+
     elseif (weights == 4)
         %weight vectors (elevation and signal-to-noise ratio)
         q_R = 1 ./ (sin(elR * pi/180).^2) .* (10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1));
         q_R(snr_R >= snr_1) = 1;
     end
-    
+
     %code-code or phase-phase co-factor matrix Q construction
     Q = diag(q_R);
 end

@@ -18,15 +18,15 @@ function [corr] = tropo_error_correction(time_rx, lat, lon, h, el)
 %   Saastamoinen algorithm.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ function [corr] = tropo_error_correction(time_rx, lat, lon, h, el)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 global tropo_model
@@ -65,7 +65,7 @@ end
 
     function [delay] = saastamoinen_model(lat, lon, h, el)
         global geoid
-        
+
         %Saastamoinen model requires (positive) orthometric height
         if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -73,12 +73,12 @@ end
             h = h - undu;
         end
         h(h < 0) = 0;
-        
+
         if (h < 5000)
-            
+
             %conversion to radians
             el = abs(el) * pi/180;
-            
+
             %Standard atmosphere - Berg, 1948 (Bernese)
             %pressure [mbar]
             Pr = goGNSS.STD_PRES;
@@ -86,22 +86,22 @@ end
             Tr = goGNSS.STD_TEMP;
             %humidity [%]
             Hr = goGNSS.STD_HUMI;
-            
+
             P = Pr * (1-0.0000226*h).^5.225;
             T = Tr - 0.0065*h;
             H = Hr * exp(-0.0006396*h);
-            
+
             %----------------------------------------------------------------------
-            
+
             %linear interpolation
             h_a = [0; 500; 1000; 1500; 2000; 2500; 3000; 4000; 5000];
             B_a = [1.156; 1.079; 1.006; 0.938; 0.874; 0.813; 0.757; 0.654; 0.563];
-            
+
             t = zeros(length(T),1);
             B = zeros(length(T),1);
-            
+
             for i = 1 : length(T)
-                
+
                 d = h_a - h(i);
                 [~, j] = min(abs(d));
                 if (d(j) > 0)
@@ -109,15 +109,15 @@ end
                 else
                     index = [j; j+1];
                 end
-                
+
                 t(i) = (h(i) - h_a(index(1))) ./ (h_a(index(2)) - h_a(index(1)));
                 B(i) = (1-t(i))*B_a(index(1)) + t(i)*B_a(index(2));
             end
-            
+
             %----------------------------------------------------------------------
-            
+
             e = 0.01 * H .* exp(-37.2465 + 0.213166*T - 0.000256908*T.^2);
-            
+
             %tropospheric delay
             delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el)).^2)) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e);
         else
@@ -127,13 +127,13 @@ end
 
     function [delay] = saastamoinen_model_GPT(time_rx, lat, lon, h, el)
         global zero_time geoid
-        
+
         delay = zeros(size(el));
-        
+
         [week, sow] = time2weektow(time_rx + zero_time);
         date = gps2date(week, sow);
         [~, mjd] = date2jd(date);
-        
+
         [pres, temp, undu] = gpt(mjd, lat*pi/180, lon*pi/180, h);
         if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
             %geoid ondulation interpolation

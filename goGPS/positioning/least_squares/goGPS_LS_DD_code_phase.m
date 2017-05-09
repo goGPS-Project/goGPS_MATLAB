@@ -27,14 +27,14 @@ function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -124,7 +124,7 @@ sigma2_N = zeros(nN,1);
 
 min_nsat_LS = 3 + n_sys;
 
-if (size(sat_pr,1) >= min_nsat_LS)    
+if (size(sat_pr,1) >= min_nsat_LS)
     if (phase == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
@@ -134,7 +134,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
         if (length(sat_pr_M) < min_nsat_LS); return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
     end
-    
+
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     XS = XS(iR,:);
@@ -144,7 +144,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
         err_tropo_M = err_tropo_M(iM);
         err_iono_M  = err_iono_M (iM);
     end
-    
+
     % keep only satellites that rover and master have in common both in phase and code
     [sat_pr, iR, iM] = intersect(sat_pr, sat);
     XS = XS(iR,:);
@@ -156,43 +156,43 @@ if (size(sat_pr,1) >= min_nsat_LS)
     end
     %apply cutoffs also to phase satellites
     sat = sat_pr;
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %--------------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = -1;
     conf_sat(sat,1)    = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %actual pivot
     [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(pivot_index);
-    
+
     %--------------------------------------------------------------------------------------------
     % LEAST SQUARES SOLUTION
-    %--------------------------------------------------------------------------------------------    
-        
+    %--------------------------------------------------------------------------------------------
+
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
-        
+
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3
 
-            if (phase == 1)                
+            if (phase == 1)
                 [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1), flag_IAR);
             else
                 [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2), flag_IAR);
             end
-            
+
             if (i < 3)
                 if (~isempty(ratiotest))
                     ratiotest(end) = [];
@@ -203,25 +203,25 @@ if (size(sat_pr,1) >= min_nsat_LS)
                     succ_rate(end) = [];
                 end
             end
-            
+
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
             [azR(sat), elR(sat), distR(sat)] = topocent(XR, XS);
-            
+
             err_tropo_R = tropo_error_correction(time_rx, phiR*180/pi, lamR*180/pi, hR, elR(sat));
             err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(sat), elR(sat), time_rx, iono, []);
-            
+
             %correct the ionospheric errors for different frequencies
             err_iono_R = ionoFactor(sat, phase).*err_iono_R;
         end
-        
+
         if isempty(cov_N1) %if it was not possible to compute the covariance matrix
             cov_N1 = sigmaq0_N * eye(length(sat));
         end
-        
+
         if isempty(cov_N2) %if it was not possible to compute the covariance matrix
             cov_N2 = sigmaq0_N * eye(length(sat));
         end
-        
+
         if (length(phase) == 2)
             N = [N1; N2];
             sigma2_N(sat) = diag(cov_N1);
@@ -251,7 +251,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
             return
         end
     end
-       
+
 else
     if (~isempty(Xhat_t_t))
         XR = Xhat_t_t([1,o1+1,o2+1]);

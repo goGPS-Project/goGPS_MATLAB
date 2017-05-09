@@ -17,15 +17,15 @@ function [dec_out, pos_out, part] = FTX_TypeConv(type_in, bin_msg, pos_in)
 %   Fastrax ITALK data types conversion tool.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [dec_out, pos_out, part] = FTX_TypeConv(type_in, bin_msg, pos_in)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if nargin < 2 || isempty(type_in) || isempty(bin_msg)
@@ -94,7 +94,7 @@ case 'DWORD'    % 32 bits   (range: 0 through 4294967295 decimal)
         part(4) = fbin2dec(bin_msg(pos_in:pos_in+7));  pos_in = pos_in + 8;
         dec_out = part(1) + (part(2) * 2^8) + (part(3) * 2^16) + (part(4) * 2^24);  % little endian
 case 'FLOAT'    % 32 bits
-        % Original C Code 
+        % Original C Code
         % INT16 mantissa = pW[0];
         % INT16 exponent = pW[1];
         % return mantissa ? (float)ldexp(mantissa, exponent - 15) : 0.0f;
@@ -105,16 +105,16 @@ case 'FLOAT'    % 32 bits
         Exponent1 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         Exponent2 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         Exponent  = [Exponent2,Exponent1];
-        
+
         Mantissa = twos_complement_inside(Mantissa);
         Exponent = twos_complement_inside(Exponent);
 
         dec_out = Mantissa * 2^ (Exponent-15);
         part(1) = Mantissa;
         part(2) = Exponent;
-        clear Mantissa1 Mantissa2 Exponent1 Exponent2 Mantissa Exponent        
+        clear Mantissa1 Mantissa2 Exponent1 Exponent2 Mantissa Exponent
 case 'DOUBLE'   % 48 bits
-        % Original C Code 
+        % Original C Code
         % INT32 mantissa = MAKELONG(pW[0], pW[1]);
         % INT16 exponent = pW[2];
         % return mantissa ? ldexp(mantissa, exponent - 31) : 0;
@@ -127,7 +127,7 @@ case 'DOUBLE'   % 48 bits
         Exponent1 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         Exponent2 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         Exponent  = [Exponent2,Exponent1];
-        
+
         Mantissa = twos_complement_inside(Mantissa);
         Exponent = twos_complement_inside(Exponent);
 
@@ -150,5 +150,5 @@ function out = twos_complement_inside(in)
         out = (-1) * (fbin2dec(in) + 1);
     else
         out = fbin2dec(in);
-    end    
+    end
 end

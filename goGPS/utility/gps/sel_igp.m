@@ -22,12 +22,12 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 %            degrees (central-southern Europe).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi, 2011
@@ -49,7 +49,7 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %WARNING: this is a simplified version of the procedure described in the
@@ -66,7 +66,7 @@ r_lati = find(v_lat <= latpp,1,'last');
 %find the higher latitude of the closest nodes
 r_lats = find(v_lat > latpp,1,'first');
 
-%find the lower longitude of the closest nodes 
+%find the lower longitude of the closest nodes
 r_loni = find(v_lon <= lonpp,1,'last');
 %find the higher longitude of the closest nodes
 r_lons = find(v_lon > lonpp,1,'first');

@@ -12,23 +12,23 @@ function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
-%   flag_return = notify the parent function that it should return 
+%   flag_return = notify the parent function that it should return
 %                 (downloaded navigation file still compressed).
 %
 % DESCRIPTION:
 %   Parses RINEX navigation files.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
-%  Contributors:     Damianop Triglione 2012, ... 
+%  Written by:
+%  Contributors:     Damianop Triglione 2012, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -46,7 +46,7 @@ function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -74,16 +74,16 @@ end
 if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
     [week, sow] = time2weektow(time(1));
     [date, DOY] = gps2date(week, sow);
-    
+
     filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'p'];
     filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
     filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
-    
+
     pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end;
     nav_path = filename(1:pos(end));
-    
+
     flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
-    
+
     file_avail = 0;
     if (exist([nav_path filename_brdm],'file') && flag_GLO)
         filename = [nav_path filename_brdm];
@@ -109,7 +109,7 @@ if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
             flag_return = 1;
         end
     end
-    
+
     if (file_avail)
         if (flag_GLO)
             only_iono = 0;
@@ -121,23 +121,23 @@ if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
 end
 
     function parse_file(only_iono)
-        
+
         if (wait_dlg_PresenceFlag)
             waitbar(0.5,wait_dlg,'Reading navigation files...')
         end
-        
+
         Eph_G = []; iono_G = zeros(8,1);
         Eph_R = []; iono_R = zeros(8,1);
         Eph_E = []; iono_E = zeros(8,1);
         Eph_C = []; iono_C = zeros(8,1);
         Eph_J = []; iono_J = zeros(8,1);
-        
+
         if (strcmpi(filename(end),'p'))
             flag_mixed = 1;
         else
             flag_mixed = 0;
         end
-        
+
         if (cc.getGPS().isActive() || flag_mixed || only_iono)
             if (exist(filename,'file'))
                 %parse RINEX navigation file (GPS) NOTE: filename expected to
@@ -150,7 +150,7 @@ end
                 cc.deactivateGPS();
             end
         end
-        
+
         if (cc.getGLONASS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'g'],'file'))
                 %parse RINEX navigation file (GLONASS)
@@ -162,7 +162,7 @@ end
                 cc.deactivateGLONASS();
             end
         end
-        
+
         if (cc.getGalileo().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'l'],'file'))
                 %parse RINEX navigation file (Galileo)
@@ -174,7 +174,7 @@ end
                 cc.deactivateGalileo();
             end
         end
-        
+
         if (cc.getBeiDou().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'c'],'file'))
                 %parse RINEX navigation file (BeiDou)
@@ -186,7 +186,7 @@ end
                 cc.deactivateBeiDou();
             end
         end
-        
+
         if (cc.getQZSS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'q'],'file'))
                 %parse RINEX navigation file (QZSS)
@@ -198,11 +198,11 @@ end
                 cc.deactivateQZSS();
             end
         end
-        
+
         if (~only_iono)
             Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J];
         end
-        
+
         if (any(iono_G))
             iono = iono_G;
         elseif (any(iono_R))
@@ -217,7 +217,7 @@ end
             iono = zeros(8,1);
             fprintf('... WARNING: Klobuchar ionosphere parameters not found in navigation file(s).\n');
         end
-        
+
         if (wait_dlg_PresenceFlag)
             waitbar(1,wait_dlg)
         end

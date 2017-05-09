@@ -3,11 +3,11 @@ function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor
 %   [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,<x_ext>)
 %
 % EXAMPLE:
-%   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext); toc; 
-%   [y xS wS y_ext] = splinerMat(x,[y yvar],4,0,x_ext); toc; 
+%   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext); toc;
+%   [y xS wS y_ext] = splinerMat(x,[y yvar],4,0,x_ext); toc;
 %
 % INPUT:
-%   x           [n x 1] observation time  
+%   x           [n x 1] observation time
 %   y           [n x 1] observation value
 %               [n x 2] observation value and variances (in this case the variances of the data are taken into account)
 %   dxs         [1 x 1] spline base size
@@ -15,22 +15,22 @@ function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor
 %   x_ext       [m x 1] points in which to compute the interpolation
 %
 % OUTPUT:
-%   ySplined    [n x 1] interpolated observation (on the observation epochs) 
+%   ySplined    [n x 1] interpolated observation (on the observation epochs)
 %   xS          [o x 1] center of the (o) splines
 %   wS          [o x 1] weights of the splines
 %   y_ext       [m x 1] spline interpolated in x_ext positions
 %
 % DESCRIPTION:
 %   Interpolate with cubic splines a given dataset
-% 
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -52,7 +52,7 @@ function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
     if (nargin < 4)
@@ -71,10 +71,10 @@ function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor
             [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor);
         end
     end
-    
+
     % Interpolation => using spline to predict in different coordinates
-    % (not present in the C version)    
-    if (nargin == 5) 
+    % (not present in the C version)
+    if (nargin == 5)
         mask = (isnan(sWeights));
         if (length(mask) > 2)
             mask = mask | [mask(2:end); 0] | [0; mask(1:end-1)];
@@ -84,17 +84,17 @@ function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor
             x_ext = x_ext';
         end
         ySplined_ext = zeros(size(x_ext,1),1);
-        for s = 1:length(xSpline) 
-            tau = round((x_ext-repmat(xSpline(s),length(x_ext),1))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems            
+        for s = 1:length(xSpline)
+            tau = round((x_ext-repmat(xSpline(s),length(x_ext),1))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
             ySplined_ext = ySplined_ext + sWeights(s)*cubicSpline(tau);
-        end        
+        end
     else
         ySplined_ext = ySplined;
     end
 end
 
 % No Regularization + variances
-function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)    
+function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
     xSpline = [];
     nObs = length(x);
 
@@ -103,7 +103,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
 
     % compute the number of splines needed for the interpolation
     nSplines = ceil(xspan/dxs) + 3;
-    
+
     % compute spline centers
     xSpline = zeros(nSplines,1);
     sWeights = [];
@@ -124,7 +124,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
     nSkip = 0;              % number of spline to "skip" because ain't intersecting an observation
-    usedObs = 0;            % number of observation used in building the N matrix    
+    usedObs = 0;            % number of observation used in building the N matrix
     ySplined = zeros(length(y),1);           % output
     skips(1) = 0;
     while (i <= nObs)
@@ -178,7 +178,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
                 while (tau > 2)
                     curSpline = curSpline+1;
                     tau = (x(i)-xSpline(curSpline))/dxs;
-                    if (tau > 2), 
+                    if (tau > 2),
                         sWeights(curSpline) = nan;
                     end
                 end
@@ -219,11 +219,11 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
-    end       
+    end
 end
 
 % Regularization + variances
-function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)    
+function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     xSpline = [];
     nObs = length(x);
 
@@ -232,7 +232,7 @@ function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
 
     % compute the number of splines needed for the interpolation
     nSplines = ceil(xspan/dxs) + 3;
-    
+
     % compute spline centers
     xSpline = zeros(nSplines,1);
     sWeights = [];
@@ -253,7 +253,7 @@ function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
     nSkip = 0;              % number of spline to "skip" because ain't intersecting an observation
-    usedObs = 0;            % number of observation used in building the N matrix    
+    usedObs = 0;            % number of observation used in building the N matrix
     ySplined = zeros(length(y),1);           % output
     skips(1) = 0;
     while (i <= nObs)
@@ -329,7 +329,7 @@ function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
-    end       
+    end
 end
 
 % No Regularization - no variances
@@ -342,7 +342,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
 
     % compute the number of splines needed for the interpolation
     nSplines = ceil(xspan/dxs) + 3;
-    
+
     % compute spline centers
     xSpline = zeros(nSplines,1);
     sWeights = [];
@@ -363,7 +363,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
     nSkip = 0;              % number of spline to "skip" because ain't intersecting an observation
-    usedObs = 0;            % number of observation used in building the N matrix    
+    usedObs = 0;            % number of observation used in building the N matrix
     ySplined = zeros(length(y),1);           % output
     skips(1) = 0;
     while (i <= nObs)
@@ -416,7 +416,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
                 while (tau > 2)
                     curSpline = curSpline+1;
                     tau = (x(i)-xSpline(curSpline))/dxs;
-                    if (tau > 2), 
+                    if (tau > 2),
                         sWeights(curSpline) = nan;
                     end
                 end
@@ -456,7 +456,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
-    end       
+    end
 end
 
 % Regularization - no variances
@@ -469,7 +469,7 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
 
     % compute the number of splines needed for the interpolation
     nSplines = ceil(xspan/dxs) + 3;
-    
+
     % compute spline centers
     xSpline = zeros(nSplines,1);
     sWeights = [];
@@ -490,7 +490,7 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
     nSkip = 0;              % number of spline to "skip" because ain't intersecting an observation
-    usedObs = 0;            % number of observation used in building the N matrix    
+    usedObs = 0;            % number of observation used in building the N matrix
     ySplined = zeros(length(y),1);           % output
     skips(1) = 0;
     while (i <= nObs)
@@ -563,7 +563,7 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
-    end       
+    end
 end
 
 % SYNTAX:
@@ -573,7 +573,7 @@ end
 %   [y] = cubicSpline(1)
 %
 % INPUT:
-%   t = normalized value from [-2 to 2] of the distance between the 
+%   t = normalized value from [-2 to 2] of the distance between the
 %       observation and the center of the cubic spline
 %
 % OUTPUT:
@@ -582,7 +582,7 @@ end
 % DESCRIPTION:
 %   Get the value of the cubic spline with a base of 4 at the given t normalized
 %   value
-% 
+%
 % USEFUL VALUES:
 %   2/3 = cubicSpline(0);
 %   1/6 = cubicSpline(-1);
@@ -608,13 +608,13 @@ y(p2) = ((2-t(p2)).^3 - 4*(1-t(p2)).^3)/6;
 
 %  PLAIN IMPLEMENTATION
 %
-% 	if ((t < -2) || (t > 2)) 
+% 	if ((t < -2) || (t > 2))
 % 		y = 0;
 %     else
 %         if (t < 0)
 %             if (t <= -1)
 %                 tmp2=(t+2);
-%                 y = (tmp2*tmp2*tmp2 / 6);			
+%                 y = (tmp2*tmp2*tmp2 / 6);
 %             else
 %                 tmp1=(t+1);
 %                 tmp2=(t+2);
@@ -627,7 +627,7 @@ y(p2) = ((2-t(p2)).^3 - 4*(1-t(p2)).^3)/6;
 %                 y = ((tmp2*tmp2*tmp2 - 4*tmp1*tmp1*tmp1) / 6);
 %             else
 %                 tmp2=(2-t);
-%                 y = (tmp2*tmp2*tmp2 / 6);			
+%                 y = (tmp2*tmp2*tmp2 / 6);
 %             end
 %         end
 %     end

@@ -41,25 +41,25 @@ n = max(size(a));
 % ----------------------------------------------------------------------
 
 if ncands <= n+1;
-    
+
     % --------------------------------------------------------
     % --- Computation based on the bootstrapping estimator ---
     % --------------------------------------------------------
-    
+
     Chi = [];
-    
+
     for k = n:-1:0;
-        
+
         afloat = a;
         afixed = a;
-        
+
         for i = n:-1:1;
-            
+
             dw = 0;
             for j = n:-1:i;
                 dw = dw + L(j,i) * (afloat(j) - afixed(j));
             end;
-            
+
             afloat(i) = afloat(i) - dw;
             if (i ~= k);
                 afixed(i) = round (afloat(i));
@@ -70,33 +70,33 @@ if ncands <= n+1;
                     afixed(i) = round (afloat(i) + sign (afloat(i) - afixed(i)));
                 end;
             end;
-            
+
         end;
-        
+
         Chi = [Chi (a-afixed)' * (L'*diag(D)*L)^(-1) * (a-afixed)];
-        
+
     end;
-    
+
     % ---------------------------------------------------------------
     % --- Sort the results, and return the appropriate number     ---
     % --- Add an "eps", to make sure there is no boundary problem ---
     % ---------------------------------------------------------------
-    
+
     Chi  = sort(Chi);
     Chi2 = Chi(ncands) + 1d-6;
-    
+
 else
-    
+
     % -----------------------------------------------------
     % An approximation for the squared norm is computed ---
     % -----------------------------------------------------
-    
+
     Linv = (L)^(-1);
     Dinv = 1./D;
-    
+
     Vn   = (2/n) * (pi ^ (n/2) / gamma(n/2));
     Chi2 = factor * (ncands / sqrt((prod(1 ./ Dinv)) * Vn)) ^ (2/n);
-    
+
 end;
 
 % ----------------------------------------------------------------------

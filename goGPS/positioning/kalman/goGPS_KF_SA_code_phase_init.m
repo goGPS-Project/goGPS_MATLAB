@@ -33,14 +33,14 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Andrea Nardo,
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -265,7 +265,7 @@ if (length(sat_pr) >= min_nsat_LS)
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
-    
+
     if (~isempty(sat_pr))
         err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
     else
@@ -275,10 +275,10 @@ if (length(sat_pr) >= min_nsat_LS)
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
-    
+
     %disable epoch-by-epoch ISB estimation
     sys = ones(size(sys));
-    
+
     %if multi-system observations, then an additional parameter to estimate the inter-system bias
     %for each additional system is needed
     uni_sys = unique(sys(sys ~= 0));
@@ -288,25 +288,25 @@ if (length(sat_pr) >= min_nsat_LS)
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
-    
+
     %satellites configuration: code only (-1), both code and phase (+1);
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
-    
+
     %cycle-slip configuration
     conf_cs = zeros(nSatTot,1);
-    
+
     pivot_old = 0;
-    
+
     %current pivot
     [null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
-    
+
     %if the number of satellites is not sufficient after the cutoffs, and
     %if the condition number in the least squares exceeds the threshold
     if (size(sat_pr,1) >= min_nsat && cond_num < cond_num_threshold)
-        
+
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end
@@ -334,20 +334,20 @@ N_IF = zeros(nSatTot,1);
 cov_N1 = [];
 cov_N2 = [];
 cov_N_IF = [];
-    
+
 %force least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
 if (length(sat) < min_nsat)
-    
+
     return
-    
+
 %     %estimate N
 %     if ~isempty(sat)
 %         [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
 %         [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
 %     end
-% 
+%
 %     if (length(frequencies) == 2)
 %         if (strcmp(obs_comb,'NONE'))
 %             N = [N1; N2];
@@ -384,32 +384,32 @@ else
             end
         end
     end
-    
+
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
         cov_XR = sigmaq0 * eye(3);
     end
     sigma2_XR = diag(cov_XR);
-    
+
     if isempty(var_dtR) %if it was not possible to compute the receiver clock estimation error variance
         var_dtR = sigmaq0_rclock;
     end
-    
+
     if isempty(var_ISB) %if it was not possible to compute the inter-system biases estimation error variance
         var_ISB = sigmaq0_rclock;
     end
-    
+
     if isempty(cov_N1) %if it was not possible to compute the covariance matrix
         cov_N1 = sigmaq0_N * eye(length(sat));
     end
-    
+
     if isempty(cov_N2) %if it was not possible to compute the covariance matrix
         cov_N2 = sigmaq0_N * eye(length(sat));
     end
-    
+
     if isempty(cov_N_IF) %if it was not possible to compute the covariance matrix
         cov_N_IF = sigmaq0_N * eye(length(sat));
     end
-    
+
     if (length(frequencies) == 2)
         if (strcmp(obs_comb,'NONE'))
             N = [N1; N2];
@@ -439,7 +439,7 @@ if (flag_tropo)
     [week, sow] = time2weektow(time_rx + zero_time);
     date = gps2date(week, sow);
     [~, mjd] = date2jd(date);
-    
+
     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
     [pres_R, temp_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R);
     if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)

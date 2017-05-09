@@ -4,7 +4,7 @@ function [values,longs,lats]=m_tbase(varargin);
 %        M_TBASE(OPTN (,LEVELS) (,ARGS,...) ) lets you change various options.
 %        if OPTN=='contour', contour lines are drawn. for OPTN=='contourf',
 %        filled contours are drawn. LEVELS are the levels used, and ARGS
-%        are optional patch arguments of line types, colors, etc. 
+%        are optional patch arguments of line types, colors, etc.
 %
 %        [CS,H]=M_TBASE(...) allows access to the return arguments of the
 %        contour/contourf call.
@@ -43,7 +43,7 @@ decmax=500;
 
 
 
-%%% Don't change anything below this... 
+%%% Don't change anything below this...
 
 efid=fopen([PATHNAME 'tbase.int'],'r');
 
@@ -55,9 +55,9 @@ if efid==-1,
    m_elev(varargin{:});
   elseif nargout==2,
    [values,longs]=m_elev(varargin{:});
-  elseif nargout==3,	
+  elseif nargout==3,
    [values,longs,lats]=m_elev(varargin{:});
-  end;	
+  end;
   return;
 end;
 
@@ -179,10 +179,10 @@ if draw_map,
       [values,longs]=m_contour(lgs,lts,topo,levels);
    case 'contourf',
       [values,longs]=m_contourf(lgs,lts,topo,levels);
-  end;  
+  end;
   set(longs,'tag','m_tbase');
-  if n_opt<length(varargin), 
-    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end; 
+  if n_opt<length(varargin),
+    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end;
   end;
 
 else

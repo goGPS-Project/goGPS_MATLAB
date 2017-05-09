@@ -18,14 +18,14 @@ function PCO_corr = PCO_correction(antenna_PCV, XR, XS, sys, frequency)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -53,27 +53,27 @@ PCO_corr   = zeros(size(sys));
 constellation=unique(floor(sys));
 
 %compute PCO correction: loop on every requested constellation
-for j = 1 : length(constellation)  
-    
+for j = 1 : length(constellation)
+
     %current system
     sys_i=constellation(j);
-    
+
     %verify if corrections for this sys+frequency are available
     sysfreq_i = sys_i*10 + frequency;
     index_freq = find(antenna_PCV.sysfreq == sysfreq_i, 1);
-    
+
     %if frequency is not available, use G01/G02 instead (as specified in the IGS ATX file)
     if (isempty(index_freq))
         sysfreq_i = 1*10 + frequency;
         index_freq = find(antenna_PCV.sysfreq == sysfreq_i, 1);
     end
-    
+
     if ~isempty(index_freq) % corrections are available
-        
+
         %index of input satellites belonging to constellation sys_i
         index_sat=find(sys==sys_i);
         XS_i = XS(index_sat,:);
-        
+
         %correction along the receiver-satellite line-of-sight
         XRcorr = local2globalPos(antenna_PCV.offset(1,:,index_freq)', XR);
         corrXYZ = XRcorr - XR;
@@ -83,9 +83,9 @@ for j = 1 : length(constellation)
             LOSu = LOS / norm(LOS);
             PCO_corr_i(s,1) = dot(corrXYZ,LOSu);
         end
-        
+
         PCO_corr(index_sat) = PCO_corr(index_sat) + PCO_corr_i;
     else
-        % corrections not available        
+        % corrections not available
     end
 end

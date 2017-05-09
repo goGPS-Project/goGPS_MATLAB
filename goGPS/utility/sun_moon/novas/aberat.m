@@ -61,8 +61,8 @@ q = (1.0d0 + p / (1.0d0 + gammai)) * tl;
 r = 1.0d0 + p;
 
 for j = 1:1:3
-    
+
     pos2(j) = (gammai * pos1(j) + q * ve(j)) / r;
-    
+
 end
 

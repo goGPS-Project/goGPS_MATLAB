@@ -37,31 +37,31 @@ t2 = t1 - tlite;
 % iterate to obtain correct light-time (usually converges rapidly)
 
 for iter = 1:10
-    
+
     [pos1, vel1, ierr] = solsys (t2, str2num(idbody), 0);
-    
+
     [pos, tlight] = geocen (pos1, pose);
-    
+
     if (ierr ~= 0)
-        
+
         fprintf ('\nplace: cannot obtain coordinates of object at jd %16.8f', t0 + t2);
-        
+
         return
-        
+
     end
-    
+
     t3 = t1 - tlight;
-    
+
     if (abs(t3 - t2) > tol)
-        
+
         t2 = t3;
-        
+
     else
-        
+
         break
-        
+
     end
-    
+
 end
 
 

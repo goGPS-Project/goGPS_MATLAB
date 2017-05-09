@@ -17,15 +17,15 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 %   Tool for loading .CRX files: information on satellite problems.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %output initialization
@@ -76,33 +76,33 @@ found = 0;
 
 %find files with ".CRX" extension
 for j = 1 : nmax
-    
+
     %read the name of the j-th file
     crx_file_name = getfield(data_dir,{j,1},'name');
-    
+
     %get the number of characters in the filename
     crx_fn_length = size(crx_file_name,2);
 
     if (crx_fn_length < 12)
         continue
     end
-    
+
     year = str2num(crx_file_name(5:8)); %#ok<ST2NM>
-    
+
     %check if the filename corresponds to that expected from a standard CRX file required by goGPS
     % (e.g. "SAT_yyyy.CRX", with 'yyyy' = four-digit year)
     if (crx_fn_length == 12  && (strcmpi(crx_file_name(1:4), 'SAT_') && ...
        (year >=  year_start && year  <=  year_end)  && ...
         strcmpi(crx_file_name(crx_fn_length - 3 : crx_fn_length), '.CRX')))
-        
+
         n = n + 1;
-        
+
         %full path to the target file
         crx_file_target  = strcat(data_dir_crx, '/', crx_file_name);
-        
+
         %open .crx file
         fid_fd = fopen(crx_file_target,'r');
-        
+
         %warnings
         if (fid_fd ~= -1)
             if (n == 1)
@@ -112,24 +112,24 @@ for j = 1 : nmax
             fprintf(['WARNING: impossible to open CRX file ', crx_file_name, '\n']);
             break
         end
-        
+
         line = fgetl(fid_fd);
         while(~feof(fid_fd) && (isempty(line) || ~strcmp(line(1:5), '  ***')))
             line = fgetl(fid_fd);
         end
         fgetl(fid_fd);
-        
+
         % for each data line
         while(~feof(fid_fd))
             line = fgetl(fid_fd);
-            
+
             if (~isempty(line))
-                
+
                 prn = abs(str2num(line(3:5))); %#ok<ST2NM>
                 e = [];
-                
+
                 if (~isempty(prn))
-                    
+
                     offset = -1;
                     if (prn < 100) % GPS
                         prn = prn;
@@ -145,7 +145,7 @@ for j = 1 : nmax
                         prn = prn - 200;
                         if cc.getGalileo().isActive() && (prn < cc.getGalileo().N_SAT)
                             offset = cc.getGalileo().getFirstId(); % starting index in the total array for the various constellations
-                        end                        
+                        end
                     elseif (prn < 400) % SBAS
                         prn = prn - 300;
                         if cc.getSBAS().isActive() && (prn < cc.getSBAS().N_SAT)
@@ -160,12 +160,12 @@ for j = 1 : nmax
                         prn = prn - 500;
                         if cc.getQZSS().isActive() && (prn < cc.getQZSS().N_SAT)
                             offset = cc.getQZSS().getFirstId(); % starting index in the total array for the various constellations
-                        end                        
+                        end
                     end
-                    
-                    if (offset >= 0)                        
+
+                    if (offset >= 0)
                         index = offset + prn - 1;
-                        
+
                         p = str2num(line(12:18)); %problem
                         s = datenum(str2num(line(33:51))); %start date
                         if (length(line) >= 72)
@@ -183,7 +183,7 @@ for j = 1 : nmax
                         if ((p == 0 &&           (s <= date_stop && e >= date_start)) || ... %satellite maneuver
                                 (p >= 1 && p <= 3 && (s <= date_stop && e >= date_start)) || ... %bad code and/or phase data
                                 (p == 4 &&           (s <= date_stop && e >= date_start))) % arc split
-                            
+
                             [~, idx_start] = min(abs(s - dnum));
                             [~, idx_end]   = min(abs(e - dnum));
                             CRX(index, idx_start:idx_end) = 1;
@@ -191,9 +191,9 @@ for j = 1 : nmax
                     end
                 end
             end
-            
+
         end
-        
+
         fclose(fid_fd);
     end
 end

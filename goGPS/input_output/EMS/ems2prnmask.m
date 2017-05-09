@@ -15,12 +15,12 @@ function [iodp_mask, prn_mask] = ems2prnmask(msg)
 %   Decode the PRN mask from EGNOS MT 1.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -42,7 +42,7 @@ function [iodp_mask, prn_mask] = ems2prnmask(msg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % the PRN mask and the IODP mask connect:
@@ -84,11 +84,11 @@ s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the
 mask = fbin2dec(s(15 : 15 + 31)')'; %vector with the mask bits
 
 %vector with the PRNs of the GPS SVs
-%sv_gps = [1 : 32];       
+%sv_gps = [1 : 32];
 
 %keep only the GPS SVs with valid mask (=1)
-%prn_mask = find (mask .* sv_gps);  
-prn_mask = find (mask); 
+%prn_mask = find (mask .* sv_gps);
+prn_mask = find (mask);
 
 %vector the PRNs of active GPS satellites
 prn_mask = [prn_mask, zeros(1, 32-length(prn_mask))];

@@ -28,7 +28,7 @@ pdata = ['Mercury                '; ...
          'Pluto                  '; ...
          'Moon                   '; ...
          'Sun                    '];
-   
+
 tname = cellstr(pdata);
 
 % define central body name vector
@@ -46,7 +46,7 @@ pdata = ['Mercury                '; ...
          'Sun                    '; ...
          'solar-system barycenter'; ...
          'Earth-Moon barycenter  '];
-      
+
 cname = cellstr(pdata);
 
 % define name of ephemeris binary file
@@ -64,11 +64,11 @@ km = 1;
 % request calendar date
 
 clc; home;
-   
+
 fprintf('\ndemo_jpl - demonstrates how to use the jplephem.m function\n');
-   
+
 fprintf('\nplease input a UTC calendar date\n');
-   
+
 [month, day, year] = getdate;
 
 jdutc = julian(month, day, year);
@@ -79,10 +79,10 @@ jdtdb = utc2tdb(jdutc);
 
 % select target body
 
-while(1) 
-    
+while(1)
+
    fprintf('\n    target body menu\n');
-       
+
    fprintf('\n  <1> Mercury');
    fprintf('\n  <2> Venus');
    fprintf('\n  <3> Earth');
@@ -94,21 +94,21 @@ while(1)
    fprintf('\n  <9> Pluto');
    fprintf('\n  <10> Moon');
    fprintf('\n  <11> Sun');
-   
+
    fprintf('\n\nplease select the target body\n');
-          
+
    itarg = input('? ');
-            
+
    if (itarg >= 1 && itarg <= 11)
       break;
    end
-   
+
 end
 
 % select central body
 
 while(1)
-    
+
    fprintf('\n    central body menu\n');
 
    fprintf('\n  <1> Mercury');
@@ -126,17 +126,17 @@ while(1)
    fprintf('\n  <13> Earth-Moon barycenter');
 
    fprintf('\n\nplease select the central body\n');
-          
+
    icent = input('? ');
-            
+
    if (icent >= 0 && icent <= 13)
       break;
    end
-   
+
 end
 
 % evalute ephemeris
-      
+
 rrd = jplephem(jdtdb, itarg, icent);
 
 % extract position vector
@@ -176,7 +176,7 @@ fprintf('\nUTC Julian date          %14.8f \n', jdutc);
 fprintf('\nTDB Julian date          %14.8f \n\n', jdtdb);
 
 fprintf('\nstate vector\n');
-  
+
 svprint(r, v);
 
 fclose('all');

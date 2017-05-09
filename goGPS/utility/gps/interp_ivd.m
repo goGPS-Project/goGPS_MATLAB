@@ -19,12 +19,12 @@ function [ivd_pp] = interp_ivd(igp4, igp, r_ivd, latpp, lonpp, tv)
 %   Valid for piercing points between -85 and +85 degrees.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -46,7 +46,7 @@ function [ivd_pp] = interp_ivd(igp4, igp, r_ivd, latpp, lonpp, tv)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -55,7 +55,7 @@ lonpp = lonpp * 180/pi;
 
 ivd4 = NaN(1,4);
 
-for i = 1 : 4 
+for i = 1 : 4
     c = find(igp == igp4(i));
     ivd4(i) = r_ivd(c); %#ok<FNDSB>
 end

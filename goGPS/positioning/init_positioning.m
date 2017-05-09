@@ -7,7 +7,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   time_rx     = reception time
 %   pseudorange = observed code pseudoranges
 %   snr         = observed signal-to-noise ratio
-% 
+%
 %   Eph         = ephemeris
 %   SP3         = structure containing precise ephemeris data
 %   iono        = ionosphere parameters (Klobuchar)
@@ -53,7 +53,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   PDOP        = position dilution of precision (scalar)
 %   HDOP        = horizontal dilution of precision (scalar)
 %   VDOP        = vertical dilution of precision (scalar)
-%   cond_num    = condition number from the least squares N matrix (scalar) 
+%   cond_num    = condition number from the least squares N matrix (scalar)
 %   obs_outlier = vector with 0 or 1 for sats found as outlier
 %   bad_epoch   = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
 %   var_SPP     = [code single point positioning a posteriori sigma, sum of
@@ -73,14 +73,14 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -184,9 +184,9 @@ if (isempty(XR0))
 end
 
 if ((flag_XR < 2 || ~any(XR0)) && ~flag_static_batch)
-    
+
     index = find(no_eph == 0);
-    
+
     nsat_avail = length(index);
 
     if (nsat_avail < min_nsat) %if available observations are not enough, return empty variables
@@ -198,11 +198,11 @@ if ((flag_XR < 2 || ~any(XR0)) && ~flag_static_batch)
         sat  = [];
         err_tropo = [];
         err_iono  = [];
-        
+
         if (flag_XR == 2)
             cov_XR = zeros(3,3);
         end
-        
+
         return
     end
 
@@ -278,7 +278,7 @@ if (nsat >= nsat_required)
 
     XSold = zeros(nsat,3);      %old version of satellite positions
     n_iter = 0;                 %iteration counter
-    
+
     if (flag_XS == 0)
         n_iter_max = 2;         %maximum number of iterations (for estimating satellite positions)
     else
@@ -296,12 +296,12 @@ if (nsat >= nsat_required)
 
         %cartesian to geodetic conversion of ROVER coordinates
         [phiR, lamR, hR, phiCR] = cart2geod(XR(1), XR(2), XR(3));
-        
+
         if (~isempty(SP3))
             %correct the geometric distance for solid Earth tides
             stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
             dist = dist + stidecorr;
-            
+
             %correct the geometric distance for the ocean loading
             oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
             dist = dist + oceanloadcorr;
@@ -313,7 +313,7 @@ if (nsat >= nsat_required)
 
         %computation of tropospheric errors
         err_tropo = tropo_error_correction(time_rx, phiR, lamR, hR, el);
-        
+
         if (~isreal(err_tropo))
             XR   = [];
             dtR  = [];
@@ -323,20 +323,20 @@ if (nsat >= nsat_required)
             sat  = [];
             err_tropo = [];
             err_iono  = [];
-            
+
             if (flag_XR == 2)
                 cov_XR = zeros(3,3);
             end
-            
+
             return
         end
 
         %computation of ionospheric errors
-        err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);      
-        
+        err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);
+
         %correct the ionospheric errors for different frequencies
         err_iono = ionoFactor(:,frequencies(1)).*err_iono;
-        
+
         if (strcmp(obs_comb,'IONO_FREE'))
             err_iono = zeros(size(err_iono));
         end
@@ -349,7 +349,7 @@ if (nsat >= nsat_required)
                 if ~isempty(bad_obs)
                     % add outlier satellite to obs_outlier
                     obs_outlier(sat(bad_obs))=1;
-                    
+
                     % remove bad satellite from observations
                     XS(bad_obs,:)=[];
                     XSold(bad_obs,:)=[];
@@ -367,13 +367,13 @@ if (nsat >= nsat_required)
                         XS0(bad_obs,:)  = [];
                     end
                     eclipsed(bad_obs)=[];
-                    
+
                     %satellite topocentric coordinates (azimuth, elevation, distance)
                     [az, el, dist] = topocent(XR, XS);
-                    
+
                     %elevation cutoff
                     index = find((el > cutoff_el));
-                    
+
                     sat   = sat(index);
                     pseudorange = pseudorange(index);
                     snr  = snr(index);
@@ -395,7 +395,7 @@ if (nsat >= nsat_required)
                     eclipsed = eclipsed(index);
                 end
 %             end
-            
+
         else
             [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
@@ -421,13 +421,13 @@ if (nsat >= nsat_required)
                         XS0(bad_obs,:)  = [];
                     end
                     eclipsed(bad_obs)=[];
-                    
+
                     %satellite topocentric coordinates (azimuth, elevation, distance)
                     [az, el, dist] = topocent(XR, XS);
-                    
+
                     %elevation cutoff
                     index = find((el > cutoff_el));
-                    
+
                     sat   = sat(index);
                     pseudorange = pseudorange(index);
                     snr  = snr(index);
@@ -462,15 +462,15 @@ if (nsat >= nsat_required)
         %satellite topocentric coordinates (azimuth, elevation, distance)
         [az, el, dist] = topocent(XR, XS);
     end
-    
+
     %cartesian to geodetic conversion of ROVER coordinates
     [~, lamR, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
-    
+
     if (~isempty(SP3))
         %correct the geometric distance for solid Earth tides
         stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
         dist = dist + stidecorr;
-        
+
         %correct the geometric distance for the ocean loading
         oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
         dist = dist + oceanloadcorr;
@@ -484,7 +484,7 @@ else
     sat  = [];
     err_tropo = [];
     err_iono  = [];
-    
+
     if (flag_XR == 2)
         cov_XR = zeros(3,3);
     else

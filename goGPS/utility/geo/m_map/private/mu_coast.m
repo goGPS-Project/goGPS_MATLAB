@@ -2,14 +2,14 @@ function [ncst,Area,k]=mu_coast(optn,varargin);
 % MU_COAST Add a coastline to a given map.
 %         MU_COAST draw a coastline as either filled patches (slow) or
 %         lines (fast) on a given projection. It uses a coastline database with
-%         a resolution of about 1/4 degree. 
+%         a resolution of about 1/4 degree.
 %
 %         It is not meant to be called directly by the user, instead it contains
 %         code common to various functions in the m_map directory.
 %
 %         Calling sequence is MU_COAST(option,arguments) where
 %
-%         Option string  
+%         Option string
 %           c,l,i,h,f :  Accesses various GSHHS databases. Next argument is
 %                        GSHHS filename.
 %
@@ -17,14 +17,14 @@ function [ncst,Area,k]=mu_coast(optn,varargin);
 %                      data saved from a previous MU_COAST call). Next argument
 %                      is filename
 %
-%           v[ector] : Uses input vector of data. Next argument is the 
+%           v[ector] : Uses input vector of data. Next argument is the
 %                     data in the form of a nx2 matrix of [longitude latitude].
 %                     Patches must have first and last points the same. In a vector,
 %                     different patches can be separated by NaN.
 %
 %           d[efault] :  Accesses default coastline.
 %
-%         The arguments given above are then followed by (optional) arguments 
+%         The arguments given above are then followed by (optional) arguments
 %         specifying lines or patches, in the form:
 %
 %          optional arguments:  <line property/value pairs>, or
@@ -33,15 +33,15 @@ function [ncst,Area,k]=mu_coast(optn,varargin);
 %                               'speckle',width,density,<line property/value pairs>.
 %
 %         If no or one output arguments are specified then the coastline is drawn, with
-%         patch handles returned. 
+%         patch handles returned.
 %         If 3 output arguments are specified in the calling sequence, then no drawing
 %         is done. This can be used to save subsampled coastlines for future use
 %         with the 'u' option, for fast drawing of multiple instances of a particular
 %         coastal region.
 %
 %
-%    
-%         See also M_PROJ, M_GRID     
+%
+%         See also M_PROJ, M_GRID
 
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 2/Apr/1997
 %
@@ -92,10 +92,10 @@ end;
 %     Area should be >0 for land, and <0 for lakes and inland seas.
 
 switch optn(1),
-  case {'c','l','i','h','f'},  
+  case {'c','l','i','h','f'},
     [ncst,k,Area]=get_coasts(optn,varargin{1});
     varargin(1)=[];
-  case  'u',                   
+  case  'u',
     eval(['load ' varargin{1} ' -mat']);
     varargin(1)=[];
   case 'v',
@@ -186,17 +186,17 @@ switch optn,
     case 'circle',
       rl=MAP_VAR_LIST.rhomax;
       [X,Y]=m_ll2xy(ncst(:,1),ncst(:,2),'clip','on');
-      oncearound=2*pi;    
+      oncearound=2*pi;
   end;
 
   p_hand=zeros(length(k)-1,1); % Patch handles
-  
+
   for i=1:length(k)-1,
     x=X(k(i)+1:k(i+1)-1);
     fk=isfinite(x);
     if any(fk),
       y=Y(k(i)+1:k(i+1)-1);
-%% if i>921, disp('pause 1'); pause; end; 
+%% if i>921, disp('pause 1'); pause; end;
       nx=length(x);
       if Area(i)<0, x=flipud(x);y=flipud(y); fk=flipud(fk); end;
 %clf
@@ -251,7 +251,7 @@ switch optn,
         switch MAP_VAR_LIST.rectbox,
           case {'on','off'},
             for e=floor(estart):floor(s_edge(mi)),
-              if e==floor(s_edge(mi)), xe=x(st([mi mi])); ye=y(st([mi mi])); 
+              if e==floor(s_edge(mi)), xe=x(st([mi mi])); ye=y(st([mi mi]));
               else  xe=xl; ye=yl; end;
               switch rem(e,4),
                 case 0,
@@ -277,8 +277,8 @@ switch optn,
         end;
         if mi==1, % joined back to start
 	  if strcmp(optn,'patch'),
-            if strcmp(MAP_VAR_LIST.rectbox,'off'), 
-              [xx,yy]=m_ll2xy(xx,yy,'clip','off'); 
+            if strcmp(MAP_VAR_LIST.rectbox,'off'),
+              [xx,yy]=m_ll2xy(xx,yy,'clip','off');
             end;
              if Area(i)<0,
               p_hand(i)=patch(xx,yy,varargin{2:end},'facecolor',get(gca,'color'));
@@ -288,13 +288,13 @@ switch optn,
 	  else  % speckle
             if ~strcmp(MAP_VAR_LIST.rectbox,'off'),  % If we were clipping in
 	       [xx,yy]=m_xy2ll(xx,yy);                % screen coords go back
-	    end;  
+	    end;
             if Area(i)>0,
                p_hand(i)=m_hatch(xx,yy,'speckle',varargin{2:end});
-	    else   
+	    else
 	       p_hand(i)=m_hatch(xx,yy,'outspeckle',varargin{2:end});
             end;
-	  end;  
+	  end;
 %%%if i>921, disp(['paused-2 ' int2str(i)]);pause; end;
           ed(1)=[];st(1)=[];edge2(1)=[];edge1(1)=[];
         else
@@ -305,26 +305,26 @@ switch optn,
         end;
 %%if i>921, disp(['paused-2 ' int2str(i)]);pause; end;
       end;
-    end; 
-  end;  
+    end;
+  end;
 
  otherwise,
- 
+
   % This handles the odd points required at the south pole by any Antarctic
   % coastline by setting them to NaN (for lines only)
   ii=ncst(:,2)<=-89.9;
   if any(ii), ncst(ii,:)=NaN; end;
-  
+
   [X,Y]=m_ll2xy(ncst(:,1),ncst(:,2),'clip','on');
- 
+
   % Get rid of 2-point lines (these are probably clipped lines spanning the window)
-  fk=isfinite(X);        
+  fk=isfinite(X);
   st=find(diff(fk)==1)+1;
   ed=find(diff(fk)==-1);
   k=find((ed-st)==1);
   X(st(k))=NaN;
 
-  p_hand=line(X,Y,varargin{:}); 
+  p_hand=line(X,Y,varargin{:});
 
 end;
 
@@ -444,32 +444,32 @@ l=0;
 while cnt>0,
 
  % A: 1:ID, 2:num points, 3:land/lake etc., 4-7:w/e/s/n, 8:area, 9:greenwich crossed.
- 
+
  C=fread(fid,A(2)*2,'int32'); % Read all points in the current segment.
 
  %For Antarctica the lime limits are 0 to 360 (exactly), thus c==0 and the
  %line is not chosen for (e.g. a conic projection of part of Antarctica)
  % Fix 30may/02
  if A(5)==360e6, A(5)=A(5)-1; end;
- 
+
  a=rlim>llim;  % Map limits cross longitude jump? (a==1 is no)
  b=A(9)<65536; % Cross boundary? (b==1 if no).
- c=llim<rem(A(5)+360e6,360e6); 
+ c=llim<rem(A(5)+360e6,360e6);
  d=rlim>rem(A(4)+360e6,360e6);
  e=tlim>A(6) & blim<A(7);
- 
+
  % This test checks whether the lat/long box containing the line overlaps that of
  % the map. There are various cases to consider, depending on whether map limits
  % and/or the line limits cross the longitude jump or not.
- 
+
 %% if e & (  a&( b&c&d | ~b&(c|d)) | ~a&(~b | (b&(c|d))) ),
  if e & (  (a&( (b&c&d) | (~b&(c|d)) )) | (~a&(~b | (b&(c|d))) ) ),
- 
+
    l=l+1;
- 
+
    x=C(1:2:end)*1e-6;y=C(2:2:end)*1e-6;
  %%  plot(x,y);pause;
-   
+
    %  make things continuous (join edges that cut across 0-meridian)
 
    dx=diff(x);
@@ -480,7 +480,7 @@ while cnt>0,
 %   end;
 
    % Antarctic is a special case - extend contour to make nice closed polygon
-   % that doesn't surround the pole.   
+   % that doesn't surround the pole.
    if abs(x(1))<1 & abs(y(1)+68.9)<1,
      y=[-89.9;-78.4;y(x<=-180);y(x>-180);   -78.4;-89.9*ones(18,1)];
      x=[  180; 180 ;x(x<=-180)+360;x(x>-180);-180; [-180:20:160]'];
@@ -488,47 +488,47 @@ while cnt>0,
 
    % First and last point should be the same IF THIS IS A POLYGON
    % if the Area=0 then this is a line, and don't add points!
-   
+
    if A(8)>0,
-    
+
      if x(end)~=x(1) | y(end)~=y(1), x=[x;x(1)];y=[y;y(1)]; end;
-    
+
      % get correct curve orientation for patch-fill algorithm.
 
      Area2(l)=sum( diff(x).*(y(1:(end-1))+y(2:end))/2 );
      Area(l)=A(8)/10;
 
-     if rem(A(3),2)==0; 
-       Area(l)=-abs(Area(l)); 
+     if rem(A(3),2)==0;
+       Area(l)=-abs(Area(l));
        if Area2(l)>0, x=x(end:-1:1);y=y(end:-1:1); end;
      else
-       if Area2(l)<0, x=x(end:-1:1);y=y(end:-1:1); end; 
+       if Area2(l)<0, x=x(end:-1:1);y=y(end:-1:1); end;
      end;
   else
    % Later on 2 point lines are clipped so we want to avoid that
    if length(x)==2,
     x=[x(1);mean(x);x(2)];y=[y(1);mean(y);y(2)];
-   end; 
+   end;
    % disp('0');
-   % line(x,y);pause;   
+   % line(x,y);pause;
   end;
 
    % Here we try to reduce the number of points.
-   
+
    xflag=0;
    if max(x)>180, % First, save original curve for later if we anticipate
      sx=x;sy=y;   % a 180-problem.
      xflag=1;
    end;
-   
+
    % Look for points outside the lat/long boundaries, and then decimate them
    % by a factor of about 'decfac' (don't get rid of them completely because that
    % can sometimes cause problems when polygon edges cross curved map edges).
-   
-   tol=.2;   
-  
+
+   tol=.2;
+
    % Do y limits, then x so we can keep corner points.
-   
+
    nn=(y>mtlim+tol) | (y<mblim-tol);
      % keep one extra point when crossing limits, also the beginning/end point.
    nn=logical(nn-min(1,([0;diff(nn)]>0)+([diff(nn);0]<0)));
@@ -536,7 +536,7 @@ while cnt>0,
      % decimate vigorously
    nn=nn & rem(1:length(nn),decfac)'~=0;
    x(nn)=[];y(nn)=[];
-         
+
    if mrlim>mllim,  % no wraparound
        % sections of line outside lat/long limits
      nn=(x>mrlim+tol | x<mllim-tol) & y<mtlim & y>mblim;
@@ -546,34 +546,34 @@ while cnt>0,
    nn=logical(nn-min(1,([0;diff(nn)]>0)+([diff(nn);0]<0)));nn([1 end])=0;
    nn=nn & rem(1:length(nn),decfac)'~=0;
    x(nn)=[];y(nn)=[];
-   
+
    % Move all points "near" to map boundaries.
    % I'm not sure about the wisdom of this - it might be better to clip
-   % to the boundaries instead of moving. Hmmm. 
-      
+   % to the boundaries instead of moving. Hmmm.
+
    y(y>mtlim+tol)=mtlim+tol;
    y(y<mblim-tol)=mblim-tol;
    if mrlim>mllim,   % Only clip long bdys if I can tell I'm on the right
                      % or left (i.e. not in wraparound case)
      x(x>mrlim+tol)=mrlim+tol;
      x(x<mllim-tol)=mllim-tol;
-   end;   
-   
+   end;
+
  %% plot(x,y);pause;
- 
+
    k(l+1)=k(l)+length(x)+1;
    ncst(k(l)+1:k(l+1)-1,:)=[x,y];
    ncst(k(l+1),:)=[NaN NaN];
-   
+
    % This is a little tricky...the filling algorithm expects data to be in the
    % range -180 to 180 deg long. However, there are some land parts that cut across
    % this divide so they appear at +190 but not -170. This causes problems later...
    % so as a kludge I replicate some of the problematic features at 190-360=-170.
    % Small islands are just duplicated, for the Eurasian landmass I just clip
    % off the eastern part.
-   
+
    if xflag,
-     l=l+1;Area(l)=Area(l-1); 
+     l=l+1;Area(l)=Area(l-1);
      if abs(Area(l))>1e5,
        nn=find(sx>180);nn=[nn;nn(1)];
        k(l+1)=k(l)+length(nn)+1;
@@ -585,11 +585,11 @@ while cnt>0,
      ncst(k(l+1),:)=[NaN NaN];
    end;
  end;
- 
- 
+
+
  %%[A,cnt]=fread(fid,9,'int32');
  [A,cnt]=get_gheader(fid);
- 
+
 end;
 
 fclose(fid);
@@ -607,11 +607,11 @@ k((l+2):end)=[];
 %size(ncst)
 %size(Area)
 %size(k)
- 
+
 %%%
 function [A,cnt]=get_gheader(fid);
 % Reads the gshhs file header
-% 
+%
 % A bit of code added because header format changed with version 1.3.
 %
 % 17/Sep/2008 - added material to handle latest GSHHS version.
@@ -641,7 +641,7 @@ function [A,cnt]=get_gheader(fid);
 %
 %int id;				/* Unique polygon id number, starting at 0 */
 %int n;				/* Number of points in this polygon */
-%int flag;			/* level + version << 8 + greenwich << 16 + source << 24 
+%int flag;			/* level + version << 8 + greenwich << 16 + source << 24
 %int west, east, south, north;	/* min/max extent in micro-degrees */
 %int area;			/* Area of polygon in 1/10 km^2 */
 %
@@ -667,7 +667,7 @@ function [A,cnt]=get_gheader(fid);
 %	int area;	/* Area of polygon in 1/10 km^2 */
 %	int area_full;	/* Area of original full-resolution polygon in 1/10 km^2 */
 %	int container;	/* Id of container polygon that encloses this polygon (-1 if none) */
-%	int ancestor;	/* Id of ancestor polygon in the full resolution set that was the source of this polygon (-1 if none) 
+%	int ancestor;	/* Id of ancestor polygon in the full resolution set that was the source of this polygon (-1 if none)
 
 
 % Now, in the calling code I have to use A(2),A(3),A(5-7), A(8), A(9) from original.
@@ -677,7 +677,7 @@ function [A,cnt]=get_gheader(fid);
 if cnt<8,  % This gets triggered by the EOF
   return;
 end;
-  
+
 ver=bitand(bitshift(A(3),-8),255);
 
 if ver==0,  % then its an old version
@@ -701,15 +701,15 @@ else  % a newest versions
  greenwich=bitand(bitshift(A(3),-16),255);
  source=bitand(bitshift(A(3),-24),255);
  A(3)=level;
- 
+
  A(9)=greenwich*65536;
- 
+
  if ver>=7,  % After v2.0 some more bytes around
    A2=fread(fid,3,'int32');
 
- end;  
+ end;
 end;
- 
+
 
 
 

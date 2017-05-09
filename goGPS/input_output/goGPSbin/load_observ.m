@@ -18,7 +18,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
-%   dop1_R   = ROVER-SATELLITE Doppler observations (carrieri L1) 
+%   dop1_R   = ROVER-SATELLITE Doppler observations (carrieri L1)
 %   Eph      = matrix of 33 ephemerides for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
@@ -30,15 +30,15 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   by goGPS.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -57,7 +57,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin == 3)
@@ -165,7 +165,7 @@ end
 time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
 
 if ~isempty(time_GPS)
-    
+
     interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
     time_GPS = (time_GPS(1) : interval : time_GPS(end))';   %GPS time without interruptions
@@ -189,7 +189,7 @@ if ~isempty(time_GPS)
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
             Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,num_sat,1), Eph_R(:,:,pos+1:end));
-            
+
             roundtime_R = roundmod(time_R,interval_R);
         end
     else
@@ -217,7 +217,7 @@ if ~isempty(time_GPS)
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
             Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,num_sat,1), Eph_M(:,:,pos+1:end));
-            
+
             roundtime_M = roundmod(time_M,interval_M);
         end
     else

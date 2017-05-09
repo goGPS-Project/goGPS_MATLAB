@@ -20,15 +20,15 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
-%  Contributors:     Lisa Pertusini, 
+%  Written by:
+%  Contributors:     Lisa Pertusini,
 %                    Alemu Befkadu...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -99,7 +99,7 @@ pos2 = (N1+2 : N2  )';
 
 dx1 = x0(pos1) - x0(pos0);
 dx2 = x0(pos1) - x0(pos2);
-dy1 = y0(pos1) - y0(pos0); 
+dy1 = y0(pos1) - y0(pos0);
 dy2 = y0(pos1) - y0(pos2);
 clear pos0 pos1 pos2
 
@@ -108,7 +108,7 @@ table = zeros(N,3);
 % index of the segment
 table(1:N,1) = (N1 : N2)';
 % calculating the angle
-table(2:N-1,2) = acos((dx1.*dx2 + dy1.*dy2) ./ (sqrt(dx1.^2 + dy1.^2) .* sqrt(dx2.^2 + dy2.^2))); 
+table(2:N-1,2) = acos((dx1.*dx2 + dy1.*dy2) ./ (sqrt(dx1.^2 + dy1.^2) .* sqrt(dx2.^2 + dy2.^2)));
 
 clear dx1 dx2
 clear dy1 dy2
@@ -193,7 +193,7 @@ nodes(:,2) = y0(table(:,1));     % node - north coordinates
 
 figure
 plot(x0(N1:N2),y0(N1:N2),'.k')
-hold on 
+hold on
 plot(nodes(:,1),nodes(:,2),'*-g')
 %axis equal
 title('Selected nodes by AGNES');
@@ -223,7 +223,7 @@ clear i j
 
 figure
 plot(x0(N1:N2),y0(N1:N2),'.k')
-hold on 
+hold on
 plot(x0(table(:,1)),y0(table(:,1)),'*-g')
 %axis equal
 title('Selected nodes by AGNES after distance test');

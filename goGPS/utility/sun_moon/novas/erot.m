@@ -36,9 +36,9 @@ thet3 = mod(date1, 1.0d0) + mod(date2, 1.0d0);
 theta = mod(thet1 + thet2 + thet3, 1.0d0) * 360.0d0;
 
 if (theta < 0.0d0)
-    
+
     theta = theta + 360.0d0;
-    
+
 end
 
 

@@ -98,9 +98,9 @@ rv = 0.0d0;
 posmag = sqrt(pos(1)^2 + pos(2)^2 + pos(3)^2);
 
 if (posmag < 1.0d-8)
-    
+
     return
-    
+
 end
 
 % determine how object is to be processed
@@ -110,9 +110,9 @@ dostar = star(1) ~= 0.0d0 || star(2) ~= 0.0d0 || star(3) ~= 0.0d0;
 % compute unit vector toward object
 
 for j = 1:3
-    
+
     uk(j) = pos(j) / posmag;
-    
+
 end
 
 % compute velocity-squared factors
@@ -128,9 +128,9 @@ r = dist(1) * au;
 phigeo = 0.0d0;
 
 if (r > 1.0d6)
-    
+
     phigeo = ge / r;
-    
+
 end
 
 % compute solar potential at observer
@@ -140,80 +140,80 @@ r = dist(2) * au;
 phisun = 0.0d0;
 
 if (r > 1.0d8)
-    
+
     phisun = gs / r;
-    
+
 end
 
 % compute relativistic potential and velocity factor for observer
 
 if (dist(1) ~= 0.0d0 || dist(2) ~= 0.0d0)
-    
+
     % lindegren & dravins eq. (41), second factor in parentheses
-    
+
     rel = 1.0d0 - (phigeo + phisun) / c2 - 0.5d0 * vo2 / c2;
-    
+
 else
-    
+
     % lindegren & dravins eq. (42), inverse
-    
+
     rel = 1.0d0 - 1.550d-8;
-    
+
 end
 
 if (dostar == 1)
-    
+
     % for stars, update barycentric radial velocity measure for change in view angle
-    
+
     ra = star(1) * 15.0d0 * radcon;
-    
+
     dc = star(2) * radcon;
-    
+
     du(1) = uk(1) - (cos (dc) * cos (ra));
-    
+
     du(2) = uk(2) - (cos (dc) * sin (ra));
-    
+
     du(3) = uk(3) - (sin (dc));
-    
+
     zc = star(3) * 1.0d3 + (vel(1) * du(1) + vel(2) * du(2) + vel(3) * du(3)) * toms;
-    
+
     % compute observed radial velocity measure of a star (inverse of
     % lindegren & dravins eq. (41))
-    
+
     zb1 = 1.d0 + zc / c;
-    
+
     kvobs = (uk(1) * velobs(1) + uk(2) * velobs(2) + uk(3) * velobs(3)) * toms;
-    
+
     zobs1 = zb1 * rel / (1.0d0 + kvobs / c);
-    
+
 else
-    
+
     % compute solar potential at object, if within solar system
-    
+
     r = dist(3) * au;
-    
+
     phisun = 0.0d0;
-    
+
     if (r > 1.0d8 && r < 1.0d16)
-        
+
         phisun = gs / r;
-        
+
     end
-    
+
     % compute observed radial velocity measure of a planet or other
     % object -- including a nearby star -- where kinematic
     % barycentric velocity vector is known and gravitational
     % red shift is negligible (lindegren & dravins eq. (40),
     % applied as per s. klioner private communication (2006))
-    
+
     kv = (uk(1) * vel(1) + uk(2) * vel(2) + uk(3) * vel(3)) * toms;
-    
+
     zb1 = (1.0d0 + kv / c) / (10.0d0 - phisun / c2 - 0.5d0 * v2 / c2);
-    
+
     kvobs = (uk(1) * velobs(1) + uk(2) * velobs(2) + uk(3) * velobs(3)) * toms;
-    
+
     zobs1 = zb1 * rel / (1.0d0 + kvobs / c);
-    
+
 end
 
 % convert observed radial velocity measure to kilometers/second

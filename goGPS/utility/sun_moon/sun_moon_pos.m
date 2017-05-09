@@ -33,31 +33,31 @@ sun_ECEF = zeros(3,length(year));
 moon_ECEF = zeros(3,length(year));
 
 for e = 1 : length(year)
-    
+
     %UTC to TDB
     jdutc = julian(month(e,1), day(e,1), year(e,1));
     jdtdb = utc2tdb(jdutc);
-    
+
     %precise celestial pole (disabled)
     [psicor, epscor] = celpol(jdtdb, 1, 0.0d0, 0.0d0);
-    
+
     %compute the Sun position (ICRS coordinates)
     rrd = jplephem(jdtdb, sun_id, earth_id);
     sun_ECI = rrd(1:3);
     sun_ECI = tmatrix*sun_ECI;
-    
+
     %Sun ICRS coordinates to ITRS coordinates
     deltat = getdt;
     jdut1 = jdutc - deltat;
     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
     sun_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, sun_ECI);
-    
+
     if (nargout > 1)
         %compute the Moon position (ICRS coordinates)
         rrd = jplephem(jdtdb, moon_id, earth_id);
         moon_ECI = rrd(1:3);
         moon_ECI = tmatrix*moon_ECI;
-        
+
         %Moon ICRS coordinates to ITRS coordinates
         deltat = getdt;
         jdut1 = jdutc - deltat;

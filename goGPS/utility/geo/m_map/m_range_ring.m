@@ -12,7 +12,7 @@ function h=m_range_ring(long,lat,range,varargin);
 %    The appearance of lines can be modified using the usual
 %    line properties thus:
 %    M_RANGE_RING(LONG,LAT,RANGE, <line property/value pairs>)
-%    
+%
 %    Sometimes you may need to adjust the number of points plotted
 %    in each range ring (this can happen if the ring is at the extreme
 %    edge of certian projections). THis can be done using
@@ -46,7 +46,7 @@ if strcmp(a(1).Name,'Octave'),
 else
  IsOctave=logical(0);
 end;
- 
+
 
 c=range(:)'/earth_radius;
 
@@ -70,33 +70,33 @@ for k=1:length(long),
     otherwise
       X=(rlong+atan2(x.*(on*sin(c)),on*(cos(rlat)*cos(c).*c) - (on*sin(rlat)*sin(c)).*y ) )/pi180;
   end;
- 
+
   nz=zeros(1,length(range(:)));
   X=X+cumsum([nz;diff(X)<-300]-[nz;diff(X)>300])*360;
 
   kk=find(X(1,:)~=X(end,:));
   X2=X(:,kk)+360;X2(X2>MAP_VAR_LIST.longs(2))=NaN;
   X3=X(:,kk)-360;X3(X3<MAP_VAR_LIST.longs(1))=NaN;
-  
+
   [XX,YY]=m_ll2xy([X,X2,X3],[Y,Y(:,kk),Y(:,kk)],'clip','on');
-  
+
   % Get rid of 2-point lines (these are probably clipped lines spanning the window)
-  fk=isfinite(XX(:));        
+  fk=isfinite(XX(:));
   st=find(diff(fk)==1)+1;
   ed=find(diff(fk)==-1);
   if length(st)<length(ed), st=[1;st]; end;
   if length(ed)<length(st), ed=[ed;length(fk)]; end;
   k=find((ed-st)==1);
   XX(st(k))=NaN;
- 
+
   if IsOctave,
      for k=1:size(XX,2),
          h=[h;line(XX(:,k),YY(:,k),varargin{:},'tag','m_range_ring')];
      end;
-  else   
+  else
      h=[h;line(XX,YY,varargin{:},'tag','m_range_ring')];
   end;
-  
+
 end;
 
 if nargout==0,

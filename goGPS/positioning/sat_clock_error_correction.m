@@ -16,14 +16,14 @@ function [corr] = sat_clock_error_correction(time, Eph)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -51,22 +51,22 @@ if (strcmp(char(Eph(31)),'R'))
     TauN     = Eph(2);
     GammaN   = Eph(3);
     ref_toe  = Eph(32);
-    
+
     dt = check_t(time - ref_toe);
     corr = -TauN + GammaN*dt;
-    
+
 else %if GPS/Galileo/QZSS/BeiDou
 
     af2 = Eph(2);
     af0 = Eph(19);
     af1 = Eph(20);
     ref_toc = Eph(33);
-    
+
     %consider BeiDou time (BDT) for BeiDou satellites
     if (strcmp(char(Eph(31)),'C'))
         time = time - 14;
     end
-    
+
     dt = check_t(time - ref_toc);
     corr = (af2 * dt + af1) * dt + af0;
 end

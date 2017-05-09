@@ -22,14 +22,14 @@ function goGPS_LS_SA_code_MR(time_rx, pr1_R, pr2_R, snr_R, Eph, SP3, iono, sbas,
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -113,7 +113,7 @@ end
 %--------------------------------------------------------------------------------------------
 
 if (size(sat_pr,1) >= 4)
-    
+
     sat_pr_R = (1 : nSatTot)';
     for r = 1 : nRov
         if (phase == 1)
@@ -121,39 +121,39 @@ if (size(sat_pr,1) >= 4)
         else
             [XR(:,r), dtR(r,1), XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr,r), snr_R(sat_pr,r), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
         end
-        
+
         err_tropo_R(sat_pr_R_tmp,r) = err_tropo_R_tmp;
         err_iono_R(sat_pr_R_tmp,r) = err_iono_R_tmp;
         sat_pr_R = intersect(sat_pr_R, sat_pr_R_tmp);
     end
-    
+
     %keep only satellites above the elevation cutoff/snr threshold
     sat_pr = sat_pr_R;
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %--------------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %actual pivot
     [~, pivot_index] = max(elR(sat_pr));
     pivot = sat_pr(pivot_index);
-    
+
     %--------------------------------------------------------------------------------------------
     % AVERAGING OF MULTIPLE SOLUTIONS
     %--------------------------------------------------------------------------------------------
 
     XR = mean(XR,2);
-       
+
 else
     if (~isempty(Xhat_t_t))
         XR = Xhat_t_t([1,o1+1,o2+1]);

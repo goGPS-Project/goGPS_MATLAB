@@ -17,15 +17,15 @@ function [data] = decode_rtcm3(msg, constellations, wait_dlg)
 %   RTCM 3.1 binary messages decoding (also in sequence).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [data] = decode_rtcm3(msg, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -74,7 +74,7 @@ if ~isempty(pos_all)
 
     % counter initialization
     i = 0;
-    
+
     if (nargin == 3)
         waitbar(0,wait_dlg,'Decoding master stream...')
     end
@@ -83,12 +83,12 @@ if ~isempty(pos_all)
     pos0 = pos_all(1);
 
     while ~isempty(pos0)
-        
+
         % skip the "preamble" (8 bit) and "reserved" (6 bit) fields
         pos = pos0 + 14;
 
         if (pos + 9 <= length(msg))
-            
+
             if (nargin == 3)
                 waitbar(pos/length(msg),wait_dlg)
             end
@@ -192,7 +192,7 @@ if ~isempty(pos_all)
                         % not implemented
                         case 1029
                             [data(:,i)] = decode_1029(msg(pos:pos+8*LEN-1));
-                            
+
                     end
 
                     % move pointer

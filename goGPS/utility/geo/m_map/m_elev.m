@@ -4,7 +4,7 @@ function [values,longs,lats]=m_elev(varargin);
 %        M_ELEV(OPTN (,LEVELS) (,ARGS,...) ) lets you change various options.
 %        if OPTN=='contour', contour lines are drawn. for OPTN=='contourf',
 %        filled contours are drawn. LEVELS are the levels used, and ARGS
-%        are optional patch arguments of line types, colors, etc. 
+%        are optional patch arguments of line types, colors, etc.
 %
 %        [CS,H]=M_ELEV(...) allows access to the return arguments of the
 %        contour/contourf call.
@@ -28,7 +28,7 @@ function [values,longs,lats]=m_elev(varargin);
 % 30/Aug/13 - hack edge-handling in azimuthal projections that wrap
 %             around.
 
-global MAP_PROJECTION MAP_VAR_LIST 
+global MAP_PROJECTION MAP_VAR_LIST
 
 % Have to have initialized a map first
 
@@ -79,9 +79,9 @@ lgs=(llong:rlong);
 % themselves, which (when filled) show up in the background colour.
 if strcmp(MAP_PROJECTION.routine,'mp_azim') & length(lgs)==362,
   lgs=lgs(1:361);
-  rlong=lgs(end); 
+  rlong=lgs(end);
 end;
-  
+
 
 if rlong<0,
   topo=topo(lts+90.5,lgs+360.5);
@@ -91,7 +91,7 @@ else
   topo=topo(lts+90.5,lgs+.5);
 end;
 
- 
+
 if draw_map,
 
   if nargin==0,
@@ -128,9 +128,9 @@ if draw_map,
       [values,longs]=m_contourf(lg,lt,topo,levels);
    case 'pcolor',
       [longs]=m_pcolor(lg,lt,topo);
-  end;  
+  end;
 
-  set(longs,'tag','m_elev');  
+  set(longs,'tag','m_elev');
   if n_opt<length(varargin), for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end; end;
 
 else

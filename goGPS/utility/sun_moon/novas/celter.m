@@ -54,17 +54,17 @@ t0 = 2451545.0d0;
 deltat = getdt;
 
 if (tjdh >= 0.0d0)
-    
+
     utjdh = tjdh;
-    
+
     utjdl = tjdl;
-    
+
 else
-    
+
     utjdh = tjdl;
-    
+
     utjdl = 0.0d0;
-    
+
 end
 
 utjd = utjdh + utjdl;
@@ -76,9 +76,9 @@ ttjd = utjd + deltat;
 tdbjd = utc2tdb(ttjd);
 
 % tdbjd = ttjd;
-% 
+%
 % [t, secdif] = novas_times (tdbjd);
-% 
+%
 % tdbjd = ttjd + secdif / 86400.0d0;
 
 % get method/accuracy mode
@@ -86,100 +86,100 @@ tdbjd = utc2tdb(ttjd);
 mode = getmod;
 
 if (mode >= 2)
-    
+
     % 'equinox' mode
-    
+
     % special option skips initial transformations
-    
+
     if (tjdh < 0.0d0)
-        
+
         v3(1) = vec1(1);
-        
+
         v3(2) = vec1(2);
-        
+
         v3(3) = vec1(3);
-        
+
     else
-        
+
         % apply frame-tie matrix
-        
+
         v1 = frame (vec1, 1);
-        
+
         % apply precession and nutation
-        
+
         v2 = preces (t0, v1, tdbjd);
-        
+
         v3 = nutate (tdbjd, v2);
-        
+
     end
-    
+
     % apply earth rotation
-    
+
     gast = sidtim (utjdh, utjdl, 1);
-    
+
     v4 = spin (gast * 15.0d0, v3);
-    
+
     % apply polar motion
-    
+
     if (xp == 0.0d0 && yp == 0.0d0)
-        
+
         vec2(1) = v4(1);
-        
+
         vec2(2) = v4(2);
-        
+
         vec2(3) = v4(3);
-        
+
     else
-        
+
         vec2 = wobble (-tdbjd, xp, yp, v4);
-        
+
     end
-    
+
 else
-    
+
     % 'cio-tio-theta' mode
     % see g. kaplan (2003), 'another look at non-rotating origins',
     % proceedings of iau xxv joint discussion 16 (preprint),
     % eq. (3) and (4).
-    
+
     % obtain the basis vectors, in the gcrs, of the celestial
     % intermediate system
-    
+
     [rcio, kcio] = cioloc (tdbjd);
-    
+
     [x, y, z] = ciobas (tdbjd, rcio, kcio);
-    
+
     % transform the vector from the gcrs to the
     % celestial intermediate system
-    
+
     v1(1) = x(1) * vec1(1) + x(2) * vec1(2) + x(3) * vec1(3);
-    
+
     v1(2) = y(1) * vec1(1) + y(2) * vec1(2) + y(3) * vec1(3);
-    
+
     v1(3) = z(1) * vec1(1) + z(2) * vec1(2) + z(3) * vec1(3);
-    
+
     % compute and apply the earth rotation angle theta, transforming
     % the vector to the terrestrial intermediate system
-    
+
     theta = erot (utjdh, utjdl);
-    
+
     v2 = spin (theta, v1);
-    
+
     % apply polar motion, transforming the vector to the itrs
-    
+
     if (xp == 0.0d0 && yp == 0.0d0)
-        
+
         vec2(1) = v2(1);
-        
+
         vec2(2) = v2(2);
-        
+
         vec2(3) = v2(3);
-        
+
     else
-        
+
         vec2 = wobble (-tdbjd, xp, yp, v2);
-        
+
     end
-    
+
 end
 

@@ -8,7 +8,7 @@ function [lon2,lat2,a21] = m_fdist(lon1,lat1,a12,s,spheroid)
 % lat1 = GEODETIC latitude of first point (degrees)
 % lon1 = longitude of first point (degrees)
 % a12 = azimuth in degrees from first point to second point (forward)
-% s = distance in meters  
+% s = distance in meters
 % spheroid = (Optional) spheroid, defaults to 'wgs84'
 %
 % lat2, lon2 = second point (degrees)
@@ -47,7 +47,7 @@ MAP_ELLIP = struct ( 'normal', [1.0, 0], ...
     'sphere', [6370997.0, 0], ...
     'grs80' , [6378137.0, 1/298.257], ...
     'grs67' , [6378160.0, 1/247.247], ...
-    'wgs84' , [6378137.0, 1/298.257223563], ... 
+    'wgs84' , [6378137.0, 1/298.257223563], ...
     'wgs72' , [6378135.0, 1/298.260], ...
     'wgs66' , [6378145.0, 1/298.250], ...
     'wgs60' , [6378165.0, 1/298.300], ...
@@ -59,7 +59,7 @@ MAP_ELLIP = struct ( 'normal', [1.0, 0], ...
 if nargin<5,
   spheroid='wgs84';
 end;
-ellip=getfield(MAP_ELLIP,spheroid); 
+ellip=getfield(MAP_ELLIP,spheroid);
 if length(ellip)~=2,
  disp(MAP_ELLIP);
  error('Spheroid not chosen from above list');
@@ -80,7 +80,7 @@ for k=1:size(allsize,2),
    if allsize(3,k)==1,a12=repmat(a12,j1); end;
    if allsize(4,k)==1,s=repmat(s,j1); end;
  elseif length(rs)>2,
-  error('incompatible array sizes!');  
+  error('incompatible array sizes!');
  end;
 end;
 
@@ -108,7 +108,7 @@ a=ellip(1);
 b=a*(1-ellip(2));
 f = (a-b)/a;
 U1 = atan((1-f)*tan(lat1*pi180));
- 
+
 a12=a12*pi180;
 sigma1=atan2( tan(U1),cos(a12));
 alpha = asin( cos(U1).*sin(a12) );
@@ -138,7 +138,7 @@ while any(k)  % force at least one execution
     deltasigma(k) = B(k).*sin(sigma(k)).*(cos2sigmam(k)+B(k)./4.*(cos(sigma(k)).*(-1+ ...
                    2.*cos2sigmam(k).^2)-B(k)./6.*cos2sigmam(k).*(-3+ ...
 		   4.*sin(sigma(k)).^2).*(-3+4*cos2sigmam(k).^2)));
-    sigmaold(k)=sigma(k);		 
+    sigmaold(k)=sigma(k);
     sigma(k)=sigmainit(k)+deltasigma(k);
     k = abs(sigma-sigmaold) > 1e-12;
 end

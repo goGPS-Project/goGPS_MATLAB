@@ -33,7 +33,7 @@ function pos2 = grvdef (tjd, loc, pos1, pobs)
 % the following list of names identifies which gravitating bodies
 % (aside from the earth) are potentially used -- list is taken from
 % klioner's table 1, the order based on area of sky affected (col 2)
-     
+
 % names = ['sun'; 'jup'; 'sat'; 'moo'; 'ven'; 'ura'; 'nep'];
 
 % change value of nbody to include or exclude gravitating bodies
@@ -67,17 +67,17 @@ rmasse = astcon ('mass_earth', 1.0d0);
 % initialize output vector of observed object to equal input vector
 
 for j = 1:3
-    
+
     pos2(j) = pos1(j);
-    
+
 end
 
 % option for no deflection
 
 if (nbody <= 0)
-    
+
     return
-    
+
 end
 
 % compute light-time to observed object
@@ -87,49 +87,49 @@ tlt = sqrt (pos1(1)^2 + pos1(2)^2 + pos1(3)^2) / c;
 % cycle through gravitating bodies
 
 for i = 1:nbody
-    
+
     if (id(i) == -9999)
-        
+
         break
-        
+
     end
-    
+
     % get position of gravitating body wrt ss barycenter at time tjd
-    
+
     [pbody, vbody, ierr] = solsys (tjd, id(i), 0);
-    
+
     % get position of gravitating body wrt observer at time tjd
-    
+
     [pbodyo, x] = geocen (pbody, pobs);
-    
+
     % compute light-time from point on incoming light ray that
     % is closest to gravitating body
-    
+
     dlt = dlight (pos2, pbodyo);
-    
+
     % get position of gravitating body wrt ss barycenter at time
     % when incoming photons were closest to it
-    
+
     tclose = tjd;
-    
+
     if (dlt > 0.0d0)
-        
+
         tclose = tjd - dlt;
-        
+
     end
-    
+
     if (tlt < dlt)
-        
+
         tclose = tjd - tlt;
-        
+
     end
-    
+
     [pbody, vbody, ierr] = solsys (tclose, id(i), 0);
-    
+
     % compute deflection due to gravitating body
-    
+
     pos2 = grvd (pos2, pobs, pbody, rmass(i));
-    
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,14 +137,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if (loc ~= 0)
-    
+
     % get position of earth wrt ss barycenter at time tjd
-    
+
     [pbody, vbody, ierr] = solsys (tjd, ide, 0);
-    
+
     % compute deflection due to earth
-    
+
     pos2 = grvd (pos2, pobs, pbody, rmasse);
-    
+
 end
 

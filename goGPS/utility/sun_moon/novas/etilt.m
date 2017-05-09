@@ -42,22 +42,22 @@ t = (tjd - t0) / 36525.0d0;
 % obtain complementary terms for equation of the equinoxes in arc seconds
 
 if (mod (mode, 2) == 0)
-    
+
     % high-accuracy mode
-    
+
     cterms = eect2000 (tjd, 0.0d0) * seccon;
-    
+
 else
-    
+
     % low-accuracy mode
-    
+
     [el, elp, f, d, omega] = funarg (t);
-    
+
     % series from iers conventions (2003), chapter 5,
     % table 5.2c, with some adjustments to coefficient values
     % copied from iers function eect2000, which has a more
     % complete series
-    
+
     cterms = 2640.96d-6 * sin (omega) ...
         +   63.52d-6 * sin (2.0d0 * omega) ...
         +   11.75d-6 * sin (2.0d0 * f - 2.0d0 * d + 3.0d0 * omega) ...
@@ -67,9 +67,9 @@ else
         +    1.98d-6 * sin (2.0d0 * f             +         omega) ...
         -    1.72d-6 * sin (3.0d0 * omega) ...
         -    0.87d-6 * t * sin (omega);
-    
+
     % (terms smaller than 2 microarcseconds omitted)
-    
+
 end
 
 delpsi = psi_novas + psicor;

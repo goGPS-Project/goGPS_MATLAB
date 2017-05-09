@@ -4,11 +4,11 @@ function rgb_img = exportAsImage(file_name, data, cmap, min_max, x0, y0, x1, y1)
 %   rgb_img = exportAsImage(file_name, data, cmap, min_max, x1, y1)
 %
 % INPUT:
-%   file_name 
+%   file_name
 %   data      [n x m] image
 %   min_max   limits of the image (empty to avoid saturation)
-%   x0, y0    meshgrid of original coordinate ( or size of the original image)  
-%   x1, y1    meshgrid of final exported coordinate ( or size of the final exported image)  
+%   x0, y0    meshgrid of original coordinate ( or size of the original image)
+%   x1, y1    meshgrid of final exported coordinate ( or size of the final exported image)
 %
 % OUTPUT:
 %   rgb_img = [n x m x 3] RGB image
@@ -18,10 +18,10 @@ function rgb_img = exportAsImage(file_name, data, cmap, min_max, x0, y0, x1, y1)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -48,11 +48,11 @@ function rgb_img = exportAsImage(file_name, data, cmap, min_max, x0, y0, x1, y1)
 %--------------------------------------------------------------------------
 
     narginchk(3,8);
-    
+
     if (nargin == 3) || isempty(min_max)
         min_max = [min(data(:)) max(data(:))];
     end
-    
+
     if (nargin == 6)
         x1 = x0;
         y1 = y0;
@@ -69,8 +69,8 @@ function rgb_img = exportAsImage(file_name, data, cmap, min_max, x0, y0, x1, y1)
             [x1, y1] = meshgrid(x1, y1);
         end
         tic; data = interp2(x0, y0, data, x1, y1, 'spline'); toc;
-    end    
-    clear x0 x1 y0 y1;    
+    end
+    clear x0 x1 y0 y1;
     rgb_img = img2rgb(data, cmap, min_max);
     imwrite(rgb_img, file_name);
 end

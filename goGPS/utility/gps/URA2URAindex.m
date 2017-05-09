@@ -10,19 +10,19 @@ function [URAindex] = URA2URAindex(URA)
 %   URAindex = User Range Accuracy index [vector]
 %
 % DESCRIPTION:
-%   Converts URA values to URA indexes. From the Interface Specification 
+%   Converts URA values to URA indexes. From the Interface Specification
 %   document revision E (IS-GPS-200E), page 146.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ function [URAindex] = URA2URAindex(URA)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 URAtable = [0.01 0.02 0.03 0.04 0.06 0.08 0.11 0.15 0.21 0.30 0.43 0.60 ...
@@ -57,7 +57,7 @@ for i = 1 : length(URA)
         URAindex(i) = -16;
         continue
     end
-    
+
     d = URAtable - URA(i);
     [~, j] = min(abs(d));
     if (d(j) >= 0)

@@ -17,12 +17,12 @@ function [iodi_mask, band_mask, igp_mask, n_bands_mask] = load_igpmask(MT, msg)
 %   Load the Iono Grid Point (IGP) masks referring to each band (MT 18).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -44,21 +44,21 @@ function [iodi_mask, band_mask, igp_mask, n_bands_mask] = load_igpmask(MT, msg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 r_MT = find(MT == 18);
 
 %decode the MT18 - IGP mask
 for i = 1 : length(r_MT)
-    
+
     [n_bands18, band18, iodi18, igp_mask18] = ems2igpmask(msg(r_MT(i),:)); %#ok<ASGLU>
-    
+
     %n_bands(i,1) = n_bands18;
     band(i,1)  = band18;
     iodi(i,1)  = iodi18;
     mask(i,:) = igp_mask18;
-   
+
 end
 
 %check which bands are transmitted
@@ -68,19 +68,19 @@ b = 1;
 
 %asociate IGP masks to each band
 for i = 1 : length(bands)
-    
+
     %message referring to each band
     r_band = find(band == bands(i));
-    
+
     %store the first IODI and the first IGP mask for each band
     iodi_mask(b,1) = iodi(r_band(1),1);
     igp_mask(b, :) = mask(r_band(1),:);
     band_mask(b,1) = band(r_band(1),1);
-    
+
     for j = 1 : length(r_band)-1
-        
+
         if (~isequal(iodi(r_band(j),1), iodi(r_band(j+1),1)))
-            
+
             %if two subsequent IODI are different, then store the new IODI
             %and the new IGP mask
             b = b + 1;
@@ -89,14 +89,14 @@ for i = 1 : length(bands)
             band_mask(b,1) = band(r_band(j+1),1);
         end
     end
-    
+
     %next band
     b = b + 1;
 end
-    
-n_bands_mask = length(bands);    
+
+n_bands_mask = length(bands);
 
 %DEBUG
 %disp(' ')
-%disp(['IODI: ', num2str(iodi_mask') ]) 
-%disp(['bands: ', num2str(band_mask') ]) 
+%disp(['IODI: ', num2str(iodi_mask') ])
+%disp(['bands: ', num2str(band_mask') ])

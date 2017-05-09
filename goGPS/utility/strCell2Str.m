@@ -4,7 +4,7 @@ function str = strCell2Str(str_cell, separator)
 %
 % INPUT:
 %   str_cell  = cell array of strings
-%   separator = <optional> contains the separator string (white space as default) 
+%   separator = <optional> contains the separator string (white space as default)
 %
 % OUTPUT:
 %   str = single string of the element list separated by the "separator"
@@ -14,10 +14,10 @@ function str = strCell2Str(str_cell, separator)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -51,7 +51,7 @@ function str = strCell2Str(str_cell, separator)
     if ~isempty(str_cell)
         str = str_cell{1};
         for i = 2 : numel(str_cell)
-            str = sprintf('%s%s%s', str, separator, str_cell{i});        
+            str = sprintf('%s%s%s', str, separator, str_cell{i});
         end
     else
         str = '';

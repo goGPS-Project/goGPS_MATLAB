@@ -8,7 +8,7 @@ function [ra2, dec2, pmra2, pmdec2, parx2, rv2] = catran ...
 
 % input
 
-%  it     = transformation option 
+%  it     = transformation option
 
 %           set it=1 to change epoch (same equator and equinox)
 %           set it=2 to change equator and equinox (same epoch)
@@ -27,26 +27,26 @@ function [ra2, dec2, pmra2, pmdec2, parx2, rv2] = catran ...
 
 %  pmdec1 = original proper motion in dec in milliarcseconds/year
 
-%  parx1  = original parallax in milliarcseconds 
+%  parx1  = original parallax in milliarcseconds
 
 %  rv1    = original radial velocity in kilometers/second
-%               
+%
 %  date2  = tt julian date, or year, for transformed
-%           output data (the following six arguments) 
+%           output data (the following six arguments)
 
 % output
 
-%  ra2    = transformed mean right ascension in hours 
+%  ra2    = transformed mean right ascension in hours
 
-%  dec2   = transformed mean declination in degrees 
+%  dec2   = transformed mean declination in degrees
 
 %  pmra2  = transformed proper motion in ra in milliarcseconds/year
 
-%  pmdec2 = transformed proper motion in dec in milliarcseconds/year 
+%  pmdec2 = transformed proper motion in dec in milliarcseconds/year
 
-%  parx2  = transformed parallax in milliarcseconds 
+%  parx2  = transformed parallax in milliarcseconds
 
-%  rv2    = transformed radial velocity in kilometers/second               
+%  rv2    = transformed radial velocity in kilometers/second
 
 % note 1:  date1 and date2 may be specified either as a julian
 % date (e.g., 2433282.5d0) or a julian year and fraction
@@ -100,17 +100,17 @@ aukm = 1.0d-3 * 499.0047838061d0 * c;
 % distinction between tdb and tt is necessary
 
 if (date1 < 10000.0d0)
-    
+
     tjd1 = 2451545.0d0 + (date1 - 2000.0d0) * 365.25d0;
-    
+
 else
     tjd1 = date1;
 end
 
 if (date2 < 10000.0d0)
-    
+
     tjd2 = 2451545.0d0 + (date2 - 2000.0d0) * 365.25d0;
-    
+
 else
     tjd2 = date2;
 end
@@ -123,9 +123,9 @@ end
 paralx = parx1;
 
 if (paralx <= 0.0d0)
-    
+
     paralx = 1.0d-6;
-    
+
 end
 
 % convert right ascension, declination, and parallax to position
@@ -182,18 +182,18 @@ if (it == 1 || it == 3)
 
     for j = 1:1:3
         pos2(j) = pos1(j) + vel1(j) * (tjd2 - tjd1);
-        
+
         vel2(j) = vel1(j);
     end
-    
+
 else
 
     for j = 1:1:3
         pos2(j) = pos1(j);
-        
+
         vel2(j) = vel1(j);
     end
-    
+
 end
 
 % --- precess position and velocity vectors (only if it = 2 or it = 3)
@@ -202,12 +202,12 @@ if (it == 2 || it == 3)
 
     for j = 1:1:3
         pos1(j) = pos2(j);
-        
+
         vel1(j) = vel2(j);
     end
 
     pos2 = preces (tjd1, pos1, tjd2);
-    
+
     vel2 = preces (tjd1, vel1, tjd2);
 end
 
@@ -216,7 +216,7 @@ end
 
 if (it == 4)
     pos2 = frame (pos1, -1);
-    
+
     vel2 = frame (vel1, -1);
 end
 
@@ -225,7 +225,7 @@ end
 
 if (it == 5)
     pos2 = frame (pos1, 1);
-    
+
     vel2 = frame (vel1, 1);
 end
 

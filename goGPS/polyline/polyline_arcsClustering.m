@@ -22,15 +22,15 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
-%  Contributors:     Lisa Pertusini, 
+%  Written by:
+%  Contributors:     Lisa Pertusini,
 %                    Alemu Befkadu...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -125,7 +125,7 @@ while loop
     title('Bounding boxes');
     xlabel('East [m]');
     ylabel('North [m]');
-    
+
     %---------------------------------
 
     NN = length(nodes)-1;        % define the number of segments
@@ -139,7 +139,7 @@ while loop
     % find the intersection point of the segment with the y-axis
     q = zeros(NN,1);
     for i = 1 : NN;
-        q(i) = nodes(i,2) - Mo(i,1) * nodes(i,1); 
+        q(i) = nodes(i,2) - Mo(i,1) * nodes(i,1);
     end
 
     %---------------------------------------------------------------------
@@ -174,7 +174,7 @@ while loop
         else
             b0(i) = b0_2(i) ;
             yb0(i) = yb0_2(i);
-        end        
+        end
     end
 
     clear a b c
@@ -313,7 +313,7 @@ while loop
 
     %---------------------------------------------------------------------
     % define the rotation angle
-    
+
     alpha = zeros(NN,1);
     for o = 1 : NN;
         alpha(o)= atan(Mo(o));
@@ -352,7 +352,7 @@ while loop
 
         clear R T
         clear B2_1 B2_2 B3_1 B3_2
-                
+
         % to know which point belongs to which segment
         T_rot = T_rot';
         for j = 1:length(T_rot)
@@ -380,7 +380,7 @@ while loop
     clear left right
     clear up down
 
-    %---------------------------------------------------------------------    
+    %---------------------------------------------------------------------
     % check whether there are points that are classified twice
 
     table(:,end) = sum(table(:,5:end-1),2);
@@ -405,7 +405,7 @@ while loop
 
     table(:,end) = 0;   % the field will be used for labelling
 
-    %---------------------------------------------------------------------    
+    %---------------------------------------------------------------------
     % labelling
 
     for i = 1 : Nt
@@ -416,7 +416,7 @@ while loop
         end
     end
 
-    %---------------------------------------------------------------------    
+    %---------------------------------------------------------------------
     % check whether there are segments containing less than two data
 
     h = hist(table(:,end),1:NN);
@@ -458,13 +458,13 @@ clear pos
 %     hold on
 %     plot(nodes(i,1), nodes(i,2), '.r')
 %     plot(nodes(i+1,1), nodes(i+1,2), '.r')
-%     
+%
 %     pos = find(label == i+1);
 %     plot(table(pos,1),table(pos,2),'.c');
 %     hold on
 %     plot(nodes(i+1,1), nodes(i+1,2), '.m')
 %     plot(nodes(i+2,1), nodes(i+2,2), '.m')
-%     
+%
 %     hold off
 %     pause
 % end

@@ -2,10 +2,10 @@ function h=m_ruler(posx,posy,varargin);
 % M_RULER Draws a distance scalebar for a map
 %   M_RULER([X1 X2],Y1) draws a horizontal scale bar between the
 %   normalized coordinates (X1,Y1) and (X2,Y1) where both X/Y are
-%   in the range 0 to 1.  
+%   in the range 0 to 1.
 %   M_RULER(X1,[Y1 Y2]) draws a vertical scalebar
 %   M_RULER(...,NINTS) draws the scalebar with NINTS intervals
-%   if NINTS is a scalar (default 4).  Distances of each interval are 
+%   if NINTS is a scalar (default 4).  Distances of each interval are
 %   chosen to be 'nice'. If NINTS is a vector it is understood to be
 %   the distances to be used (in meters)
 %
@@ -42,18 +42,18 @@ if length(varargin)>0,
    varargin=varargin(2:end);
    fixticks=1;
   end;
-end;    
+end;
 
- 
+
 gcolor='k';
 glinestyle='-';
 glinewidth=3;
 gfontsize=get(gca,'fontsize');
 gfontname=get(gca,'fontname');
-gticklen=get(gca,'ticklength'); gticklen=gticklen(1); 
-gtickdir=get(gca,'tickdir'); 
- 
- 
+gticklen=get(gca,'ticklength'); gticklen=gticklen(1);
+gtickdir=get(gca,'tickdir');
+
+
 % Parse parameter list for options. I really should do some
 % error checking here, but...
 
@@ -103,9 +103,9 @@ while k<=length(varargin),
        return;
   end;
   k=k+2;
-end;     
+end;
 
- 
+
 % Need earth radius, in m.
 erad=6378137; %m (from WGS-84)
 
@@ -147,13 +147,13 @@ niceints=[ 1      2      5  ...
 	   10000  20000  50000  ...
 	   100000 200000 500000 ...
 	   1000000 2000000 5000000 ];
-	   
- 	   
+
+
 if length(nints)==1,
-	  
+
   exactint=distance/(nints);
   [dun,I]=min(abs(niceints-exactint));
- 
+
   if ~fixticks,
     nints=fix(distance/niceints(I));
   end;
@@ -169,15 +169,15 @@ if max(log10(dist(2:end)))>=3,
 else
    numfac=1;
 end;
-      
+
 if horiz,
- 
- 
+
+
   if strcmp(gtickdir,'in'),
 
     line(posx(1)+[0 dist(end)/scfac],posy(1)+[0 0],'color',gcolor,'linewidth',glinewidth,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_x');
-	 
+
     XX=posx(1)+[dist;dist]/scfac;
     YY=posy(1)+diff(ylm)*gticklen*[-1;1]*ones(1,nints+1);
     if IsOctave,
@@ -186,13 +186,13 @@ if horiz,
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end;
-    else  
+    else
       line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end;	 
+    end;
   else
-   
+
     patch(posx(1)+[dist(1:end-1);dist(1:end-1);dist(2:end);dist(2:end)]/scfac,...
            posy(1)+diff(ylm)*gticklen*[-1;1;1;-1]*ones(1,nints),...
 	   repmat(bitmax  ,4,nints),...
@@ -201,7 +201,7 @@ if horiz,
          'clipping','off','tag','m_ruler');
 
   end;
-   
+
   if nints>1,
     for k=1:nints,
       text(posx(1)+dist(k)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d',dist(k)/numfac), ...
@@ -211,35 +211,35 @@ if horiz,
     text(posx(1)+dist(nints+1)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
-  else 
+  else
     text(posx(1)+mean(dist)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
   end;
-  
+
 else,
 
   if strcmp(gtickdir,'in'),
 
     line(posx(1)+[0 0],posy(1)+[0 dist(end)/scfac],'color',gcolor,'linewidth',glinewidth,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_scalebar_x');
-	 
+
     XX=posx(1)+diff(xlm)*gticklen*[-1;1]*ones(1,nints+1);
     YY=posy(1)+[dist;dist]/scfac;
-    
+
     if IsOctave,
       for k=1:size(XX,2),
        line(XX(:,k),YY(:,k),...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end;
-    else  
+    else
        line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end;	 
+    end;
   else
-   
+
     patch(posx(1)+diff(xlm)*gticklen*[-1;1;1;-1]*ones(1,nints),...
           posy(1)+[dist(1:end-1);dist(1:end-1);dist(2:end);dist(2:end)]/scfac,...
 	   repmat(bitmax  ,4,nints),...
@@ -258,12 +258,12 @@ else,
     text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(nints+1)/scfac,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
-  else  
+  else
     text(posx(1)+diff(xlm)*gticklen*2,posy(1)+mean(dist)/scfac,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
   end;
-       
+
 end;
 
 
@@ -272,7 +272,7 @@ end;
 
 
 
- 
+
 
 
 

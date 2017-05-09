@@ -19,15 +19,15 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -46,7 +46,7 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %variable initialization
@@ -93,10 +93,10 @@ while (eof==0)
 
     %check RINEX version
     if strcmp(lin(1),' ') %RINEX v2.xx
-        
+
         %check if it is a string that should be analyzed
         if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
-            
+
             %save time information
             data   = textscan(lin(1:26),'%f%f%f%f%f%f');
             year   = data{1};
@@ -105,28 +105,28 @@ while (eof==0)
             hour   = data{4};
             minute = data{5};
             second = data{6};
-            
+
             %computation of the GPS time in weeks and seconds of week
             year = four_digit_year(year);
             [week, tow] = date2gps([year, month, day, hour, minute, second]);
             [time] = weektow2time(week, tow, 'G');
-            
+
             %number of visible satellites
             [num_sat] = sscanf(lin(30:32),'%d');
-            
+
             %keep just the satellite data
             lin = ExtractSubstring(lin, 33, 68);
-            
+
             %remove 'blank spaces' and unwanted characters at the end of the string
             lin = RemoveUnwantedTrailingSpaces(lin);
-            
+
             %read additional lines, depending on the number of satellites
             nlines = ceil(num_sat/12);
             for n = 1 : nlines - 1
                 lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
                 lin = RemoveUnwantedTrailingSpaces(lin);
             end
-            
+
             pos = 1;
             sat = zeros(num_sat,1);
             sat_types = char(32*uint8(ones(num_sat,1))');
@@ -143,15 +143,15 @@ while (eof==0)
                 sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
                 pos = pos + 3;
             end
-            
+
             eof = 1;
         end
-        
+
     elseif strcmp(lin(1),'>') %RINEX v3.xx
-        
+
         %check if it is a string that should be analyzed
         if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
-            
+
             %save time information
             data   = textscan(lin(2:29),'%f%f%f%f%f%f');
             year   = data{1};
@@ -160,14 +160,14 @@ while (eof==0)
             hour   = data{4};
             minute = data{5};
             second = data{6};
-            
+
             %computation of the GPS time in weeks and seconds of week
             [week, tow] = date2gps([year, month, day, hour, minute, second]);
             [time] = weektow2time(week, tow, 'G');
-            
+
             %number of visible satellites
             [num_sat] = sscanf(lin(33:35),'%d');
-            
+
             eof = 1;
         end
     end

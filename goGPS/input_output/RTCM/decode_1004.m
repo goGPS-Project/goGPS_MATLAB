@@ -32,15 +32,15 @@ function [data] = decode_1004(msg, constellations)
 %   RTCM format 1004 message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -59,7 +59,7 @@ function [data] = decode_1004(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %retrieve GPS L1/L2 wavelengths
@@ -159,7 +159,7 @@ for i = 1 : NSV
         DF020 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
         %---------------------------------------------------------
-        
+
         % assign constellation-specific indexes
         idx = [];
         if (SV <= 32 && constellations.GPS.enabled)

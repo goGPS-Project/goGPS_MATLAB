@@ -30,14 +30,14 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Andrea Nardo, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -142,11 +142,11 @@ nsat = size(sat,1);
 %if at least min_nsat_LS satellites are available
 min_nsat_LS = 3 + n_sys;
 if (nsat >= min_nsat_LS)
-    
+
     %approximate position
     XR0 = X_t1_t([1,o1+1,o2+1]);
     flag_XR = 1;
-    
+
     if (phase == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat,  [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
@@ -154,7 +154,7 @@ if (nsat >= min_nsat_LS)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat,  [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     end
-    
+
     %keep only satellites that rover and master have in common
     [sat, iR, iM] = intersect(sat_R, sat_M);
     XS = XS(iR,:);
@@ -168,49 +168,49 @@ if (nsat >= min_nsat_LS)
     %----------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %----------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %number of visible satellites
     nsat = size(sat,1);
-    
+
     %previous pivot
     if (pivot ~= 0)
         pivot_old = pivot;
     end
-    
+
     %current pivot
     [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(pivot_index);
 
-    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (nsat >= min_nsat_LS && cond_num < cond_num_threshold)
-        
+
         %--------------------------------------------------------------------------------------------
         % LEAST SQUARES SOLUTION
         %--------------------------------------------------------------------------------------------
 
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3
-            
+
             if (phase == 1)
                 [XR, cov_XR] = LS_DD_code(XR, XS, pr1_R(sat), pr1_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
             else
                 [XR, cov_XR] = LS_DD_code(XR, XS, pr2_R(sat), pr2_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
             end
-            
+
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
             [azR(azR ~= 0), elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
-            
+
             err_tropo_R = tropo_error_correction(time_rx, phiR*180/pi, lamR*180/pi, hR, elR(elR ~= 0));
             err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
-            
+
             %correct the ionospheric errors for different frequencies
             err_iono_R = ionoFactor(sat,phase).*err_iono_R;
         end
@@ -218,18 +218,18 @@ if (nsat >= min_nsat_LS)
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
         end
-        
+
         %zeroes vector useful in matrix definitions
         Z_1_om = zeros(1,o1-1);
-        
+
         %computation of the H matrix for code observations
         H = [1 Z_1_om 0 Z_1_om 0 Z_1_om;
             0 Z_1_om 1 Z_1_om 0 Z_1_om;
             0 Z_1_om 0 Z_1_om 1 Z_1_om];
-        
+
         %Y0 vector for code observations
         y0 = XR;
-        
+
         %covariance matrix of observations
         Cnn = cov_XR;
     else

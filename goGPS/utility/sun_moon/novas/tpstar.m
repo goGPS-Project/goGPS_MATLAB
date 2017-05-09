@@ -31,21 +31,21 @@ locatn = 1;
 icoord = 1;
 
 if (ujd > 100.0d0)
-    
+
     deltat = (ttjd - ujd) * 86400.0d0;
-    
+
 else
-    
+
     gast = mod (ujd, 24.0d0);
-    
+
     if (gast < 0.d0)
-        
+
         gast = gast + 24.0d0;
-        
+
     end
-    
+
     deltat = 0.0d0;
-    
+
 end
 
 object = 'star';

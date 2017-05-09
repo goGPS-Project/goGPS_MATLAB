@@ -1,6 +1,6 @@
 function [b,idx,outliers] = deleteoutliers(a,alpha,rep);
 % [B, IDX, OUTLIERS] = DELETEOUTLIERS(A, ALPHA, REP)
-% 
+%
 % For input vector A, returns a vector B with outliers (at the significance
 % level alpha) removed. Also, optional output argument idx returns the
 % indices in A of outlier values. Optional output argument outliers returns
@@ -8,7 +8,7 @@ function [b,idx,outliers] = deleteoutliers(a,alpha,rep);
 %
 % ALPHA is the significance level for determination of outliers. If not
 % provided, alpha defaults to 0.05.
-% 
+%
 % REP is an optional argument that forces the replacement of removed
 % elements with NaNs to presereve the length of a. (Thanks for the
 % suggestion, Urs.)
@@ -18,11 +18,11 @@ function [b,idx,outliers] = deleteoutliers(a,alpha,rep);
 % highest value, or the lowest, and is the value that is furthest
 % from the sample mean. Infinite elements are discarded if rep is 0, or
 % replaced with NaNs if rep is 1 (thanks again, Urs).
-% 
+%
 % Appropriate application of the test requires that data can be reasonably
 % approximated by a normal distribution. For reference, see:
 % 1) "Procedures for Detecting Outlying Observations in Samples," by F.E.
-%    Grubbs; Technometrics, 11-1:1--21; Feb., 1969, and 
+%    Grubbs; Technometrics, 11-1:1--21; Feb., 1969, and
 % 2) _Outliers in Statistical Data_, by V. Barnett and
 %    T. Lewis; Wiley Series in Probability and Mathematical Statistics;
 %    John Wiley & Sons; Chichester, 1994.

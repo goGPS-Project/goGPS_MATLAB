@@ -204,31 +204,31 @@ s0 = 0.0d0;
 s1 = 0.0d0;
 
 for i = ne0: -1: 1
-    
+
     a = 0.0d0;
-    
+
     for j = 1:14
-        
+
         a = a + ke0(j, i) * fa(j);
-        
+
     end
-    
+
     s0 = s0 + (se0(1, i) * sin(a) + se0(2, i) * cos(a));
-    
+
 end
 
 for i = ne1: -1: 1
-    
+
     a = 0.0d0;
-    
+
     for j = 1:14
-        
+
         a = a + ke1(j, i) * fa(j);
-        
+
     end
-    
+
     s1 = s1 + (se1(1, i) * sin(a) + se1(2, i) * cos(a));
-    
+
 end
 
 eect2k = (s0 + s1 * t) * das2r;

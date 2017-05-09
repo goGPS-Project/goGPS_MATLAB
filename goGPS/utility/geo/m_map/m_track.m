@@ -11,7 +11,7 @@ function m_track(lon,lat,varargin);
 %	M_TRACK (lon,lat,navtimes) draws a line, with tick marks every
 %	hour, time labels every four hours, and date labels every twelve
 %	hours. navtimes is in MatLab "serial date numbers," representing the
-%	number of days since January 1, 0000. By convention, ticks and 
+%	number of days since January 1, 0000. By convention, ticks and
 %	time labels are drawn on the starboard side, dates on the port.
 %
 %	M_TRACK (lon,lat,navtime, 'string', property/value pairs) can be
@@ -175,7 +175,7 @@ nt = length(ttim);
 
 % where do the time labels go?
 
-if TIMES < 0				
+if TIMES < 0
    ltim=zeros(1,nt);			% no time lables
 elseif TIMES == 0
    ltim=ones(1,nt);			% time label every tick
@@ -202,23 +202,23 @@ for i=1:nt
 
    % angle for plotting. ticks are always perpendicular. will use the
    % point before and after this one to compute the angle
-      
+
    dy  = ty(min(nt,i+1)) - ty(max(1,i-1));
    dx  = tx(min(nt,i+1)) - tx(max(1,i-1));
    angle = atan2(dy,dx)*180/pi - 90;
-   
+
    % go ahead and tick here
-   
+
    text(tx(i),ty(i),'-', 'verticalalignment', 'middle', 'horizontalalignment', 'left', ...
        'color', COLOR, 'fontsize', FONTS, 'fontname', FONTN, ...
        'clipping',CLIP,'rotation', angle,'tag','m_track_tick');
 
    % maybe time label here?
-   
+
    if ltim(i)
-      
+
       % make label at desired orientation
-      
+
       if ((abs(angle) < 90) | ~strcmp(ORIEN,'upright'))
 	 leadstr = ' ';
 	 tailstr = '';
@@ -232,9 +232,9 @@ for i=1:nt
 	 tmlab   ='right';
 	 datlab  ='left';
       end
-      
+
       % go ahead and plot the time
-      
+
       text(tx(i),ty(i), ...
 	  [leadstr leadstr datestr(ttim(i),TIMEF) tailstr tailstr], ...
 	  'color', COLOR, 'fontsize', FONTS, 'fontname', FONTN, ...
@@ -243,7 +243,7 @@ for i=1:nt
 
 
       % maybe date label here?
-      
+
       if dtim(i)
 
 	 text(tx(i), ty(i), ...
@@ -251,7 +251,7 @@ for i=1:nt
 	     'color', COLOR, 'fontsize', FONTS, 'fontname', FONTN, ...
 	     'verticalalignment', 'middle', 'horizontalalignment', datlab, 'rotation', ...
 	     angle-ang_off, 'clipping', CLIP, 'tag','m_track_date');
-      
+
       end				% end of date labelling
    end					% end of time labelling
 end					% end of ticking

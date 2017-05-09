@@ -1,15 +1,15 @@
 function write_RINEX_obs(filename, receiver, antenna, marker_name, pr1_R, pr2_R, ph1_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, time_R, date, pos_R, interval, flag_C1)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function write_RINEX_obs(filename, receiver, antenna, marker_name, pr1_R, pr2_R,
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -78,10 +78,10 @@ N = length(time_R);
 
 %write data
 for i = 1 : N
-    
+
     sat = find(pr1_R(:,i) ~= 0);
     n = length(sat);
-    
+
     %if no observations are available, do not write anything
     if (n > 0)
         fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...

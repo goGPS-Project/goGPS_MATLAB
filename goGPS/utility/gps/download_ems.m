@@ -9,7 +9,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %   gps_time = starting and ending GPS time [vector]
 %
 % OUTPUT:
-%   file_ems = donwloaded .ems file names 
+%   file_ems = donwloaded .ems file names
 %
 % DESCRIPTION:
 %   Download of .ems files from the EGNOS Message Server, via Internet.
@@ -18,15 +18,15 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Giuliano Sironi - 2011,
 %                    Eugenio Realini - 2013
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -46,7 +46,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
@@ -109,34 +109,34 @@ flag_year = 0;
 %if the requested timespan starts within the first 13 minutes of the hour,
 % download also the file of the previous hour
 if (date_f(5) < buf_min)
-    
+
     %hour update
     date_f(4) = date_f(4) - 1;
-    
+
     %check if the day has changed
     if (date_f(4) < 0)
-        
+
         date_f(4) = 23;
-        
+
         %update the day
         day_of_year_f = day_of_year_f - 1;
-        
+
         %check if the year has changed
         if (day_of_year_f < 1)
-            
+
             %restore initial values
             date_f = date_f_temp;
-            
+
             %update year, month, day, hour, minutes
             date_f(1) = date_f(1) - 1;
             date_f(2) = 12;
             date_f(3) = 31;
             date_f(4) = 23;
             date_f(5) = 60 - (buf_min - date_f(5));
-            
+
             %update day of year
             day_of_year_f = doy_max_p;
-            
+
             flag_year = 1;
         end
     end
@@ -145,34 +145,34 @@ end
 %if the requested timespan ends within the last 13 minutes of the hour,
 % download also the file of the next hour
 if (date_l(5) > 60-buf_min)
-    
+
     %hour update
     date_l(4) = date_l(4) + 1;
-    
+
     %check if the day has changed
     if (date_l(4) > 23)
-        
+
         date_l(4) = 0;
-        
+
         %update the day
         day_of_year_l = day_of_year_l + 1;
-        
+
         %check if the year has changed
         if (day_of_year_l > doy_max_l)
-            
+
             %restore initial values
             date_l = date_l_temp;
-            
+
             %update year, month, day, hour, minutes
             date_l(1) = date_l(1) + 1;
             date_l(2) = 1;
             date_l(3) = 1;
             date_l(4) = 0;
             date_l(5) = buf_min - (60 - date_l(5));
-            
+
             %update day of year
             day_of_year_l = 1;
-            
+
             flag_year = 2;
         end
     end
@@ -181,18 +181,18 @@ end
 fprintf(['FTP connection to the EGNOS Message Server (ftp://' ems_ip '). Please wait...'])
 
 if (day_of_year_f <= day_of_year_l) %within the same year
-    
+
     doy   = [day_of_year_f : 1 : day_of_year_l];
     years = ones(1,length(doy))*date_f(1);
-    
+
 elseif (flag_year == 1) %including one day in the previous year
-    
+
     doy = [1 : day_of_year_l];
     doy = [doy_max_p doy];
     years = [date_f(1), ones(1,length(doy)-1)*date_l(1)];
-    
+
 elseif (flag_year == 2) %including one day in the following year
-    
+
     doy   = [day_of_year_f : doy_max_f];
     doy   = [doy 1];
     years = [ones(1,length(doy)-1)*date_f(1), date_l(1)];
@@ -214,10 +214,10 @@ end
 fprintf('\n');
 
 for i = 1 : length(doy)
-    
+
     %target directory
     s = ['pub/PRN', num2str(prn), '/y', num2str(years(i)), '/d', num2str(doy(i),'%03d')];
-    
+
     if (length(doy) == 1) %only one day
         hours = [date_f(4) : 1 : date_l(4)];
     else %multiple days
@@ -232,13 +232,13 @@ for i = 1 : length(doy)
 
     cd(ftp_server, '/');
     cd(ftp_server, s);
-    
+
     for j = 1 : length(hours)
-        
+
         %target file
         s2 = ['h', num2str(hours(j),'%02d'), '.ems'];
         mget(ftp_server,s2,down_dir);
-        
+
         %add year and day-of-year to the downloaded file
         filename = [num2str(years(i)), '_d', num2str(doy(i),'%03d'), '_', s2];
         movefile([down_dir, '/', s2], [down_dir, '/', filename]);
@@ -246,14 +246,14 @@ for i = 1 : length(doy)
         %cell array with the paths to the downloaded files
         entry = {[down_dir, '/', filename]};
         file_ems = [file_ems; entry];
-        
+
         %if the downloaded file is empty, stop here and let the caller switch to the next PRN
         s3 = dir([down_dir, '/', filename]);
         if (s3.bytes == 0)
             file_ems = {};
             return
         end
-        
+
         fprintf(['Downloaded EGNOS .ems file: PRN ', num2str(prn), ' Year ', num2str(years(i)), ' DOY ', num2str(doy(i),'%03d'), ' Hour ', num2str(hours(j),'%02d'), '\n'])
     end
 end

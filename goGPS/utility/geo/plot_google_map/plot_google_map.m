@@ -17,9 +17,9 @@ function varargout = plot_google_map(varargin)
 %                                  double the resulotion of the downloaded image (up
 %                                  to 1280x1280) and will result in finer rendering,
 %                                  but processing time will be longer.
-%    MapType         - ('roadmap')  Type of map to return. Any of [roadmap, 
+%    MapType         - ('roadmap')  Type of map to return. Any of [roadmap,
 %                                  satellite, terrain, hybrid) See the Google Maps API for
-%                                  more information. 
+%                                  more information.
 %    Alpha (1)         - (0-1) Transparency level of the map (0 is fully
 %                                  transparent). While the map is always
 %                                  moved to the bottom of the plot (i.e. will
@@ -44,11 +44,11 @@ function varargout = plot_google_map(varargin)
 %                                  only if the figure window is square. If
 %                                  the figure window is rectangular, it will
 %                                  still appear somewhat stretched.
-%    APIKey            - (string) set your own API key which you obtained from Google: 
+%    APIKey            - (string) set your own API key which you obtained from Google:
 %                                   http://developers.google.com/maps/documentation/staticmaps/#api_key
 %                                   This will enable up to 25,000 map
 %                                   requests per day, compared to 400
-%                                   requests without a key. 
+%                                   requests without a key.
 %                                   To set the key, use:
 %                                   plot_google_map('APIKey','SomeLongStringObtaindFromGoogle')
 %                                   To disable the use of a key, use:
@@ -57,8 +57,8 @@ function varargout = plot_google_map(varargin)
 % OUTPUT:
 %    h                         -  Handle to the plotted map
 %
-%    lonVect         -  Vector of Longidute coordinates (WGS84) of the image 
-%    latVect         -  Vector of Latidute coordinates (WGS84) of the image 
+%    lonVect         -  Vector of Longidute coordinates (WGS84) of the image
+%    latVect         -  Vector of Latidute coordinates (WGS84) of the image
 %    imag                 -  Image matrix (height,width,3) of the map
 %
 % EXAMPLE - plot a map showing some capitals in Europe:
@@ -159,7 +159,7 @@ if autoAxis
     % adjust current axis limit to avoid strectched maps
     [xExtent,yExtent] = latLonToMeters(curAxis(3:4), curAxis(1:2) );
     xExtent = diff(xExtent); % just the size of the span
-    yExtent = diff(yExtent); 
+    yExtent = diff(yExtent);
     if xExtent > yExtent
         % enlarge the X extent
         centerY = mean(curAxis(3:4));
@@ -183,7 +183,7 @@ if nargout <= 1 % only if in plotting mode
     delete(findobj(curChildren,'tag','gmap'))
 end
 
-% Enforce Latitude constraints of EPSG:900913 
+% Enforce Latitude constraints of EPSG:900913
 if curAxis(3) < -85
     curAxis(3) = -85;
 end
@@ -201,10 +201,10 @@ initialResolution = 2 * pi * 6378137 / tileSize; % 156543.03392804062 for tileSi
 zoomlevel = floor(log2(initialResolution/minRes));
 
 % Enforce valid zoom levels
-if zoomlevel < 0 
+if zoomlevel < 0
     zoomlevel = 0;
 end
-if zoomlevel > 19 
+if zoomlevel > 19
     zoomlevel = 19;
 end
 
@@ -268,7 +268,7 @@ centerPixelX = round(width/2);
 curResolution = initialResolution / 2^zoomlevel/scale; % meters/pixel (EPSG:900913)
 xVec = centerX + ((1:width)-centerPixelX) * curResolution; % x vector
 yVec = centerY + ((height:-1:1)-centerPixelY) * curResolution; % y vector
-[xMesh,yMesh] = meshgrid(xVec,yVec); % construct meshgrid 
+[xMesh,yMesh] = meshgrid(xVec,yVec); % construct meshgrid
 
 % convert meshgrid to WGS1984
 [lonMesh,latMesh] = metersToLatLon(xMesh,yMesh);
@@ -312,25 +312,25 @@ if nargout <= 1 % plot map
     set(gca,'YDir','Normal')
     set(h,'tag','gmap')
     set(h,'AlphaData',alphaData)
-    
+
     % older version (display without conversion to uniform grid)
     % h =pcolor(lonMesh,latMesh,(M));
     % colormap(Mcolor)
     % caxis([0 255])
     % warning off % to avoid strange rendering warnings
     % shading flat
-   
+
     uistack(h,'bottom') % move map to bottom (so it doesn't hide previously drawn annotations)
     axis(curAxis) % restore original zoom
     if nargout == 1
         varargout{1} = h;
     end
-    % if auto-refresh mode - override zoom callback to allow autumatic 
+    % if auto-refresh mode - override zoom callback to allow autumatic
     % refresh of map upon zoom actions.
-    zoomHandle = zoom; 
+    zoomHandle = zoom;
     panHandle = pan;
-    if autoRferesh        
-        set(zoomHandle,'ActionPostCallback',@update_google_map);        
+    if autoRferesh
+        set(zoomHandle,'ActionPostCallback',@update_google_map);
         set(panHandle, 'ActionPostCallback',@update_google_map);
     else % disable zoom override
         set(zoomHandle,'ActionPostCallback',[]);

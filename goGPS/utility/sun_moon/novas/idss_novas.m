@@ -26,7 +26,7 @@ names = ['sun'; 'moo'; 'ear'; 'mer'; 'ven'; 'mar'; 'jup'; ...
          'sat'; 'ura'; 'nep'; 'plu'];
 
 tname = cellstr(names);
-     
+
 ids = [10;    11;     3;     1;     2;     4;     5; ...
         6;     7;     8;     9];
 
@@ -39,23 +39,23 @@ namein = name(1:3);
 % look through list of body names to find match
 
 for i = 1:num
-    
+
     if (strcmp(namein, tname(i)) == 1)
-        
+
         idss = ids(i);
-        
+
     end
-    
+
 end
 
 % if no match, check for inquiry about split julian dates
 
 if (strcmp(namein, 'jd ') == 1)
-    
+
     % in this case, set idss = 2 if solsys processes split
     % julian dates (in successive calls), idss = 1 otherwise
-    
+
     idss = 2;
-    
+
 end
 

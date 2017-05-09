@@ -11,7 +11,7 @@ function  [X,Y,vals,labI]=mp_tmerc(optn,varargin)
 %
 % Mathematical formulas for the projections and their inverses are taken from
 %
-%      Snyder, John P., Map Projections used by the US Geological Survey, 
+%      Snyder, John P., Map Projections used by the US Geological Survey,
 %      Geol. Surv. Bull. 1532, 2nd Edition, USGPO, Washington D.C., 1983.
 %
 % It was handy to include both the TM (a cylindrical projection) and the
@@ -88,7 +88,7 @@ switch optn,
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ' (centered at ' num2str(MAP_VAR_LIST.clong) ')'],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
-            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]); 
+            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]);
 
   case 'initialize',
 
@@ -114,7 +114,7 @@ switch optn,
     MAP_VAR_LIST.clong=NaN;
     MAP_VAR_LIST.rectbox='off';
     k=2;longs_def=0;
-    while k<length(varargin),   
+    while k<length(varargin),
       switch varargin{k}(1:3),
          case 'lon',
            MAP_VAR_LIST.ulongs=varargin{k+1};longs_def=1;
@@ -129,11 +129,11 @@ switch optn,
          end;
        k=k+2;
      end;
-    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs); 
+    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
     elseif ~longs_def, MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];   end;
-    
+
     MAP_VAR_LIST.clat=mean(MAP_VAR_LIST.ulats);
-   
+
     % Get X/Y and (if rectboxs are desired) recompute lat/long limits.
 
     mu_util('xylimits');
@@ -146,7 +146,7 @@ switch optn,
     vals=zeros(size(long));
 
     % Clip out-of-range values (lat/long boxes)
-    
+
     if  strcmp(MAP_VAR_LIST.rectbox,'off') & ~strcmp(varargin{4},'off'),
         vals=vals | long<=MAP_VAR_LIST.longs(1)+eps*10 | long>=MAP_VAR_LIST.longs(2)-eps*10 | ...
 	              lat<=MAP_VAR_LIST.lats(1)+eps*10 |   lat>=MAP_VAR_LIST.lats(2)-eps*10;
@@ -172,12 +172,12 @@ switch optn,
         X=2*cos(lat*pi180).*sin((long-MAP_VAR_LIST.clong)*(pi180/2))./z;
         Y=sin(lat*pi180)./z;
       case name(5),
-        
+
         % Have to use interative scheme to get intermediate variable "theta".
 	%   cos(theta) changed to cos(2*theta) -thanks Zhigang Xu! Dec 2006.
 	%
 	%The program has a divide by zero
-	%error when theta= ±(pi/2).  I've introduced the variable "notpoles"
+	%error when theta= ÿ(pi/2).  I've introduced the variable "notpoles"
 	%to handle this exception, although there are certainly other ways to
 	% deal with the special cases = Kevin Lewis Feb 2011
 	% (my note - I'm just taking this as is)
@@ -195,14 +195,14 @@ switch optn,
         end;
         if k==15, warning('Iterative coordinate conversion is not converging!'); end;
         theta(notpoles)=theta(notpoles)+dt(notpoles);  % fixed May 2012
-        
+
         X=((long-MAP_VAR_LIST.clong).*cos(theta)+MAP_VAR_LIST.clong)/90;
         Y=sin(theta);
-	
+
       case name(6),
       	Y=interp1(Robscal(:,1),Robscal(:,3),lat)*pi;
 	X=(long-MAP_VAR_LIST.clong)/180.*interp1(Robscal(:,1),Robscal(:,2),lat)*pi;
-	
+
     end;
 
     % Clip out-of-range values (rectboxes)
@@ -217,7 +217,7 @@ switch optn,
     end;
 
   case 'xy2ll',
-    
+
     switch MAP_PROJECTION.name,
       case name(1),
         D=varargin{2}+MAP_VAR_LIST.clat*pi180;
@@ -228,7 +228,7 @@ switch optn,
         X=MAP_VAR_LIST.clong+(varargin{1}-MAP_VAR_LIST.clong*pi180)./cos(varargin{2})/pi180;
       case name(3),
         X=varargin{1}/cos(45*pi180)/pi180 + MAP_VAR_LIST.clong;
-        Y=asin(varargin{2}*cos(45*pi180))/pi180; 
+        Y=asin(varargin{2}*cos(45*pi180))/pi180;
       case name(4),
         z=sqrt(1-(varargin{1}/4).^2-(varargin{2}/2).^2);
         X=MAP_VAR_LIST.clong+2*atan2(z.*varargin{1},2*(2*z.^2-1))/pi180;
@@ -239,15 +239,15 @@ switch optn,
         X=(varargin{1}*90-MAP_VAR_LIST.clong)./cos(theta)+MAP_VAR_LIST.clong;
       case name(6),
         Y=interp1(Robscal(:,3),Robscal(:,1),varargin{2}/pi);
-	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clon;	
+	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clon;
     end;
-        
+
   case 'xgrid',
-   
+
     [X,Y,vals,labI]=mu_util('xgrid',MAP_VAR_LIST.longs,MAP_VAR_LIST.lats,varargin{1},31,varargin{2:3});
 
   case 'ygrid',
-   
+
     [X,Y,vals,labI]=mu_util('ygrid',MAP_VAR_LIST.lats,MAP_VAR_LIST.longs,varargin{1},31,varargin{2:3});
 
   case 'box',

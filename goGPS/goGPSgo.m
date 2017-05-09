@@ -6,23 +6,23 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
 %   ini_settings_file       path to the settings file
 %   use_gui                 flag to activate GUI editing of the settings
 %                           default = false
-%  
+%
 % DESCRIPTION:
 %   function launcher for goGPS
 %
 % EXAMPLE:
 %   goGPSgo('../data/project/default_PPP/config/settings.ini');
-% 
+%
 % COMPILATION STRING:
 %   tic; mcc -v -d ./bin/ -m goGPSgo -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv; toc;
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -45,8 +45,8 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-    
-    if nargin >= 1        
+
+    if nargin >= 1
         if  ~exist(ini_settings_file,'file')
             clear ini_settings_file;
         end
@@ -58,13 +58,13 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
             use_gui = false;
         end
     end
-    
+
     % Every parameters when the application is deployed are strings
     if isdeployed
         if ischar(use_gui)
             use_gui = logical(str2double(use_gui));
         end
-    end    
+    end
     goGPS
     if ~use_gui
         close all;

@@ -31,15 +31,15 @@ t = (tjd - t0) / 36525.0d0;
 % for the true equinox, obtain the equation of the equinoxes in time seconds
 
 if (k == 1)
-    
+
     [a, a, ee, a, a] = etilt (tjd);
-    
+
     eqeq = ee;
-    
+
 else
-    
+
     eqeq = 0.0d0;
-    
+
 end
 
 % precession in ra in arcseconds taken from capitaine et al. (2003),

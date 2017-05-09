@@ -1,24 +1,24 @@
 function [dateV] = doy2date(doyV,yearV)
 % DOY2DATE.m will convert a vector of day of year numbers and years
-% and convert them to MATLAB date format. 
-%  
-% Sample Call: 
+% and convert them to MATLAB date format.
+%
+% Sample Call:
 %  doyV = [54;200.4315];
 %  yearV = [2009;2009];
 %  [dateV] = doy2date(doyV,yearV);
 %
-% Inputs: 
+% Inputs:
 %  doyV -> vector of day of year numbers (n x 1)
 %  yearV -> vector of years (n x 1)
 %
-% Outputs: 
+% Outputs:
 %  dateV -> vector of MATLAB dates (n x 1)
 %
 % AUTHOR    : A. Booth (ashley [at] boothfamily [dot] com)
-% DATE      : 22-May-2009 09:34:53  
-% Revision  : 1.00  
-% DEVELOPED : 7.4.0.287 (R2007a) Windows XP 
-% FILENAME  : doy2date.m 
+% DATE      : 22-May-2009 09:34:53
+% Revision  : 1.00
+% DEVELOPED : 7.4.0.287 (R2007a) Windows XP
+% FILENAME  : doy2date.m
 
 %Check size of incoming vectors
 if (size(doyV,1)== 1) | (size(doyV,2) == 1) %Make sure only a nx1 vector
@@ -63,5 +63,5 @@ if colflip
 end
 
 
-% disp('Completed doy2date.m') 
+% disp('Completed doy2date.m')
 % ===== EOF [doy2date.m] ======

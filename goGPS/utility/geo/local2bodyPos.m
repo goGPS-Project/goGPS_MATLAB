@@ -24,8 +24,8 @@ function [C] = local2bodyPos(Lm, Lr1, Lr2, Lr3, Lr4)
 %
 % Note: This frame puts the b1-axis from very right side of the vehicle,
 % where other receivers are located on the left side of the b1-axis (in this
-% case the Y-axes from other receivers, who are not aligned with b1-axis,  
-% always give negative values). Note that for other system one should be 
+% case the Y-axes from other receivers, who are not aligned with b1-axis,
+% always give negative values). Note that for other system one should be
 % aware with the signs of coordinates P2.
 %
 %--------------------------------------------------------------------------

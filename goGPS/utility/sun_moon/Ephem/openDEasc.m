@@ -3,23 +3,23 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 % short int ephem_open (char *ephem_name,
 %                       double *jd_begin, double *jd_end,
 %                       short int *de_number)
-% 
+%
 % ------------------------------------------------------------------------
-% 
+%
 %    PURPOSE:
 %       This function opens a JPL planetary ephemeris file and
 %       sets initial values.  This function must be called
 %       prior to calls to the other JPL ephemeris functions.
-% 
+%
 %    REFERENCES:
 %       Standish, E.M. and Newhall, X X (1988). "The JPL Export
 %          Planetary Ephemeris"; JPL document dated 17 June 1988.
-% 
+%
 %    INPUT
 %    ARGUMENTS:
 %       *ephem_name (char)
 %          Name of the direct-access ephemeris file.
-% 
+%
 %    OUTPUT
 %    ARGUMENTS:
 %       *jd_begin (double)
@@ -28,7 +28,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 %          Ending Julian date of the ephemeris file.
 %       *de_number (short int)
 %          DE number of the ephemeris file opened.
-% 
+%
 %    RETURNED
 %    VALUE:
 %       (short int)
@@ -37,7 +37,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 %           2-10...error reading from file header.
 %           11  ...unable to set record length; ephemeris (DE number)
 %                  not in look-up table.
-% 
+%
 %    GLOBALS
 %    USED:
 %       SS                eph_manager.h
@@ -55,7 +55,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 %       NV                eph_manager.h
 %       RECORD_LENGTH     eph_manager.h
 %       EPHFILE           eph_manager.h
-% 
+%
 %    FUNCTIONS
 %    CALLED:
 %       fclose            stdio.h
@@ -63,7 +63,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 %       fopen             stdio.h
 %       fread             stdio.h
 %       calloc            stdlib.h
-% 
+%
 %    VER./DATE/
 %    PROGRAMMER:
 %       V1.0/06-90/JAB (USNO/NA)
@@ -78,14 +78,14 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
 %                                 for switch, close file on error.
 %       V1.6/10-10/WKP (USNO/AA): Renamed function to lowercase to
 %                                 comply with coding standards.
-% 
+%
 %    NOTES:
 %       KM...flag defining physical units of the output states.
 %          = 1, km and km/sec
 %          = 0, AU and AU/day
 %       Default value is 0 (KM determines time unit for nutations.
 %                           Angle unit is always radians.)
-% 
+%
 % ------------------------------------------------------------------------
   if nargin < 4
     dontSave = false;
@@ -153,7 +153,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
   s.indexOffset = 1;
   len = length(s.scan);
   offset = 3;
-  
+
   s.numRecs = len / s.indexInc;
   if mod(s.numRecs,1.0) ~= 0
     if s.output > 0
@@ -163,7 +163,7 @@ function [s,error] = openDEasc( s, denum, fn, dontSave )
     error = 12;
     return;
   end
-  
+
   s.jd_begin = s.scan(offset); % first record's start
   s.jd_end = s.scan((s.numRecs-1)*s.indexInc+offset); % last record's start
   s.jd_inc = (s.jd_end-s.jd_begin)/(s.numRecs-1);

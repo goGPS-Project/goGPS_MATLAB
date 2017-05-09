@@ -5,15 +5,15 @@
 %   Global variables initialization.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -32,7 +32,7 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
@@ -82,9 +82,9 @@ f_GPS = 1/298.257223563;
 e_GPS = sqrt(1-(1-f_GPS)^2);
 
 %gravitational constant (mass of Earth) [m^3/s^2]
-GM_GPS = 3.986005e14;    
+GM_GPS = 3.986005e14;
 GM_GLO = 3.9860044e14;
-GM_GAL = 3.986004418e14; 
+GM_GAL = 3.986004418e14;
 GM_BDS = 3.986004418e14;
 GM_QZS = 3.986005e14;
 
@@ -258,7 +258,7 @@ if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 &
     %Doppler-predicted range (ROVER)
     doppler_pred_range1_R = zeros(state.getCC().getNumSat(),1);
     doppler_pred_range2_R = zeros(state.getCC().getNumSat(),1);
-    
+
     %Doppler-predicted range (MASTER)
     doppler_pred_range1_M = zeros(state.getCC().getNumSat(),1);
     doppler_pred_range2_M = zeros(state.getCC().getNumSat(),1);

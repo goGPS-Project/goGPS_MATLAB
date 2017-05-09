@@ -19,16 +19,16 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Andrea Nardo, 22-Apr-2013 - added exponential weighting function (weights == 4)
-%                    
+%
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -65,7 +65,7 @@ else
         %weight vectors (elevation)
         q_R = 1 ./ (sin(elR * pi/180).^2);
         q_M = 1 ./ (sin(elM * pi/180).^2);
-        
+
     elseif (weights == 2)
         %weight vectors (elevation, exponential function)
         eleref = min(elR)* pi/180; % this is the value for the elevation cut-off angle

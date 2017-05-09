@@ -122,11 +122,11 @@ elseif (k == 2)
     yy(2) = zz(3) * xx(1) - zz(1) * xx(3);
 
     yy(3) = zz(1) * xx(2) - zz(2) * xx(1);
-    
+
 else
 
     fprintf('\n ciobas error: invalid value for k for jd %f14.8', tjd);
-    
+
     pause;
 
 end
@@ -138,6 +138,6 @@ for j = 1:1:3
     y(j) = yy(j);
 
     z(j) = zz(j);
-    
+
 end
 

@@ -18,12 +18,12 @@ function setLastLinesWidth(h,width)
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -45,12 +45,12 @@ function setLastLinesWidth(h,width)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if nargin < 2
     width = h;
     h = gcf;
 end
-hline = findobj(h, 'type', 'line'); 
+hline = findobj(h, 'type', 'line');
 set(hline(1), 'LineWidth', width);

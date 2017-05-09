@@ -22,7 +22,7 @@ function pos2 = propmo (tjd1, pos1, vel1, tjd2)
 %%%%%%%%%%%%%%%%%%%%%%%
 
 for j = 1:1:3
-    
+
     pos2(j) = pos1(j) + vel1(j) * (tjd2 - tjd1);
 
 end

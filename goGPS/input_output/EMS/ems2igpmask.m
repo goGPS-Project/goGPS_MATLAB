@@ -18,12 +18,12 @@ function [n_bands, band, iodi, igp_mask] = ems2igpmask(msg)
 %   of the MT 26 to the right IGP (Iono Grid Point).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -45,7 +45,7 @@ function [n_bands, band, iodi, igp_mask] = ems2igpmask(msg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %msg = ('534964000000FFFFFFC00000001FFFC00001FFFC00003FFFE001FC003C15ABC0');
@@ -74,9 +74,9 @@ iodi = fbin2dec(s(23:24)); %range: 0 - 3
 mask = fbin2dec(s(25 : 25 + 200)')'; %vector with the mask bits
 
 %IGP vector
-igp = [1 : 201];       
+igp = [1 : 201];
 
 %%keep only the IGPs with valid mask (=1)
-igp_mask = find (mask .* igp);  
+igp_mask = find (mask .* igp);
 
 igp_mask = [igp_mask, zeros(1, 201-length(igp_mask))];

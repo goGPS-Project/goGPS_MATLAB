@@ -41,14 +41,14 @@ function [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -176,19 +176,19 @@ x  = (N^-1)*A'*(Q^-1)*(y0-b);
 
 %test on differences between code and code+phase receiver clock delay estimation
 % while (abs(x_cod(4) - x(4)) > clock_delay_thresh)
-%     
+%
 %     %delete phase observation with maximum error variance
 %     [null_m, i] = max(diag(Q2));
 %     Q2(i,:) = [];
 %     Q2(:,i) = [];
-%     
+%
 %     Q(nsat + i, :) = [];
 %     Q(:, nsat + i) = [];
-%     
+%
 %     A(nsat + i, :) = [];
 %     y0(nsat + i) = [];
 %     b(nsat + i) = [];
-%     
+%
 %     %least squares solution
 %     x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
 % end

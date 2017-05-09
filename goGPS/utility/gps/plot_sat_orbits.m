@@ -45,33 +45,33 @@ lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
 %         SP3.avail(sat) = 0;
 %     end
 % end
-% 
+%
 % %compute sun and moon position
 % fprintf('Computing Sun and Moon position...');
 % [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
 % fprintf(' done\n');
-% 
+%
 % %store the position of Sun and Moon
 % SP3.t_sun  = time_GPS;
 % SP3.X_sun  = X_sun;
 % SP3.X_moon = X_moon;
-% 
+%
 % DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
-% 
+%
 % %if DCB files are not available or not sufficient, try to download them
 % if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
-%     
+%
 %     %download
 %     [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
-%     
+%
 %     if (compressed)
 %         return
 %     end
-%     
+%
 %     %try again to read DCB files
 %     DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
 % end
-% 
+%
 % SP3.DCB = DCB;
 
 %computation interval [s]
@@ -117,7 +117,7 @@ dist = mean(pr1_R,2,'omitnan');
 for e = 1 : nEpochs
 
     XS(:,:,e) = satellite_positions(time(e), dist, 1:nSatTot, Eph, SP3, [], zeros(nSatTot,1), zeros(nSatTot,1), 0, frequencies, obs_comb, lambda);
-    
+
     for s = 1 : nSatTot
         [phi(s,e), lam(s,e), h(s,e)] = cart2geod(XS(s,1,e), XS(s,2,e), XS(s,3,e));
     end
@@ -127,7 +127,7 @@ end
 % phi = phi*180/pi;
 % lam(lam == 0) = nan;
 % phi(phi == 0) = nan;
-% 
+%
 % % coltab = jet(2*nSatTot);
 % m_proj('miller','lat',82);
 % m_coast('color',[0 .6 0]);
@@ -143,7 +143,7 @@ end
 % else
 %     marker_size = 4;
 % end
-% 
+%
 %         m_plot(lam(s,:),phi(s,:),'Marker','.','MarkerSize',marker_size,'Color',color,'LineStyle','none')
 % %     h = plot(lam(s,:),phi(s,:),'.','MarkerSize',4);
 % %     set(h,'Color',coltab(2*s-1,:));

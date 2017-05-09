@@ -24,15 +24,15 @@ function [data] = decode_1013(msg, constellations)
 %   RTCM format 1013 message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Sara Lucca, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -51,7 +51,7 @@ function [data] = decode_1013(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %message pointer initialization
@@ -107,13 +107,13 @@ for i = 1 : NMF
     DF057 = fbin2dec(msg(pos:pos+15)) * 0.1;  pos = pos + 16;
 
     %------------------------------------------------
-    
+
     % assign constellation-specific indexes
     idx = [];
     if (i <= 24 && constellations.GLONASS.enabled)
         idx = constellations.GLONASS.indexes(i);
     end
-    
+
     %output data save
     data{3}(idx,1)  = DF055;
     data{3}(idx,2)  = DF056;

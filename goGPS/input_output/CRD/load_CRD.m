@@ -22,15 +22,15 @@ function [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marke
 %   Tool for loading .CRD files: stations coordinates.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ function [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marke
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 pos_R_crd = [];
@@ -73,10 +73,10 @@ if ~isempty(marker_idx)
     XM = coords_X(marker_idx);
     YM = coords_Y(marker_idx);
     ZM = coords_Z(marker_idx);
-    
+
     %set master station position
     pos_M_crd = [XM; YM; ZM];
-    
+
     flag_XM = flags(marker_idx);
 end
 
@@ -90,16 +90,16 @@ for m = 1 : size(marker_R,2)
         target_marker = marker_R;
     end
     marker_idx = find(strcmpi(markers, target_marker),1,'last');
-    
+
     if ~isempty(marker_idx)
         %extract the corresponding coordinates
         XR = coords_X(marker_idx);
         YR = coords_Y(marker_idx);
         ZR = coords_Z(marker_idx);
-        
+
         %set rover station position
         pos_R_crd(:,m) = [XR; YR; ZR];
-        
+
         flag_XR = flags(marker_idx);
     end
 end

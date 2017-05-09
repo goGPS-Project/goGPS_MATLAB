@@ -65,16 +65,16 @@ t0 = 2451545.0d0;
 au = astcon ('au', 1.0d-3);
 
 if (locatn == 0)
-    
+
     pos(1) = 0.0d0;
     pos(2) = 0.0d0;
     pos(3) = 0.0d0;
     vel(1) = 0.0d0;
     vel(2) = 0.0d0;
     vel(3) = 0.0d0;
-    
+
     return
-    
+
 end
 
 ttjd  = tjd;
@@ -87,65 +87,65 @@ tdbjd = tjd;
 % equator and equinox of date
 
 if (locatn == 1)
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % observer on surface of earth
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     % get delta-t value
-    
+
     if (observ(4) ~= 0.0d0)
-        
+
         deltat = observ(4) / 86400.0d0;
-        
+
     else
-        
+
         deltat = getdt;
-        
+
     end
-    
+
     % using delta-t value, compute ut1 and sidereal time
-    
+
     if (ttjd == 0.0d0)
-        
+
         ut1jd = tdbjd - deltat;
-        
+
     else
-        
+
         ut1jd = ttjd - deltat;
-        
+
     end
-    
+
     eqinox;
-    
+
     gmst = sidtim (ut1jd, 0.0d0, 0);
-    
+
     [x, x, eqeq, x, x] = etilt (tdbjd);
-    
+
     resume;
-    
+
     gast = gmst + eqeq / 3600.0d0;
-    
+
     % subroutine terra does the hard work, given sidereal time
-    
+
     [pos1, vel1] = terra (observ(1), observ(2), observ(3), gast);
-    
+
 elseif (locatn == 2)
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % observer on near-earth spacecraft
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     % convert units to au and au/day
-    
+
     for j = 1:3
-        
+
         pos1(j) = observ(j) / au;
-        
+
         vel1(j) = observ(j + 3) / au * 86400.0d0;
-        
+
     end
-    
+
 end
 
 % transform geocentric position vector of observer to gcrs

@@ -4,7 +4,7 @@ function [dpsi, deps] = nut2000k (date1, date2)
 
 % input
 
-%  date1, date2 = tt julian date 
+%  date1, date2 = tt julian date
 %  (julian date = date1 + date2)
 
 % output
@@ -27,31 +27,31 @@ function [dpsi, deps] = nut2000k (date1, date2)
 global inutate nals napl icpl cls
 
 if (inutate == 1)
-    
+
     % read data files
-    
+
     nals = csvread('nals.csv');
-    
+
     napl = csvread('napl.csv');
-    
+
     icpl = csvread('icpl.csv');
-    
+
     cls = csvread('cls.csv');
-    
+
     % transpose matrices
-    
+
     nals = nals';
-    
+
     napl = napl';
-    
+
     icpl = icpl';
-    
+
     cls = cls';
-    
+
     % reset flag
-    
+
     inutate = 0;
-    
+
 end
 
 % arc seconds to radians
@@ -135,18 +135,18 @@ de = 0.0d0;
 % summation of luni-solar nutation series (in reverse order)
 
 for i = 323: -1: 1
-    
+
     arg = mod ((nals(1, i)) * el  + (nals(2, i)) * elp + (nals(3, i)) * f ...
         + (nals(4, i)) * d  + (nals(5, i)) * om, d2pi);
-    
+
     sarg = sin(arg);
-    
+
     carg = cos(arg);
-    
+
     dp = dp + (cls(1,i) + cls(2,i) * t) * sarg + cls(3,i) * carg;
-    
+
     de = de + (cls(4,i) + cls(5,i) * t) * carg + cls(6,i) * sarg;
-    
+
 end
 
 % convert from 0.1 microarcsec units to radians
@@ -210,21 +210,21 @@ de = 0.0d0;
 % summation of planetary nutation series (in reverse order)
 
 for i = 165: -1: 1
-    
+
     arg = mod ((napl(1, i)) * al + (napl(2, i)) * alsu + (napl(3, i)) * af ...
         + (napl(4, i)) * ad + (napl(5, i)) * aom  + (napl(6, i)) * alme ...
         + (napl(7, i)) * alve + (napl(8, i)) * alea + (napl(9, i)) * alma ...
         + (napl(10, i)) * alju + (napl(11, i)) * alsa + (napl(12, i)) * alur ...
         + (napl(13, i)) * alne + (napl(14, i)) * apa, d2pi);
-    
+
     sarg = sin(arg);
-    
+
     carg = cos(arg);
-    
+
     dp = dp + (icpl(1,i)) * sarg + (icpl(2,i)) * carg;
-    
+
     de = de + (icpl(3,i)) * sarg + (icpl(4,i)) * carg;
-    
+
 end
 
 % convert from 0.1 microarcsec units to radians

@@ -6,7 +6,7 @@ classdef Ephem < handle
 % ftp or have been previously downloaded and placed in the Matlab path.
   properties (Constant)
     % body numbers for use with planet_ephemeris
-    
+
     Mercury               = 1; % Mercury body number
     Venus                 = 2; % Venus body number
     Earth                 = 3; % Earth body number
@@ -27,7 +27,7 @@ classdef Ephem < handle
   end
   properties (Constant)
     % state numbers for use with state or interpolate
-    
+
     MercuryState               = 1; % Mercury state number
     VenusState                 = 2; % Venus state number
     EarthMoonBarycenterState   = 3; % Earth-Moon Barycenter state number

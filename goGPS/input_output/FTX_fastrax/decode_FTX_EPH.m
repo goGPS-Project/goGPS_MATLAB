@@ -46,15 +46,15 @@ function [data] = decode_FTX_EPH(msg, constellations)
 %   FTX_EPH binary message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -73,7 +73,7 @@ function [data] = decode_FTX_EPH(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -113,7 +113,7 @@ end
 % RAW_EPHEMERIS.wFlags 		WORD 	Flags that indicate the contents of the structure (see EPH_ flags).
 [Flags, pos]        = FTX_TypeConv('WORD', msg, pos);
 
-% RAW_SV_CLOCK_SUB RAW_EPHEMERIS.ClockSub: The clock data which are common with the RAW_ALMANAC structure.		
+% RAW_SV_CLOCK_SUB RAW_EPHEMERIS.ClockSub: The clock data which are common with the RAW_ALMANAC structure.
 % RAW_EPHEMERIS.ClockSub.lAf0 	INT32 	SV Clock Correction: (sec)
 [Af0, pos]          = FTX_TypeConv('INT32', msg, pos);
 Af0 = Af0 * (2^(-31));
@@ -122,7 +122,7 @@ Af0 = Af0 * (2^(-31));
 [Af1, pos]          = FTX_TypeConv('INT16', msg, pos);
 Af1 = Af1 * (2^(-43));
 
-% GPS_TIME RAW_EPHEMERIS.ClockSub.Toc: Reference time for clock data (seconds). In case of almanacs, this field stores the TOA.		
+% GPS_TIME RAW_EPHEMERIS.ClockSub.Toc: Reference time for clock data (seconds). In case of almanacs, this field stores the TOA.
 % RAW_EPHEMERIS.ClockSub.Toc.wWeek 	WORD 	Full week number.
 [TocWeek, pos]      = FTX_TypeConv('WORD', msg, pos);
 
@@ -130,7 +130,7 @@ Af1 = Af1 * (2^(-43));
 [TowMs, pos]        = FTX_TypeConv('DWORD', msg, pos);
 TowMs = TowMs/1000;
 
-% RAW_SV_ORBIT_SUB RAW_EPHEMERIS.OrbitSub: The orbit data which are common with the RAW_ALMANAC structure.		
+% RAW_SV_ORBIT_SUB RAW_EPHEMERIS.OrbitSub: The orbit data which are common with the RAW_ALMANAC structure.
 % RAW_EPHEMERIS.OrbitSub.lEcc 	DWORD 	Eccentricity
 [Ecc, pos]          = FTX_TypeConv('DWORD', msg, pos);
 Ecc = Ecc * (2^(-33));
@@ -141,7 +141,7 @@ I0 = I0 * (2^(-31));
 I0 = I0 * pi();
 
 % RAW_EPHEMERIS.OrbitSub.lOmegaDot 	INT32 	Rate of right ascension (rad/s).
-[OmegaDot, pos]     = FTX_TypeConv('INT32', msg, pos);  
+[OmegaDot, pos]     = FTX_TypeConv('INT32', msg, pos);
 OmegaDot = OmegaDot * (2^(-43));
 OmegaDot = OmegaDot * pi();
 
@@ -164,7 +164,7 @@ Omega = Omega * pi();
 M0 = M0 * (2^(-31));
 M0 = M0 * pi();
 
-% RAW_SV_CLOCK_EXT RAW_EPHEMERIS.ClockExt: Higher-order terms of the clock data.		
+% RAW_SV_CLOCK_EXT RAW_EPHEMERIS.ClockExt: Higher-order terms of the clock data.
 % RAW_EPHEMERIS.ClockExt.wIODC 	WORD 	Issue Of Data for Clock
 [IODC, pos]         = FTX_TypeConv('WORD', msg, pos);
 
@@ -176,7 +176,7 @@ GroupDelay = GroupDelay * (2^(-31));
 [Af2, pos]      = FTX_TypeConv('INT16', msg, pos);
 Af2 = Af2 * (2^(-55));
 
-% RAW_SV_ORBIT_EXT RAW_EPHEMERIS.OrbitExt: Higher-order terms of the orbit data.		
+% RAW_SV_ORBIT_EXT RAW_EPHEMERIS.OrbitExt: Higher-order terms of the orbit data.
 % RAW_EPHEMERIS.OrbitExt.dwToe 	DWORD 	Reference time for ephemeris data (seconds).
 [Toe, pos]      = FTX_TypeConv('DWORD', msg, pos);
 
@@ -240,7 +240,7 @@ if ((IODC == IODE) && (IODC == IODE) && constellations.GPS.enabled)
     data{2}(19) = Af0;
     data{2}(20) = Af1;
     data{2}(21) = TowMs;
-    data{2}(22) = IODE;                       
+    data{2}(22) = IODE;
     data{2}(23) = 1;    % code_on_L2;   % Inconsistent with ublox - Default setting
     data{2}(24) = TocWeek;              % Inconsistent with ublox
     data{2}(25) = Flags;                % Inconsistent with ublox

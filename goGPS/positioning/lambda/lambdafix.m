@@ -20,10 +20,10 @@ function [bcheck, acheck, Qzhat, Qbcheck] = lambdafix(bhat, ahat, Qbb, Qahat, Qb
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -79,7 +79,7 @@ try
         % success rate
         Ps = prod(2*normcdf(0.5./sqrt(D))-1);
         %[up_bound, lo_bound] = success_rate(D,L,zeros(length(D)));
-        
+
     elseif (IAR_method == 1 || IAR_method == 2)
         % ILS shrinking, method 1
         % ILS enumeration, method 2
@@ -88,7 +88,7 @@ try
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
         acheck = afixed(:,1);
         Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
-        
+
     elseif (IAR_method == 3 || IAR_method == 4)
         % Integer rounding, method 3
         % Integer bootstrapping, method 4
@@ -96,7 +96,7 @@ try
         % compute the fixed solution
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
         acheck = afixed(:,1);
-        
+
     elseif (IAR_method == 5)
         % Partial Ambiguity Resolution, method 5
         %[afixed,sqnorm,Ps,Qahat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
@@ -106,7 +106,7 @@ try
         % in case of PAR afixed contains the decorrelated ambiguities
         if (nfx > 0)
             Qbz = Qba*Z;
-            
+
             try
                 %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
                 bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
@@ -114,7 +114,7 @@ try
                 disp('Problems in PAR (lambdafix.m)');
                 %keyboard;
             end
-            
+
             % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
             acheck = ahat;
             Qzhat = Qahat;
@@ -130,18 +130,18 @@ catch
     bcheck = bhat;
     acheck = ahat;
     Qzhat = Qahat;
-    
+
     fixed_solution = [fixed_solution 0];
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
     succ_rate = [succ_rate NaN];
-    
+
     return
 end
 
 % If IAR_method = 0 or IAR_method = 1 or IAR_method = 2 perform ambiguity validation through ratio test
 if (IAR_method == 0 || IAR_method == 1 || IAR_method == 2)
-    
+
     if (flag_auto_mu)
         if (1-Ps > P0)
             mu = ratioinv(P0,1-Ps,length(acheck));
@@ -149,22 +149,22 @@ if (IAR_method == 0 || IAR_method == 1 || IAR_method == 2)
             mu = 1;
         end
     end
-        
+
     ratio = sqnorm(1)/sqnorm(2);
-    
+
     if ratio > mu
         % rejection; keep float baseline solution
         bcheck = bhat;
         acheck = ahat;
-        
+
         fixed_solution = [fixed_solution 0];
     else
         fixed_solution = [fixed_solution 1];
     end
-    
+
     ratiotest = [ratiotest ratio];
     mutest    = [mutest mu];
-    
+
 elseif (IAR_method == 5)
 
     if (nfx > 0)
@@ -175,7 +175,7 @@ elseif (IAR_method == 5)
 else
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
-    
+
     fixed_solution = [fixed_solution 0];
 end
 

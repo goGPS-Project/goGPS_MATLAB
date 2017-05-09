@@ -18,18 +18,18 @@ function goGPS_LS_SA_variometric(time_rx_t0, time_rx_t1, pr1_t0, pr1_t1, pr2_t0,
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
-%   
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -91,7 +91,7 @@ end
 %        (pr2 ~= 0) & (ph2 ~= 0) );
 %else
 
-% OLD VERSION OK 
+% OLD VERSION OK
    % if (phase == 1)
    %     sat_pr_t0 = find( (pr1_t0 ~= 0) & (pr2_t0 ~= 0)  );
    %     sat_t0 = find( (pr1_t0 ~= 0) & (ph1_t0 ~= 0)&(pr2_t0 ~= 0) );
@@ -143,9 +143,9 @@ SP3 = [];    % this var should be filled with SP3 data
 min_nsat_LS = 3 + n_sys;
 
 if (size(sat,1) >= min_nsat_LS)
-    
+
     sat_pr_old = sat_pr;
-    
+
     if (phase == 1)
         [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3, iono, sbas_t0, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
         elR_t0(sat_pr) = elR(sat_pr);
@@ -153,7 +153,7 @@ if (size(sat,1) >= min_nsat_LS)
         distR_t0(sat_pr) = distR(sat_pr);
         sat_pr_t0 = sat_pr;
         sat_pr = sat_pr_old;
-        
+
         [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas_t1, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
@@ -166,15 +166,15 @@ if (size(sat,1) >= min_nsat_LS)
         distR_t0(sat_pr) = distR(sat_pr);
         sat_pr_t0 = sat_pr;
         sat_pr = sat_pr_old;
-        
+
         [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr2_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas_t1, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
         distR_t1(sat_pr) = distR(sat_pr);
         sat_pr_t1 = sat_pr;
     end
-    
-    
+
+
     if (length(sat_pr_t0) ~= length(sat_pr_t1))
         % sat_pr_t0
         % sat_pr_t1
@@ -187,7 +187,7 @@ if (size(sat,1) >= min_nsat_LS)
         elR_t0(sat_pr) = elR(sat_pr);
         azR_t0(sat_pr) = azR(sat_pr);
         distR_t0(sat_pr) = distR(sat_pr);
-        
+
         [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas_t1, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
@@ -204,50 +204,50 @@ if (size(sat,1) >= min_nsat_LS)
     err_tropo_t1 = err_tropo_t1(idx_ok);
     err_iono_t0 = err_iono_t0(idx_ok);
     err_iono_t1 = err_iono_t1(idx_ok);
-    
+
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
-    
+
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = -1;
     conf_sat(sat,1) = +1;
-    
+
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
-    
+
     %previous pivot
     pivot_old = 0;
-    
+
     %current pivot
     [null_max_elR, i] = max(elR_t0(sat)); %#ok<ASGLU>
     pivot = sat(i);
-    
+
     %if less than 4 satellites are available after the cutoffs, or if the
     % condition number in the least squares exceeds the threshold
     if (size(sat,1) < min_nsat_LS || cond_num > cond_num_threshold)
-        
+
         % if (~isempty(Xhat_t_t))
         %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
         %     pivot = 0;
         % else
-        
+
         Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
         pivot = 0;
         return
         %end
     end
 else
-    
+
     if (isempty(conf_sat))
         %satellite configuration
         conf_sat = zeros(nSatTot,1);
-        
+
         %no cycle-slips when working with code only
         conf_cs = zeros(nSatTot,1);
     end
-    
+
     % if (~isempty(Xhat_t_t))
     %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
     %     pivot = 0;

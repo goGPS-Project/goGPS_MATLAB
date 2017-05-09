@@ -21,12 +21,12 @@ function [MT, IODF, prc, udrei, sv, n_sv] = ems2prc(msg, iodp_mask, prn_mask)
 %   PRC from EGNOS messages MT 0, 2, 3, 4, 5, 24.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -49,7 +49,7 @@ function [MT, IODF, prc, udrei, sv, n_sv] = ems2prc(msg, iodp_mask, prn_mask)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %msg = ('C60C7FD0000000003FCC003FC8000003FB4007FE0029BBBBB9BB9599F32C2A40');
@@ -83,16 +83,16 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
     %      = 3:     problem with one or more SVs
 
     IODP = fbin2dec(s(17:18));
-    
+
     %find the right PRN mask
     i_iodp = find(iodp_mask == IODP);
     i_prn_mask = prn_mask(i_iodp,:); %#ok<FNDSB>
-   
+
     %compute the PRC
     %start bit and end bit of the 13 PRCs in MT 2, 3, 4
     start_bit = [19 : 12 : 163];
     end_bit   = [30 : 12 : 174];
-    
+
     %allocate the 13 binary numbers that correspond to the PRCs
     for j = 1 : 13
         num_bin(j,:) = s(start_bit(j) : end_bit(j));
@@ -100,19 +100,19 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
 
     %convert to integers
     num_int = fbin2dec(num_bin);
-    
+
     %convert in twos complement
     p11 = num_int > param_11;
     num_int = num_int - 2^(12) * p11;
-    
+
     %multiply by the LSB value
-    PRC = num_int * res; % m 
+    PRC = num_int * res; % m
 
     %compute the UDREI
     %start bit and end bit of the 13 UDREIs in MT 2, 3, 4
     start_bit_u = [175 : 4 : 223];
     end_bit_u   = [178 : 4 : 226];
-    
+
     %allocate the 13 binary numbers that correspond to the UDREIs
     for j = 1 : 13
         num_bin_u(j,:) = s(start_bit_u(j) : end_bit_u(j));
@@ -124,7 +124,7 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
     % UDREI = 0 - 13: OK
     %       = 14:     SV non monitored
     %       = 15:     SV must not be used
-    
+
     if MT == 2 | MT == 0
         SV = [1 : 13];
     elseif MT == 3
@@ -132,7 +132,7 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
         elseif MT == 4
         SV = [27 : 39];
         if max(prn_mask) < 39
-            SV = [27 : max(prn_mask)];  
+            SV = [27 : max(prn_mask)];
         end
     end
 
@@ -142,7 +142,7 @@ elseif (MT == 24)
     %start bit and end bit of the 6 PRCs in MT 24
     start_bit = [15 : 12 : 75];
     end_bit   = [26 : 12 : 86];
-    
+
     %allocate the 13 binary numbers that correspond to the PRCs
     for j = 1 : 6
         num_bin(j,:) = s(start_bit(j) : end_bit(j));
@@ -150,11 +150,11 @@ elseif (MT == 24)
 
     %convert to integers
     num_int = fbin2dec(num_bin);
-    
+
     %twos complement
     p11 = num_int > param_11;
     num_int = num_int - 2^(12) * p11;
-    
+
     %multiply by the LSB value
     PRC = num_int * res; % m
 
@@ -162,7 +162,7 @@ elseif (MT == 24)
     %start bit and end bit of the 6 UDREIs in MT 24
     start_bit_u = [87 : 4 : 107];
     end_bit_u   = [90 : 4 : 110];
-    
+
     %allocate the 6 binary numbers that correspond to the UDREIs
     for j = 1 : 6
         num_bin_u(j,:) = s(start_bit_u(j) : end_bit_u(j));
@@ -174,21 +174,21 @@ elseif (MT == 24)
     % UDREI = 0 - 13: OK
     %       = 14:     SV non monitored
     %       = 15:     SV must not be used
-    
+
     IODP = fbin2dec(s(111:112));
-    
+
     %find the right PRN mask
     i_iodp = find(iodp_mask == IODP);
     i_prn_mask = prn_mask(i_iodp,:); %#ok<FNDSB>
-    
+
     block_ID = fbin2dec(s(113:114));
-      
+
     SV_block = [1 : 6; ...
                 14 : 19; ...
                 27 : 32];
-   
-    SV = SV_block(block_ID + 1, :);         
-    
+
+    SV = SV_block(block_ID + 1, :);
+
     IODF = fbin2dec(s(115:116));
     %NOTE:
     % IODF = 0,1,2: OK

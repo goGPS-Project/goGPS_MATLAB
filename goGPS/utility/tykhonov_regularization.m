@@ -20,14 +20,14 @@ function [x_hat, bias, lbd] = tykhonov_regularization(x, y0, b, A, Q)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -50,8 +50,8 @@ function [x_hat, bias, lbd] = tykhonov_regularization(x, y0, b, A, Q)
 %--------------------------------------------------------------------------
 
 alp   = 0;    %initial value of alpha
-Dalp  = 1;    %initial value of delta_alpha 
-tol   = 1e-3; %tolerance value 
+Dalp  = 1;    %initial value of delta_alpha
+tol   = 1e-3; %tolerance value
 cnt1  = 0;
 
 %normal matrix
@@ -65,7 +65,7 @@ I = eye(n);
 
 while (abs(Dalp) > tol && cnt1 < 1e4);
     alp_o = alp; %initial value
-    alp   = (trace(N*(N + alp*I)^-3))/(x'*(N + alp*I)^-2*N*(N + alp*I)^-1*x); %compute alpha  
+    alp   = (trace(N*(N + alp*I)^-3))/(x'*(N + alp*I)^-2*N*(N + alp*I)^-1*x); %compute alpha
     Dalp  = alp - alp_o;
     cnt1  = cnt1 + 1;
 end

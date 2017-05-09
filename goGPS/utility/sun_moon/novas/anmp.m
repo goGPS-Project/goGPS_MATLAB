@@ -9,8 +9,8 @@ function w = anmp (a)
 w = mod(a, 2.0 * pi);
 
 if (abs(w) >= pi)
-    
+
     w = w - sign(a) * (2.0 * pi);
-    
+
 end
 

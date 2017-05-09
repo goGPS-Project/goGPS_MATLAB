@@ -18,15 +18,15 @@ function [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg)
 %   u-blox UBX messages decoding (also in sequence).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ function [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 if (nargin < 2 || isempty(constellations))
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
@@ -145,7 +145,7 @@ while (pos + 15 <= length(msg))
             %sometimes the LEN field is truncated as well)
             pos_nxt = pos_UBX(find(pos_UBX>pos,1));
             pos_rem = pos_nxt-pos;
-            
+
             % payload length (2 bytes)
             LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
@@ -153,7 +153,7 @@ while (pos + 15 <= length(msg))
 
             if (LEN ~= 0)
                 if (pos + 8*LEN + 15 <= length(msg))
-                    
+
                     % checksum
                     CK_A = 0; CK_B = 0;
                     Nslices = floor((8*LEN + 31) / 8 + 1);    %pre-allocate to
@@ -178,29 +178,29 @@ while (pos + 15 <= length(msg))
 
                         % message identification
                         switch class
-                            
+
                             % RXM (receiver manager)
                             case '02'
                                 switch id
                                     % RAW (raw measurement)
                                     case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1), constellations);
-                                        
+
                                     % SFRB (subframe buffer)
                                     %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1), constellations);
-                                        
+
                                     % EPH (*OBSOLETE* ephemeris)
                                     case '31'
                                        if (LEN == 104) %(ephemeris available)
                                            [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1), constellations);
                                        end
                                 end
-                                
+
                             % AID (aiding messages)
                             case '0B'
                                 switch id
                                     % HUI (sat. Health / UTC / Ionosphere)
                                     case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
-                                        
+
                                     % EPH (ephemeris)
                                     case '31'
                                         if (LEN == 104) %(ephemeris available)
@@ -208,10 +208,10 @@ while (pos + 15 <= length(msg))
                                         end
                                 end
                         end
-                        
+
                     else
                         warning('UBXDecoder:ChecksumError','checksum error (class: 0x%s, id: 0x%s))\n',class,id);
-                        
+
                         %skip truncated messages
                         % +4 to include the two length bytes and the two checksum bytes
                         if (~isempty(pos_rem) && ~mod(pos_rem,8) && 8*(LEN+4) > pos_rem)
@@ -220,10 +220,10 @@ while (pos + 15 <= length(msg))
                             continue
                         end
                     end
-                    
+
                     % skip the message body
                     pos = pos + 8*LEN;
-                    
+
                     % skip the 2 checksum bytes
                     pos = pos + 16;
                 else
@@ -236,7 +236,7 @@ while (pos + 15 <= length(msg))
 
     % check if a NMEA sentence is starting
     elseif (pos + 23 <= length(msg)) && (strcmp(msg(pos:pos+23),codeBIN_NMEA))
-        
+
         % search for <CR><LF>
         % The maximum number of characters for a valid NMEA 0183 sentence
         % is 82, but in order not to miss invalid length NMEA sentences
@@ -248,19 +248,19 @@ while (pos + 15 <= length(msg))
         else
             pos_ENDNMEA = strfind(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
         end
-        
+
         if ~isempty(pos_ENDNMEA)
             % save the NMEA sentence
             while (~strcmp(msg(pos:pos+7),'00001101'))
                 nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
                 pos = pos + 8;
             end
-            
+
             % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
             pos = pos + 8;
             nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
             pos = pos + 8;
-            
+
             nmea_sentences{nmea_counter,1} = nmea_string;
             nmea_counter = nmea_counter + 1;
             nmea_string = '';

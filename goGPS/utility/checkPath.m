@@ -11,17 +11,17 @@ function [universal_path, is_valid] = checkPath(path)
 %   < is_valid >            optional, contains the status of existence
 %
 % DESCRIPTION:
-%   Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep 
-%   if the second output parameter is present is_valid contains the status of existence 
+%   Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep
+%   if the second output parameter is present is_valid contains the status of existence
 %       2 => is a file
 %       7 => is a folder
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

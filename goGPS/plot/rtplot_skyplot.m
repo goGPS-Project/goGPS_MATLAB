@@ -20,14 +20,14 @@ function rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -170,12 +170,12 @@ for i = 1 : num_sat
     if (el(i) > 0)
 
         sat = [sat; i];
-        
+
         if (satid(i) == 0)
-            
+
             satid(i) = plot(x(i), y(i), '.');
             set(satid(i), 'MarkerSize', 15);
-            
+
             switch sys(i)
                 case 'G' %GPS
                     set(satid(i), 'Color', 'b');

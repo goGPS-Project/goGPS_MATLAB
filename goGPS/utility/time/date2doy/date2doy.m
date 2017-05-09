@@ -6,7 +6,7 @@ function [doy,fraction] = date2doy(inputDate)
 %   inputDate:  Input date as a MATLAB serial datenumber
 %
 %   Descriptions of Output Variables:
-%   doy: Decimal day of the year. For instance, an output of 1.5 would 
+%   doy: Decimal day of the year. For instance, an output of 1.5 would
 %       indicate that the time is noon on January 1.
 %   fraction: Outputs the fraction of a year that has elapsed by the input
 %       date.

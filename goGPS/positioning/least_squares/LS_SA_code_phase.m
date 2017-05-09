@@ -39,14 +39,14 @@ function [XR, dtR, ISBs, N_hat, cov_XR, var_dtR, var_ISBs, cov_N, PDOP, HDOP, VD
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -103,7 +103,7 @@ A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X c
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
          diag(-lambda(index)) .* eye(nsat_ph), ...               %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
-     
+
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
 uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
@@ -168,7 +168,7 @@ if (n > m)
 else
     cov_XR   = [];
     cov_N    = [];
-    var_dtR  = []; 
+    var_dtR  = [];
 end
 
 %DOP computation
@@ -177,7 +177,7 @@ if (nargout > 6)
     cov_XYZ = (A'*A)^-1;
     cov_XYZ = cov_XYZ(1:3,1:3);
     cov_ENU = global2localCov(cov_XYZ, XR);
-    
+
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
     VDOP = sqrt(cov_ENU(3,3));

@@ -14,7 +14,7 @@ function [N_stim] = ambiguity_init_from_range(distR, distM, pivot_index, ph_R, p
 %
 %
 % OUTPUT:
-%   N_stim = phase ambiguity estimation 
+%   N_stim = phase ambiguity estimation
 %
 % DESCRIPTION:
 %   This function estimates float phase ambiguities from geometrical range
@@ -22,14 +22,14 @@ function [N_stim] = ambiguity_init_from_range(distR, distM, pivot_index, ph_R, p
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------

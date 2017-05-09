@@ -56,15 +56,15 @@ elseif (day > 14)
    b = 2 - a + floor(a / 4);
 else
    clc; home;
-   
+
    fprintf('\n\n  this is an invalid calendar date!!\n');
-   
+
    keycheck;
-   
+
    return;
 end
 
 jd = fix(365.25 * y + c) + fix(30.6001 * (m + 1));
-    
+
 jdate = jd + day + b + 1720994.5;
 

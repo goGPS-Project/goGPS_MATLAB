@@ -17,15 +17,15 @@ function [data] = decode_skytraq(msg, constellations, wait_dlg)
 %   SkyTraq binary messages decoding (also in sequence).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [data] = decode_skytraq(msg, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -126,7 +126,7 @@ while (pos + 15 <= length(msg))
         pos = pos + 16;
 
         if (pos + 23 <= length(msg))
-            
+
             % payload length (2 bytes)
             LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
@@ -134,7 +134,7 @@ while (pos + 15 <= length(msg))
 
             if (LEN ~= 0)
                 if (pos + 8*LEN + 23 <= length(msg))
-                    
+
                     % checksum
                     CS = 0;
                     slices = cell(1,LEN);                     % pre-allocate to increase speed
@@ -148,17 +148,17 @@ while (pos + 15 <= length(msg))
                         CS = bitxor(CS,slices(k));
                     end
                     CS_rec = fbin2dec(msg(pos + 8*LEN:pos + 8*LEN + 7));
-                    
+
                     % if checksum matches
                     if (CS == CS_rec)
 
                         % counter increment
                         i = i + 1;
-                        
+
                         % message id (1 byte)
                         id = fbin2dec(msg(pos:pos+7));
                         id = dec2hex(id,2);
-                        
+
                         % message identification
                         switch id
                             % MEAS_TIME (Measurement time information)
@@ -166,17 +166,17 @@ while (pos + 15 <= length(msg))
 
                             % RAW_MEAS (Raw channel measurements)
                             case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1), constellations);
-                                
+
                             % GPS_EPH (GPS ephemeris data)
                             case 'B1', [data(:,i)] = decode_skytraq_GPS_EPH(msg(pos+8:pos+8*LEN-1), constellations);
                         end
                     else
                         %fprintf('Checksum error!\n');
                     end
-                    
+
                     % skip the payload
                     pos = pos + 8*LEN;
-                    
+
                     % skip the checksum byte and "end of sequence" bytes
                     pos = pos + 24;
                 else

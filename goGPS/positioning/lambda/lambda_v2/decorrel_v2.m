@@ -58,8 +58,8 @@ while sw;
    while ( ~sw ) & (i > 1)
 
       i = i - 1;
-      if (i <= i1); 
-      
+      if (i <= i1);
+
          for j = i+1:n
             mu = round(L(j,i));
             if mu ~= 0
@@ -86,7 +86,7 @@ while sw;
          Help         = L(i+2:n,i);
          L(i+2:n,i)   = L(i+2:n,i+1);
          L(i+2:n,i+1) = Help;
-         
+
          Help         = Zti(1:n,i);
          Zti(1:n,i)   = Zti(1:n,i+1);
          Zti(1:n,i+1) = Help;

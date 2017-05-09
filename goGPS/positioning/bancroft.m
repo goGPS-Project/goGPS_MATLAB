@@ -15,15 +15,15 @@ function [pos] = bancroft(B_pass)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) Kai Borre
 %  Written by:       Kai Borre
-%  Contributors:     Kai Borre 04-30-95, 
+%  Contributors:     Kai Borre 04-30-95,
 %                    C.C. Goad 11-24-96
 %                    Mirko Reguzzoni, Eugenio Realini, 2009
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -58,7 +58,7 @@ for iter = 1:2
         B(i,1) =  cosa*x + sina*y;
         B(i,2) = -sina*x + cosa*y;
     end
-    
+
     if m > 4
         BBB = (B'*B)\B';
     else
@@ -90,7 +90,7 @@ for iter = 1:2
             abs_omc(i) = abs(omc);
         end
     end
-    
+
     % discrimination between roots
     if abs_omc(1) > abs_omc(2)
         pos = possible_pos(:,2);

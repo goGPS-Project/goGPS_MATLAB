@@ -20,7 +20,7 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %   var_ISBs = variance of estimation errors (inter-system biases)
 %   bad_obs = vector with ids of observations found as outlier
 %   bad_epoch = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
-%   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m] 
+%   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m]
 %   residuals_obs = vector with residuals of all input observation, computed from the final estimates
 %   y0 = least-squares observation vector
 %   A = least-squares design matrix
@@ -34,14 +34,14 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Stefano Caldera, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -155,12 +155,12 @@ if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
     if n==m
         bad_epoch=-1;
     end
-else    
+else
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
     search_for_outlier = flag_outlier;
-    
+
     if (num_sys > 1)
         sys0=sys;
         uni_sys0 = uni_sys;
@@ -227,7 +227,7 @@ if (n > m)
         var_ISBs = Cxx(2:end,2:end) / v_light^2;
     end
 else
-    var_dtR = NaN; 
+    var_dtR = NaN;
     var_ISBs = NaN;
 end
 

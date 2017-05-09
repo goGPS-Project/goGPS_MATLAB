@@ -16,19 +16,19 @@ function [EAST, NORTH, utm_zone] = geod2plan(lat, lon)
 %   Conversion from geodetic coordinates to planimetric coordinates (UTM WGS84).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  Other Contributors: Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy
-%  Portions of code based on "deg2utm" by 
+%  Portions of code based on "deg2utm" by
 %     - Rafael Palacios - Universidad Pontificia Comillas Madrid, Spain
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -47,7 +47,7 @@ function [EAST, NORTH, utm_zone] = geod2plan(lat, lon)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %number of input points
@@ -61,28 +61,28 @@ if (n > 0)
     utm_zone(n,:) = '60 X';
     NORTH = zeros(n,1);
     EAST = zeros(n,1);
-    
+
     %conversion algorithm
     %UTM parameters
     EsMc = 500000; % false East
-    
+
     %WGS84 ellipsoid parameters
     %semi-major equatorial axis [m]
     SemiEq = 6378137;
     %flattening f=(a-b)/a
     f = 1 / 298.25722356;
-    
+
     %squared eccentricity (a^2-b^2)/a^2
     EccQ = 1 - (1 - f)^2;
-    
+
     %contraction factor
     contr = 0.9996;
-    
+
     SemiEq = SemiEq * contr;
     ecc4 = EccQ * EccQ;
     ecc6 = ecc4 * EccQ;
     ecc8 = ecc6 * EccQ;
-    
+
     k0 = SemiEq * (EccQ / 4 + ecc4 * 3 / 64 + ecc6 * 5 / 256 + ecc8 * 175 / 16384);
     k = SemiEq - k0;
     k1 = SemiEq * (ecc4 * 13 / 96 + ecc6 * 59 / 384 + ecc8 * 1307 / 8192);
@@ -91,29 +91,29 @@ if (n > 0)
     c1 = (EccQ * 5 - ecc4) / 6;
     c2 = (ecc4 * 104 - ecc6 * 45) / 120;
     c3 = ecc6 * 1237 / 1260;
-    
+
     %Sines, cosines and latitude powers
     Elix = [lat lon];
     latsessadec = lat ./ pi .* 180;
     lonsessadec = lon ./ pi .* 180;
-    
+
     fiSin(:,1) = sin(Elix(:,1));
     fiCos(:,1) = cos(Elix(:,1));
     fiSin2(:,1) = fiSin .* fiSin;
     fiSin4(:,1) = fiSin2 .* fiSin2;
     fiSin6(:,1) = fiSin4 .* fiSin2;
-    
+
     %UTM zone finding
     for i = 1 : n
 
         M(i,1) = fix((180 + lonsessadec(i,1)) / 6) + 1;
-        
+
         if latsessadec(i,1) >= 0
             north_south(i,1) = 1; %1 north, 0 south
         else
             north_south(i,1) = 0;
         end
-        
+
         if     (latsessadec(i,1) < -72), letter='C';
         elseif (latsessadec(i,1) < -64), letter='D';
         elseif (latsessadec(i,1) < -56), letter='E';
@@ -135,20 +135,20 @@ if (n > 0)
         elseif (latsessadec(i,1) <  72), letter='W';
         else                             letter='X';
         end
-        
+
         utm_zone(i,:) = sprintf('%02d %c', M(i, 1), letter);
     end
-    
+
     for i = 1 : n
         %Longitude of the central meridian
         LonMeridianoCentrale = -177+6 * (M(i,1) - 1);
-        
+
         %Distance of the point from the central meridian
         %la_sd --> distance in decimal degrees
         %la    --> distance in radians
         la_sd = lonsessadec(i,1) - LonMeridianoCentrale;
         la = la_sd / 180 * pi;
-        
+
         if la == 0
             laSin = 0;
             laCos = 1;
@@ -158,20 +158,20 @@ if (n > 0)
             laCos = cos(la);
             laCot = laCos / laSin ;
         end
-        
+
         %longitude with respect to central meridian
         laCot2 = laCot * laCot;
-        
+
         %psi
         psi = Elix(i,1) - EccQ * fiSin(i,1) * fiCos(i,1) *(1 + c1 * fiSin2(i,1) + c2 * fiSin4(i,1) + c3 * fiSin6(i,1));
         psiSin = sin(psi);
         psiCos = cos(psi);
         psiTan = psiSin / psiCos ;
         psiSin2 = psiSin * psiSin ;
-        
+
         %omega
         ome = atan(psiTan / laCos);
-        
+
         %sigma
         if laSin ~= 0
             sigSin =laSin * psiCos;
@@ -180,21 +180,21 @@ if (n > 0)
             sigSin = 0;
             sig = 0;
         end
-        
+
         sigSin2 = sigSin * sigSin;
         sigSin4 = sigSin2 * sigSin2;
         sigCos2 = 1 - sigSin2;
         sigCos4 = sigCos2 * sigCos2;
-        
+
         %chi
         chi = sig / 2 + pi / 4;
         chiTan = tan(chi);
         chiLog = log(chiTan);
-        
+
         %constants
         aa = psiSin * psiCos * laCos * (1 + sigSin2) / sigCos4;
         bb = sigSin * (sigCos2 - 2 * psiSin2) / sigCos4;
-        
+
         if laCot ~= 0
             a1 = (psiSin2 - sigSin4 * laCot2)/ sigCos4;
             b1 = 2 * sigSin2 * psiSin * laCot / sigCos4;
@@ -208,22 +208,22 @@ if (n > 0)
         b3 = a1 * b2 + b1 * a2 ;
         rr = k0 - a1 * k1 + a2 * k2 - a3 * k3;
         tt = b1 * k1 - b2 * k2 + b3 * k3;
-        
+
         %X/Y coordinates
         xx = k * ome + aa * rr + bb * tt;
         yy = k * chiLog + bb * rr - aa * tt;
-        
+
         %North and East
         if north_south(i,1) == 1
             NoEq = 0;
         else
             NoEq = 10000000;
         end
-        
+
         NORTH(i,1) = NoEq + xx;
         EAST(i,1) = EsMc + yy;
     end
-    
+
 else
     utm_zone = [];
     NORTH = [];

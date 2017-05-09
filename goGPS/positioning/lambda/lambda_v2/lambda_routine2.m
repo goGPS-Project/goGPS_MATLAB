@@ -1,8 +1,8 @@
 function [afixed,sqnorm,Qahat,Z,D,L] = lambda_routine2 (afloat,Qahat)
 %LAMBDA2: Integer ambiguity estimation using LAMBDA (basic version)
 %
-% This routine performs an integer ambiguity estimation using the 
-% LAMBDA-method, as developed by the Delft University of Technology, 
+% This routine performs an integer ambiguity estimation using the
+% LAMBDA-method, as developed by the Delft University of Technology,
 % Mathematical Geodesy and Positioning.
 %
 % Input arguments:
@@ -77,8 +77,8 @@ afloat = rem(afloat,1);
 [Qahat,Z,L,D,afloat] = decorrel_v2 (Qahat,afloat);
 
 % ----------------------------------------------------------------------
-% Compute a suitable Chi^2 such that we have the requested number of 
-% candidates at minimum; use an 'eps' to make sure the candidates are 
+% Compute a suitable Chi^2 such that we have the requested number of
+% candidates at minimum; use an 'eps' to make sure the candidates are
 % inside the ellipsoid and not exactly on the border.
 % ----------------------------------------------------------------------
 

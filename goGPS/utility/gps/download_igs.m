@@ -6,7 +6,7 @@ function download_igs(gpsweek, dow, items, path_download)
 % INPUT:
 %   gpsweek = 4digit gpsweek
 %   dow = day of week
-%   items = vector specifying IGS products to be downloaded 
+%   items = vector specifying IGS products to be downloaded
 %   path_download = full path to the download directory
 %
 % OUTPUT:
@@ -20,20 +20,20 @@ function download_igs(gpsweek, dow, items, path_download)
 %             igswwwwd.clk              IGS final clocks
 %             igswwwwd.clk_30s          IGS final clocks (30 sec)
 %             igswwww7.erp              IGS Earth rotation parameters
-%             igrwwwwd.sp3              IGS rapid orbits           
-%             iguwwwwd_00.sp3           IGS ultrarapid orbits 00   
-%             iguwwwwd_06.sp3           IGS ultrarapid orbits 06   
-%             iguwwwwd_12.sp3           IGS ultrarapid orbits 12   
+%             igrwwwwd.sp3              IGS rapid orbits
+%             iguwwwwd_00.sp3           IGS ultrarapid orbits 00
+%             iguwwwwd_06.sp3           IGS ultrarapid orbits 06
+%             iguwwwwd_12.sp3           IGS ultrarapid orbits 12
 %             iguwwwwd_18.sp3]          IGS ultrarapid orbits 18
 %   e.g. items=[1 0 0 0 0 0 0 0 0] to download final orbits only
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Stefano Caldera
@@ -55,7 +55,7 @@ function download_igs(gpsweek, dow, items, path_download)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -64,7 +64,7 @@ addpath(genpath(pwd));
 fprintf('\n');
 fprintf('--> IGSDownload <--\n');
 fprintf('    -----------\n\n');
-    
+
 
 % checking if the download is needed
 if sum(items)==0
@@ -74,8 +74,8 @@ else
     % ftp address and credential
     username='anonymous';
     password='stefano@geomatica.como.polimi.it';
-    
-    
+
+
     items_filename={};
     items_filename{1}=sprintf('igs%04d%d.sp3.Z',gpsweek,dow);
     items_filename{2}=sprintf('igs%04d%d.clk.Z',gpsweek,dow);
@@ -85,36 +85,36 @@ else
     items_filename{6}=sprintf('igu%04d%d_00.sp3.Z',gpsweek,dow);
     items_filename{7}=sprintf('igu%04d%d_06.sp3.Z',gpsweek,dow);
     items_filename{8}=sprintf('igu%04d%d_12.sp3.Z',gpsweek,dow);
-    items_filename{9}=sprintf('igu%04d%d_18.sp3.Z',gpsweek,dow);    
+    items_filename{9}=sprintf('igu%04d%d_18.sp3.Z',gpsweek,dow);
 
     items_status=items-1;   % -1: not to be donwloaded, 0: not found, 1: downloaded
-    
-    
+
+
     %              ================================
     %  SERVER # 1  International GNSS Service (IGS)
     %              ================================
-    
+
     fprintf('    --> Donwload from International GNSS Service (IGS)\n');
     fprintf('        --> Connecting to remote host ... ');
-    
+
     host='igscb.jpl.nasa.gov';
-    
+
     try
         f = ftp(host,username,password);
         fprintf('OK\n');
-        
+
         fprintf('        --> Changing directory ... ');
         cd(f,'pub');
         cd(f,'gps');
         cd(f,sprintf('%04d',gpsweek));
         fprintf('OK\n');
         fprintf('        --> Download:\n');
-        
+
         for i=1:length(items)
             if items(i)==1
                 fprintf('              - %-17s ... ', char(items_filename{i}));
                 mget(f,char(items_filename{i}),path_download);
-                
+
                 % check download result
                 if exist(sprintf('%s/%s',path_download, char(items_filename{i})))
                     items(i)=0;
@@ -127,9 +127,9 @@ else
             end
         end
         close(f);
-        
+
     catch connection_status
-        fprintf('%s\n',connection_status.message);        
+        fprintf('%s\n',connection_status.message);
     end
 
     if sum(items)>0
@@ -138,13 +138,13 @@ else
         %              ===================================
         fprintf('\n    --> Donwload from Goddard Space Flight Center (CCDIS)\n');
         fprintf('        --> Connecting to remote host ... ');
-        
+
         host='cddis.gsfc.nasa.gov';
-        
+
         try
             f = ftp(host,username,password);
             fprintf('OK\n');
-            
+
             fprintf('        --> Changing directory ... ');
             cd(f,'pub');
             cd(f,'gps');
@@ -156,7 +156,7 @@ else
                 if items(i)==1
                     fprintf('              - %-17s ... ', char(items_filename{i}));
                     mget(f,char(items_filename{i}),path_download);
-                    
+
                     % check download result
                     if exist(sprintf('%s/%s',path_download, char(items_filename{i})))
                         items(i)=0;
@@ -181,25 +181,25 @@ else
         %              ================================================
         fprintf('\n    --> Donwload from Scripps Orbit and Permanent Array Center (SOPAC)\n');
         fprintf('        --> Connecting to remote host ... ');
-        
+
         host='garner.ucsd.edu';
-        
+
         try
             f = ftp(host,username,password);
             fprintf('OK\n');
-            
+
             fprintf('        --> Changing directory ... ');
             cd(f,'pub');
             cd(f,'products');
             cd(f,sprintf('%04d',gpsweek));
             fprintf('OK\n');
             fprintf('        --> Download:\n');
-            
+
             for i=1:length(items)
                 if items(i)==1
                     fprintf('              - %-17s ... ', char(items_filename{i}));
                     mget(f,char(items_filename{i}),path_download);
-                    
+
                     % check download result
                     if exist(sprintf('%s/%s',path_download, char(items_filename{i})))
                         items(i)=0;
@@ -219,11 +219,11 @@ else
 
 %      % decompression
 %      fprintf('\n    --> Decompression\n');
-%      
+%
 %      if(isunix)
 %          % decompression using unix
-%          
-%          
+%
+%
 %      else
 %          % decompression in windows
 %          for i=1:length(items)

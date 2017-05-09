@@ -1,15 +1,15 @@
 function plot_residuals(constellations, RES_PHASE, RES_CODE, outliers_PHASE, outliers_CODE, filerootOUT)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function plot_residuals(constellations, RES_PHASE, RES_CODE, outliers_PHASE, out
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -53,14 +53,14 @@ ncols = 6;
 systems = fieldnames(constellations);
 for s = 1 : 6 %numel(unique(constellations.systems))
     if constellations.(systems{s}).enabled == 1
-        
+
         %PHASE GRAPHS (no outliers)
         if plot_phase == 1
             f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
             paperSize = get(f,'PaperSize');
             set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
             for i=1:constellations.(systems{s}).numSat
-                
+
                 figure(f);
                 subplot(nrows,ncols,i);
                 hold on;
@@ -72,20 +72,20 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 xlabel('Epoch','FontName','Verdana','FontSize',6,'FontWeight','Bold');
                 plot(RES_PHASE(constellations.(systems{s}).indexes(i),~outliers_PHASE(constellations.(systems{s}).indexes(i),:))*1000,'.b');
            end
-            
+
             print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals']);
             %remove figure
             close(f);
         end
-        
+
         %CODE GRAPHS (no outliers)
         if plot_code == 1
             f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
             paperSize = get(f1,'PaperSize');
             set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-            
+
             for i=1:constellations.(systems{s}).numSat
-                
+
                 figure(f1);
                 subplot(nrows,ncols,i);
                 hold on;
@@ -98,17 +98,17 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 plot(RES_CODE(constellations.(systems{s}).indexes(i),~outliers_CODE(constellations.(systems{s}).indexes(i),:)),'.b');
             end
             print(f1, '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
-            
+
             close(f1);
         end
-        
+
         %PHASE GRAPHS (with outliers)
         if plot_phase == 1
             f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
             paperSize = get(f,'PaperSize');
             set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
             for i=1:constellations.(systems{s}).numSat
-                
+
                 figure(f);
                 subplot(nrows,ncols,i);
                 hold on;
@@ -122,20 +122,20 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 hold on
                 plot(find(outliers_PHASE(constellations.(systems{s}).indexes(i),:) == 1),RES_PHASE(constellations.(systems{s}).indexes(i), outliers_PHASE(constellations.(systems{s}).indexes(i),:) == 1)*1000,'.r');
             end
-            
+
             print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals_with_OUTLIERS']);
             %remove figure
             close(f);
         end
-        
+
         %CODE GRAPHS (with outliers)
         if plot_code == 1
             f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
             paperSize = get(f1,'PaperSize');
             set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-            
+
             for i=1:constellations.(systems{s}).numSat
-                
+
                 figure(f1);
                 subplot(nrows,ncols,i);
                 hold on;
@@ -150,7 +150,7 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 plot(find(outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),RES_CODE(constellations.(systems{s}).indexes(i), outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),'.r');
             end
             print(f1, '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals_with_OUTLIERS']);
-            
+
             close(f1);
         end
     end
@@ -158,16 +158,16 @@ end
 
 % %% GLONASS
 % if constellations.GLONASS.enabled == 1
-%     
-%     
+%
+%
 %     %PHASE GRAPHS
 %     if plot_phase == 1
 %         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f,'PaperSize');
 %         set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-%         
+%
 %         for i=1:constellations.GLONASS.numSat
-%             
+%
 %             figure(f);
 %             subplot(6,4,i);
 %             hold on;
@@ -181,19 +181,19 @@ end
 %             hold on
 %             plot(find(outliers_PHASE(constellations.GLONASS.indexes(i),:) == 1),RES_PHASE(constellations.GLONASS.indexes(i), outliers_PHASE(constellations.GLONASS.indexes(i),:) == 1)*1000,'.r');
 %         end
-%         
+%
 %         print(f , '-dpdf', [filerootOUT '_GLONASS_PHASE_residuals']);
 %         %remove figure
 %         close(f);
 %     end
-%     
-%     
+%
+%
 %     if plot_code == 1
 %         %CODE GRAPHS
 %         f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f1,'PaperSize');
 %         set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-%         
+%
 %         for i=1:constellations.GLONASS.numSat
 %             figure(f1);
 %             subplot(6,4,i);
@@ -209,24 +209,24 @@ end
 %             plot(find(outliers_CODE(constellations.GLONASS.indexes(i),:) == 1),RES_CODE(constellations.GLONASS.indexes(i), outliers_CODE(constellations.GLONASS.indexes(i),:) == 1),'.r');
 %         end
 %         print(f1, '-dpdf', [filerootOUT '_GLONASS_CODE_residuals']);
-%         
+%
 %         close(f1);
 %     end
 % end
-% 
-% 
-% 
-% 
+%
+%
+%
+%
 % %% Galileo
 % if constellations.Galileo.enabled == 1
-%     
-% 
+%
+%
 %     %PHASE GRAPHS
 %     if plot_phase == 1
 %         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f,'PaperSize');
 %         set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-%         
+%
 %         for i=1:constellations.Galileo.numSat
 %             figure(f);
 %             subplot(6,5,i);
@@ -241,19 +241,19 @@ end
 %             hold on
 %             plot(find(outliers_PHASE(constellations.Galileo.indexes(i),:) == 1),RES_PHASE(constellations.Galileo.indexes(i), outliers_PHASE(constellations.Galileo.indexes(i),:) == 1)*1000,'.r');
 %         end
-%         
+%
 %         print(f , '-dpdf', [filerootOUT '_Galileo_PHASE_residuals']);
 %         %remove figure
 %         close(f);
 %     end
-%     
-%     
+%
+%
 %     %CODE GRAPHS
 %     if plot_code == 1
 %         f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f1,'PaperSize');
 %         set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-%         
+%
 %         for i=1:constellations.Galileo.numSat
 %             %CODE GRAPHS
 %             figure(f1);
@@ -270,24 +270,24 @@ end
 %             plot(find(outliers_CODE(constellations.Galileo.indexes(i),:) == 1),RES_CODE(constellations.Galileo.indexes(i), outliers_CODE(constellations.Galileo.indexes(i),:) == 1),'.r');
 %         end
 %         print(f1, '-dpdf', [filerootOUT '_Galileo_CODE_residuals']);
-%         
+%
 %         close(f1);
 %     end
-%     
+%
 % end
-% 
-% 
-% 
+%
+%
+%
 % %% Galileo
 % if constellations.BeiDou.enabled == 1
-%     
-%     
+%
+%
 %     %PHASE GRAPHS
 %     if plot_phase == 1
 %         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f,'PaperSize');
 %         set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-%         
+%
 %         for i=1:constellations.BeiDou.numSat
 %             figure(f);
 %             subplot(7,6,i);
@@ -302,20 +302,20 @@ end
 %             hold on
 %             plot(find(outliers_PHASE(constellations.BeiDou.indexes(i),:) == 1),RES_PHASE(constellations.BeiDou.indexes(i), outliers_PHASE(constellations.BeiDou.indexes(i),:) == 1)*1000,'.r');
 %         end
-%         
+%
 %         print(f , '-dpdf', [filerootOUT '_BeiDou_PHASE_residuals']);
 %         %remove figure
 %         close(f);
 %     end
-%     
+%
 %     %CODE GRAPHS
 %     if plot_code == 1
 %         f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f1,'PaperSize');
 %         set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-%         
+%
 %         for i=1:constellations.BeiDou.numSat
-%             
+%
 %             figure(f1);
 %             subplot(7,6,i);
 %             hold on;
@@ -332,21 +332,21 @@ end
 %         print(f1, '-dpdf', [filerootOUT '_BeiDou_CODE_residuals']);
 %         close(f1)
 %     end;
-% 
+%
 % end
-% 
-% 
-% 
+%
+%
+%
 % %% QZSS
 % if constellations.QZSS.enabled == 1
-%     
-%     
+%
+%
 %     %PHASE GRAPHS
 %     if plot_phase == 1
 %         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f,'PaperSize');
 %         set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-%         
+%
 %         for i=1:constellations.QZSS.numSat
 %             %PHASE GRAPHS
 %             figure(f);
@@ -362,18 +362,18 @@ end
 %             hold on
 %             plot(find(outliers_PHASE(constellations.QZSS.indexes(i),:) == 1),RES_PHASE(constellations.QZSS.indexes(i), outliers_PHASE(constellations.QZSS.indexes(i),:) == 1)*1000,'.r');
 %         end
-%         
+%
 %         print(f , '-dpdf', [filerootOUT '_QZSS_PHASE_residuals']);
 %         %remove figure
 %         close(f);
 %     end
-%     
+%
 %     %CODE GRAPHS
 %     if plot_code == 1
 %         f1 = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
 %         paperSize = get(f1,'PaperSize');
 %         set(f1,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-%         
+%
 %         for i=1:constellations.QZSS.numSat
 %             figure(f1);
 %             subplot(2,2,i);
@@ -389,8 +389,8 @@ end
 %             plot(find(outliers_CODE(constellations.QZSS.indexes(i),:) == 1),RES_CODE(constellations.QZSS.indexes(i), outliers_CODE(constellations.QZSS.indexes(i),:) == 1),'.r');
 %         end
 %         print(f1, '-dpdf', [filerootOUT '_QZSS_CODE_residuals']);
-%         
+%
 %         close(f1);
 %     end
-% 
+%
 % end

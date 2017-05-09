@@ -22,15 +22,15 @@ function [igp, m_ivd, lat_igp, lon_igp, GPS_time26] = load_ic(iodi_mask, band_ma
 %   Ionospheric vertical delay correction.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ function [igp, m_ivd, lat_igp, lon_igp, GPS_time26] = load_ic(iodi_mask, band_ma
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %load the global grid coordinates
@@ -81,9 +81,9 @@ n_nodes    = NaN(n26,1);
 GPS_time26 = GPS_time(r_MT,:);
 
 for i = 1 : n26
-    
+
     [banda26, block26, ivd26, givei26, igp_temp] = ems2idc(msg(r_MT(i),:), iodi_mask, band_mask, igp_mask);
-    
+
     band(i)        = banda26;
     block(i)       = block26;
     ivd_old(i,:)   = ivd26;     %IGP vertical delay [1x15]
@@ -94,33 +94,33 @@ for i = 1 : n26
     %band and block values <--> IGP nodes of the IGP mask
     %r_b = find(bands == band(i));
     %igp_mask26 = igp_mask(:,r_b);
-    
+
     %block is from 0 to 13, thus nodes_mask has max value = 210, but the
     %mask max value is 201. However it should not be a problem, since only
     %the grid nodes over Europe are provided, thus the mask is never "full"
     %and not all block for the band are available
     nodes_mask = [1:15] + 15 * block(i);
-    
+
     %NOTE: some nodes of a block may not be valid, and they must be removed
     %(e.g. I have 9 valid IGP points (IGP>0), but the block is always of 15
     %nodes)
     r_im = find(igp_mask26(nodes_mask));
     nodes_igp(i,1:length(r_im)) = igp_mask26(nodes_mask(r_im));
-    
+
     n_nodes(i) = length(r_im);
-    
+
     % >>> new ID method for IGP nodes <<<
     % from band (1 digit) and node number (3 digits) to only one number of
     % 4 digits; the first digit indicates the band, the other 3 the node.
     % In this way the search is done on one dataset only.
     nodes_id(i,1:length(r_im)) = band(i) * 1000 + nodes_igp(i,1:length(r_im));
-    
+
     %IGP matrix of the iono vertical delays
     ivd(i,1:length(r_im)) = ivd_old(i,1:length(r_im));
-    
+
     %givei matrix
     givei(i,1:length(r_im)) = givei_old(i,1:length(r_im));
-end    
+end
 
 
 %find all the valid IGP points
@@ -149,11 +149,11 @@ for i = 2 : n26
         i_igp = find(igp == nodes_id(i, j));
         if givei(i,j) < 15 & ivd(i,j) < 63.875 %"dont'use" value
             m_ivd(i, i_igp) = ivd(i,j);
-        else 
+        else
             m_ivd(i, i_igp) = NaN;
         end
     end
-    
+
     %number of elements ~= NaN on each line
     %n_nigp(i) = sum(~isnan(m_ivd(i,:)));
 end

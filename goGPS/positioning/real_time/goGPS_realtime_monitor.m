@@ -20,14 +20,14 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -171,7 +171,7 @@ elseif (protocol == 2)
 
     % skytraq configuration
     [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
-    
+
 elseif (protocol == 3)
 
     % nvs configuration
@@ -252,7 +252,7 @@ while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
     if (protocol == 0)
         %poll available ephemerides
         ublox_poll_message(rover, 'AID', 'EPH', 0);
-        
+
         %wait for asynchronous write to finish
         pause(0.1);
 
@@ -262,7 +262,7 @@ while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
         %wait for asynchronous write to finish
         pause(0.1);
     end
-    
+
     if (protocol == 2)
         %poll available ephemerides
         skytraq_poll_message(rover, '30', 0);
@@ -304,7 +304,7 @@ while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
     elseif (protocol == 3)
         [cell_rover] = decode_nvs(data_rover, constellations);
     end
-    
+
     %for SkyTraq
 	IOD_time = -1;
 
@@ -316,43 +316,43 @@ while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
             %just information needed for basic positioning is saved
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
-        
+
         %Timing message data save (MEAS_TIME)
         elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
-            
+
             IOD_time = cell_rover{2,i}(1);
             time_GPS = cell_rover{2,i}(3);
-            
+
         %Raw message data save (RAW_MEAS)
         elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
-            
+
             IOD_raw = cell_rover{2,i}(1);
             if (IOD_raw == IOD_time)
                 pr_R = cell_rover{3,i}(:,3);
             end
-            
+
         %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
         elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
             %satellite index
             idx = cell_rover{2,i}(30);
-            
+
             if (~isempty(idx) && idx > 0)
                 Eph(:, idx) = cell_rover{2,i}(:);
                 weekno = Eph(24,idx);
                 Eph(32,idx) = weektime2tow(weekno,Eph(32,idx));
                 Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
             end
-            
+
         %Hui message data save (AID-HUI | 4Ah)
         elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
-            
+
             %u-blox fields
             if (protocol == 0)
                 %ionosphere parameters
                 iono(:, 1) = cell_rover{3,i}(9:16);
             end
-            
+
             %NVS fields
             if (protocol == 3)
                 %ionosphere parameters
@@ -408,29 +408,29 @@ rover_2 = 0;
 sync_rover = 0;
 
 while (~sync_rover)
-    
+
     %starting epoch determination
     while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
-        
+
         %starting time
         current_time = toc;
-        
+
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
         pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
-        
+
         %visualization
         fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
-        
+
     end
-    
+
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
     if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-    
+
     %message decoding
     if (protocol == 0)
         [cell_rover] = decode_ublox(data_rover, constellations);
@@ -446,19 +446,19 @@ while (~sync_rover)
 
         %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
-            
+
             %just information about the epoch is saved
             time_GPS = round(cell_rover{2,i}(1));
             week_GPS = cell_rover{2,i}(2);
-            
+
             sync_rover = 1;
-            
+
         %Timing message data save (MEAS_TIME)
         elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
 
             time_GPS = cell_rover{2,i}(3);
             week_GPS = cell_rover{2,i}(2);
-            
+
             sync_rover = 1;
         end
     end
@@ -650,7 +650,7 @@ while flag
         %-------------------------------------
         % mode management
         %-------------------------------------
-        
+
         if (flag == 2) && (order == 1)                  % STOP --> GO
             order = 2;                                  % constant velocity model
             set(h1, 'string', 'STOP');                  % write STOP
@@ -798,14 +798,14 @@ while flag
         %data type counters
         nEPH = 0;
         nHUI = 0;
-        
+
         %for Fastrax
         tick_TRACK = 0;
         %                   L1 freq    RF_conv*MCLK      MixerOffeset
         correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
         correction_value = correction_value * (1575420000/(1+1574399750));
         doppler_count = 1;
-        
+
         %for SkyTraq
         IOD_time = -1;
 
@@ -816,7 +816,7 @@ while flag
 
                 tick_TRACK    = cell_rover{2,i}(1);
                 phase_TRACK   = cell_rover{3,i}(:,6);
-                
+
                 type = [type prot_par{6,2} ' '];
 
             %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
@@ -824,7 +824,7 @@ while flag
 
                 %buffer index computation
                 index = time_GPS - round(cell_rover{2,i}(1)) + 1;
-                
+
                 if (index <= B)
                     while (index < 1)
                         time_GPS = time_GPS + 1;
@@ -856,31 +856,31 @@ while flag
 
                     type = [type prot_par{1,2} ' '];
                 end
-                
+
             %Timing message data save (MEAS_TIME)
             elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
-                
+
                 IOD_time = cell_rover{2,i}(1);
                 time_stq = cell_rover{2,i}(3);
                 week_stq = cell_rover{2,i}(2);
-                
+
                 type = [type prot_par{4,2} ' '];
-                
+
             %Raw message data save (RAW_MEAS)
             elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
-                
+
                 IOD_raw = cell_rover{2,i}(1);
                 if (IOD_raw == IOD_time)
 
                     %buffer index computation
                     index = time_GPS - time_stq + 1;
-                    
+
                     if (index <= B)
                         while (index < 1)
                             time_GPS = time_GPS + 1;
                             index = time_GPS - time_stq + 1;
                         end
-                        
+
                         %buffer writing
                         tick_R(index)  = 1;
                         time_R(index)  = round(time_stq);
@@ -889,11 +889,11 @@ while flag
                         ph_R(:,index)  = cell_rover{3,i}(:,4);
                         snr_R(:,index) = cell_rover{3,i}(:,2);
                         dop_R(:,index) = cell_rover{3,i}(:,5);
-                        
+
                         %manage "nearly null" data
                         pos = abs(ph_R(:,index)) < 1e-100;
                         ph_R(pos,index) = 0;
-                        
+
                         type = [type prot_par{5,2} ' '];
                     end
                 end
@@ -916,22 +916,22 @@ while flag
                 end
 
                 nEPH = nEPH + 1;
-                
+
             %Hui message data save (AID-HUI | 4Ah)
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
-                
+
                 %u-blox fields
                 if (protocol == 0)
                     %ionosphere parameters
                     iono(:, 1) = cell_rover{3,i}(9:16);
                 end
-                
+
                 %NVS fields
                 if (protocol == 3)
                     %ionosphere parameters
                     iono(:, 1) = cell_rover{2,i}(1:8);
                 end
-                
+
                 if (nHUI == 0)
                     type = [type prot_par{3,2} ' '];
                 end
@@ -968,7 +968,7 @@ while flag
     %assign system and PRN code to each satellite
     [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
     [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
-    
+
     fprintf('C1 SAT:');
     for j = 1 : length(sat_pr)
         fprintf(' %s%02d', sys_pr(j), prn_pr(j));
@@ -1002,7 +1002,7 @@ while flag
         %delete data if ephemerides are not available
         delsat = setdiff(1:nSatTot,satEph);
         pr_R(delsat,i)  = 0;
-        
+
         %satellites with observations available
         satObs = find(pr_R(:,i) ~= 0);
 
@@ -1283,30 +1283,30 @@ while flag
                         [~, leap_sec] = utc2gps(curr_time);
                         msg_time = msg_time + leap_sec;
                     end
-                    
+
                     %buffer index computation
                     index = time_GPS - msg_time + 1;
-                    
+
                     if (index <= B)
                         while (index < 1)
                             time_GPS = time_GPS + 1;
                             index = time_GPS - round(cell_master{2,i}(2)) + 1;
                         end
-                        
+
                         %detect satellite indexes (for multi-GNSS)
                         sat_idx = find(cell_master{3,i}(:,2) ~= 0);
-                        
+
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
                         pr_M(sat_idx,index)  = cell_master{3,i}(sat_idx,2);
                         ph_M(sat_idx,index)  = cell_master{3,i}(sat_idx,3);
                         snr_M(sat_idx,index) = cell_master{3,i}(sat_idx,5);
-                        
+
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;
                         ph_M(pos,index) = 0;
-                        
+
                         type = [type num2str(cell_master{1,i}) ' '];
                     end
 
@@ -1392,11 +1392,11 @@ while flag
         %fprintf('MSG types: %s\n', type);
         fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
         fprintf('GPStime=%7.4f (%d satellites)\n', time_M(i), length(sat));
-        
+
         %assign system and PRN code to each satellite
         [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
         [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
-        
+
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
             fprintf(' %s%02d', sys_pr(p), prn_pr(p));
@@ -1468,13 +1468,13 @@ while flag
 %         end
 %     end
     fprintf('\n');
-    
+
     %if the conditions to initialize the Kalman filter have not yet been met
     if (t == 1)
-        
+
         %satellites with ephemerides available
         satEph = find(sum(abs(Eph))~=0);
-        
+
         %delete data if ephemerides are not available
         %the buffer is activated only after the Kalman filter initialization
         delsat = setdiff(1:nSatTot,satEph);
@@ -1485,32 +1485,32 @@ while flag
         dop_R(delsat,1) = 0;
         snr_R(delsat,1) = 0;
         snr_M(delsat,1) = 0;
-        
+
         %satellites with observations available
         %satObs = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) & (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0));
         satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
-        
+
         %if all the visible satellites ephemerides have been transmitted
         %and the total number of satellites is >= min_nsat_LS and the master
         %station position is available
         if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS) & (sum(abs(pos_M(:,1))) ~= 0)
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= min_nsat_LS)
-            
+
             %input data save
             fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             if (flag_var_dyn_model) | (flag_stopGOstop)
                 fwrite(fid_dyn, order, 'int8');
             end
-            
+
             %counter increment
             t = t + 1;
-            
+
         else
-            
+
             %visualization
             fprintf('no position/velocity are computed\n');
-            
+
             %check Internet connection
             connected = 0;
             try
@@ -1518,10 +1518,10 @@ while flag
             catch
                 %close master connection
                 fclose(master);
-                
+
                 %visualization
                 fprintf('wait for reconnection...\n');
-                
+
                 %wait for connection
                 while ~connected
                     try java.net.InetAddress.getByName(master_ip)
@@ -1529,7 +1529,7 @@ while flag
                     catch
                     end
                 end
-                
+
                 %start a new connection
                 master = tcpip(master_ip,master_port);
                 set(master,'InputBufferSize', 16384);
@@ -1538,49 +1538,49 @@ while flag
                     ntripstring = NTRIP_string_generator(nmea_init);
                     fwrite(master,ntripstring);
                 end
-                
+
                 %wait until the buffer writing is started before continuing
                 while get(master,'BytesAvailable') == 0, end;
             end
         end
-        
+
         %buffer pointer to zero
         b = 0;
-        
+
     %---------------------------------------------------------------------------
-        
+
     %if the conditions to initialize the Kalman filter have already been met
     else %if (t > 1)
-        
+
         %signal loss because the buffer is too small
         while (b > B)
-            
+
             %input data save
             fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             if (flag_var_dyn_model) | (flag_stopGOstop)
                 fwrite(fid_dyn, order, 'int8');
             end
-            
+
             %counter increment
             t = t + 1;
-            
+
             %buffer pointer decrement
             b = b - 1;
-            
+
         end %after this point the pointer is inside the buffer
-        
+
         %-----------------------------------------------------------------------
-        
+
         %loss of master signal (data is not available "now" but it is available "in the future")
         if (tick_M(b) == 0) & (sum(tick_M(1:b)) > 0)
-            
+
             %data loss management
             while (tick_M(b) == 0)
-                
+
                 %satellites with available ephemerides
                 satEph = find(sum(abs(Eph))~=0);
-                
+
                 %delete data if ephemerides are not available
                 delsat = setdiff(1:nSatTot,satEph);
                 pr_R(delsat,b)  = 0;
@@ -1593,33 +1593,33 @@ while flag
 
                 %satellites with available observations
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
-                
+
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
-                
+
                 %counter increment
                 t = t + 1;
-                
+
                 %buffer pointer decrement
                 b = b - 1;
             end
         end %after this point there are no more master losses
-        
+
         %-----------------------------------------------------------------------
-        
+
         %loss of rover signal (data is not available "now" but it is available "in the future")
         if (tick_R(b) == 0) & (sum(tick_R(1:b)) > 0)
-            
+
             %data loss management
             while (tick_R(b) == 0)
-                
+
                 %satellites with available ephemerides
                 satEph = find(sum(abs(Eph))~=0);
-                
+
                 %delete data if ephemerides are not available
                 delsat = setdiff(1:nSatTot,satEph);
                 pr_R(delsat,b)  = 0;
@@ -1639,47 +1639,47 @@ while flag
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
-                
+
                 %counter increment
                 t = t + 1;
-                
+
                 %buffer pointer decrement
                 b = b - 1;
             end
         end %after this point there are no more master nor rover losses
-        
+
         %-----------------------------------------------------------------------
-        
+
         %delay in master or rover signal
         if (tick_M(b) == 0) | (tick_R(b) == 0)
-            
+
             %safety threshold for the buffer (probably no more useful)
             %safety_B = 2;
             %safety_B = min(B,safety_B);
-            
+
             %if there is still space in the buffer, wait!
             if (b < B)
                 %if (b < B - safety_B)
-                
+
                 %visualization
                 fprintf('wait for data (delay=%d sec)\n',b);
-                
+
             %otherwise make one or more step using just dynamics
             else
-                
+
                 %if the master is interrupted
                 if (tick_M(b) == 0)
-                    
+
                     %check Internet connection
                     try
                         java.net.InetAddress.getByName(master_ip);
-                        
+
                         %clear the whole buffer
                         lastB = 1;
-                        
+
                         %close master connection
                         fclose(master);
-                        
+
                         %start a new connection
                         master = tcpip(master_ip,master_port);
                         set(master,'InputBufferSize', 16384);
@@ -1692,22 +1692,22 @@ while flag
                         %clear just the last buffer cell
                         lastB = B;
                     end
-                    
+
                 %if the rover is interrupted
                 else
-                    
+
                     %clear just the last buffer cell
                     lastB = B;
                     %lastB = B - safety_B;
-                    
+
                 end
-                
+
                 %clear the buffer up to the desired position
                 while (b >= lastB)
-                    
+
                     %satellites for which there are avilable ephemerides
                     satEph = find(sum(abs(Eph))~=0);
-                    
+
                     %delete data if ephemerides are not available (b=B)
                     delsat = setdiff(1:nSatTot,satEph);
                     pr_R(delsat,b)  = 0;
@@ -1727,25 +1727,25 @@ while flag
                     if (flag_var_dyn_model) | (flag_stopGOstop)
                         fwrite(fid_dyn, order, 'int8');
                     end
-                    
+
                     %counter increment
                     t = t + 1;
-                    
+
                     %buffer pointer decrement
                     b = b - 1;
                 end
             end %after this point there are no more losses nor delays
-            
+
         %-----------------------------------------------------------------------
-            
+
         %data available for both the master and the rover
         else
-            
+
             while (b > 0) & (tick_M(b) == tick_R(b)) & (tick_M(b) == 1)
-                
+
                 %satellites for which there are available ephemerides
                 satEph = find(sum(abs(Eph))~=0);
-                
+
                 %delete data if ephemerides are not available
                 delsat = setdiff(1:nSatTot,satEph);
                 pr_R(delsat,b)  = 0;
@@ -1758,35 +1758,35 @@ while flag
 
                 %satellites with available observations
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
-                
+
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
-                
+
                 %counter increment
                 t = t + 1;
-                
+
                 %buffer pointer decrement
                 b = b - 1;
             end
         end %end of data processing
     end
-    
+
     %-------------------------------------
-    
+
     [sys_ep, prn_ep] = find_sat_system(satEph, constellations);
     [sys_ob, prn_ob] = find_sat_system(satObs, constellations);
-        
+
     %visualization
     fprintf('EPH SAT:');
     for i = 1 : length(satEph)
         fprintf(' %s%02d', sys_ep(i), prn_ep(i));
     end
     fprintf('\n');
-    
+
     fprintf('OBS SAT:');
     j = 1;
     for i = 1 : length(satObs)
@@ -1804,7 +1804,7 @@ while flag
     %test if the cycle execution has ended
     flag = getappdata(gcf, 'run');
     drawnow
-    
+
     if (flag_var_dyn_model) & (~flag_stopGOstop)
         % check the changing of kalman filter model
         if get(h1, 'SelectedObject') == u1
@@ -1858,10 +1858,10 @@ if (protocol == 0)
     %load u-blox saved configuration
     if (reply_save)
         fprintf('Restoring saved u-blox receiver configuration...\n');
-        
+
         reply_load = ublox_CFG_CFG(rover, 'load');
         tries = 0;
-        
+
         while (reply_save & ~reply_load)
             tries = tries + 1;
             if (tries > 3)

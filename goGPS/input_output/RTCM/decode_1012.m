@@ -34,15 +34,15 @@ function [data] = decode_1012(msg, constellations)
 %   RTCM format 1012 message decoding.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Sara Lucca, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -61,7 +61,7 @@ function [data] = decode_1012(msg, constellations)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %message pointer initialization
@@ -160,24 +160,24 @@ for i = 1 : NSV
         DF050 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
         %---------------------------------------------------------
-        
+
         % assign constellation-specific indexes
         if (constellations.GLONASS.enabled)
 
             idx = constellations.GLONASS.indexes(SV);
-            
+
             %L1 carrier frequency [MHz]
             data{3}(idx,11) = (DF040 - 7) * 0.5625 + 1602.0;
-            
+
             %L2 carrier frequency [MHz]
             data{3}(idx,12) = (DF040 - 7) * 0.4375 + 1246.0;
-            
+
             %debugging
             %v_light / (data{3}(idx,11) * 1e6)
             %v_light / (data{3}(idx,12) * 1e6)
-            
+
             %---------------------------------------------------------
-            
+
             %output data save
             data{3}(idx,1)  = DF039;
             data{3}(idx,2)  = (DF041 * 0.02)  + (DF044 * 599584.92);

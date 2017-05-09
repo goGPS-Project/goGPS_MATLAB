@@ -13,12 +13,12 @@ function data_out = smartFilter(data_in, min_arc)
 %   The software has been calibrated to filter pseudo-range data
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -40,7 +40,7 @@ function data_out = smartFilter(data_in, min_arc)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 in_size = size(data_in);
@@ -94,7 +94,7 @@ for i = 1 : size(vI,1)
     % DEBUG: plot(medfilt_mat(medfilt_mat(tmp - median(tmp), 3), 13)); setLastLinesWidth(2);
     jump_ids = find(abs(diff(medfilt_mat(tmp,min(jump_detection_win, length(tmp)-(mod(length(tmp)+1,2)))))) > jump_detection_thr);
     sub_segment = [[1; jump_ids + 1] [jump_ids; length(tmp)]];
-    % DEBUG: plot(sub_segment(:,1), tmp(sub_segment(:,1)) - median(tmp),'o', sub_segment(:,2),tmp(sub_segment(:,2)) - median(tmp),'*');        
+    % DEBUG: plot(sub_segment(:,1), tmp(sub_segment(:,1)) - median(tmp),'o', sub_segment(:,2),tmp(sub_segment(:,2)) - median(tmp),'*');
     for s = 1 : size(sub_segment)
         if ((sub_segment(s,2) - sub_segment(s,1) + 1) >= min_arc)
             sub_tmp = tmp(sub_segment(s,1):sub_segment(s,2));
@@ -103,22 +103,22 @@ for i = 1 : size(vI,1)
             inan((vI(i,1) + sub_segment(s,1) - 1):(vI(i,1) + sub_segment(s,2) - 1)) = true;
         end
     end
-    
+
     % DEBUG: [i std(data_in(vI(i,1):vI(i,2)) - median(data_in(vI(i,1):vI(i,2))))]
 end
 % DEBUG: dockAllFigures;
 
 %--------------------------------------------------------------------------
 % % reduce the number of jumps -> if a jump is not significant -> ignore it
-% 
+%
 % remove all the intervals under 0.1
 if reduce_jumps
     thr = 20;
-    data_m(inan) = 0;    
+    data_m(inan) = 0;
     data_m = medfilt_mat(data_m, 21);
     jump_id = find(abs(diff(data_m)) > thr) + 1;
     segment = [[1; jump_id + 1] [jump_id; length(data_m)]];
-    
+
     % for each valid interval compute the median interpolant line
     for i = 1 : length(segment)
         tmp = data_in(segment(i,1):segment(i,2));
@@ -132,11 +132,11 @@ data_m(inan) = nan;
 
 % remove the reference
 % DEBUG: figure(100); clf;
-% DEBUG: plot(data_in - data_m,'o'); 
-% DEBUG: hold on; 
+% DEBUG: plot(data_in - data_m,'o');
+% DEBUG: hold on;
 
 % Let's use a simple filler based on the median to fill small nans
-tmp = data_in - data_m; 
+tmp = data_in - data_m;
 tmp(inan) = 0;
 tmp = medfilt_mat(tmp, 2*max_gap_size+1);
 inan_new = (tmp == 0) & (inan);
@@ -149,7 +149,7 @@ y1(inan_new) = nan;
 
 % % I cannot use this filler (it's in C++) :-(
 % y1 = fill1D(data_in - data_m, fI, 2);
-% plot(y1,'.-'); 
+% plot(y1,'.-');
 
 % smooth the dataset
 % and restore the jumps
@@ -163,11 +163,11 @@ y1s(not(inan)) = splinerMat(ids(not(inan)), y1(not(inan)), spline_size, 0);
 % Restore the dataset adding back the median interpolant
 
 % DEBUG: figure(200); clf;
-% DEBUG: plot(data_in,'o'); 
-% DEBUG: hold on; 
-% DEBUG: plot(data_m); 
+% DEBUG: plot(data_in,'o');
+% DEBUG: hold on;
+% DEBUG: plot(data_m);
 data_out = y1s + data_m;
-% DEBUG: plot(data_out); 
+% DEBUG: plot(data_out);
 % DEBUG: setLastLinesWidth(2);
 
 data_out = [nan(rNaN(1),1); data_out(:); nan(rNaN(2),1)];

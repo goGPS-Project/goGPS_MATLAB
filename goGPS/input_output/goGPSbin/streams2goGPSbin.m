@@ -17,15 +17,15 @@ function streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg)
 %   (*_obs_* and *_eph_* files).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 nSatTot = constellations.nEnabledSat;
@@ -79,7 +79,7 @@ if (~isempty(Eph))
     if (~isempty(EphAvailable))
         satEph = find(sum(abs(Eph(:,:,1)))~=0);
         while (length(satEph) < length(satObs)) | (length(satObs) < 4)
-            
+
             time_GPS(1) = [];
             week_R(1)   = [];
             time_R(1)   = [];
@@ -96,7 +96,7 @@ if (~isempty(Eph))
             iono(:,1)   = [];
             loss_R(1)   = [];
             loss_M(1)   = [];
-            
+
             if (size(pr1_R,2)==0)
                 break
             end
@@ -108,7 +108,7 @@ if (~isempty(Eph))
             end
             satEph = find(sum(abs(Eph(:,:,1)))~=0);
         end
-        
+
         %remove observations without ephemerides
         for i = 1 : length(time_GPS)
             satEph = find(sum(abs(Eph(:,:,i)))~=0);
@@ -127,7 +127,7 @@ if (~isempty(Eph))
         else
             fprintf('... WARNING: this dataset does not contain ephemerides.\n');
         end
-    end 
+    end
 end
 
 %add dummy Doppler observation variable for master (not available through RTCM)
@@ -159,7 +159,7 @@ i = 1;
 j = length(filerootOUT);
 while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
         ~isempty(dir([filerootOUT '_eph*.bin'])) )
-    
+
     filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
     i = i + 1;
 end
@@ -181,25 +181,25 @@ end
 
 %write output files
 for t = 1 : length(time_GPS)
-    
+
     if (nargin == 4)
         waitbar(t/length(time_GPS),wait_dlg)
     end
-    
+
     %-------------------------------------
     % file management
     %-------------------------------------
-    
+
     if (floor(t/3600) > hour)
-        
+
         hour = floor(t/3600);
         hour_str = num2str(hour,'%03d');
-        
+
         fclose(fid_obs);
         if (~isempty(EphAvailable))
             fclose(fid_eph);
         end
-        
+
         fid_obs = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
         fwrite(fid_obs, nSatTot, 'int8');
         if (~isempty(EphAvailable))
@@ -207,7 +207,7 @@ for t = 1 : length(time_GPS)
             fwrite(fid_eph, nSatTot, 'int8');
         end
     end
-    
+
     fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); dop1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
     if (~isempty(EphAvailable))
         Eph_t = Eph(:,:,t);

@@ -14,14 +14,14 @@ function rtplot_googleearth (t, pos_R, pos_M, date)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -63,10 +63,10 @@ if (sum(abs(pos_M)) ~= 0)
     XM = pos_M(1);
     YM = pos_M(2);
     ZM = pos_M(3);
-    
+
     %conversion from cartesian to geodetic coordinates
     [phiM, lamM, hM] = cart2geod(XM, YM, ZM);
-    
+
     %conversion from radians to degrees
     lamM = lamM*180/pi;
     phiM = phiM*180/pi;

@@ -17,15 +17,15 @@ function [data] = decode_fastrax_it03(msg, constellations, wait_dlg)
 %   Fastrax_it03 messages decoding (also in sequence).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Ivan Reguzzoni, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [data] = decode_fastrax_it03(msg, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -88,7 +88,7 @@ if (nargin == 3)
 end
 
 while (pos + 15 <= length(msg))
-    
+
     if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
@@ -139,16 +139,16 @@ while (pos + 15 <= length(msg))
                     % message identification
                     switch msg_id
 
-                        % TRACK (Track)                
-                        case  3, 
+                        % TRACK (Track)
+                        case  3,
                             [data(:,i)] = decode_FTX_TRACK(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                         % RAW (raw measurement) - PSEUDO
-                        case  4, 
+                        case  4,
                             [data(:,i)] = decode_FTX_PSEUDO(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                         % EPH (ephemerides)
-                        case 10, 
+                        case 10,
                             [data(:,i)] = decode_FTX_EPH(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                     end
@@ -162,14 +162,14 @@ while (pos + 15 <= length(msg))
 
                 % skip the 2 checksum bytes
                 pos = pos + 16;
-                
+
                 % skip > after check
                 if strcmp(msg(pos:pos+7),dec2bin(62,8))
                     pos = pos + 8;
                 else
                     %fprintf('Error: End not found!\n');
                 end
-                
+
             else
                 break
             end
@@ -195,45 +195,45 @@ end
 % // Acquisition related messages.
 % #define ACQ_DATA_MSG_ID                        1
 % #define PRN_STATUS_MSG_ID                      2
-% 
+%
 % // Tracking related messages.
 % #define TRACK_MSG_ID                           3
 % #define PSEUDO_MSG_ID                          4
 % #define TRACK_CONF_MSG_ID                      5
-% 
+%
 % // AGC related messages.
 % #define AGC_MSG_ID                             6
-% 
+%
 % // Navigation related messages.
 % #define NAV_FIX_MSG_ID                         7
-% 
+%
 % // Time related messages.
 % //#define GPS_TIME_MSG_ID                      8
-% 
+%
 % // Frame decoding related messages.
 % #define RAW_ALMANAC_MSG_ID                     9
 % #define RAW_EPHEMERIS_MSG_ID                   10
 % #define SV_HEALTH_MSG_ID                       11
 % #define UTC_IONO_MODEL_MSG_ID                  12
-% 
+%
 % // Predictions to search and OBS.
 % #define PRN_PRED_MSG_ID                        13
 % #define FREQ_PRED_MSG_ID                       14
-% 
+%
 % // Bit decoding related messages.
 % #define SUBFRAME_MSG_ID                        15
 % #define RESERVED_MSG_17                        17   // Likely to be implemented - SUBFRAME_INFO_MSG_ID
-% #define BIT_STREAM_MSG_ID                      18   
-% 
+% #define BIT_STREAM_MSG_ID                      18
+%
 % #define DBGTRACE_MSG_ID                        19   // Debugging trace message
-% 
+%
 % // #define SENSOR_MEAS_MSG_ID                  20   // INS sensor measurements
-% 
+%
 % #define ERROR_REPORT_MSG_ID                    21
-% 
+%
 % #define TRACK_AID_MSG_ID                       22
 % // Non-maskable messages.
-% 
+%
 % // System messages start at 64 == 0x40.
 % #define START_MSG_ID                           64
 % #define STOP_MSG_ID                            65
@@ -242,46 +242,46 @@ end
 % #define ITALK_CONF_MSG_ID                      68
 % #define SYSINFO_MSG_ID                         69
 % #define ITALK_TASK_ROUTE_MSG_ID                70
-% 
+%
 % // Parameter handling.
 % #define PARAM_CTRL_MSG_ID                      71
 % #define PARAMS_CHANGED_MSG_ID                  72
-% 
+%
 % // Start & Stop completed messages
 % #define START_COMPLETED_MSG_ID                 73
 % #define STOP_COMPLETED_MSG_ID                  74
-% 
+%
 % // Logging
 % #define LOG_CMD_MSG_ID                         75
-% 
+%
 % // System status
 % #define SYSTEM_START_MSG_ID                    76
-% 
-% 
+%
+%
 % // Non-maskable messages related to the GPS core.
 % // Core messages start at 80 == 0x50.
-% 
+%
 % // (acquisition)
 % #define STOP_SEARCH_MSG_ID                     79
 % #define SEARCH_MSG_ID                          80
 % #define PRED_SEARCH_MSG_ID                     81
 % #define SEARCH_DONE_MSG_ID                     82
 % #define SE_DBG_MSG_ID                          84
-% 
+%
 % // (tracking)
-% #define DATA_INIT_MSG_ID                       85 
+% #define DATA_INIT_MSG_ID                       85
 % #define TRACK_DEBUG_MSG_ID                     86
 % #define TRACK_REINIT_MSG_ID                    87
 % #define TRACK_DROP_MSG_ID                      88
 % #define TRACK_FAST_MSG_ID                      89
 % #define TRACK_STATUS_MSG_ID                    90
-% 
+%
 % #define TRACK_DEBUG_DLL_MSG_ID                 91
-% 
+%
 % // (search)
 % #define HANDOVER_DATA_MSG_ID                   92
-% #define CORE_SYNC_MSG_ID                       93 // 
-% 
+% #define CORE_SYNC_MSG_ID                       93 //
+%
 % // Navigation related non-maskable messages start at 96 == 0x60.
 % #define WAAS_RAWDATA_MSG_ID                    96
 % #define OP_DIFF_MSG_ID                         97
@@ -290,20 +290,20 @@ end
 % #define WAAS_FASTCORR_DBG_MSG_ID               100
 % #define WAAS_SLOWCORR_MSG_ID                   101
 % #define WAAS_IONO_DBG_MSG_ID                   102
-% 
+%
 % // Debugging and memory access messages start at 112 = 0x70.
 % // Memctrl messages.
 % #define MEMCTRL_MSG_ID                          112
-% 
+%
 % // Debug messages.
 % #define DEBUG_CMD_MSG_ID                        113 // Debugging command message for common debug info querying
-% 
+%
 % #define DEBUG_CPU_LOAD_MSG_ID                   118
 % #define DEBUG_LOOPBACK_MSG_ID                   119
 % #define DEBUG_SERVTERM_SWITCH_MSG_ID            120
-% 
+%
 % // User messages start at 128 = 0x80
-% 
+%
 % // The last message id is reserved for the STOP_TASK message.
 % #define STOP_TASK_MSG_ID                        255
 

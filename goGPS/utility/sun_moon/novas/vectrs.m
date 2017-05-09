@@ -10,7 +10,7 @@ function [pos, vel] = vectrs (ra, dec, pmra, pmdec, parllx, rv)
 %  dec    = declination in degrees
 
 %  pmra   = proper motion in ra in milliarcseconds per year
-               
+
 %  pmdec  = proper motion in dec in milliarcseconds per year
 
 %  parllx = parallax in milliarcseconds

@@ -40,20 +40,20 @@ switch optn,
 
     longOUT.name={'geographic','IGRF2000-geomagnetic','IGRF2011-geomagnetic'};
     return;
-    
+
   case 'parameters',
     switch longIN,
         case 'geographic',
             longOUT.name='geographic';
             longOUT.lambda = 0;
             longOUT.phi = 0;
-        
+
         case 'IGRF2000-geomagnetic',
             g10=-29615;
             g11=-1728;
             h11=5186;
             longOUT.name='IGRF2000-geomagnetic';
-            longOUT.lambda=  atan(h11/g11);         
+            longOUT.lambda=  atan(h11/g11);
             longOUT.phi   =  atan((g11*cos(longOUT.lambda)+h11*sin(longOUT.lambda))/g10);
 
         case 'IGRF2011-geomagnetic'; %ADDED 2012-11-02 Joe Kinrade, Uni. of Bath
@@ -61,25 +61,25 @@ switch optn,
             g11=-1585.9;  %2nd order
             h11=4945.1;   %3rd order
             longOUT.name='IGRF2011-geomagnetic';
-            longOUT.lambda=  atan(h11/g11);         
+            longOUT.lambda=  atan(h11/g11);
             longOUT.phi   =  atan((g11*cos(longOUT.lambda)+h11*sin(longOUT.lambda))/g10);
 
-      otherwise	
+      otherwise
         error('Unrecognized coordinate system');
     end;
     return;
   case 'geo2mag',
-  
+
      % Rotation matrices
      lambda=MAP_PROJECTION.coordsystem.lambda;
      phi=MAP_PROJECTION.coordsystem.phi;
      Tz=[ cos(lambda) sin(lambda) 0 ;
          -sin(lambda) cos(lambda) 0 ;
 	      0       0           1 ];
-		 
+
      Ty=[ cos(phi)  0   -sin(phi) ;
             0       1      0     ;
-          sin(phi)  0   cos(phi) ]; 
+          sin(phi)  0   cos(phi) ];
      T=Ty*Tz;
 
   case 'mag2geo',
@@ -89,15 +89,15 @@ switch optn,
      Tz=[ cos(-lambda) sin(-lambda) 0 ;
          -sin(-lambda) cos(-lambda) 0 ;
 	      0           0         1 ];
-		 
+
      Ty=[ cos(-phi)  0   -sin(-phi) ;
             0        1         0     ;
-          sin(-phi)  0    cos(-phi) ]; 
+          sin(-phi)  0    cos(-phi) ];
      T=Tz*Ty;
-     
-  
+
+
 end;
-  
+
 [n,m]=size(latIN);
 
 % Degrees to radians, and make into rows.
@@ -118,34 +118,34 @@ xp=tmp(1,:);yp=tmp(2,:);zp=tmp(3,:);
 % Transformation back to spherical coordinates. Choosing the correct quadrant.
 latOUT=acos(zp./sqrt(xp.^2+yp.^2+zp.^2));
 longOUT=atan2(yp,xp);
-	
+
 if nargin > 3,
 	% Sign change due to sign convention used here.
 	thetaVecIN=-thetaVecIN(:)';
         phiVecIN=phiVecIN(:)';
-	
+
 	% Computing vector rotations.
 	% First, transformation to cartesian coordinates.
-	
+
 	% Rotation matrix is
 	% [x] [  sLcG cLcG -sG ][radial]
 	% [y]=[  sLsG cLsG  cG ][south ]
 	% [z] [   cL   -sL  0  ][east  ]
-	
+
 	% Radial component is zero.
 	Xvec= 0+    cos(latIN).*cos(longIN).*thetaVecIN - sin(longIN).*phiVecIN;
         Yvec= 0+    cos(latIN).*sin(longIN).*thetaVecIN + cos(longIN).*phiVecIN;
         Zvec= 0+                -sin(latIN).*thetaVecIN  + 0;
-		
+
 	% Rotations of the system.
 	tmp=T*[Xvec;Yvec; Zvec];
 	Xvecp=tmp(1,:);Yvecp=tmp(2,:);Zvecp=tmp(3,:);
-	
+
 	% Transformation back to spherical coordinates.
 
 	thetaVecOUT=cos(latOUT).*cos(longOUT).*Xvecp + cos(latOUT).*sin(longOUT).*Yvecp -sin(latOUT).*Zvecp ;
 	phiVecOUT  =            -sin(longOUT).*Xvecp +              cos(longOUT).*Yvecp              +0       ;
-	
+
 	% Sign change due to sign convention used here.
 	thetaVecOUT=-reshape(thetaVecOUT,n,m);
         phiVecOUT  = reshape(phiVecOUT,n,m);

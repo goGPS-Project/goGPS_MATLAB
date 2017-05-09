@@ -32,10 +32,10 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -62,13 +62,13 @@
 %--------------------------------------------------------------------------
 
 classdef Go_Wait_Bar < handle
-    
+
     properties (Constant, GetAccess = 'private')
         MAX_BAR_LEN = 54;               % Dimension of the text bar
         DEL = char(ones(1,250)) * 8;    % array of /b, used to erase part of the text bar
         SPC = char(ones(1,250)) * 32;   % array of /s, used to fill the text bar
-    end    
-        
+    end
+
     properties (GetAccess = 'public', SetAccess = 'public')
         type = 0;       % 0 means text, 1 means GUI, 5 both
         h = [];         % handle of the waitbar
@@ -81,9 +81,9 @@ classdef Go_Wait_Bar < handle
         textBar = '[]'; % Text Bar
         bar_len = 2;    % Length of the latest text bar
     end
-    
+
     methods (Access = 'private')
-        
+
         % Creator
         function this = Go_Wait_Bar(nSteps, msg, type)
             % Creator
@@ -98,7 +98,7 @@ classdef Go_Wait_Bar < handle
                 this.type = type;
             end
         end
-        
+
         function getNewBar(this, title)
             % Build a new graphic bar
             if (this.type == 1) ||  (this.type == 5)
@@ -130,7 +130,7 @@ classdef Go_Wait_Bar < handle
                 drawnow;
             end
         end
-        
+
         function getNewTextBar(this, title)
             % Build a new text bar
             if (this.type == 0) ||  (this.type == 5)
@@ -144,7 +144,7 @@ classdef Go_Wait_Bar < handle
                 this.bar_len = length(txt);
             end
         end
-        
+
         function bar = getTextBar(this)
             % Get the standard text bar
             bar = sprintf('%3d%% [%s]', round(this.lastStep / this.nSteps * 100), this.SPC(1:this.MAX_BAR_LEN));
@@ -156,15 +156,15 @@ classdef Go_Wait_Bar < handle
                 end
             end
         end
-            
+
         function setMsg(this, msg)
-            % Set a Message on top of the bar 
+            % Set a Message on top of the bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.axesTitle.String = msg;
             end
         end
     end
-    
+
     methods (Static)
         function this = getInstance(nSteps, msg, type)
             % Implementation for a Singleton Class
@@ -181,7 +181,7 @@ classdef Go_Wait_Bar < handle
                 this = unique_instance_waitbar__;
                 if (nargin >= 3)
                     this.type = type;
-                end                
+                end
                 if (nargin >= 1)
                     this.nSteps = nSteps;
                     this.lastStep = 0;
@@ -203,11 +203,11 @@ classdef Go_Wait_Bar < handle
                     end
                 end
             end
-        end        
+        end
     end
-    
+
     methods
-        
+
         % Create a new window or plot the first bar
         function createNewBar(this, title, type)
             this.lastStep = 0;
@@ -224,7 +224,7 @@ classdef Go_Wait_Bar < handle
                 this.getNewTextBar();
             end
         end
-        
+
         % Create the window or plot the text bar
         function createBar(this, title, type)
             % Create the window or plot the first bar
@@ -239,7 +239,7 @@ classdef Go_Wait_Bar < handle
                 this.getNewTextBar();
             end
         end
-        
+
         % Just update the waitbar
         function go(this,step)
             % Just update the waitbar
@@ -248,7 +248,7 @@ classdef Go_Wait_Bar < handle
             else
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
-            
+
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
                 drawnow limitrate;
@@ -262,7 +262,7 @@ classdef Go_Wait_Bar < handle
             end
 
         end
-        
+
         % Update the waitbar and accept a message to display within the window
         function goMsg(this, step, msg)
             % Update the waitbar and accept a message to display within the window
@@ -273,14 +273,14 @@ classdef Go_Wait_Bar < handle
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
             this.msg = msg;
-            
+
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
-                this.ext_h.axesTitle.String = this.msg; 
+                this.ext_h.axesTitle.String = this.msg;
                 drawnow limitrate;
             end
-            
+
             %if text bar
             if (this.type == 0) ||  (this.type == 5)
                 this.textBar = this.getTextBar();
@@ -290,7 +290,7 @@ classdef Go_Wait_Bar < handle
                 this.bar_len = length(txt);
             end
         end
-        
+
         % Update the waitbar and estimate the remaining computational time supposing a linear trend
         function goTime(this,step)
             % Update the waitbar and estimate the remaining computational time supposing a linear trend
@@ -311,21 +311,21 @@ classdef Go_Wait_Bar < handle
             r_mm = floor((t1 - r_hh * 3600) / 60);
             r_ss = (t1 - r_hh * 3600 - r_mm * 60);
             %remainingTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
-            
+
             this.msg = sprintf(' Elapsed time                %02d:%02d:%04.1f\n Remaining time            %02d:%02d:%04.1f', e_hh, e_mm, e_ss, r_hh, r_mm, r_ss);
-                
+
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
                 if (this.ext_h.axesTitle.Position(2) ~= 1.25)
                     %this.ext_h.axesTitle.FontName = 'Courier';
                     %this.ext_h.axesTitle.FontWeight = 'bold';
-                    this.ext_h.axesTitle.Position(2) = 1.25;                
+                    this.ext_h.axesTitle.Position(2) = 1.25;
                 end
                 this.ext_h.axesTitle.String = this.msg;
                 drawnow limitrate;
             end
-            
+
             %if text bar
             if (this.type == 0) ||  (this.type == 5)
                 this.textBar = this.getTextBar();
@@ -333,16 +333,16 @@ classdef Go_Wait_Bar < handle
                 txt = sprintf('%s%s\n%s\n', this.DEL(1:this.bar_len), this.msg([1:13 16:end]), this.textBar);
                 fprintf('%s', txt);
                 this.bar_len = length(txt) - this.bar_len;
-            end            
+            end
         end
-        
+
         % Set the max value accepted by the bar ( == 100%)
         function setBarLen(this, nSteps)
             % Set output type: 0 means text, 1 means GUI, 5 both
             this.nSteps = nSteps;
             this.lastStep = min(this.lastStep, nSteps);
         end
-        
+
         % Set output type: 0 means text, 1 means GUI, 5 both
         function setOutputType(this, type)
             % Set output type: 0 means text, 1 means GUI, 5 both
@@ -359,7 +359,7 @@ classdef Go_Wait_Bar < handle
                 end
             end
         end
-        
+
         % Change the title of the waitbar
         function setTitle(this, msg)
             % Change the title of the waitbar
@@ -376,13 +376,13 @@ classdef Go_Wait_Bar < handle
                 end
             end
         end
-        
+
         % Change the title of the waitbar (alias to setTitle - legacy implementation)
         function titleUpdate(this, msg)
             % Change the title of the waitbar (alias to setTitle - legacy implementation)
             this.setTitle(msg);
         end
-        
+
         % Shift the waitbar downward (e.g. to make room for processing plots)
         function shiftDown(this, shf)
             % Shift the waitbar downward (e.g. to make room for processing plots)
@@ -395,14 +395,14 @@ classdef Go_Wait_Bar < handle
             end
             this.h.Position = pos;
         end
-        
+
         % Close the window
         function close(this)
             % Close the window
             delete(this.h);
         end
     end
-    
+
     methods (Static)
         function test(type)
             % Tester function
@@ -412,7 +412,7 @@ classdef Go_Wait_Bar < handle
             profile on
             nMax = 10000;
             b = Go_Wait_Bar.getInstance(nMax,'Whats''up!',type);
-            
+
             fprintf('\n\nStarting test\n');
             t0 = tic;
             tic;
@@ -436,17 +436,17 @@ classdef Go_Wait_Bar < handle
             end
             toc;
             fprintf('\n Test completec');
-            
+
             toc(t0);
             profile off
             profile viewer
         end
-        
+
         function testOld()
             % Tester function of the old object
             nMax = 5000;
             bOld = goWaitBar(nMax,'Whats''up!');
-            
+
             fprintf('\n\nStarting test\n');
             t0 = tic;
             tic;
@@ -469,7 +469,7 @@ classdef Go_Wait_Bar < handle
             end
             toc;
             fprintf('\n Test completec');
-            
+
             toc(t0);
         end
     end

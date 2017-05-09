@@ -52,45 +52,45 @@ ierr = 0;
 % perform sanity checks on the input body and origin
 
 if (body < 1 || body > 11)
-    
+
    ierr = 1;
-   
+
    return;
-   
+
 elseif (origin < 0 || origin > 1)
-    
+
    ierr = 2;
-   
+
    return;
-   
+
 end
 
 % select 'targ' according to value of 'body'
 
 if (body == 10)
-    
+
    targ = 11;
-   
+
 elseif (body == 11)
-    
+
    targ = 10;
-   
+
 else
-    
+
    targ = body;
-   
+
 end
 
 % select 'cent' according to the value of 'origin'.
 
 if (origin == 0)
-    
+
    cent = 12;
-   
+
 elseif (origin == 1)
-    
+
    cent = 11;
-   
+
 end
 
 % call jpl routine to obtain position and velocity array 'posvel'
@@ -100,10 +100,10 @@ posvel = jplephem (tjd, targ, cent);
 % decompose 'posvel' into position 'pos' and velocity 'vel'.
 
 for i = 1:1:3
-    
+
     pos(i) = posvel(i);
-    
+
     vel(i) = posvel(i + 3);
-    
+
 end
 

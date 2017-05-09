@@ -19,14 +19,14 @@ function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -72,7 +72,7 @@ end
 
 %GPS/Galileo/BeiDou/QZSS satellite coordinates computation
 if (~strcmp(char(Eph(31)),'R'))
-    
+
     %get ephemerides
     roota     = Eph(4);
     ecc       = Eph(6);
@@ -89,7 +89,7 @@ if (~strcmp(char(Eph(31)),'R'))
     Omega_dot = Eph(17);
     toe       = Eph(18);
     time_eph  = Eph(32);
-    
+
     %SBAS satellite coordinate corrections
     if (~isempty(sbas))
         dx_sbas = sbas.dx(sat);
@@ -100,87 +100,87 @@ if (~strcmp(char(Eph(31)),'R'))
         dy_sbas = 0;
         dz_sbas = 0;
     end
-    
+
     %-------------------------------------------------------------------------------
     % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES (IS-GPS-200E)
     %-------------------------------------------------------------------------------
-    
+
     %eccentric anomaly
     [Ek, n] = ecc_anomaly(t, Eph);
-    
+
     %cr = goGNSS.CIRCLE_RAD;
     cr = 6.283185307179600;
-    
+
     A = roota*roota;             %semi-major axis
     tk = check_t(t - time_eph);  %time from the ephemeris reference epoch
-    
+
     fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek) - ecc);    %true anomaly
     phik = fk + omega;                           %argument of latitude
     phik = rem(phik,cr);
-    
+
     uk = phik                + cuc*cos(2*phik) + cus*sin(2*phik); %corrected argument of latitude
     rk = A*(1 - ecc*cos(Ek)) + crc*cos(2*phik) + crs*sin(2*phik); %corrected radial distance
     ik = i0 + IDOT*tk        + cic*cos(2*phik) + cis*sin(2*phik); %corrected inclination of the orbital plane
-    
+
     %satellite positions in the orbital plane
     x1k = cos(uk)*rk;
     y1k = sin(uk)*rk;
-    
+
     %if GPS/Galileo/QZSS or MEO/IGSO BeiDou satellite
     if (~strcmp(char(Eph(31)),'C') || (strcmp(char(Eph(31)),'C') && Eph(1) > 5))
-        
+
         %corrected longitude of the ascending node
         Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
         Omegak = rem(Omegak + cr, cr);
-        
+
         %satellite Earth-fixed coordinates (X,Y,Z)
         xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
         yk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
         zk = y1k*sin(ik);
-        
+
         %apply SBAS corrections (if available)
         satp(1,1) = xk + dx_sbas;
         satp(2,1) = yk + dy_sbas;
         satp(3,1) = zk + dz_sbas;
-        
+
     else %if GEO BeiDou satellite (ranging code number <= 5)
-        
+
         %corrected longitude of the ascending node
         Omegak = Omega0 + Omega_dot*tk - Omegae_dot*toe;
         Omegak = rem(Omegak + cr, cr);
-        
+
         %satellite coordinates (X,Y,Z) in inertial system
         xgk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
         ygk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
         zgk = y1k*sin(ik);
-        
+
         %store inertial coordinates in a vector
         Xgk = [xgk; ygk; zgk];
-        
+
         %rotation matrices from inertial system to CGCS2000
         Rx = [1        0          0;
               0 +cosd(-5) +sind(-5);
               0 -sind(-5) +cosd(-5)];
-        
+
         oedt = Omegae_dot*tk;
-        
+
         Rz = [+cos(oedt) +sin(oedt) 0;
               -sin(oedt) +cos(oedt) 0;
               0           0         1];
-        
+
         %apply the rotations
         Xk = Rz*Rx*Xgk;
-        
+
         xk = Xk(1);
         yk = Xk(2);
         zk = Xk(3);
-        
+
         %store CGCS2000 coordinates
         satp(1,1) = xk;
         satp(2,1) = yk;
         satp(3,1) = zk;
     end
-    
+
     %-------------------------------------------------------------------------------
     % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,
     % GPS Solutions (2004) 8:181-183 )
@@ -199,12 +199,12 @@ if (~strcmp(char(Eph(31)),'R'))
         xk_dot = x1k_dot*cos(Omegak) - y1k_dot*cos(ik)*sin(Omegak) + y1k*sin(ik)*sin(Omegak)*ik_dot - yk*Omegak_dot;
         yk_dot = x1k_dot*sin(Omegak) + y1k_dot*cos(ik)*cos(Omegak) - y1k*sin(ik)*ik_dot*cos(Omegak) + xk*Omegak_dot;
         zk_dot = y1k_dot*sin(ik) + y1k*cos(ik)*ik_dot;
-        
+
         satv(1,1) = xk_dot;
         satv(2,1) = yk_dot;
         satv(3,1) = zk_dot;
     end
-    
+
 else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
 
     time_eph = Eph(32); %ephemeris reference time
@@ -221,19 +221,19 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     Ya  = Eph(12); %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time
     Za  = Eph(13); %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time
     %NOTE:  Xa,Ya,Za are considered constant within the integration interval (i.e. toe ?}15 minutes)
-    
+
     %integration step
     int_step = 60; %[s]
-    
+
     %time from the ephemeris reference epoch
     tk = check_t(t - time_eph);
-    
+
     %number of iterations on "full" steps
     n = floor(abs(tk/int_step));
 
     %array containing integration steps (same sign as tk)
     ii = ones(n,1)*int_step*(tk/abs(tk));
-    
+
     %check residual iteration step (i.e. remaining fraction of int_step)
     int_step_res = rem(tk,int_step);
 
@@ -242,7 +242,7 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
         n = n + 1;
         ii = [ii; int_step_res];
     end
-    
+
     %numerical integration steps (i.e. re-calculation of satellite positions from toe to tk)
     pos = [X Y Z];
     vel = [Xv Yv Zv];
@@ -281,7 +281,7 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     satp(1,1) = pos(1) - 0.36;
     satp(2,1) = pos(2) + 0.08;
     satp(3,1) = pos(3) + 0.18;
-    
+
     %satellite velocity
     satv(1,1) = vel(1);
     satv(2,1) = vel(2);

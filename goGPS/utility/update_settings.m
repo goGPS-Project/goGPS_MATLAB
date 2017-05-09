@@ -6,7 +6,7 @@ function [out] = update_settings(settings_dir_path, field, value)
 % INPUT:
 %   settings_dir_path = path to settings folder
 %   field = name of the field to be added
-%   value = default value for the field (-1 to remove the field; new field 
+%   value = default value for the field (-1 to remove the field; new field
 %           name to rename the field)
 %
 % OUTPUT:
@@ -17,14 +17,14 @@ function [out] = update_settings(settings_dir_path, field, value)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ for i = 1 : nmax
 
     %check that the filename has the ".mat" extension
     if (fn_length >= 4 & strcmp(got(fn_length - 3 : fn_length), '.mat'))
-        
+
         j = j+1;
         %load the settings file
         load([settings_dir_path '/' got]);

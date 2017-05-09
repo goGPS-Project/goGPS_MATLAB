@@ -1,6 +1,6 @@
 function [xi,yi,x,y]=m_hatch(lon,lat,varargin);
 % M_HATCH Draws hatched or speckled interiors to a patch
-%       
+%
 %    M_HATCH(LON,LAT,STYL,ANGLE,STEP,...line parameters);
 %
 % INPUTS:
@@ -9,15 +9,15 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin);
 %     ANGLE,STEP - parameters for style
 %
 %     E.g.
-%                 
-%      'single',45,5  - single cross-hatch, 45 degrees,  5 points apart 
+%
+%      'single',45,5  - single cross-hatch, 45 degrees,  5 points apart
 %      'cross',40,6   - double cross-hatch at 40 and 90+40, 6 points apart
 %      'speckle',7,1  - speckled (inside) boundary of width 7 points, density 1
 %                               (density >0, .1 dense 1 OK, 5 sparse)
 %      'outspeckle',7,1 - speckled (outside) boundary of width 7 points, density 1
 %                               (density >0, .1 dense 1 OK, 5 sparse)
 %
-%     
+%
 %      H=M_HATCH(...) returns handles to hatches/speckles.
 %
 %      [XI,YI,X,Y]=MHATCH(...) does not draw lines - instead it returns
@@ -33,7 +33,7 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin);
 %
 
 %
-% Hatch Algorithm originally by K. Pankratov, with a bit stolen from 
+% Hatch Algorithm originally by K. Pankratov, with a bit stolen from
 % Iram Weinsteins 'fancification'. Speckle modifications by R. Pawlowicz.
 %
 % R Pawlowicz (rich@ocgy.ubc.ca) 15/Dec/2005
@@ -44,18 +44,18 @@ function [xi,yi,x,y]=m_hatch(lon,lat,varargin);
 %% 4/DEc/11 - isstr to ischar
 %  Apr/12  - handle NaN-separated coastlines
 
- 
+
 styl='speckle';
 angle=7;
 step=1/2;
 
 if length(varargin)>0 & ischar(varargin{1}),
   styl=varargin{1};
-  varargin(1)=[];  
+  varargin(1)=[];
 end;
 if length(varargin)>0 & ~ischar(varargin{1}),
   angle=varargin{1};
-  varargin(1)=[];  
+  varargin(1)=[];
 end;
 if length(varargin)>0 & ~ischar(varargin{1}),
   step=varargin{1};
@@ -73,10 +73,10 @@ if any(ii),
   % if there isn't a NaN to mark the first or last segments
   if ii(1)>1, ii=[1;ii(:)]; end;
   if ii(end)<length(lon), ii=[ii(:);length(lon)]; end;
-  
+
   % Compute the info, but don't draw - otherwise we end up with
   % lots of 'childred' to the plot and it is SLOWWWWW
-  
+
   xi=[];yi=[];x=[];y=[];
   for k=1:length(ii)-1,
     [xiT,yiT,xT,yT]=m_hatch(lon(ii(k)+1:ii(k+1)-1),lat(ii(k)+1:ii(k+1)-1),styl,angle,step,varargin{:});
@@ -85,7 +85,7 @@ if any(ii),
     x=[x,NaN,xT];
     y=[y,NaN,yT];
   end;
-  
+
   % OK, so now plot it all.
   if nargout<2,
     switch lower(styl),
@@ -94,20 +94,20 @@ if any(ii),
       case {'speckle','outspeckle'},
          xi=line(xi,yi,'marker','.','linestyle','none','markersize',2,varargin{:});
     end;
-  end;  
-  
+  end;
+
   return;
 end;
-      
+
 %----------------------
 % otherwise, handle a single line without NaN
 
-   
+
 [x,y,I]=m_ll2xy(lon,lat,'clip','patch');
- 
+
 %% plot(x,y,'color','r');%%pause;
-  
-if x(end)~=x(1) | y(end)~=y(1),  % & to |
+
+if x(end)~=x(1) | y(end)~=y(1),  % & to
   x=x([1:end 1]);
   y=y([1:end 1]);
   I=I([1:end 1]);
@@ -124,7 +124,7 @@ end;
 if size(y,1)~=1,
  y=y(:)';
 end;
- 
+
 
 % Code stolen from Weinstein hatch
 oldu = get(gca,'units');
@@ -142,7 +142,7 @@ switch lower(styl),
   [xi,yi]=drawhatch(x,y,angle,step,xsc,ysc,0);
   if nargout<2,
     xi=line(xi,yi,varargin{:});
-  end;  
+  end;
  case 'cross',
   [xi,yi]=drawhatch(x,y,angle,step,xsc,ysc,0);
   [xi2,yi2]=drawhatch(x,y,angle+90,step,xsc,ysc,0);
@@ -150,7 +150,7 @@ switch lower(styl),
   yi=[yi,yi2];
   if nargout<2,
     xi=line(xi,yi,varargin{:});
-  end;  
+  end;
  case 'speckle',
   [xi,yi ]  =drawhatch(x,y,45,   step,xsc,ysc,angle);
   [xi2,yi2 ]=drawhatch(x,y,45+90,step,xsc,ysc,angle);
@@ -161,8 +161,8 @@ switch lower(styl),
       xi=line(xi,yi,'marker','.','linestyle','none','markersize',2,varargin{:});
     else
       xi=NaN;yi=NaN;
-    end;    
-  end; 
+    end;
+  end;
  case 'outspeckle',
   [xi,yi ]  =drawhatch(x,y,45,   step,xsc,ysc,-angle);
   [xi2,yi2 ]=drawhatch(x,y,45+90,step,xsc,ysc,-angle);
@@ -176,9 +176,9 @@ switch lower(styl),
       xi=line(xi,yi,'marker','.','linestyle','none','markersize',2,varargin{:});
     else
       xi=NaN;yi=NaN;
-    end;    
-  end; 
-    
+    end;
+  end;
+
 end;
 
 
@@ -188,9 +188,9 @@ return
 
 function [xi,yi]=drawhatch(x,y,angle,step,xsc,ysc,speckle);
 %
-% This is the guts. 
+% This is the guts.
 %
- 
+
 
 angle=angle*pi/180;
 
@@ -199,20 +199,20 @@ angle=angle*pi/180;
 % 'points' being the units in x.
 % Center it for "good behavior".
 ca = cos(angle); sa = sin(angle);
-x0 = mean(x); y0 = mean(y);   
+x0 = mean(x); y0 = mean(y);
 x = (x-x0)*xsc; y = (y-y0)*ysc;
 yi = x*ca+y*sa;              % Rotation
 y = -x*sa+y*ca;
 x = yi;
 y = y/step;    % Make steps equal to one
 
- 
+
 % Compute the coordinates of the hatch line ...............
 yi = ceil(y);
 yd = [diff(yi) 0]; % when diff~=0 we are crossing an integer
 fnd = find(yd);    % indices of crossings
 dm = max(abs(yd)); % max possible #of integers between points
- 
+
 
 %
 % This is going to be pretty space-inefficient if the line segments
@@ -242,7 +242,7 @@ if length(xi)>0,
   [ci,num] = sort(ci);
   xi = xi(num); yi = yi(num);
 else
- 
+
   xi=NaN;yi=NaN;
   return;
 end;
@@ -250,7 +250,7 @@ end;
 % if this happens an error has occurred somewhere (we have an odd
 % # of points), and the "fix" is not correct, but for speckling anyway
 % it really doesn't make a difference.
-if rem(length(xi),2)==1, 
+if rem(length(xi),2)==1,
   disp('mhatch warning');
   xi = [xi; xi(end)];
   yi = [yi; yi(end)];
@@ -267,16 +267,16 @@ if length(speckle)>1 | speckle(1)~=0,
 
  if length(speckle)>1,
    % Now we get the speckle parameter for each line.
-   
+
    % First, carry over the speckle parameter for the segment
 %   yd=[0 speckle(1:end-1)];
    yd=[speckle(1:end)];
    A=repmat(yd(fnd),dm,1);
    speckle=A(fnd1);
-   
+
    % Now give it the same preconditioning as for xi/yi
    speckle=speckle(num);
-   if rem(length(speckle),2)==1, 
+   if rem(length(speckle),2)==1,
      speckle = [speckle; speckle(end)];
    end
    speckle=reshape(speckle,2,li/2);
@@ -284,7 +284,7 @@ if length(speckle)>1 | speckle(1)~=0,
  else
    speckle=[speckle;speckle];
  end;
-   
+
  % Thin out the points in narrow parts.
  % This keeps everything when abs(dxi)>2*speckle, and then makes
  % it increasingly sparse for smaller intervals.
@@ -306,7 +306,7 @@ if length(speckle)>1 | speckle(1)~=0,
     yi=yi(speckle~=0);
    end;
   end;
-  
+
 else
  xi = [xi; ones(1,li/2)*nan];  % Separate the line segments
  yi = [yi; ones(1,li/2)*nan];

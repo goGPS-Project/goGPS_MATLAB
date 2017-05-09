@@ -1,13 +1,13 @@
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
@@ -59,7 +59,7 @@ snr1_RM = snr1_R; snr1_RM(:,:,n_sta) = snr1_M;
 pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,1);
 
 for k = 1 : n_sta
-    
+
     name{k} = cell2mat(marker_RM(:,:,k));
     antenna{k} = cell2mat(antmod_RM(:,:,k));
     time{k} = datenum(date_M);
@@ -73,22 +73,22 @@ for k = 1 : n_sta
     PCV2{k} = NaN(nSatTot,n_epochs);
     azim{k} = NaN(nSatTot,n_epochs);
     elev{k} = NaN(nSatTot,n_epochs);
-    
+
     for t = 1 : n_epochs
-        
+
         Eph_t = rt_find_eph(Eph, time_RM(t,1,k), constellations.nEnabledSat);
-        
+
         %available satellites
         sat0 = find(pr1_RM(:,t,k) ~= 0);
-        
+
         if (numel(sat0) >= 4)
-            
+
             if (any(pos_RM(:,1,k)))
                 flag_XR = 1;
             else
                 flag_XR = 0;
             end
-            
+
             %compute satellite azimuth and elevation
             [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, flag_XR, 0, 0);
 
@@ -96,10 +96,10 @@ for k = 1 : n_sta
 %                  any(pr1_RM(sat,t,k) == 0) || any(pr2_RM(sat,t,k) == 0)) && k == target_sta)
 %                 continue
 %             end
-            
+
             azim{k}(sat,t) = az;
             elev{k}(sat,t) = el;
-            
+
             %apply phase center variation
             if (~isempty(antenna_PCV) && antenna_PCV(k).n_frequency ~= 0) % rover
                 PCO1{k}(sat,t) = PCO_correction(antenna_PCV(k), pos_RM(:,1,k), XS, sys, 1);
@@ -108,7 +108,7 @@ for k = 1 : n_sta
                 index_ph = find(ph1_RM(sat,t,k) ~= 0);
                 pr1_RM(sat(index_pr),t,k) = pr1_RM(sat(index_pr),t,k) - (PCO1{k}(sat(index_pr),t) + PCV1{k}(sat(index_pr),t));
                 ph1_RM(sat(index_ph),t,k) = ph1_RM(sat(index_ph),t,k) - (PCO1{k}(sat(index_ph),t) + PCV1{k}(sat(index_ph),t))./lambda(sat(index_ph),1);
-                
+
                 if (length(frequencies) == 2 || frequencies(1) == 2)
                     PCO2{k}(sat,t) = PCO_correction(antenna_PCV(k), pos_RM(:,1,k), XS, sys, 2);
                     PCV2{k}(sat,t) = PCV_correction(antenna_PCV(k), 90-el, az, sys, 2);
@@ -127,14 +127,14 @@ for k = 1 : n_sta
     end
 
     for PRN = 1 : nSatTot
-        
+
         if (k == target_sta)
             index = find(P1{k}(PRN,:) ~= 0);
             P1{k}(PRN,index) = P1{k}(PRN,index) - goGNSS.V_LIGHT*dtM(index)';
         end
         zero_idx = find(P1{k}(PRN,:) == 0);
         P1{k}(PRN,zero_idx) = NaN; %#ok<*FNDSB>
-        
+
         zero_idx = find(P2{k}(PRN,:) == 0);
         P2{k}(PRN,zero_idx) = NaN;
     end
@@ -150,28 +150,28 @@ fix_til_P2 = til_P2;
 
 %interpolate dL4
 for PRN = 1 : nSatTot
-    
+
     %compute IPP
     [satel(PRN).ipp_lat, satel(PRN).ipp_lon, satel(PRN).elR] = IPP_satspec(elev, azim, commontime, stations_idx, PRN, pos_RM); %#ok<*SAGROW>
-    
+
     %interpolate dL4 and compute ~L4
     [satel(PRN).til_L4] = planefit_satspec_diff_obs(diff_L4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 1);
-    
+
     %interpolate P4 and compute ~P4
     [satel(PRN).til_P4] = planefit_satspec_diff_obs(P4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 0);
 
     %select only the epochs where all stations observations are available
     idx_diff_L4 = all(~isnan(squeeze(diff_L4(PRN,:,:))) .* (squeeze(diff_L4(PRN,:,:)) ~= 0),2);
-    
+
     %compute ~L2
     fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
-    
+
     %compute ~P2
     fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
-    
+
 %     %compute fix ~L2 (remove large outliers)
 %     fix_til_L2(PRN,:) = fix_jump(til_L2,PRN,0.6*10e7);
-%     
+%
 %     %compute fix ~P2 (remove large outliers)
 %     fix_til_P2(PRN,:) = fix_jump(til_P2,PRN,0.6*10e7);
 

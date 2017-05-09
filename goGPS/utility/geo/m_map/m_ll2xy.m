@@ -36,21 +36,21 @@ else
      % Sneaky way of making default clipping on (sneaky 'cause only the 4th
      % input parameter is checked for the clipping property)
      [X,Y,I]=feval(MAP_PROJECTION.routine,'ll2xy',varargin{:},'clip','on');
-     
+
   elseif strcmp(MAP_COORDS.name,'geographic'),
      [LONG,LAT]=mc_coords('geo2mag',varargin{1:2});
      args={varargin{3:end},'clip','on'};
      [X,Y,I]=feval(MAP_PROJECTION.routine,'ll2xy',LONG,LAT,args{:});
-     
+
   elseif strcmp(MAP_COORDS.name,'IGRF2000-geomagnetic') | ...
          strcmp(MAP_COORDS.name,'IGRF2011-geomagnetic')
      [LONG,LAT]=mc_coords('mag2geo',varargin{1:2});
      args={varargin{3:end},'clip','on'};
      [X,Y,I]=feval(MAP_PROJECTION.routine,'ll2xy',LONG,LAT,args{:});
-     
+
    else
-     error('m_ll2xy: Unrecognized coordinate system');   
-  end;  
+     error('m_ll2xy: Unrecognized coordinate system');
+  end;
 end;
 
 if nargout==0,

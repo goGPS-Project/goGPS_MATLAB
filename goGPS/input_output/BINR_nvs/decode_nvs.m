@@ -17,15 +17,15 @@ function [data] = decode_nvs(msg, constellations, wait_dlg)
 %   NVS messages decoding (also in sequence).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Daisuke Yoshida
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function [data] = decode_nvs(msg, constellations, wait_dlg)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 if (nargin < 2 || isempty(constellations))
@@ -144,21 +144,21 @@ if (nargin == 3)
 end
 
 while (pos + 7 < length(msg) && i <= length(pos_FTR))
-    
+
     if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
-    
+
     % check if there is an NVS header (<DLE>)
     if (strcmp(msg(pos:pos+7),codeBIN_HDR))
-        
+
         % skip the NVS header (8 bit)
         pos = pos + 8;
-        
+
         % message id (1 byte)
         id = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
         id = dec2hex(id,2);
-        
+
         % position of the last bit of the data message (i.e. before <DLE><ETX>)
         %data_msg_end = pos_FTR(i) - 1;
         data_msg_end = pos_FTR(find(pos_FTR>pos,1)) - 1;
@@ -166,21 +166,21 @@ while (pos + 7 < length(msg) && i <= length(pos_FTR))
 
         % counter increment
         i = i + 1;
-        
+
         switch id
             % RAW (raw measurement)
             case 'F5', [data(:,i)] = decode_F5h(msg(pos:data_msg_end), constellations);
-                
+
             % HUI (sat. Health / UTC / Ionosphere)
             case '4A', [data(:,i)] = decode_4Ah(msg(pos:data_msg_end));
-                
+
             % EPH (ephemeris)
             case 'F7', [data(:,i)] = decode_F7h(msg(pos:data_msg_end), constellations);
         end
-        
+
         % skip the message body
         pos = data_msg_end + 1;
-        
+
         % skip the 2 closing bytes (i.e. <DLE><ETX>)
         pos = pos + 16;
     else

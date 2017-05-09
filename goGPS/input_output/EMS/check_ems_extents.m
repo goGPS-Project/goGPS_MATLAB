@@ -23,15 +23,15 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph,
 %   (first available positioning epoch) is within the EMS grids.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -50,7 +50,7 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph,
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 ems_data_available = 0;
@@ -60,41 +60,41 @@ fprintf('Checking that the receiver approximate position falls within the availa
 pos_R = zeros(3,1);
 
 if (~isempty(find(Eph(30,:,:) ~= 0, 1)) || ~isempty(SP3))
-    
+
     cutoff = 15;
     snr_threshold = 0;
-    
+
     i = 1;
-    
+
     while (sum(abs((pos_R))) == 0 & i <= length(time_R))
-        
+
         satObs = find(pr(:,i) ~= 0);
-        
+
         Eph_t  = rt_find_eph (Eph, time_R(i), nSatTot);
-        
+
         if (~isempty(SP3))
             satEph = SP3.prn;
         else
             satEph = find(Eph_t(1,:) ~= 0);
         end
-        
+
         satAvail = intersect(satObs,satEph)';
 
         if (length(satAvail) >=4)
             pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), SP3, iono, [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, phase, 0, 0, 0);
         end
-        
+
         i = i + 1;
-        
+
     end
 end
 
 if (sum(abs((pos_R))) ~= 0)
-    
+
     [lat_R, lon_R] = cart2geod(pos_R(1), pos_R(2), pos_R(3));
-    
+
     igp4 = sel_igp(lat_R, lon_R, sbas.igp, sbas.lat_igp, sbas.lon_igp);
-    
+
     if(isempty(igp4))
         fprintf('FALSE\n');
     else

@@ -37,15 +37,15 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   by the permanent station (MASTER) in RTCM format.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -64,7 +64,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 nSatTot = constellations.nEnabledSat;
@@ -126,14 +126,14 @@ end
 %-------------------------------------------------------------------------------
 
 if ~isempty(data_rover_all)
-    
+
     cell_rover = [];
-    
+
     %display
     if (nargin == 2)
         fprintf('Decoding rover stream\n');
     end
-    
+
     %detect binary format
     pattern1 = 'B5';      % UBX pattern (hexadecimal value)
     pattern2 = '62';      % UBX pattern (hexadecimal value)
@@ -155,7 +155,7 @@ if ~isempty(data_rover_all)
     codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
     pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
-    
+
     pattern1 = '10';      % NVS pattern (hexadecimal value)
     pattern2 = '03';      % NVS pattern (hexadecimal value)
     pattern3 = '10';      % NVS pattern (hexadecimal value)
@@ -201,7 +201,7 @@ if ~isempty(data_rover_all)
         data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
         data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
         data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
-        
+
         %NVS format decoding
         if (nargin == 3)
             [cell_rover] = decode_nvs(data_rover_all, constellations, wait_dlg);
@@ -227,13 +227,13 @@ if ~isempty(data_rover_all)
     if (nargin == 3)
         waitbar(0,wait_dlg,'Reading rover data...')
     end
-    
+
     %for Fastrax
     %                   L1 freq    RF_conv*MCLK      MixerOffeset
     correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
     correction_value = correction_value * (1575420000/(1+1574399750));
     doppler_count = 1;
-    
+
     %for SkyTraq
     IOD_time = -1;
 
@@ -242,7 +242,7 @@ if ~isempty(data_rover_all)
         if (nargin == 3)
             waitbar(j/Ncell,wait_dlg)
         end
-    
+
         %%%%%%%%%%%%%%%%%%%%%% UBX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
@@ -261,10 +261,10 @@ if ~isempty(data_rover_all)
 
             Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
             iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
-            
+
         %RXM-SFRB message data save
         elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
-            
+
             if (sum(cell_rover{2,j}(1:8)) ~= 0)
                 %ionosphere parameters
                 iono(:, i) = cell_rover{2,j}(1:8);
@@ -279,7 +279,7 @@ if ~isempty(data_rover_all)
             if (~isempty(sat) & sat > 0)
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);
             end
-            
+
         %AID-EPH message data save
         elseif (strcmp(cell_rover{1,j},'AID-EPH'))
 
@@ -289,13 +289,13 @@ if ~isempty(data_rover_all)
             if (~isempty(sat) & sat > 0)
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);
             end
-            
+
         %AID-HUI message data save
         elseif (strcmp(cell_rover{1,j},'AID-HUI'))
 
             %ionosphere parameters
             iono(:, i) = cell_rover{3,j}(9:16);
-            
+
         %%%%%%%%%%%%%%%%%% SkyTraq messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         %MEAS_TIME message data save
@@ -304,10 +304,10 @@ if ~isempty(data_rover_all)
             IOD_time = cell_rover{2,j}(1);
             time_stq = cell_rover{2,j}(3);
             week_stq = cell_rover{2,j}(2);
-            
+
         %RAW_MEAS message data save
         elseif (strcmp(cell_rover{1,j},'RAW_MEAS'))
-            
+
             IOD_raw = cell_rover{2,j}(1);
             if (IOD_raw == IOD_time)
                 time_R(i)  = time_stq;
@@ -316,29 +316,29 @@ if ~isempty(data_rover_all)
                 ph1_R(:,i) = cell_rover{3,j}(:,4);
                 snr_R(:,i) = cell_rover{3,j}(:,2);
                 dop1_R(:,i) = cell_rover{3,j}(:,5);
-                
+
                 %manage "nearly null" data
                 pos = abs(ph1_R(:,i)) < 1e-100;
                 ph1_R(pos,i) = 0;
 
                 i = i + 1;
-                
+
                 Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
                 iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
             end
-            
+
         %GPS Ephemeris data message data save
         elseif (strcmp(cell_rover{1,j},'GPS_EPH'))
-            
+
             %satellite number
             sat = cell_rover{2,j}(1);
-            
+
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0)
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);
             end
-            
-        %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
+
+        %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %TRACK message
         elseif (strcmp(cell_rover{1,j},'TRACK'))
             tick_TRACK(i)    = cell_rover{2,j}(1);
@@ -352,7 +352,7 @@ if ~isempty(data_rover_all)
             pr1_R(:,i)  = cell_rover{3,j}(:,2);
             dop1_R(:,i) = cell_rover{3,j}(:,3);
             snr_R(:,i)  = cell_rover{3,j}(:,6);
-            
+
             tick_PSEUDO(i) = cell_rover{2,j}(4);
 
             if (tick_PSEUDO(i) == tick_TRACK(i))
@@ -369,11 +369,11 @@ if ~isempty(data_rover_all)
 
             i = i + 1;
 
-            %iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying            
-            
+            %iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
+
         %FTX-EPH message data save
         elseif (strcmp(cell_rover{1,j},'FTX-EPH'))
-            
+
             %satellite number
             sat = cell_rover{2,j}(1);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
@@ -391,22 +391,22 @@ if ~isempty(data_rover_all)
             pr1_R(:,i)  = cell_rover{3,j}(:,2);
             dop1_R(:,i) = cell_rover{3,j}(:,3);
             snr_R(:,i)  = cell_rover{3,j}(:,6);
-            
+
             %manage "nearly null" data
             ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
-            
+
             %keep just "on top of second" measurements
             %if (time_R(i)- floor(time_R(i)) == 0)
             i = i + 1;
             %end
-            
+
         %62h message data save
         elseif (strcmp(cell_rover{1,j},'62h'))
-            
+
             %satellite number
             sat = cell_rover{2,j}(1);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
-            
+
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
@@ -417,11 +417,11 @@ if ~isempty(data_rover_all)
 
         %F7h message data save
         elseif (strcmp(cell_rover{1,j},'F7h'))
-            
+
             %satellite number
             sat = cell_rover{2,j}(1);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
-            
+
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
@@ -429,7 +429,7 @@ if ~isempty(data_rover_all)
                 Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
                 Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
-            
+
         %4Ah message data save
         elseif (strcmp(cell_rover{1,j},'4Ah'))
 
@@ -571,7 +571,7 @@ if ~isempty(data_master_all)
         elseif (cell_master{1,j} == 18)
         elseif (cell_master{1,j} == 19)
         elseif (cell_master{1,j} == 1002) | (cell_master{1,j} == 1004) %RTCM 1002 or 1004 message
-            
+
             idx = constellations.GPS.indexes;
 
             time_M(i)  = cell_master{2,j}(2);             %GPS time logging
@@ -591,41 +591,41 @@ if ~isempty(data_master_all)
             coordZ_M = cell_master{2,j}(10);
 
             pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
-            
+
             if (i == 2) & (pos_M(:,1) == 0)
                 pos_M(:,i-1) = pos_M(:,i);
             end
-            
+
         elseif (cell_master{1,j} == 1006)                 %RTCM 1006 message
-            
+
             coordX_M = cell_master{2,j}(8);
             coordY_M = cell_master{2,j}(9);
             coordZ_M = cell_master{2,j}(10);
-            
+
             pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
-            
+
             if (i == 2) & (pos_M(:,1) == 0)
                 pos_M(:,i-1) = pos_M(:,i);
             end
-            
+
         elseif (cell_master{1,j} == 1010) | (cell_master{1,j} == 1012) %RTCM 1010 or 1012 message
-            
+
             if (constellations.GLONASS.enabled)
                 idx = constellations.GLONASS.indexes;
-                
+
                 %time_M(i)  = cell_master{2,j}(2);             %GLONASS time logging
                 pr1_M(idx,i) = cell_master{3,j}(idx,2);       %code observations logging
                 ph1_M(idx,i) = cell_master{3,j}(idx,3);       %phase observations logging
                 snr_M(idx,i) = cell_master{3,j}(idx,5);       %signal-to-noise ratio logging
             end
-            
+
         elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
-            
+
             sat = cell_master{2,j}(30);                   %satellite number
             Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging (GPS)
-            
+
         elseif (cell_master{1,j} == 1020)                 %RTCM 1020 message
-            
+
             if (constellations.GLONASS.enabled)
                 sat = cell_master{2,j}(30);                   %satellite number
                 Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging (GLO)
@@ -736,7 +736,7 @@ end
 time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
 
 if ~isempty(time_GPS)
-    
+
     interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
     time_GPS = (time_GPS(1) : interval : time_GPS(end))';   %GPS time without interruptions
@@ -760,7 +760,7 @@ if ~isempty(time_GPS)
             iono   = [iono(:,1:pos)   zeros(8,1)       iono(:,pos+1:end)];
 
             Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,nSatTot,1), Eph_R(:,:,pos+1:end));
-            
+
             roundtime_R = roundmod(time_R,interval_R);
         end
     else
@@ -777,7 +777,7 @@ if ~isempty(time_GPS)
     if ~isempty(time_M)
 
         newtime_M = setdiff(time_GPS, roundtime_M);  %MASTER missing epochs
-        
+
         for i = 1 : length(newtime_M)
 
             pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
@@ -789,7 +789,7 @@ if ~isempty(time_GPS)
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)       pos_M(:,pos+1:end)];
 
             Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,nSatTot,1), Eph_M(:,:,pos+1:end));
-            
+
             roundtime_M = roundmod(time_M,interval_M);
         end
     else

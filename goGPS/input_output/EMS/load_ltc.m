@@ -22,12 +22,12 @@ function [dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time25] = load_ltc(iodp_mask,
 %   Load the long term corrections (LTC).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giuliano Sironi 2011
@@ -49,9 +49,9 @@ function [dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time25] = load_ltc(iodp_mask,
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-        
+
 %keep only the MTs that contain long term corrections
 % WARNING: the messages are not provided at regular time intervals
 r_MT = find(MT == 25 | MT == 24);
@@ -77,9 +77,9 @@ nsv = NaN(n25,1);
 GPS_time25 = GPS_time(r_MT,:);
 
 for i = 1 : n25
-    
+
     [mt, flag25, prn25, IODe25, d_x25, d_y25, d_z25, d_offset25] = ems2ltc(msg(r_MT(i),:), iodp_mask, prn_mask); %#ok<ASGLU>
-    
+
     %MT25(i)       = mt;
     flag(i,:)     = flag25;
     prn(i,:)      = prn25;
@@ -88,7 +88,7 @@ for i = 1 : n25
     d_y(i,:)      = d_y25;
     d_z(i,:)      = d_z25;
     d_offset(i,:) = d_offset25;
-    
+
     nsv(i) = length(find(~isnan(prn(i,:)))); %max 4 SV
 end
 
@@ -101,38 +101,38 @@ iode_E = zeros(n25, nGPSsat);
 
 i_sv = find(~isnan(prn(1,:)));
 for k = 1 : nsv(1)
-                
+
      %i_dx = find(SV == prn(1, i_sv(k)));
-        
+
      %store data ordered by PRN (column-wise)
      dx_E(1, prn(1, i_sv(k))) = d_x(1,i_sv(k));
      dy_E(1, prn(1, i_sv(k))) = d_y(1,i_sv(k));
      dz_E(1, prn(1, i_sv(k))) = d_z(1,i_sv(k));
      doffset_E(1, prn(1, i_sv(k))) = d_offset(1,i_sv(k));
      iode_E(1, prn(1, i_sv(k))) = IODe(1,i_sv(k));
-           
+
 end
 
 %store the corrections for the subsequent epochs
 for j = 2 : n25
-    
+
     dx_E(j,:) = dx_E(j-1,:);
     dy_E(j,:) = dy_E(j-1,:);
     dz_E(j,:) = dz_E(j-1,:);
     doffset_E(j,:) = doffset_E(j-1,:);
     iode_E(j,:) = iode_E(j-1,:);
-    
+
     i_sv = find(~isnan(prn(j,:)));
-    
+
     for k = 1 : nsv(j)
-                
+
         %i_dx = find(SV == prn(j, i_sv(k)));
-        
+
         %store data ordered by PRN (column-wise)
         dx_E(j, prn(j, i_sv(k))) = d_x(j,i_sv(k));
         dy_E(j, prn(j, i_sv(k))) = d_y(j,i_sv(k));
         dz_E(j, prn(j, i_sv(k))) = d_z(j,i_sv(k));
-        doffset_E(j, prn(j, i_sv(k))) = d_offset(j,i_sv(k)); 
+        doffset_E(j, prn(j, i_sv(k))) = d_offset(j,i_sv(k));
         iode_E(j, prn(j, i_sv(k))) = IODe(j,i_sv(k));
     end
 end

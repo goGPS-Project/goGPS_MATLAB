@@ -44,14 +44,14 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ..
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
+%    |___/                    v 0.5.1 beta 2
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     Hendy F. Suhandri - add fixed-multibaseline purpose...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -203,7 +203,7 @@ Fn;
 
 %attitude-based float solution
 Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
-Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix 
+Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix
 Zfloat = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn); %floated-ambiguities
 Q_vecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1);
 Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1;
@@ -217,7 +217,7 @@ elseif n == 2
     yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
     pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
     roll  = asind(Rfloat(3,2)/cosd(pitch))
-    
+
 else
     yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
     pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))

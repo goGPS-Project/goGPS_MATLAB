@@ -18,15 +18,15 @@ function [prc_E, GPS_time02] = load_fc(iodp_mask, prn_mask, MT, msg, GPS_time)
 %   Load the Fast Corrections (FC).
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta
-% 
+%    |___/                    v 0.5.1 beta 2
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       
+%  Written by:
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -45,9 +45,9 @@ function [prc_E, GPS_time02] = load_fc(iodp_mask, prn_mask, MT, msg, GPS_time)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-         
+
 %keep only the MTs that contain the PRC
 %WARNING: the messages are not provided at regular intervals
 r_MT = find(MT == 2 | MT == 3 | MT == 4 | MT == 24 | MT == 0);
@@ -66,9 +66,9 @@ n_SV  = NaN(n02,1);
 GPS_time02 = GPS_time(r_MT,:);
 
 for i = 1 : n02
-    
+
     [mt, iodf, prc, udrei, sv, n_sv] = ems2prc(msg(r_MT(i),:), iodp_mask, prn_mask); %#ok<ASGLU>
-    
+
     %MT(i)     = mt;
     IODF(i)    = iodf;
     PRC(i,:)   = prc;   %pseudorange correction vector
@@ -97,7 +97,7 @@ for i = 2 : n02
         if PRN(i, j) > 0
             if UDREI(i,j) < 14
                 prc_E(i, PRN(i, j)) = PRC(i,j);
-            else 
+            else
                 prc_E(i, PRN(i, j)) = 0;
             end
         end

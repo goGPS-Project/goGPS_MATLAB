@@ -2,23 +2,23 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
 % This function accesses the JPL planetary ephemeris
 % to give the position and velocity of the target object with respect to the
 % center object.
-% 
+%
 % short int planet_ephemeris (double tjd[2], short int target,
 %                             short int center,
-% 
+%
 %                             double *position, double *velocity)
 %
 % ------------------------------------------------------------------------
-% 
+%
 %    PURPOSE:
 %       This function accesses the JPL planetary ephemeris to give the
 %       position and velocity of the target object with respect to the
 %       center object.
-% 
+%
 %    REFERENCES:
 %       Standish, E.M. and Newhall, X X (1988). "The JPL Export
 %          Planetary Ephemeris"; JPL document dated 17 June 1988.
-% 
+%
 %    INPUT
 %    ARGUMENTS:
 %       tjd[2] (double)
@@ -43,7 +43,7 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
 %                                  17 = TT-TDB
 %             (If nutations are desired, set 'target' = 14;
 %              'center' should be zero.)
-% 
+%
 %    OUTPUT
 %    ARGUMENTS:
 %       *position (double)
@@ -63,21 +63,21 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
 %          Nutations rate returned in longitude (1) and obliquity (2) in
 %          radians/day^2 or radians/sec^2
 %          Librations rate returned in radians/day^2 or radians/sec^2
-% 
+%
 %    RETURNED
 %    VALUE:
 %       (short int)
 %          0  ...everything OK.
 %          1,2...error returned from State.
-% 
+%
 %    GLOBALS
 %    USED:
 %       EM_RATIO          eph_manager.h
-% 
+%
 %    FUNCTIONS
 %    CALLED:
 %       state             eph_manager.h
-% 
+%
 %    VER./DATE/
 %    PROGRAMMER:
 %       V1.0/03-93/WTH (USNO/AA): Convert FORTRAN to C.
@@ -89,10 +89,10 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
 %       V3.1/12-07/WKP (USNO/AA): Removed unreferenced variables.
 %       V3.2/10-10/WKP (USNO/AA): Renamed function to lowercase to
 %                                 comply with coding standards.
-% 
+%
 %    NOTES:
 %       None.
-% 
+%
 % ------------------------------------------------------------------------
   persistent zeroVector;
   if isempty(zeroVector)
@@ -121,7 +121,7 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
   if target == center
     return;
   end
-  
+
   %   Check for instances of target or center being Earth or Moon,
   %   and for target or center being the Earth-Moon barycenter.
 
@@ -141,7 +141,7 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
       return;
     end
   end
-  
+
   % Check for cases of Earth as target and Moon as center or vice versa.
 
   if (target == Ephem.Earth) && (center == Ephem.Moon)
@@ -245,27 +245,27 @@ function [ position, velocity, acceleration, error ] = planet_ephemeris( s, tjd,
     center_acc = zeroVector;
 
   elseif center == Ephem.EarthMoonBarycenter
-    
+
     % Center is Earth-Moon barycenter, which was already computed above.
-    
+
     center_pos = pos_earthmoon;
     center_vel = vel_earthmoon;
     center_acc = acc_earthmoon;
-    
+
   elseif center == Ephem.Earth
-    
+
     % Center is Earth, which was already computed above.
-    
+
     center_pos = pos_earthmoon - (pos_moon / (1.0 + s.EM_RATIO));
     center_vel = vel_earthmoon - (vel_moon / (1.0 + s.EM_RATIO));
     center_acc = acc_earthmoon - (acc_moon / (1.0 + s.EM_RATIO));
-   
+
   elseif center == Ephem.Moon
-    
+
     center_pos = pos_earthmoon + pos_moon * (s.EM_RATIO/ (1.0 + s.EM_RATIO));
     center_vel = vel_earthmoon + vel_moon * (s.EM_RATIO/ (1.0 + s.EM_RATIO));
     center_acc = acc_earthmoon + acc_moon * (s.EM_RATIO/ (1.0 + s.EM_RATIO));
-    
+
   elseif center >= Ephem.Nutations
     [~,nc] = size(s.IPT);
     if centerState <= nc && s.IPT(2,centerState) > 0
