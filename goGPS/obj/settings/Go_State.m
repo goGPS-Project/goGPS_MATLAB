@@ -83,7 +83,7 @@ classdef Go_State < Settings_Interface
             
             if ispc()
                 home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
-                this.local_storage = [home 'AppData\Local\goGPS'];
+                this.local_storage = [home '\AppData\Local\goGPS'];
             else
                 home = getenv('HOME');
                 if ismac()

@@ -139,6 +139,7 @@ if (~strcmp(char(Eph(31)),'R'))
         zk = y1k*sin(ik);
 
         %apply SBAS corrections (if available)
+        satp = zeros(3,1);
         satp(1,1) = xk + dx_sbas;
         satp(2,1) = yk + dy_sbas;
         satp(3,1) = zk + dz_sbas;
@@ -176,6 +177,7 @@ if (~strcmp(char(Eph(31)),'R'))
         zk = Xk(3);
 
         %store CGCS2000 coordinates
+        satp = zeros(3,1);
         satp(1,1) = xk;
         satp(2,1) = yk;
         satp(3,1) = zk;
@@ -200,6 +202,7 @@ if (~strcmp(char(Eph(31)),'R'))
         yk_dot = x1k_dot*sin(Omegak) + y1k_dot*cos(ik)*cos(Omegak) - y1k*sin(ik)*ik_dot*cos(Omegak) + xk*Omegak_dot;
         zk_dot = y1k_dot*sin(ik) + y1k*cos(ik)*ik_dot;
 
+        satv = zeros(3,1);
         satv(1,1) = xk_dot;
         satv(2,1) = yk_dot;
         satv(3,1) = zk_dot;
@@ -278,11 +281,13 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     end
 
     %transformation from PZ-90.02 to WGS-84 (G1150)
+    satp = zeros(3,1);
     satp(1,1) = pos(1) - 0.36;
     satp(2,1) = pos(2) + 0.08;
     satp(3,1) = pos(3) + 0.18;
 
     %satellite velocity
+    satv = zeros(3,1);
     satv(1,1) = vel(1);
     satv(2,1) = vel(2);
     satv(3,1) = vel(3);

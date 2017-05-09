@@ -90,6 +90,7 @@ pos_S(1,1) = X_sat(1);
 pos_S(2,1) = X_sat(2);
 pos_S(3,1) = X_sat(3);
 
+pos_S_v = zeros(3,2);
 pos_S_v(1,1:2) = [LI_SP3_X(1) LI_SP3_X(3)];
 pos_S_v(2,1:2) = [LI_SP3_Y(1) LI_SP3_Y(3)];
 pos_S_v(3,1:2) = [LI_SP3_Z(1) LI_SP3_Z(3)];
