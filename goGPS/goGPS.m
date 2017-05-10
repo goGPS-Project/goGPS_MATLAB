@@ -368,7 +368,7 @@ for s = 1 : num_session
             end
         end
 
-        report.opt.outfolder = state.getOutDir();
+        report.opt.outfolder = state.state.getFullOutPath();
         report.opt.mode = mode;
         report.opt.flag_SP3 = flag_SP3;
         report.opt.flag_ms_pos = flag_ms_pos;
