@@ -638,18 +638,38 @@ classdef GPS_Time < handle
             is_gps = this.is_gps;
         end
         
-        function [len]  = numel(this)
+        function [len] = numel(this)
             % get number of epochs
-            switch this.time_type
-                case 0 % I'm in MAT TIME
-                    len = numel(this.mat_time);
-                case 1 % I'm in UNIX TIME
-                    len = numel(this.unix_time);
-                case 2 % I'm in REF TIME
-                    len = numel(this.time_diff);
+            if isempty(this.time_type)
+                n_element = 0;
+            else
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        len = numel(this.mat_time);
+                    case 1 % I'm in UNIX TIME
+                        len = numel(this.unix_time);
+                    case 2 % I'm in REF TIME
+                        len = numel(this.time_diff);
+                end
             end
         end
 
+        function n_element = length(this)
+            % Get the total number of element stored in the object
+            if isempty(this.time_type)
+                n_element = 0;
+            else
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        n_element = length(this.mat_time);
+                    case 1 % I'm in UNIX TIME
+                        n_element = length(this.unix_time);
+                    case 2 % I'm in REF TIME
+                        n_element = length(this.time_diff);
+                end
+            end
+        end 
+        
         function [empty]  = isempty(this)
             % return the status of emptyness of the object
             switch this.time_type
@@ -825,24 +845,8 @@ classdef GPS_Time < handle
         
         function new_obj = last(this)
             % Get last element stored in GPS_Time
-            new_obj = this.getId(this.lenght());
-        end
-        
-        function n_element = lenght(this)
-            % Get the total number of element stored in the object
-            if isempty(this.time_type)
-                n_element = 0;
-            else
-                switch this.time_type
-                    case 0 % I'm in MAT TIME
-                        n_element = length(this.mat_time);
-                    case 1 % I'm in UNIX TIME
-                        n_element = length(this.unix_time);
-                    case 2 % I'm in REF TIME
-                        n_element = length(this.time_diff);
-                end
-            end
-        end    
+            new_obj = this.getId(this.length());
+        end                
     end
     
     % =========================================================================
@@ -870,7 +874,7 @@ classdef GPS_Time < handle
         
         function delLast(this)
             % Delete last element stored in GPS_Time
-            this.delId(this.lenght());
+            this.delId(this.length());
         end
     end
 
