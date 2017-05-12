@@ -56,7 +56,7 @@ function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
     y2 = (repmat(y_obs, 1, numel(yv)) - repmat(yv', numel(y_obs), 1)).^2;
     for i = 1 : numel(x_pred)
         d_pred = sqrt(x2(:,xi(i)) + y2(:,yi(i)));
-        c_mat = q_fun_obs * diag(fun(d_pred));
+        c_mat = q_fun_obs .* repmat(fun(d_pred)', size(q_fun_obs,1),1);
         c_mat = triu(c_mat) + triu(c_mat, 1)';
 
         trans = sum(c_mat);

@@ -567,7 +567,7 @@ classdef Meteo_Data < handle
             d = sqrt(abs(e_obs - e).^2 + abs(n_obs - n).^2);
             
             fun = @(dist) 0.6 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
-            q_fun_obs = fun(d2) * diag(fun(d));
+            q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
             q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
             
             % getting pressure
