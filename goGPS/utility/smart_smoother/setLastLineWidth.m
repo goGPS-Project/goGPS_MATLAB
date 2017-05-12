@@ -1,13 +1,13 @@
-function setLastLinesWidth(h,width)
-% setLastLinesWidth get the last lines handler and change them to a <width> value
+function setLastLineWidth(h,width)
+% setLastLineWidth get the last lines handler and change them to a <width> value
 %
 % SINTAX:
-%   setLastLinesWidth(<h>,width)
-%   setLastLinesWidth(width)
+%   setLastLineWidth(<h>,width)
+%   setLastLineWidth(width)
 %
 % EXAMPLE:
-%   setLastLinesWidth(gcf,2);
-%   setLastLinesWidth(2);
+%   setLastLineWidth(gcf,2);
+%   setLastLineWidth(2);
 %
 % INPUT:
 %   h       = handler to the figure to modify           <optional argument>

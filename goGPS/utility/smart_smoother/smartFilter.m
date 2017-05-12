@@ -90,8 +90,8 @@ for i = 1 : size(vI,1)
     tmp = data_in(vI(i,1):vI(i,2));
     % DEBUG: figure(i); clf;
     % DEBUG: plot(tmp - median(tmp), 'o-'); hold on;
-    % DEBUG: plot(medfilt_mat(tmp - median(tmp), 3)); setLastLinesWidth(2);
-    % DEBUG: plot(medfilt_mat(medfilt_mat(tmp - median(tmp), 3), 13)); setLastLinesWidth(2);
+    % DEBUG: plot(medfilt_mat(tmp - median(tmp), 3)); setLastLineWidth(2);
+    % DEBUG: plot(medfilt_mat(medfilt_mat(tmp - median(tmp), 3), 13)); setLastLineWidth(2);
     jump_ids = find(abs(diff(medfilt_mat(tmp,min(jump_detection_win, length(tmp)-(mod(length(tmp)+1,2)))))) > jump_detection_thr);
     sub_segment = [[1; jump_ids + 1] [jump_ids; length(tmp)]];
     % DEBUG: plot(sub_segment(:,1), tmp(sub_segment(:,1)) - median(tmp),'o', sub_segment(:,2),tmp(sub_segment(:,2)) - median(tmp),'*');
@@ -156,7 +156,7 @@ y1(inan_new) = nan;
 
 y1s = nan(size(data_in));
 y1s(not(inan)) = splinerMat(ids(not(inan)), y1(not(inan)), spline_size, 0);
-% DEBUG: plot(y1s); setLastLinesWidth(2);
+% DEBUG: plot(y1s); setLastLineWidth(2);
 % DEBUG: ylim([-100 100]);
 
 %--------------------------------------------------------------------------
@@ -168,7 +168,7 @@ y1s(not(inan)) = splinerMat(ids(not(inan)), y1(not(inan)), spline_size, 0);
 % DEBUG: plot(data_m);
 data_out = y1s + data_m;
 % DEBUG: plot(data_out);
-% DEBUG: setLastLinesWidth(2);
+% DEBUG: setLastLineWidth(2);
 
 data_out = [nan(rNaN(1),1); data_out(:); nan(rNaN(2),1)];
 data_out = reshape(data_out, in_size(1), in_size(2));
