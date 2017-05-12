@@ -43,7 +43,7 @@
 
 classdef Logger < handle
     
-    properties (Constant, GetAccess = private)
+    properties (Constant, GetAccess = public)
         DEFAULT_VERBOSITY_LEV   = 9;  % Default verbosity level
         WARNING_VERBOSITY_LEV   = 3;  % Warning verbosity level
         ERROR_VERBOSITY_LEV     = 1;  % Error verbosity level

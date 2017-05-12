@@ -1676,7 +1676,7 @@ classdef IO_Settings < Settings_Interface
 
             this.checkStringField('out_prefix', true);
             
-            if (this.run_counter_is_set) || ~(isempty(this.run_counter()))
+            if (this.run_counter_is_set) || ~(isempty(this.run_counter))
                 this.checkNumericField('run_counter',[0 1e6]);
             end
             
