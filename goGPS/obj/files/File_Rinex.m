@@ -111,7 +111,7 @@ classdef File_Rinex < handle
                         fid = fopen(fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]));
                         l = 1;
                         line = fgetl(fid);
-                        while isempty(strfind(line,'END OF HEADER')) && ischar(line)
+                        while isempty(strfind(line,'END OF HEADER')) && ischar(line) %#ok<*STREMP>
                             l = l + 1;
                             line = fgetl(fid);
                         end
@@ -134,7 +134,13 @@ classdef File_Rinex < handle
                         line = fgetl(fid);
                         while ischar(line)
                             % An epoch line has the second character containing the year of the observation
-                            if (numel(line) > 2) && ~isempty(regexp(line(1:4),'(> [0-9].)|( [0-9]. )', 'once'))
+                            % e.g. RINEX 3:     " 15  8 23  0  0  0.0000000  0  8G05G07G28G02G06G09G30G13"
+                            %      RINEX 3 NAV: "G01 2006 10 01 00 00 00 0.798045657575E-04 0.227373675443E-11 0.000000000000E+00"
+                            %      RINEX 2:     "> 2016  7 18  0  1  0.0000000  0 36"
+                            %      RINEX 2 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
+                            %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
+                            % this check could not work when comment are present after the header
+                            if (numel(line) > 20) && ~isempty(regexp(line(1:10),'( [0-9]{2,4} )', 'once')) 
                                 epoch_line = line;
                             end
                             line = fgetl(fid);
