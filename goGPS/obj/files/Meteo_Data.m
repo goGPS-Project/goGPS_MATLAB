@@ -41,7 +41,7 @@
 %----------------------------------------------------------------------------------------------
 classdef Meteo_Data < handle
     
-    properties (Constant, GetAccess = private);
+    properties (Constant, GetAccess = private)
         PR_ID = sum(uint16('PR').*uint16([1 256]));     % Internal id of Pressure [mbar]
         TD_ID = sum(uint16('TD').*uint16([1 256]));     % Internal id of Dry temperature (deg Celsius)        
         HR_ID = sum(uint16('HR').*uint16([1 256]));     % Internal id of Relative humidity (percent)
@@ -66,17 +66,17 @@ classdef Meteo_Data < handle
                         Meteo_Data.HI_ID];        
     end
     
-    properties (Constant);
+    properties (Constant)
         DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'HI'];
         DATA_TYPE_EXT = { 'Pressure [mbar]', ...
-                          'Dry temperature (deg Celsius)', ...
-                          'Relative humidity (percent)', ...
-                          'Wet zenith path delay (mm), (for WVR data)', ...
-                          'Dry component of zen.path delay (mm)', ...
-                          'Total zenith path delay (mm)', ...
-                          'Wind azimuth (deg) from where the wind blows', ...
-                          'Wind speed (m/s)', ...
-                          'Rain increment (1/10 mm): Rain accumulation since last measurement', ...
+                          'Dry temperature [deg Celsius]', ...
+                          'Relative humidity [percent]', ...
+                          'Wet zenith path delay [mm], (for WVR data)', ...
+                          'Dry component of zen.path delay [mm]', ...
+                          'Total zenith path delay [mm]', ...
+                          'Wind azimuth [deg] from where the wind blows', ...
+                          'Wind speed [m/s]', ...
+                          'Rain increment [1/10 mm]: Rain accumulation since last measurement', ...
                           'Hail indicator non-zero: Hail detected since last measurement'};
                       
         PR = 1;     % Numeric id of Pressure [mbar]
@@ -95,7 +95,7 @@ classdef Meteo_Data < handle
         logger = Logger.getInstance(); % Handler to the logger object
     end
     
-    properties (SetAccess = private, GetAccess = public)
+    properties (SetAccess = private, GetAccess = protected)
         % contains an object to read the RINEX file 
         file;   % init this with File_Rinex('filename')
         
@@ -108,7 +108,7 @@ classdef Meteo_Data < handle
         data = [];          % Meteorological file
         
         xyz = [0 0 0];      % geocentric coordinate of the sensor
-        h_ortho = 0;        % hortometric height of the sensor        
+        msl = 0;        % hortometric height of the sensor        
         is_valid = false;   % Status of valitity of the file;
     end
     
@@ -169,9 +169,9 @@ classdef Meteo_Data < handle
                                 this.xyz = sscanf(line(1:42), '%14f%14f%14f');
                                 if sum(abs(this.xyz)) > 0
                                     [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                                    this.h_ortho = h - getHortometricCorr(phiC, lam);
+                                    this.msl = h - getHortometricCorr(phiC, lam);
                                 else
-                                    this.h_ortho = 0;
+                                    this.msl = 0;
                                 end
                             end
                         end
@@ -187,7 +187,7 @@ classdef Meteo_Data < handle
                     % set default (empty) values if the following paremeters are not found in header
                     if ~pos_is_present
                         this.xyz = [0 0 0];
-                        this.h_ortho = 0;
+                        this.msl = 0;
                     end
                     
                     if ~marker_name_is_present
@@ -195,7 +195,7 @@ classdef Meteo_Data < handle
                     end
                     
                     if isempty(this.type)
-                        this.type = [1:10];
+                        this.type = 1 : 10;
                         this.n_type = numel(this.type);
                     end
                     if ~type_is_present
@@ -243,34 +243,38 @@ classdef Meteo_Data < handle
             this.data = this.data'; % keep one column per data type
         end
                 
-        function init(this, file_name, type)
+        function init(this, file_name, type, verbosity_lev)                
             % Try to read the file
-            this.logger.addMessage(sprintf('Loading Meteorological data from %s\n', file_name));
+            if (nargin < 4)
+                verbosity_lev = Logger.DEFAULT_VERBOSITY_LEV;
+            end
+            
+            this.logger.addMessage(sprintf('Loading Meteorological data from "%s"', file_name), iif(verbosity_lev < 50, Logger.DEFAULT_VERBOSITY_LEV, verbosity_lev));
             try
                 this.time = GPS_Time(); % empty the time
-                this.file = File_Rinex(file_name);
+                this.file = File_Rinex(file_name, verbosity_lev);                
                 fid = fopen(this.file.getFileName(), 'r');
                 meteo_file = textscan(fid,'%s','Delimiter', '\n', 'whitespace', '');
                 fclose(fid);
                 meteo_file = meteo_file{1};
             catch ex
-                this.logger.addError(sprintf('Error reading meteorological file %s (%s)', file_name, ex.message));
+                this.logger.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
                 return
             end
             
             % Parse the header and detect the types of data contained in the metereological file
             this.parseHeader(meteo_file);
             
-            if (nargin == 3)
-                this.logger.addWarning('Overriding the file type with custom types');
+            if (nargin == 3) && ~isempty(type)
+                this.logger.addWarning('Meteorological file - overriding the file data types with custom types');
                 this.type = type;
                 this.n_type = numel(type);
                 assert(sum(type < 1) + sum(type > 10) == 0, 'Invalid custom types');
             end
             
-            this.logger.addMessage(sprintf('\nThe following meteorological data are present in the header:'));
+            this.logger.addMessage(sprintf('\nThe following meteorological data are present in the header:'), verbosity_lev);
             for t = 1 : this.n_type
-                this.logger.addMessage([' - ' this.getTypeExt{t}]);
+                this.logger.addMessage([' - ' this.getTypeExt{t}], verbosity_lev);
             end
             this.is_valid = this.file.isValid();
             % Parse the data
@@ -282,8 +286,8 @@ classdef Meteo_Data < handle
     %  INIT / READER
     % =========================================================================
     methods
-        function this = Meteo_Data(file_name, type) 
-            % Creator
+        function this = Meteo_Data(file_name, type, verbosity_lev) 
+            % Creator Meteo_Data(file_name, <type = empty>, <verbosity_lev>) 
             
             % The function calls all its creation methods within try and
             % catch statements, reading the Meteo file should not be
@@ -294,6 +298,8 @@ classdef Meteo_Data < handle
                     this.init(file_name);
                 case 2
                     this.init(file_name, type);
+                case 3
+                    this.init(file_name, type, verbosity_lev);                        
             end
         end
     end
@@ -313,11 +319,14 @@ classdef Meteo_Data < handle
             this.marker_name = marker_name;
             this.xyz = pos_xyz;
             [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-            this.h_ortho = h - getHortometricCorr(phiC, lam);
+            this.msl = h - getHortometricCorr(phiC, lam);
             this.time = obs_time.getId(ok);
             this.data = data(ok, :);
             this.type = type;            
-            this.n_type = numel(type);
+            invalid_data = sum(isnan(this.data)) == size(data, 1);             
+            this.data(:, invalid_data) = [];
+            this.type(:, invalid_data) = [];
+            this.n_type = numel(this.type);
             this.is_valid = true;
         end
         
@@ -347,15 +356,18 @@ classdef Meteo_Data < handle
                     file_name = file_name(1:4);
                 end
                 [year, doy] = this.time.getId(1).getDOY();                
-                year = mod(year,100);
-                file_name = File_Name_Processor.checkPath(sprintf('%s%s%s%03d0.%02dm', state.getMetDir(), filesep, file_name, doy, year));
+                file_name = File_Name_Processor.checkPath(sprintf('%s%c%04d_%03d%c%s%03d0.%02dm', state.getMetDir(), filesep, year, doy, filesep, file_name, doy, mod(year,100)));
+                dir_container = fileparts(file_name);
+                if ~exist(dir_container, 'dir')
+                    mkdir(dir_container);
+                end
             end
             
             this.logger.addMessage(sprintf('Exporting met data to %s', file_name));
             try
                 fid = fopen(file_name, 'w');
                 str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
-                    'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
+                       'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
                 if ~isempty(this.marker_name)
                     str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
                 end
@@ -365,7 +377,7 @@ classdef Meteo_Data < handle
                     line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
                 end
                 str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
-                str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.h_ortho);
+                str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.msl);
                 str = [str '                                                            END OF HEADER' 10];
                 fwrite(fid, str);
                 epochs = this.time.toString(' yyyy mm dd HH MM SS ')';
@@ -440,17 +452,24 @@ classdef Meteo_Data < handle
             % SYNTAX: data = this.getComponent(id, <time>)
             id = find(this.type == id);
             if isempty(id)
-                data = [];
+                if nargin == 3
+                    data = nan(time.length(), 1);
+                else
+                    data = [];
+                end
             else
                 data = this.data(:,id);
                 if nargin == 3
                     time_data = this.time.getMatlabTime();
-                    data = interp1(time_data(~isnan(data)), data(~isnan(data)), time.getMatlabTime(), 'pchip');
+                    time_pred = time.getMatlabTime();
+                    data = interp1(time_data(~isnan(data)), data(~isnan(data)), time_pred, 'pchip');
+                    % do not extrapolate further than 20 minutes in time
+                    data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
                 end
             end
         end
         
-        function data = getPressure(this, time)
+        function data = getPressure(this, time, msl)
             % Get the pressure data
             % SYNTAX: data = this.getPressure()
             if (nargin == 1)
@@ -458,9 +477,13 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(1, time);                
             end
+            
+            if (nargin == 3)
+                data = Meteo_Data.pressure_adjustment(data, this.msl, msl);
+            end            
         end
         
-        function data = getTemperature(this, time)
+        function data = getTemperature(this, time, msl)
             % Get the temperature data
             % SYNTAX: data = this.getTemperature()
             if (nargin == 1)
@@ -468,16 +491,39 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(2, time);                
             end
+            
+            if (nargin == 3)
+                data = Meteo_Data.temperature_adjustment(data, this.msl, msl);
+            end
         end
         
-        function data = getHumidity(this, time)
+        function data = getHumidity(this, time, msl)
             % Get the humidity data
             % SYNTAX: data = this.getHumidity()
             if (nargin == 1)
                 data = this.getComponent(3);
             else
-                data = this.getComponent(3, time);                
+                data = this.getComponent(3, time);
             end
+            
+            if (nargin == 3)
+                data = Meteo_Data.humidity_adjustment(data, this.msl, msl);
+            end
+        end
+        
+        function [x, y, z, msl] = getLocation(this)
+            % Get meteo station location
+            % SINTAX: [x, y, z, msl] = this.getLocation();
+            x = this.xyz(1);
+            y = this.xyz(2);
+            z = this.xyz(3);
+            msl = this.msl;
+        end
+        
+        function time = getObsTime(this)
+            % Get meteo station observatipon time
+            % SINTAX: time = this.getObsTime();
+            time = this.time;
         end
     end
     
@@ -485,6 +531,149 @@ classdef Meteo_Data < handle
     %  STATIC
     % =========================================================================
     methods (Static)
+        function md = getVMS(name, xyz, time, station)
+            % Get Virtual Meteo Station
+            % SYNTAX: md = getVMS(name, xyz, time , station)
+            % e.g. [x, y, z, msl] = station(1).getLocation(); 
+            %      md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
+            
+            logger = Logger.getInstance();
+            
+            md = Meteo_Data();
+            [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
+            [e, n] = cart2plan(xyz(1), xyz(2), xyz(3));
+            
+            msl = h - getHortometricCorr(phiC, lam);
+            
+            n_station = numel(station);
+            
+            % In a VMS I keep only PR TD HR
+            st_type = false(3, numel(station));
+            e_obs = zeros(numel(station), 1);
+            n_obs = zeros(numel(station), 1);
+            for s = 1 : n_station
+                % Get the supported type by the input stations
+                type = station(s).getTypeId;
+                st_type(type(type <= 3), s) = true;
+
+                % Get the stations location
+                [x, y, z] = station(s).getLocation();
+                [e_obs(s), n_obs(s)] = cart2plan(x, y, z);  
+            end
+            st_type = st_type';
+
+            [e_mesh, n_mesh] = meshgrid(e_obs, n_obs);                        
+            d2 = sqrt(abs(e_mesh - e_mesh').^2 + abs(n_mesh - n_mesh').^2);
+            d = sqrt(abs(e_obs - e).^2 + abs(n_obs - n).^2);
+            
+            fun = @(dist) 0.6 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
+            q_fun_obs = fun(d2) * diag(fun(d));
+            q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
+            
+            % getting pressure
+            id_pr = find(st_type(:,1) == 1);
+            %id_pr = id_pr(real_dist(id_pr) < 20e3);
+                        
+            pr_obs = zeros(numel(id_pr), time.length());
+            for s = 1 : numel(id_pr)
+                pr_obs(s, :) = station(id_pr(s)).getPressure(time);
+            end
+            
+            id_pr(sum(isnan(pr_obs),2) > 1) = [];
+            pr_obs(sum(isnan(pr_obs),2) > 1, :) = [];
+            
+            if isempty(id_pr)
+                logger.addWarning('There are no station to get pressure information');
+                pres = nan(time.length,1);
+            else
+                %A = ones(size(id_pr)); 
+                %Q = d2(id_pr, id_pr);
+                %AinvQ =  A'/Q;
+                %w = (AinvQ*A)\AinvQ;
+                trans = sum(q_fun_obs(id_pr, id_pr));
+                w = sum(trans)\trans;
+                pres = (w * pr_obs)';
+            end
+            
+            % getting temperature
+            id_td = find(st_type(:,2) == 1);            
+            
+            td_obs = zeros(numel(id_td), time.length);
+            for s = 1 : numel(id_td)
+                td_obs(s, :) = station(id_td(s)).getTemperature(time, msl);
+            end            
+            id_td(sum(isnan(td_obs),2) > 1) = [];
+            td_obs(sum(isnan(td_obs),2) > 1, :) = [];
+            
+            if isempty(id_td)
+                logger.addWarning('There are no station to get temperature information');
+                temp = nan(time.length,1);
+            else
+                trans = sum(q_fun_obs(id_td, id_td));
+                w = sum(trans)\trans;
+                temp = (w * td_obs)';
+            end
+            
+            % getting humidity
+            id_hr = find(st_type(:,2) == 1);            
+            
+            hr_obs = zeros(numel(id_hr), time.length);
+            for s = 1 : numel(id_hr)
+                hr_obs(s, :) = station(id_hr(s)).getHumidity(time);
+            end
+            
+            id_hr(sum(isnan(hr_obs),2) > 1) = [];
+            hr_obs(sum(isnan(hr_obs),2) > 1, :) = [];
+            
+            if isempty(id_hr)
+                logger.addWarning('There are no station to get relative humidity information');
+                hum = nan(time.length,1);
+            else
+                trans = sum(q_fun_obs(id_hr, id_hr));
+                w = sum(trans)\trans;
+                hum = (w * hr_obs)';
+            end
+            
+            data = [pres temp hum];
+            id_ok = (sum(isnan(data)) < time.length());
+            data = data(:, id_ok);
+            type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
+            type = type(:, id_ok);
+            md.import_raw(time, data, type, name, xyz);            
+        end
         
+        function [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
+            % Barometric formula taken from Bai and Feng, 2003.
+            % The parameter value is taken from Realini et al., 2014
+            % Parameter definition
+            grad = 0.0065 ; % * C / m gravitational acceleration constant
+            temperature_adj = temperature + grad * (obs_h - pred_h);
+        end
+        
+        function [ pressure_adj ] = pressure_adjustment( pressure , obs_h, pred_h)
+            % Barometric formula taken from Berberan-Santos et al., 1997
+            % The parameter values are taken from Realini et al., 2014
+            % Parameters definition
+            g = 9.80665 ;    % m / s^2 gravitational acceleration constant
+            Md = 0.0289644 ; % kg / mol molar mass of dry air
+            R = 8.31432 ;    % J(mol * K) gas constant for air
+            Tisa = 288.15 ;  % K international standard temperature of the atmosphere at the sea level
+            pressure_adj = pressure .* exp(-(g * Md * (pred_h - obs_h))/(R * Tisa ));
+        end
+
+        function [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
+            % Empirically derived from here, to be substituted with something better...            
+            % % http://www.engineeringtoolbox.com/relative-humidity-air-d_687.html
+            %
+            % tmp = [0 1.000; 108 0.987; 200 0.976; 400 0.953; 600 0.931; 800 0.909; 1000 0.887; 1500 0.835; 2000 0.785];
+            %
+            % % quadratics fitting
+            % A = [tmp(:, 1).^2 tmp(:, 1) ones(size(tmp,1),1)];
+            % y0 = tmp(:,2);
+            % x = (A' * A) \ A' * y0
+            % figure; plot(tmp(:,1),tmp(:,2),'o'); hold on; msl = -10 : 3000; plot(msl, x(1) .* msl.^2 + x(2) .* msl + x(3) .* ones(size(msl))); setAllLinesWidth(2)
+            x = [ 5.25984524194874e-09; -0.000117788989855394; 0.999649177981675 ];
+            humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
+        end
     end
 end
