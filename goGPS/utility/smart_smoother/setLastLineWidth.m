@@ -6,11 +6,11 @@ function setLastLineWidth(h,width)
 %   setLastLineWidth(width)
 %
 % EXAMPLE:
-%   setLastLineWidth(gcf,2);
+%   setLastLineWidth(gca,2);
 %   setLastLineWidth(2);
 %
 % INPUT:
-%   h       = handler to the figure to modify           <optional argument>
+%   h       = handler to the axes to modify           <optional argument>
 %   width   = requested width of the last lines
 %
 % DEFAULT VALUES:

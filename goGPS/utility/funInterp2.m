@@ -1,9 +1,32 @@
 function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
 % SYNTAX:
 %   data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
-% DESCRIPTION:
+
+%
+% SINTAX:
+%   data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
+%
+% EXAMPLE:
+%   setLastLineWidth(gca,2);
+%   setLastLineWidth(2);
+%
+% INPUT:
+%   x_pred , y_pred     coordinates of the prediction point (arrays [n x 1])
+%   x_obs, y_obs        coordinates of the observation (array [n x 1], sparse points)
+%   data_obs            data observation array [n x n_epochs]
+%   fun                 virtual function f(dist) as function of the distance
+%
+% OUTPUT:
+%   data                interpolated data in the point of interest [n x n_epochs]
+%
+% DEFAULT VALUES:
 %   generic interpolator using as correlation function fun
-%   <default: fun = @(dist) exp(-dist/1e4);>
+%   <default: fun = @(dist) exp(-dist)>
+%
+% EXAMPLE:
+%   fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
+%   temp = funInterp2(ep(:), np(:), e_obs(:), n_obs(:), td_obs(:,:), fun);
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -40,7 +63,7 @@ function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
 
     if nargin < 6
         % Correlation function
-        fun = @(dist) exp(-dist/1e4);
+        fun = @(dist) exp(-dist);
     end
 
     % Init out data
