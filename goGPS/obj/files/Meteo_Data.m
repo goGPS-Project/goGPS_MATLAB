@@ -577,7 +577,7 @@ classdef Meteo_Data < handle
                         
             pr_obs = zeros(numel(id_pr), time.length());
             for s = 1 : numel(id_pr)
-                pr_obs(s, :) = station(id_pr(s)).getPressure(time);
+                pr_obs(s, :) = station(id_pr(s)).getPressure(time, msl);
             end
             
             id_pr(sum(isnan(pr_obs),2) > 1) = [];
@@ -630,7 +630,7 @@ classdef Meteo_Data < handle
             
             hr_obs = zeros(numel(id_hr), time.length);
             for s = 1 : numel(id_hr)
-                hr_obs(s, :) = station(id_hr(s)).getHumidity(time);
+                hr_obs(s, :) = station(id_hr(s)).getHumidity(time, msl);
             end
             
             id_hr(sum(isnan(hr_obs),2) > 1) = [];
@@ -683,8 +683,9 @@ classdef Meteo_Data < handle
             % y0 = tmp(:,2);
             % x = (A' * A) \ A' * y0
             % figure; plot(tmp(:,1),tmp(:,2),'o'); hold on; msl = -10 : 3000; plot(msl, x(1) .* msl.^2 + x(2) .* msl + x(3) .* ones(size(msl))); setAllLinesWidth(2)
-            x = [ 5.25984524194874e-09; -0.000117788989855394; 0.999649177981675 ];
-            humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
+            %x = [ 5.25984524194874e-09; -0.000117788989855394; 0.999649177981675 ];
+            %humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
+            humidity_adj = humidity / exp(-6.396e-4 * (obs_h - pred_h));
         end
     end
 end
