@@ -315,15 +315,22 @@ classdef Meteo_Data < handle
             narginchk(6, 6);
             
             % Skip NaN epochs    
-            ok = ~obs_time.isnan();
             this.marker_name = marker_name;
             this.xyz = pos_xyz;
             [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
             this.msl = h - getHortometricCorr(phiC, lam);
-            this.time = obs_time.getId(ok);
+            ok = ~obs_time.isnan();
             this.data = data(ok, :);
-            this.type = type;            
-            invalid_data = sum(isnan(this.data)) == size(data, 1);             
+            this.type = type;  
+            
+            % Cut empty epochs
+            invalid_epoch = sum(isnan(this.data),2) == numel(this.type);
+            ok = ok & ~invalid_epoch;
+            this.time = obs_time.getId(ok);
+            this.data(invalid_epoch, :) = [];
+            
+            % Cut empty data types
+            invalid_data = sum(isnan(this.data)) == size(this.data, 1);             
             this.data(:, invalid_data) = [];
             this.type(:, invalid_data) = [];
             this.n_type = numel(this.type);
@@ -347,45 +354,57 @@ classdef Meteo_Data < handle
             % SYNTAX: this.toString(str)
 
             narginchk(1,2);
+            fnp = File_Name_Processor;
+            
+            % Find the time span of the observations
+            [yyyy, doy] =  this.time.getDOY;
+            [~, day_start, day_id] = unique(yyyy*1e4+doy);
+            
             if (nargin == 1)
                 state = Go_State.getCurrentSettings();
                 file_name =  this.marker_name;
+                % generate short 4 letters name
                 if numel(file_name) < 4
                     file_name = sprintf(['%0' num2str(4-numel(file_name)) 'd%s'], 0, file_name);
                 else
                     file_name = file_name(1:4);
                 end
-                [year, doy] = this.time.getId(1).getDOY();                
-                file_name = File_Name_Processor.checkPath(sprintf('%s%c%04d_%03d%c%s%03d0.%02dm', state.getMetDir(), filesep, year, doy, filesep, file_name, doy, mod(year,100)));
-                dir_container = fileparts(file_name);
+                file_name = [state.getMetDir() filesep '${YYYY}_${DOY}' filesep file_name '_${DOY}0.${YY}m'];
+            end
+            
+            for d = 1 : numel(day_start)
+                id = day_id == d;
+                cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getId(day_start(d)));
+                
+                dir_container = fileparts(cur_file_name);
                 if ~exist(dir_container, 'dir')
                     mkdir(dir_container);
                 end
-            end
-            
-            this.logger.addMessage(sprintf('Exporting met data to %s', file_name));
-            try
-                fid = fopen(file_name, 'w');
-                str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
-                       'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
-                if ~isempty(this.marker_name)
-                    str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
-                end
                 
-                line = sprintf('%6d', this.n_type);
-                for t = 1 : this.n_type
-                    line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
+                this.logger.addMessage(sprintf('Exporting met data to %s', cur_file_name));
+                try
+                    fid = fopen(cur_file_name, 'w');
+                    str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
+                        'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
+                    if ~isempty(this.marker_name)
+                        str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
+                    end
+                    
+                    line = sprintf('%6d', this.n_type);
+                    for t = 1 : this.n_type
+                        line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
+                    end
+                    str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
+                    str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.msl);
+                    str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
+                    fwrite(fid, str);
+                    epochs = this.time.getId(id).toString(' yyyy mm dd HH MM SS ')';
+                    str = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
+                    fwrite(fid, str);
+                    fclose(fid);
+                catch ex
+                    this.logger.addError(sprintf('Export failed - %s', ex.message));
                 end
-                str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
-                str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.msl);
-                str = [str '                                                            END OF HEADER' 10];
-                fwrite(fid, str);
-                epochs = this.time.toString(' yyyy mm dd HH MM SS ')';
-                str = [epochs; reshape(sprintf('%7.1f', this.data'), 7 * size(this.data,2), size(this.data,1)); 10 * ones(1, size(this.data,1))];
-                fwrite(fid, str);
-                fclose(fid);
-            catch ex
-                this.logger.addError(sprintf('Export failed - %s', ex.message));
             end
         end
         
@@ -420,6 +439,12 @@ classdef Meteo_Data < handle
             % Get the validity of a RINEX file or the object
             % SYNTAX: validity = isValid()
             validity = this.file.isValid();
+        end
+        
+        function name = getMarkerName(this)
+            % Get the name of the station
+            % SYNTAX: time = this.getMarkerName()
+            name = this.marker_name;
         end
         
         function time = getTime(this)
@@ -458,13 +483,18 @@ classdef Meteo_Data < handle
                     data = [];
                 end
             else
-                data = this.data(:,id);
+                data_in = this.data(:,id);
                 if nargin == 3
+                    data = nan(time.length(), 1);
                     time_data = this.time.getMatlabTime();
                     time_pred = time.getMatlabTime();
-                    data = interp1(time_data(~isnan(data)), data(~isnan(data)), time_pred, 'pchip');
-                    % do not extrapolate further than 20 minutes in time
-                    data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                    if (sum(~isnan(data_in)) > 0)
+                        data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
+                        % do not extrapolate further than 20 minutes in time
+                        data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                    end
+                else
+                    data = data_in;
                 end
             end
         end
@@ -584,7 +614,7 @@ classdef Meteo_Data < handle
             pr_obs(sum(isnan(pr_obs),2) > 1, :) = [];
             
             if isempty(id_pr)
-                logger.addWarning('There are no station to get pressure information');
+                logger.addWarning('There are no station to get pressure information', 100);
                 pres = nan(time.length,1);
             else
                 %A = ones(size(id_pr)); 
@@ -612,7 +642,7 @@ classdef Meteo_Data < handle
             td_obs(sum(isnan(td_obs),2) > 1, :) = [];
             
             if isempty(id_td)
-                logger.addWarning('There are no station to get temperature information');
+                logger.addWarning('There are no station to get temperature information', 100);
                 temp = nan(time.length,1);
             else
                 trans = sum(q_fun_obs(id_td, id_td));
@@ -637,7 +667,7 @@ classdef Meteo_Data < handle
             hr_obs(sum(isnan(hr_obs),2) > 1, :) = [];
             
             if isempty(id_hr)
-                logger.addWarning('There are no station to get relative humidity information');
+                logger.addWarning('There are no station to get relative humidity information', 100);
                 hum = nan(time.length,1);
             else
                 trans = sum(q_fun_obs(id_hr, id_hr));
