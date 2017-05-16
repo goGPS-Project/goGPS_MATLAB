@@ -116,7 +116,7 @@ classdef GPS_Time < handle
     end
 
     % Function to simulate polymorphism
-    methods (Access = 'private')
+    methods (Access = 'public')
         function this = GPS_Time_str(this, string_time, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)
             if (nargin == 3)
@@ -143,7 +143,7 @@ classdef GPS_Time < handle
         end
 
         function this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
-            % Private constructor - simulate polymorphism - GPS_Time_mat(uint32(unix_time), fraction_of_second, is_gps)
+            % Private constructor - simulate polymorphism - GPS_Time_unix(uint32(unix_time), fraction_of_second, is_gps)
             this.time_type = 1;
             this.unix_time = unix_time;
             this.unix_time_f = fraction_of_second;
@@ -153,6 +153,42 @@ classdef GPS_Time < handle
                 end
                 this.is_gps = is_gps;
             end
+        end
+
+        function this = GPS_Time_6col(this, date, is_gps)
+            % Private constructor - simulate polymorphism - GPS_Time_6col(data_6col, is_gps)
+
+            % check date format 2/4 digits
+            date(date(:,1) < 70,1) = date(date(:,1) < 70,1) + 2000;
+            date(date(:,1) > 2070,1) = date(date(:,1) < 70,1) - 100;
+            this.time_type = 1;
+            if (nargin == 3)
+                if isempty(is_gps)
+                    is_gps = true;
+                end
+            elseif (nargin == 2)
+                is_gps = true;
+            end
+
+            unx_ref = 719529; % this.UNIX_REF
+
+            % number of days since the beginning of Unix time
+            % deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - unx_ref);
+            % hack: datenummmx is faster cause it does not check argins
+            unix_time   = uint32((datenummx(date(:,1:3)) - unx_ref)) * 86400; %#ok<PROPLC>
+
+            if (size(date, 2) == 6)
+                % I want to keep precision (let's use Unix time)
+                s = floor(date(:,6));
+                unix_time = unix_time + uint32(date(:,4)) * 3600 + uint32(date(:,5)) * 60 + uint32(s);  %#ok<PROPLC>
+                fraction_of_second = date(:,6) - s;
+            else
+                fraction_of_second = 0;
+            end
+
+            this.is_gps = is_gps;
+            this.unix_time = unix_time; %#ok<PROPLC>
+            this.unix_time_f = fraction_of_second;
         end
 
         function this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
@@ -206,6 +242,37 @@ classdef GPS_Time < handle
             this.append(GPS_Time(unix_time, fraction_of_second, is_gps, 1));
         end
 
+        function this = append6ColDate(this, date, is_gps)
+            % Append elements -  this.append6ColDate(date, is_gps)
+
+            if (nargin == 3)
+                if isempty(is_gps)
+                    is_gps = this.is_gps;
+                end
+            elseif (nargin == 2)
+                is_gps = this.is_gps;
+            end
+
+            unx_ref = 719529; % this.UNIX_REF
+
+            % number of days since the beginning of Unix time
+            % deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - unx_ref);
+            % hack: datenummmx is faster cause it does not check argins
+            unix_time   = uint32((datenummx(date(:,1:3)) - unx_ref) * 86400); %#ok<PROPLC>
+
+            if (size(date, 2) == 6)
+                % I want to keep precision (let's use Unix time)
+                this.toUnixTime();
+                s = floor(date(:,6));
+                unix_time = unix_time + uint32(date(:,4)) * 3600 + uint32(date(:,5)) * 60 + uint32(s);  %#ok<PROPLC>
+                fraction_of_second = date(:,6) - s;
+            else
+                fraction_of_second = 0;
+            end
+
+            this.append(GPS_Time(unix_time, fraction_of_second, is_gps, 1)); %#ok<PROPLC>
+        end
+
         function this = appendRefTime(this, time_matlab_reference, time_difference, is_gps)
             % Append elements - appendRefTime(time_matlab_reference, time_difference, is_gps)
             if (nargin == 4)
@@ -219,7 +286,6 @@ classdef GPS_Time < handle
             this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));
         end
     end
-
 
     methods
         function this = GPS_Time( arg1, arg2, arg3, arg4)
@@ -237,8 +303,12 @@ classdef GPS_Time < handle
                         % string time (matlab time)
                         this.GPS_Time_str(arg1);
                     else
-                        % matlab time
-                        this.GPS_Time_mat(arg1);
+                        if size(arg1,2) == 1
+                            % matlab time
+                            this.GPS_Time_mat(arg1);
+                        else
+                            this.GPS_Time_6col(arg1);
+                        end
                     end
                 % With two parameters it can be a unix o ref time format
                 case 2
@@ -256,8 +326,12 @@ classdef GPS_Time < handle
                             % string time (matlab time)
                             this.GPS_Time_str(arg1, arg3);
                         else
-                            % matlab time
-                            this.GPS_Time_mat(arg1, arg3);
+                            if size(arg1,2) == 1
+                                % matlab time
+                                this.GPS_Time_mat(arg1, arg3);
+                            else
+                                this.GPS_Time_6col(arg1, arg3);
+                            end
                         end
                     else
                         if isa(arg1,'uint32')
@@ -641,7 +715,7 @@ classdef GPS_Time < handle
         function [len] = numel(this)
             % get number of epochs
             if isempty(this.time_type)
-                n_element = 0;
+                len = 0;
             else
                 switch this.time_type
                     case 0 % I'm in MAT TIME
@@ -670,6 +744,16 @@ classdef GPS_Time < handle
             end
         end
 
+        function n_element = getLen(this)
+            % Get the total number of element stored in the object
+            n_element = this.length();
+        end
+
+        function [n_epochs] = getExpectedLen(this)
+            % get the number of epochs (with constant rate) that the object should contain
+            n_epochs = round((this.last.getMatlabTime() - this.first.getMatlabTime()) * (86400 / this.getRate())) + 1;
+        end
+
         function [empty]  = isempty(this)
             % return the status of emptyness of the object
             switch this.time_type
@@ -694,7 +778,22 @@ classdef GPS_Time < handle
             end
         end
 
-        function [mat_time]  = getMatlabTime(this)
+        function [rate]  = getRate(this)
+            % get observation rate approximated at 3 digits
+            switch this.time_type
+                case 0 % I'm already in MAT TIME
+                    rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
+                case 1 % I'm in UNIX TIME
+                    % constants in matlab are slower than copied values :-( switching to values
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    tmp_time = double(this.unix_time) + this.unix_time_f;
+                    rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
+                case 2 % I'm in REF TIME
+                    rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+            end
+        end
+
+        function [mat_time] = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
             switch this.time_type
                 case 0 % I'm already in MAT TIME
@@ -729,7 +828,6 @@ classdef GPS_Time < handle
                     unix_time_f = time_s - double(unix_time) + this.time_diff;
             end
         end
-
 
         function changeRef(this, new_time_mat_ref)
             % change the reference time in use by the object to store the data
@@ -772,6 +870,13 @@ classdef GPS_Time < handle
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
         end
 
+        function [gps_time] = getGpsTime(this)
+            % Get time as number of seconds from Jan 6, 1980
+            [unix_time, unix_time_f] = this.getUnixTime(); %#ok<PROP>
+            % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
+            gps_time = double(unix_time - uint32(315964800)) + unix_time_f; %#ok<PROP>
+        end
+
         function [year, doy] = getDOY(this)
             % get Reference Time, precision up to the ps precision
             utc_time = this.getCopy();
@@ -802,7 +907,7 @@ classdef GPS_Time < handle
                     else
                         date_string = [char(date_string(:,:)) char(repmat(' UTC',size(date_string,1),1))];
                     end
-                elseif strfind(date_format,'TTT')
+                elseif strfind(date_format,'TTT') %#ok<*STRIFCND>
                     if this.isGPS()
                         date_string = reshape(regexprep(serialize(date_string')', 'TTT','GPS'), size(date_string,2), size(date_string,1))';
                     else
@@ -811,6 +916,8 @@ classdef GPS_Time < handle
                 end
             end
         end
+
+
 
         function date_string = toStringGpsWeek(this)
             % Convert a date to string format
@@ -840,13 +947,13 @@ classdef GPS_Time < handle
                     end
                 case 1 % I'm in UNIX TIME
                     if (length(this.unix_time) >= max_id)
-                        new_obj = GPS_Time(uint32(this.unix_time(id), this.unix_time_f(id), this.is_gps));
+                        new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
                     else
                         new_obj = GPS_Time();
                     end
                 case 2 % I'm in REF TIME
                     if (length(this.time_diff) >= max_id)
-                        new_obj = GPS_Time(uint32(this.time_ref, this.time_diff(id), this.is_gps));
+                        new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
                     else
                         new_obj = GPS_Time();
                     end

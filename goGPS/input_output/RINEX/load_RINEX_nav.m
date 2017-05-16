@@ -79,7 +79,7 @@ if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
     filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
     filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
 
-    pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end;
+    pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end
     nav_path = filename(1:pos(end));
 
     flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
