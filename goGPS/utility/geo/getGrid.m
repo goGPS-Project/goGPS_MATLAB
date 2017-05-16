@@ -8,21 +8,21 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
 %   ...     limits of the grid
 %
 % OUTPUT:
-%   phiGrid    = array of knots of the grid (phi) as 
+%   phiGrid    = array of knots of the grid (phi) as
 %                phiMax - step/2 : -step : phiMin + step / 2;
-%   lambdaGrid = array of knots of the grid (lambda) as 
+%   lambdaGrid = array of knots of the grid (lambda) as
 %                lambdaMin + step / 2 : step : lambdaMax - step / 2;
 %
 % DESCRIPTION:
 %   Get the array of knots of the grid
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -44,7 +44,7 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
     if nargin ==1
@@ -53,19 +53,19 @@ function [phiGrid, lambdaGrid] = getGrid(step, phiMin, phiMax, lambdaMin, lambda
         lambdaMin = -180;
         lambdaMax = 180;
     end
-    
+
     if phiMin>phiMax
         tmp = phiMin;
         phiMin = phiMax;
         phiMax = tmp;
     end
-    
+
     if lambdaMin > lambdaMax
         tmp = lambdaMin;
         lambdaMin = lambdaMax;
         lambdaMax = tmp;
     end
-    
+
     phiGrid = (phiMax - step/2 : -step : phiMin + step / 2)';
     lambdaGrid = (lambdaMin + step / 2 : step : lambdaMax - step / 2)';
 end

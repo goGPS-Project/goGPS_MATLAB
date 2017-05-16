@@ -10,7 +10,7 @@ function count = cprintf(style,format,varargin)
 %
 %    CPRINTF then displays the text in the Command Window using the
 %    specified STYLE argument. The accepted styles are those used for
-%    Matlab's syntax highlighting (see: File / Preferences / Colors / 
+%    Matlab's syntax highlighting (see: File / Preferences / Colors /
 %    M-file Syntax Highlighting Colors), and also user-defined colors.
 %
 %    The possible pre-defined STYLE names are:
@@ -81,7 +81,7 @@ function count = cprintf(style,format,varargin)
 %
 %    3. Sometimes, non newline ('\n')-terminated segments display unstyled
 %       (black) when the command prompt chevron ('>>') regains focus on the
-%       continuation of that line (I can't pinpoint when this happens). 
+%       continuation of that line (I can't pinpoint when this happens).
 %       To fix this, simply newline-terminate all command-prompt messages.
 %
 %    4. In R2011b and later, the above errors appear to be fixed. However,
@@ -208,11 +208,11 @@ function count = cprintf(style,format,varargin)
          end
          return;
       end
-      
+
       xCmdWndView = cw.getComponent(0).getViewport.getComponent(0);
 
       % Store the CW background color as a special color pref
-      % This way, if the CW bg color changes (via File/Preferences), 
+      % This way, if the CW bg color changes (via File/Preferences),
       % it will also affect existing rendered strs
       com.mathworks.services.Prefs.setColorPref('CW_BG_Color',xCmdWndView.getBackground);
 
@@ -447,7 +447,7 @@ function setElementStyle(docElement,style,specialFlag, majorVersion,minorVersion
   catch
       % never mind for now
   end
-  
+
   % Underlines (hyperlinks):
   %{
   links = docElement.getAttribute('LinkStartTokens');
@@ -473,7 +473,7 @@ function setElementStyle(docElement,style,specialFlag, majorVersion,minorVersion
           end
       end
   end
-  
+
   % Bold: (currently unused because we cannot modify this immutable int32 numeric array)
   %{
   try
@@ -487,7 +487,7 @@ function setElementStyle(docElement,style,specialFlag, majorVersion,minorVersion
       a=1;  %#ok used for debug breakpoint...
   end
   %}
-  
+
   return;  % debug breakpoint
 
 % Display information about element(s)

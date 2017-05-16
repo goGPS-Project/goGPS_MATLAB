@@ -11,25 +11,25 @@
 %   *_GLO --> PZ-90.02 (GLONASS-ICD 5.1) (GLONASS-ICD 2016)
 %   Standard: http://gauss.gge.unb.ca/GLONASS.ICD-98.pdf
 %    newer -> http://kb.unavco.org/kb/assets/727/ikd51en.pdf
-% 
+%
 %   The new specifications are available only in Russian
 %   L1 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L1-s-kod.-razd.-Red-1.0-2016.pdf
 %   L2 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L2-s-kod.-razd.-Red-1.0-2016.pdf
 %   L3 specification: http://russianspacesystems.ru/wp-content/uploads/2016/08/IKD-L3-s-kod.-razd.-Red-1.0-2016.pdf
 %
 %   Other useful links
-%     - http://www.navipedia.net/index.php/GLONASS_Signal_Plan            
+%     - http://www.navipedia.net/index.php/GLONASS_Signal_Plan
 %     - http://www.navipedia.net/index.php/Reference_Frames_in_GNSS
 %     - http://gage6.upc.es/eknot/Professional_Training/PDF/Reference_Systems.pdf
 
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -51,18 +51,18 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef GLONASS_SS < Satellite_System
     properties (Constant, Access = 'private')
-        % System frequencies as struct [MHz] 
+        % System frequencies as struct [MHz]
         f0 = struct('BASE', struct('R1', 1602.000, 'R2', 1246.000, 'R3', 1201.000), ...
                     'DELTA',struct('R1', 0.5625, 'R2', 0.4375, 'R3', 0.4375), ...
                     'R1_CHANNELS', -7:1:6, ...
                     'R2_CHANNELS', -7:1:6, ...
                     'R3_CHANNELS', -7:1:8);
-                
+
         % GLONASS (PZ-90.02) Ellipsoid semi-major axis [m]
         ELL_A = 6378136;
         % GLONASS (PZ-90.02) Ellipsoid flattening
@@ -72,13 +72,13 @@ classdef GLONASS_SS < Satellite_System
         % GLONASS (PZ-90.02) Ellipsoid Eccentricity
         ELL_E = sqrt(GLONASS_SS.ELL_E2);
     end
-    
+
     properties (Constant, Access = 'public')
         SYS_EXT_NAME = 'GLONASS'; % full name of the constellation
         SYS_NAME     = 'GLO';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         SYS_C        = 'R';       % Satellite system (ss) character id
 
-        % System frequencies as struct [MHz] 
+        % System frequencies as struct [MHz]
         F = struct('BASE', GLONASS_SS.f0.BASE, ...
                    'DELTA', GLONASS_SS.f0.DELTA, ...
                    'R1_CHANNELS', GLONASS_SS.f0.R1_CHANNELS, ...
@@ -87,17 +87,17 @@ classdef GLONASS_SS < Satellite_System
                    'R1', GLONASS_SS.f0.R1_CHANNELS' .* GLONASS_SS.f0.DELTA.R1 + GLONASS_SS.f0.BASE.R1, ...
                    'R2', GLONASS_SS.f0.R2_CHANNELS' .* GLONASS_SS.f0.DELTA.R2 + GLONASS_SS.f0.BASE.R2, ...
                    'R3', GLONASS_SS.f0.R3_CHANNELS' .* GLONASS_SS.f0.DELTA.R3 + GLONASS_SS.f0.BASE.R3);
-        
+
         % Array of supported frequencies [MHz]
         F_VEC = [[GLONASS_SS.F.R1; 0; 0], [GLONASS_SS.F.R2; 0; 0], GLONASS_SS.F.R3] * 1e6;
-        
+
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ GLONASS_SS.F_VEC;   
-        
+        L_VEC = 299792458 ./ GLONASS_SS.F_VEC;
+
         N_SAT = 24;       % Maximum number of satellite in the constellation
         PRN = (1 : 24)';  % Satellites id numbers as defined in the constellation
     end
-        
+
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986004418e14, ...               % GLONASS (PZ-90.02) Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -107,26 +107,26 @@ classdef GLONASS_SS < Satellite_System
                                     'F', GLONASS_SS.ELL_F, ...          % Ellipsoid flattening
                                     'E', GLONASS_SS.ELL_E, ...          % Eccentricity
                                     'E2', GLONASS_SS.ELL_E2));          % Eccentricity^2
-                                    
+
         % GLONASS second zonal harmonic of the geopotential
-        J2 = 1.0826257e-3; 
+        J2 = 1.0826257e-3;
     end
-                
+
     methods
         function this = GLONASS_SS(offset)
-            % Creator            
+            % Creator
             if (nargin == 0)
                 offset = 0;
-            end            
+            end
             this@Satellite_System(offset);
         end
-        
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = GLONASS_SS(this.getOffset());
         end
     end
-    
+
     methods (Access = public)
         function iono_free = getIonoFree(this, f_id, channel)
             % Init iono parameters: iono-free combination is computed with the first two carriers in F_VEC (use f_id to change the frequencies to use)
@@ -136,7 +136,7 @@ classdef GLONASS_SS < Satellite_System
             %   .alpha1
             %   .alpha2
             %   .T
-            %   .N            
+            %   .N
             if nargin < 2
                 f_id = [1 2];
             end
@@ -149,14 +149,14 @@ classdef GLONASS_SS < Satellite_System
             if numel(channel) == 1
                 channel = [channel channel];
             end
-            
+
             iono_free.alpha1 = this.F_VEC(channel(1), f_id(1)) .^ 2 ./ (this.F_VEC(channel(1), f_id(1)) .^ 2 - this.F_VEC(channel(2), f_id(2)) .^ 2);
             iono_free.alpha2 = this.F_VEC(channel(2), f_id(2)) .^ 2 ./ (this.F_VEC(channel(1), f_id(1)) .^ 2 - this.F_VEC(channel(2), f_id(2)) .^ 2);
             gcd_f = gcd(this.F_VEC(channel(1), f_id(1)),this.F_VEC(channel(2), f_id(2)));
             iono_free.T = this.F_VEC(channel(1), f_id(1))/gcd_f;
             iono_free.N = this.F_VEC(channel(2), f_id(2))/gcd_f;
-        end        
-        
+        end
+
         function name = getFreqName(this)
             % Get the name of the frequencies for the current constellation
             % SYNTAX: name = this.getFreqNames();

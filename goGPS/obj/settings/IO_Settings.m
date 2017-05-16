@@ -10,12 +10,12 @@
 % FOR A LIST OF CONSTANTS and METHODS use doc IO_Settings
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -37,30 +37,30 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef IO_Settings < Settings_Interface
-    
+
     % Default values for each field - useful to restore corrupted field
     properties (Constant, Access = 'protected')
-        
-        % PROJECT                
+
+        % PROJECT
         PRJ_NAME = 'Defauld DD';  % Name of the project
-        PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder> 
+        PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder>
         CUR_INI = [IO_Settings.PRJ_HOME 'Config' filesep 'settings.ini']; % Location of the current ini file
-        
+
         % DEPRECATE
         INPUT_FILE_INI_PATH = ''; % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
 
-        % RECEIVERS        
+        % RECEIVERS
         SSS_DATE_START = GPS_Time(); % Start of the processing session
         SSS_DATE_STOP = GPS_Time();  % End of the processing session
         SSS_ID_LIST = '0';   % id character sequence to be use for the session $(S) special keyword
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
-        
-        OBS_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'RINEX'] 
+
+        OBS_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'RINEX']
         OBS_NAME = {'yamatogawa_master.obs' 'yamatogawa_rover.obs'} ;
         REC_TARGET = 0;
         REC_MASTER = 1;
@@ -72,7 +72,7 @@ classdef IO_Settings < Settings_Interface
 
         ATX_DIR = [IO_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
         ATX_NAME = 'igs14_1941.atx';    % Name antex file
-        
+
         XYZ_ANT = zeros(3, 1);
         XYZ_EV_POINT = zeros(3, 1);
 
@@ -84,15 +84,15 @@ classdef IO_Settings < Settings_Interface
         PREFERRED_MXD = {'gbm'}
         PREFERRED_CLK = {'clk_30s', 'clk'}
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
-        
+
         CUSTOM_ADDR = 'cddis.gsfc.nasa.gov/'
         CUSTOM_PORT = '21'
         CUSTOM_PATH = 'pub/gps/products/'
         CUSTOM_NAME_EPH = '${WWWW}/igs${WWWWD}.sp3';
         CUSTOM_NAME_ERP = '${WWWW}/igs${WWWWD}.erp';
-        CUSTOM_NAME_CLK = '${WWWW}/igs${WWWWD}.clk_30s';                
-                
-        % SATELLITES                
+        CUSTOM_NAME_CLK = '${WWWW}/igs${WWWWD}.clk_30s';
+
+        % SATELLITES
         EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep]; % Path to Ephemeris files folder
         EPH_NAME = ''; % Name for Ephemeris files
         CLK_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
@@ -107,68 +107,68 @@ classdef IO_Settings < Settings_Interface
         MET_NAME = '';    % Location of the meteorological file
         OCEAN_DIR = [IO_Settings.DEFAULT_DIR_IN 'station' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
         OCEAN_NAME = '';  % Location of the ocean loading file
-        % REFERENCE  
+        % REFERENCE
         REF_GRAPH_FILE = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ref_path' filesep 'ref_path.mat']; % Reference path constraints
         ERP_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
-        GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs        
-        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs        
-        
-        % DTM (SET PATH AND LOAD PARAMETER FILES)        
+        GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
+
+        % DTM (SET PATH AND LOAD PARAMETER FILES)
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
         % UI IMAGES
         IMG_DIR = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];  % Path to images used by the interface
         OUT_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = [];     % This parameter store the current run number
-        
+
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end
-    
+
     properties (Constant, Access = 'protected')
         % id to string of out modes
         DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
-        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];  
+        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];
     end
-    
+
     properties (Constant, Access = 'public')
         % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
         LAST_SETTINGS = [IO_Settings.DEFAULT_DIR_IN 'last_settings.ini'];
     end
-    
+
 
     properties (SetAccess = protected, GetAccess = protected)
         % Location of the current ini file
         cur_ini = IO_Settings.CUR_INI;
     end
-    
+
     properties (SetAccess = protected, GetAccess = public)
         %------------------------------------------------------------------
         % PROJECT
-        %------------------------------------------------------------------        
+        %------------------------------------------------------------------
 
         % Name of the project
         prj_name = IO_Settings.PRJ_NAME;
-                
+
         % Location of the project <relative path from goGPS folder>
         prj_home = IO_Settings.PRJ_HOME;
-                
+
         %------------------------------------------------------------------
         % COMPUTATION CENTERS
         %------------------------------------------------------------------
         % Centers for computation of orbits and other related parameters
-                
+
         preferred_archive = IO_Settings.PREFERRED_ARCHIVE ; % order of the ftpo serv3r to use
         preferred_gps = IO_Settings.PREFERRED_GPS;          % order of products to use (the first found is used) for GPS only solutions
         preferred_glo = IO_Settings.PREFERRED_GLO;          % order of products to use (the first found is used) for GLONASS-GPS only solutions
         preferred_mxd = IO_Settings.PREFERRED_MXD;          % order of products to use (the first found is used) for MultiConstellation only solutions
         preferred_eph = IO_Settings.PREFERRED_EPH;          % kind of orbits to prefer
         preferred_clk = IO_Settings.PREFERRED_CLK;          % kind of orbits to prefer
-        
+
         % Custom entry for a server
-        
+
         custom_addr = IO_Settings.CUSTOM_ADDR; % ftp address for a custom server
         custom_port = IO_Settings.CUSTOM_PORT; % ftp port for a custom server
-        custom_path = IO_Settings.CUSTOM_PATH; % remote path 
+        custom_path = IO_Settings.CUSTOM_PATH; % remote path
         custom_name_eph = IO_Settings.CUSTOM_NAME_EPH; % name of the ephemeris file in the remote dir
         custom_name_erp = IO_Settings.CUSTOM_NAME_ERP; % name of the Earth Rotation Parameters file in the remote dir
         custom_name_clk = IO_Settings.CUSTOM_NAME_CLK; % name of the clock file in the remote dir
@@ -185,49 +185,49 @@ classdef IO_Settings < Settings_Interface
         %------------------------------------------------------------------
 
         % Observation files of the Receivers
-        
+
         % session
-        
+
         sss_date_start = IO_Settings.SSS_DATE_START;    % start of the processing session
         sss_date_stop =  IO_Settings.SSS_DATE_STOP;     % end of the processing session
         sss_id_list =    IO_Settings.SSS_ID_LIST;       % id character sequence to be use for the session $(S) special keyworc
         sss_id_start =   IO_Settings.SSS_ID_START;      % first session id (char of sss_id_list)
         sss_id_stop =    IO_Settings.SSS_ID_STOP;       % last session id (char of sss_id_list)
-        
+
         % reference receivers (e.g. master, SEID reference)
-        
+
         obs_dir = IO_Settings.OBS_DIR;    % Directory containing the data (static)
         obs_name = IO_Settings.OBS_NAME;  % File name of the receivers (can contain special keywords)
         obs_full_name;                    % Full name of the observations generated during runtime from the provided parameters
         obs_type = IO_Settings.OBS_TYPE;  % Array of observations type (target / master / reference)
-       
+
         atx_dir = IO_Settings.ATX_DIR;  % Location of the antex file
         atx_name = IO_Settings.ATX_NAME;  % Location of the antex file
-        
+
         %------------------------------------------------------------------
         % GEOMETRY
         %------------------------------------------------------------------
-        
+
         xyz_ant = IO_Settings.XYZ_ANT;            % Relative position of each recever antenna
         xyz_ev_point = IO_Settings.XYZ_EV_POINT;  % Position of the evaluation point
 
         %------------------------------------------------------------------
         % DATA CENTER SERVERS
         %------------------------------------------------------------------
-        
+
         %------------------------------------------------------------------
         % SATELLITES
         %------------------------------------------------------------------
-        
-        
+
+
         eph_dir = IO_Settings.EPH_DIR;    % Path to Ephemeris files folder
         eph_name = IO_Settings.EPH_NAME;  % File name of ephemeris
         eph_full_name;                    % Full name of the ephemeris generated during runtime from the provided parameters
 
         clk_dir = IO_Settings.CLK_DIR;    % Path to Clock Offset files folder
-        clk_name = IO_Settings.CLK_NAME;  % File name of clock offsets 
+        clk_name = IO_Settings.CLK_NAME;  % File name of clock offsets
         clk_full_name;                    % Full name of the clock offsets generated during runtime from the provided parameters
-        
+
         % Path to CRX folder containing files of Satellites problems
         crx_dir = IO_Settings.CRX_DIR;
         % Path to DCB folder containing files of Differential Code Biases
@@ -239,12 +239,12 @@ classdef IO_Settings < Settings_Interface
         % STATIONS
         %------------------------------------------------------------------
 
-                
+
         % Path to stations coordinates files
         crd_dir = IO_Settings.CRD_DIR;
         % Location of the stations coordinate file
         crd_name = IO_Settings.CRD_NAME;
-        
+
         % Path to stations metereological files
         met_dir = IO_Settings.MET_DIR;
         % Location of the meteorological file
@@ -256,55 +256,55 @@ classdef IO_Settings < Settings_Interface
         %------------------------------------------------------------------
         % REFERENCE
         %------------------------------------------------------------------
-        
+
         % Path to file containing the reference path
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
 
         % Path to ERP folder containing Earth Rotation Parameters (tipically realesed together with the orbits)
         erp_dir = IO_Settings.ERP_DIR;
-        
+
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         geoid_dir = IO_Settings.GEOID_DIR;
         % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
         geoid_name = IO_Settings.GEOID_NAME;
-        
+
         % Location of the ocean loading file
-        ocean_name =  IO_Settings.OCEAN_NAME;  
-        
+        ocean_name =  IO_Settings.OCEAN_NAME;
+
         %------------------------------------------------------------------
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         %------------------------------------------------------------------
 
         % Path to DTM folder containing DTM files
         dtm_dir = IO_Settings.DTM_DIR;
-        
+
         %------------------------------------------------------------------
         % UI IMAGES
         %------------------------------------------------------------------
 
         % Path to images used by the interface
         img_dir = IO_Settings.IMG_DIR;
-                
+
         %------------------------------------------------------------------
         % OUTPUT
         %------------------------------------------------------------------
-                
+
         out_dir = IO_Settings.OUT_DIR;        % Directory containing the output of the project
-        out_prefix = IO_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created      
+        out_prefix = IO_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created
         out_full_path;                        % Full prefix of the putput files generated during runtime from the provided parameters
-        
+
         % This parameter store the current run number
         run_counter = IO_Settings.RUN_COUNTER;
-        run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output        
-        
+        run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output
+
         %------------------------------------------------------------------
         % EXTERNAL INFO as imported from INPUT FILE INI
         %------------------------------------------------------------------
-        
+
         % Ini file object containing info about external data
         ext_ini;
     end
-            
+
     % =========================================================================
     %  INIT
     % =========================================================================
@@ -312,9 +312,9 @@ classdef IO_Settings < Settings_Interface
         function this = IO_Settings()
             % Creator of IO_settings - verbosity level (true/false) can be set or ini file
             this.initLogger();
-        end                
+        end
     end
-    
+
     % =========================================================================
     %  INTERFACE REQUIREMENTS
     % =========================================================================
@@ -323,11 +323,11 @@ classdef IO_Settings < Settings_Interface
             % This function import IO (only) settings from another setting object
             this.importIO(settings);
         end
-        
+
         function importIO(this, settings)
             % This function import IO (only) settings from another setting object
             fnp = File_Name_Processor();
-            
+
             if isa(settings, 'Ini_Manager')
                 % PROJECT
                 this.prj_name   = fnp.checkPath(settings.getData('prj_name'));
@@ -341,15 +341,15 @@ classdef IO_Settings < Settings_Interface
                 this.preferred_gps = fnp.checkPath(settings.getData('preferred_gps'));
                 this.preferred_glo = fnp.checkPath(settings.getData('preferred_glo'));
                 this.preferred_mxd = fnp.checkPath(settings.getData('preferred_mxd'));
-                this.preferred_eph = fnp.checkPath(settings.getData('preferred_eph'));                
+                this.preferred_eph = fnp.checkPath(settings.getData('preferred_eph'));
                 this.preferred_clk = fnp.checkPath(settings.getData('preferred_clk'));
-                % Custom entry for a server                
+                % Custom entry for a server
                 this.custom_addr = fnp.checkPath(settings.getData('custom_addr'));
                 this.custom_port = fnp.checkPath(settings.getData('custom_port'));
                 this.custom_path = fnp.checkPath(settings.getData('custom_path'));
                 this.custom_name_eph = fnp.checkPath(settings.getData('custom_name_eph'));
                 this.custom_name_erp = fnp.checkPath(settings.getData('custom_name_erp'));
-                this.custom_name_clk = fnp.checkPath(settings.getData('custom_name_clk'));                
+                this.custom_name_clk = fnp.checkPath(settings.getData('custom_name_clk'));
                 % DEPRECATE
                 this.input_file_ini_path = fnp.checkPath(settings.getData('input_file_ini_path'));
                 % RECEIVERS
@@ -357,13 +357,13 @@ classdef IO_Settings < Settings_Interface
                 this.sss_date_stop = GPS_Time(datenum(settings.getData('sss_date_stop')));
                 this.sss_id_list = settings.getData('sss_id_list');
                 this.sss_id_start = settings.getData('sss_id_start');
-                this.sss_id_stop = settings.getData('sss_id_stop');                
+                this.sss_id_stop = settings.getData('sss_id_stop');
                 this.obs_dir = fnp.getFullDirPath(settings.getData('obs_dir'), this.prj_home, pwd);
                 this.obs_name = fnp.checkPath(settings.getData('obs_name'));
                 this.obs_type = settings.getData('obs_type');
                 this.atx_dir    = fnp.getFullDirPath(settings.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(settings.getData('atx_name'));
-                % GEOMETRY               
+                % GEOMETRY
                 tmp_xyz_ant = zeros(3, this.getTargetCount());
                 for r = 1 : this.getTargetCount()
                     tmp = settings.getData(sprintf('xyz_ant_%02d', r));
@@ -410,7 +410,7 @@ classdef IO_Settings < Settings_Interface
                 this.prj_name   = settings.prj_name;
                 this.prj_home   = settings.prj_home;
                 %this.cur_ini   = settings.cur_ini;
-                
+
                 % COMPUTATION CENTERS
                 this.preferred_archive = settings.preferred_archive;
                 this.preferred_gps = settings.preferred_gps;
@@ -466,28 +466,28 @@ classdef IO_Settings < Settings_Interface
                 this.out_dir = settings.out_dir;
                 this.out_prefix = settings.out_prefix;
                 this.run_counter = settings.run_counter;
-                this.run_counter_is_set = ~isempty(this.run_counter);                
+                this.run_counter_is_set = ~isempty(this.run_counter);
             end
-            this.check();  
+            this.check();
             this.updateExternals();
             this.eph_full_name = '';
             this.clk_full_name = '';
             this.updateObsFileName();
         end
-        
+
         function str = toString(this, str)
             % Display the satellite system in use
             if (nargin == 1)
                 str = '';
-            end            
+            end
             fnp = File_Name_Processor;
-            
+
             str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
             str = [str sprintf(' Project home:                                     %s\n', fnp.getRelDirPath(this.prj_home, pwd))];
             str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.cur_ini)];
             str = [str '---- DEPRECATE ------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.input_file_ini_path)];            
+            str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.input_file_ini_path)];
             str = [str '---- GNSS RECEIVER FILES  -------------------------------------------------' 10 10];
             str = [str sprintf(' Definition of the file names to be parsed\n')];
             if ~(this.sss_date_start.isempty)
@@ -496,12 +496,12 @@ classdef IO_Settings < Settings_Interface
             end
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
-            str = [str sprintf(' Last session char                                 %c \n\n', this.sss_id_start)];            
+            str = [str sprintf(' Last session char                                 %c \n\n', this.sss_id_start)];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
             str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
-            str = [str sprintf(' Array of observation types                        %s \n\n', strCell2Str(this.OBS_TYPE_LIST(this.obs_type + 1), ', '))];            
+            str = [str sprintf(' Array of observation types                        %s \n\n', strCell2Str(this.OBS_TYPE_LIST(this.obs_type + 1), ', '))];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
-            str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];            
+            str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
             if this.getTargetCount() > 1
                 str = [str '---- GEOMETRY  ------------------------------------------------------------' 10 10];
                 str = [str sprintf(' When multiple antennas are in use the positions on the structure are here defined:\n')];
@@ -516,12 +516,12 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Preferred order of GPS products:                  %s\n', strCell2Str(this.preferred_gps))];
             str = [str sprintf(' Preferred order of GPS/GLONASS products:          %s\n', strCell2Str(this.preferred_glo))];
             str = [str sprintf(' Preferred order of Multiconstellation products:   %s\n', strCell2Str(this.preferred_mxd))];
-            str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];            
-            str = [str sprintf(' Preferred order for clock products:               %s\n\n', strCell2Str(this.preferred_clk))];            
+            str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
+            str = [str sprintf(' Preferred order for clock products:               %s\n\n', strCell2Str(this.preferred_clk))];
             str = [str sprintf(' Custom server parameters:\n')];
-            str = [str sprintf('  address:                                         %s\n', this.custom_addr)];            
-            str = [str sprintf('  port:                                            %s\n', this.custom_port)];            
-            str = [str sprintf('  path:                                            %s\n', this.custom_path)];    
+            str = [str sprintf('  address:                                         %s\n', this.custom_addr)];
+            str = [str sprintf('  port:                                            %s\n', this.custom_port)];
+            str = [str sprintf('  path:                                            %s\n', this.custom_path)];
             str = [str sprintf('  eph name:                                        %s\n', this.custom_name_eph)];
             str = [str sprintf('  erp name:                                        %s\n', this.custom_name_erp)];
             str = [str sprintf('  clk name:                                        %s\n\n', this.custom_name_clk)];
@@ -557,20 +557,20 @@ classdef IO_Settings < Settings_Interface
                 str = [str sprintf(' Run counter has not been previously set \n => it will be set automatically to avoid overwriting of the oputputs\n\n')];
             end
         end
-        
+
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the obj
             str_cell = this.exportIO(str_cell);
         end
-        
+
         function str_cell = exportIO(this, str_cell)
-            % Conversion to string ini format of the minimal information needed to reconstruct the obj            
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj
             if (nargin == 1)
                 str_cell = {};
             end
-            
+
             fnp = File_Name_Processor;
-            
+
             % PROJECT
             str_cell = Ini_Manager.toIniStringSection('PROJECT', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of the project', str_cell);
@@ -585,7 +585,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('input_file_ini_path', this.input_file_ini_path, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % RECEIVERxS
-            str_cell = Ini_Manager.toIniStringSection('RECEIVER_FILES', str_cell);            
+            str_cell = Ini_Manager.toIniStringSection('RECEIVER_FILES', str_cell);
             str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used to substitute special keywords in file names', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
@@ -613,7 +613,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             % GEOMETRY
             str_cell = Ini_Manager.toIniStringSection('GEOMETRY', str_cell);
             str_cell = Ini_Manager.toIniStringComment('When using multiple receivers it is possible to set the relative position of each', str_cell);
@@ -626,7 +626,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Indicate the "baricenter" of the structure -> evaluation point', str_cell);
             str_cell = Ini_Manager.toIniString('xyz_ev_point', this.xyz_ev_point, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             % COMPUTATION CENTERS
             str_cell = Ini_Manager.toIniStringSection('COMPUTATION_CENTER', str_cell);
             str_cell = Ini_Manager.toIniStringComment('List of the computeation center to be used for ephemeris retrival', str_cell);
@@ -651,7 +651,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Preferred clock types, valid but for "igs" glonass,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_CLK)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_clk', this.preferred_clk, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('A custom center/product can also be used', str_cell);
             str_cell = Ini_Manager.toIniStringComment('(all the fields are strings)', str_cell);
             str_cell = Ini_Manager.toIniString('custom_addr', this.custom_addr, str_cell);
@@ -698,12 +698,12 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Directory of ocean loading files', str_cell);
             str_cell = Ini_Manager.toIniString('ocean_dir', fnp.getRelDirPath(this.ocean_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of ocean loading file', str_cell);
-            str_cell = Ini_Manager.toIniString('ocean_name', this.ocean_name, str_cell);           
+            str_cell = Ini_Manager.toIniString('ocean_name', this.ocean_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % REFERENCE
             str_cell = Ini_Manager.toIniStringSection('INPUT_REFERENCE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('File containing a graph of path constraints', str_cell);
-            str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);            
+            str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_dir', fnp.getRelDirPath(this.geoid_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
@@ -725,14 +725,14 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Prefix ("name") to add to the output (can contain special keywords / subfolders)',str_cell);
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);            
-            str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
             str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
-    end    
-    
+    end
+
     % =========================================================================
     %  LEGACY IMPORT
     % =========================================================================
@@ -742,7 +742,7 @@ classdef IO_Settings < Settings_Interface
             % If a group of imports fails display a warning but continue the
             % import of other groups
             % SYNTAX: this.legacyImport(state)
-            
+
             % RECEIVER DEFAULT PARAMETERS ---------------------------------
             try
                 if isfield(state, 'gogps_data_output')
@@ -761,7 +761,7 @@ classdef IO_Settings < Settings_Interface
             this.updateExternals();
         end
     end
-    
+
     % =========================================================================
     %  GETTERS
     % =========================================================================
@@ -770,12 +770,12 @@ classdef IO_Settings < Settings_Interface
             % Get the base directory containing the project
             file_dir = this.prj_home;
         end
-        
+
         function base_rinex_dir = getRinexBaseDir(this)
             % Get the base directory containing RINEX files
             base_rinex_dir = this.obs_dir();
         end
-        
+
         function num_receiver = getTargetCount(this)
             % Get the number of Target receivers
             num_receiver = sum(this.obs_type == this.REC_TARGET);
@@ -785,12 +785,12 @@ classdef IO_Settings < Settings_Interface
             % Get the number of Master receivers
             num_receiver = sum(this.obs_type == this.REC_MASTER);
         end
-        
+
         function num_receiver = getReferenceCount(this)
             % Get the number of Reference receivers
             num_receiver = sum(this.obs_type == this.REC_REFERENCE);
-        end        
-        
+        end
+
         function file_name = getTargetPath(this, id)
             % Get the file list of target receivers files
             % SYNTAX: file_name = this.getTargetPath()
@@ -803,7 +803,7 @@ classdef IO_Settings < Settings_Interface
                 file_name = file_name{id};
             end
         end
-        
+
         function file_name = getMasterPath(this)
             % Get the file list of master receivers files
             % SYNTAX: file_name = this.getMasterPath()
@@ -812,7 +812,7 @@ classdef IO_Settings < Settings_Interface
             end
             file_name = this.obs_full_name( this.obs_type == this.REC_MASTER);
         end
-        
+
         function file_name = getReferencePath(this)
             % Get the file list of the reference receivers files
             % SYNTAX: file_name = this.getReferencePath()
@@ -825,47 +825,47 @@ classdef IO_Settings < Settings_Interface
         function [geometry, ev_point] = getGeometry(this)
             % Get the receiver coordinates in instrumental RF
             % SYNTAX: [geometry, ev_point] = this.getGeometry()
-            
+
             geometry = this.xyz_ant;
             ev_point = this.xyz_ev_point;
         end
-        
+
         function out = getImgDir(this)
             % Get the directory of UI images
             % SYNTAX: dir = this.getImgDir()
             out = this.img_dir;
         end
-                
+
         function out = getNavArchive(this)
             % Get the list of archives to use for the search of navigational files
-            out = this.preferred_archive;            
+            out = this.preferred_archive;
         end
 
         function out = getNavGpsProvider(this)
             % Get the list of gps provider to use during the search for valid navigational files of GPS satellites
-            out = this.preferred_gps;            
+            out = this.preferred_gps;
         end
 
         function out = getNavGloProvider(this)
             % Get the list of gps provider to use during the search for valid navigational files of GLONASS satellites
             out = this.preferred_glo;
         end
-        
+
         function out = getNavMixedProvider(this)
-            % Get the list of gps provider to use during the search for valid navigational files of GPS satellites            
+            % Get the list of gps provider to use during the search for valid navigational files of GPS satellites
             out = this.preferred_mxd;
         end
-        
+
         function out = getNavClkType(this)
             % Get the order of preference of clock files to search for
             out = this.preferred_clk;
         end
-        
+
         function out = getNavEphType(this)
             % Get the order of preference of orbits files to search for
             out = this.preferred_eph;
         end
-        
+
         function [addr, port, path, eph_name, clk_name, erp_name] = getCustomArchive(this)
             % Get the custom navigational provider parameters
             addr = this.custom_addr;
@@ -887,55 +887,55 @@ classdef IO_Settings < Settings_Interface
                 file_name = file_name{id};
             end
         end
-        
+
         function file_name = getFullNavClkPath(this, id)
             % Get the file list of ephemeris files
             % SYNTAX: file_name = this.getFullNavClkPath(id)
             if isempty(this.clk_full_name)
                 this.updateNavFileName();
             end
-            file_name = this.clk_full_name;    
+            file_name = this.clk_full_name;
             if (nargin == 2)
                 file_name = file_name{id};
             end
         end
-        
+
         function out = getNavEphFile(this)
             % Get the file name of the navigational files
             % SYNTAX: nav_path = this.getNavPath()
             out = this.eph_name;
         end
-        
+
         function clk_file = getNavClkFile(this)
             % Get the file name of the clock files
             % SYNTAX: clk_path = this.getClkPath()
             clk_file = this.clk_name;
         end
-        
+
         function out = getNavEphDir(this)
             % Get the path to the navigational files
             % SYNTAX: nav_path = this.getNavEphDir()
-            out = this.eph_dir;            
+            out = this.eph_dir;
         end
-                              
+
         function out = getNavClkDir(this)
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getClkPath()
-            out = this.clk_dir;            
+            out = this.clk_dir;
         end
-                        
+
         function out = getNavEphPath(this)
             % Get the path to the navigational files
             % SYNTAX: nav_path = this.getNavEphPath()
             out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
         end
-        
+
         function out = getNavClkPath(this)
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getNavClkPath()
             out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
         end
-        
+
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             % SYNTAX: file_path = this.getCrdFile()
@@ -945,7 +945,7 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
             end
         end
-        
+
         function out = getAtxFile(this)
             % Get the path of the antex file
             % SYNTAX: file_path = this.getAtxFile()
@@ -955,7 +955,7 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
             end
         end
-        
+
         function out = getOceanFile(this)
             % Get the path of the ocean loading file
             % SYNTAX: file_path = this.getOceanFile()
@@ -965,7 +965,7 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
             end
         end
-        
+
         function out = getMetDir(this)
             % Get the path of the meteorological file dir
             % SYNTAX: file_path = this.getMetDir()
@@ -975,7 +975,7 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkMetPath(strcat(this.met_dir));
             end
         end
-        
+
         function out = getMetFile(this)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()
@@ -985,59 +985,59 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkMetPath(strcat(this.met_dir, filesep, this.met_name));
             end
         end
-        
+
         function out = getDtmPath(this)
             % Get the path of the ocean loading file
             % SYNTAX: file_path = this.getDtmPath()
             out = this.dtm_dir;
         end
-        
+
         function out = getRefFile(this)
             % Get the path of the reference path file
             % SYNTAX: file_path = this.getRefPath()
             out = File_Name_Processor.checkPath(this.ref_graph_file);
         end
-        
+
         function file_path = getGeoidFile(this)
             % Get the path of the geoid file
             % SYNTAX: file_path = this.getGeoidFile()
             file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
         end
 
-        
+
         function out_dir = getOutDir(this)
             % Get the path of the out folder
             % SYNTAX: out_dir = this.getOutDir()
             out_dir = File_Name_Processor.checkPath(this.out_dir);
         end
-        
+
         function out_prefix = getOutPrefix(this)
             % Get the path of the out_prefix
             % SYNTAX: out_prefix = this.getOutPrefix()
             fnp = File_Name_Processor;
             out_prefix = fnp.checkPath(this.out_prefix);
         end
-        
+
         function updateOutPath(this, date, session)
-            % Update the full prefix of the putput files (replacing special keywords)            
+            % Update the full prefix of the putput files (replacing special keywords)
             % SYNTAX: this.updateOutPath(date, session);
             % NOTE: when no date is specified special keywords are substituted considering a date 0 (0000/00/00 00:00:00)
             %       when no session is specified special keywords are substituted considering a session "0" (char)
 
             fnp = File_Name_Processor;
 
-            % get the output prefix    
+            % get the output prefix
             narginchk(1,3);
-            
+
             if (nargin < 2)
                 date = GPS_Time(0);
             end
             if (nargin < 3)
                 session = '0';
             end
-            
+
             this.out_full_path = fnp.dateKeyRep(fnp.checkPath([this.out_dir filesep this.out_prefix]), date, session);
-            
+
             if ~(this.run_counter_is_set)
                 % make sure to have the name of the file and the name of the
                 % output folder
@@ -1062,22 +1062,22 @@ classdef IO_Settings < Settings_Interface
             % Get the path of the out folder composed with the prefix and the count number
             % update the run counter if necessary
             % SYNTAX: out_prefix = this.getOutPath()
-            
+
             if isempty(this.out_full_path)
                 this.logger.addWarning('Output prefix has not yet been computed! It should have been done before.');
                 this.updateOutPath();
             end
             out = this.out_full_path;
         end
-        
+
         function counter = getRunCounter(this)
             % Get the currGPS_Time(0)ent run counter
             % SYNTAX: counter = getRunCounter(this)
             counter = this.run_counter;
         end
-        
+
     end
-    
+
     % =========================================================================
     %  SETTERS
     % =========================================================================
@@ -1087,7 +1087,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: this.getNavPath(nav_path)
             this.eph_dir = nav_dir;
         end
-        
+
         function setNavEphFile(this, nav_name)
             % Set the file name of the navigational files
             % SYNTAX: this.setNavEphFile(nav_name)
@@ -1099,13 +1099,13 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: this.getClkPath(nav_path)
             this.clk_dir = clk_dir;
         end
-        
+
         function setNavClkFile(this, clk_name)
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(nav_name)
-            this.clk_name = clk_name;            
+            this.clk_name = clk_name;
         end
-        
+
         function setOutPrefix(this, out_prefix)
             % Set the path of the out_prefix
             % SYNTAX: out_prefix = this.setOutPrefix(out_prefix)
@@ -1124,20 +1124,20 @@ classdef IO_Settings < Settings_Interface
                 this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
-                            
+
         function updateNavFileName(this)
             % Update the full name of the navigational files (replacing special keywords)
             % SYNTAX: this.updateNavFileName();
             this.updateEphFileName();
             this.updateClkFileName();
         end
-        
+
         function updateEphFileName(this)
             % Update the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: this.updateEphFileName();
             this.eph_full_name = this.getEphFileName(this.sss_date_start, this.sss_date_stop);
         end
-        
+
         function updateClkFileName(this)
             % Update the full name of the clock offset files (replacing special keywords)
             % SYNTAX: this.updateClkFileName();
@@ -1148,36 +1148,36 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: date = getSessionStart(this)
             date = this.sss_date_start;
         end
-            
+
         function date = getSessionStop(this)
             % SYNTAX: date = getSessionStop(this)
             date = this.sss_date_stop;
         end
-        
+
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
             step_sec = fnp.getStepSec(file_name);
-            
+
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
             eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
-        
+
         function clk_full_name = getClkFileName(this, date_start, date_stop)
             % Get the full name of the clock offset files (replacing special keywords)
             % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
             step_sec = fnp.getStepSec(file_name);
-            
+
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
             clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
-        
+
         function updateExternals(this)
             % Import the value of the external input files (stored in inputFile.ini)
             % SYNTAX: this.updateExternals();
@@ -1188,9 +1188,9 @@ classdef IO_Settings < Settings_Interface
                     this.logger.addError(sprintf('Legacy import failed - "%s" can not be read!!!', this.ext_ini.getFileName()));
                     this.input_file_ini_path = '';
                 else
-                    
+
                     fnp = File_Name_Processor();
-                    
+
                     % Import Rinex from old ini file
                     dir_receiver = this.ext_ini.getData('Receivers', 'data_path');
                     if ~isempty(dir_receiver)
@@ -1200,7 +1200,7 @@ classdef IO_Settings < Settings_Interface
                     if ~(isempty(dir_master)) && ~strcmp(dir_master, this.obs_dir)
                         this.logger.addWarning('Importing legacy input file Master data_path seems different from Rover data_path - fix settings file manually');
                     end
-                    
+
                     % import Receivers/SEID names
                     name_receiver = this.ext_ini.getData('Receivers', 'file_name');
                     this.obs_name = {};
@@ -1239,8 +1239,8 @@ classdef IO_Settings < Settings_Interface
                             end
                         end
                     end
-                    
-                    
+
+
                     % get the output prefix
                     full_out_prefix = fnp.checkPath([this.out_dir filesep this.out_prefix]);
                     % make sure to have the name of the file and the name of the
@@ -1258,7 +1258,7 @@ classdef IO_Settings < Settings_Interface
                         this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROP>
                         this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
                     end
-                    
+
                     % import receivers position
                     tmp_xyz_ant = zeros(3,this.getTargetCount());
                     ispresent = false;
@@ -1276,7 +1276,7 @@ classdef IO_Settings < Settings_Interface
                     if ~isempty(tmp_ev_point)
                         this.ev_point = tmp_ev_point;
                     end
-                    
+
                     % import file location and check for default folders
                     dir_path = this.ext_ini.getData('STATIONS_file', 'data_path');
                     file_path = this.ext_ini.getData('STATIONS_file', 'file_name');
@@ -1286,7 +1286,7 @@ classdef IO_Settings < Settings_Interface
                         this.crd_dir = file_dir;
                         this.crd_name = strcat(name, ext);
                     end
-                    
+
                     % import file location and check for default folders
                     dir_path = this.ext_ini.getData('PCO_PCV_file', 'data_path');
                     file_path = this.ext_ini.getData('PCO_PCV_file', 'file_name');
@@ -1296,7 +1296,7 @@ classdef IO_Settings < Settings_Interface
                         this.atx_dir = fnp.checkPath(strcat(file_dir, filesep));
                         this.atx_name = fnp.checkPath(strcat(name, ext));
                     end
-                    
+
                     % import file location and check for default folders
                     dir_path = this.ext_ini.getData('OCEAN_LOADING_file', 'data_path');
                     file_path = this.ext_ini.getData('OCEAN_LOADING_file', 'file_name');
@@ -1306,7 +1306,7 @@ classdef IO_Settings < Settings_Interface
                         this.ocean_dir = file_dir;
                         this.ocean_name = strcat(name, ext);
                     end
-                    
+
                     % import file location and check for default folders
                     dir_path = this.ext_ini.getData('METEOROLOGICAL_file', 'data_path');
                     file_path = this.ext_ini.getData('METEOROLOGICAL_file', 'file_name');
@@ -1316,13 +1316,13 @@ classdef IO_Settings < Settings_Interface
                         this.met_dir = file_dir;
                         this.met_name = strcat(name, ext);
                     end
-                    
+
                     % import DTM folders
                     dir_path = fnp.checkPath(this.ext_ini.getData('DTM','data_path'));
                     if ~isempty(dir_path)
                         this.dtm_dir = dir_path;
                     end
-                    
+
                     % import reference folder
                     dir_path = this.ext_ini.getData('RefPath', 'data_path');
                     file_path = this.ext_ini.getData('RefPath', 'file_name');
@@ -1330,7 +1330,7 @@ classdef IO_Settings < Settings_Interface
                     if ~isempty(dir_path)
                         this.ref_graph_file = fnp.checkPath(file_name);
                     end
-                    
+
                     % import file location for navigational files
                     nav_path = this.ext_ini.getData('Navigational', 'data_path');
                     if ~isempty(nav_path)
@@ -1350,41 +1350,41 @@ classdef IO_Settings < Settings_Interface
                 end
             end
         end
-        
+
         function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
             % Set the first/last epoch of processing
             % SYNTAX: dir = this.setProcessingTime(first_epoch, last_epoch, <update_iif_smaller == false>)
             if nargin == 3
                 update_iif_smaller = false;
             end
-            
-            if (~update_iif_smaller) || (this.sss_date_start.isempty()) || (this.sss_date_start.getMatlabTime() < first_epoch.getMatlabTime()) 
+
+            if (~update_iif_smaller) || (this.sss_date_start.isempty()) || (this.sss_date_start.getMatlabTime() < first_epoch.getMatlabTime())
                 this.sss_date_start = first_epoch.getCopy();
             end
-            if (~update_iif_smaller) || (this.sss_date_stop.isempty()) || (this.sss_date_stop.getMatlabTime() < last_epoch.getMatlabTime())             
+            if (~update_iif_smaller) || (this.sss_date_stop.isempty()) || (this.sss_date_stop.getMatlabTime() < last_epoch.getMatlabTime())
                 this.sss_date_stop = last_epoch.getCopy();
             end
         end
-        
+
         function setPrjHome(this, prj_home)
             % Set home folder of the project
             % SYNTAX: dir = this.setPrjHome(prj_home)
             this.prj_home = prj_home;
         end
-        
+
         function setDeprecateIniPath(this, new_path)
             % Set the legacy deprecate ini of the input files
             % SYNTAX: dir = this.setDeprecateIniPath(new_path)
             this.input_file_ini_path = new_path;
         end
-        
+
         function setFilePath(this, file_path)
             % Set the file name of the current settings
             % SYNTAX: this.setFilePath(file_path)
             [path_str, name, ~] = fileparts(file_path);
             this.cur_ini = [path_str filesep name '.ini'];
         end
-        
+
         function updatePrj(this, file_path)
             % Set the file project name / home / file_path from file_path
             % SYNTAX: this.autoUpdatePrj(this, file_path)
@@ -1399,10 +1399,10 @@ classdef IO_Settings < Settings_Interface
                 this.logger.addMessage('Trying to guess project name / home / ini');
                 this.logger.addMessage(sprintf(' name: %s', this.prj_name));
                 this.logger.addMessage(sprintf(' home: %s', this.prj_home));
-                this.logger.addMessage(sprintf(' ini:  %s', this.cur_ini));                
-            end            
+                this.logger.addMessage(sprintf(' ini:  %s', this.cur_ini));
+            end
         end
-        
+
         function init_dtm(this, dtm_dir)
             % Try to load default DTM values (if flag_dtm is on)?
             % SYNTAX: s_obj.init_dtm(<dtm_dir>)
@@ -1429,7 +1429,7 @@ classdef IO_Settings < Settings_Interface
 
     % =========================================================================
     %  TEST PARAMETERS VALIDITY
-    % =========================================================================    
+    % =========================================================================
     methods (Access = 'protected')
         function checkLogicalField(this, field_name)
             % Check if a logical field of the object is a valid logical number
@@ -1443,7 +1443,7 @@ classdef IO_Settings < Settings_Interface
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            % SYNTAX: this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -1451,12 +1451,12 @@ classdef IO_Settings < Settings_Interface
                 otherwise, error('Settings checkCellStringField called with the wrong number of parameters');
             end
         end
-        
+
         function checkStringField(this, field_name, empty_is_valid, check_existence)
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -1464,12 +1464,12 @@ classdef IO_Settings < Settings_Interface
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
-        
+
         function checkPathField(this, field_name, empty_is_valid, check_existence)
             % Check if a string path field of the object is a valid path
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);  
+            % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             fnp = File_Name_Processor();
             this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home);
             switch nargin
@@ -1494,7 +1494,7 @@ classdef IO_Settings < Settings_Interface
         end
 
         % File type specific ----------------------------------------------
-               
+
         function file_path = checkCrdPath(this, file_path)
             % Check if the crd file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkCrdPath(<file_path>)
@@ -1520,7 +1520,7 @@ classdef IO_Settings < Settings_Interface
                 file_path = '';
             end
         end
-        
+
         function file_path = checkAtxPath(this, file_path)
             % Check if the atx file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkAtxPath(<file_path>)
@@ -1547,7 +1547,7 @@ classdef IO_Settings < Settings_Interface
                 file_path = '';
             end
         end
-        
+
         function file_path = checkOceanPath(this, file_path)
             % Check if the atx file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkAtxPath(<file_path>)
@@ -1573,9 +1573,9 @@ classdef IO_Settings < Settings_Interface
             end
             if strcmp(file_path, filesep)
                 file_path = '';
-            end            
+            end
         end
-        
+
         function file_path = checkMetPath(this, file_path)
             % Check if the met file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkMetPath(<file_path>)
@@ -1601,18 +1601,18 @@ classdef IO_Settings < Settings_Interface
             end
             if strcmp(file_path, filesep)
                 file_path = '';
-            end            
-        end        
-    end    
-            
+            end
+        end
+    end
+
     % =========================================================================
     %  TEST PARAMETERS VALIDITY
-    % =========================================================================           
-    methods (Access = 'public')                
+    % =========================================================================
+    methods (Access = 'public')
         function check(this)
             % Check the validity of the fields
             % SYNTAX: this.check();
-            
+
             this.checkStringField('prj_name', false);
             this.checkStringField('prj_home', false, true);
             this.checkStringField('cur_ini', false);
@@ -1623,40 +1623,40 @@ classdef IO_Settings < Settings_Interface
             this.checkCellStringField('preferred_mxd', false);
             this.checkCellStringField('preferred_eph', false);
             this.checkCellStringField('preferred_clk', false);
-            
+
             this.checkStringField('custom_addr', false);
             this.checkStringField('custom_port', false);
             this.checkStringField('custom_path', false);
             this.checkStringField('custom_name_eph', false);
             this.checkStringField('custom_name_erp', false);
-            this.checkStringField('custom_name_clk', false);            
-            
+            this.checkStringField('custom_name_clk', false);
+
             this.checkStringField('sss_id_list', false);
             this.checkStringField('sss_id_start', false);
             this.checkStringField('sss_id_stop', false);
 
             this.checkPathField('obs_dir', false, true);
             this.checkCellStringField('obs_name', false);
-            
+
             if numel(this.obs_name) > numel(this.obs_type)
                 this.logger.addError('I read more obs file names than obs types -> fixing setting all the other types to zeros\nplease review the applied solution!!!');
                 tmp = this.obs_type;
                 this.obs_type = zeros(numel(this.obs_name),1);
                 this.obs_type(1:numel(tmp)) = tmp(:);
-            end            
+            end
             if numel(this.obs_name) < numel(this.obs_type)
                 this.logger.addError('I read less obs file names than obs types -> fixing cutting type array\nplease review the applied solution!!!');
                 this.obs_type = this.obs_type(1:numel(this.obs_name));
             end
-            
+
             this.checkPathField('atx_dir', false);
             this.checkStringField('atx_name', false);
 
             this.checkStringField('input_file_ini_path', true);
-            
+
             this.checkPathField('eph_dir', false, true);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
-            this.checkStringField('eph_name', true);           
+            this.checkStringField('eph_name', true);
             this.checkPathField('clk_dir', false, true);
             this.checkStringField('clk_name', true);
             this.checkPathField('crx_dir', false);
@@ -1675,11 +1675,11 @@ classdef IO_Settings < Settings_Interface
             this.checkPathField('img_dir', false, true);
 
             this.checkStringField('out_prefix', true);
-            
+
             if (this.run_counter_is_set) || ~(isempty(this.run_counter))
                 this.checkNumericField('run_counter',[0 1e6]);
             end
-            
+
             % Check size of xyz antenna
             if (size(this.xyz_ant,2) ~= this.getTargetCount())
                 tmp_xyz_ant = zeros(3,this.getTargetCount());
@@ -1690,12 +1690,12 @@ classdef IO_Settings < Settings_Interface
                 else
                     this.xyz_ant = tmp_xyz_ant;
                 end
-            end            
+            end
             if (size(this.xyz_ev_point,1) ~= 3)
                 this.xyz_ev_point = this.XYZ_EV_POINT;
-            end                        
+            end
         end
-        
+
         function status = checkTargetFiles(this, go_verbose)
             % check the availability of all the rinex files
             % SYNTAX: status = this.checkTargetFiles(go_verbose)
@@ -1706,9 +1706,9 @@ classdef IO_Settings < Settings_Interface
             if nargin == 1
                 go_verbose = false;
             end
-            status = checkReceiverFiles(this, this.REC_TARGET, go_verbose);            
+            status = checkReceiverFiles(this, this.REC_TARGET, go_verbose);
         end
-        
+
         function status = checkMasterFiles(this, go_verbose)
             % check the availability of all the rinex files
             % SYNTAX: status = this.checkMasterFiles(go_verbose)
@@ -1721,7 +1721,7 @@ classdef IO_Settings < Settings_Interface
             end
             status = checkReceiverFiles(this, this.REC_MASTER, go_verbose);
         end
-        
+
         function status = checkReferenceFiles(this, go_verbose)
             % check the availability of all the rinex files
             % SYNTAX: status = this.checkReferenceFiles(go_verbose)
@@ -1734,7 +1734,7 @@ classdef IO_Settings < Settings_Interface
             end
             status = checkReceiverFiles(this, this.REC_REFERENCE, go_verbose);
         end
-        
+
         function [status_trg, status_ref, status_mst] = checkAllReceiversFiles(this, go_verbose)
             % check the availability of all the rinex files
             % SYNTAX: status = this.checkAllReceiversFiles(go_verbose)
@@ -1749,19 +1749,19 @@ classdef IO_Settings < Settings_Interface
             status_ref = checkReceiverFiles(this, this.REC_REFERENCE, go_verbose);
             status_mst = checkReceiverFiles(this, this.REC_MASTER, go_verbose);
         end
-        
+
         function status = checkReceiverFiles(this, obs_type, go_verbose)
             % check the availability of all the rinex files
             % SYNTAX: status = this.checkReceiverFiles(obs_type, go_verbose)
             % status is an array containing the file status for each receiver
             %   0: all file are present
             %  -1: no file are present
-            %   1: at least one file is present but not all            
-            
+            %   1: at least one file is present but not all
+
             if nargin == 2
                 go_verbose = false;
             end
-            
+
             switch obs_type
                 case this.REC_TARGET
                     obs_type_name = 'target';
@@ -1776,16 +1776,16 @@ classdef IO_Settings < Settings_Interface
                     n_rec = this.getReferenceCount();
                     file_name_all = this.getReferencePath();
             end
-            
-            fnp = File_Name_Processor();            
-            
+
+            fnp = File_Name_Processor();
+
             % If no receiver have been found
             if n_rec == 0
                 status = -1;
             else
                 status = 0;
                 for r = 1 : n_rec
-                    
+
                     if go_verbose
                         this.logger.addMessage(sprintf('Checking files for %s receiver %d', obs_type_name, r));
                     end
@@ -1807,16 +1807,16 @@ classdef IO_Settings < Settings_Interface
                     if (file_count == 0)
                         status = -1;
                     end
-                end                
-            end            
+                end
+            end
         end
-        
+
         function eph_ok = checkNavEphFiles(this)
             % check whether or not all the ephemeris files are available
             eph_ok = true;
 
             file_name = this.getFullNavEphPath();
-                        
+
             if isempty(file_name)
                 eph_ok = false;
             elseif isempty(file_name{1})
@@ -1841,13 +1841,13 @@ classdef IO_Settings < Settings_Interface
                 this.logger.newLine();
             end
         end
-        
+
         function clk_ok = checkNavClkFiles(this)
             % check whether or not all the navigational clock files are available
-            
+
             clk_ok = true;
             file_name = this.getFullNavClkPath();
-            
+
             if isempty(file_name)
                 clk_ok = true;
             elseif isempty(file_name{1})

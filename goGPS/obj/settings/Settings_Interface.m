@@ -14,15 +14,15 @@
 %                  when an ini file is the input of the function, the object is updated with the settings contained into the file
 %  - toString:     display the content of the object, in a human readable way, a goGPS user can "ask" for the value of the settings on screen
 %  - export:       create a cell array of strings containing the settings in plain text ini format. The variable it's the raw data format of Ini_Manager
-% 
+%
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -44,42 +44,42 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef Settings_Interface < handle
     properties (SetAccess = protected, GetAccess = protected)
         logger; % Handler to the logger object
     end
-    
+
     properties (Abstract)
     end
-        
-    methods  (Abstract)        
+
+    methods  (Abstract)
         import(obj, settings);
         % This function import the settings of the current class from another setting object having the same properties, or an ini file
-        
+
         str = toString(obj, str)
         % Display the content of the class in a human readable format
 
         str_cell = export(obj, str_cell)
         % Conversion to string ini format of the minimal information needed to reconstruct the obj
     end
-    
+
     methods (Access = 'public')
         function initLogger(this)
             % Init the logger object
             % SYNTAX: this.initLogger();
             this.logger = Logger.getInstance();
         end
-        
+
         function ini = save(this, file_path)
             % Save to a file (in INI fomat) the content of the Settings object
             % SYNTAX: <ini> = this.save(file_path);
             % return optionally the ini manager object used by the save function
             ini = Ini_Manager(file_path, this.export());
         end
-        
+
         function importIniFile(this, file_path)
             % Import from an INI file the content of the Settings object
             % SYNTAX: this.importIniFile(file_path);
@@ -95,14 +95,14 @@ classdef Settings_Interface < handle
             end
             this.import(ini);
         end
-        
+
     end
-        
+
     % =========================================================================
     %  TEST PARAMETERS VALIDITY
-    % =========================================================================    
+    % =========================================================================
     methods (Access = 'protected')
-        
+
         function checkLogicalField(this, field_name)
             % Check if a logical field of the object is a valid logical number
             % To make the function works it is needed to have defined the default
@@ -120,7 +120,7 @@ classdef Settings_Interface < handle
             % This superclass function must be copied in each child (to
             % have read / write permission on the parameters
             % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
-            
+
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -128,7 +128,7 @@ classdef Settings_Interface < handle
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
-        
+
         function checkNumericField(this, field_name, limits, valid_val)
             % Check if a numeric field of the object is valid
             % To make the function works it is needed to have defined the default
@@ -143,11 +143,11 @@ classdef Settings_Interface < handle
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
         end
-        
+
         function checked_val = checkLogical(this, field_name, field_val, default_val)
-            % Check if a logical is a valid logical 
+            % Check if a logical is a valid logical
             % This superclass function must be called in each child
-            % SYNTAX: checked_val = this.checkLogicalField(string_field_name);            
+            % SYNTAX: checked_val = this.checkLogicalField(string_field_name);
             checked_val = default_val;
             if (~isnan(field_val)) && (~isempty(field_val))
                 checked_val = logical(field_val);
@@ -155,7 +155,7 @@ classdef Settings_Interface < handle
                 this.logger.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
             end
         end
-        
+
         function checked_val = checkCellString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
             % Check if a string is a valid string
             % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
@@ -165,13 +165,13 @@ classdef Settings_Interface < handle
             if (nargin < 6)
                 check_existence = false;
             end
-            
+
             checked_val = this.checkString(field_name, field_val, default_val, empty_is_valid, check_existence);
             if ~iscell(checked_val)
                 checked_val = {checked_val};
             end
         end
-        
+
         function checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
             % Check if a string is a valid string
             % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
@@ -181,7 +181,7 @@ classdef Settings_Interface < handle
             if (nargin < 6)
                 check_existence = false;
             end
-            
+
             checked_val = default_val;
             default_val = field_val;
             if ~isempty(field_val) && iscell(field_val) % A cell of strings must contain at least one string
@@ -197,7 +197,7 @@ classdef Settings_Interface < handle
                 end
             end
         end
-        
+
         function checked_val = checkNumber(this, field_name, field_val, default_val, limits, valid_val)
             % Check if a number is valid
             % SYNTAX: checked_val = this.checkNumericField(string_variable_name, value, default_value, <limits>, <valid_values>);
@@ -220,25 +220,25 @@ classdef Settings_Interface < handle
             end
         end
     end
-    
+
     % =========================================================================
     %  TEST
-    % =========================================================================    
+    % =========================================================================
 
     methods (Access = 'protected')
         function testInterfaceRoutines(this)
             % test the class (Interface Routines)
             % SINTAX: this.testInterfaceRoutines();
-            
+
             %try
                 vl = this.logger.getVerbosityLev();
                 this.logger.setVerbosityLev(1e3);
                 test = this;
                 raw_data = test.export();
-                
+
                 ini = Ini_Manager('test__.ini', raw_data);
                 ini.showData();
-                
+
                 test.import(ini);
                 test_copy = repmat(test,2,1); test_copy = test_copy(2);
                 test.import(test_copy);
@@ -250,6 +250,6 @@ classdef Settings_Interface < handle
             %    this.logger.addError(['Test failed: ' ex.message]);
             %end
             this.logger.setVerbosityLev(vl);
-        end        
+        end
     end
 end

@@ -18,7 +18,7 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
@@ -48,7 +48,7 @@
 %--------------------------------------------------------------------------
 
 classdef File_Name_Processor < handle
-    
+
     properties (Constant)
         GPS_WEEK = '${WWWW}';
         GPS_WD = '${WWWWD}';
@@ -60,22 +60,22 @@ classdef File_Name_Processor < handle
         GPS_DOY = '${DOY}';
         GPS_SESSION = '${S}'
     end
-    
+
     properties (SetAccess = private, GetAccess = public)
         logger = Logger.getInstance(); % Handler to the logger object
     end
-    
+
     properties (SetAccess = protected, GetAccess = protected)
         addr;        % ip address (or alias)
         port = 21;   % connection port
         path = '/';  % path to files
     end
-    
+
     methods
         function this = File_Name_Processor()
             % Constructor
         end
-                
+
         function file_name_out = dateKeyRep(this, file_name, date, session)
             % substitute time placeholder with the proper format
             % SYNTAX: file_name = this.dateKeyRep(file_name, date, session)
@@ -92,11 +92,11 @@ classdef File_Name_Processor < handle
             [year, doy] = date.getDOY();
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
             file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
-            file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));   
+            file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
             file_name_out = strrep(file_name_out, this.GPS_SESSION, session);
 
         end
-        
+
         function step_sec = getStepSec(this, file_name)
             % get the shorter time keyword present in file_name [seconds]
             % SYNTEX: step_sec = this.getStepSec(file_name);
@@ -112,16 +112,16 @@ classdef File_Name_Processor < handle
                 step_sec = 24 * 3600 * 7;
             elseif ~isempty(strfind(file_name, this.GPS_YYYY))
                 step_sec = 24 * 3600 * 365;
-            end            
+            end
         end
-        
-        function file_name_lst = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop) 
+
+        function file_name_lst = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop)
             % substitute time placeholder with the proper format
-            % SYNTAX: file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)            
+            % SYNTAX: file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)
             % NOTE: I consider only two possible file formats:
             %         - dependend on UTC time (year, doy)
             %         - dependent on GPS time (week, day of week, h of the day)
-            
+
             if nargin == 4
                 session_list = '0';
                 session_start = '0';
@@ -129,11 +129,11 @@ classdef File_Name_Processor < handle
             end
             session = ~isempty(strfind(file_name, this.GPS_SESSION));
             sss_start = strfind(session_list, session_start);
-            sss_stop = strfind(session_list, session_stop);            
-                
+            sss_stop = strfind(session_list, session_stop);
+
             % Check for GPS time placeholders
             step_sec = this.getStepSec(file_name);
-            
+
             if (step_sec > 0)
                 file_name_lst = {};
                 date0 = date_start.getCopy(); date0.toMatlabTime();
@@ -171,7 +171,7 @@ classdef File_Name_Processor < handle
                     end
                 end
             end
-            
+
             if session
                 sss_clean = length(file_name_lst) - (length(session_list)-sss_stop) + 1 : length(file_name_lst);
                 file_name_lst(sss_clean) = [];
@@ -179,23 +179,23 @@ classdef File_Name_Processor < handle
             if iscell(file_name_lst)
                 file_name_lst = file_name_lst';
             end
-        end        
+        end
     end
-    
-    methods (Static) 
+
+    methods (Static)
         function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback)
             % Get the full path given the relative one and the relative dir_base
             % SYNTAX: dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
-            
+
             if nargin == 1
                 dir_base = pwd;
             end
-                        
+
             dir_path_bk = dir_path;
-            
+
             fnp = File_Name_Processor;
             dir_path = fnp.checkPath(dir_path);
-            if isunix                                
+            if isunix
                 if ~isempty(dir_path)
                     if (dir_path(1) == '/')
                         dir_path = fnp.checkPath(dir_path);
@@ -205,10 +205,10 @@ classdef File_Name_Processor < handle
                                 dir_base = fnp.getFullDirPath(dir_base, pwd);
                             end
                         end
-                        dir_path = fnp.checkPath([dir_base filesep dir_path]);                        
+                        dir_path = fnp.checkPath([dir_base filesep dir_path]);
                     end
                 end
-            else 
+            else
                 if length(dir_path) > 1
                     if (dir_path(2) == ':')
                         dir_path = fnp.checkPath(dir_path);
@@ -222,28 +222,28 @@ classdef File_Name_Processor < handle
                     end
                 end
             end
-            
+
             % remove './'
             dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
 
             % extract sub folder names
             list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
-            
+
             % search for "../"
             dir_up = find(strcmp(list,'..'));
             offset = 0;
             for i = dir_up
-                list((i - 1 : i) - offset) = []; 
+                list((i - 1 : i) - offset) = [];
                 offset = offset + 2;
             end
-            
+
             % restore full path start
             if isunix
                 dir_path = [filesep strCell2Str(list, filesep)];
             else
                 dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
-            end  
-            
+            end
+
             % Fallback if not exist
             if (nargin == 3)
                 if ~exist(dir_path, 'file')
@@ -252,15 +252,15 @@ classdef File_Name_Processor < handle
             end
 
         end
-        
+
         function dir_path = getRelDirPath(dir_path, dir_base)
             % Get the full path given the relative one and the relative dir_base
             % SYNTAX: dir_path = getRelativeDirPath(dir_path, <dir_base default = pwd>);
-            
+
             if nargin == 1
                 dir_base = pwd;
             end
-            
+
             fnp = File_Name_Processor;
             dir_base = fnp.getFullDirPath(dir_base, pwd);
             dir_path = fnp.getFullDirPath(dir_path, dir_base);
@@ -274,19 +274,19 @@ classdef File_Name_Processor < handle
             end
             if (n_dir_base -i) > 0
                 list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
-            else    
+            else
                 list_path = list_path(i+1:end);
             end
-            
+
             dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
             %dir_path = File_Name_Processor.getFullDirPath(dir_path);
         end
-        
+
         function file_name = keyRep(file_name, key, substitution)
             % Substitute a key in the file_name with another value
             file_name = strrep(file_name,key, substitution);
-        end                
-        
+        end
+
         function [str_cell] = toIniStringComment(str_cell)
             % Get the list of accepted substitution
             if (nargin == 0)
@@ -303,14 +303,14 @@ classdef File_Name_Processor < handle
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 3 char GPS day of the year', File_Name_Processor.GPS_DOY), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 1 char session', File_Name_Processor.GPS_SESSION), str_cell);
         end
-        
+
         function full_path = getFullPath(dir_path, file_path)
             % Get the list of files combining dir_path + file_path
             % It works when file_path is a cell or a simple string
             % SYNTAX: full_path = IO_Settings.getFullPath(dir_path, file_path);
-            
+
             fnp = File_Name_Processor();
-            
+
             if iscell(file_path)
                 full_path = cell(numel(file_path),1);
                 for f = 1 : numel(file_path)
@@ -321,7 +321,7 @@ classdef File_Name_Processor < handle
             end
         end
 
-        
+
         function [universal_path, is_valid] = checkPath(path)
             % Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep
             %
@@ -340,7 +340,7 @@ classdef File_Name_Processor < handle
             %   if the second parameter is present is_valid contains the status of existence
             %       2 => is a file
             %       7 => is a folder
-            
+
             if not(isempty(path))
                 if (iscell(path))
                     % for each line of the cell
@@ -371,9 +371,9 @@ classdef File_Name_Processor < handle
                 universal_path = '';
                 is_valid = 0;
             end
-            
+
         end
-        
-        
+
+
     end
 end

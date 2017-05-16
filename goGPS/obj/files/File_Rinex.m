@@ -11,7 +11,7 @@
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
@@ -41,36 +41,36 @@
 %--------------------------------------------------------------------------
 
 classdef File_Rinex < handle
-    
+
     properties (SetAccess = protected, GetAccess = protected)
         logger = Logger.getInstance(); % Handler to the logger object
     end
-    
+
     properties (SetAccess = protected, GetAccess = public)
         is_valid = false;                            % flag, if true it means that the object contains at least one valid rinex file
         base_dir = '../data/project/default_DD/RINEX/';                  % directory containing all the files
         file_name_list = {'yamatogawa_rover', 'yamatogawa_master'};      % file names (they can be multiple files for different days)
         ext = {'.obs', '.obs'};                                          % file names extension (they can be multiple files for different days)
         is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
-        
+
         is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...
-        
+
         first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
         last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
-        
+
         verbosity_lev = 0;                          % Level of verbosity  0 = all messages, see Logger for more information
-        
+
         eoh = 0;                                     % end of header line - store the last line of the header
     end
-    
+
     properties (SetAccess = private, GetAccess = private)
         id_date = 2:28;                              % Last character containing the 6 fields of the date (in case of 4digits year), it the pends on the type of rinex files (28 -> OBS RINEX 3)
     end
-    
+
     methods
         function this = File_Rinex(file_name, verbosity_lev)
             % Creator of File_Rinex (file_name)
-            
+
             % fill the path with the imported file names
             if ~iscellstr(file_name)
                 file_name = {file_name};
@@ -80,20 +80,20 @@ classdef File_Rinex < handle
             for f = 1 : numel(file_name)
                 [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
             end
-            
+
             if nargin == 2
                 this.verbosity_lev = verbosity_lev;
             end
-            
+
             this.checkValidity();
         end
     end
-    
+
     methods
         function checkValidity(this)
             % Update the status of validity of the files here pointed
             % SYNTAX: this.checkValidity();
-            
+
             % pre allocate
             this.is_valid_list = false(1, numel(this.file_name_list));
             this.eoh = zeros(1, numel(this.file_name_list));
@@ -102,7 +102,7 @@ classdef File_Rinex < handle
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
                 full_path = fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]);
-                
+
                 % check the existence
                 this.is_valid_list(f) = exist(full_path, 'file');
                 if this.is_valid_list(f)
@@ -117,15 +117,15 @@ classdef File_Rinex < handle
                         end
                         this.eoh(f) = l;
                         epoch_line = fgetl(fid);
-                        
+
                         % try to guess the time format
                         [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
                         this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
-                        
+
                         this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         this.logger.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
                         this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                        
+
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
                         fseek(fid,-10000,'eof');
@@ -140,7 +140,7 @@ classdef File_Rinex < handle
                             %      RINEX 2 NAV: " 3 98  2 15  0 15  0.0 0.163525342941D-03 0.363797880709D-11 0.108000000000D+05"
                             %      RINEX 3 MET: " 1996  4  1  0  0 15  987.1   10.6   89.5"
                             % this check could not work when comment are present after the header
-                            if (numel(line) > 20) && ~isempty(regexp(line(1:10),'( [0-9]{2,4} )', 'once')) 
+                            if (numel(line) > 20) && ~isempty(regexp(line(1:10),'( [0-9]{2,4} )', 'once'))
                                 epoch_line = line;
                             end
                             line = fgetl(fid);
@@ -166,7 +166,7 @@ classdef File_Rinex < handle
                 this.logger.addWarning('No valid RINEX found!!!');
             end
         end
-        
+
         function file_name = getFileName(this, file_number)
             % Get the full path of a file (if the object contains a list of files, the id can be specified)
             % SYNTAX: file_name = this.getFileName(<file_number = 1>)
@@ -174,7 +174,7 @@ classdef File_Rinex < handle
                 file_number = 1;
             end
             file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext{file_number}]);
-        end        
+        end
 
         function line_num = getEOH(this, file_number)
             % Get the end of header line of a RINEX file (if the object contains a list of files, the id can be specified)
@@ -184,7 +184,7 @@ classdef File_Rinex < handle
             end
             line_num = this.eoh(file_number);
         end
-        
+
         function validity = isValid(this, file_number)
             % Get the validity of a RINEX file or the object (if the object contains a list of files, the id can be specified)
             % SYNTAX: validity = isValid(<file_number>)
@@ -194,6 +194,6 @@ classdef File_Rinex < handle
                 validity = this.is_valid_list(file_number);
             end
         end
-                        
+
     end
 end

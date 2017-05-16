@@ -10,12 +10,12 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -37,20 +37,20 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 classdef Receiver < handle
-    
+
     properties (Constant)
     end
-    
+
     properties (SetAccess = private, GetAccess = public)
         % Antenna height from the ground [m]
         h_antenna = 0;
     end
-    
+
     methods
         function obj = Receiver()
         end
     end
-    
-    methods 
-    end        
+
+    methods
+    end
 end

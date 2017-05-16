@@ -1,6 +1,6 @@
 function dockAllFigures(fig_handle)
 % Change the WindowStyle of all the figures to docked
-% SYNTAX: 
+% SYNTAX:
 %
 % SINTAX:
 %   dockAllFigures(<fig_handle>);
@@ -13,7 +13,7 @@ function dockAllFigures(fig_handle)
 %   fig_handle = handler to the axes to modify           <optional argument>
 %
 % DEFAULT VALUES:
-%   fig_handle all the figures       
+%   fig_handle all the figures
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------

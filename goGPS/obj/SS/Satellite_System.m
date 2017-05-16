@@ -7,12 +7,12 @@
 %
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -34,7 +34,7 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef Satellite_System < Settings_Interface
@@ -46,33 +46,33 @@ classdef Satellite_System < Settings_Interface
         F             % System frequencies as struct
         F_VEC         % Array of supported frequencies
         L_VEC         % Array of the corresponding wavelength (pre-computed for performance reason)
-        
+
         N_SAT         % Maximum number of satellite in the constellation
         PRN           % Satellites id numbers as defined in the constellation
-        
+
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
-        ORBITAL_P 
+        ORBITAL_P
         %   .GM
         %   .OMEGAE_DOT
-        %   .J2 (only for GLONASS)        
+        %   .J2 (only for GLONASS)
         %   .ELL.a      semi-major axis
         %   .ELL.F      flattening
         %   .ELL.e      eccentricity
         %   .ELL.e2     eccentricity^2
     end
-    
+
     properties (GetAccess = 'public', SetAccess = 'protected')
         % Flag array containing the list of active frequencies
         flag_f = [];
-                
+
         % flag defining the status of activation of the constellation
         flag_enable = false;
-        
+
         % Satellites unique id numbers in goGPS
-        go_ids       
+        go_ids
     end
-        
-    methods (Access = public)      
+
+    methods (Access = public)
         function iono_free = getIonoFree(this, f_id)
             % Init iono parameters: iono-free combination is computed with the first two carriers in F_VEC (use f_id to change the frequencies to use)
             % SYNTAX: iono_free = ss_obj.getIonoFree(<f_id>)
@@ -81,7 +81,7 @@ classdef Satellite_System < Settings_Interface
             %   .alpha1
             %   .alpha2
             %   .T
-            %   .N            
+            %   .N
             if nargin < 2
                 f_id = [1 2];
             end
@@ -90,9 +90,9 @@ classdef Satellite_System < Settings_Interface
             gcd_f = gcd(this.F_VEC(f_id(1)),this.F_VEC(f_id(2)));
             iono_free.T = this.F_VEC(f_id(1))/gcd_f;
             iono_free.N = this.F_VEC(f_id(2))/gcd_f;
-        end        
+        end
     end
-    
+
     methods
         function this = Satellite_System(offset)
             % Creator
@@ -102,9 +102,9 @@ classdef Satellite_System < Settings_Interface
             end
             this.flag_f = false(1, size(this.F_VEC, 2));
             this.updateGoIds(offset);
-            this.setActiveFrequencies([1 0 0]);            
+            this.setActiveFrequencies([1 0 0]);
         end
-        
+
         function setActiveFrequencies(this, flag_freq)
             % Set the frequencies that are going to be use
             % SYNTAX: setActiveFrequencies(flag_freq)
@@ -113,7 +113,7 @@ classdef Satellite_System < Settings_Interface
             flags(1:len) = flag_freq(1:len);
             this.flag_f = flags;
         end
-                    
+
         function updateGoIds(this, offset)
             % Update the satellites unique id numbers in goGPS
             % SYNTAX: updateGoIds(<offset>)
@@ -121,8 +121,8 @@ classdef Satellite_System < Settings_Interface
                 offset = 0;
             end
             this.go_ids = offset + (1 : this.N_SAT);
-        end 
-        
+        end
+
         function offset = getOffset(this)
             % Get offset of the go_ids
             if ~isempty(this.go_ids)
@@ -131,27 +131,27 @@ classdef Satellite_System < Settings_Interface
                 offset = 0;
             end
         end
-        
+
         function id = getFirstId(this)
-            % get the first goGPS id -> if constellation is inactive 
+            % get the first goGPS id -> if constellation is inactive
             try
                 id = this.go_ids(1) * this.isActive();
             catch
                 id = 0;
             end
         end
-        
+
         function name = getFreqName(this)
             % Get the name of the frequencies for the current constellation
             % SYNTAX: name = this.getFreqNames();
             name = fieldnames(this.F);
         end
-        
+
         function flag = isActive(this)
             % Get the status of activation of the constellation
             flag = this.flag_enable;
         end
-        
+
         function enable(this, status)
             % Enable this satellite system
             % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
@@ -162,7 +162,7 @@ classdef Satellite_System < Settings_Interface
                 this.flag_enable = true;
             end
         end
-        
+
         function disable(this)
             % Disable this satellite system
             % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
@@ -170,11 +170,11 @@ classdef Satellite_System < Settings_Interface
             this.flag_enable = false;
         end
     end
-    
+
     methods (Abstract)
         copy = getCopy(this);
     end
-    
+
     % =========================================================================
     %  INTERFACE REQUIREMENTS
     % =========================================================================
@@ -192,15 +192,15 @@ classdef Satellite_System < Settings_Interface
             else
                 this.flag_f = settings.flag_f;
                 this.enable(settings.flag_enable);
-                this.go_ids = settings.go_ids;                
+                this.go_ids = settings.go_ids;
             end
         end
-        
+
         function str = toString(this, str)
             % Display the satellite system in use
             if (nargin == 1)
                 str = '';
-            end            
+            end
             if (this.isActive())
                 name = this.getFreqName();
                 str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  strCell2Str(name(this.flag_f),', ')))];
@@ -208,23 +208,23 @@ classdef Satellite_System < Settings_Interface
                 str = [str sprintf(' Satellite system "%s" is inactive\n', this.SYS_EXT_NAME)];
             end
         end
-        
-        function str_cell = export(this, str_cell)            
-            % Conversion to string ini format of the minimal information needed to reconstruct the this            
+
+        function str_cell = export(this, str_cell)
+            % Conversion to string ini format of the minimal information needed to reconstruct the this
             if (nargin == 1)
                 str_cell = {};
             end
-            name = this.getFreqName();            
+            name = this.getFreqName();
             str_cell = Ini_Manager.toIniStringComment(sprintf('%s satellite system', this.SYS_EXT_NAME), str_cell);
             str_cell = Ini_Manager.toIniString(sprintf('%s_is_active', this.SYS_NAME), this.isActive(), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Frequencies to be used when this constellation is active', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('Frequencies to be used when this constellation is active', str_cell);
             for f = 1 : numel(name)
                 str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{f}), this.isActive() && this.flag_f(f), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-        end        
-    end    
-    
+        end
+    end
+
     % =========================================================================
     %  LEGACY IMPORT
     % =========================================================================

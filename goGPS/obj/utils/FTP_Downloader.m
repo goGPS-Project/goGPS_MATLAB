@@ -13,12 +13,12 @@
 %   Nothing to report
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -40,7 +40,7 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef FTP_Downloader < handle
@@ -49,8 +49,8 @@ classdef FTP_Downloader < handle
         ERR_NEP      = -1;   % Not Enough parameters!
         ERR_NIC      = -2;   % No Internet Connection!
         ERR_FTP_FAIL = -3;   % Download failed for FTP problems
-        ERR_FNF      = -4;   % at least one file not found        
-        ERR_FNV      = -5;   % at least one file not valid (it can not be uncompressed)        
+        ERR_FNF      = -4;   % at least one file not found
+        ERR_FNV      = -5;   % at least one file not valid (it can not be uncompressed)
         W_FP         =  1    % Warning File Present - at least one file to be dowloaded is already present
     end
 
@@ -59,30 +59,30 @@ classdef FTP_Downloader < handle
         port = '21';    % PORT to access the FTP server, stored as number
         remote_dir;     % Base dir path on the remote server to locate the file to download
         file_name;      % name of the file
-        local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded        
+        local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded
         ftp_server;     % object containing the connector
     end
-                          
-                              
+
+
     properties (SetAccess = private, GetAccess = public)
         logger = Logger.getInstance(); % Handler to the logger object
     end
-    
-    methods        
+
+    methods
         function this = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir)
             % Constructor
             % EXAMPLE: FTP_Downloader('')
-            
+
             this.addr = ftp_addr;
             % Cleaning address
             if strcmp(this.addr(end),'/')
                 this.addr(end) = [];
-            end            
+            end
             if strcmp(this.addr(end),'\')
                 this.addr(end) = [];
-            end            
+            end
             this.addr = strrep(this.addr,'ftp://','');
-            
+
             if (nargin > 1) && (~isempty(ftp_port))
                 if ~ischar(ftp_port)
                     ftp_port = num2str(ftp_port);
@@ -98,17 +98,17 @@ classdef FTP_Downloader < handle
             if (nargin > 4)
                 this.local_dir = local_dir;
             end
-            
+
             %open the connection with the server
             this.ftp_server = ftp(strcat(this.addr, ':', this.port));
         end
-        
+
         function delete(this)
             % destructor close the connection with the server
             close(this.ftp_server);
         end
 
-        
+
         function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
             % function to download a file (or a list of files) from a ftp a server
             % SYNTAX:
@@ -117,10 +117,10 @@ classdef FTP_Downloader < handle
             %   status = this.download(file_name, local_dir)
             %   status = this.download(file_name, local_dir, force_overwrite)
             %
-            % EXAMPLE:            
+            % EXAMPLE:
             %   ftpd = FTP_Downloader('127.0.0.1','25','/');
             %   ftpd.download('file.txt', './');
-            
+
             % managing function overloading
             if (nargin < 3)
                 this.logger.addError('FTP_Downloader.download, not enough input parameters');
@@ -129,8 +129,8 @@ classdef FTP_Downloader < handle
             elseif (nargin == 3)
                 force_overwrite = false;
                 local_dir = file_name;
-                this.file_name = remote_dir;                
-            elseif (nargin == 4) 
+                this.file_name = remote_dir;
+            elseif (nargin == 4)
                 if ~ischar(local_dir)
                     force_overwrite = local_dir;
                     local_dir = file_name;
@@ -145,14 +145,14 @@ classdef FTP_Downloader < handle
                 this.remote_dir = remote_dir;
                 this.file_name = file_name;
             end
-            
-            % function start 
+
+            % function start
             if (this.checkNet)
                 % connect to the server
                 try
                     this.logger.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
                     this.logger.newLine();
-                    
+
                     % Try to get the current directory to check the ftp connection
                     try
                         cd(this.ftp_server);
@@ -160,30 +160,30 @@ classdef FTP_Downloader < handle
                         this.logger.addWarning('connected with remote FTP has been closed, trying to re-open it');
                         this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                     end
-                    
+
                     % convert file_name in a cell array
                     if ~iscell(this.file_name)
                         this.file_name = {this.file_name};
                     end
-                                        
+
                     n_files = numel(this.file_name);
                     status = FTP_Downloader.OK;
                     i = 0;
                     while (i < n_files) && (status >= FTP_Downloader.OK)
                         i = i + 1;
-                        
+
                         % get the exact remote path / file name
                         full_path = strcat(this.remote_dir, this.file_name{i});
                         if (full_path(1) ~= '/')
                             full_path = strcat('/', full_path);
                         end
-                        [remote_dir, file_name, file_ext] = fileparts(full_path);                        
+                        [remote_dir, file_name, file_ext] = fileparts(full_path);
                         compressed = strcmpi(file_ext,'.Z');
-                        
+
                         % check for a local version
                         local_path = fullfile(local_dir, iif(compressed, file_name, strcat(file_name, file_ext)));
                         local_file = exist(local_path, 'file');
-                        
+
                         if ~local_file || force_overwrite
                             try
                                 % check file existence (without extension)
@@ -195,10 +195,10 @@ classdef FTP_Downloader < handle
                                     compressed = true;
                                 end
                                 file_name = strcat(file_name, file_ext);
-                                
+
                                 if (file_exist)
                                     this.logger.addStatusOk(sprintf('%s found in %s, downloading...',file_name, remote_dir));
-                                    
+
                                     try
                                         if ~(exist(local_dir,'dir'))
                                             mkdir(local_dir);
@@ -252,21 +252,21 @@ classdef FTP_Downloader < handle
                         end
                     end
                 catch ex
-                    this.logger.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));                    
+                    this.logger.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));
                     status = FTP_Downloader.ERR_FTP_FAIL;
-                end                                
+                end
             else
                 status = FTP_Downloader.ERR_NIC;
             end
             this.logger.newLine();
         end
     end
-    
-    methods (Static)        
+
+    methods (Static)
         function flag = checkNet()
-            % Check whether internet connection is available            
+            % Check whether internet connection is available
             url =java.net.URL('http://igs.org');
-            
+
             % read the URL
             try
                 link = openStream(url);
@@ -275,7 +275,7 @@ classdef FTP_Downloader < handle
                 flag = false;
             end
         end
-        
+
         function [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
             % download and read an ftp file
             % SYNTAX: [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
@@ -294,5 +294,5 @@ classdef FTP_Downloader < handle
             end
         end
     end
-    
+
 end

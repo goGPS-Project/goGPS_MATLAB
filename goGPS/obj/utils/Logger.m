@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Manage messages output depending on the current interface 
+%   Manage messages output depending on the current interface
 %   (up to now, only Command Windows is implemented)
 %
 % EXAMPLE
@@ -11,12 +11,12 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc Logger
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -38,11 +38,11 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef Logger < handle
-    
+
     properties (Constant, GetAccess = public)
         DEFAULT_VERBOSITY_LEV   = 9;  % Default verbosity level
         WARNING_VERBOSITY_LEV   = 3;  % Warning verbosity level
@@ -50,11 +50,11 @@ classdef Logger < handle
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
-        color_mode = true;            % Flag for coloured output messages (if true requires cprintf)        
-        verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level 
-        std_out = 0;                  % Define the standard output of the 
+        color_mode = true;            % Flag for coloured output messages (if true requires cprintf)
+        verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level
+        std_out = 0;                  % Define the standard output of the
     end
-        
+
     methods (Access = private)
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
@@ -66,8 +66,8 @@ classdef Logger < handle
             end
         end
     end
-    
-    methods (Static)        
+
+    methods (Static)
         function this = getInstance()
             % Concrete implementation.  See Singleton superclass.
             persistent unique_instance_logger__
@@ -79,28 +79,28 @@ classdef Logger < handle
             end
         end
     end
-    
+
     % =========================================================================
     %  MANAGING LOGGING
     % =========================================================================
-    methods    
+    methods
         % Set read status mode --------------------------------------------
         function setColorMode(this, bool)
             % Set useage of colors in text output
             this.color_mode = bool;
         end
-        
+
         function bool = getColorMode(this)
             % Get useage of colors in text output
             bool = this.color_mode;
         end
-        
+
         % Set verbosity level ---------------------------------------------
         function setVerbosityLev(this, verbosity)
             % Set level of verbosity
             this.verbosity = verbosity;
         end
-        
+
         function verbosity = getVerbosityLev(this)
             % Get level of verbosity
             verbosity = this.verbosity;
@@ -110,7 +110,7 @@ classdef Logger < handle
     % =========================================================================
     %  OUTPUT UTILITIES (respect verbosity)
     % =========================================================================
-    methods   
+    methods
         function newLine(this, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 2)
@@ -119,8 +119,8 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 fprintf('\n');
             end
-        end       
-        
+        end
+
         function addMarkedMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -138,7 +138,7 @@ classdef Logger < handle
                 end
             end
         end
-        
+
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -150,7 +150,7 @@ classdef Logger < handle
                 fprintf(' %s\n', text);
             end
         end
-        
+
         function addStatusOk(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -160,7 +160,7 @@ classdef Logger < handle
                 this.printStatusOk(text);
             end
         end
-        
+
         function addWarning(this, text, verbosity_level)
             % Send a warning through the standard interface
             if (nargin < 3)
@@ -170,22 +170,22 @@ classdef Logger < handle
                 this.printWarning(text);
             end
         end
-        
+
         function addError(this, text)
             % Send a warning through the standard interface
             if (this.ERROR_VERBOSITY_LEV <= this.verbosity)
                 this.printError(text);
             end
         end
-        
+
         function status(this, status)
             % Display a flag of operation status ( -1 Err, 0 Ok, 1 Warning) on the previous line
             fprintf(char(08));
             this.opStatus(status, this.color_mode);
-        end            
+        end
     end
-    
-    
+
+
     % =========================================================================
     %    PRIVATE DISPLAY UTILITIES
     % =========================================================================
@@ -207,7 +207,7 @@ classdef Logger < handle
                 fprintf([text '\n']);
             end
         end
-        
+
         function printWarning(this, text, color_mode)
             % Display Warnings
             if (nargin == 2)
@@ -224,7 +224,7 @@ classdef Logger < handle
                 fprintf(['WARNING: ' text '\n']);
             end
         end
-        
+
         function printError(this, text, color_mode)
             % Display Errors
             if (nargin == 2)
@@ -243,7 +243,7 @@ classdef Logger < handle
         end
 
     end
-    
+
     % =========================================================================
     %    DISPLAY UTILITIES
     % =========================================================================
@@ -273,5 +273,5 @@ classdef Logger < handle
             end
         end
     end
-    
+
 end

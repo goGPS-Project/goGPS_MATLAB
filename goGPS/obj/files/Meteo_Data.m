@@ -13,12 +13,12 @@
 % ftp://igs.org/pub/data/format/rinex303.pdf
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -40,10 +40,10 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 classdef Meteo_Data < handle
-    
+
     properties (Constant, GetAccess = private)
         PR_ID = sum(uint16('PR').*uint16([1 256]));     % Internal id of Pressure [mbar]
-        TD_ID = sum(uint16('TD').*uint16([1 256]));     % Internal id of Dry temperature (deg Celsius)        
+        TD_ID = sum(uint16('TD').*uint16([1 256]));     % Internal id of Dry temperature (deg Celsius)
         HR_ID = sum(uint16('HR').*uint16([1 256]));     % Internal id of Relative humidity (percent)
         ZW_ID = sum(uint16('ZW').*uint16([1 256]));     % Internal id of Wet zenith path delay (mm), (for WVR data)
         ZD_ID = sum(uint16('ZD').*uint16([1 256]));     % Internal id of Dry component of zen.path delay (mm)
@@ -51,21 +51,21 @@ classdef Meteo_Data < handle
         WD_ID = sum(uint16('WD').*uint16([1 256]));     % Internal id of Wind azimuth (deg) from where the wind blows
         WS_ID = sum(uint16('WS').*uint16([1 256]));     % Internal id of Wind speed (m/s)
         RI_ID = sum(uint16('RI').*uint16([1 256]));     % Internal id of Rain increment (1/10 mm): Rain accumulation since last measurement
-        HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement                
-        
+        HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement
+
         % Array of all the metereological data types
-        DATA_TYPE_ID = [Meteo_Data.PR_ID, ... 
-                        Meteo_Data.TD_ID, ... 
-                        Meteo_Data.HR_ID, ... 
-                        Meteo_Data.ZW_ID, ... 
-                        Meteo_Data.ZD_ID, ... 
-                        Meteo_Data.ZT_ID, ... 
-                        Meteo_Data.WD_ID, ... 
-                        Meteo_Data.WS_ID, ... 
-                        Meteo_Data.RI_ID, ... 
-                        Meteo_Data.HI_ID];        
+        DATA_TYPE_ID = [Meteo_Data.PR_ID, ...
+                        Meteo_Data.TD_ID, ...
+                        Meteo_Data.HR_ID, ...
+                        Meteo_Data.ZW_ID, ...
+                        Meteo_Data.ZD_ID, ...
+                        Meteo_Data.ZT_ID, ...
+                        Meteo_Data.WD_ID, ...
+                        Meteo_Data.WS_ID, ...
+                        Meteo_Data.RI_ID, ...
+                        Meteo_Data.HI_ID];
     end
-    
+
     properties (Constant)
         DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'HI'];
         DATA_TYPE_EXT = { 'Pressure [mbar]', ...
@@ -78,9 +78,9 @@ classdef Meteo_Data < handle
                           'Wind speed [m/s]', ...
                           'Rain increment [1/10 mm]: Rain accumulation since last measurement', ...
                           'Hail indicator non-zero: Hail detected since last measurement'};
-                      
+
         PR = 1;     % Numeric id of Pressure [mbar]
-        TD = 2;     % Numeric id of Dry temperature (deg Celsius)        
+        TD = 2;     % Numeric id of Dry temperature (deg Celsius)
         HR = 3;     % Numeric id of Relative humidity (percent)
         ZW = 4;     % Numeric id of Wet zenith path delay (mm), (for WVR data)
         ZD = 5;     % Numeric id of Dry component of zen.path delay (mm)
@@ -88,40 +88,40 @@ classdef Meteo_Data < handle
         WD = 7;     % Numeric id of Wind azimuth (deg) from where the wind blows
         WS = 8;     % Numeric id of Wind speed (m/s)
         RI = 9;     % Numeric id of Rain increment (1/10 mm): Rain accumulation since last measurement
-        HI = 10;    % Numeric id of Hail indicator non-zero: Hail detected since last measurement        
+        HI = 10;    % Numeric id of Hail indicator non-zero: Hail detected since last measurement
     end
-    
+
     properties (SetAccess = protected, GetAccess = protected)
         logger = Logger.getInstance(); % Handler to the logger object
     end
-    
+
     properties (SetAccess = private, GetAccess = protected)
-        % contains an object to read the RINEX file 
+        % contains an object to read the RINEX file
         file;   % init this with File_Rinex('filename')
-        
-        marker_name = '';   % name of the station    
+
+        marker_name = '';   % name of the station
         n_type = 0;         % number of observation types
         type = 1:10;        % supposing to have all the fields
-        
+
         time = GPS_Time();  % array of observation epochs
-                
+
         data = [];          % Meteorological file
-        
+
         xyz = [0 0 0];      % geocentric coordinate of the sensor
-        msl = 0;        % hortometric height of the sensor        
+        msl = 0;        % hortometric height of the sensor
         is_valid = false;   % Status of valitity of the file;
     end
-    
+
     methods (Access = private)
         function parseHeader(this, meteo_file)
-            % Parse header and update the object, having as input the meteo_file 
+            % Parse header and update the object, having as input the meteo_file
             % as read with textscan (cell array of string lines)
             % SYNTAX: this.parseHeader(meteo_file)
-            
+
             if ~this.file.isValid(1)
                 this.logger.addWarning('Meteorological file with no header or corrupted');
                 this.logger.addWarning(sprintf('Try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
-            else           
+            else
                 % Try to parse header
                 try
                     % Check for file description to verify the header
@@ -131,7 +131,7 @@ classdef Meteo_Data < handle
                 catch ex
                     this.logger.addWarning(sprintf('Problem detected in header of %s: %s', file.getFileName(), ex.message))
                 end
-            
+
                 % Scan the file header
                 try
                     l = 1;
@@ -145,7 +145,7 @@ classdef Meteo_Data < handle
                         if (~type_is_present)
                             % Check for type of observations
                             type_is_present = ~isempty(strfind(line(61:end),'# / TYPES OF OBSERV'));
-                            
+
                             if type_is_present
                                 % Read types of obs
                                 this.n_type = sscanf(line(1:6),'%d');
@@ -160,11 +160,11 @@ classdef Meteo_Data < handle
                                     throw(MException('MeteorologicalFile:InvalidHeader', 'unrecognized data type'));
                                 end
                             end
-                        end                        
+                        end
                         if (~pos_is_present)
                             % Check for sensor position
                             pos_is_present = ~isempty(strfind(line(61:end),'SENSOR POS XYZ/H'));
-                            
+
                             if pos_is_present
                                 this.xyz = sscanf(line(1:42), '%14f%14f%14f');
                                 if sum(abs(this.xyz)) > 0
@@ -177,58 +177,58 @@ classdef Meteo_Data < handle
                         end
                         if (~marker_name_is_present)
                             % Check for sensor position
-                            marker_name_is_present = ~isempty(strfind(line(61:end),'MARKER NAME'));                            
+                            marker_name_is_present = ~isempty(strfind(line(61:end),'MARKER NAME'));
                             if marker_name_is_present
                                 this.marker_name = strtrim(line(1:60));
                             end
                         end
                     end
-                    
+
                     % set default (empty) values if the following paremeters are not found in header
                     if ~pos_is_present
                         this.xyz = [0 0 0];
                         this.msl = 0;
                     end
-                    
+
                     if ~marker_name_is_present
                         this.marker_name = '';
                     end
-                    
+
                     if isempty(this.type)
                         this.type = 1 : 10;
                         this.n_type = numel(this.type);
                     end
                     if ~type_is_present
                         throw(MException('MeteorologicalFile:InvalidHeader', 'file does not contain the header field "# / TYPES OF OBSERV"'));
-                    end  
+                    end
                 catch ex
                     this.logger.addWarning(sprintf('Problem detected in the header: %s', ex.message))
                     this.logger.addWarning(sprintf('try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
-                end  
+                end
             end
         end
-        
+
         function parseData(this, meteo_file)
-            % Parse data and update the object, having as input the meteo_file 
+            % Parse data and update the object, having as input the meteo_file
             % as read with textscan (cell array of string lines)
             % SYNTAX: this.parseData(meteo_file)
-            
-            % Read the data 
+
+            % Read the data
             try
                 eoh = this.file.getEOH();
                 if (numel(meteo_file) < eoh)
                     eoh = 0; % file with no header
                 end
                 n_epoch = numel(meteo_file) - eoh;
-                    
+
                 % Guess the rate of the data (in seconds)
                 % rate = round((this.file.last_epoch.getMatlabTime-this.file.first_epoch.getMatlabTime)*86400) / n_epochs;
-                
+
                 this.data = nan(this.n_type, n_epoch);
                 % try to guess the time format
                 [id_start, id_stop] = regexp(meteo_file{eoh+1}, '[.0-9]*');
                 id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
-                
+
                 for l = (eoh + 1) : numel(meteo_file)
                     line = meteo_file{l};
                     this.time.addEpoch(line(id_date), [], true);
@@ -236,23 +236,23 @@ classdef Meteo_Data < handle
                     col_id = round(id_stop / 7);
                     this.data(col_id, l - eoh) = str2double(value);
                 end
-            catch ex 
+            catch ex
                 this.logger.addWarning(sprintf('Problem detected while reading metereological data: %s', ex.message));
                 this.is_valid = false;
             end
             this.data = this.data'; % keep one column per data type
         end
-                
-        function init(this, file_name, type, verbosity_lev)                
+
+        function init(this, file_name, type, verbosity_lev)
             % Try to read the file
             if (nargin < 4)
                 verbosity_lev = Logger.DEFAULT_VERBOSITY_LEV;
             end
-            
+
             this.logger.addMessage(sprintf('Loading Meteorological data from "%s"', file_name), iif(verbosity_lev < 50, Logger.DEFAULT_VERBOSITY_LEV, verbosity_lev));
             try
                 this.time = GPS_Time(); % empty the time
-                this.file = File_Rinex(file_name, verbosity_lev);                
+                this.file = File_Rinex(file_name, verbosity_lev);
                 fid = fopen(this.file.getFileName(), 'r');
                 meteo_file = textscan(fid,'%s','Delimiter', '\n', 'whitespace', '');
                 fclose(fid);
@@ -261,86 +261,86 @@ classdef Meteo_Data < handle
                 this.logger.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
                 return
             end
-            
+
             % Parse the header and detect the types of data contained in the metereological file
             this.parseHeader(meteo_file);
-            
+
             if (nargin == 3) && ~isempty(type)
                 this.logger.addWarning('Meteorological file - overriding the file data types with custom types');
                 this.type = type;
                 this.n_type = numel(type);
                 assert(sum(type < 1) + sum(type > 10) == 0, 'Invalid custom types');
             end
-            
+
             this.logger.addMessage(sprintf('\nThe following meteorological data are present in the header:'), verbosity_lev);
             for t = 1 : this.n_type
                 this.logger.addMessage([' - ' this.getTypeExt{t}], verbosity_lev);
             end
             this.is_valid = this.file.isValid();
             % Parse the data
-            this.parseData(meteo_file);            
+            this.parseData(meteo_file);
         end
     end
-    
+
     % =========================================================================
     %  INIT / READER
     % =========================================================================
     methods
-        function this = Meteo_Data(file_name, type, verbosity_lev) 
-            % Creator Meteo_Data(file_name, <type = empty>, <verbosity_lev>) 
-            
+        function this = Meteo_Data(file_name, type, verbosity_lev)
+            % Creator Meteo_Data(file_name, <type = empty>, <verbosity_lev>)
+
             % The function calls all its creation methods within try and
             % catch statements, reading the Meteo file should not be
             % blocking for the processing, even if the data are not good
-            
+
             switch nargin
                 case 1
                     this.init(file_name);
                 case 2
                     this.init(file_name, type);
                 case 3
-                    this.init(file_name, type, verbosity_lev);                        
+                    this.init(file_name, type, verbosity_lev);
             end
         end
     end
-    
+
     % =========================================================================
     %  IMPORT / EXPORT / TOSTRING
     % =========================================================================
-    methods       
-        
+    methods
+
         function import_raw(this, obs_time, data, type, marker_name, pos_xyz)
             % Import a meteorological file
             % EXAMPLE: this.import_raw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
             narginchk(6, 6);
-            
-            % Skip NaN epochs    
+
+            % Skip NaN epochs
             this.marker_name = marker_name;
             this.xyz = pos_xyz;
             [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
             this.msl = h - getHortometricCorr(phiC, lam);
             ok = ~obs_time.isnan();
             this.data = data(ok, :);
-            this.type = type;  
-            
+            this.type = type;
+
             % Cut empty epochs
             invalid_epoch = sum(isnan(this.data),2) == numel(this.type);
             ok = ok & ~invalid_epoch;
             this.time = obs_time.getId(ok);
             this.data(invalid_epoch, :) = [];
-            
+
             % Cut empty data types
-            invalid_data = sum(isnan(this.data)) == size(this.data, 1);             
+            invalid_data = sum(isnan(this.data)) == size(this.data, 1);
             this.data(:, invalid_data) = [];
             this.type(:, invalid_data) = [];
             this.n_type = numel(this.type);
             this.is_valid = true;
         end
-        
+
         function import(this, file_name, type)
             % import a meteorological file
             narginchk(2,3);
-            
+
             switch nargin
                 case 1
                     this.init(file_name);
@@ -348,18 +348,18 @@ classdef Meteo_Data < handle
                     this.init(file_name, type);
             end
         end
-        
+
         function export(this, file_name)
             % Export data to a metereological RINEX
             % SYNTAX: this.toString(str)
 
             narginchk(1,2);
             fnp = File_Name_Processor;
-            
+
             % Find the time span of the observations
             [yyyy, doy] =  this.time.getDOY;
             [~, day_start, day_id] = unique(yyyy*1e4+doy);
-            
+
             if (nargin == 1)
                 state = Go_State.getCurrentSettings();
                 file_name =  this.marker_name;
@@ -371,16 +371,16 @@ classdef Meteo_Data < handle
                 end
                 file_name = [state.getMetDir() filesep '${YYYY}_${DOY}' filesep file_name '_${DOY}0.${YY}m'];
             end
-            
+
             for d = 1 : numel(day_start)
                 id = day_id == d;
                 cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getId(day_start(d)));
-                
+
                 dir_container = fileparts(cur_file_name);
                 if ~exist(dir_container, 'dir')
                     mkdir(dir_container);
                 end
-                
+
                 this.logger.addMessage(sprintf('Exporting met data to %s', cur_file_name));
                 try
                     fid = fopen(cur_file_name, 'w');
@@ -389,7 +389,7 @@ classdef Meteo_Data < handle
                     if ~isempty(this.marker_name)
                         str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
                     end
-                    
+
                     line = sprintf('%6d', this.n_type);
                     for t = 1 : this.n_type
                         line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
@@ -407,7 +407,7 @@ classdef Meteo_Data < handle
                 end
             end
         end
-        
+
         function str = toString(this, str)
             % Display the loaded metereological data
             % SYNTAX: this.toString(str)
@@ -415,7 +415,7 @@ classdef Meteo_Data < handle
             if (nargin == 1)
                 str = '';
             end
-            
+
             str = [str '---- METEOROLOGICAL DATA -------------------------------------------------' 10 10];
             if ~isempty(this.marker_name)
                 str = [str sprintf(' Station %s\n\n', this.marker_name)];
@@ -427,26 +427,26 @@ classdef Meteo_Data < handle
                 str = [str sprintf('  - %s\n', type_ext{t})]; %#ok<AGROW>
             end
             str = [str 10];
-        end        
+        end
     end
-    
+
     % =========================================================================
     %  GETTERS
     % =========================================================================
     methods
-        
+
         function validity = isValid(this)
             % Get the validity of a RINEX file or the object
             % SYNTAX: validity = isValid()
             validity = this.file.isValid();
         end
-        
+
         function name = getMarkerName(this)
             % Get the name of the station
             % SYNTAX: time = this.getMarkerName()
             name = this.marker_name;
         end
-        
+
         function time = getTime(this)
             % Get the epochs of the data
             % SYNTAX: time = this.getTime()
@@ -458,18 +458,18 @@ classdef Meteo_Data < handle
             id = this.getTypeId();
             type = this.DATA_TYPE(id,:);
         end
-        
+
         function type = getTypeExt(this)
             % Get the description of the types of data stored in the RINEX
             id = this.getTypeId();
             type = this.DATA_TYPE_EXT(id);
         end
-                        
+
         function id = getTypeId(this)
             % Get the id of the types of data stored in the RINEX
             id = this.type;
         end
-                
+
         function data = getComponent(this, id, time)
             % Get the data with id of the type wanted
             % Passing a time array as GPS_Time the object interpolate the
@@ -498,35 +498,35 @@ classdef Meteo_Data < handle
                 end
             end
         end
-        
+
         function data = getPressure(this, time, msl)
             % Get the pressure data
             % SYNTAX: data = this.getPressure()
             if (nargin == 1)
                 data = this.getComponent(1);
             else
-                data = this.getComponent(1, time);                
+                data = this.getComponent(1, time);
             end
-            
+
             if (nargin == 3)
                 data = Meteo_Data.pressure_adjustment(data, this.msl, msl);
-            end            
+            end
         end
-        
+
         function data = getTemperature(this, time, msl)
             % Get the temperature data
             % SYNTAX: data = this.getTemperature()
             if (nargin == 1)
                 data = this.getComponent(2);
             else
-                data = this.getComponent(2, time);                
+                data = this.getComponent(2, time);
             end
-            
+
             if (nargin == 3)
                 data = Meteo_Data.temperature_adjustment(data, this.msl, msl);
             end
         end
-        
+
         function data = getHumidity(this, time, msl)
             % Get the humidity data
             % SYNTAX: data = this.getHumidity()
@@ -535,12 +535,12 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(3, time);
             end
-            
+
             if (nargin == 3)
                 data = Meteo_Data.humidity_adjustment(data, this.msl, msl);
             end
         end
-        
+
         function [x, y, z, msl] = getLocation(this)
             % Get meteo station location
             % SINTAX: [x, y, z, msl] = this.getLocation();
@@ -549,14 +549,14 @@ classdef Meteo_Data < handle
             z = this.xyz(3);
             msl = this.msl;
         end
-        
+
         function time = getObsTime(this)
             % Get meteo station observatipon time
             % SINTAX: time = this.getObsTime();
             time = this.time;
         end
     end
-    
+
     % =========================================================================
     %  STATIC
     % =========================================================================
@@ -564,19 +564,19 @@ classdef Meteo_Data < handle
         function md = getVMS(name, xyz, time, station)
             % Get Virtual Meteo Station
             % SYNTAX: md = getVMS(name, xyz, time , station)
-            % e.g. [x, y, z, msl] = station(1).getLocation(); 
+            % e.g. [x, y, z, msl] = station(1).getLocation();
             %      md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
-            
+
             logger = Logger.getInstance();
-            
+
             md = Meteo_Data();
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
             [e, n] = cart2plan(xyz(1), xyz(2), xyz(3));
-            
+
             msl = h - getHortometricCorr(phiC, lam);
-            
+
             n_station = numel(station);
-            
+
             % In a VMS I keep only PR TD HR
             st_type = false(3, numel(station));
             e_obs = zeros(numel(station), 1);
@@ -588,36 +588,36 @@ classdef Meteo_Data < handle
 
                 % Get the stations location
                 [x, y, z] = station(s).getLocation();
-                [e_obs(s), n_obs(s)] = cart2plan(x, y, z);  
+                [e_obs(s), n_obs(s)] = cart2plan(x, y, z);
             end
             st_type = st_type';
 
-            [e_mesh, n_mesh] = meshgrid(e_obs, n_obs);                        
+            [e_mesh, n_mesh] = meshgrid(e_obs, n_obs);
             d2 = sqrt(abs(e_mesh - e_mesh').^2 + abs(n_mesh - n_mesh').^2);
             d = sqrt(abs(e_obs - e).^2 + abs(n_obs - n).^2);
-            
+
             % fun for pressure
             fun = @(dist) 0.2 * exp(-(dist/0.8e4)) + exp(-(dist/6e3).^2);
             q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
             q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
-            
+
             % getting pressure
             id_pr = find(st_type(:,1) == 1);
             %id_pr = id_pr(real_dist(id_pr) < 20e3);
-                        
+
             pr_obs = zeros(numel(id_pr), time.length());
             for s = 1 : numel(id_pr)
                 pr_obs(s, :) = station(id_pr(s)).getPressure(time, msl);
             end
-            
+
             id_pr(sum(isnan(pr_obs),2) > 1) = [];
             pr_obs(sum(isnan(pr_obs),2) > 1, :) = [];
-            
+
             if isempty(id_pr)
                 logger.addWarning('There are no station to get pressure information', 100);
                 pres = nan(time.length,1);
             else
-                %A = ones(size(id_pr)); 
+                %A = ones(size(id_pr));
                 %Q = d2(id_pr, id_pr);
                 %AinvQ =  A'/Q;
                 %w = (AinvQ*A)\AinvQ;
@@ -625,22 +625,22 @@ classdef Meteo_Data < handle
                 w = sum(trans)\trans;
                 pres = (w * pr_obs)';
             end
-            
+
             % fun for temperature
             fun = @(dist) 0.2 * exp(-(dist/1e4)) + exp(-(dist/6e3).^2);
             q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
             q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
 
             % getting temperature
-            id_td = find(st_type(:,2) == 1);            
-            
+            id_td = find(st_type(:,2) == 1);
+
             td_obs = zeros(numel(id_td), time.length);
             for s = 1 : numel(id_td)
                 td_obs(s, :) = station(id_td(s)).getTemperature(time, msl);
-            end            
+            end
             id_td(sum(isnan(td_obs),2) > 1) = [];
             td_obs(sum(isnan(td_obs),2) > 1, :) = [];
-            
+
             if isempty(id_td)
                 logger.addWarning('There are no station to get temperature information', 100);
                 temp = nan(time.length,1);
@@ -649,23 +649,23 @@ classdef Meteo_Data < handle
                 w = sum(trans)\trans;
                 temp = (w * td_obs)';
             end
-            
+
             % fun for humidity
             fun = @(dist) exp(-(dist/1e4)) + exp(-(dist/8e3).^2);
             q_fun_obs = fun(d2) .* repmat(fun(d)', size(d2,1), 1);
             q_fun_obs = triu(q_fun_obs) + triu(q_fun_obs,1)';
 
             % getting humidity
-            id_hr = find(st_type(:,2) == 1);            
-            
+            id_hr = find(st_type(:,2) == 1);
+
             hr_obs = zeros(numel(id_hr), time.length);
             for s = 1 : numel(id_hr)
                 hr_obs(s, :) = station(id_hr(s)).getHumidity(time, msl);
             end
-            
+
             id_hr(sum(isnan(hr_obs),2) > 1) = [];
             hr_obs(sum(isnan(hr_obs),2) > 1, :) = [];
-            
+
             if isempty(id_hr)
                 logger.addWarning('There are no station to get relative humidity information', 100);
                 hum = nan(time.length,1);
@@ -674,15 +674,15 @@ classdef Meteo_Data < handle
                 w = sum(trans)\trans;
                 hum = (w * hr_obs)';
             end
-            
+
             data = [pres temp hum];
             id_ok = (sum(isnan(data)) < time.length());
             data = data(:, id_ok);
             type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
             type = type(:, id_ok);
-            md.import_raw(time, data, type, name, xyz);            
+            md.import_raw(time, data, type, name, xyz);
         end
-        
+
         function [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
             % Barometric formula taken from Bai and Feng, 2003.
             % The parameter value is taken from Realini et al., 2014
@@ -690,7 +690,7 @@ classdef Meteo_Data < handle
             grad = 0.0065 ; % * C / m gravitational acceleration constant
             temperature_adj = temperature + grad * (obs_h - pred_h);
         end
-        
+
         function [ pressure_adj ] = pressure_adjustment( pressure , obs_h, pred_h)
             % Barometric formula taken from Berberan-Santos et al., 1997
             % The parameter values are taken from Realini et al., 2014
@@ -703,7 +703,7 @@ classdef Meteo_Data < handle
         end
 
         function [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
-            % Empirically derived from here, to be substituted with something better...            
+            % Empirically derived from here, to be substituted with something better...
             % % http://www.engineeringtoolbox.com/relative-humidity-air-d_687.html
             %
             % tmp = [0 1.000; 108 0.987; 200 0.976; 400 0.953; 600 0.931; 800 0.909; 1000 0.887; 1500 0.835; 2000 0.785];

@@ -17,12 +17,12 @@
 %   Server structure:
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -44,7 +44,7 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef File_Wizard < handle
@@ -107,15 +107,15 @@ classdef File_Wizard < handle
     properties (SetAccess = protected, GetAccess = protected)
         state = Go_State.getCurrentSettings();     %  Global state, to import custom server and service preferences
     end
-                                  
+
     properties (SetAccess = private, GetAccess = private)
         logger = Logger.getInstance(); % Handler to the logger object
         ftp_downloader;
     end
-   
-    methods        
+
+    methods
         function this = File_Wizard(state)
-            % Constructor 
+            % Constructor
             %  SYNTAX File_Wizard(<state>)
             % Uses state for getting settings info
             % Modify state to update eph_name and clk_name
@@ -124,9 +124,9 @@ classdef File_Wizard < handle
                 this.state = handle(state);
             else
                 this.state = Go_State.getCurrentSettings();
-            end   
+            end
         end
-        
+
         function conjureFiles(this, date_start, date_stop)
             % Prepare all the files needed for processing
             if (nargin == 1)
@@ -140,14 +140,14 @@ classdef File_Wizard < handle
         function [first_epoch, last_epoch] = conjureObsFile(this)
             % Prepare the extended file name of the files to be used in goGPS
             % In a future here I'll download the required navigational files of a station in a network
-                        
+
             first_target_files = this.state.getTargetPath(1);
             fh = File_Rinex(first_target_files);
             this.logger.newLine();
             first_epoch = fh.first_epoch.first;
             last_epoch = fh.last_epoch.last;
         end
-                
+
         function conjureNavFiles(this, date_start, date_stop)
             % prepare the navigational files needed for processing
 
@@ -155,17 +155,17 @@ classdef File_Wizard < handle
             nav_ok = eph_ok && this.state.checkNavClkFiles();
             if (~nav_ok)
                 fnp = File_Name_Processor();
-                
+
                 % Just in case I need it, import custom server
                 [addr, port, path, nav_name, clk_name, ~] = this.state.getCustomArchive();
                 this.ftpd_custom = FTP_Downloader(addr, port, path);
                 clear addr port path;
-                
+
                 % Get lists of preferences
                 archive_list = this.state.getNavArchive();
                 eph_type_list = this.state.getNavEphType();
                 clk_type_list = this.state.getNavClkType();
-                
+
                 active_ss = this.state.cc.getActive();
                 if sum(active_ss(3:end))
                     % Multiconstellation orbits are needed
@@ -179,10 +179,10 @@ classdef File_Wizard < handle
                     ss = 'gps';
                 end
                 clear active_ss;
-                
+
                 % Start the search for navigational files
                 % -> stop when found / no more places where to search for them
-                
+
                 t = 0; % type of wanted ephemeris
                 while (~nav_ok && (t < numel(eph_type_list)))
                     t = t + 1;
@@ -193,7 +193,7 @@ classdef File_Wizard < handle
                         provider = provider_list{p};
                         a = 0; % archive of wanted ephemeris
                         while (~nav_ok && (a < numel(archive_list)))
-                            
+
                             a = a + 1;
                             archive = archive_list{a};
                             if strcmp(archive, 'custom')
@@ -201,8 +201,8 @@ classdef File_Wizard < handle
                                 % download ephemeris
                                 step_sec = fnp.getStepSec(nav_name);
                                 tmp_date_start = date_start.getCopy; tmp_date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
-                                
+                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+
                                 file_list = flipud(fnp.dateKeyRepBatch(nav_name, tmp_date_start, tmp_date_stop));
                                 this.ftpd_custom.download(file_list, this.state.getNavEphDir());
                                 [~, name, ext] = fileparts(nav_name);
@@ -211,12 +211,12 @@ classdef File_Wizard < handle
                                 % download clocks
                                 step_sec = fnp.getStepSec(clk_name);
                                 tmp_date_start = date_start.getCopy; tmp_date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
                                 file_list = flipud(fnp.dateKeyRepBatch(clk_name, tmp_date_start, tmp_date_stop));
                                 this.ftpd_custom.download(file_list, this.state.getNavClkDir());
                                 [~, name, ext] = fileparts(clk_name);
                                 this.state.setNavClkFile(strcat(name, ext));
-                                
+
                                 % match the name of the ephemeris to use with what I've just downloaded
                                 this.state.updateNavFileName();
 
@@ -226,29 +226,29 @@ classdef File_Wizard < handle
                                    isfield(this.source.(archive).par, ss) && ...
                                    isfield(this.source.(archive).par.(ss).center, provider) && ...
                                    isfield(this.source.(archive).par.(ss).center.(provider).eph, eph_type)
-                                
+
                                 % Download navigational
                                 nav_name = this.source.(archive).par.(ss).center.(provider).eph.(eph_type);
                                 step_sec = fnp.getStepSec(nav_name);
                                 tmp_date_start = date_start.getCopy; tmp_date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+                                tmp_date_stop = date_stop.getCopy; tmp_date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
                                 file_list = flipud(fnp.dateKeyRepBatch(nav_name, tmp_date_start, tmp_date_stop));
                                 this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavEphDir());
                                 [~, name, ext] = fileparts(nav_name);
                                 this.state.setNavEphFile(strcat(name, ext));
-                                
+
                                 % match the name of the ephemeris to use with what I've just downloaded
                                 this.state.updateNavFileName();
-                                
+
                                 eph_ok = this.state.checkNavEphFiles();
-                                
+
                                 % if nav_ok try to download clocks
                                 if (eph_ok && (~strcmp(eph_type,'ultra') && ~strcmp(eph_type,'broadcast')))
                                     c = 0;
                                     clk_ok = this.state.checkNavClkFiles();
                                     while (c < numel(clk_type_list)) && ~clk_ok
                                         c = c + 1;
-                                        clk_type = clk_type_list{c};                                        
+                                        clk_type = clk_type_list{c};
                                         if isfield(this.source.(archive).par.(ss).center.(provider), clk_type) && ...
                                            isfield(this.source.(archive).par.(ss).center.(provider).(clk_type), eph_type)
                                             % Download navigational
@@ -260,11 +260,11 @@ classdef File_Wizard < handle
                                             this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavClkDir());
                                             [~, name, ext] = fileparts(clk_name);
                                             this.state.setNavClkFile(strcat(name, ext));
-                                            
+
                                             % match the name of the ephemeris to use with what I've just downloaded
                                             this.state.updateNavFileName();
 
-                                            clk_ok = this.state.checkNavClkFiles();                                            
+                                            clk_ok = this.state.checkNavClkFiles();
                                         end
                                     end
                                 else
@@ -274,7 +274,7 @@ classdef File_Wizard < handle
                                     clk_ok = this.state.checkNavClkFiles();
                                 end
                                 nav_ok = eph_ok && clk_ok;
-                            end                            
+                            end
                         end
                     end
                 end
@@ -284,5 +284,5 @@ classdef File_Wizard < handle
             end
         end
     end
-    
+
 end

@@ -17,12 +17,12 @@
 % ways allows speed improvements.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -44,27 +44,27 @@
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 
 classdef GPS_Time < handle
-    
+
     properties (Constant, GetAccess = private)
         DAYS_IN_WEEK = uint32(7);               % Number of days in a week
         SEC_IN_DAY  = uint32(86400);            % Number of seconds in a day
         SEC_IN_HALF_WEEK = uint32(302400);      % Number of seconds in a half a week
         SEC_IN_WEEK = uint32(604800);           % Number of seconds in a half a week
         UNIX_GPS_SEC_DIFF = uint32(315964800);  % Seconds of difference between UNIX time and GPS time
-        
+
         DEFAULT_DATE_FORMAT = 'yyyy/mm/dd HH:MM:SS'; % String representing the format of visualization of the time
-        
+
         % Epochs in (UTC time), matlab format when a leap second happened
         LEAP_DATES_UTC =   ([ 723728; 724093; 724458; 725189; 726103;
                               726834; 727199; 727746; 728111; 728476;
                               729025; 729572; 730121; 732678; 733774;
-                              735051; 736146; 736696]); 
-                          
+                              735051; 736146; 736696]);
+
         % datenum ignores cycle slips -> in UTC leap seconds happen "before"
         LEAP_DATES_GPS =   ... %LEAP_DATES_UTC + (1:(length(LEAP_DATES_UTC)))'/86400;
                            ([ 723728.000011574; 724093.000023148; 724458.000034722; 725189.000046296; 726103.00005787; ...
@@ -81,44 +81,44 @@ classdef GPS_Time < handle
         GPS_ZERO = 723186;              % datenum('Jan 6, 1980')
         UNIX_REF = 719529;              % datenum('Jan 1, 1970')
     end
-                          
-                          
-    properties (Constant, GetAccess = private)        
+
+
+    properties (Constant, GetAccess = private)
         MAT_TIME = 0;       % time_type value for times stored in matalb format: (double array) time in days since January 1, 0000 (matlab datenum fomat), precision up to the 0.1 milliseconds
         UNIX_TIME = 1;      % time_type value for times stored in unix format: (uint32 array) time in seconds since January 1, 1970 (UNIX standard) + (double array) fraction of seconds
         REF_TIME = 2;       % time_type value for times stored in time_ref: (double) origin of the "time system" expressed in datenum format + (double array) difference in seconds w.r.t. time_ref
     end
-    
+
     properties (SetAccess = private, GetAccess = private)
         logger = Logger.getInstance(); % Handler to the logger object
 
         time_type = 0;      % flag depending on its value different representation of time are possible
-        
-        % time_type == 0 MATLAB_TIME DEFAULT it supports up to ~0.1 ms precision 
-        
+
+        % time_type == 0 MATLAB_TIME DEFAULT it supports up to ~0.1 ms precision
+
         mat_time            % (double array) time in days since January 1, 0000 (matlab datenum fomat), precision up to the 0.1 milliseconds
-        
-        % time_type == 1 UNIX_TIME it supports ps precision 
-        
-        unix_time           % (uint32 array) time in seconds since January 1, 1970 (UNIX standard) 
+
+        % time_type == 1 UNIX_TIME it supports ps precision
+
+        unix_time           % (uint32 array) time in seconds since January 1, 1970 (UNIX standard)
         unix_time_f         % (double array) fraction of seconds
-        
-        % time_type == 2 REFERENCED_TIME it supports ps precision 
-        
+
+        % time_type == 2 REFERENCED_TIME it supports ps precision
+
         time_ref            % (double) origin of the "time system" expressed in datenum format
-        time_diff           % (double array) difference in seconds w.r.t. time_ref        
+        time_diff           % (double array) difference in seconds w.r.t. time_ref
 
         is_gps = true;       % define whether is gps time or UTC
-        
-        
+
+
         date_format = GPS_Time.DEFAULT_DATE_FORMAT;
         leap_seconds = 999;
     end
-    
+
     % Function to simulate polymorphism
     methods (Access = 'private')
         function this = GPS_Time_str(this, string_time, is_gps)
-            % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)                        
+            % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = true;
@@ -127,11 +127,11 @@ classdef GPS_Time < handle
             end
             date = sscanf(string_time,'%f%f%f%f%f%f')';
             if (date(1) < 80), date(1) = date(1) + 2000; end
-            this.GPS_Time_mat(datenum(date), is_gps);            
+            this.GPS_Time_mat(datenum(date), is_gps);
         end
-        
+
         function this = GPS_Time_mat(this, matlab_time, is_gps)
-            % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)            
+            % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
             this.time_type = 0;
             this.mat_time = matlab_time;
             if (nargin == 3)
@@ -139,9 +139,9 @@ classdef GPS_Time < handle
                     is_gps = true;
                 end
                 this.is_gps = is_gps;
-            end                
+            end
         end
-        
+
         function this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(uint32(unix_time), fraction_of_second, is_gps)
             this.time_type = 1;
@@ -152,9 +152,9 @@ classdef GPS_Time < handle
                     is_gps = true;
                 end
                 this.is_gps = is_gps;
-            end                
+            end
         end
-        
+
         function this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(time_matlab_reference, time_difference, is_gps)
             this.time_type = 2;
@@ -165,11 +165,11 @@ classdef GPS_Time < handle
                     is_gps = true;
                 end
                 this.is_gps = is_gps;
-            end                
+            end
         end
-                
+
         function this = appendStrTime(this, string_time, is_gps)
-            % Append elements - appendMatTime(matlab_time, is_gps)            
+            % Append elements - appendMatTime(matlab_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -181,9 +181,9 @@ classdef GPS_Time < handle
             if (date(1) < 80), date(1) = date(1) + 2000; end
             this.append(GPS_Time(datenum(date), [], is_gps, 0));
         end
-        
+
         function this = appendMatTime(this, matlab_time, is_gps)
-            % Append elements - appendMatTime(matlab_time, is_gps)            
+            % Append elements - appendMatTime(matlab_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -193,7 +193,7 @@ classdef GPS_Time < handle
             end
             this.append(GPS_Time(matlab_time, [], is_gps, 0));
         end
-        
+
         function this = appendUnixTime(this, unix_time, fraction_of_second, is_gps)
             % Append elements -  appendUnixTime(uint32(unix_time), fraction_of_second, is_gps)
             if (nargin == 4)
@@ -205,7 +205,7 @@ classdef GPS_Time < handle
             end
             this.append(GPS_Time(unix_time, fraction_of_second, is_gps, 1));
         end
-        
+
         function this = appendRefTime(this, time_matlab_reference, time_difference, is_gps)
             % Append elements - appendRefTime(time_matlab_reference, time_difference, is_gps)
             if (nargin == 4)
@@ -216,30 +216,30 @@ classdef GPS_Time < handle
                 is_gps = this.is_gps;
             end
 
-            this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));            
-        end                    
+            this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));
+        end
     end
-    
-    
-    methods        
+
+
+    methods
         function this = GPS_Time( arg1, arg2, arg3, arg4)
             % Constructor
             % SYNTAX:
             %   t = GPS_Time(matlab_time, <[]>, <is_gps = 1>, <0>);
             %   t = GPS_Time(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
             %   t = GPS_Time(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
-            
-            switch nargin                
+
+            switch nargin
                 % With one parameter I assume to read GPS time in matlab format (string or number)
                 % one value (in seconds) with milliseconds precision since 1 Jan 0000
-                case 1 
+                case 1
                     if isa(arg1,'char')
                         % string time (matlab time)
                         this.GPS_Time_str(arg1);
                     else
                         % matlab time
                         this.GPS_Time_mat(arg1);
-                    end                       
+                    end
                 % With two parameters it can be a unix o ref time format
                 case 2
                     if isa(arg1,'uint32')
@@ -277,20 +277,20 @@ classdef GPS_Time < handle
                         case 2 % GPS_Time.REF_TIME
                             this.GPS_Time_ref(arg1, arg2, arg3);
                         otherwise
-                            this.logger.addError('Unrecognized time format!!!');                                                
-                    end                  
-            end   
+                            this.logger.addError('Unrecognized time format!!!');
+                    end
+            end
             %this.computeLeapSeconds();
         end
-        
+
         function addEpoch(this, arg1, arg2, arg3, arg4)
             % Add epochs to the object as matlab/unix/ref time
             % SYNTAX:
             %   t = t.appendEpoch(matlab_time, <[]>, <is_gps = 1>, <0>);
             %   t = t.appendEpoch(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
             %   t = t.appendEpoch(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
-            
-            switch nargin                
+
+            switch nargin
                 % With one parameter I assume to read GPS time in matlab format
                 % one value (in seconds) with milliseconds precision since 1 Jan 0000
                 case 2
@@ -339,17 +339,17 @@ classdef GPS_Time < handle
                         case 2 % GPS_Time.REF_TIME
                             this.appendRefTime(arg1, arg2, arg3);
                         otherwise
-                            this.logger.addError('Unrecognized time format!!!');                                                
-                    end                  
-            end   
+                            this.logger.addError('Unrecognized time format!!!');
+                    end
+            end
             %this.computeLeapSeconds();
-        end        
-        
+        end
+
         function import(this, time)
             % Copy from an object of the same type (alias to copyFrom)
             this.copyFrom(time)
         end
-        
+
         function copyFrom(this, time)
             % Copy from an object of the same type
             this.time_type = time.time_type;
@@ -362,21 +362,21 @@ classdef GPS_Time < handle
             this.date_format = time.date_format;
             this.leap_seconds = time.leap_seconds;
         end
-        
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = GPS_Time();
             copy.copyFrom(this);
         end
-        
+
         function this = append(this, time, time_type, is_gps)
             % Append a GPS_Time object into the this
-            
+
             % check if the object is empty
             if isempty(this.time_type)
                 this.import(time); % copy time in this
             else
-                
+
                 % When not specified the new format is the format of the append
                 if (nargin < 3)
                     time_type = time.time_type;
@@ -384,40 +384,40 @@ classdef GPS_Time < handle
                 if (nargin < 4)
                     is_gps = time.is_gps;
                 end
-                
+
                 % Merge is done in GPS time -> it has no ambiguity
                 this.toGps;
                 time.toGps;
-                
+
                 switch time_type
                     case 0 % I'm in MAT TIME
                         this.toMatlabTime();
                         time.toMatlabTime();
-                        
+
                         this.mat_time = [this.mat_time(:); time.mat_time(:)];
-                        
+
                     case 1 % I'm in UNIX TIME
                         this.toUnixTime();
                         time.toUnixTime();
-                        
+
                         this.unix_time = [this.unix_time; time.unix_time];
                         this.unix_time_f = [this.unix_time_f; time.unix_time_f];
-                        
+
                     case 2 % I'm in REF TIME
                         this.toRefTime();
                         time.toRefTime();
-                        
+
                         % keep the reference of the this
                         this.time_diff = [this.time_diff; (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
                 end
-                
+
                 % Convert into correct format time
                 if is_gps
                     this.toGps();
                 else
                     this.toUtc();
                 end
-                
+
                 % Compute leap seconds, if the original data stored them
                 if (time.leap_seconds < 999) ||  (this.leap_seconds < 999)
                     this.computeLeapSeconds();
@@ -425,11 +425,11 @@ classdef GPS_Time < handle
             end
         end
     end
-    
+
     % =========================================================================
     %    CONVERSIONS
     % =========================================================================
-    
+
     methods (Access = 'private')
         function leap_seconds = computeLeapSeconds(this)
             % compute the number of leap seconds to subtract to GPS Time to obtain the UTC time
@@ -438,7 +438,7 @@ classdef GPS_Time < handle
             else
                 LEAP_DATES = this.LEAP_DATES_UTC;
             end
-                
+
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     if (numel(this.mat_time) == 1)
@@ -452,7 +452,7 @@ classdef GPS_Time < handle
                             % search for the latest value before the second leap second
                             % max precision of leap dates is 1e-9
                             id_leap = find(round(this.mat_time*1e9) >= round(LEAP_DATES(leap_seconds(2))*1e9),1, 'first') - 1;
-                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.mat_time) - id_leap,1) * leap_seconds(2)];                             
+                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.mat_time) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset
                             lp = length(length(this.mat_time));
                             lp(1) = leap_seconds(1);
@@ -460,7 +460,7 @@ classdef GPS_Time < handle
                             for i = 2:length(this.mat_time)-1
                                 lp(i) = find(this.mat_time > LEAP_DATES, 1, 'last');
                             end
-                            leap_seconds = lp;                            
+                            leap_seconds = lp;
                         end
                     end
                 case 1 % I'm in UNIX TIME
@@ -485,7 +485,7 @@ classdef GPS_Time < handle
                             leap_seconds = lp;
                         end
                     end
-                    
+
                 case 2 % I'm in REF TIME
                     if (numel(this.mat_time) == 1)
                         leap_seconds = find(this.time_ref + this.time_diff  > LEAP_DATES, 1, 'last');
@@ -499,25 +499,25 @@ classdef GPS_Time < handle
                             % max precision of leap dates is 1e-9
                             id_leap = find(round(this.time_diff*1e9) >= round((LEAP_DATES(leap_seconds(2)) - this.time_ref)*1e9),1, 'first') - 1;
                             leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.time_diff) - id_leap,1) * leap_seconds(2)];
-                        else % there are multiple leaps in the dataset                            
+                        else % there are multiple leaps in the dataset
                             lp = length(length(this.time_ref));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
                             for i = 2:length(this.time_ref)-1
                                 lp(i) = find(this.time_ref + this.time_diff  > LEAP_DATES, 1, 'last');
                             end
-                            leap_seconds = lp;                            
+                            leap_seconds = lp;
                         end
                     end
-                    
-            end 
+
+            end
             if ~(this.is_gps)
                 leap_seconds = -leap_seconds;
             end
             this.leap_seconds = leap_seconds;
         end
     end
-    
+
     methods
         function toMatlabTime(this)
             % Convert the internal structure to Matlab Time, precision up to the 0.1 milliseconds precision
@@ -532,13 +532,13 @@ classdef GPS_Time < handle
                     this.unix_time = [];
                     this.unix_time_f = [];
                 case 2 % I'm in REF TIME
-                    this.time_type = 0;                    
+                    this.time_type = 0;
                     this.mat_time = this.time_ref + this.time_diff / 86400;
                     this.time_ref = [];
                     this.time_diff = [];
             end
         end
-        
+
         function toUnixTime(this)
             % Convert the internal structure to Unix Time, precision up to the ps precision
             switch this.time_type
@@ -565,10 +565,10 @@ classdef GPS_Time < handle
                     this.time_ref = [];
                     this.time_diff = [];
             end
-        end          
-        
+        end
+
         function toRefTime(this)
-            % Convert the internal structure to Reference Time, precision up to the ps precision            
+            % Convert the internal structure to Reference Time, precision up to the ps precision
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.time_type = 2;
@@ -589,7 +589,7 @@ classdef GPS_Time < handle
                     % do nothing
             end
         end
-        
+
         function toUtc(this)
             % Transform the internal allocation in UTF format (corrects for cycle-slip
             if (this.is_gps == true)
@@ -601,7 +601,7 @@ classdef GPS_Time < handle
                 this.leap_seconds = -this.leap_seconds;
             end
         end
-        
+
         function toGps(this)
             % Transform the internal allocation in GPS format (corrects for cycle-slips)
             if (this.is_gps == false)
@@ -611,18 +611,18 @@ classdef GPS_Time < handle
                 this.addSeconds(-this.leap_seconds);
                 this.is_gps = true;
                 this.leap_seconds = -this.leap_seconds;
-            end            
+            end
         end
-        
+
         function leap_seconds = getLeapSeconds(this)
             % get the number of leap seconds to subtract to GPS Time to obtain the UTC time
             if (this.leap_seconds >= 999)
                 this.leap_seconds = this.computeLeapSeconds();
             end
             leap_seconds = this.leap_seconds();
-        end        
+        end
     end
-    
+
     % =========================================================================
     %    GETTERS
     % =========================================================================
@@ -632,12 +632,12 @@ classdef GPS_Time < handle
             % Get the memorization type
             is_utc = ~this.is_gps;
         end
-        
+
         function [is_gps] = isGPS(this)
             % Get the memorization type
             is_gps = this.is_gps;
         end
-        
+
         function [len] = numel(this)
             % get number of epochs
             if isempty(this.time_type)
@@ -668,8 +668,8 @@ classdef GPS_Time < handle
                         n_element = length(this.time_diff);
                 end
             end
-        end 
-        
+        end
+
         function [empty]  = isempty(this)
             % return the status of emptyness of the object
             switch this.time_type
@@ -681,7 +681,7 @@ classdef GPS_Time < handle
                     empty = isempty(this.time_diff);
             end
         end
-        
+
         function [nan_list] = isnan(this)
             % return the logical NaN of the object
             switch this.time_type
@@ -707,7 +707,7 @@ classdef GPS_Time < handle
                     mat_time = this.time_ref + this.time_diff / 86400;
             end
         end
-        
+
         function [unix_time, unix_time_f] = getUnixTime(this)
             % get Unix Time, precision up to the ps precision
             switch this.time_type
@@ -729,16 +729,16 @@ classdef GPS_Time < handle
                     unix_time_f = time_s - double(unix_time) + this.time_diff;
             end
         end
-        
-        
+
+
         function changeRef(this, new_time_mat_ref)
             % change the reference time in use by the object to store the data
-            
+
             this.toRefTime(); % the object should store data into ref_time data type
             this.time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
             this.time_ref = new_time_mat_ref;
         end
-        
+
         function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
             % get Reference Time, precision up to the ps precision
             switch this.time_type
@@ -763,7 +763,7 @@ classdef GPS_Time < handle
                 time_ref = new_time_mat_ref;
             end
         end
-        
+
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this)
             % get Reference Time, precision up to the ps precision
             gps_time = this.getCopy();
@@ -771,17 +771,17 @@ classdef GPS_Time < handle
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
         end
-       
+
         function [year, doy] = getDOY(this)
-            % get Reference Time, precision up to the ps precision            
+            % get Reference Time, precision up to the ps precision
             utc_time = this.getCopy();
             utc_time.toGps();
             utc_time.toMatlabTime();
-            
+
             [year, ~] = datevec(utc_time.mat_time);
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
-    
+
         function date_string = toString(this, date_format)
             % Convert a date to string format
             if this.isempty()
@@ -811,9 +811,9 @@ classdef GPS_Time < handle
                 end
             end
         end
-        
+
         function date_string = toStringGpsWeek(this)
-            % Convert a date to string format            
+            % Convert a date to string format
             if this.isempty()
                 date_string = '';
             else
@@ -821,17 +821,17 @@ classdef GPS_Time < handle
                 date_string = sprintf('Week %d - dow %d - sow %d\n', w, d, s);
             end
         end
-        
+
         function new_obj = getId(this,id)
             % Overloading of the operator index ()
-            
+
             if islogical(id)
                 max_id = find(id == true, 1, 'last');
             else
                 max_id = max(id);
             end
-            
-            switch this.time_type                
+
+            switch this.time_type
                 case 0 % I'm in MAT TIME
                     if (length(this.mat_time) >= max_id)
                         new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
@@ -852,28 +852,28 @@ classdef GPS_Time < handle
                     end
             end
         end
-        
+
         function new_obj = first(this)
             % Get first element stored in GPS_Time
             new_obj = this.getId(1);
         end
-        
+
         function new_obj = last(this)
             % Get last element stored in GPS_Time
             new_obj = this.getId(this.length());
-        end                
+        end
     end
-    
+
     % =========================================================================
     %    SETTERS
     % =========================================================================
-    
-    methods        
+
+    methods
         function setDateFormat(this, date_format)
             % Change the default value for "date format"
             this.date_format = date_format;
         end
-        
+
         function delId(this, id)
             % Delete time with id = id
             switch this.time_type
@@ -886,7 +886,7 @@ classdef GPS_Time < handle
                     this.time_diff(id) = [];
             end
         end
-        
+
         function delLast(this)
             % Delete last element stored in GPS_Time
             this.delId(this.length());
@@ -908,12 +908,12 @@ classdef GPS_Time < handle
                         this.unix_time = this.unix_time + uint32(n_seconds);
                     else
                         this.unix_time = this.unix_time - uint32(-n_seconds);
-                    end    
+                    end
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
-            end                          
+            end
         end
-        
+
         function addSeconds(this, n_seconds)
             % Add a floating point number of seconds to all the times
             switch this.time_type
@@ -922,22 +922,22 @@ classdef GPS_Time < handle
                 case 1 % I'm in UNIX TIME
                     if sign(n_seconds) == 1
                         this.unix_time = this.unix_time + uint32(fix(n_seconds));
-                        this.unix_f = this.unix_time + rem(n_seconds,1);                    
+                        this.unix_f = this.unix_time + rem(n_seconds,1);
                     else
                         this.unix_time = this.unix_time - uint32(fix(-n_seconds));
-                        this.unix_f = this.unix_time - rem(n_seconds,1);                    
-                    end    
+                        this.unix_f = this.unix_time - rem(n_seconds,1);
+                    end
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
-            end                          
+            end
         end
     end
-    
+
     % =========================================================================
     %    STATIC UNIX TIME
     % =========================================================================
-    
-    methods (Static, Access = 'public')    
+
+    methods (Static, Access = 'public')
         function [unix_time, unix_time_f] = matToUnixTime(mat_time)
             % Conversion From MATLAB (expressed in days) type to UNIX TIME (expressed in uint32 seconds)
             time_s = round((mat_time - 719529) * 86400 * 1e4)/1e4; % convert mat_time in seconds
@@ -947,29 +947,29 @@ classdef GPS_Time < handle
             end
             unix_time = uint32(fix(time_s));
         end
-        
+
         function [unix_time, unix_time_f] = dateStringToUnixTime(time_string)
             % Conversion From STRING type to UNIX TIME (expressed in uint32 seconds) max precision ~0.1 ms
             [unix_time, unix_time_f] = GPS_Time.matToUnixTime(datenum(time_string));
         end
-             
+
         function [unix_time, unix_time_f] = gpsToUnixTime(gps_week, gps_time)
             % Conversion (shift) from GPS time (January 6, 1980) to UNIX time (January 1, 1970)
             if (nargout == 2)
-                unix_time_f = rem(gps_time,1); 
+                unix_time_f = rem(gps_time,1);
             end
             % constants in matlab are slower than copied values :-( switching to values
             % unix_time = uint32(gps_time - 0.5) + GPS_Time.UNIX_GPS_SEC_DIFF + uint32(gps_week) * GPS_Time.SEC_IN_WEEK;
             unix_time = uint32(gps_time - 0.5) + 315964800 + uint32(gps_week) * 604800;
-        end        
+        end
     end
-    
+
     % =========================================================================
     %    GPS TIME
     % =========================================================================
-    
 
-    methods (Static, Access = 'public')    
+
+    methods (Static, Access = 'public')
         % Shift from UNIX time (January 1, 1970 - msec) to GPS time (January 6, 1980 - sec)
         function [gps_week, gps_sow, gps_dow] = unixTimeToGps(unix_time, unix_time_f)
             % Conversion (shift) from Unix Time (January 1, 1970) to GPS time (January 6, 1980)
@@ -981,7 +981,7 @@ classdef GPS_Time < handle
             gps_week = uint32(fix(double(unix_time - 315964800) / 604800));
             gps_dow = uint32(fix(gps_sow / 86400));
         end
-                
+
         function [gps_week, gps_sow, gps_dow] = date2gps(date_vec)
             % Conversion from calendar date to GPS time.
             % SYNTAX:
@@ -995,19 +995,19 @@ classdef GPS_Time < handle
             %   gps_sow  = GPS seconds of week
             %   gps_dow  = GPS day of week
             gps_start_datenum = 723186; %This is datenum([1980,1,6,0,0,0])
-            
+
             %number of days since the beginning of GPS time
             %deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - gps_start_datenum);
             % hack: datenummmx is faster cause it does not check argins
             deltat   = (datenummx(date_vec(:,1:3)) - gps_start_datenum);
-            
+
             gps_week = floor(deltat/7);            %GPS week
             gps_dow  = floor(deltat - gps_week*7); %GPS day of week
             gps_sow  = (deltat - gps_week*7)*86400;
             gps_sow = gps_sow + date_vec(:,4)*3600 + date_vec(:,5)*60 + date_vec(:,6); %GPS seconds of week
         end
     end
-    
+
     % =========================================================================
     %    TESTS
     % =========================================================================
@@ -1016,7 +1016,7 @@ classdef GPS_Time < handle
         function test()
             % Testing function, tests some basic transformations
             logger = Logger.getInstance(); % Handler to the logger object
-            
+
             logger.addMessage('Testing Class Time - single value UTC');
             tic;
             t = GPS_Time(datenum('01-Jul-1994 00:00:00'), [], false);
@@ -1037,7 +1037,7 @@ classdef GPS_Time < handle
                 logger.addWarning(sprintf('Difference greater than (0.01 ms): %e',t_diff));
             end
             toc
-            
+
             logger.addMessage('Testing Class Time - multiple consecutive values GPS');
             tic;
             mat_time = datenum('01-Jul-1994 00:00:00');
@@ -1063,5 +1063,5 @@ classdef GPS_Time < handle
             toc
         end
     end
-    
+
 end

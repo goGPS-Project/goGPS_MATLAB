@@ -20,18 +20,18 @@
 %    is actually offline, and the GTRF16v01 (or any other RF) cannot be found online.
 %    Since GTRF seems to be based on ITRF (that does not define a reference ellispoid) http://itrf.ign.fr/faq.php?type=answer
 %    The ellipsoid found in the presentation is used as reference
-%   
+%
 %   Useful data for the future (PPP):
 %     - https://www.gsc-europa.eu/support-to-developers/galileo-iov-satellite-metadata#3.2
 
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -53,32 +53,32 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Galileo_SS < Satellite_System            
-    properties (Constant, Access = 'public')        
+classdef Galileo_SS < Satellite_System
+    properties (Constant, Access = 'public')
         SYS_EXT_NAME = 'Galileo'; % full name of the constellation
         SYS_NAME     = 'GAL';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         SYS_C        = 'E';       % Satellite system (ss) character id
-        
+
         % System frequencies as struct [MHz]
         F = struct('E1', 1575.420, ...
                    'E5a', 1176.450, ...
                    'E5b', 1207.140, ...
                    'E5', 1191.795, ...
-                   'E6', 1278.750) 
-        
+                   'E6', 1278.750)
+
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(Galileo_SS.F) * 1e6;  
-        
+        F_VEC = struct2array(Galileo_SS.F) * 1e6;
+
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ Galileo_SS.F_VEC;   
-        
+        L_VEC = 299792458 ./ Galileo_SS.F_VEC;
+
         N_SAT = 30;       % Maximum number of satellite in the constellation
         PRN = (1 : 30)';  % Satellites id numbers as defined in the constellation
     end
-    
+
     properties (Constant, Access = 'private')
         % GPS (WGS84) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
@@ -89,7 +89,7 @@ classdef Galileo_SS < Satellite_System
         % GPS (WGS84) Ellipsoid Eccentricity
         ELL_E = sqrt(Galileo_SS.ELL_E2);
     end
-    
+
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986004418e14, ...               % Galileo (Galileo-ICD) Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -100,17 +100,17 @@ classdef Galileo_SS < Satellite_System
                                     'E', Galileo_SS.ELL_E, ...          % Eccentricity
                                     'E2', Galileo_SS.ELL_E2));          % Eccentricity^2
     end
-    
+
     methods
         function this = Galileo_SS(offset)
-            % Creator            
+            % Creator
             % SYNTAX: Galileo_SS(<offset>);
             if (nargin == 0)
                 offset = 0;
             end
             this@Satellite_System(offset);
         end
-                        
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = Galileo_SS(this.getOffset());

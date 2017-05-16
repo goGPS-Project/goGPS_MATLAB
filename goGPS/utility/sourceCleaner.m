@@ -52,7 +52,7 @@ for i = 1 : length(list)
     fid = fopen(file_name, 'r');
     txt = fread(fid,'*char')';
     fclose(fid);
-    clean_txt = regexprep(txt,'([ |\t]*(?=\n))','');
+    clean_txt = regexprep(txt,'([ |\t|\r]*(?=\n))','');
     if not(isempty(clean_txt))
         fid = fopen(file_name, 'w');
         fwrite(fid, clean_txt);

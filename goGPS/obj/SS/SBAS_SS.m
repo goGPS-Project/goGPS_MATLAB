@@ -13,12 +13,12 @@
 
 %
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -40,29 +40,29 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef SBAS_SS < Satellite_System  
-    properties (Constant, Access = 'public')        
+classdef SBAS_SS < Satellite_System
+    properties (Constant, Access = 'public')
         SYS_EXT_NAME = 'SBAS';    % full name of the constellation
         SYS_NAME     = 'SBS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         SYS_C        = 'S';       % Satellite system (ss) character id
 
         % System frequencies as struct [MHz]
         F = struct('L1', 1575.420, ...
-                   'L2', 1227.600) 
-        
+                   'L2', 1227.600)
+
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(SBAS_SS.F) * 1e6;  
-        
+        F_VEC = struct2array(SBAS_SS.F) * 1e6;
+
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ SBAS_SS.F_VEC;   
-        
+        L_VEC = 299792458 ./ SBAS_SS.F_VEC;
+
         N_SAT = 0;           % Maximum number of satellite in the constellation
         PRN = (0 : 0)';      % Satellites id numbers as defined in the constellation
     end
-    
+
     properties (Constant, Access = 'private')
         % SBAS (WGS84) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
@@ -73,7 +73,7 @@ classdef SBAS_SS < Satellite_System
         % SBAS (WGS84) Ellipsoid Eccentricity
         ELL_E = sqrt(SBAS_SS.ELL_E2);
     end
-    
+
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986005e14, ...                  % Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -84,7 +84,7 @@ classdef SBAS_SS < Satellite_System
                                     'E', SBAS_SS.ELL_E, ...              % Eccentricity
                                     'e2', SBAS_SS.ELL_E2));              % Eccentricity^2
     end
-    
+
     methods
         function this = SBAS_SS(offset)
             % Creator
@@ -94,11 +94,11 @@ classdef SBAS_SS < Satellite_System
             end
             this@Satellite_System(offset);
         end
-        
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = SBAS_SS(this.getOffset());
             copy.import(this);
-        end        
+        end
     end
 end

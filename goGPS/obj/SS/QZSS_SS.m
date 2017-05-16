@@ -10,7 +10,7 @@
 %
 %   *_QZS --> GRS80    (IS-QZSS 1.8E)
 %   Standard: http://qz-vision.jaxa.jp/USE/is-qzss/DOCS/IS-QZSS_18_E.pdf
-% 
+%
 %   Other useful links
 %     - http://www.navipedia.net/index.php/QZSS_Signal_Plan
 %     - Ellipsoid: http://www.unoosa.org/pdf/icg/2012/template/WGS_84.pdf
@@ -19,12 +19,12 @@
 %     - http://gage6.upc.es/eknot/Professional_Training/PDF/Reference_Systems.pdf
 
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -46,7 +46,7 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 classdef QZSS_SS < Satellite_System
@@ -54,23 +54,23 @@ classdef QZSS_SS < Satellite_System
         SYS_EXT_NAME = 'QZSS';    % full name of the constellation
         SYS_NAME     = 'QZS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         SYS_C        = 'J';       % Satellite system (ss) character id
-        
+
         % System frequencies as struct [MHz]
-        F = struct('J1', 1575.420, ... 
+        F = struct('J1', 1575.420, ...
                    'J2', 1227.600, ...
                    'J5', 1176.450, ...
                    'J6', 1278.750)
-        
+
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(QZSS_SS.F) * 1e6;  
-        
+        F_VEC = struct2array(QZSS_SS.F) * 1e6;
+
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ QZSS_SS.F_VEC;   
-        
+        L_VEC = 299792458 ./ QZSS_SS.F_VEC;
+
         N_SAT = 4;           % Maximum number of satellite in the constellation
         PRN = (193 : 196)';  % Satellites id numbers as defined in the constellation
     end
-    
+
     properties (Constant, Access = 'private')
         % QZSS (GRS80) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
@@ -81,7 +81,7 @@ classdef QZSS_SS < Satellite_System
         % QZSS (GRS80) Ellipsoid Eccentricity
         ELL_E = sqrt(QZSS_SS.ELL_E2);
     end
-    
+
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986005e14, ...                  % Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -92,17 +92,17 @@ classdef QZSS_SS < Satellite_System
                                     'E', QZSS_SS.ELL_E, ...             % Eccentricity
                                     'E2', QZSS_SS.ELL_E2));             % Eccentricity^2
     end
-    
+
     methods
         function this = QZSS_SS(offset)
-            % Creator                  
+            % Creator
             % SYNTAX: QZSS_SS(<offset>)
             if (nargin == 0)
                 offset = 0;
             end
             this@Satellite_System(offset);
         end
-                
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = QZSS_SS(this.getOffset());

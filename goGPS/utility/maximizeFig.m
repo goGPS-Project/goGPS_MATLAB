@@ -1,6 +1,6 @@
 function maximizeFig(fig_handle)
 % Maximize the figure
-% SYNTAX: 
+% SYNTAX:
 %   maximizeFig(<fig_handle>);
 %
 % EXAMPLE:
@@ -46,7 +46,7 @@ function maximizeFig(fig_handle)
 if nargin < 1
     fig_handle = gcf;
 end
-    set(fig_handle, 'units','normalized', 'outerposition',[0 0 1 1]);    
+    set(fig_handle, 'units','normalized', 'outerposition',[0 0 1 1]);
 %     try
 %         if isa(fig_handle, 'matlab.ui.Figure')
 %             fig_handle = get(fig_handle,'Number');

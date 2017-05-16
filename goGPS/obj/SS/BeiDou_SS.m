@@ -17,12 +17,12 @@
 %     - http://gage6.upc.es/eknot/Professional_Training/PDF/Reference_Systems.pdf
 %
 %--------------------------------------------------------------------------
-%               ___ ___ ___ 
-%     __ _ ___ / __| _ | __|
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 2
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
@@ -44,31 +44,31 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef BeiDou_SS < Satellite_System             
-    properties (Constant, Access = 'public')        
+classdef BeiDou_SS < Satellite_System
+    properties (Constant, Access = 'public')
         SYS_EXT_NAME = 'BeiDou';  % full name of the constellation
         SYS_NAME     = 'BDS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         SYS_C        = 'C';       % Satellite system (ss) character id
-        
+
         % System frequencies as struct [MHz]
         F = struct('C2', 1561.098, ...
                    'C5b', 1207.140, ...
                    'C6', 1268.520, ...
-                   'C1', 1589.740) 
-        
+                   'C1', 1589.740)
+
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(BeiDou_SS.F) * 1e6;  
-        
+        F_VEC = struct2array(BeiDou_SS.F) * 1e6;
+
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ BeiDou_SS.F_VEC;   
-        
+        L_VEC = 299792458 ./ BeiDou_SS.F_VEC;
+
         N_SAT = 37;       % Maximum number of satellite in the constellation
         PRN = (1 : 37)';  % Satellites id numbers as defined in the constellation
     end
-    
+
     properties (Constant, Access = 'private')
         % GPS (WGS84) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
@@ -79,7 +79,7 @@ classdef BeiDou_SS < Satellite_System
         % GPS (WGS84) Ellipsoid Eccentricity
         ELL_E = sqrt(BeiDou_SS.ELL_E2);
     end
-    
+
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986004418e14, ...               % BeiDou (BeiDou-ICD 1.0) Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -90,7 +90,7 @@ classdef BeiDou_SS < Satellite_System
                                     'E', BeiDou_SS.ELL_E, ...               % Eccentricity
                                     'E2', BeiDou_SS.ELL_E2));               % Eccentricity^2
     end
-    
+
     methods
         function this = BeiDou_SS(offset)
             % Creator
@@ -100,7 +100,7 @@ classdef BeiDou_SS < Satellite_System
             end
             this@Satellite_System(offset);
         end
-                                
+
         function copy = getCopy(this)
             % Get a copy of this
             copy = BeiDou_SS(this.getOffset());
