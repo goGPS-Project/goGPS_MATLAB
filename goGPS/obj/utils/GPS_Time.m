@@ -83,7 +83,7 @@ classdef GPS_Time < handle
     end
                           
                           
-    properties (Constant, GetAccess = public)        
+    properties (Constant, GetAccess = private)        
         MAT_TIME = 0;       % time_type value for times stored in matalb format: (double array) time in days since January 1, 0000 (matlab datenum fomat), precision up to the 0.1 milliseconds
         UNIX_TIME = 1;      % time_type value for times stored in unix format: (uint32 array) time in seconds since January 1, 1970 (UNIX standard) + (double array) fraction of seconds
         REF_TIME = 2;       % time_type value for times stored in time_ref: (double) origin of the "time system" expressed in datenum format + (double array) difference in seconds w.r.t. time_ref
@@ -730,8 +730,17 @@ classdef GPS_Time < handle
             end
         end
         
-        function [time_diff, time_ref] = getRefTime(this)
-            % get Reference Time, precision up to the ps precision            
+        
+        function changeRef(this, new_time_mat_ref)
+            % change the reference time in use by the object to store the data
+            
+            this.toRefTime(); % the object should store data into ref_time data type
+            this.time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+            this.time_ref = new_time_mat_ref;
+        end
+        
+        function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
+            % get Reference Time, precision up to the ps precision
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     time_ref = fix(this.mat_time(1));
@@ -746,6 +755,12 @@ classdef GPS_Time < handle
                 case 2 % I'm in REF TIME
                     time_ref = this.time_ref;
                     time_diff = this.time_diff;
+            end
+
+            % optional change of reference
+            if (nargin == 2)
+                time_diff = time_diff + (time_ref - new_time_mat_ref) * 86400;
+                time_ref = new_time_mat_ref;
             end
         end
         
