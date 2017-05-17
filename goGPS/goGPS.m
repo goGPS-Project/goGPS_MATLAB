@@ -422,11 +422,11 @@ for s = 1 : num_session
 
                 %read observation RINEX file(s)
                 [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-                    time_zero, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
+                    zero_time, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
                     load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
 
-                time_GPS = time_zero + time_GPS_diff;
-                time_R = time_zero + time_R_diff;
+                time_GPS = zero_time + time_GPS_diff;
+                time_R = zero_time + time_R_diff;
 
                 %read navigation RINEX file(s)
                 [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
@@ -664,12 +664,12 @@ for s = 1 : num_session
 
                 %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
                 if (flag_SP3)
-                    SP3.time    = SP3.time - time_zero;
-                    SP3.time_hr = SP3.time_hr - time_zero;
-                    SP3.t_sun   = SP3.t_sun - time_zero;
+                    SP3.time    = SP3.time - zero_time;
+                    SP3.time_hr = SP3.time_hr - zero_time;
+                    SP3.t_sun   = SP3.t_sun - zero_time;
                 end
-                Eph(32,:) = Eph(32,:) - time_zero;
-                Eph(33,:) = Eph(33,:) - time_zero;
+                Eph(32,:) = Eph(32,:) - zero_time;
+                Eph(33,:) = Eph(33,:) - zero_time;
 
                 for f = 1 : size(time_R,3)
 
@@ -719,11 +719,11 @@ for s = 1 : num_session
 
                 %read observation RINEX file(s)
                 [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-                    time_zero, time_GPS_diff, time_RM_diff, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
+                    zero_time, time_GPS_diff, time_RM_diff, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
                     load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
 
-                time_GPS = time_zero + time_GPS_diff;
-                time_RM = time_zero + time_RM_diff;
+                time_GPS = zero_time + time_GPS_diff;
+                time_RM = zero_time + time_RM_diff;
 
                 [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
                 if (flag_return)
@@ -1045,12 +1045,12 @@ for s = 1 : num_session
 
                     %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
                     if (flag_SP3)
-                        SP3.time    = SP3.time - time_zero;
-                        SP3.time_hr = SP3.time_hr - time_zero;
-                        SP3.t_sun   = SP3.t_sun - time_zero;
+                        SP3.time    = SP3.time - zero_time;
+                        SP3.time_hr = SP3.time_hr - zero_time;
+                        SP3.t_sun   = SP3.t_sun - zero_time;
                     end
-                    Eph(32,:) = Eph(32,:) - time_zero;
-                    Eph(33,:) = Eph(33,:) - time_zero;
+                    Eph(32,:) = Eph(32,:) - zero_time;
+                    Eph(33,:) = Eph(33,:) - zero_time;
 
                     %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, order);
                     [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
@@ -2988,17 +2988,17 @@ for s = 1 : num_session
         end
 
         %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-        time_GPS = time_GPS_diff + time_zero;
-        time_R   = time_R_diff   + time_zero;
+        time_GPS = time_GPS_diff + zero_time;
+        time_R   = time_R_diff   + zero_time;
         if goGNSS.isDD(mode)
-            time_M   = time_M_diff + time_zero;
+            time_M   = time_M_diff + zero_time;
         end
-        Eph(32,:) = Eph(32,:) + time_zero;
-        Eph(33,:) = Eph(33,:) + time_zero;
+        Eph(32,:) = Eph(32,:) + zero_time;
+        Eph(33,:) = Eph(33,:) + zero_time;
         if (flag_SP3)
-            SP3.time    = SP3.time + time_zero;
-            SP3.time_hr = SP3.time_hr + time_zero;
-            SP3.t_sun   = SP3.t_sun + time_zero;
+            SP3.time    = SP3.time + zero_time;
+            SP3.time_hr = SP3.time_hr + zero_time;
+            SP3.t_sun   = SP3.t_sun + zero_time;
         end
 
         %---------------------------------

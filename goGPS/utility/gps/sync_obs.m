@@ -113,7 +113,7 @@ codeC1 = zeros(nSatTot, ref_len, nObsSet);
 % time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
 % time_GPS_prog = time_GPS - min_time_prog;
 
-time_zero = time_GPS(1);
+time_zero = time_GPS(ceil(end/2));
 time_GPS = time_GPS - time_zero;
 
 for s = 1 : nObsSet
