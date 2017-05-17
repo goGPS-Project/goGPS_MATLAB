@@ -91,7 +91,13 @@ if (processing_interval > max_int)
 end
 
 % define the reference time
-time_GPS = (ceil(min_time/max_int)*max_int : max_int : roundmod(max_time,max_int))';
+time_zero = ceil(min_time/max_int)*max_int;
+max_time_diff = round((roundmod(max_time,max_int) - time_zero) / max_int);
+time_GPS = (0 : 1 : max_time_diff)' * max_int;
+
+% -1 needed for preprocessing, there is a bug somewere in there
+time_zero = time_zero - 1;
+time_GPS = time_GPS + 1;
 
 % number of reference epochs
 ref_len = length(time_GPS);
@@ -109,12 +115,6 @@ dop2 = zeros(nSatTot, ref_len, nObsSet);
 snr1 = zeros(nSatTot, ref_len, nObsSet);
 snr2 = zeros(nSatTot, ref_len, nObsSet);
 codeC1 = zeros(nSatTot, ref_len, nObsSet);
-
-% time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
-% time_GPS_prog = time_GPS - min_time_prog;
-
-time_zero = time_GPS(ceil(end/2));
-time_GPS = time_GPS - time_zero;
 
 for s = 1 : nObsSet
     time_prog = time_i(s).getGpsTime(time_zero); % substract the first element to reduce the magnitude of all the values

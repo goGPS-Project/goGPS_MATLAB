@@ -181,7 +181,7 @@ classdef GPS_Time < handle
                 % I want to keep precision (let's use Unix time)
                 s = floor(date(:,6));
                 unix_time = unix_time + uint32(date(:,4)) * 3600 + uint32(date(:,5)) * 60 + uint32(s);  %#ok<PROPLC>
-                fraction_of_second = date(:,6) - s;
+                fraction_of_second = round((date(:,6) - s)*1e14)/1e14;
             else
                 fraction_of_second = 0;
             end
@@ -265,7 +265,7 @@ classdef GPS_Time < handle
                 this.toUnixTime();
                 s = floor(date(:,6));
                 unix_time = unix_time + uint32(date(:,4)) * 3600 + uint32(date(:,5)) * 60 + uint32(s);  %#ok<PROPLC>
-                fraction_of_second = date(:,6) - s;
+                fraction_of_second = round((date(:,6) - s)*1e14)/1e14;
             else
                 fraction_of_second = 0;
             end
@@ -877,7 +877,8 @@ classdef GPS_Time < handle
                 % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
                 gps_time = double(unix_time - uint32(315964800)) + unix_time_f;  %#ok<PROPLC>
             else
-                gps_time = (double(unix_time - uint32(315964800)) - gps_offset) + unix_time_f; %#ok<PROPLC>
+                max_digits = 15-ceil(log10(gps_offset));
+                gps_time = round((double(unix_time - uint32(315964800)) - gps_offset) * max_digits) / max_digits + unix_time_f; %#ok<PROPLC>
             end
         end
 
@@ -903,7 +904,10 @@ classdef GPS_Time < handle
                 else
                     time = this.getMatlabTime();
                     time(isnan(time)) = 0;
-                    date_string = datestr(time, this.date_format);
+                    date_6col = datevec(time);
+                    [~, fraction_of_seconds] = this.getUnixTime();
+                    date_6col(:,6) = floor(date_6col(:,6)) + fraction_of_seconds;
+                    date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%016.13f', date_6col')',33,numel(time))';
                 end
                 if (nargin == 1)
                     if this.isGPS()
@@ -920,8 +924,6 @@ classdef GPS_Time < handle
                 end
             end
         end
-
-
 
         function date_string = toStringGpsWeek(this)
             % Convert a date to string format
