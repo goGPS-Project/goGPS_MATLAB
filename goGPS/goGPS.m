@@ -1534,7 +1534,7 @@ for s = 1 : num_session
                 kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS_diff(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
 
                 if (~kalman_initialized)
-                    time_GPS_diff(1) = []; week_R(1) = [];
+                    time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                     if not(isempty(intersect(frequencies,1)))
                         pr1_R(:,1) = []; ph1_R(:,1) = []; dop1_R(:,1) = [];
                     end
