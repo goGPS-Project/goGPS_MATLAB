@@ -1,13 +1,11 @@
-function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
-          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval)
-
+function [time_zero, time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
+          sync_obs(time_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval)
 % SYNTAX:
-%   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
-%   sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval);
+%   [time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
+%   sync_obs(time_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval);
 %
 % INPUT:
-%   time_i = receiver seconds-of-week
-%   week_i = GPS week
+%   time_i = receiver GPS_Time
 %   date_i = date (year,month,day,hour,minute,second)
 %   pr1_i = code observation (L1 carrier)
 %   ph1_i = phase observation (L1 carrier)
@@ -21,8 +19,9 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   processing_interval = processing time interval [s]
 %
 % OUTPUT:
-%   time_ref = reference seconds-of-week
-%   time = receiver seconds-of-week
+%   time_zero = reference epoch as seconds from 6 Jan 1980
+%   time_GPS = nominal seconds from time_zero
+%   time = receiver seconds from time_zero
 %   week = GPS week
 %   date = date (year,month,day,hour,minute,second)
 %   pr1 = code observation (L1 carrier)
@@ -68,34 +67,36 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-%number of satellite slots
+% number of satellite slots
 nSatTot = size(pr1_i,1);
 
-%number of observation datasets (e.g. number of read RINEX files)
+% number of observation datasets (e.g. number of read RINEX files)
 nObsSet = size(pr1_i,3);
 
-%find min and max time tags (in common among all observation datasets)
-time_i_nan = time_i;
-time_i_nan(permute(sum(pr1_i,1),[2 1 3])==0) = NaN; %set NaN to epochs which don't have any pseudorange
-min_time = max(min(time_i_nan,[],1));
-min_time_prog = min(min(time_i_nan,[],1));
-max_time = min(max(time_i_nan,[],1));
+% logical indexes of all the receivers [n_epochs x 1 x n_rec] where pr is valid
+id_ok = (permute(sum(pr1_i,1),[2 1 3]) > 0);
 
-%find the largest interval
+min_time = inf;
+max_time = -inf;
+for s = 1 : nObsSet
+    min_time = min(min_time, time_i(s).first(squeeze(id_ok(:,1,s))).getGpsTime());
+    max_time = max(max_time, time_i(s).last(squeeze(id_ok(:,1,s))).getGpsTime());
+end
+clear id_ok;
+
+% find the largest interval
 max_int = max(interval(:));
 if (processing_interval > max_int)
     max_int = processing_interval;
 end
 
-%define the reference time
-time_ref = (ceil(min_time/max_int)*max_int : max_int : roundmod(max_time,max_int))';
-tow_ref = mod(time_ref,60*60*24*7);
-tow_ref=roundmod(tow_ref,max_int);
+% define the reference time
+time_GPS = (ceil(min_time/max_int)*max_int : max_int : roundmod(max_time,max_int))';
 
-%number of reference epochs
-ref_len = length(tow_ref);
+% number of reference epochs
+ref_len = length(time_GPS);
 
-%create containers
+% create containers
 time = zeros(ref_len, 1, nObsSet);
 week = zeros(ref_len, 1, nObsSet);
 date = zeros(ref_len, 6, nObsSet);
@@ -110,15 +111,17 @@ snr2 = zeros(nSatTot, ref_len, nObsSet);
 codeC1 = zeros(nSatTot, ref_len, nObsSet);
 
 % time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
-% time_ref_prog = time_ref - min_time_prog;
+% time_GPS_prog = time_GPS - min_time_prog;
 
-time_prog = time_i - time_ref(1); % substract the first element to reduce the magnitude of all the values
-time_ref_prog = time_ref - time_ref(1);
+time_zero = time_GPS(1);
+time_GPS = time_GPS - time_zero;
 
 for s = 1 : nObsSet
-    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));
-    time(idx_t, s) = time_i(idx_z, 1, s);
-    week(idx_t, s) = week_i(idx_z, 1, s);
+    time_prog = time_i(s).getGpsTime(time_zero); % substract the first element to reduce the magnitude of all the values
+    [~, idx_t, idx_z] = intersect(roundmod(time_GPS, max_int), roundmod(time_prog, interval(s)));
+    tmp_time = time_i(s).getId(idx_z);
+    time(idx_t, s) = tmp_time.getGpsTime(time_zero);
+    week(idx_t, s) = tmp_time.getGpsWeek();
     date(idx_t, :, s) = date_i(idx_z, :, s);
     pr1(:,  idx_t, s) = pr1_i(:, idx_z, s);
     ph1(:,  idx_t, s) = ph1_i(:, idx_z, s);

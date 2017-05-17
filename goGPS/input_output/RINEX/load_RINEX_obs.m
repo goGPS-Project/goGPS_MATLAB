@@ -1,10 +1,10 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
+          time_zero, time_GPS, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
           load_RINEX_obs(filename, cc, processing_interval, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-%    time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
+%    time_GPS, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
 %    load_RINEX_obs(filename, cc, processing_interval, wait_dlg);
 %
 % INPUT:
@@ -46,7 +46,8 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     Damianop Triglione,
-%                    Stefano Caldera, ...
+%                    Stefano Caldera,
+%                    Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -91,10 +92,7 @@ else
 end
 
 %variable initialization
-nEpochs = 90000;
-time = NaN(nEpochs,1,nFiles);
-tow = NaN(nEpochs,1,nFiles);
-week = NaN(nEpochs,1,nFiles);
+nEpochs = 87000;
 pr1 = NaN(nSatTot,nEpochs,nFiles);
 pr2 = NaN(nSatTot,nEpochs,nFiles);
 ph1 = NaN(nSatTot,nEpochs,nFiles);
@@ -111,21 +109,21 @@ antmod = cell(1,1,nFiles);
 codeC1 = zeros(nSatTot,nEpochs,nFiles);
 marker = cell(1,1,nFiles);
 
+max_k = 0;
 for f = 1 : nFiles
-
     if (iscell(filename))
         current_file = filename{f,1};
     else
         current_file = filename;
     end
 
-    fprintf('%s',['Reading RINEX file ' current_file ': ... ']);
+    fprintf('%s', ['Reading RINEX file ' current_file ': ... ']);
 
     %open RINEX observation file
     fid = fopen(current_file,'r');
 
     if (wait_dlg_PresenceFlag)
-        waitbar(0.5,wait_dlg,['RINEX file ' current_file ': parsing header...'])
+        waitbar(0.5,wait_dlg, ['RINEX file ' current_file ': parsing header...'])
     end
 
     %parse RINEX header
@@ -153,8 +151,8 @@ for f = 1 : nFiles
     while (~feof(fid))
 
         %read data for the current epoch (ROVER)
-        [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
-        if ~isnan(time(k,1,f))
+        [date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch(fid);
+        if ~isempty(date(k,1,f))
             if (k > nEpochs)
                 %variable initialization (GPS)
                 pr1(:,k,f) = zeros(nSatTot,1);
@@ -198,16 +196,16 @@ for f = 1 : nFiles
         end
     end
 
+    max_k = max(max_k, k-1);
+
     if (wait_dlg_PresenceFlag)
         waitbar(1,wait_dlg)
     end
 
-    %GPS week number
-    week(:,1,f) = date2gps(date(:,:,f));
-
-    %observation rate
-    if (interval(:,1,f) == 0)
-        interval(:,1,f) = round((median(time(2:k-1,1,f) - time(1:k-2,1,f)))*1000)/1000;
+    time(f) = GPS_Time(date(1:k-1,:,f));
+    % try to guess observation rate when not read from header
+    if (interval(1,1,f) == 0)
+        interval(1,1,f) = time(f).getRate();
     end
 
     %-------------------------------------------------------------------------------
@@ -251,7 +249,7 @@ for f = 1 : nFiles
         else
             report.obs_raw.nfreq(f)=1;
         end
-        report.obs_raw.n_epoch_expected(f) = length((roundmod(time(1,1,f),interval(1,1,f)) : interval(1,1,f) : roundmod(time(k-1,1,f),interval(1,1,f))));
+        report.obs_raw.n_epoch_expected(f) = time(f).getExpectedLen();
 
         report.obs_raw.epoch_completeness(f)=report.obs_raw.n_epoch(f)/report.obs_raw.n_epoch_expected(f)*100;
         if report.obs_raw.nfreq(f) == 2
@@ -264,9 +262,21 @@ for f = 1 : nFiles
     fprintf('done\n');
 end
 
+% trim output (it have been pre-allocated bigger)
+pr1 = pr1(:,(1 : max_k),:);
+pr2 = pr2(:,(1 : max_k),:);
+ph1 = ph1(:,(1 : max_k),:);
+ph2 = ph2(:,(1 : max_k),:);
+dop1 = dop1(:,(1 : max_k),:);
+dop2 = dop2(:,(1 : max_k),:);
+snr1 = snr1(:,(1 : max_k),:);
+snr2 = snr2(:,(1 : max_k),:);
+date = date((1 : max_k),:,:);
+codeC1 = codeC1(:,(1 : max_k),:);
+
 %sync observations
-[time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
-sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
+[time_zero, time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
+sync_obs(time, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
 
 for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);
@@ -319,4 +329,3 @@ if (~isempty(report) && report.opt.write == 1)
         end
     end
 end
-

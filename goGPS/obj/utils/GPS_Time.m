@@ -50,7 +50,7 @@
 
 classdef GPS_Time < handle
 
-    properties (Constant, GetAccess = private)
+    properties (Constant, GetAccess = public)
         DAYS_IN_WEEK = uint32(7);               % Number of days in a week
         SEC_IN_DAY  = uint32(86400);            % Number of seconds in a day
         SEC_IN_HALF_WEEK = uint32(302400);      % Number of seconds in a half a week
@@ -79,7 +79,7 @@ classdef GPS_Time < handle
 %                               '2012/07/01'; '2015/07/01'; '2017/01/01'})
 
         GPS_ZERO = 723186;              % datenum('Jan 6, 1980')
-        UNIX_REF = 719529;              % datenum('Jan 1, 1970')
+        UNIX_ZERO = 719529;             % datenum('Jan 1, 1970')
     end
 
 
@@ -170,7 +170,7 @@ classdef GPS_Time < handle
                 is_gps = true;
             end
 
-            unx_ref = 719529; % this.UNIX_REF
+            unx_ref = 719529; % this.UNIX_ZERO
 
             % number of days since the beginning of Unix time
             % deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - unx_ref);
@@ -253,7 +253,7 @@ classdef GPS_Time < handle
                 is_gps = this.is_gps;
             end
 
-            unx_ref = 719529; % this.UNIX_REF
+            unx_ref = 719529; % this.UNIX_ZERO
 
             % number of days since the beginning of Unix time
             % deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - unx_ref);
@@ -601,7 +601,7 @@ classdef GPS_Time < handle
                 case 1 % I'm in UNIX TIME
                     this.time_type = 0;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
                     this.mat_time = ((double(this.unix_time) + this.unix_time_f) / 86400 + 719529);
                     this.unix_time = [];
                     this.unix_time_f = [];
@@ -619,7 +619,7 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
@@ -631,7 +631,7 @@ classdef GPS_Time < handle
                 case 2 % I'm in REF TIME
                     this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
                     this.unix_time_f = time_s - double(this.unix_time) + this.time_diff;
@@ -653,7 +653,7 @@ classdef GPS_Time < handle
                 case 1 % I'm already in UNIX TIME
                     this.time_type = 2;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF;
+                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;
                     this.time_ref = fix(time_d(1));
                     this.time_diff = ((time_d - this.time_ref) * 86400) + this.unix_time_f;
@@ -785,7 +785,7 @@ classdef GPS_Time < handle
                     rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
                 case 1 % I'm in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
                     tmp_time = double(this.unix_time) + this.unix_time_f;
                     rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
                 case 2 % I'm in REF TIME
@@ -800,7 +800,7 @@ classdef GPS_Time < handle
                     mat_time = this.mat_time;
                 case 1 % I'm in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
                     mat_time = ((double(this.unix_time) + this.unix_time_f) / 86400 + 719529);
                 case 2 % I'm in REF TIME
                     mat_time = this.time_ref + this.time_diff / 86400;
@@ -812,7 +812,7 @@ classdef GPS_Time < handle
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
@@ -822,7 +822,7 @@ classdef GPS_Time < handle
                     unix_time_f = this.unix_time_f;
                 case 2 % I'm in REF TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
                     unix_time_f = time_s - double(unix_time) + this.time_diff;
@@ -846,7 +846,7 @@ classdef GPS_Time < handle
                     time_diff = (this.mat_time - time_ref) * 86400;
                 case 1 % I'm already in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF;
+                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;
                     time_ref = fix(time_d(1));
                     time_diff = ((time_d - time_ref) * 86400) + this.unix_time_f;
@@ -870,11 +870,15 @@ classdef GPS_Time < handle
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
         end
 
-        function [gps_time] = getGpsTime(this)
+        function [gps_time] = getGpsTime(this, gps_offset)
             % Get time as number of seconds from Jan 6, 1980
-            [unix_time, unix_time_f] = this.getUnixTime(); %#ok<PROP>
-            % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
-            gps_time = double(unix_time - uint32(315964800)) + unix_time_f; %#ok<PROP>
+            [unix_time, unix_time_f] = this.getUnixTime(); %#ok<PROPLC>
+            if nargin == 1
+                % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
+                gps_time = double(unix_time - uint32(315964800)) + unix_time_f;  %#ok<PROPLC>
+            else
+                gps_time = (double(unix_time - uint32(315964800)) - gps_offset) + unix_time_f; %#ok<PROPLC>
+            end
         end
 
         function [year, doy] = getDOY(this)
@@ -960,14 +964,31 @@ classdef GPS_Time < handle
             end
         end
 
-        function new_obj = first(this)
+        function new_obj = first(this, id_subset)
             % Get first element stored in GPS_Time
-            new_obj = this.getId(1);
+            if (nargin == 1)
+                new_obj = this.getId(1);
+            else
+                if islogical(id_subset)
+                    new_obj = this.getId(find(id_subset, 1, 'first'));
+                else
+                    new_obj = this.getId(id_subset(1));
+                end
+            end
         end
 
-        function new_obj = last(this)
+        function new_obj = last(this, id_subset)
             % Get last element stored in GPS_Time
-            new_obj = this.getId(this.length());
+            if (nargin == 1)
+                new_obj = this.getId(this.length());
+            else
+                if islogical(id_subset)
+                    new_obj = this.getId(find(id_subset(1 : this.length()), 1, 'last'));
+                else
+                    id_subset = id_subset(id_subset < this.length());
+                    new_obj = this.getId(id_subset(end));
+                end
+            end
         end
     end
 

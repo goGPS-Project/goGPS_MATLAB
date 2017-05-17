@@ -186,7 +186,7 @@ while (~feof(fid))
         while isempty(lin8)
             lin8 = fgetl(fid);
             %while lin8(end) == ' ', lin8 = lin8(1:end-1); end
-            lin8 = RemoveUnwantedTrailingSpaces(lin8);
+            lin8 = deblank(lin8);
         end
     end
 

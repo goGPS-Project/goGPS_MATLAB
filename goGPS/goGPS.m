@@ -422,8 +422,11 @@ for s = 1 : num_session
 
                 %read observation RINEX file(s)
                 [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-                    time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
+                    time_zero, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
                     load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
+
+                time_GPS = time_zero + time_GPS_diff;
+                time_R = time_zero + time_R_diff;
 
                 %read navigation RINEX file(s)
                 [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
@@ -661,17 +664,12 @@ for s = 1 : num_session
 
                 %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
                 if (flag_SP3)
-                    zero_time = min(SP3.time,[],1) - 1;
-                    SP3.time    = SP3.time - zero_time;
-                    SP3.time_hr = SP3.time_hr - zero_time;
-                    SP3.t_sun   = SP3.t_sun - zero_time;
-                else
-                    zero_time = min(time_GPS,[],1) - 1;
+                    SP3.time    = SP3.time - time_zero;
+                    SP3.time_hr = SP3.time_hr - time_zero;
+                    SP3.t_sun   = SP3.t_sun - time_zero;
                 end
-                time_GPS  = time_GPS  - zero_time;
-                time_R    = time_R    - zero_time;
-                Eph(32,:) = Eph(32,:) - zero_time;
-                Eph(33,:) = Eph(33,:) - zero_time;
+                Eph(32,:) = Eph(32,:) - time_zero;
+                Eph(33,:) = Eph(33,:) - time_zero;
 
                 for f = 1 : size(time_R,3)
 
@@ -683,10 +681,10 @@ for s = 1 : num_session
 
                     %pre-processing
                     logger.addMessage(['Selecting rover observations (file ' filename_obs{f} ')...']);
-                    w_bar.setBarLen(length(time_GPS));
+                    w_bar.setBarLen(length(time_GPS_diff));
                     w_bar.createNewBar('Pre-processing rover...');
                     %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, flag_full_prepro, order);
-                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
                     if report.opt.write == 1
                         report.prep.spp_threshold = SPP_threshold;
@@ -721,8 +719,11 @@ for s = 1 : num_session
 
                 %read observation RINEX file(s)
                 [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-                    time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
+                    time_zero, time_GPS_diff, time_RM_diff, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
                     load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
+
+                time_GPS = time_zero + time_GPS_diff;
+                time_RM = time_zero + time_RM_diff;
 
                 [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
                 if (flag_return)
@@ -743,6 +744,7 @@ for s = 1 : num_session
                 snr1_R = snr1_RM(:,:,1:end-1); snr1_M = snr1_RM(:,:,end);
                 snr2_R = snr2_RM(:,:,1:end-1); snr2_M = snr2_RM(:,:,end);
                 time_R = time_RM(:,1,1:end-1); time_M = time_RM(:,1,end);
+                time_R_diff = time_RM_diff(:,1,1:end-1); time_M_diff = time_RM_diff(:,1,end);
                 week_R = week_RM(:,1,1:end-1); week_M = week_RM(:,1,end);
                 date_R = date_RM(:,:,1:end-1); date_M = date_RM(:,:,end);
                 pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
@@ -1043,21 +1045,15 @@ for s = 1 : num_session
 
                     %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
                     if (flag_SP3)
-                        zero_time = min(SP3.time,[],1) - 1;
-                        SP3.time    = SP3.time - zero_time;
-                        SP3.time_hr = SP3.time_hr - zero_time;
-                        SP3.t_sun   = SP3.t_sun - zero_time;
-                    else
-                        zero_time = min(time_GPS,[],1) - 1;
+                        SP3.time    = SP3.time - time_zero;
+                        SP3.time_hr = SP3.time_hr - time_zero;
+                        SP3.t_sun   = SP3.t_sun - time_zero;
                     end
-                    time_GPS  = time_GPS  - zero_time;
-                    time_R    = time_R    - zero_time;
-                    time_M    = time_M    - zero_time;
-                    Eph(32,:) = Eph(32,:) - zero_time;
-                    Eph(33,:) = Eph(33,:) - zero_time;
+                    Eph(32,:) = Eph(32,:) - time_zero;
+                    Eph(33,:) = Eph(33,:) - time_zero;
 
                     %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, order);
-                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
                     if report.opt.write == 1
                         report.prep.spp_threshold = SPP_threshold;
@@ -1095,10 +1091,10 @@ for s = 1 : num_session
 
                 if (~flag_SEID)
                     flag_XM_prep = 2;
-                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 else
                     flag_XM_prep = 1;
-                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 end
 
                 if report.opt.write == 1
@@ -1432,7 +1428,7 @@ for s = 1 : num_session
         fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
         residuals_dummy = NaN(1,nSatTot);
 
-        [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
+        [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS_diff, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
 
         nN = nSatTot;
         nT = 0;
@@ -1449,11 +1445,11 @@ for s = 1 : num_session
 
         for t = 1 : length(time_GPS)
 
-            Eph_t = rt_find_eph(Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph(Eph, time_GPS_diff(t), nSatTot);
 
             sbas_t = find_sbas(sbas, t);
 
-            goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, pos_R);
+            goGPS_LS_SA_code(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, pos_R);
 
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
@@ -1531,14 +1527,14 @@ for s = 1 : num_session
                     return
                 end
 
-                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
                 sbas_t = find_sbas(sbas, 1);
 
-                kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+                kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS_diff(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
 
                 if (~kalman_initialized)
-                    time_GPS(1) = []; week_R(1) = [];
+                    time_GPS_diff(1) = []; week_R(1) = [];
                     if not(isempty(intersect(frequencies,1)))
                         pr1_R(:,1) = []; ph1_R(:,1) = []; dop1_R(:,1) = [];
                     end
@@ -1590,9 +1586,9 @@ for s = 1 : num_session
             residuals_float=NaN(4*nSatTot,1);
             outliers=zeros(4*nSatTot,1);
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+            goGPS_KF_SA_code_loop(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
 
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1659,11 +1655,11 @@ for s = 1 : num_session
 
         for t = 1 : length(time_GPS)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
             sbas_t = find_sbas(sbas, t);
 
-            goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+            goGPS_LS_SA_code_phase(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
 
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
@@ -1741,13 +1737,13 @@ for s = 1 : num_session
         ind=0;
         for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
             for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
-                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
-                Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
+                Eph_t1 = rt_find_eph (Eph, time_GPS_diff(t+time_step), nSatTot);
 
                 sbas_t = find_sbas(sbas, t);
                 sbas_t1 = find_sbas(sbas, t+time_step);
 
-                goGPS_LS_SA_variometric(time_GPS(t), time_GPS(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, frequencies(1), time_step);
+                goGPS_LS_SA_variometric(time_GPS_diff(t), time_GPS_diff(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, frequencies(1), time_step);
                 Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
                 if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                     Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
@@ -1840,7 +1836,7 @@ for s = 1 : num_session
 
             xENU(epo,:) = global2localPos(vel_pos(epo,7:9)', vel_pos(1,7:9)'); %#ok<SAGROW>
             vENU(epo,:) = global2localVel(vel_pos(epo,1:2:5)', [phiX(epo), lamX(epo)]'.*180/pi); %#ok<SAGROW>
-            velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)]; %#ok<SAGROW>
+            velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS_diff(epo)]; %#ok<SAGROW>
 
             fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
         end
@@ -1869,6 +1865,7 @@ for s = 1 : num_session
         fclose(fid_conf);
         fclose(fid_res);
 
+        time_GPS_diff = time_GPS_diff(1:end-time_step);
         time_GPS = time_GPS(1:end-time_step);
         week_R = week_R(1:end-time_step);
 
@@ -1892,7 +1889,7 @@ for s = 1 : num_session
         end
         if (~kalman_initialized)
 
-            [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
+            [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS_diff, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
             ISBs_init = ISBs;
 
             while (~kalman_initialized)
@@ -1901,14 +1898,14 @@ for s = 1 : num_session
                     return
                 end
 
-                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
                 sbas_t = find_sbas(sbas, 1);
 
-                kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
+                kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
 
                 if (~kalman_initialized)
-                    time_GPS(1) = []; week_R(1) = [];
+                    time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                     pr1_R(:,1) = []; ph1_R(:,1) = []; dop1_R(:,1) = [];
                     pr2_R(:,1) = []; ph2_R(:,1) = []; dop2_R(:,1) = [];
                     snr_R(:,1) = [];
@@ -1951,7 +1948,7 @@ for s = 1 : num_session
             fwrite(fid_res, nSatTot, 'int8');
             fwrite(fid_trp, nSatTot, 'int8');
             t1 = 1;
-            [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs_init, Eph, constellations, lambda);
+            [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS_diff, pr1_R, ph1_R, pr2_R, ph2_R, ISBs_init, Eph, constellations, lambda);
         end
 
         % goGPS waiting bar
@@ -1963,11 +1960,11 @@ for s = 1 : num_session
             residuals_float=NaN(4*nSatTot,1);
             outliers=zeros(4*nSatTot,1);
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
             sbas_t = find_sbas(sbas, t);
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2038,9 +2035,9 @@ for s = 1 : num_session
 
         for t = 1 : length(time_GPS)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
+            goGPS_LS_DD_code(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
 
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
@@ -2120,12 +2117,12 @@ for s = 1 : num_session
                     return
                 end
 
-                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
-                kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies(1));
+                kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies(1));
 
                 if (~kalman_initialized)
-                    pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                    pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                     pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
                     pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
                     snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
@@ -2171,9 +2168,9 @@ for s = 1 : num_session
 
         for t = t1 : length(time_GPS)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
 
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -2235,14 +2232,14 @@ for s = 1 : num_session
         plot_t = 1;
 
         % goGPS waiting bar
-        w_bar.setBarLen(length(time_GPS));
+        w_bar.setBarLen(length(time_GPS_diff));
         w_bar.createNewBar('Processing...');
 
-        for t = 1 : length(time_GPS)
+        for t = 1 : length(time_GPS_diff)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
+            goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
 
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2313,14 +2310,14 @@ for s = 1 : num_session
         plot_t = 1;
 
         % goGPS waiting bar
-        w_bar.setBarLen(length(time_GPS));
+        w_bar.setBarLen(length(time_GPS_diff));
         w_bar.createNewBar('Processing...');
 
-        for t = 1 : length(time_GPS)
+        for t = 1 : length(time_GPS_diff)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_LS_DD_code_phase_MR(time_GPS(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
+            goGPS_LS_DD_code_phase_MR(time_GPS_diff(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
 
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2389,16 +2386,16 @@ for s = 1 : num_session
         plot_t = 1;
 
         % goGPS waiting bar
-        w_bar.setBarLen(length(time_GPS));
+        w_bar.setBarLen(length(time_GPS_diff));
         w_bar.createNewBar('Processing...');
 
-        for t = 1 : length(time_GPS)
+        for t = 1 : length(time_GPS_diff)
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
             sbas_t = find_sbas(sbas, t);
 
-            goGPS_LS_SA_code_MR(time_GPS(t), squeeze(pr1_R(:,t,:)), squeeze(pr2_R(:,t,:)), squeeze(snr_R(:,t,:)), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+            goGPS_LS_SA_code_MR(time_GPS_diff(t), squeeze(pr1_R(:,t,:)), squeeze(pr2_R(:,t,:)), squeeze(snr_R(:,t,:)), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
 
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
@@ -2478,19 +2475,19 @@ for s = 1 : num_session
             end
             if (~kalman_initialized)
                 while (~kalman_initialized)
-                    if (isempty(time_GPS))
+                    if (isempty(time_GPS_diff))
                         fprintf('It was not possible to initialize the Kalman filter.\n');
                         return
                     end
 
-                    Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                    Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
                     sbas_t = find_sbas(sbas, 1);
 
-                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, dtMdot(1), flag_IAR, flag_XR, flag_tropo, sbas_t);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, dtMdot(1), flag_IAR, flag_XR, flag_tropo, sbas_t);
 
                     if (~kalman_initialized)
-                        pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                        pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                         pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
                         pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
                         snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
@@ -2533,19 +2530,19 @@ for s = 1 : num_session
             end
 
             % goGPS waiting bar
-            w_bar.setBarLen(length(time_GPS));
+            w_bar.setBarLen(length(time_GPS_diff));
             w_bar.createNewBar('Processing...');
 
-            for t = t1 : length(time_GPS)
+            for t = t1 : length(time_GPS_diff)
                 residuals_fixed=NaN(4*nSatTot,1);
                 residuals_float=NaN(4*nSatTot,1);
                 outliers=zeros(4*nSatTot,1);
 
-                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
                 sbas_t = find_sbas(sbas, t);
 
-                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, obs_comb, dtMdot(t), flag_IAR, flag_tropo, antenna_PCV, sbas_t);
+                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, obs_comb, dtMdot(t), flag_IAR, flag_tropo, antenna_PCV, sbas_t);
 
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2601,20 +2598,20 @@ for s = 1 : num_session
             end
             if (~kalman_initialized)
                 while (~kalman_initialized)
-                    if (isempty(time_GPS))
+                    if (isempty(time_GPS_diff))
                         fprintf('It was not possible to initialize the Kalman filter.\n');
                         return
                     end
 
-                    Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                    Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
                     flag_dyn = 1;
                     order = fread(fid_dyn,1,'uint8');
 
-                    kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(1), flag_IAR);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(1), flag_IAR);
 
                     if (~kalman_initialized)
-                        pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                        pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                         pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
                         pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
                         snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
@@ -2686,20 +2683,20 @@ for s = 1 : num_session
             end
 
             % goGPS waiting bar
-            w_bar.setBarLen(length(time_GPS));
+            w_bar.setBarLen(length(time_GPS_diff));
             w_bar.createNewBar('Processing...');
 
-            for t = t1 : length(time_GPS)
+            for t = t1 : length(time_GPS_diff)
                 residuals_fixed=NaN(4*nSatTot,1);
                 residuals_float=NaN(4*nSatTot,1);
                 outliers=zeros(4*nSatTot,1);
 
-                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
                 order0 = order;
                 order = fread(fid_dyn,1,'uint8');
 
-                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(t), flag_IAR);
+                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(t), flag_IAR);
 
                 if (flag_stopGOstop == 1)
                     if (order > order0)
@@ -2839,17 +2836,17 @@ for s = 1 : num_session
         end
         if (~kalman_initialized)
             while (~kalman_initialized)
-                if (isempty(time_GPS))
+                if (isempty(time_GPS_diff))
                     fprintf('It was not possible to initialize the Kalman filter.\n');
                     return
                 end
 
-                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+                Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
 
-                kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(1));
+                kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(1));
 
                 if (~kalman_initialized)
-                    pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                    pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
                     pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
                     pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
                     snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
@@ -2887,17 +2884,17 @@ for s = 1 : num_session
         end
 
         % goGPS waiting bar
-        w_bar.setBarLen(length(time_GPS));
+        w_bar.setBarLen(length(time_GPS_diff));
         w_bar.createNewBar('Processing...');
 
-        for t = t1 : length(time_GPS)
+        for t = t1 : length(time_GPS_diff)
             residuals_fixed=NaN(4*nSatTot,1);
             residuals_float=NaN(4*nSatTot,1);
             outliers=zeros(4*nSatTot,1);
 
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(t));
 
             fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2966,7 +2963,8 @@ for s = 1 : num_session
         goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, gs.getReferencePath(), pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R, constellations);
     end
 
-    if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)
+    if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS_diff (for LS modes)
+        time_GPS_diff(unused_epochs == 1) = [];
         time_GPS(unused_epochs == 1) = [];
         week_R(unused_epochs == 1) = [];
     end
@@ -2985,22 +2983,22 @@ for s = 1 : num_session
 
         %observation file (OBS) and ephemerides file (EPH) reading
         if (mode == goGNSS.MODE_RT_NAV)
-            [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
+            [time_GPS_diff, week_R, time_R_diff, time_M_diff, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
                 pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
         end
 
         %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-        time_GPS = time_GPS + zero_time;
-        time_R   = time_R   + zero_time;
+        time_GPS = time_GPS_diff + time_zero;
+        time_R   = time_R_diff   + time_zero;
         if goGNSS.isDD(mode)
-            time_M   = time_M + zero_time;
+            time_M   = time_M_diff + time_zero;
         end
-        Eph(32,:) = Eph(32,:) + zero_time;
-        Eph(33,:) = Eph(33,:) + zero_time;
+        Eph(32,:) = Eph(32,:) + time_zero;
+        Eph(33,:) = Eph(33,:) + time_zero;
         if (flag_SP3)
-            SP3.time    = SP3.time + zero_time;
-            SP3.time_hr = SP3.time_hr + zero_time;
-            SP3.t_sun   = SP3.t_sun + zero_time;
+            SP3.time    = SP3.time + time_zero;
+            SP3.time_hr = SP3.time_hr + time_zero;
+            SP3.t_sun   = SP3.t_sun + time_zero;
         end
 
         %---------------------------------
@@ -3050,7 +3048,7 @@ for s = 1 : num_session
             if (goGNSS.isSA(mode) && flag_tropo)
                 estim_tropo = Xhat_t_t_OUT(end-nC,:);
             else
-                estim_tropo = zeros(size(time_GPS));
+                estim_tropo = zeros(size(time_GPS_diff));
             end
         end
     end

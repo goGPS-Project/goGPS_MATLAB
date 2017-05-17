@@ -1,18 +1,16 @@
-function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
+function [datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid)
 
 % SYNTAX:
-%   [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid);
+%   [datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid);
 %
 % INPUT:
 %   fid = pointer to the observation RINEX file
 %
 % OUTPUT:
-%   time = observation GPS time (continuous)
 %   datee = date (year,month,day,hour,minute,second)
 %   num_sat = number of available satellites (NOTE: RINEX v3.xx does not output 'sat' and 'sat_types')
 %   sat = list of all visible satellites
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
-%   tow = observation GPS time (seconds-of-week)
 %
 % DESCRIPTION:
 %   Scan the first line of each epoch (RINEX) and return
@@ -28,7 +26,7 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -49,25 +47,19 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-%variable initialization
-time = NaN;
+% variable initialization
 sat = [];
 sat_types = [];
 num_sat = 0;
-datee=[NaN NaN NaN NaN NaN NaN]; %Preallocation not useful (see last line of code)
+datee=[NaN NaN NaN NaN NaN NaN];
 eof = 0;
-tow = NaN;
-if (nargout > 3)
-    datee_RequestedInOutputFlag = true;
-else
-    datee_RequestedInOutputFlag = false;
-end% if
 
-%search data
+
+% search data
 while (eof==0)
-    %read the string
+    % read the string
     lin = fgets(fid);
-    %answer = strfind(lin,'COMMENT');
+    % answer = strfind(lin,'COMMENT');
     keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
     answer = [];
     s = 1;
@@ -75,10 +67,10 @@ while (eof==0)
         answer = strfind(lin,keywords{s});
         s = s + 1;
     end
-    %if it is a line that should be skipped read the following one
+    % if it is a line that should be skipped read the following one
     while (~isempty(answer) && ~feof(fid))
         lin = fgetl(fid);
-        %check again
+        % check again
         answer = [];
         s = 1;
         while (s <= length(keywords) && isempty(answer))
@@ -86,52 +78,43 @@ while (eof==0)
             s = s + 1;
         end
     end
-    %check if the end of file is reached
-    if (feof(fid) == 1);
+    % check if the end of file is reached
+    if (feof(fid) == 1)
         return
     end
 
-    %check RINEX version
+    % check RINEX version
     if strcmp(lin(1),' ') %RINEX v2.xx
 
-        %check if it is a string that should be analyzed
+        % check if it is a string that should be analyzed
         if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
 
-            %save time information
-            data   = textscan(lin(1:26),'%f%f%f%f%f%f');
-            year   = data{1};
-            month  = data{2};
-            day    = data{3};
-            hour   = data{4};
-            minute = data{5};
-            second = data{6};
+            % save time information
+            datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f')';
+            % check date format 2/4 digits
+            datee(datee(1) < 70,1) = datee(datee(1) < 70,1) + 2000;
+            datee(datee(1) > 2070,1) = datee(datee(1) < 70,1) - 100;
 
-            %computation of the GPS time in weeks and seconds of week
-            year = four_digit_year(year);
-            [week, tow] = date2gps([year, month, day, hour, minute, second]);
-            [time] = weektow2time(week, tow, 'G');
-
-            %number of visible satellites
+            % number of visible satellites
             [num_sat] = sscanf(lin(30:32),'%d');
 
-            %keep just the satellite data
+            % keep just the satellite data
             lin = ExtractSubstring(lin, 33, 68);
 
-            %remove 'blank spaces' and unwanted characters at the end of the string
-            lin = RemoveUnwantedTrailingSpaces(lin);
+            % remove 'blank spaces' and unwanted characters at the end of the string
+            lin = deblank(lin);
 
-            %read additional lines, depending on the number of satellites
+            % read additional lines, depending on the number of satellites
             nlines = ceil(num_sat/12);
             for n = 1 : nlines - 1
-                lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
-                lin = RemoveUnwantedTrailingSpaces(lin);
+                lin = deblank([lin ExtractSubstring(fgetl(fid), 33, 68)]);
             end
 
             pos = 1;
             sat = zeros(num_sat,1);
             sat_types = char(32*uint8(ones(num_sat,1))');
             for i = 1 : num_sat
-                %check if GPS satellites are labeled 'G' or not labeled
+                % check if GPS satellites are labeled 'G' or not labeled
                 if (strcmp(lin(pos),' '))
                     type = 'G';
                 else
@@ -149,30 +132,19 @@ while (eof==0)
 
     elseif strcmp(lin(1),'>') %RINEX v3.xx
 
-        %check if it is a string that should be analyzed
+        % check if it is a string that should be analyzed
         if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
 
-            %save time information
-            data   = textscan(lin(2:29),'%f%f%f%f%f%f');
-            year   = data{1};
-            month  = data{2};
-            day    = data{3};
-            hour   = data{4};
-            minute = data{5};
-            second = data{6};
+            % save time information
+            datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f');
+            % check date format 2/4 digits
+            datee(datee(1) < 70,1) = datee(datee(1) < 70,1) + 2000;
+            datee(datee(1) > 2070,1) = datee(datee(1) < 70,1) - 100;
 
-            %computation of the GPS time in weeks and seconds of week
-            [week, tow] = date2gps([year, month, day, hour, minute, second]);
-            [time] = weektow2time(week, tow, 'G');
-
-            %number of visible satellites
+            % number of visible satellites
             [num_sat] = sscanf(lin(33:35),'%d');
 
             eof = 1;
         end
     end
 end
-
-if datee_RequestedInOutputFlag
-    datee = [year month day hour minute second];
-end %if
