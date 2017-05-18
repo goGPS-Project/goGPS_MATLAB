@@ -108,7 +108,7 @@ classdef Meteo_Data < handle
         data = [];          % Meteorological file
 
         xyz = [0 0 0];      % geocentric coordinate of the sensor
-        msl = 0;        % hortometric height of the sensor
+        amsl = 0;        % hortometric height of the sensor
         is_valid = false;   % Status of valitity of the file;
     end
 
@@ -169,9 +169,9 @@ classdef Meteo_Data < handle
                                 this.xyz = sscanf(line(1:42), '%14f%14f%14f');
                                 if sum(abs(this.xyz)) > 0
                                     [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                                    this.msl = h - getHortometricCorr(phiC, lam);
+                                    this.amsl = h - getHortometricCorr(phiC, lam);
                                 else
-                                    this.msl = 0;
+                                    this.amsl = 0;
                                 end
                             end
                         end
@@ -187,7 +187,7 @@ classdef Meteo_Data < handle
                     % set default (empty) values if the following paremeters are not found in header
                     if ~pos_is_present
                         this.xyz = [0 0 0];
-                        this.msl = 0;
+                        this.amsl = 0;
                     end
 
                     if ~marker_name_is_present
@@ -318,7 +318,7 @@ classdef Meteo_Data < handle
             this.marker_name = marker_name;
             this.xyz = pos_xyz;
             [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-            this.msl = h - getHortometricCorr(phiC, lam);
+            this.amsl = h - getHortometricCorr(phiC, lam);
             ok = ~obs_time.isnan();
             this.data = data(ok, :);
             this.type = type;
@@ -395,7 +395,7 @@ classdef Meteo_Data < handle
                         line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
                     end
                     str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
-                    str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.msl);
+                    str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.amsl);
                     str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
                     fwrite(fid, str);
                     epochs = this.time.getId(id).toString(' yyyy mm dd HH MM SS ')';
@@ -420,6 +420,10 @@ classdef Meteo_Data < handle
             if ~isempty(this.marker_name)
                 str = [str sprintf(' Station %s\n\n', this.marker_name)];
             end
+            
+            str = [str sprintf(' Location (XYZ)  %f %f %f\n', this.xyz)];
+            str = [str sprintf('          (amsl) %f\n\n', this.amsl)];
+
             str = [str sprintf(' Data available from %s\n                  to %s\n\n', this.time.first.toString('dd mmm yyyy HH:MM:SS'), this.time.last.toString('dd mmm yyyy HH:MM:SS'))];
             str = [str sprintf(' The following meteorological data are present:\n')];
             type_ext = this.getTypeExt();
@@ -499,7 +503,7 @@ classdef Meteo_Data < handle
             end
         end
 
-        function data = getPressure(this, time, msl)
+        function data = getPressure(this, time, amsl)
             % Get the pressure data
             % SYNTAX: data = this.getPressure()
             if (nargin == 1)
@@ -509,11 +513,11 @@ classdef Meteo_Data < handle
             end
 
             if (nargin == 3)
-                data = Meteo_Data.pressure_adjustment(data, this.msl, msl);
+                data = Meteo_Data.pressure_adjustment(data, this.amsl, amsl);
             end
         end
 
-        function data = getTemperature(this, time, msl)
+        function data = getTemperature(this, time, amsl)
             % Get the temperature data
             % SYNTAX: data = this.getTemperature()
             if (nargin == 1)
@@ -523,11 +527,11 @@ classdef Meteo_Data < handle
             end
 
             if (nargin == 3)
-                data = Meteo_Data.temperature_adjustment(data, this.msl, msl);
+                data = Meteo_Data.temperature_adjustment(data, this.amsl, amsl);
             end
         end
 
-        function data = getHumidity(this, time, msl)
+        function data = getHumidity(this, time, amsl)
             % Get the humidity data
             % SYNTAX: data = this.getHumidity()
             if (nargin == 1)
@@ -537,17 +541,17 @@ classdef Meteo_Data < handle
             end
 
             if (nargin == 3)
-                data = Meteo_Data.humidity_adjustment(data, this.msl, msl);
+                data = Meteo_Data.humidity_adjustment(data, this.amsl, amsl);
             end
         end
 
-        function [x, y, z, msl] = getLocation(this)
+        function [x, y, z, amsl] = getLocation(this)
             % Get meteo station location
-            % SINTAX: [x, y, z, msl] = this.getLocation();
+            % SINTAX: [x, y, z, amsl] = this.getLocation();
             x = this.xyz(1);
             y = this.xyz(2);
             z = this.xyz(3);
-            msl = this.msl;
+            amsl = this.amsl;
         end
 
         function time = getObsTime(this)
@@ -563,8 +567,8 @@ classdef Meteo_Data < handle
     methods (Static)
         function md = getVMS(name, xyz, time, station)
             % Get Virtual Meteo Station
-            % SYNTAX: md = getVMS(name, xyz, time , station)
-            % e.g. [x, y, z, msl] = station(1).getLocation();
+            % SYNTAX: md = this.getVMS(name, xyz, time, station)
+            % e.g. [x, y, z, amsl] = station(1).getLocation();
             %      md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
 
             logger = Logger.getInstance();
@@ -573,7 +577,7 @@ classdef Meteo_Data < handle
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
             [e, n] = cart2plan(xyz(1), xyz(2), xyz(3));
 
-            msl = h - getHortometricCorr(phiC, lam);
+            amsl = h - getHortometricCorr(phiC, lam);
 
             n_station = numel(station);
 
@@ -607,7 +611,7 @@ classdef Meteo_Data < handle
 
             pr_obs = zeros(numel(id_pr), time.length());
             for s = 1 : numel(id_pr)
-                pr_obs(s, :) = station(id_pr(s)).getPressure(time, msl);
+                pr_obs(s, :) = station(id_pr(s)).getPressure(time, amsl);
             end
 
             id_pr(sum(isnan(pr_obs),2) > 1) = [];
@@ -636,7 +640,7 @@ classdef Meteo_Data < handle
 
             td_obs = zeros(numel(id_td), time.length);
             for s = 1 : numel(id_td)
-                td_obs(s, :) = station(id_td(s)).getTemperature(time, msl);
+                td_obs(s, :) = station(id_td(s)).getTemperature(time, amsl);
             end
             id_td(sum(isnan(td_obs),2) > 1) = [];
             td_obs(sum(isnan(td_obs),2) > 1, :) = [];
@@ -660,7 +664,7 @@ classdef Meteo_Data < handle
 
             hr_obs = zeros(numel(id_hr), time.length);
             for s = 1 : numel(id_hr)
-                hr_obs(s, :) = station(id_hr(s)).getHumidity(time, msl);
+                hr_obs(s, :) = station(id_hr(s)).getHumidity(time, amsl);
             end
 
             id_hr(sum(isnan(hr_obs),2) > 1) = [];
@@ -712,7 +716,7 @@ classdef Meteo_Data < handle
             % A = [tmp(:, 1).^2 tmp(:, 1) ones(size(tmp,1),1)];
             % y0 = tmp(:,2);
             % x = (A' * A) \ A' * y0
-            % figure; plot(tmp(:,1),tmp(:,2),'o'); hold on; msl = -10 : 3000; plot(msl, x(1) .* msl.^2 + x(2) .* msl + x(3) .* ones(size(msl))); setAllLinesWidth(2)
+            % figure; plot(tmp(:,1),tmp(:,2),'o'); hold on; amsl = -10 : 3000; plot(amsl, x(1) .* amsl.^2 + x(2) .* amsl + x(3) .* ones(size(amsl))); setAllLinesWidth(2)
             %x = [ 5.25984524194874e-09; -0.000117788989855394; 0.999649177981675 ];
             %humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
             humidity_adj = humidity / exp(-6.396e-4 * (obs_h - pred_h));
