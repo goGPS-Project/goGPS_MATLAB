@@ -215,8 +215,8 @@ classdef FTP_Downloader < handle
                                                     compressed = false;
                                                 else
                                                     try
-                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' local_dir file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
-                                                        delete([local_dir file_name]);
+                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
+                                                        delete([local_dir filesep file_name]);
                                                     catch
                                                         this.logger.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
                                                         compressed = 1;

@@ -1046,7 +1046,7 @@ classdef IO_Settings < Settings_Interface
                 file_list = dir([this.out_full_path '*']);
                 % if there are no files in the putput folder
                 if isempty(file_list)
-                    this.run_counter = this.RUN_COUNTER; % set the counter of the output == 0
+                    this.run_counter = 0; % set the counter of the output == 0
                 else
                     % put the cell of the file in a single string
                     file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));

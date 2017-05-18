@@ -907,7 +907,7 @@ classdef GPS_Time < handle
                     date_6col = datevec(time);
                     [~, fraction_of_seconds] = this.getUnixTime();
                     date_6col(:,6) = floor(date_6col(:,6)) + fraction_of_seconds;
-                    date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%016.13f', date_6col')',33,numel(time))';
+                    date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%010.7f', date_6col')',27,numel(time))';
                 end
                 if (nargin == 1)
                     if this.isGPS()
