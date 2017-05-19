@@ -43,7 +43,6 @@ function [year_out] = two_digit_year(year_in)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-year_out = zeros(size(year_in));
+year_out = year_in - 2000;
 
-year_out(year_in >= 2000) = year_in(year_in >= 2000) - 2000;
-year_out(year_in <  2000) = year_in(year_in <  2000) - 1900;
+year_out(year_out < 0) = year_out(year_out < 0) + 100;

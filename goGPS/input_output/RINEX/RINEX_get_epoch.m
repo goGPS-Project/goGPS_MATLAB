@@ -91,9 +91,9 @@ while (eof==0)
 
             % save time information
             datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f')';
-            % check date format 2/4 digits
-            datee(datee(1) < 70,1) = datee(datee(1) < 70,1) + 2000;
-            datee(datee(1) > 2070,1) = datee(datee(1) < 70,1) - 100;
+            
+            % year format from 2 to 4 digits
+            [datee(1)] = four_digit_year(datee(1));
 
             % number of visible satellites
             [num_sat] = sscanf(lin(30:32),'%d');
@@ -136,10 +136,7 @@ while (eof==0)
         if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
 
             % save time information
-            datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f');
-            % check date format 2/4 digits
-            datee(datee(1) < 70,1) = datee(datee(1) < 70,1) + 2000;
-            datee(datee(1) > 2070,1) = datee(datee(1) < 70,1) - 100;
+            datee = sscanf(lin(3:min(30,end)),'%f%f%f%f%f%f');
 
             % number of visible satellites
             [num_sat] = sscanf(lin(33:35),'%d');
