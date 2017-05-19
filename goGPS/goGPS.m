@@ -429,7 +429,7 @@ for s = 1 : num_session
                 time_R = zero_time + time_R_diff;
 
                 %read navigation RINEX file(s)
-                [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
+                [Eph, iono, flag_return] = load_RINEX_nav(state.getEphFileName(cur_date_start, cur_date_stop), state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
                 if (flag_return)
                     return
                 end
@@ -725,7 +725,7 @@ for s = 1 : num_session
                 time_GPS = zero_time + time_GPS_diff;
                 time_RM = zero_time + time_RM_diff;
 
-                [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
+                [Eph, iono, flag_return] = load_RINEX_nav(state.getEphFileName(cur_date_start, cur_date_stop), state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
                 if (flag_return)
                     return
                 end

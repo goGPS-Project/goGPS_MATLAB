@@ -49,12 +49,15 @@ function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-
 % Check the input arguments
 if (nargin < 6)
     wait_dlg_PresenceFlag = false;
 else
     wait_dlg_PresenceFlag = true;
+end
+
+if (iscell(filename))
+    filename = filename{1};
 end
 
 flag_return = 0;
