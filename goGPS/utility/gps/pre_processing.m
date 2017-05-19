@@ -698,8 +698,12 @@ cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph_main(1,:) ~= 0);
 idx = intersect(cutoff_idx, avail_idx);
 
-p = polyfit(idx,err_iono(1,idx),3);
-err_iono_fit = polyval(p,idx);
+if (length(idx) > 3)
+    [p,~,mu] = polyfit(idx,err_iono(1,idx),3);
+    err_iono_fit = polyval(p,idx,[],mu);
+else
+    err_iono_fit = err_iono(1,idx);
+end
 % if (flag_plot)
 %     figure
 %     plot(idx,err_iono(1,idx),'r.')
@@ -770,8 +774,10 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     idx_interp = setdiff(avail_doppler,jmp_doppler);
-    p = polyfit(idx_interp,delta_doppler(idx_interp),1);
-    delta_doppler(idx_interp) = delta_doppler(idx_interp) - polyval(p,idx_interp);
+    if (length(idx_interp) > 1)
+        p = polyfit(idx_interp,delta_doppler(idx_interp),1);
+        delta_doppler(idx_interp) = delta_doppler(idx_interp) - polyval(p,idx_interp);
+    end
 
     jmp_doppler = sort(jmp_doppler);
     jmp_doppler(diff(jmp_doppler) == 1) = [];

@@ -56,8 +56,8 @@ for s = 1 : size(ph1,1)
         if (any(err_iono(s,:)))
             index_3 = find(err_iono(s,:) ~= 0);
             index = intersect(index,   index_3);
-            p = polyfit(index,err_iono(s,index),3);
-            err_iono_fit = polyval(p,index);
+            [p,~,mu] = polyfit(index,err_iono(s,index),3);
+            err_iono_fit = polyval(p,index,[],mu);
             corr = ((freq(1,1)^2-freq(1,2)^2)/freq(1,2)^2)*err_iono_fit;
         else
             corr = zeros(size(err_iono(s,index)));
