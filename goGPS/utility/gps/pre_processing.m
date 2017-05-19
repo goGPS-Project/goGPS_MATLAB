@@ -685,7 +685,7 @@ end
 
 function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
 
-global cutoff %cs_threshold_preprocessing
+global cutoff cs_threshold_preprocessing
 cs_resolution = 1;
 
 flag_plot = 0;
@@ -886,7 +886,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     %ignore cycle slips smaller than cs_threshold_preprocessing
-    %jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
+    jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
 
     %ignore cycle slips that cannot be fixed
     jmp(isnan(delta(jmp))) = [];
