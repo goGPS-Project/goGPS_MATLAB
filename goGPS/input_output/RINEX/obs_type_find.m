@@ -150,16 +150,11 @@ else %RINEX v3.xx
                 idS1 = {'S1W';'S1P';'S1C'};   %L1
                 idD1 = {'D1W';'D1P';'D1C'};   %L1
                 %--------------------------------
-                %idC2 = {'C2W';'C2P';'C2C};    %L2
-                idP2 = {'C2W';'C2P';'C2C'};    %L2
-                idL2 = {'L2W';'L2P';'L2C'};    %L2
-                idS2 = {'S2W';'S2P';'S2C'};    %L2
-                idD2 = {'D2W';'D2P';'D2C'};    %L2
-                %--------------------------------
-                %idP2 = {'C2S';'C2L';'C2X'};  %L2C
-                %idL2 = {'L2S';'L2L';'L2X'};  %L2C
-                %idS2 = {'S2S';'S2L';'S2X'};  %L2C
-                %idD2 = {'D2S';'D2L';'D2X'};  %L2C
+                %idC2 = {'C2W';'C2P';'C2C};    %L2,L2C (precedence to L2)
+                idP2 = {'C2W';'C2P';'C2C';'C2S';'C2L';'C2X'};    %L2,L2C
+                idL2 = {'L2W';'L2P';'L2C';'L2S';'L2L';'L2X'};    %L2,L2C
+                idS2 = {'S2W';'S2P';'S2C';'S2S';'S2L';'S2X'};    %L2,L2C
+                idD2 = {'D2W';'D2P';'D2C';'D2S';'D2L';'D2X'};    %L2,L2C
                 %--------------------------------
                 %idP2 = {'C5X'};               %L5
                 %idL2 = {'L5X'};               %L5
