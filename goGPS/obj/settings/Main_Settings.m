@@ -1456,7 +1456,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.w_snr.one = this.checkNumber('w_snr.one', this.w_snr.one, this.W_SNR.one, [0.001 100]);
             this.w_snr.A = this.checkNumber('w_snr.A', this.w_snr.A, this.W_SNR.A, [0.001 100]);
 
-            this.checkNumericField('cs_thr',[0 1e50]);
+            this.checkNumericField('cs_thr',[0.5 1e50]);
 
             if this.isModePPP()
                 if (this.cs_thr < 1e20)
@@ -1465,7 +1465,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.cs_thr = 1e30; % i.e. disable cycle slips detection during KF processing
                 end
             else
-                if (this.cs_thr_pre_pro ~= 1)
+                if (this.cs_thr_pre_pro > 1)
                     this.logger.addMessage('Forcing cycle slips detection threshold for pre-processing to 1');
                     this.cs_thr_pre_pro = 1;
                 end
