@@ -69,16 +69,14 @@ SP3_X = SP3_coord(1,p+(-n/2:n/2));
 SP3_Y = SP3_coord(2,p+(-n/2:n/2));
 SP3_Z = SP3_coord(3,p+(-n/2:n/2));
 
-x = 1 : n+1;
-
 %Lagrange interpolation (coordinates)
 s = 1/interval;
 d = n/2+1 - b/interval;
 u = d - s : s : d + s;
 
-LI_SP3_X = LagrangeInter(x, SP3_X, u);
-LI_SP3_Y = LagrangeInter(x, SP3_Y, u);
-LI_SP3_Z = LagrangeInter(x, SP3_Z, u);
+LI_SP3_X = fastLI(SP3_X, u);
+LI_SP3_Y = fastLI(SP3_Y, u);
+LI_SP3_Z = fastLI(SP3_Z, u);
 
 X_sat = [LI_SP3_X(2); LI_SP3_Y(2); LI_SP3_Z(2)];
 
