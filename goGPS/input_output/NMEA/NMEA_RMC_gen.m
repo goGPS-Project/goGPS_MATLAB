@@ -150,7 +150,7 @@ second = sprintf('%05.2f', date(1,6));
 
 day = sprintf('%02d', date(1,3));
 month = sprintf('%02d', date(1,2));
-year = sprintf('%02d', date(1,1));
+year = sprintf('%02d', two_digit_year(date(1,1)));
 
 % [null, nchar] = size(day); %#ok<ASGLU>
 % if (nchar == 1)
