@@ -269,8 +269,12 @@ if (~flag_unavail)
     % for each part (SP3 file)
     for p = 1 : numel(filename_CLK)
 
-        f_clk = fopen(filename_CLK{p},'r');
-
+        if strcmp(filename_CLK(p), filename_SP3(p))
+            f_clk = -1;
+        else
+            f_clk = fopen(filename_CLK{p},'r');
+        end
+        
         if (f_clk == -1)
             logger.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
         else
