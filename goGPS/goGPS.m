@@ -1074,7 +1074,6 @@ for s = 1 : num_session
                         report.prep.CS_R{f}=status_cs;
                     end
 
-
                     w_bar.close();
                 end
 
