@@ -132,7 +132,11 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
         fprintf(fout_report,'INI file                      : %s\n', report.inp.iniFile);
     end
     if goGNSS.isDD(report.opt.mode)
-        fprintf(fout_report,'MASTER STATION filename       : %s\n', report.inp.filename_M_obs{1});
+        if ~iscell(report.inp.filename_M_obs)
+            fprintf(fout_report,'MASTER STATION filename       : %s\n', report.inp.filename_M_obs);
+        else
+            fprintf(fout_report,'MASTER STATION filename       : %s\n', report.inp.filename_M_obs{1});
+        end
     end
     if ~iscell(report.inp.filename_R_obs)
         fprintf(fout_report,'ROVER STATION filename        : %s\n', report.inp.filename_R_obs);
