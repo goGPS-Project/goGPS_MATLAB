@@ -1021,7 +1021,7 @@ for s = 1 : num_session
                 if (flag_ocean)
                     ol_disp = load_BLQ(filename_blq, marker_RM);
                 end
-                
+
                 %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
                 if (flag_SP3)
                     SP3.time    = SP3.time - zero_time;

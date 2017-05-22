@@ -84,9 +84,9 @@ classdef Settings_Interface < handle
             % Import from an INI file the content of the Settings object
             % SYNTAX: this.importIniFile(file_path);
             ini = Ini_Manager(file_path);
-            prj_home = ini.getData('prj_home');
+            fnp = File_Name_Processor;
+            prj_home = fnp.checkPath(ini.getData('prj_home'));
             if ~isempty(prj_home) && ~exist(prj_home, 'dir')
-                fnp = File_Name_Processor;
                 [path_str, ~, ~] = fileparts(fnp.getFullDirPath(file_path));
                 prj_home = fnp.getFullDirPath(strcat(path_str, [filesep '..' filesep]), pwd);
                 if exist(prj_home, 'dir')

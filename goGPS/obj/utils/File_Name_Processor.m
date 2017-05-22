@@ -183,12 +183,15 @@ classdef File_Name_Processor < handle
     end
 
     methods (Static)
-        function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback)
+        function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback, empty_fallback)
             % Get the full path given the relative one and the relative dir_base
             % SYNTAX: dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
 
             if nargin == 1
                 dir_base = pwd;
+            end
+            if (nargin < 4)
+                empty_fallback = dir_base;
             end
 
             dir_path_bk = dir_path;
@@ -207,6 +210,8 @@ classdef File_Name_Processor < handle
                         end
                         dir_path = fnp.checkPath([dir_base filesep dir_path]);
                     end
+                else
+                    dir_path = fnp.checkPath(empty_fallback);
                 end
             else
                 if length(dir_path) > 1
@@ -220,37 +225,39 @@ classdef File_Name_Processor < handle
                         end
                         dir_path = fnp.checkPath([dir_base filesep dir_path]);
                     end
+                else
+                    dir_path = fnp.checkPath(empty_fallback);
                 end
             end
 
-            % remove './'
-            dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
+            if ~isempty(dir_path)
+                % remove './'
+                dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
 
-            % extract sub folder names
-            list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
+                % extract sub folder names
+                list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
 
-            % search for "../"
-            dir_up = find(strcmp(list,'..'));
-            offset = 0;
-            for i = dir_up
-                list((i - 1 : i) - offset) = [];
-                offset = offset + 2;
+                % search for "../"
+                dir_up = find(strcmp(list,'..'));
+                offset = 0;
+                for i = dir_up
+                    list((i - 1 : i) - offset) = [];
+                    offset = offset + 2;
+                end
+
+                % restore full path start
+                if isunix
+                    dir_path = [filesep strCell2Str(list, filesep)];
+                else
+                    dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
+                end
             end
-
-            % restore full path start
-            if isunix
-                dir_path = [filesep strCell2Str(list, filesep)];
-            else
-                dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
-            end
-
             % Fallback if not exist
             if (nargin == 3)
                 if ~exist(dir_path, 'file')
                     dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
                 end
             end
-
         end
 
         function dir_path = getRelDirPath(dir_path, dir_base)

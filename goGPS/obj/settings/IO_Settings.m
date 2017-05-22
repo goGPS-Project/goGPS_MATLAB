@@ -60,8 +60,8 @@ classdef IO_Settings < Settings_Interface
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
 
-        OBS_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'RINEX']
-        OBS_NAME = {'yamatogawa_master.obs' 'yamatogawa_rover.obs'} ;
+        OBS_DIR = 'RINEX';
+        OBS_NAME = {'yamatogawa_master.obs' 'yamatogawa_rover.obs'};
         REC_TARGET = 0;
         REC_MASTER = 1;
         REC_REFERENCE = 2;
@@ -132,7 +132,7 @@ classdef IO_Settings < Settings_Interface
 
     properties (Constant, Access = 'public')
         % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
-        LAST_SETTINGS = [IO_Settings.DEFAULT_DIR_IN 'last_settings.ini'];
+        LAST_SETTINGS = 'last_settings.ini';
     end
 
 
@@ -375,29 +375,29 @@ classdef IO_Settings < Settings_Interface
                 clear tmp tmp_xyz_ant;
                 this.xyz_ev_point = settings.getData('xyz_ev_point');
                 % SATELLITES
-                this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, pwd);
+                this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir'))));
                 this.eph_name   = fnp.checkPath(settings.getData('eph_name'));
-                this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, pwd);
+                this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir'))));
                 this.clk_name   = fnp.checkPath(settings.getData('clk_name'));
-                this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, pwd);
-                this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, pwd);
-                this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, pwd);
+                this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir'))));
+                this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir'))));
+                this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ems_dir'))));
                 % STATIONS
-                this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, pwd);
+                this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir'))));
                 this.crd_name    = fnp.checkPath(settings.getData('crd_name'));
-                this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, pwd);
+                this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir'))));
                 this.met_name    = fnp.checkPath(settings.getData('met_name'));
-                this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, pwd);
+                this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir'))));
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
-                this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, pwd);
+                this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir'))));
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
-                this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, pwd);
+                this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir'))));
                 % UI
-                this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, pwd);
+                this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('img_dir'))));
                 % OUTPUT
-                this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home, pwd);
+                this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir'))));
                 if ~exist(this.out_dir, 'dir')
                     % fallback of fallback
                     this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home);
@@ -1475,7 +1475,7 @@ classdef IO_Settings < Settings_Interface
             % value of the field as a constant with same name but upper case
             % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             fnp = File_Name_Processor();
-            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home);
+            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home, [], fnp.getFullDirPath(this.(upper(field_name))));
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
