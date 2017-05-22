@@ -420,7 +420,7 @@ classdef Meteo_Data < handle
             if ~isempty(this.marker_name)
                 str = [str sprintf(' Station %s\n\n', this.marker_name)];
             end
-            
+
             str = [str sprintf(' Location (XYZ)  %f %f %f\n', this.xyz)];
             str = [str sprintf('          (amsl) %f\n\n', this.amsl)];
 

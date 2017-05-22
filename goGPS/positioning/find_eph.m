@@ -94,23 +94,23 @@ for t = isat
     end
 end
 
-%maximum interval from ephemeris reference time
-fit_interval = Eph(29,icol);
-if (fit_interval ~= 0)
-    dtmax = fit_interval*3600/2;
-else
-    switch (char(Eph(31,icol)))
-        case 'R' %GLONASS
-            dtmax = 950; %900 + 50 to account for leap seconds difference
-        case 'J' %QZSS
-            dtmax = 3600;
-        otherwise
-            dtmax = 7200;
-    end
-end
-
-if (exist('override_dtmax','var'))
+if nargin == 4
     dtmax = override_dtmax;
+else
+    %maximum interval from ephemeris reference time
+    fit_interval = Eph(29,icol);
+    if (fit_interval ~= 0)
+        dtmax = fit_interval*3600/2;
+    else
+        switch (char(Eph(31,icol)))
+            case 'R' %GLONASS
+                dtmax = 950; %900 + 50 to account for leap seconds difference
+            case 'J' %QZSS
+                dtmax = 3600;
+            otherwise
+                dtmax = 7200;
+        end
+    end
 end
 
 %if (fix(abs(dtmin)) - delta > dtmax)

@@ -91,7 +91,7 @@ while (eof==0)
 
             % save time information
             datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f')';
-            
+
             % year format from 2 to 4 digits
             [datee(1)] = four_digit_year(datee(1));
 
