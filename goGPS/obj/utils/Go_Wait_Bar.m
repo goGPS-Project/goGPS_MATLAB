@@ -251,7 +251,7 @@ classdef Go_Wait_Bar < handle
 
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
-                drawnow limitrate;
+                %drawnow limitrate;
             end
             if (this.type == 0) ||  (this.type == 5)
                 this.textBar = this.getTextBar();
@@ -278,7 +278,7 @@ classdef Go_Wait_Bar < handle
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
                 this.ext_h.axesTitle.String = this.msg;
-                drawnow limitrate;
+                %drawnow limitrate;
             end
 
             %if text bar
@@ -323,7 +323,7 @@ classdef Go_Wait_Bar < handle
                     this.ext_h.axesTitle.Position(2) = 1.25;
                 end
                 this.ext_h.axesTitle.String = this.msg;
-                drawnow limitrate;
+                %drawnow limitrate;
             end
 
             %if text bar

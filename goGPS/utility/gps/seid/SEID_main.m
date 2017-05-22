@@ -50,6 +50,9 @@ PCV2 = cell(n_sta,1);
 azim = cell(n_sta,1);
 elev = cell(n_sta,1);
 
+time_R = time_R - zero_time;
+time_M = time_M - zero_time;
+
 time_RM = time_R; time_RM(:,:,n_sta) = time_M;
 pr1_RM = pr1_R; pr1_RM(:,:,n_sta) = pr1_M;
 ph1_RM = ph1_R; ph1_RM(:,:,n_sta) = ph1_M;

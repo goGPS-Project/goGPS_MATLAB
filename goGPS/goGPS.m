@@ -1021,6 +1021,15 @@ for s = 1 : num_session
                 if (flag_ocean)
                     ol_disp = load_BLQ(filename_blq, marker_RM);
                 end
+                
+                %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
+                if (flag_SP3)
+                    SP3.time    = SP3.time - zero_time;
+                    SP3.time_hr = SP3.time_hr - zero_time;
+                    SP3.t_sun   = SP3.t_sun - zero_time;
+                end
+                Eph(32,:) = Eph(32,:) - zero_time;
+                Eph(33,:) = Eph(33,:) - zero_time;
 
                 for f = 1 : size(time_R,3)
                     %pre-processing
@@ -1042,15 +1051,6 @@ for s = 1 : num_session
                         avail_sat = any(lambda,2);
                         pr1_R(avail_sat,:,f) = pr1_R(avail_sat,:,f) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(avail_sat,:,f);
                     end
-
-                    %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-                    if (flag_SP3)
-                        SP3.time    = SP3.time - zero_time;
-                        SP3.time_hr = SP3.time_hr - zero_time;
-                        SP3.t_sun   = SP3.t_sun - zero_time;
-                    end
-                    Eph(32,:) = Eph(32,:) - zero_time;
-                    Eph(33,:) = Eph(33,:) - zero_time;
 
                     [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
