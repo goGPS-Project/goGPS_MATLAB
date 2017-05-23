@@ -201,7 +201,7 @@ classdef goGNSS < handle & Mode_Settings
 
     % Creator (empty)
     methods
-        % Object to manage a useful functions / standard parameters of goGPS
+        % Object to manage useful functions / standard parameters of goGPS
         function obj = goGNSS()
         end
     end

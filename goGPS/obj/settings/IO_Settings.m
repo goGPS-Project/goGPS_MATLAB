@@ -79,10 +79,10 @@ classdef IO_Settings < Settings_Interface
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
         PREFERRED_ARCHIVE = {'cddis', 'igscb', 'custom'}
-        PREFERRED_GPS = {'igs', 'emx', 'gbm'}
-        PREFERRED_GLO = {'igs', 'emx', 'gbm'}
+        PREFERRED_GPS = {'igs', 'cod', 'jpl', 'esa', 'emx', 'gbm'}
+        PREFERRED_GLO = {'igs', 'cod', 'esa', 'emx', 'gbm'}
         PREFERRED_MXD = {'gbm'}
-        PREFERRED_CLK = {'clk_30s', 'clk'}
+        PREFERRED_CLK = {'clk_05s', 'clk_30s', 'clk'}
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
 
         CUSTOM_ADDR = 'cddis.gsfc.nasa.gov/'
