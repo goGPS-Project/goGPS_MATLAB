@@ -65,7 +65,7 @@ if (~isempty(ISBs))
         end
         if (strcmp(constellations.systems(idx(c)), 'R'))
             for r = 0 : constellations.GLONASS.numSat - 1
-                k = find_eph(Eph, idx(c)+r, time_ref(round(length(time_ref))/2), 86400);
+                k = find_eph(Eph, idx(c)+r, time_ref(round(length(time_ref)/2)), 86400);
                 if (~isempty(k) && all(lambda(idx(c)+r,:)))
                     slot = Eph(15,k) + 8;
                     pr1(idx(c)+r,:) = pr1(idx(c)+r,:) - ISBs(c-2+slot)*goGNSS.V_LIGHT*(pr1(idx(c)+r,:)~=0);
