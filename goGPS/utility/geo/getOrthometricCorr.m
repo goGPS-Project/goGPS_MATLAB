@@ -1,7 +1,7 @@
-function N = getHortometricCorr(phi, lam, geoid)
+function N = getOrthometricCorr(phi, lam, geoid)
 
 % SYNTAX:
-%   N = getHortometricCorr(phi, lam, geoid);
+%   N = getOrthometricCorr(phi, lam, geoid);
 %
 % INPUT:
 %   phi     = geocentric latitude                [rad]

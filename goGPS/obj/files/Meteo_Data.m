@@ -169,7 +169,7 @@ classdef Meteo_Data < handle
                                 this.xyz = sscanf(line(1:42), '%14f%14f%14f');
                                 if sum(abs(this.xyz)) > 0
                                     [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                                    this.amsl = h - getHortometricCorr(phiC, lam);
+                                    this.amsl = h - getOrthometricCorr(phiC, lam);
                                 else
                                     this.amsl = 0;
                                 end
@@ -318,7 +318,7 @@ classdef Meteo_Data < handle
             this.marker_name = marker_name;
             this.xyz = pos_xyz;
             [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-            this.amsl = h - getHortometricCorr(phiC, lam);
+            this.amsl = h - getOrthometricCorr(phiC, lam);
             ok = ~obs_time.isnan();
             this.data = data(ok, :);
             this.type = type;
@@ -577,7 +577,7 @@ classdef Meteo_Data < handle
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
             [e, n] = cart2plan(xyz(1), xyz(2), xyz(3));
 
-            amsl = h - getHortometricCorr(phiC, lam);
+            amsl = h - getOrthometricCorr(phiC, lam);
 
             n_station = numel(station);
 
