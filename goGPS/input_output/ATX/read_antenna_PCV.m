@@ -138,18 +138,18 @@ for file_pcv = 1 : size(filename, 1)
                                     else
                                         m = (id_ant - 1) / 3 + 1; % I'm reading the antenna
                                     end
-                                    
+
                                     if ~(antenna_PCV(m(1)).available)
-                                        
+
                                         for a = 1:length(m)
                                             logger.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
                                         end
-                                        
+
                                         invalid_date = 0;
-                                        
+
                                         validity_start = [];
                                         validity_end   = [];
-                                        
+
                                         l_start = l; % line at the beginng of the antenna section
                                         % look for "VALID FROM" and "VALID UNTIL" lines (if satellite antenna)
                                         if (nargin > 2)
@@ -164,7 +164,7 @@ for file_pcv = 1 : size(filename, 1)
                                                 validity_end = Inf;
                                             end
                                         end
-                                        
+
                                         if (~isempty(validity_start)) %satellite antenna
                                             if ~((datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end)))
                                                 invalid_date = 1;
@@ -177,22 +177,22 @@ for file_pcv = 1 : size(filename, 1)
                                             end
                                         else  %receiver antenna
                                         end
-                                        
+
                                         if ~(invalid_date) % continue parsing
                                             for a = 1:length(m)
                                                 logger.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
                                             end
                                             l = l_start;
-                                            
+
                                             % get TYPE
                                             antenna_PCV(m(1)).type = line(1:20);
-                                            
+
                                             % get DAZI
                                             while (isempty(strfind(line,'DAZI')))
                                                 l = l + 1; line = atx_file{l};
                                             end
                                             antenna_PCV(m(1)).dazi=sscanf(line(1:8),'%f');
-                                            
+
                                             % get ZEN1 / ZEN2 / DZEN
                                             while (isempty(strfind(line,'ZEN1 / ZEN2 / DZEN')))
                                                 l = l + 1; line = atx_file{l};
@@ -200,17 +200,17 @@ for file_pcv = 1 : size(filename, 1)
                                             antenna_PCV(m(1)).zen1 = sscanf(line(1:8),'%f');
                                             antenna_PCV(m(1)).zen2 = sscanf(line(9:14),'%f');
                                             antenna_PCV(m(1)).dzen = sscanf(line(15:20),'%f');
-                                            
+
                                             % get FREQUENCIES
                                             while (isempty(strfind(line,'# OF FREQUENCIES')))
                                                 l = l + 1; line = atx_file{l};
                                             end
                                             antenna_PCV(m(1)).n_frequency=sscanf(line(1:8),'%d');
                                             antenna_PCV(m(1)).offset = zeros(1,3,antenna_PCV(m(1)).n_frequency);
-                                            
+
                                             %get information of each frequency
                                             frequencies_found = 0;
-                                            
+
                                             while frequencies_found < antenna_PCV(m(1)).n_frequency
                                                 while (isempty(strfind(line,'START OF FREQUENCY')))
                                                     l = l + 1; line = atx_file{l};
@@ -218,7 +218,7 @@ for file_pcv = 1 : size(filename, 1)
                                                 frequencies_found=frequencies_found+1;
                                                 antenna_PCV(m(1)).frequency_name(frequencies_found,:)=sscanf(line(4:6),'%s');
                                                 antenna_PCV(m(1)).frequency(frequencies_found)=sscanf(line(6),'%d');
-                                                
+
                                                 switch sscanf(line(4),'%c')
                                                     case 'G'
                                                         antenna_PCV(m(1)).sys(frequencies_found) = 1;
@@ -232,7 +232,7 @@ for file_pcv = 1 : size(filename, 1)
                                                         antenna_PCV(m(1)).sys(frequencies_found) = 5;
                                                 end
                                                 antenna_PCV(m(1)).sysfreq(frequencies_found)=antenna_PCV(m(1)).sys(frequencies_found)*10+antenna_PCV(m(1)).frequency(frequencies_found);
-                                                
+
                                                 while (isempty(strfind(line,'NORTH / EAST / UP')))
                                                     l = l + 1; line = atx_file{l};
                                                 end
@@ -245,19 +245,19 @@ for file_pcv = 1 : size(filename, 1)
                                                     antenna_PCV(m(1)).offset(1,1:3,frequencies_found) = [sscanf(line(11:20),'%f'),sscanf(line(1:10),'%f'),sscanf(line(21:30),'%f')].*1e-3; %E,N,U
                                                     antenna_PCV(m(1)).available = 1;
                                                 end
-                                                
+
                                                 number_of_zenith=(antenna_PCV(m(1)).zen2-antenna_PCV(m(1)).zen1)/antenna_PCV(m(1)).dzen+1;
                                                 if antenna_PCV(m(1)).dazi~=0
                                                     number_of_azimuth=(360-0)/antenna_PCV(m(1)).dazi+1;
                                                 else
                                                     number_of_azimuth=0;
                                                 end
-                                                
+
                                                 % NOAZI LINE
                                                 l = l + 1; line = atx_file{l};
                                                 antenna_PCV(m(1)).tableNOAZI(1,:,frequencies_found)=sscanf(line(9:end),'%f')'.*1e-3;
                                                 antenna_PCV(m(1)).tablePCV_zen(1,1:number_of_zenith,1)=antenna_PCV(m(1)).zen1:antenna_PCV(m(1)).dzen:antenna_PCV(m(1)).zen2;
-                                                
+
                                                 % TABLE AZI/ZEN DEPENDENT
                                                 if number_of_azimuth ~= 0
                                                     antenna_PCV(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(number_of_azimuth,1);
@@ -266,7 +266,7 @@ for file_pcv = 1 : size(filename, 1)
                                                     antenna_PCV(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(1,1);
                                                     antenna_PCV(m(1)).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
                                                 end
-                                                
+
                                                 l = l + 1; line = atx_file{l};
                                                 if (isempty(strfind(line,'END OF FREQUENCY')))
                                                     tablePCV=zeros(number_of_azimuth,number_of_zenith);

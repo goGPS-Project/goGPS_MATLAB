@@ -61,6 +61,7 @@ if (iscell(filename))
 end
 
 flag_return = 0;
+logger = Logger.getInstance();
 
 %number of satellite slots for enabled constellations
 nSatTot = cc.getNumSat();
@@ -145,11 +146,11 @@ end
             if (exist(filename,'file'))
                 %parse RINEX navigation file (GPS) NOTE: filename expected to
                 %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
-                if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
                 [Eph_G, iono_G] = RINEX_get_nav(filename, cc);
-                if(~only_iono), fprintf('done\n'); end
+                if(~only_iono), logger.addStatusOk(); end
             else
-                fprintf('... WARNING: GPS navigation file not found. Disabling GPS positioning. \n');
+                logger.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
                 cc.deactivateGPS();
             end
         end
@@ -157,11 +158,11 @@ end
         if (cc.getGLONASS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'g'],'file'))
                 %parse RINEX navigation file (GLONASS)
-                if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
                 [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], cc);
-                if(~only_iono), fprintf('done\n'); end
+                if(~only_iono), logger.addStatusOk(); end
             elseif (~flag_mixed)
-                fprintf('... WARNING: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
+                logger.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
                 cc.deactivateGLONASS();
             end
         end
@@ -169,11 +170,11 @@ end
         if (cc.getGalileo().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'l'],'file'))
                 %parse RINEX navigation file (Galileo)
-                if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
                 [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], cc);
-                if(~only_iono), fprintf('done\n'); end
+                if(~only_iono), logger.addStatusOk(); end
             elseif (~flag_mixed)
-                fprintf('... WARNING: Galileo navigation file not found. Disabling Galileo positioning. \n');
+                logger.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
                 cc.deactivateGalileo();
             end
         end
@@ -181,11 +182,11 @@ end
         if (cc.getBeiDou().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'c'],'file'))
                 %parse RINEX navigation file (BeiDou)
-                if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
                 [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], cc);
-                if(~only_iono), fprintf('done\n'); end
+                if(~only_iono), logger.addStatusOk(); end
             elseif (~flag_mixed)
-                fprintf('... WARNING: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
+                logger.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
                 cc.deactivateBeiDou();
             end
         end
@@ -193,11 +194,11 @@ end
         if (cc.getQZSS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'q'],'file'))
                 %parse RINEX navigation file (QZSS)
-                if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
                 [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], cc);
-                if(~only_iono), fprintf('done\n'); end
+                if(~only_iono), logger.addStatusOk(); end
             elseif (~flag_mixed)
-                fprintf('... WARNING: QZSS navigation file not found. Disabling QZSS positioning. \n');
+                logger.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
                 cc.deactivateQZSS();
             end
         end
@@ -218,7 +219,7 @@ end
             iono = iono_J;
         else
             iono = zeros(8,1);
-            fprintf('... WARNING: Klobuchar ionosphere parameters not found in navigation file(s).\n');
+            logger.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');
         end
 
         if (wait_dlg_PresenceFlag)

@@ -126,7 +126,7 @@ classdef Logger < handle
             if (nargin < 3)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
-            text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
+            text = strrep(text, newline, char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
             if (verbosity_level <= this.verbosity)
                 if this.color_mode
@@ -145,7 +145,7 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                text = strrep(text, char(10), char([10, 32]));
+                text = strrep(text, newline, char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
                 fprintf(' %s\n', text);
             end
@@ -155,6 +155,9 @@ classdef Logger < handle
             % Send a message through the standard interface
             if (nargin < 3)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (nargin < 2)
+                text = '';
             end
             if (verbosity_level <= this.verbosity)
                 this.printStatusOk(text);
@@ -197,10 +200,17 @@ classdef Logger < handle
             if (nargin == 2)
                 color_mode = this.color_mode;
             end
+
+            if isempty(text)
+                fprintf('\b');
+            else
+                text = strrep(text, newline, char([10, 32]));
+                text = strrep(text, '\n', char([10, 32]));
+                text = strrep(text, '\', '\\');
+            end
+
             this.opStatus(0, color_mode);
-            text = strrep(text, char(10), char([10, 32]));
-            text = strrep(text, '\n', char([10, 32]));
-            text = strrep(text, '\', '\\');
+
             if (color_mode)
                 cprintf('text', [text '\n']);
             else
@@ -214,7 +224,7 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
             this.opStatus(1, color_mode);
-            text = strrep(text, char(10), char([10, 32 * ones(1,17)]));
+            text = strrep(text, newline, char([10, 32 * ones(1,17)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,17)]));
             text = strrep(text, '\', '\\');
             if (color_mode)
@@ -231,7 +241,7 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
             this.opStatus(-1, color_mode);
-            text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
+            text = strrep(text, newline, char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,15)]));
             text = strrep(text, '\', '\\');
             if (color_mode)

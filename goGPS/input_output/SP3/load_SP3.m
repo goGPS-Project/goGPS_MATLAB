@@ -58,6 +58,8 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 state = Go_State.getCurrentSettings();
 logger = Logger.getInstance();
 
+logger.addMarkedMessage('Reading SP3s (precise ephemeris) and clocks');
+
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
@@ -254,7 +256,7 @@ for p = 1 : numel(filename_SP3)
         end
         clear sp3_file;
     else
-        fprintf('Missing SP3 file: %s\n', filename_SP3{p});
+        logger.addWarning(sprintf('Missing SP3 file: %s\n', filename_SP3{p}));
         flag_unavail = 1;
     end
 end
@@ -274,11 +276,12 @@ if (~flag_unavail)
         else
             f_clk = fopen(filename_CLK{p},'r');
         end
-        
+
         if (f_clk == -1)
             logger.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
         else
-            logger.addMessage(sprintf('Using as clock file: %s', filename_CLK{p}));
+            [~, fn, fn_ext] = fileparts(filename_CLK{p});
+            logger.addMessage(sprintf('         Using as clock file: %s%s', fn, fn_ext));
             % read the entire clk file in memory
             clk_file = textscan(f_clk,'%s','Delimiter', '\n');
             if (length(clk_file) == 1)
@@ -365,12 +368,10 @@ if (~flag_unavail)
         end
     end
 
-    fprintf('Satellite clock rate: ');
     if (SP3.clock_rate >= 60)
-        fprintf([num2str(SP3.clock_rate/60) ' minutes.\n']);
+        logger.addMarkedMessage(sprintf('Satellite clock rate: %f minutes', SP3.clock_rate/60));
     else
-        %SP3.clock_rate = 30;
-        fprintf([num2str(SP3.clock_rate) ' seconds.\n']);
+        logger.addMarkedMessage(sprintf('Satellite clock rate: %f seconds', SP3.clock_rate));
     end
 end
 
@@ -387,3 +388,4 @@ SP3.clock(:,k+1:nEpochs) = [];
 if (nargin > 5)
     waitbar(1,wait_dlg)
 end
+logger.newLine();
