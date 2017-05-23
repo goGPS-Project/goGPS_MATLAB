@@ -126,7 +126,7 @@ classdef Logger < handle
             if (nargin < 3)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
-            text = strrep(text, newline, char([10, 32 * ones(1,7)]));
+            text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
             if (verbosity_level <= this.verbosity)
                 if this.color_mode
@@ -145,7 +145,7 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                text = strrep(text, newline, char([10, 32]));
+                text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
                 fprintf(' %s\n', text);
             end
@@ -204,7 +204,7 @@ classdef Logger < handle
             if isempty(text)
                 fprintf('\b');
             else
-                text = strrep(text, newline, char([10, 32]));
+                text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
                 text = strrep(text, '\', '\\');
             end
@@ -224,7 +224,7 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
             this.opStatus(1, color_mode);
-            text = strrep(text, newline, char([10, 32 * ones(1,17)]));
+            text = strrep(text, char(10), char([10, 32 * ones(1,17)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,17)]));
             text = strrep(text, '\', '\\');
             if (color_mode)
@@ -241,7 +241,7 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
             this.opStatus(-1, color_mode);
-            text = strrep(text, newline, char([10, 32 * ones(1,7)]));
+            text = strrep(text, char(10), char([10, 32 * ones(1,15)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,15)]));
             text = strrep(text, '\', '\\');
             if (color_mode)
