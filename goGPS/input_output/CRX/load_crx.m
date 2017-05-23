@@ -203,7 +203,6 @@ end
 %if no .CRX files are available, return
 if (n == 0)
     logger.addWarning(['The required (updated) CRX files were not found in ' data_dir_crx ' directory.\n']);
-    return
 else
     %CRX file found
     found = 1;
@@ -213,3 +212,5 @@ else
         logger.addWarning(sprintf('%d bad epochs (sat %2d) have been discovered into CRX\n', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
     end
 end
+
+logger.newLine();

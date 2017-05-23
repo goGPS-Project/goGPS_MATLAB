@@ -682,7 +682,7 @@ for s = 1 : num_session
                     end
 
                     %pre-processing
-                    logger.addMessage(['Selecting rover observations (file ' filename_obs{f} ')...']);
+                    logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
                     w_bar.setBarLen(length(time_GPS_diff));
                     w_bar.createNewBar('Pre-processing rover...');
 
@@ -1039,7 +1039,7 @@ for s = 1 : num_session
 
                 for f = 1 : size(time_R,3)
                     %pre-processing
-                    logger.addMessage(['Selecting rover observations (file ' filename_obs{f} ')...']);
+                    logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
                     w_bar.setBarLen(length(time_GPS));
                     w_bar.createNewBar('Pre-processing rover...');
 
@@ -1083,7 +1083,7 @@ for s = 1 : num_session
                     w_bar.close();
                 end
 
-                logger.addMessage(['Selecting master observations (file ' filename_obs{end} ')...']);
+                logger.addMessage(['Pre-processing master observations (file ' filename_obs{end} ')...']);
                 w_bar.setBarLen(length(time_GPS));
                 w_bar.createNewBar('Pre-processing master...');
 
