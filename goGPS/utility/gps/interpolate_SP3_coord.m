@@ -64,34 +64,19 @@ b = SP3_time(p) - time;
 
 pos_S = zeros(3,1);
 
-%extract the SP3 coordinates
-SP3_X = SP3_coord(1,p+(-n/2:n/2));
-SP3_Y = SP3_coord(2,p+(-n/2:n/2));
-SP3_Z = SP3_coord(3,p+(-n/2:n/2));
-
 %Lagrange interpolation (coordinates)
-s = 1/interval;
-d = n/2+1 - b/interval;
-u = d - s : s : d + s;
-
-LI_SP3_X = fastLI(SP3_X, u);
-LI_SP3_Y = fastLI(SP3_Y, u);
-LI_SP3_Z = fastLI(SP3_Z, u);
-
-X_sat = [LI_SP3_X(2); LI_SP3_Y(2); LI_SP3_Z(2)];
+%u = (n/2+1) + (- b + (-1:1))/interval;
+u = 6 + (- b + (-1:1))/interval;    % using 6 since n = 10;
+%X_sat = fastLI(SP3_coord(:,p+(-n/2:n/2)), u);
+X_sat = fastLI(SP3_coord(:,p + (-5:5)), u);
 
 %apply satellite antenna phase center correction
-[i, j, k] = satellite_fixed_frame(time, X_sat, SP3);
-X_sat = X_sat + [i j k]*antPCO;
+[i, j, k] = satellite_fixed_frame(time, X_sat(:,2), SP3);
+X_sat(:,2) = X_sat(:,2) + [i j k]*antPCO;
 
-pos_S(1,1) = X_sat(1);
-pos_S(2,1) = X_sat(2);
-pos_S(3,1) = X_sat(3);
-
-pos_S_v = zeros(3,2);
-pos_S_v(1,1:2) = [LI_SP3_X(1) LI_SP3_X(3)];
-pos_S_v(2,1:2) = [LI_SP3_Y(1) LI_SP3_Y(3)];
-pos_S_v(3,1:2) = [LI_SP3_Z(1) LI_SP3_Z(3)];
+pos_S(1,1) = X_sat(1,2);
+pos_S(2,1) = X_sat(2,2);
+pos_S(3,1) = X_sat(3,2);
 
 %compute velocity
-vel_S = (pos_S_v(:,2) - pos_S_v(:,1)) / 2;
+vel_S = (X_sat(:,3) - X_sat(:,1)) / 2;

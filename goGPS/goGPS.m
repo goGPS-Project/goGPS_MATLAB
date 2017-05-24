@@ -467,15 +467,15 @@ for s = 1 : num_session
                         if (exist('pos_R_crd','var') && any(pos_R_crd))
                             logger.newLine();
                             logger.addMessage('Rover apriori position set from coordinate file:');
-                            logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
+                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
                             if report.opt.write == 1
                                 report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
                             end
                             pos_R = pos_R_crd;
                         else
                             logger.newLine();
-                            logger.addMessage('Rover apriori position set from RINEX:\n');
-                            logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
+                            logger.addMessage('Rover apriori position set from RINEX:');
+                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
                             if report.opt.write == 1
                                 if any(pos_R)
                                     report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
@@ -484,12 +484,11 @@ for s = 1 : num_session
                                 end
                             end
                         end
+                        logger.newLine();
                     end
                 end
 
                 if (flag_SP3)
-                    %display message
-                    fprintf('Reading SP3 file...\n');
 
                     %----------------------------------------------------------------------------------------------
                     % LOAD SP3 DATA
@@ -682,9 +681,10 @@ for s = 1 : num_session
                     end
 
                     %pre-processing
-                    logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
+                    logger.addMarkedMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
                     w_bar.setBarLen(length(time_GPS_diff));
                     w_bar.createNewBar('Pre-processing rover...');
+                    logger.newLine();
 
                     [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 

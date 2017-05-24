@@ -136,6 +136,7 @@ classdef Go_Wait_Bar < handle
         function getNewTextBar(this, title)
             % Build a new text bar
             if (this.type == 0) ||  (this.type == 5)
+                fprintf('\n');
                 if nargin == 2
                     this.title = title;
                     fprintf('%s', title);

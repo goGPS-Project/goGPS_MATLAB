@@ -54,7 +54,7 @@ function y_pred = fastLI(y_obs, x_pred)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    n_obs = numel(y_obs);
+    n_obs = size(y_obs,2);
     n_pred = numel(x_pred);
 
      %y_pred = zeros(size(x_pred));
