@@ -117,11 +117,13 @@ classdef Go_Wait_Bar < handle
                 end
                 this.ext_h = getappdata(this.h,'TMWWaitbar_handles');
                 if (isunix())
-                    this.ext_h.axesTitle.FontSize = 13;
+                    this.ext_h.axesTitle.FontSize = 14;
                 else
                     this.ext_h.axesTitle.FontSize = 10;
                 end
-                this.ext_h.axesTitle.Position(2) = 1.5;
+                this.ext_h.axesTitle.Units = 'pixels';
+                this.ext_h.figure.Position(4) = 90;
+                this.ext_h.axesTitle.Position(2) = 34;
                 if nargin == 2
                     this.title = title;
                     this.setTitle(title);
@@ -223,6 +225,7 @@ classdef Go_Wait_Bar < handle
                 this.getNewBar()
                 this.getNewTextBar();
             end
+            drawnow;
         end
 
         % Create the window or plot the text bar
@@ -248,10 +251,15 @@ classdef Go_Wait_Bar < handle
             else
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
-
+            
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
-                %drawnow limitrate;
+                if verLessThan('matlab','8.5') % matlab 2015a
+                    drawnow; % slower but supported
+                else
+                    drawnow limitrate;
+                end
+                
             end
             if (this.type == 0) ||  (this.type == 5)
                 this.textBar = this.getTextBar();
@@ -273,12 +281,22 @@ classdef Go_Wait_Bar < handle
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
             this.msg = msg;
-
+            
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
+                if ~isempty(strfind(this.msg,'\n'))
+                    this.ext_h.axesTitle.Position(2) = 16;
+                else
+                    this.ext_h.axesTitle.Position(2) = 34;
+                end
                 this.ext_h.axesTitle.String = this.msg;
-                %drawnow limitrate;
+                if verLessThan('matlab','8.5') % matlab 2015a
+                    drawnow; % slower but supported
+                else
+                    drawnow limitrate;
+                end
+                
             end
 
             %if text bar
@@ -317,13 +335,18 @@ classdef Go_Wait_Bar < handle
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
-                if (this.ext_h.axesTitle.Position(2) ~= 1.25)
+                if (this.ext_h.axesTitle.Position(2) ~= 25)
                     %this.ext_h.axesTitle.FontName = 'Courier';
                     %this.ext_h.axesTitle.FontWeight = 'bold';
-                    this.ext_h.axesTitle.Position(2) = 1.25;
+                    this.ext_h.axesTitle.Position(2) = 25;
                 end
                 this.ext_h.axesTitle.String = this.msg;
-                %drawnow limitrate;
+                if verLessThan('matlab','8.5') % matlab 2015a
+                    drawnow; % slower but supported
+                else
+                    drawnow limitrate;
+                end
+                
             end
 
             %if text bar
@@ -409,7 +432,7 @@ classdef Go_Wait_Bar < handle
             if nargin == 0
                 type = 5;
             end
-            profile on
+            profile off
             nMax = 10000;
             b = Go_Wait_Bar.getInstance(nMax,'Whats''up!',type);
 
@@ -438,8 +461,8 @@ classdef Go_Wait_Bar < handle
             fprintf('\n Test completec');
 
             toc(t0);
-            profile off
-            profile viewer
+            %profile off
+            %profile viewer
         end
 
         function testOld()
