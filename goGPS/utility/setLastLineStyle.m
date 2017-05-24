@@ -1,20 +1,22 @@
-function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
+function setLastLineStyle(h, line_style)
 
-% SYNTAX:
-%   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat);
+% setLastLineStyle get all the lines handler and change them to a <linestyle> value
+%
+% SINTAX:
+%   setLastLineStyle(<h>, line_style)
+%   setLastLineStyle(line_style)
+%
+% EXAMPLE:
+%   setLastLineStyle(gcf, ':');
+%   setLastLineStyle(':');
 %
 % INPUT:
-%   time = interpolation time (GPS time, continuous since 6-1-1980)
-%   SP3  = structure containing precise ephemeris data
-%   sat = satellite PRN
+%   h          = handler to the figure to modify        <optional argument>
+%   line_style = requested line style for the line
 %
-% OUTPUT:
-%   pos_S = interpolated satellite coordinates
-%   vel_S = satellite velocity
+% DEFAULT VALUES:
+%   h       = gcf
 %
-% DESCRIPTION:
-%   SP3 (precise ephemeris) coordinates 1-second interpolation by Lagrange
-%   polynomials. Satellite velocity computation. Relativistic correction.
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -25,7 +27,7 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:
+%  Written by:       Andrea Gatti
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
@@ -47,36 +49,9 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-SP3_time  = SP3.time;
-SP3_coord = SP3.coord(:, sat, :);
-antPCO    = SP3.antPCO(:, :, sat)';
-
-
-%number of seconds in a quarter of an hour
-interval = SP3.coord_rate;
-
-%find the SP3 epoch closest to the interpolation time
-[~, p] = min(abs(SP3_time - time));
-
-b = SP3_time(p) - time;
-
-pos_S = zeros(3,1);
-
-%Lagrange interpolation
-%degree of interpolation polynomial (Lagrange)
-% n = 10;
-%u = (n/2+1) + (- b + (-1:1))/interval;
-u = 6 + (- b + (-1:1))/interval;    % using 6 since n = 10;
-%X_sat = fastLI(SP3_coord(:,p+(-n/2:n/2)), u);
-X_sat = fastLI(SP3_coord(:,p + (-5:5)), u);
-
-%apply satellite antenna phase center correction
-[i, j, k] = satellite_fixed_frame(time, X_sat(:,2), SP3);
-X_sat(:,2) = X_sat(:,2) + [i j k]*antPCO;
-
-pos_S(1,1) = X_sat(1,2);
-pos_S(2,1) = X_sat(2,2);
-pos_S(3,1) = X_sat(3,2);
-
-%compute velocity
-vel_S = (X_sat(:,3) - X_sat(:,1)) / 2;
+if nargin < 2
+    line_style = h;
+    h = gcf;
+end
+hline = findobj(h, 'type', 'line');
+set(hline(1), 'LineStyle', line_style);
