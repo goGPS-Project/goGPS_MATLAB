@@ -26,7 +26,7 @@ function [dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time25] = load_ltc(iodp_mask,
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 2
+%    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

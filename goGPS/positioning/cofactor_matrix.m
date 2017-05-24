@@ -22,7 +22,7 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 2
+%    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

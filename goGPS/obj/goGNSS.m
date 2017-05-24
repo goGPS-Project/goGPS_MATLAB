@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 2
+%    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -197,8 +197,8 @@ classdef goGNSS < handle & Mode_Settings
         ID_BEIDOU  = 4 % Id of BeiDou constellation for goGPS internal use
         ID_QZSS    = 5 % Id of QZSS constellation for goGPS internal use
         ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use
-        
-        % Colormap with which to plot residuals skyplot -------------------        
+
+        % Colormap with which to plot residuals skyplot -------------------
         RES_COLORMAP=[0    0.4980         0; ...
             0.0323    0.5142         0; ...
             0.0645    0.5304         0; ...

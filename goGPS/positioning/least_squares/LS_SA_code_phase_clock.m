@@ -36,7 +36,7 @@ function [dtR, ISBs, N_hat, var_dtR, var_ISBs, cov_N] = LS_SA_code_phase_clock(p
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 2
+%    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

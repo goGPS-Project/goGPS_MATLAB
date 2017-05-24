@@ -35,7 +35,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 2
+%    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -253,7 +253,7 @@ classdef Go_Wait_Bar < handle
             else
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
-            
+
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
                 if verLessThan('matlab','8.5') % matlab 2015a
@@ -261,7 +261,7 @@ classdef Go_Wait_Bar < handle
                 else
                     drawnow limitrate;
                 end
-                
+
             end
             if (this.type == 0) ||  (this.type == 5)
                 this.textBar = this.getTextBar();
@@ -283,7 +283,7 @@ classdef Go_Wait_Bar < handle
                 this.lastStep = min(this.lastStep + 1,this.nSteps);
             end
             this.msg = msg;
-            
+
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
@@ -298,7 +298,7 @@ classdef Go_Wait_Bar < handle
                 else
                     drawnow limitrate;
                 end
-                
+
             end
 
             %if text bar
@@ -348,7 +348,7 @@ classdef Go_Wait_Bar < handle
                 else
                     drawnow limitrate;
                 end
-                
+
             end
 
             %if text bar

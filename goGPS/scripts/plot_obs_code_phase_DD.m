@@ -19,7 +19,7 @@ if (goGNSS.isDD(mode))
             end
         end
     end
-    
+
     %phase
     for i = 1 : nSatTot
         index = find(conf_sat_OUT(i,:) == 1)';
