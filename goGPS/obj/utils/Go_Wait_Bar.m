@@ -118,11 +118,12 @@ classdef Go_Wait_Bar < handle
                 this.ext_h = getappdata(this.h,'TMWWaitbar_handles');
                 if (isunix())
                     this.ext_h.axesTitle.FontSize = 14;
+                    this.ext_h.figure.Position(4) = 90;
                 else
                     this.ext_h.axesTitle.FontSize = 10;
+                    this.ext_h.figure.Position(4) = 65;
                 end
                 this.ext_h.axesTitle.Units = 'pixels';
-                this.ext_h.figure.Position(4) = 90;
                 this.ext_h.axesTitle.Position(2) = 34;
                 if nargin == 2
                     this.title = title;
