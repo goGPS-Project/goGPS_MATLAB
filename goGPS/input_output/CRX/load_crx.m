@@ -183,8 +183,9 @@ for j = 1 : nmax
                             end
                         end
                         if ((p == 0 &&           (s <= date_stop && e >= date_start)) || ... %satellite maneuver
-                                (p >= 1 && p <= 3 && (s <= date_stop && e >= date_start)) || ... %bad code and/or phase data
-                                (p == 4 &&           (s <= date_stop && e >= date_start))) % arc split
+                                (p >= 1 && p <= 3 && (s <= date_stop && e >= date_start)))   %bad code and/or phase data
+                            
+                                %(p == 4 &&           (s <= date_stop && e >= date_start))) % arc split <--> not needed by goGPS
 
                             [~, idx_start] = min(abs(s - dnum));
                             [~, idx_end]   = min(abs(e - dnum));
