@@ -3530,7 +3530,7 @@ for s = 1 : num_session
     %----------------------------------------------------------------------------------------------
 
     %if any positioning was done (either post-processing or real-time)
-    if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && ~exist('is_batch','var')
+    if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (exist('is_batch','var') && is_batch == 0)
         %display information
         fprintf('Writing NMEA file...\n');
         %file saving
@@ -3562,11 +3562,11 @@ for s = 1 : num_session
             end
 
             %NMEA file write
-            fprintf(fid_nmea, [GGAstring '\n']);
             if (pivot_OUT(i) ~= 0)
                 fprintf(fid_nmea, [RMCstring '\n']);
                 fprintf(fid_nmea, [GSVstring '\n']);
             end
+            fprintf(fid_nmea, [GGAstring '\n']);
             fprintf(fid_nmea, [GSAstring '\n']);
             if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
                 fprintf(fid_nmea, [PGGPKstring '\n']);
