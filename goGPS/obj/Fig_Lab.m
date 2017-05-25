@@ -79,7 +79,7 @@ classdef Fig_Lab < handle
             if nargin == 1
                 plot_list = [1 2];
             end
-            
+
             logger = Logger.getInstance();
 
             fid = fopen(file_name_extraction,'r');
@@ -104,7 +104,7 @@ classdef Fig_Lab < handle
                 if ~isempty(intersect(plot_list, 1))
                     fh = figure(); maximizeFig(fh);
                     color_order = handle(gca).ColorOrder;
-                    
+
                     subplot(3,1,1); ax(1) = gca;
                     data = (enu(:,1) - m_enu(:,1))*1e3;
                     data_s = iif(numel(data)>4, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
@@ -113,7 +113,7 @@ classdef Fig_Lab < handle
                     grid on; setTimeTicks(4,'dd mmm yyyy');
                     title(sprintf('East - std %.2f [mm]', std(data)));
                     ylabel('displacement [mm]', 'FontWeight', 'Bold')
-                    
+
                     subplot(3,1,2); ax(2) = gca;
                     data = (enu(:,2) - m_enu(:,2))*1e3;
                     data_s = iif(numel(data)>14, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
@@ -122,7 +122,7 @@ classdef Fig_Lab < handle
                     grid on; setTimeTicks(4,'dd mmm yyyy');
                     title(sprintf('North - std %.2f [mm]', std(data)));
                     ylabel('displacement [mm]', 'FontWeight', 'Bold')
-                    
+
                     subplot(3,1,3); ax(3) = gca;
                     data = (enu(:,3) - m_enu(:,3))*1e3;
                     data_s = iif(numel(data)>4, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);

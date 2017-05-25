@@ -96,6 +96,9 @@ else
     w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
 end
 
+% Kalman filter cannot be initialized when goGPS starts
+kalman_initialized = false;
+
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
@@ -1521,7 +1524,7 @@ for s = 1 : num_session
         check_pivot = 0;
         check_cs = 0;
 
-        if (~exist('seamless_proc','var') || seamless_proc == 0)
+        if ~state.isSeamlessKF()
             kalman_initialized = 0;
         end
         if (~kalman_initialized)
@@ -1888,7 +1891,7 @@ for s = 1 : num_session
         fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
         fid_trp = fopen([filerootOUT '_trp_000.bin'],'w+');
 
-        if (~exist('seamless_proc','var') || seamless_proc == 0)
+        if ~state.isSeamlessKF()
             kalman_initialized = 0;
         end
         if (~kalman_initialized)
@@ -2111,7 +2114,7 @@ for s = 1 : num_session
         check_pivot = 0;
         check_cs = 0;
 
-        if (~exist('seamless_proc','var') || seamless_proc == 0)
+        if ~state.isSeamlessKF()
             kalman_initialized = 0;
         end
         if (~kalman_initialized)
@@ -2474,7 +2477,7 @@ for s = 1 : num_session
                 clear sbas_prc
             end
 
-            if (~exist('seamless_proc','var') || seamless_proc == 0)
+            if ~state.isSeamlessKF()
                 kalman_initialized = 0;
             end
             if (~kalman_initialized)
@@ -2597,7 +2600,7 @@ for s = 1 : num_session
             fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
             fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
-            if (~exist('seamless_proc','var') || seamless_proc == 0)
+            if ~state.isSeamlessKF()
                 kalman_initialized = 0;
             end
             if (~kalman_initialized)
@@ -2835,7 +2838,7 @@ for s = 1 : num_session
         ref = gs.getReferencePath();
         ref_loop = [ref.path; ref.path];
 
-        if (~exist('seamless_proc','var') || seamless_proc == 0)
+        if ~state.isSeamlessKF()
             kalman_initialized = 0;
         end
         if (~kalman_initialized)

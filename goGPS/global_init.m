@@ -127,7 +127,7 @@ elea  = 10; % default value for the exponential elevation weight function
 %-------------------------------------------------------------------------------
 global phwindup
 
-if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+if ~(state.isSeamlessKF() && kalman_initialized)
     phwindup = [];
 end
 
@@ -204,7 +204,7 @@ global amb_estim_method
 %interval between epochs
 global interval
 
-if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+if ~(state.isSeamlessKF() && kalman_initialized)
     %initialization
     T = [];
     I = [];
@@ -254,7 +254,7 @@ rec_clock_error = 0;
 %flag to enable Doppler-based cycle slip detection
 flag_doppler_cs = 0;
 
-if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+if ~(state.isSeamlessKF() && kalman_initialized)
     %Doppler-predicted range (ROVER)
     doppler_pred_range1_R = zeros(state.getCC().getNumSat(),1);
     doppler_pred_range2_R = zeros(state.getCC().getNumSat(),1);

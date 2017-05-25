@@ -119,6 +119,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - kf_mode = 2; constant acceleration
                                                         % - kf_mode = 3; variable (stop-go-stop)
 
+        SEAMLESS_PROC = true;                           % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
+
         % RECEIVER POSITION / MOTION
         SIGMA0_K_POS = 1;                               % Std of initial state [m]
         STD_K_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1); % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
@@ -385,6 +387,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - kf_mode = 2; constant acceleration
         % - kf_mode = 3; variable (stop-go-stop)
 
+        % Tell the processor to re-initialize kalman filter at the end of 1 session processing
+        seamless_proc = Main_Settings.SEAMLESS_PROC;
+
         %------------------------------------------------------------------
         % RECEIVER POSITION / MOTION
         %------------------------------------------------------------------
@@ -582,6 +587,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % KF
                 this.kf_mode = state.getData('kf_mode');
+                this.seamless_proc = state.getData('seamless_proc');
 
                 % RECEIVER POSITION / MOTION
                 this.sigma0_k_pos    = state.getData('sigma0_k_pos');
@@ -679,6 +685,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % KF
                 this.kf_mode = state.kf_mode;
+                this.seamless_proc = state.seamless_proc;
 
                 % RECEIVER POSITION / MOTION
                 this.sigma0_k_pos = state.sigma0_k_pos;
@@ -803,6 +810,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
             str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
+            str = [str sprintf(' Kalman seamless processing:                        %d\n\n', this.seamless_proc)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
@@ -938,6 +946,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('Enable / Disable stop go stop mode option (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('stop_go_stop', this.stop_go_stop, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            %
 
             % INTEGER AMBIGUITY RESOLUTION
             str_cell = Ini_Manager.toIniStringSection('AMBIGUITY', str_cell);
@@ -992,6 +1001,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Tell the processor to not re-initialize Kalman filter at the end of 1 session processing (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniString('seamless_proc', this.seamless_proc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % ATMOSPHERE
@@ -1474,6 +1486,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
+            this.checkLogicalField('seamless_proc');
 
             % INTEGER AMBIGUITY RESOLUTION
             this.checkLogicalField('flag_iar');
@@ -1565,6 +1578,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Get the Capture Rate
             % SYNTEX: capture_rate = this.getCaptureRate();
             capture_rate = this.c_rate;
+        end
+
+        function is_seamless = isSeamlessKF(this)
+            is_seamless = this.seamless_proc;
         end
 
         function is_variable = isVariableKF(this)
