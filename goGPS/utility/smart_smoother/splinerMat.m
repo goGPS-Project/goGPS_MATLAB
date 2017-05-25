@@ -397,7 +397,6 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
                 % If I skip more than 3 times the spline solutions are independent,
                 % I can start solving my filtering for the first i points
 
-                sPar = [];
                 if (usedObs < size(N,2))
                     fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
                     R = sparse(eye(curLocalSpline)*1e-9);
@@ -416,7 +415,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
                 while (tau > 2)
                     curSpline = curSpline+1;
                     tau = (x(i)-xSpline(curSpline))/dxs;
-                    if (tau > 2),
+                    if (tau > 2)
                         sWeights(curSpline) = nan;
                     end
                 end
@@ -442,7 +441,6 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
     end
 
     % find the interpolation for the last subset of observations
-    sPar = [];
     if (usedObs < size(N,2))
         fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
         R = sparse(eye(size(N,2))*1e-9);
