@@ -205,6 +205,14 @@ classdef Go_State < Settings_Interface
     methods (Access = public)
         function initProcessing(this)
             % Load external resources and update
+            fnp = File_Name_Processor();
+            out_dir = fnp.checkPath(this.cur_settings.getOutDir());
+            if ~exist(out_dir, 'dir')
+                this.logger.newLine();
+                this.logger.addWarning(sprintf('The out folder does not exists\n Creating %s', out_dir));
+                mkdir(out_dir);
+            end
+
             this.logger.newLine();
             this.logger.addMessage(this.cur_settings.cc.toString);
             this.logger.newLine();

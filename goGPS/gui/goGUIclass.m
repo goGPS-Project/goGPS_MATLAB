@@ -2480,12 +2480,13 @@ classdef goGUIclass < handle
             % Performs all the led check before allowing the launch... ehm
             % activation of the Go! button
             if this.isPostProc()
-                for i = 1:length(this.idGroup.gLED)
-                    goOk = goOk+this.okGo(this.idGroup.gLED(i));
+                for i = 1:length(this.idGroup.gFileLED)
+                    goOk = goOk+this.okGo(this.idGroup.gFileLED(i));
                 end
-                goOk = (goOk - length(this.idGroup.gLED)) == 0;
+                goOk = (goOk - length(this.idGroup.gFileLED)) == 0;
             else % In real time I just have to check for the output folder
-                goOk = this.okGo(this.idUI.fDirGoOut) == 1;
+                %goOk = this.okGo(this.idUI.fDirGoOut) == 1;
+                % non existent folder will be created
             end
 
             % Chek constellations to be used
