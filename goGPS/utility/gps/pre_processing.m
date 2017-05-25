@@ -163,9 +163,9 @@ min_arc = max([min_arc lagr_order]);
 [ph2] = remove_short_arcs(ph2, min_arc);
 
 %correct nominal time desynchronization
-[pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
-[pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
-time = time_ref;
+% [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
+% [pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
+% time = time_ref;
 
 if not(flag_full_prepro)
     dtRdot(end+1) = dtRdot(end);
