@@ -100,7 +100,9 @@ classdef FTP_Downloader < handle
             end
 
             %open the connection with the server
-            this.ftp_server = ftp(strcat(this.addr, ':', this.port));
+            if (this.checkNet)
+                this.ftp_server = ftp(strcat(this.addr, ':', this.port));
+            end
         end
 
         function delete(this)
