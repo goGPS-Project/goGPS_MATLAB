@@ -76,11 +76,11 @@ nObsSet = size(pr1_i,3);
 % logical indexes of all the receivers [n_epochs x 1 x n_rec] where pr is valid
 id_ok = (permute(sum(pr1_i,1),[2 1 3]) > 0);
 
-min_time = inf;
-max_time = -inf;
+min_time = -inf;
+max_time = inf;
 for s = 1 : nObsSet
-    min_time = min(min_time, time_i(s).first(squeeze(id_ok(:,1,s))).getGpsTime());
-    max_time = max(max_time, time_i(s).last(squeeze(id_ok(:,1,s))).getGpsTime());
+    min_time = max(min_time, time_i(s).first(squeeze(id_ok(:,1,s))).getGpsTime());
+    max_time = min(max_time, time_i(s).last(squeeze(id_ok(:,1,s))).getGpsTime());
 end
 clear id_ok;
 
