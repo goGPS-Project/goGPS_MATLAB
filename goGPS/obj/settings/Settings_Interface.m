@@ -149,7 +149,7 @@ classdef Settings_Interface < handle
             % This superclass function must be called in each child
             % SYNTAX: checked_val = this.checkLogicalField(string_field_name);
             checked_val = default_val;
-            if (~isnan(field_val)) && (~isempty(field_val))
+            if (~isempty(field_val)) && (~isnan(field_val))
                 checked_val = logical(field_val);
             else
                 this.logger.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
