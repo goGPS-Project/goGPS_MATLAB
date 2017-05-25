@@ -119,7 +119,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - kf_mode = 2; constant acceleration
                                                         % - kf_mode = 3; variable (stop-go-stop)
 
-        SEAMLESS_PROC = true;                           % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
+        SEAMLESS_PROC = false;                          % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
 
         % RECEIVER POSITION / MOTION
         SIGMA0_K_POS = 1;                               % Std of initial state [m]
