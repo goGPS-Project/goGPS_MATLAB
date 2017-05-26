@@ -109,18 +109,21 @@ classdef Fig_Lab < handle
                 if n_spline > 0
                     plot(time.getMatlabTime, data_e_s, 'k--');
                 end
-
+                setTimeTicks(4,'dd mmm yyyy');
+                
                 subplot(3,1,2);
                 plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if n_spline > 0
                     plot(time.getMatlabTime, data_n_s, 'k--');
                 end
-
+                setTimeTicks(4,'dd mmm yyyy');
+                
                 subplot(3,1,3);
                 plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if n_spline > 0
                     plot(time.getMatlabTime, data_u_s, 'k--');
                 end
+                setTimeTicks(4,'dd mmm yyyy');
             end
             subplot(3,1,1); ax(1) = gca;
             grid on;
