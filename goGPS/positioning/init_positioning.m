@@ -101,7 +101,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-global SPP_threshold
+global SPP_threshold flag_outlier
 
 if (any(lambda(:)))
     %compute inter-frequency factors (for the ionospheric delay)
@@ -210,7 +210,12 @@ if ((flag_XR < 2 || ~any(XR0)) && ~flag_static_batch)
     n_iter_max = 5;
     n_iter = 0;
     var_SPP(1) = Inf;
-    while(var_SPP(1) > SPP_threshold^2 && n_iter < n_iter_max)
+    if (flag_outlier)
+        thres = SPP_threshold;
+    else
+        thres = 4;
+    end
+    while(var_SPP(1) > thres^2 && n_iter < n_iter_max)
         [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, ~, ~, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold, 0);
         %bad_sat(sat(bad_obs))=1;
         XR0 = XR;

@@ -205,7 +205,7 @@ else
     sigma02_hat(1,3) = n-m;
     sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);
     if n>m
-        if (sigma02_hat(1)>SPP_threshold^2)
+        if (flag_outlier && sigma02_hat(1)>SPP_threshold^2)
             bad_epoch=1;
         end
     else
