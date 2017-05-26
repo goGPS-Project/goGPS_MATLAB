@@ -119,7 +119,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - kf_mode = 2; constant acceleration
                                                         % - kf_mode = 3; variable (stop-go-stop)
 
-        SEAMLESS_PROC = false;                          % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
+        FLAG_KF_FB = true;                              % KF Forward backwords mode
+
+        FLAG_SEAMLESS_PROC = false;                     % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
 
         % RECEIVER POSITION / MOTION
         SIGMA0_K_POS = 1;                               % Std of initial state [m]
@@ -387,8 +389,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - kf_mode = 2; constant acceleration
         % - kf_mode = 3; variable (stop-go-stop)
 
+        % KF Forward backwords mode
+        flag_kf_fb = Main_Settings.FLAG_KF_FB;
+
         % Tell the processor to re-initialize kalman filter at the end of 1 session processing
-        seamless_proc = Main_Settings.SEAMLESS_PROC;
+        flag_seamless_proc = Main_Settings.FLAG_SEAMLESS_PROC;
 
         %------------------------------------------------------------------
         % RECEIVER POSITION / MOTION
@@ -587,7 +592,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % KF
                 this.kf_mode = state.getData('kf_mode');
-                this.seamless_proc = state.getData('seamless_proc');
+                this.flag_kf_fb = state.getData('flag_kf_fb');
+                this.flag_seamless_proc = state.getData('flag_seamless_proc');
 
                 % RECEIVER POSITION / MOTION
                 this.sigma0_k_pos    = state.getData('sigma0_k_pos');
@@ -685,7 +691,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % KF
                 this.kf_mode = state.kf_mode;
-                this.seamless_proc = state.seamless_proc;
+                this.flag_kf_fb = state.flag_kf_fb;
+                this.flag_seamless_proc = state.flag_seamless_proc;
 
                 % RECEIVER POSITION / MOTION
                 this.sigma0_k_pos = state.sigma0_k_pos;
@@ -810,7 +817,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
             str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
-            str = [str sprintf(' Kalman seamless processing:                        %d\n\n', this.seamless_proc)];
+
+            str = [str sprintf(' Kalman forward - backwards processing:            %d\n', this.flag_kf_fb)];
+            str = [str sprintf(' Kalman seamless processing:                       %d\n\n', this.flag_seamless_proc)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
@@ -850,6 +859,20 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Approximate position - lat [deg]:                 %.9g\n', this.ntrip.approx_position.lat)];
             str = [str sprintf(' Approximate position - lon [deg]:                 %.9g\n', this.ntrip.approx_position.lon)];
             str = [str sprintf(' Approximate position - h   [m]:                   %.9g\n\n', this.ntrip.approx_position.h)];
+        end
+
+        function showTextMode(this)
+            % Display informations about the processing
+
+            str = sprintf('Processing using %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
+            if this.isModeKM() && this.isForwardBackwardKF()
+                str = strcat(str, 10, 'Kalman forward/backwards processing enabled');
+            end
+            if this.isModeKM() && this.isSeamlessKF()
+                str = strcat(str, 10, 'Kalman seamless processing enabled');
+            end
+            this.logger.addMarkedMessage(str);
+            this.logger.newLine();
         end
 
         function str_cell = export(this, str_cell)
@@ -1002,8 +1025,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            % KF Forward backwords mode
+            str_cell = Ini_Manager.toIniStringComment('Use forward - backwords mode for Kalman filter processing (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('WARNING: experimental - enabled for static DD code and phase', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_kf_fb', this.flag_kf_fb, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Tell the processor to not re-initialize Kalman filter at the end of 1 session processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('seamless_proc', this.seamless_proc, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_seamless_proc', this.flag_seamless_proc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % ATMOSPHERE
@@ -1486,7 +1513,6 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
-            this.checkLogicalField('seamless_proc');
 
             % INTEGER AMBIGUITY RESOLUTION
             this.checkLogicalField('flag_iar');
@@ -1505,6 +1531,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             else
                 this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_RT)-1]);
             end
+
+            this.checkLogicalField('flag_seamless_proc');
+            this.checkLogicalField('flag_kf_fb');
+            if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
+                this.logger.addWarning('Up to now forward - backword KF is only supported for DD phase and code with static filter\n Disabling it');
+                this.flag_kf_fb = false;
+            end
+
 
             % RECEIVER POSITION / MOTION
             this.checkNumericField('sigma0_k_pos',[0 1e3]);
@@ -1581,7 +1615,21 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         end
 
         function is_seamless = isSeamlessKF(this)
-            is_seamless = this.seamless_proc;
+            % Get the Seamless Rate flag
+            % SYNTEX: is_seamless = this.isSeamlessKF();
+            is_seamless = this.flag_seamless_proc;
+        end
+
+        function is_fb = isForwardBackwardKF(this)
+            % Get the Forward Backward flag
+            % SYNTEX: is_fb = this.isForwardBackwardKF();
+            is_fb = this.flag_kf_fb;
+        end
+
+        function is_static = isStaticKF(this)
+            % Check wether the current KF mode is static (PP)
+            % SYNTAX is_static = this.isStaticKF();
+            is_static = (~this.isModeMonitor() && this.kf_mode == 0);
         end
 
         function is_variable = isVariableKF(this)
