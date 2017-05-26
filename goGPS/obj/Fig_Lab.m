@@ -54,6 +54,94 @@ classdef Fig_Lab < handle
 
     methods (Static) % Public Access
 
+        function plotENU(time, enu, n_spline)
+            narginchk(2,3);
+
+            if nargin == 2
+                n_spline = 0;
+            end
+
+            n_spline = n_spline * (size(enu,1) > n_spline);
+
+            m_enu = mean(enu);
+            fh = figure(); maximizeFig(fh);
+            color_order = handle(gca).ColorOrder;
+
+            % prepare data
+            data_e = (enu(:,1) - m_enu(:,1))*1e3;
+            data_n = (enu(:,2) - m_enu(:,2))*1e3;
+            data_u = (enu(:,3) - m_enu(:,3))*1e3;
+
+            if n_spline > 0
+                if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
+                    data_e_s = splinerMat(1:numel(data_e), data_e(:), n_spline,0);
+                    data_n_s = splinerMat(1:numel(data_e), data_n(:), n_spline,0);
+                    data_u_s = splinerMat(1:numel(data_e), data_u(:), n_spline,0);
+
+                else
+                    data_e_s = splinerMat(time.getGpsTime(), data_e(:), n_spline * time.getRate(),0);
+                    data_n_s = splinerMat(time.getGpsTime(), data_n(:), n_spline * time.getRate(),0);
+                    data_u_s = splinerMat(time.getGpsTime(), data_u(:), n_spline * time.getRate(),0);
+                end
+            end
+
+            if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
+                subplot(3,1,1);
+                plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                if n_spline > 0
+                    plot(data_e_s, 'k--');
+                end
+
+                subplot(3,1,2);
+                plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                if n_spline > 0
+                    plot(data_n_s, 'k--');
+                end
+
+                subplot(3,1,3);
+                plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
+                if n_spline > 0
+                    plot(data_u_s, 'k--');
+                end
+            else
+                subplot(3,1,1);
+                plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                if n_spline > 0
+                    plot(time.getMatlabTime, data_e_s, 'k--');
+                end
+                setTimeTicks(4,'dd mmm yyyy');
+                
+                subplot(3,1,2);
+                plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                if n_spline > 0
+                    plot(time.getMatlabTime, data_n_s, 'k--');
+                end
+                setTimeTicks(4,'dd mmm yyyy');
+                
+                subplot(3,1,3);
+                plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
+                if n_spline > 0
+                    plot(time.getMatlabTime, data_u_s, 'k--');
+                end
+                setTimeTicks(4,'dd mmm yyyy');
+            end
+            subplot(3,1,1); ax(1) = gca;
+            grid on;
+            title(sprintf('East - std %.2f [mm]', std(data_e)));
+            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+
+            subplot(3,1,2); ax(2) = gca;
+            grid on;
+            title(sprintf('North - std %.2f [mm]', std(data_n)));
+            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+
+            subplot(3,1,3); ax(3) = gca;
+            grid on;
+            title(sprintf('Up - std %.2f [mm]', std(data_u)));
+            linkaxes(ax,'x');
+            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+        end
+
         function [time, enu, xyz] = plotExtractionPos(file_name_extraction, plot_list)
             % SYNTAX:
             %   plotExtractionPos(<file_name_extraction>, plot_list)
@@ -99,42 +187,13 @@ classdef Fig_Lab < handle
                 clear data;
 
                 m_xyz = mean(xyz);
-                m_enu = mean(enu);
 
                 if ~isempty(intersect(plot_list, 1))
-                    fh = figure(); maximizeFig(fh);
-                    color_order = handle(gca).ColorOrder;
-
-                    subplot(3,1,1); ax(1) = gca;
-                    data = (enu(:,1) - m_enu(:,1))*1e3;
-                    data_s = iif(numel(data)>4, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
-                    plot(time.getMatlabTime, data, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    plot(time.getMatlabTime, data_s, 'k--');
-                    grid on; setTimeTicks(4,'dd mmm yyyy');
-                    title(sprintf('East - std %.2f [mm]', std(data)));
-                    ylabel('displacement [mm]', 'FontWeight', 'Bold')
-
-                    subplot(3,1,2); ax(2) = gca;
-                    data = (enu(:,2) - m_enu(:,2))*1e3;
-                    data_s = iif(numel(data)>14, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
-                    plot(time.getMatlabTime, data, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
-                    plot(time.getMatlabTime, data_s, 'k--');
-                    grid on; setTimeTicks(4,'dd mmm yyyy');
-                    title(sprintf('North - std %.2f [mm]', std(data)));
-                    ylabel('displacement [mm]', 'FontWeight', 'Bold')
-
-                    subplot(3,1,3); ax(3) = gca;
-                    data = (enu(:,3) - m_enu(:,3))*1e3;
-                    data_s = iif(numel(data)>4, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
-                    plot(time.getMatlabTime, data, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
-                    plot(time.getMatlabTime, data_s, 'k--');
-                    grid on; setTimeTicks(4,'dd mmm yyyy');
-                    title(sprintf('Up - std %.2f [mm]', std(data)));
-                    linkaxes(ax,'x');
-                    ylabel('displacement [mm]', 'FontWeight', 'Bold')
+                    Fig_Lab.plotENU(time, enu, 14)
                 end
 
                 if ~isempty(intersect(plot_list, 2))
+                    color_order = handle(gca).ColorOrder;
                     fh2 = figure(); maximizeFig(fh2);
                     data = sqrt((xyz(:,1) - m_xyz(:,1)).^2 + (xyz(:,2) - m_xyz(:,2)).^2 + (xyz(:,3) - m_xyz(:,3)).^2) * 1e3;
                     data_s = iif(numel(data)>14, splinerMat(time.getGpsTime(), data(:), min(numel(data),14) * time.getRate(),0), data);
@@ -144,6 +203,46 @@ classdef Fig_Lab < handle
                     title(sprintf('3D - mean %.2f [mm]', mean(data)));
                     ylabel('displacement [mm]', 'FontWeight', 'Bold')
                 end
+            end
+        end
+
+        function [time, enu, err] = plotBatchPos(file_name_pos)
+            % SYNTAX:
+            %   plotBatchPos(<file_name_pos>, plot_list)
+            %
+            % INPUT:
+            %   file_name_pos = name of the batch position file
+            %
+            % EXAMPLE:
+            %    state = Go_State.getCurrentSettings();
+            %
+            %    file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
+            %    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
+            %    file_name = sprintf('%s_position.txt', file_name_base);
+            %    Fig_Lab.plotBatchPos(file_name);
+            %
+            % DESCRIPTION:
+            %   Plot the results contained into the position file of a batch execution
+
+            logger = Logger.getInstance();
+
+            fid = fopen(file_name_pos,'r');
+
+            if (fid < 0)
+                logger.addError(['Failed to open ', file_name_pos]);
+            else
+                txt = fread(fid,'*char')';
+                logger.addMessage(['Reading ', file_name_pos]);
+                fclose(fid);
+
+                data = sscanf(txt(207:end)',' %4d-%3d  %2d/%2d/%2d    %2d:%2d:%6f   %14f   %14f   %14f  %14f\n');
+                data = reshape(data, 12, numel(data)/12)';
+                time = GPS_Time(datenum([data(:,1), data(:,4:8)]));
+                enu = data(:,9:11);
+                err = data(:,12);
+                clear data;
+
+                Fig_Lab.plotENU(time, enu, 14)
             end
         end
 

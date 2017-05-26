@@ -3,9 +3,9 @@
 %----------------------------------------------------------------------------------------------
 
 if (mode == goGNSS.MODE_PP_KF_CP_DD) | (mode == goGNSS.MODE_PP_KF_CP_SA)
-    
+
     pivot_change = find(diff(pivot_OUT)~=0);
-    
+
     for i = 1 : nSatTot
         index = find(conf_sat_OUT(i,:) == 1)';
         index_cs = find(conf_cs(i,:) == 1)';
@@ -30,5 +30,5 @@ if (mode == goGNSS.MODE_PP_KF_CP_DD) | (mode == goGNSS.MODE_PP_KF_CP_SA)
             title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
         end
     end
-    
+
 end
