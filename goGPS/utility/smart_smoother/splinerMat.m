@@ -1,10 +1,10 @@
-function [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,x_ext)
+function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFactor,x_ext)
 % SYNTAX:
 %   [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,<x_ext>)
 %
 % EXAMPLE:
-%   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext); toc;
-%   [y xS wS y_ext] = splinerMat(x,[y yvar],4,0,x_ext); toc;
+%   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext);
+%   [y xS wS y_ext] = splinerMat(x,[y yvar],4,0,x_ext);
 %
 % INPUT:
 %   x           [n x 1] observation time

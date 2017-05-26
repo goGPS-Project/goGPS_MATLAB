@@ -54,16 +54,16 @@ classdef Fig_Lab < handle
 
     methods (Static) % Public Access
 
-        function plotENU(time, enu, n_spline)
+        function plotENU(time, enu, spline_base)
             narginchk(2,3);
 
             if nargin == 2
-                n_spline = 0;
+                spline_base = 0;
             end
 
-            n_spline = n_spline * (size(enu,1) > n_spline);
+            spline_base = spline_base * (size(enu,1) > spline_base);
 
-            m_enu = mean(enu);
+            m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
             fh = figure(); maximizeFig(fh);
             color_order = handle(gca).ColorOrder;
 
@@ -72,72 +72,72 @@ classdef Fig_Lab < handle
             data_n = (enu(:,2) - m_enu(:,2))*1e3;
             data_u = (enu(:,3) - m_enu(:,3))*1e3;
 
-            if n_spline > 0
+            if spline_base > 0
                 if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
-                    data_e_s = splinerMat(1:numel(data_e), data_e(:), n_spline,0);
-                    data_n_s = splinerMat(1:numel(data_e), data_n(:), n_spline,0);
-                    data_u_s = splinerMat(1:numel(data_e), data_u(:), n_spline,0);
+                    data_e_s = splinerMat(1:numel(data_e), data_e(:), spline_base,0);
+                    data_n_s = splinerMat(1:numel(data_e), data_n(:), spline_base,0);
+                    data_u_s = splinerMat(1:numel(data_e), data_u(:), spline_base,0);
 
                 else
-                    data_e_s = splinerMat(time.getGpsTime(), data_e(:), n_spline * time.getRate(),0);
-                    data_n_s = splinerMat(time.getGpsTime(), data_n(:), n_spline * time.getRate(),0);
-                    data_u_s = splinerMat(time.getGpsTime(), data_u(:), n_spline * time.getRate(),0);
+                    [~, ~, ~, data_e_s] = splinerMat(time.getId(~isnan(data_e)).getGpsTime(), data_e(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
+                    [~, ~, ~, data_n_s] = splinerMat(time.getId(~isnan(data_n)).getGpsTime(), data_n(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
+                    [~, ~, ~, data_u_s] = splinerMat(time.getId(~isnan(data_u)).getGpsTime(), data_u(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
                 end
             end
 
             if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
                 subplot(3,1,1);
                 plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(data_e_s, 'k--');
                 end
 
                 subplot(3,1,2);
                 plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(data_n_s, 'k--');
                 end
 
                 subplot(3,1,3);
                 plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(data_u_s, 'k--');
                 end
             else
                 subplot(3,1,1);
                 plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(time.getMatlabTime, data_e_s, 'k--');
                 end
                 setTimeTicks(4,'dd mmm yyyy');
                 
                 subplot(3,1,2);
                 plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(time.getMatlabTime, data_n_s, 'k--');
                 end
                 setTimeTicks(4,'dd mmm yyyy');
                 
                 subplot(3,1,3);
                 plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
-                if n_spline > 0
+                if spline_base > 0
                     plot(time.getMatlabTime, data_u_s, 'k--');
                 end
                 setTimeTicks(4,'dd mmm yyyy');
             end
             subplot(3,1,1); ax(1) = gca;
             grid on;
-            title(sprintf('East - std %.2f [mm]', std(data_e)));
+            title(sprintf('East - std %.2f [mm]', std(data_e(~isnan(data_e)))));
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,2); ax(2) = gca;
             grid on;
-            title(sprintf('North - std %.2f [mm]', std(data_n)));
+            title(sprintf('North - std %.2f [mm]', std(data_n(~isnan(data_n)))));
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,3); ax(3) = gca;
             grid on;
-            title(sprintf('Up - std %.2f [mm]', std(data_u)));
+            title(sprintf('Up - std %.2f [mm]', std(data_u(~isnan(data_u)))));
             linkaxes(ax,'x');
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
         end
@@ -242,7 +242,7 @@ classdef Fig_Lab < handle
                 err = data(:,12);
                 clear data;
 
-                Fig_Lab.plotENU(time, enu, 14)
+                Fig_Lab.plotENU(time, enu, round(1*86400/time.getRate()));
             end
         end
 
