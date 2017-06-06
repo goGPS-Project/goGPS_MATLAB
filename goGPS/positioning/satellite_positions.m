@@ -77,7 +77,7 @@ eclipsed  = zeros(nsat,1);
 %system array
 sys_idx = zeros(nsat,1);
 
-gamma = (lambda(:,2)/lambda(:,1))^2;
+gamma = (lambda(:,2)./lambda(:,1)).^2;
 
 for i = 1 : nsat
 
