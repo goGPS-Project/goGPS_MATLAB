@@ -26,7 +26,7 @@ function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -50,11 +50,26 @@ function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
 t_sun = SP3.t_sun;
 X_sun = SP3.X_sun;
 
-[~, q] = min(abs(t_sun - time));
+interval = SP3.clock_rate;
+
+% [~, q] = min(abs(t_sun - time));
+% speed improvement of the above line
+% supposing t_sun regularly sampled
+q = round((time-t_sun(1))/interval)+1;
+
 X_sun = X_sun(:,q);
 e = (X_sun-X_sat)/norm(X_sun-X_sat);
 k = -X_sat/norm(X_sat);
-j = cross(k,e);
-i = cross(j,k);
+%j = cross(k,e);
+j = [k(2).*e(3)-k(3).*e(2);
+     k(3).*e(1)-k(1).*e(3);
+     k(1).*e(2)-k(2).*e(1)];
+%i = cross(j,k);
+i = [j(2).*k(3)-j(3).*k(2);
+     j(3).*k(1)-j(1).*k(3);
+     j(1).*k(2)-j(2).*k(1)];
+
 j = j/norm(j);
 i = i/norm(i);
+
+
