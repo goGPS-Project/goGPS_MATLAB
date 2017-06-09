@@ -75,6 +75,6 @@ function [time, xyz, enu, std_enu, std_3d] = steCrdImporter (file_name)
         xyz = [data{:,17:19}];
         enu = [data{:,20:22}];
         std_enu = [data{:,24:26}];
-        std_3d = data{:,27};        
+        std_3d = data{:,27};
     end
 end

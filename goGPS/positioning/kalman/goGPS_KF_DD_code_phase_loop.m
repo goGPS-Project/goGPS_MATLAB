@@ -999,7 +999,7 @@ if (nsat >= min_nsat)
 
     K = T*Cee*T' + Cvv;
 
-    G = K*H' * (H*K*H' + Cnn)^(-1);
+    G = K*H' / (H*K*H' + Cnn);
 
     %min_ambfloatRMS(t,1) = min(sqrt(diag(Cee(o3+sat_np,o3+sat_np)))); %#ok<NASGU>
 

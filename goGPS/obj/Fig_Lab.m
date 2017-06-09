@@ -52,20 +52,34 @@ classdef Fig_Lab < handle
     %  CONSTELLATION MANAGEMENT
     % =========================================================================
 
-    methods (Static) % Public Access
+    methods (Static) % Public Access Generic utilities
 
-        function plotENU(time, enu, spline_base)
-            narginchk(2,3);
+        function plotENU(time, enu, spline_base, hold_on)
+            narginchk(2,4);
 
             if nargin == 2
                 spline_base = 0;
+            end
+            if nargin < 4
+                hold_on = 0;
+            end
+            if time.getRate > 86000
+                date_style = 'dd mmm yyyy';
+            else
+                date_style = 'dd mmm yyyy HH:MM';
             end
 
             spline_base = spline_base * (size(enu,1) > spline_base);
 
             m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
-            fh = figure(); maximizeFig(fh);
+            if ~hold_on; fh = figure(); maximizeFig(fh); end
             color_order = handle(gca).ColorOrder;
+            if hold_on == 1
+                color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
+            end
+            if hold_on == -1
+                color_order = color_order * 0;
+            end
 
             % prepare data
             data_e = (enu(:,1) - m_enu(:,1))*1e3;
@@ -86,63 +100,78 @@ classdef Fig_Lab < handle
             end
 
             if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
-                subplot(3,1,1);
+                subplot(3,1,1); if hold_on; hold on; end
                 plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(data_e_s, 'k--');
+                    plot(data_e_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
 
                 subplot(3,1,2);
                 plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(data_n_s, 'k--');
+                    plot(data_n_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
 
                 subplot(3,1,3);
                 plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(data_u_s, 'k--');
+                    plot(data_u_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
             else
                 subplot(3,1,1);
                 plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_e_s, 'k--');
+                    plot(time.getMatlabTime, data_e_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
-                setTimeTicks(4,'dd mmm yyyy');
-                
+                setTimeTicks(4,date_style);
+
                 subplot(3,1,2);
                 plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_n_s, 'k--');
+                    plot(time.getMatlabTime, data_n_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
-                setTimeTicks(4,'dd mmm yyyy');
-                
+                setTimeTicks(4,date_style);
+
                 subplot(3,1,3);
                 plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_u_s, 'k--');
+                    plot(time.getMatlabTime, data_u_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
                 end
-                setTimeTicks(4,'dd mmm yyyy');
+                setTimeTicks(4,date_style);
             end
             subplot(3,1,1); ax(1) = gca;
             grid on;
-            title(sprintf('East - std %.2f [mm]', std(data_e(~isnan(data_e)))));
+            if hold_on
+                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_e(~isnan(data_e)))));
+            else
+                title(sprintf('East - std %.2f [mm]', std(data_e(~isnan(data_e)))));
+            end
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,2); ax(2) = gca;
             grid on;
-            title(sprintf('North - std %.2f [mm]', std(data_n(~isnan(data_n)))));
+            if hold_on
+                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_n(~isnan(data_n)))));
+            else
+                title(sprintf('North - std %.2f [mm]', std(data_n(~isnan(data_n)))));
+            end
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,3); ax(3) = gca;
             grid on;
-            title(sprintf('Up - std %.2f [mm]', std(data_u(~isnan(data_u)))));
+            if hold_on
+                title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_u(~isnan(data_u)))));
+            else
+                title(sprintf('Up - std %.2f [mm]', std(data_u(~isnan(data_u)))));
+            end
             linkaxes(ax,'x');
             ylabel('displacement [mm]', 'FontWeight', 'Bold')
         end
+    end
 
-        function [time, enu, xyz] = plotExtractionPos(file_name_extraction, plot_list)
+    methods (Static) % Public Access
+
+        function [time, enu, xyz] = plotExtractionPos(file_name_extraction, hold_on, plot_list)
             % SYNTAX:
             %   plotExtractionPos(<file_name_extraction>, plot_list)
             %
@@ -163,9 +192,12 @@ classdef Fig_Lab < handle
             % DESCRIPTION:
             %   Plot the results contained into the extraction file of a batch execution
 
-            narginchk(1,2);
-            if nargin == 1
-                plot_list = [1 2];
+            narginchk(1,3);
+            if nargin < 2
+                hold_on = 0;
+            end
+            if nargin < 3
+                plot_list = 1;
             end
 
             logger = Logger.getInstance();
@@ -189,7 +221,7 @@ classdef Fig_Lab < handle
                 m_xyz = mean(xyz);
 
                 if ~isempty(intersect(plot_list, 1))
-                    Fig_Lab.plotENU(time, enu, 14)
+                    Fig_Lab.plotENU(time, enu, 14, hold_on)
                 end
 
                 if ~isempty(intersect(plot_list, 2))
@@ -206,7 +238,7 @@ classdef Fig_Lab < handle
             end
         end
 
-        function [time, enu, err] = plotBatchPos(file_name_pos)
+        function [time, enu, err] = plotBatchPos(file_name_pos, hold_on)
             % SYNTAX:
             %   plotBatchPos(<file_name_pos>, plot_list)
             %
@@ -223,6 +255,10 @@ classdef Fig_Lab < handle
             %
             % DESCRIPTION:
             %   Plot the results contained into the position file of a batch execution
+
+            if nargin < 2
+                hold_on = 0;
+            end
 
             logger = Logger.getInstance();
 
@@ -242,13 +278,14 @@ classdef Fig_Lab < handle
                 err = data(:,12);
                 clear data;
 
-                Fig_Lab.plotENU(time, enu, round(1*86400/time.getRate()));
+                Fig_Lab.plotENU(time, enu, round(1*86400/time.getRate()), hold_on);
             end
         end
 
         function test()
             % test plots
             Fig_Lab.plotExtractionPos('../data/project/default_DD_batch/out/CAC2_CAC3_2016333_2016363_extraction.txt');
+            Fig_Lab.plotBatchPos('../data/project/default_DD_batch/out/CAC2_CAC3_2016333_2016363_position.txt');
         end
     end
 end

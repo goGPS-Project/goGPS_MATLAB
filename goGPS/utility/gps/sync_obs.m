@@ -92,7 +92,7 @@ end
 
 % define the reference time
 time_zero = ceil(min_time/max_int)*max_int;
-max_time_diff = round((roundmod(max_time,max_int) - time_zero) / max_int);
+max_time_diff = round((floor(max_time./max_int).*max_int - time_zero) / max_int);
 time_GPS = (0 : 1 : max_time_diff)' * max_int;
 
 % -1 needed for preprocessing, there is a bug somewere in there

@@ -2483,23 +2483,29 @@ for s = 1 : num_session
                 kalman_initialized = 0;
             end
             if (~kalman_initialized)
+                if state.getForwardBackwardKF() < 0
+                    id_init = numel(time_GPS_diff);
+                else
+                    id_init = 1;
+                end
+
                 while (~kalman_initialized)
-                    if (isempty(time_GPS_diff))
+                    if (numel(time_GPS_diff) < id_init)
                         fprintf('It was not possible to initialize the Kalman filter.\n');
                         return
                     end
 
-                    Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
+                    Eph_t = rt_find_eph (Eph, time_GPS_diff(id_init), nSatTot);
 
                     sbas_t = find_sbas(sbas, 1);
 
-                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, dtMdot(1), flag_IAR, flag_XR, flag_tropo, sbas_t);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,id_init), time_GPS_diff(id_init), pr1_R(:,id_init), pr1_M(:,id_init), ph1_R(:,id_init), ph1_M(:,id_init), dop1_R(:,id_init), dop1_M(:,id_init), pr2_R(:,id_init), pr2_M(:,id_init), ph2_R(:,id_init), ph2_M(:,id_init), dop2_R(:,id_init), dop2_M(:,id_init), snr_R(:,id_init), snr_M(:,id_init), Eph_t, SP3, iono, lambda, frequencies, dtMdot(id_init), flag_IAR, flag_XR, flag_tropo, sbas_t);
 
                     if (~kalman_initialized)
-                        pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
-                        pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-                        pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-                        snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+                        pos_M(:,id_init) = []; time_GPS_diff(id_init) = []; time_GPS(id_init) = []; week_R(id_init) = [];
+                        pr1_R(:,id_init) = []; pr1_M(:,id_init) = []; ph1_R(:,id_init) = []; ph1_M(:,id_init) = []; dop1_R(:,id_init) = []; dop1_M(:,id_init) = [];
+                        pr2_R(:,id_init) = []; pr2_M(:,id_init) = []; ph2_R(:,id_init) = []; ph2_M(:,id_init) = []; dop2_R(:,id_init) = []; dop2_M(:,id_init) = [];
+                        snr_R(:,id_init) = []; snr_M(:,id_init) = []; dtMdot(id_init) = [];
                     end
                 end
 
@@ -2540,20 +2546,28 @@ for s = 1 : num_session
 
             % goGPS waiting bar
             w_bar.setBarLen((1+state.isForwardBackwardKF()) * length(time_GPS_diff));
-            w_bar.createNewBar('Processing forward...');
+            if state.getForwardBackwardKF() < 0
+                w_bar.createNewBar('Processing backward...');
+            else
+                w_bar.createNewBar('Processing forward...');
+            end
 
             % forward - backward filter
-            if state.isForwardBackwardKF()
-                time_steps = [(t1 : length(time_GPS_diff)) ((length(time_GPS_diff)) : -1 : 1)];
-            else
-                time_steps = t1 : length(time_GPS_diff);
+            switch state.getForwardBackwardKF()
+                case -1, time_steps = [((length(time_GPS_diff) - t1 + 1) : -1 : 1) (1 : length(time_GPS_diff))];
+                case  1, time_steps = [(t1 : length(time_GPS_diff)) ((length(time_GPS_diff)) : -1 : 1)];
+                case  0, time_steps = t1 : length(time_GPS_diff);
             end
             t0 = 0;
-            is_backward = false;
+            is_forward = state.getForwardBackwardKF() > -1;
             for t = time_steps
                 if t == t0
-                    w_bar.setTitle('Processing backward...');
-                    is_backward = true;
+                    if state.getForwardBackwardKF() > 0
+                        w_bar.createNewBar('Processing backward...');
+                    else
+                        w_bar.createNewBar('Processing forward...');
+                    end
+                    is_forward = ~is_forward;
                 end
                 t0 = t;
                 residuals_fixed=NaN(4*nSatTot,1);
@@ -2594,9 +2608,12 @@ for s = 1 : num_session
                         pause(0.01);
                     end
                 end
-                w_bar.goTime(t + is_backward * length(time_GPS_diff));
+                switch state.getForwardBackwardKF()
+                    case -1, w_bar.goTime(~is_forward * (length(time_GPS_diff) - t + 1) + is_forward * (length(time_GPS_diff) + t));
+                    case  1, w_bar.goTime(~is_forward * (length(time_GPS_diff) * 2 - t + 1) + is_forward * t);
+                    case  0, w_bar.goTime(t);
+                end
             end
-
             w_bar.close();
 
             fclose(fid_kal);
@@ -2604,7 +2621,6 @@ for s = 1 : num_session
             fclose(fid_dop);
             fclose(fid_conf);
             fclose(fid_res);
-
         else
 
             fid_dyn = fopen([filerootIN '_dyn_000.bin'],'r+');
@@ -3067,26 +3083,38 @@ for s = 1 : num_session
             end
         end
 
-        if state.isForwardBackwardKF()
-            for i = 1 : nObs/2
-                %if relative positioning (i.e. with master station)
-                if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                    pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                    pos_REF(:,nObs-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                else
-                    pos_REF(:,i) = pos_KAL(:,1);
-                    pos_REF(:,nObs-i+1) = pos_KAL(:,1);
+        switch state.getForwardBackwardKF()
+            case -1
+                for i = 1 : nObs/2
+                    %if relative positioning (i.e. with master station)
+                    if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                        pos_REF(:,nObs/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                        pos_REF(:,nObs/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                    else
+                        pos_REF(:,i) = pos_KAL(:,1);
+                        pos_REF(:,nObs-i+1) = pos_KAL(:,1);
+                    end
                 end
-            end
-        else
-            for i = 1 : nObs
-                %if relative positioning (i.e. with master station)
-                if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                    pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                else
-                    pos_REF(:,i) = pos_KAL(:,1);
+            case 1
+                for i = 1 : nObs/2
+                    %if relative positioning (i.e. with master station)
+                    if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                        pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                        pos_REF(:,nObs-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                    else
+                        pos_REF(:,i) = pos_KAL(:,1);
+                        pos_REF(:,nObs-i+1) = pos_KAL(:,1);
+                    end
                 end
-            end
+            case 0
+                for i = 1 : nObs
+                    %if relative positioning (i.e. with master station)
+                    if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                        pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                    else
+                        pos_REF(:,i) = pos_KAL(:,1);
+                    end
+                end
         end
     end
 
@@ -3203,8 +3231,14 @@ for s = 1 : num_session
             for i = 1 : nObs / 2
                 %file writing
                 if (pivot_OUT(i) ~= 0)
-                    fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
-                    ib = nObs + 1 - i;
+                    if state.getForwardBackwardKF > 0
+                        fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
+                        ib = nObs + 1 - i;
+                    else
+                        ii = nObs/2 + i;
+                        ib = nObs/2 + 1 - i;
+                        fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ii), lam_KAL(ii), h_KAL(ii), X_KAL(ii), Y_KAL(ii), Z_KAL(ii), NORTH_UTM(ii), EAST_UTM(ii), h_ortho(ii), utm_zone(ii,:), nsat(ii), HDOP(ii), KHDOP(ii), NORTH_KAL(ii), EAST_KAL(ii), UP_KAL(ii), fixed_amb(ii), succ_rate(ii), estim_tropo(ii), ZWD(ii), PWV(ii));
+                    end
                     fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ib), lam_KAL(ib), h_KAL(ib), X_KAL(ib), Y_KAL(ib), Z_KAL(ib), NORTH_UTM(ib), EAST_UTM(ib), h_ortho(ib), utm_zone(ib,:), nsat(ib), HDOP(ib), KHDOP(ib), NORTH_KAL(ib), EAST_KAL(ib), UP_KAL(ib), fixed_amb(ib), succ_rate(ib), estim_tropo(ib), ZWD(ib), PWV(ib));
                 else
                     fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
@@ -3593,9 +3627,8 @@ for s = 1 : num_session
         %file saving
         fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
 
-        state.isForwardBackwardKF()
         for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-            id = state.isForwardBackwardKF() * (nObs + 1 - 2 * i) + i;
+            id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
 
             %active satellites
             sat = find(abs(conf_sat_OUT(:,i)));
@@ -3813,7 +3846,7 @@ for s = 1 : num_session
         fprintf(fid_kml, '\t\t\t<LineString>\n');
         fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
         for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-            id = state.isForwardBackwardKF() * (nObs + 1 - 2 * i) + i;
+            id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
             fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(id),phi_KAL(id));
         end
         fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
@@ -3838,7 +3871,7 @@ for s = 1 : num_session
         fprintf(fid_kml, '\t\t<Folder>\n');
         fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
         for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-            id = state.isForwardBackwardKF() * (nObs + 1 - 2 * i) + i;
+            id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
 
             fprintf(fid_kml, '\t\t<Placemark>\n');
             if (pivot_OUT(id) == 0)
@@ -3942,10 +3975,14 @@ for s = 1 : num_session
 
         time = GPS_Time(GPS_Time.GPS_ZERO, time_GPS);
         id = 1 : numel(epochs);
-        if state.isForwardBackwardKF()
-            epochs = [epochs; flipud(epochs)];
-            time = GPS_Time(GPS_Time.GPS_ZERO, flipud(time_GPS));
-            id = (numel(epochs)/2 +1) : numel(epochs);
+        switch state.getForwardBackwardKF()
+            case -1
+                epochs = [flipud(epochs); epochs];
+                id = (numel(epochs)/2 +1) : numel(epochs);
+            case  1
+                epochs = [epochs; flipud(epochs)];
+                time = GPS_Time(GPS_Time.GPS_ZERO, flipud(time_GPS));
+                id = (numel(epochs)/2 +1) : numel(epochs);
         end
         figure;
         ax = zeros(3,1);
@@ -4048,10 +4085,10 @@ for s = 1 : num_session
     if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         %code
 
-        if state.isForwardBackwardKF()
-            id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
-        else
-            id = 1 : size(RES_CODE1,2);
+        switch state.getForwardBackwardKF()
+            case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
+            case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
+            case  0, id = 1 : size(RES_CODE1,2);
         end
 
         if (any(RES_CODE1(:)))
@@ -4131,10 +4168,10 @@ for s = 1 : num_session
 
     if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(gs.getReferencePath().path)) && (~isempty(EAST_KAL))
 
-        if state.isForwardBackwardKF()
-            id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
-        else
-            id = 1 : size(RES_CODE1,2);
+        switch state.getForwardBackwardKF()
+            case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
+            case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
+            case  0, id = 1 : size(RES_CODE1,2);
         end
 
         %coordinate transformation
@@ -4188,12 +4225,16 @@ for s = 1 : num_session
 
     if is_batch
         nObs = size(date_R,1);
-        if state.isForwardBackwardKF()
-            id_time = 1;
-            id_data = nObs*2;
-        else
-            id_time = nObs;
-            id_data = nObs;
+        switch state.getForwardBackwardKF()
+            case -1
+                id_time = nObs;
+                id_data = nObs*2;
+            case  1
+                id_time = 1;
+                id_data = nObs*2;
+            case  0
+                id_time = nObs;
+                id_data = nObs;
         end
 
         tropo_vec_ZTD = nan(1,86400/interval);
@@ -4211,7 +4252,7 @@ for s = 1 : num_session
             end
             nObs = size(Xhat_t_t_OUT,2);
             for e = 1 : nObs / (1 + state.isForwardBackwardKF())
-                id = state.isForwardBackwardKF() * (nObs + 1 - 2 * e) + e;
+                id = (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nObs/2) + e;
                 fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-1,id));
             end
             delete([filerootOUT '_*.bin']);

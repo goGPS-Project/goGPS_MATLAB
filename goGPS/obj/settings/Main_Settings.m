@@ -119,7 +119,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - kf_mode = 2; constant acceleration
                                                         % - kf_mode = 3; variable (stop-go-stop)
 
-        FLAG_KF_FB = true;                              % KF Forward backwords mode
+        FLAG_KF_FB = -1;                                % KF Forward backwords mode [-1 / 0 / 1] = [F->B / F / B -> F]
 
         FLAG_SEAMLESS_PROC = false;                     % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
 
@@ -389,7 +389,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - kf_mode = 2; constant acceleration
         % - kf_mode = 3; variable (stop-go-stop)
 
-        % KF Forward backwords mode
+        % KF Forward backwords mode [-1 / 0 / 1] = [F->B / F / B -> F]
         flag_kf_fb = Main_Settings.FLAG_KF_FB;
 
         % Tell the processor to re-initialize kalman filter at the end of 1 session processing
@@ -818,7 +818,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
 
-            str = [str sprintf(' Kalman forward - backwards processing:            %d\n', this.flag_kf_fb)];
+            switch this.flag_kf_fb
+                case 0, str = [str sprintf(' Kalman forward processing\n')];
+                case 1, str = [str sprintf(' Kalman forward -> backword processing\n')];
+                case -1, str = [str sprintf(' Kalman backward -> forward processing\n')];
+            end
             str = [str sprintf(' Kalman seamless processing:                       %d\n\n', this.flag_seamless_proc)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
@@ -865,8 +869,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Display informations about the processing
 
             str = sprintf('Processing using %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
-            if this.isModeKM() && this.isForwardBackwardKF()
+            if this.isModeKM() && this.getForwardBackwardKF() > 0
                 str = strcat(str, 10, 'Kalman forward/backwards processing enabled');
+            end
+            if this.isModeKM() && this.getForwardBackwardKF() < 0
+                str = strcat(str, 10, 'Kalman backwards/forward processing enabled');
             end
             if this.isModeKM() && this.isSeamlessKF()
                 str = strcat(str, 10, 'Kalman seamless processing enabled');
@@ -1026,7 +1033,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % KF Forward backwords mode
-            str_cell = Ini_Manager.toIniStringComment('Use forward - backwords mode for Kalman filter processing (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Use forward - backwords mode for Kalman filter processing (-1 / 0 / 1)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' -1 Backward -> Forward', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('  0 Forward', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('  1 Forward -> Backward', str_cell);
             str_cell = Ini_Manager.toIniStringComment('WARNING: experimental - enabled for static DD code and phase', str_cell);
             str_cell = Ini_Manager.toIniString('flag_kf_fb', this.flag_kf_fb, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Tell the processor to not re-initialize Kalman filter at the end of 1 session processing (0/1)', str_cell);
@@ -1533,10 +1543,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             end
 
             this.checkLogicalField('flag_seamless_proc');
-            this.checkLogicalField('flag_kf_fb');
+            this.checkNumericField('flag_kf_fb', [-1 1]);
+            this.flag_kf_fb = round(this.flag_kf_fb);
             if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
                 this.logger.addWarning('Up to now forward - backword KF is only supported for DD phase and code with static filter\n Disabling it');
-                this.flag_kf_fb = false;
+                this.flag_kf_fb = 0;
             end
 
 
@@ -1592,38 +1603,56 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Access = 'public')
         function cc = getConstellationCollector(this)
             % Get the constellation collector object
-            % SYNTEX: cc = this.getConstellationCollector()
+            % SYNTAX: cc = this.getConstellationCollector()
             cc = handle(this.cc);
         end
 
         function cc = getCC(this)
             % Get the constellation collector object (short name)
-            % SYNTEX: cc = this.getCC();
+            % SYNTAX: cc = this.getCC();
             cc = handle(this.cc);
         end
 
         function time_step = getVariometricTimeStep(this)
             % Get the time step for the Variometric approach
-            % SYNTEX: time_step = this.getVariometricTimeStep();
+            % SYNTAX: time_step = this.getVariometricTimeStep();
             time_step = this.variometric_step;
         end
 
         function capture_rate = getCaptureRate(this)
             % Get the Capture Rate
-            % SYNTEX: capture_rate = this.getCaptureRate();
+            % SYNTAX: capture_rate = this.getCaptureRate();
             capture_rate = this.c_rate;
+        end
+
+        function proc_rate = getProcessingRate(this)
+            % Get the Capture Rate
+            % SYNTAX: capture_rate = this.getProcessingRate();
+            proc_rate = this.p_rate;
+        end
+
+        function min_arc = getMinArc(this)
+            % Get the minimum arc legnth to be kept
+            % SYNTAX: capture_rate = this.getCaptureRate();
+            min_arc = this.min_arc;
         end
 
         function is_seamless = isSeamlessKF(this)
             % Get the Seamless Rate flag
-            % SYNTEX: is_seamless = this.isSeamlessKF();
+            % SYNTAX: is_seamless = this.isSeamlessKF();
             is_seamless = this.flag_seamless_proc;
         end
 
         function is_fb = isForwardBackwardKF(this)
             % Get the Forward Backward flag
-            % SYNTEX: is_fb = this.isForwardBackwardKF();
-            is_fb = this.flag_kf_fb;
+            % SYNTAX: is_fb = this.isForwardBackwardKF();
+            is_fb = this.flag_kf_fb ~= 0;
+        end
+
+        function kf_fb = getForwardBackwardKF(this)
+            % Get the Forward Backward flag
+            % SYNTAX: kf_fb = this.getForwardBackwardKF();
+            kf_fb = this.flag_kf_fb;
         end
 
         function is_static = isStaticKF(this)
