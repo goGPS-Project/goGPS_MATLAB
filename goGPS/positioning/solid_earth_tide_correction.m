@@ -27,7 +27,7 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -118,5 +118,6 @@ stidecorr = zeros(size(XS,1),1);
 for s = 1 : size(XS,1)
     LOS  = XR - XS(s,:)';
     LOSu = LOS / norm(LOS);
-    stidecorr(s,1) = dot(r,LOSu);
+    %stidecorr(s,1) = dot(r,LOSu);
+    stidecorr(s,1) = sum(conj(r).*LOSu);
 end
