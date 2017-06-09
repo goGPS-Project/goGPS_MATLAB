@@ -25,7 +25,7 @@ function [eclipsed] = check_eclipse_condition(time, XS, SP3, sat)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -51,7 +51,11 @@ eclipsed = 0;
 t_sun = SP3.t_sun;
 X_sun = SP3.X_sun;
 
-[~, q] = min(abs(t_sun - time));
+interval = SP3.clock_rate;
+% [~, q] = min(abs(t_sun - time));
+% speed improvement of the above line
+% supposing t_sun regularly sampled
+q = round((time-t_sun(1))/interval)+1;
 X_sun = X_sun(:,q);
 
 %satellite geocentric position
@@ -63,7 +67,10 @@ X_sun_n = norm(X_sun);
 X_sun_u = X_sun / X_sun_n;
 
 %satellite-sun angle
-cosPhi = dot(XS_u, X_sun_u);
+%cosPhi = dot(XS_u, X_sun_u);
+% speed improvement of the above line
+cosPhi = sum(conj(XS_u').*X_sun_u);
+
 
 %threshold to detect noon/midnight maneuvers
 if (~isempty(strfind(SP3.satType{sat},'BLOCK IIA')))
