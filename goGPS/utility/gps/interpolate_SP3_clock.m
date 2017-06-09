@@ -24,7 +24,7 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -56,7 +56,10 @@ end
 interval = SP3.clock_rate;
 
 %find the SP3 epoch closest to the interpolation time
-[~, p] = min(abs(SP3_time - time));
+%[~, p] = min(abs(SP3_time - time));
+% speed improvement of the above line
+% supposing SP3_time regularly sampled
+p = round((time-SP3_time(1))/interval)+1;
 
 b = SP3_time(p) - time;
 
@@ -71,7 +74,7 @@ end
 
 dt_S_SP3  = NaN;
 
-if (sum(SP3_c~=0) == 2 && isempty(find(SP3_c >= 0.999, 1)))
+if (sum(SP3_c~=0) == 2 && ~any(SP3_c >= 0.999))
 
     %linear interpolation (clock)
     dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
