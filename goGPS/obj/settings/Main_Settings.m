@@ -119,7 +119,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - kf_mode = 2; constant acceleration
                                                         % - kf_mode = 3; variable (stop-go-stop)
 
-        FLAG_KF_FB = -1;                                % KF Forward backwords mode [-1 / 0 / 1] = [F->B / F / B -> F]
+        FLAG_KF_FB = 1;                                 % KF Forward backward mode [-1 / 0 / 1] = [B->F / F / F->B]
 
         FLAG_SEAMLESS_PROC = false;                     % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
 
@@ -389,7 +389,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - kf_mode = 2; constant acceleration
         % - kf_mode = 3; variable (stop-go-stop)
 
-        % KF Forward backwords mode [-1 / 0 / 1] = [F->B / F / B -> F]
+        % KF Forward backward mode [-1 / 0 / 1] = [B->F / F / F->B]
         flag_kf_fb = Main_Settings.FLAG_KF_FB;
 
         % Tell the processor to re-initialize kalman filter at the end of 1 session processing
@@ -820,7 +820,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             switch this.flag_kf_fb
                 case 0, str = [str sprintf(' Kalman forward processing\n')];
-                case 1, str = [str sprintf(' Kalman forward -> backword processing\n')];
+                case 1, str = [str sprintf(' Kalman forward -> backward processing\n')];
                 case -1, str = [str sprintf(' Kalman backward -> forward processing\n')];
             end
             str = [str sprintf(' Kalman seamless processing:                       %d\n\n', this.flag_seamless_proc)];
@@ -870,10 +870,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             str = sprintf('Processing using %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
             if this.isModeKM() && this.getForwardBackwardKF() > 0
-                str = strcat(str, 10, 'Kalman forward/backwards processing enabled');
+                str = strcat(str, 10, 'Kalman forward/backward processing enabled');
             end
             if this.isModeKM() && this.getForwardBackwardKF() < 0
-                str = strcat(str, 10, 'Kalman backwards/forward processing enabled');
+                str = strcat(str, 10, 'Kalman backward/forward processing enabled');
             end
             if this.isModeKM() && this.isSeamlessKF()
                 str = strcat(str, 10, 'Kalman seamless processing enabled');
@@ -1032,8 +1032,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            % KF Forward backwords mode
-            str_cell = Ini_Manager.toIniStringComment('Use forward - backwords mode for Kalman filter processing (-1 / 0 / 1)', str_cell);
+            % KF Forward backward mode
+            str_cell = Ini_Manager.toIniStringComment('Use forward - backward mode for Kalman filter processing (-1 / 0 / 1)', str_cell);
             str_cell = Ini_Manager.toIniStringComment(' -1 Backward -> Forward', str_cell);
             str_cell = Ini_Manager.toIniStringComment('  0 Forward', str_cell);
             str_cell = Ini_Manager.toIniStringComment('  1 Forward -> Backward', str_cell);
@@ -1546,7 +1546,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);
             if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
-                this.logger.addWarning('Up to now forward - backword KF is only supported for DD phase and code with static filter\n Disabling it');
+                this.logger.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
                 this.flag_kf_fb = 0;
             end
 
