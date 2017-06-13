@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
+function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
+%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -35,6 +35,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   ph1 = processed phase observation (L1 carrier)
 %   pr2 = processed code observation (L2 carrier)
 %   ph2 = processed phase observation (L2 carrier)
+%   XR  = receiver position
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
@@ -168,6 +169,7 @@ min_arc = max([min_arc lagr_order]);
 % time = time_ref;
 
 if not(flag_full_prepro)
+    XR = XR0;
     dtRdot(end+1) = dtRdot(end);
 else
 
@@ -265,6 +267,7 @@ else
             status_obs(find(bad_sat_i==1),i)=-1; %#ok<FNDSB> % satellite outlier
 
             if (~isempty(dtR_tmp) && ~isempty(sat))
+                XR(:,i) = XR_tmp;
                 dtR(i) = dtR_tmp;
                 %             if (~isempty(ISBs_tmp))
                 %                 ISBs(:,i) = ISBs_tmp;

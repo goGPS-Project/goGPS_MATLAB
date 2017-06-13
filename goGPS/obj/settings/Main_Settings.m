@@ -1545,6 +1545,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_seamless_proc');
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);
+%             this.flag_kf_fb = 1;
             if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
                 this.logger.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
                 this.flag_kf_fb = 0;

@@ -583,6 +583,7 @@ for s = 1 : num_session
                 dop2_R(delsat,:,:) = 0;
                 snr_R(delsat,:,:) = 0;
 
+                pos_R_new    = zeros(3, length(time_GPS), size(time_R,3));
                 dtR          = zeros(length(time_GPS), 1, size(time_R,3));
                 dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
                 bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -691,7 +692,7 @@ for s = 1 : num_session
                     w_bar.createNewBar('Pre-processing rover...');
                     logger.newLine();
 
-                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
                     if report.opt.write == 1
                         report.prep.spp_threshold = SPP_threshold;
@@ -956,6 +957,7 @@ for s = 1 : num_session
                 dop2_M(delsat,:) = 0;
                 snr_M(delsat,:) = 0;
 
+                pos_R_new    = zeros(3, length(time_GPS), size(time_R,3));
                 dtR          = zeros(length(time_GPS), 1, size(time_R,3));
                 dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
                 bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -1063,7 +1065,7 @@ for s = 1 : num_session
                         pr1_R(avail_sat,:,f) = pr1_R(avail_sat,:,f) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(avail_sat,:,f);
                     end
 
-                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                    [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
                     if report.opt.write == 1
                         report.prep.spp_threshold = SPP_threshold;
@@ -1100,10 +1102,10 @@ for s = 1 : num_session
 
                 if (~flag_SEID)
                     flag_XM_prep = 2;
-                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 else
                     flag_XM_prep = 1;
-                    [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 end
 
                 if report.opt.write == 1
@@ -1423,6 +1425,55 @@ for s = 1 : num_session
     %----------------------------------------------------------------------------------------------
 
     state.save([filerootOUT '_settings.ini']);
+    
+    %----------------------------------------------------------------------------------------------
+    % STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
+    %----------------------------------------------------------------------------------------------
+    
+    flag_MELSA = 1;
+    
+    % if (strcmp(filename_R_obs(end-4),'a'))
+    %     load conf_cs
+    % else
+    %     conf_cs = zeros(nSatTot, length(time_GPS));
+    % end
+    
+    if (flag_MELSA)
+        %number of position solutions to be estimated
+        npos = 1;
+        
+        %vector to keep track of the number of observations available at each epoch
+        n_obs_epoch = NaN(size(time_GPS));
+        
+        %cumulative number of observations, to keep track of where each epoch begins
+        epoch_index = NaN(size(time_GPS));
+        epoch_track = 0;
+        
+        %matrices to keep track of the satellite configuration changes (to fill in the proper ambiguity slots)
+        satpr_track = NaN(nSatTot, length(time_GPS));
+        satph_track = NaN(nSatTot, length(time_GPS));
+        pivot_track = NaN(size(time_GPS));
+        
+        %total number of observations (for matrix initialization)
+        n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
+        
+        y0_all = NaN(n_obs_tot,1);
+        b_all  = NaN(n_obs_tot,1);
+        if (goGNSS.isSA(mode))
+            A_all = NaN(n_obs_tot,npos*3+length(time_GPS));
+        else
+            A_all = NaN(n_obs_tot,npos*3);
+        end
+        Q_all  = NaN(n_obs_tot,n_obs_tot);
+        
+        %set a priori coordinates
+        if (exist('pos_R_crd','var') && any(pos_R_crd))
+            pos_R = pos_R_crd;
+        else
+            pos_R = median(pos_R_new(:,:,1),2);
+        end
+        flag_XR = 1;
+    end
 
     %----------------------------------------------------------------------------------------------
     % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
@@ -2046,7 +2097,7 @@ for s = 1 : num_session
 
             Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_LS_DD_code(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
+            goGPS_LS_DD_code(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
 
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
@@ -2081,6 +2132,17 @@ for s = 1 : num_session
                     end
                     plot_t = plot_t + 1;
                     pause(0.01);
+                end
+                if (flag_MELSA)
+                    if (~isempty(A_epo))
+                        n_obs_epoch(t) = length(y0_epo);
+                        y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
+                        b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
+                        A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
+                        Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                        epoch_index(t) = epoch_track + n_obs_epoch(t);
+                        epoch_track = epoch_index(t);
+                    end
                 end
             else
                 unused_epochs(t) = 1;
@@ -2248,7 +2310,7 @@ for s = 1 : num_session
 
             Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
-            goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
+            goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR, antenna_PCV);
 
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2280,6 +2342,21 @@ for s = 1 : num_session
                     end
                     plot_t = plot_t + 1;
                     pause(0.01);
+                end
+                if (flag_MELSA)
+                    if (~isempty(A_epo))
+                        n_obs_epoch(t) = length(y0_epo);
+                        y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
+                        b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
+                        A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
+                        Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                        epoch_index(t) = epoch_track + n_obs_epoch(t);
+                        epoch_track = epoch_index(t);
+                        satpr_track(:,t) = 0; satph_track(:,t) = 0;
+                        satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
+                        satph_track(conf_sat==+1 | conf_sat==+2,t) = 1;
+                        pivot_track(t) = pivot;
+                    end
                 end
             else
                 unused_epochs(t) = 1;
@@ -3004,6 +3081,117 @@ for s = 1 : num_session
         time_GPS_diff(unused_epochs == 1) = [];
         time_GPS(unused_epochs == 1) = [];
         week_R(unused_epochs == 1) = [];
+    end
+    
+    %----------------------------------------------------------------------------------------------
+    % STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
+    %----------------------------------------------------------------------------------------------
+    
+    if (flag_MELSA)
+        n_obs_epoch(isnan(n_obs_epoch)) = [];
+        epoch_index(isnan(epoch_index)) = [];
+        index_nan = find(isnan(pivot_track));
+        satpr_track(:,index_nan) = [];
+        satph_track(:,index_nan) = [];
+        pivot_track(index_nan)   = [];
+        
+        index_nan = find(isnan(y0_all),1);
+        y0_all(index_nan:end) = [];
+        b_all(index_nan:end)  = [];
+        
+        n = length(y0_all);
+        
+        %determine the number of unknowns, based on the processing mode
+        if (goGNSS.isSA(mode))
+            m = 3*npos + length(n_obs_epoch);
+        else
+            if (goGNSS.isPH(mode))
+                sat_avail = max(satph_track, [], 2);
+                amb_num = sum(sat_avail);
+                amb_idx = find(sat_avail);
+                m = 3*npos + amb_num + sum(conf_cs(:));
+            else
+                m = 3*npos;
+            end
+        end
+        
+        if (~isempty(index_nan))
+            A_all = A_all(1:index_nan-1,1:size(A_all,2));
+            Q_all = Q_all(1:index_nan-1,1:index_nan-1);
+        end
+        
+        A_all(isnan(A_all)) = 0;
+        Q_all(isnan(Q_all)) = 0;
+        
+        if (goGNSS.isSA(mode))
+            %set the design matrix to estimate the receiver clock
+            A_all(1:epoch_index(1),3*npos+1) = 1;
+            for e = 2 : length(epoch_index)
+                A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+            end
+        elseif (goGNSS.isPH(mode))
+            %set the design matrix to estimate phase ambiguities
+            A_all = [A_all zeros(size(A_all,1),amb_num)];
+            
+            for e = 1 : length(epoch_index)
+                satpr_track(pivot_track(e),e) = -1;
+                satph_track(pivot_track(e),e) = -1;
+                amb_slots = find(satph_track(amb_idx,e) == 1);
+                pivot_slot = find(satph_track(amb_idx,e) == -1);
+                satpr_track(pivot_track(e),e) = 0;
+                satph_track(pivot_track(e),e) = 0;
+                epo_slots = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
+                if (e == 1)
+                    rows = epo_slots;
+                else
+                    rows = epoch_index(e-1)+epo_slots;
+                end
+                A_all(rows,3*npos+amb_slots) = diag(-lambda(amb_idx(amb_slots),1));
+                A_all(rows,3*npos+pivot_slot) = -lambda(amb_idx(amb_slots),1);
+                
+                %             if (any(conf_cs(:,e)))
+                %                 new_amb = find(conf_cs(:,e));
+                %
+                %             end
+            end
+        end
+        
+%         A_all(:,6) = [];
+        
+        A  = A_all;
+        y0 = y0_all;
+        b  = b_all;
+        Q  = Q_all;
+        
+        %least-squares solution
+        K = A';
+%         P = Q\A;
+        P = A;
+        N = K*P;
+        Y = (y0-b);
+%         R = Q\Y;
+        R = Y;
+        L = K*R;
+        x = N\L;
+        
+        %estimation of the variance of the observation error
+        y_hat = A*x + b;
+        v_hat = y0 - y_hat;
+        V = v_hat';
+%         T = Q\v_hat;
+        T = v_hat;
+        sigma02_hat = (V*T)/(n-m);
+        
+        %covariance matrix
+        Cxx = sigma02_hat*(N^-1);
+        cov_X  = Cxx(1:3,1:3);         %position covariance block
+        if (goGNSS.isPH(mode))
+            cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
+            cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
+            
+            %integer phase ambiguity solving by LAMBDA
+            [x(1:3), x(4:end), varNfix, varPosfix] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+        end
     end
 
     %----------------------------------------------------------------------------------------------
