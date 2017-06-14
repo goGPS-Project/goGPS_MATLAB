@@ -89,7 +89,7 @@ classdef GPS_Time < handle
         REF_TIME = 2;       % time_type value for times stored in time_ref: (double) origin of the "time system" expressed in datenum format + (double array) difference in seconds w.r.t. time_ref
     end
 
-    properties (SetAccess = private, GetAccess = private)
+    properties (SetAccess = private, GetAccess = public)
         logger = Logger.getInstance(); % Handler to the logger object
 
         time_type = 0;      % flag depending on its value different representation of time are possible
@@ -839,6 +839,7 @@ classdef GPS_Time < handle
 
         function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
             % get Reference Time, precision up to the ps precision
+            % SYNTAX: [time_diff, time_ref] = this.getRefTime(new_time_mat_ref)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     time_ref = fix(this.mat_time(1));
@@ -864,6 +865,7 @@ classdef GPS_Time < handle
 
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this)
             % get Reference Time, precision up to the ps precision
+            % SYNTAX: [gps_week, gps_sow, gps_dow] = this. getGpsWeek();
             gps_time = this.getCopy();
             gps_time.toGps();
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
@@ -872,6 +874,7 @@ classdef GPS_Time < handle
 
         function [gps_time] = getGpsTime(this, gps_offset)
             % Get time as number of seconds from Jan 6, 1980
+            % SYNTAX: [gps_time] = this.getGpsTime(gps_offset)
             [unix_time, unix_time_f] = this.getUnixTime(); %#ok<PROPLC>
             if nargin == 1
                 % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
@@ -884,6 +887,7 @@ classdef GPS_Time < handle
 
         function [year, doy] = getDOY(this)
             % get Reference Time, precision up to the ps precision
+            % SYNTAX: [year, doy] = getDOY(this)
             utc_time = this.getCopy();
             utc_time.toGps();
             utc_time.toMatlabTime();
