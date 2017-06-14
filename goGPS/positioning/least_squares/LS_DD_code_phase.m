@@ -1,9 +1,9 @@
-function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias, y0, A, b, Q] = LS_DD_code_phase ...
-         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, SPP_threshold, flag_Tykhon, flag_iter, flag_iter_zero)
+function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
+         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
 
 % SYNTAX:
-%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias, y0, A, b, Q] = LS_DD_code_phase ...
-%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, SPP_threshold, flag_Tykhon, flag_iter, flag_iter_zero);
+%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
+%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero);
 %
 % INPUT:
 %   XR_approx   = receiver approximate position (X,Y,Z)
@@ -24,7 +24,6 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, bad_obs, bad_epoch, sigma0
 %   pivot_index = index identifying the pivot satellite
 %   lambda      = vector containing GNSS wavelengths for available satellites
 %   flag_LAMBDA    = flag to enable/disable ambiguity resolution by LAMBDA
-%   SPP_threshold  = maximum RMS of code single point positioning to accept current epoch
 %   flag_Tykhon    = flag to enable/disable Tykhonov-Phillips regularization (experimental)
 %   flag_iter      = flag to enable/disable iterative least squares (experimental)
 %   flag_iter_zero = flag to enable/disable initialization to zero for iterative least squares (experimental)
@@ -37,15 +36,6 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, bad_obs, bad_epoch, sigma0
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
-%   bad_obs = vector with ids of observations found as outlier
-%   bad_epoch = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
-%   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m] 
-%   residuals_obs = vector with residuals of all input observation, computed from the final estimates
-%   is_bias = inter-systems bias (vector with all possibile systems)
-%   y0 = observation vector
-%   A = design matrix
-%   b = known term vector
-%   Q = observation covariance matrix
 %
 % DESCRIPTION:
 %   Least squares solution using code and phase double differences.
@@ -84,21 +74,16 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, bad_obs, bad_epoch, sigma0
 
 %variable initialization
 global sigmaq_cod1 sigmaq_ph
-global flag_outlier max_code_residual
 
-sigma02_hat = NaN(1,3);
-residuals_obs = NaN(length(pr_R),1);
-is_bias=NaN(6,1);
-
-if (nargin < 20)
+if (nargin < 19)
     flag_Tykhon = 0;    %<--- set 1 to force Tykhonov (experimental)
 end
 
-if (nargin < 21)
+if (nargin < 20)
     flag_iter = 0;      %<--- set 1 to force iterative least squares (experimental)
 end
 
-if (nargin < 22)
+if (nargin < 21)
     flag_iter_zero = 0; %<--- set 1 to force zero-initialization for iterative least squares (experimental)
 end
 
@@ -144,102 +129,23 @@ A(            :, pivot_index+3)       = [];
 b( [pivot_index, pivot_index+n/2])    = [];
 y0([pivot_index, pivot_index+n/2])    = [];
 n = n - 2;
-n0 = n;
 
 %observation noise covariance matrix
 Q = zeros(n);
 Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
 Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
 Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
-invQ = Q^-1;
 
 %normal matrix
-N = (A'*invQ*A);
+N = (A'*(Q^-1)*A);
 
-bad_epoch=0;
-bad_obs=[];
-A0=A;
-y00=y0-b;
-index_obs = 1:length(y00); index_obs = index_obs';
+%least squares solution
+x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 
-if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
-    %remove observations with residuals exceeding thresholds
-    x_hat = (N^-1)*A'*(invQ)*(y0-b);
-    y_hat = A*x_hat + b;
-    v_hat = y0 - y_hat;
-    index_outlier = find(abs(v_hat) > max_code_residual);
-    if (~isempty(index_outlier))
-        if (n-length(index_outlier) < m)
-            bad_epoch = 1;
-        else
-            bad_obs=unique([bad_obs;index_obs(index_outlier)]);
-            A(index_outlier,:)=[];
-            y0(index_outlier,:)=[];
-            b(index_outlier,:)=[];
-            Q(index_outlier,:)=[];
-            Q(:,index_outlier)=[];
-            invQ=diag((diag(Q).^-1));
-            N = (A'*(invQ)*A);
-            index_obs(index_outlier) = [];
-            [n,m]=size(A);
-        end
-    end
-end
-
-if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
-    %least squares solution
-    x_hat   = (N^-1)*A'*(invQ)*(y0-b);
-    %estimation of the variance of the observation error
-    y_hat = A*x_hat + b;
-    v_hat = y0 - y_hat;
-    sigma02_hat(1,1) = (v_hat'*(invQ)*v_hat) / (n-m);
-    sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
-    sigma02_hat(1,3) = n-m;
-    residuals_obs = y00 - A0*x_hat;
-    if n==m
-        bad_epoch=-1;
-    end
-else
-    %------------------------------------------------------------------------------------
-    % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
-    %------------------------------------------------------------------------------------
-    search_for_outlier = flag_outlier;
-
-    if (search_for_outlier == 1)
-        while search_for_outlier==1
-            [index_outlier,x_hat,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);
-            if index_outlier~=0
-                bad_obs=unique([bad_obs;index_obs(index_outlier)]);
-                A(index_outlier,:)=[];
-                y0(index_outlier,:)=[];
-                b(index_outlier,:)=[];
-                Q(index_outlier,:)=[];
-                Q(:,index_outlier)=[];
-                invQ=diag((diag(Q).^-1));
-                index_obs(index_outlier)=[];
-                [n,m]=size(A);
-            else
-                search_for_outlier=0;
-            end
-        end
-    else
-        x_hat = (N^-1)*A'*(invQ)*(y0-b);
-        y_hat = A*x_hat + b;
-        v_hat = y0 - y_hat;
-    end
-    N = (A'*(invQ)*A);
-    residuals_obs = y00 - A0*x_hat;
-    sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
-    sigma02_hat(1,3) = n-m;
-    sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);
-    if n>m
-        if (flag_outlier && sigma02_hat(1)>SPP_threshold^2)
-            bad_epoch=1;
-        end
-    else
-        bad_epoch=-1;
-    end
-end
+%estimation of the variance of the observation error
+y_hat = A*x_hat + b;
+v_hat = y0 - y_hat;
+sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 
 if (~flag_LAMBDA)
     %apply least squares solution
@@ -249,13 +155,13 @@ if (~flag_LAMBDA)
     N_hat_nopivot = x_hat(4:end);
 
     %add a zero at PIVOT position
-    N_hat = zeros(n0/2+1,1);
+    N_hat = zeros(n/2+1,1);
     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
 
     %covariance matrix of the estimation error
     if (n > m)
-        Cxx = sigma02_hat(1) * (N^-1);
+        Cxx = sigma02_hat * (N^-1);
 
         %rover position covariance matrix
         cov_XR = Cxx(1:3,1:3);
@@ -264,7 +170,7 @@ if (~flag_LAMBDA)
         cov_N_nopivot = Cxx(4:end,4:end);
 
         %add one line and one column (zeros) at PIVOT position
-        cov_N = zeros(n0/2+1);
+        cov_N = zeros(n/2+1);
         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
     else
@@ -304,8 +210,8 @@ else %apply LAMBDA
         end
 
         %iterative least squares (float) solution
-        M = ((A'*invQ*A) + eye(m))^-1; %normal matrix for iterative LS
-        U = A'*invQ*(y0-b); %part A'*P*Y of normal equation
+        M = ((A'*Q^-1*A) + eye(m))^-1; %normal matrix for iterative LS
+        U = A'*Q^-1*(y0-b); %part A'*P*Y of normal equation
         dummy = zeros(m);
         x_n = ones(m,1);
         tol = 1e-4; %threshold of iterative process
@@ -315,7 +221,7 @@ else %apply LAMBDA
             x_old = x_hat;
             dummy = dummy + M^(cnt); %compute iterative normal matrix
             x_hat = (dummy)*U + M^(cnt)*x_hat; %estimate parameter
-            Qxx   = (dummy)*A'*invQ*A*(dummy)' + M^(cnt)*Qxx*M^(cnt)'; %estimate vcm of parameter
+            Qxx   = (dummy)*A'*Q^-1*A*(dummy)' + M^(cnt)*Qxx*M^(cnt)'; %estimate vcm of parameter
 
             x_n = x_hat - x_old;
             cnt = cnt + 1;
@@ -325,7 +231,7 @@ else %apply LAMBDA
     if (n > m && sigmaq_ph ~= 1e30)
 
         %covariance matrix
-        Cxx = sigma02_hat(1) * (N^-1);
+        Cxx = sigma02_hat * (N^-1);
 
         [U] = chol(Cxx); %compute cholesky decomp. for identical comp of vcm purpose
         Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
@@ -387,7 +293,7 @@ else %apply LAMBDA
         N_hat_nopivot = acheck;
 
         %add a zero at PIVOT position
-        N_hat = zeros(n0/2+1,1);
+        N_hat = zeros(n/2+1,1);
         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
 
@@ -395,7 +301,7 @@ else %apply LAMBDA
         cov_N_nopivot = Qzhat;
 
         %add one line and one column (zeros) at PIVOT position
-        cov_N = zeros(n0/2+1);
+        cov_N = zeros(n/2+1);
         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
 
@@ -404,7 +310,7 @@ else %apply LAMBDA
         N_hat_nopivot = x_hat(4:end);
 
         %add a zero at PIVOT position
-        N_hat = zeros(n0/2+1,1);
+        N_hat = zeros(n/2+1,1);
         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
 
