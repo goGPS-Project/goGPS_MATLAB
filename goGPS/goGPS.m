@@ -103,10 +103,10 @@ kalman_initialized = false;
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-global order o1 o2 o3 h_antenna cutoff weights t nC
+global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold min_arc max_code_residual max_phase_residual
+global flag_outlier SPP_threshold
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -3167,7 +3167,7 @@ for s = 1 : num_session
                 amb_num = sum(sat_avail);
                 amb_prn = find(sat_avail);
                 amb_idx = 1 : amb_num;
-                m = 3*npos + amb_num + sum(conf_cs(:));
+                m = 3*npos + amb_num;
             else
                 m = 3*npos;
             end
@@ -3206,6 +3206,8 @@ for s = 1 : num_session
                     
                     if (~isempty(new_amb))
                         amb_idx(amb_prn == new_amb) = max(amb_idx) + [1 : length(new_amb)];
+                        amb_num = amb_num + length(new_amb);
+                        m = m + length(new_amb);
                     end
                 end
 
@@ -3221,17 +3223,10 @@ for s = 1 : num_session
                 else
                     rows = epoch_index(e-1)+epo_slots;
                 end
-                A_all(rows,3*npos+amb_idx(amb_slots)) = diag(lambda(amb_prn(amb_slots),1));
-                A_all(rows,3*npos+pivot_slot) = -lambda(amb_prn(amb_slots),1);
-                
-                %             if (any(conf_cs(:,e)))
-                %                 new_amb = find(conf_cs(:,e));
-                %
-                %             end
+                A_all(rows,3*npos+amb_idx(amb_slots)) = diag(-lambda(amb_prn(amb_slots),1));
+                A_all(rows,3*npos+pivot_slot) = lambda(amb_prn(amb_slots),1);
             end
         end
-        
-%         A_all(:,6) = [];
         
         A  = A_all;
         y0 = y0_all;
@@ -3259,6 +3254,17 @@ for s = 1 : num_session
         
         %covariance matrix
         Cxx = sigma02_hat*(N^-1);
+        
+        %switch from SD to DD
+        D = zeros(amb_num-1,amb_num);
+        D(:,1) = 1;
+        D(:,2:end) = -eye(amb_num-1);
+        G = zeros(3+amb_num-1,3+amb_num);
+        G(1:3,1:3) = eye(3);
+        G(4:end,4:end) = D;
+        x = G*x;
+        Cxx = G*Cxx*G';
+        
         cov_X  = Cxx(1:3,1:3);         %position covariance block
         if (goGNSS.isPH(mode))
             cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
