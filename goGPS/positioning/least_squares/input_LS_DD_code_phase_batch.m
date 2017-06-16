@@ -111,6 +111,12 @@ Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
 Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
 Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
 
+% %keep only phase observations
+% y0 = y0(n/2+1:end);
+% b = b(n/2+1:end);
+% A = A(n/2+1:end,:);
+% Q = Q(n/2+1:end,n/2+1:end);
+
 % invQ = Q^-1;
 % 
 % %normal matrix

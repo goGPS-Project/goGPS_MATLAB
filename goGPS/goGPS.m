@@ -106,7 +106,7 @@ kalman_initialized = false;
 global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold
+global flag_outlier SPP_threshold min_arc
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -1455,7 +1455,11 @@ for s = 1 : num_session
         pivot_track = NaN(size(time_GPS));
         
         %total number of observations (for matrix initialization)
-        n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
+        if (goGNSS.isPH(mode))
+            n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0)) + sum(sum(ph1_R(:,:,1) ~= 0));
+        else
+            n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
+        end
         
         y0_all = NaN(n_obs_tot,1);
         b_all  = NaN(n_obs_tot,1);
@@ -3155,22 +3159,13 @@ for s = 1 : num_session
         index_nan = find(isnan(y0_all),1);
         y0_all(index_nan:end) = [];
         b_all(index_nan:end)  = [];
-        
-        n = length(y0_all);
-        
-        %determine the number of unknowns, based on the processing mode
-        if (goGNSS.isSA(mode))
-            m = 3*npos + length(n_obs_epoch);
-        else
-            if (goGNSS.isPH(mode))
-                sat_avail = max(satph_track, [], 2);
-                amb_num = sum(sat_avail);
-                amb_prn = find(sat_avail);
-                amb_idx = 1 : amb_num;
-                m = 3*npos + amb_num;
-            else
-                m = 3*npos;
-            end
+
+        %determine the number of unknown ambiguities
+        if (goGNSS.isPH(mode))
+            sat_avail = max(satph_track, [], 2);
+            amb_num = sum(sat_avail);
+            amb_prn = find(sat_avail);
+            amb_idx = 1 : amb_num;
         end
         
         if (~isempty(index_nan))
@@ -3198,49 +3193,68 @@ for s = 1 : num_session
                 
                 if (e < length(epoch_index))
                     %detect new ambiguities on epoch e
-                    new_amb = find(mat_amb(:,e) == 1);
-                    
-                    %init a new amb for the same satellite only if it already had estimates previously
-                    old_amb = find(any(mat_amb(:,1:e-1) == -1,2));
-                    new_amb = intersect(new_amb,old_amb);
-                    
-                    if (~isempty(new_amb))
-                        amb_idx(amb_prn == new_amb) = max(amb_idx) + [1 : length(new_amb)];
-                        amb_num = amb_num + length(new_amb);
-                        m = m + length(new_amb);
+                    amb_prn_new = find(mat_amb(:,e) == 1);
+                    if (~isempty(amb_prn_new))
+                        [~, amb_idx_new] = intersect(amb_prn, amb_prn_new);
+                        
+                        %add a new amb column for the same satellite only if it already had estimates previously
+                        old_amb = find(any(mat_amb(:,1:e-1) == -1,2));
+                        amb_prn_new = intersect(amb_prn_new,old_amb);
+                        
+                        if (~isempty(amb_prn_new))
+                            amb_idx(amb_idx_new) = max(amb_idx) + [1 : length(amb_prn_new)];
+                            amb_num = amb_num + length(amb_prn_new);
+                        end
                     end
                 end
 
                 satpr_track(pivot_track(e),e) = -1;
                 satph_track(pivot_track(e),e) = -1;
-                amb_slots = find(satph_track(amb_prn,e) == 1);
-                pivot_slot = find(satph_track(amb_prn,e) == -1);
+                amb_prn_avail = find(satph_track(:,e) == 1);
+                pivot_prn = find(satph_track(:,e) == -1);
+                [~, amb_idx_avail] = intersect(amb_prn, amb_prn_avail);
+                pivot_idx = find(amb_prn == pivot_prn);
                 satpr_track(pivot_track(e),e) = 0;
                 satph_track(pivot_track(e),e) = 0;
-                epo_slots = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
+                satph_index = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
                 if (e == 1)
-                    rows = epo_slots;
+                    rows = satph_index;
                 else
-                    rows = epoch_index(e-1)+epo_slots;
+                    rows = epoch_index(e-1)+satph_index;
                 end
-                A_all(rows,3*npos+amb_idx(amb_slots)) = diag(-lambda(amb_prn(amb_slots),1));
-                A_all(rows,3*npos+pivot_slot) = lambda(amb_prn(amb_slots),1);
+                A_all(rows,3*npos+amb_idx(amb_idx_avail)) = diag(-lambda(amb_prn_avail,1));
+                A_all(rows,3*npos+pivot_idx) = lambda(amb_prn_avail,1);
             end
         end
-        
+
         A  = A_all;
         y0 = y0_all;
         b  = b_all;
         Q  = Q_all;
         
+        if (goGNSS.isPH(mode))
+            %remove ambiguity unkowns with arcs shorter than given threshold
+            rem_amb = find(sum(A~=0,1) < min_arc);
+            for r = 1 : length(rem_amb)
+                rem_obs = find(A(:,rem_amb(r))~=0);
+                A(rem_obs,:) = [];
+                y0(rem_obs) = [];
+                b(rem_obs) = [];
+                Q(rem_obs,:) = []; Q(:,rem_obs) = [];
+            end
+            A(:,rem_amb) = [];
+            amb_num = amb_num - length(rem_amb);
+        end
+        
+        n = size(A,1);
+        m = size(A,2);
+
         %least-squares solution
         K = A';
         P = Q\A;
-%         P = A;
         N = K*P;
         Y = (y0-b);
         R = Q\Y;
-%         R = Y;
         L = K*R;
         x = N\L;
         
@@ -3249,29 +3263,35 @@ for s = 1 : num_session
         v_hat = y0 - y_hat;
         V = v_hat';
         T = Q\v_hat;
-%         T = v_hat;
         sigma02_hat = (V*T)/(n-m);
         
         %covariance matrix
         Cxx = sigma02_hat*(N^-1);
-        
-        %switch from SD to DD
-        D = zeros(amb_num-1,amb_num);
-        D(:,1) = 1;
-        D(:,2:end) = -eye(amb_num-1);
-        G = zeros(3+amb_num-1,3+amb_num);
-        G(1:3,1:3) = eye(3);
-        G(4:end,4:end) = D;
-        x = G*x;
-        Cxx = G*Cxx*G';
-        
-        cov_X  = Cxx(1:3,1:3);         %position covariance block
+
         if (goGNSS.isPH(mode))
+            %switch from SD to DD
+            D = zeros(amb_num-1,amb_num);
+            D(:,1) = 1;
+            D(:,2:end) = -eye(amb_num-1);
+            G = zeros(3+amb_num-1,3+amb_num);
+            G(1:3,1:3) = eye(3);
+            G(4:end,4:end) = D;
+            x = G*x;
+            Cxx = G*Cxx*G';
+
+            cov_X  = Cxx(1:3,1:3);     %position covariance block
             cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
             cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
             
-            %integer phase ambiguity solving by LAMBDA
-            [x(1:3), x(4:end), varNfix, varPosfix] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+            if (sum(eig(cov_N)>0) == size(cov_N,1)) %if cov_N positive-definite
+%                 if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
+                    [U] = chol(cov_N);
+                    cov_N = U'*U;
+%                 end
+                
+                %integer phase ambiguity solving by LAMBDA
+                [x(1:3), x(4:end), varNfix, varPosfix] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+            end
         end
     end
 
