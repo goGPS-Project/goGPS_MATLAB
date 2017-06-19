@@ -106,7 +106,7 @@ kalman_initialized = false;
 global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold min_arc
+global flag_outlier SPP_threshold min_arc max_code_residual max_phase_residual
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -1461,6 +1461,7 @@ for s = 1 : num_session
         
         y0_all = NaN(n_obs_tot,1);
         b_all  = NaN(n_obs_tot,1);
+        prph_track = NaN(n_obs_tot,1);
         if (goGNSS.isSA(mode))
             A_all = NaN(n_obs_tot,npos*3+length(time_GPS));
         else
@@ -2413,12 +2414,14 @@ for s = 1 : num_session
                 b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
                 A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo;
                 Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
-                epoch_index(t) = epoch_track + n_obs_epoch(t);
-                epoch_track = epoch_index(t);
                 satpr_track(:,t) = 0; satph_track(:,t) = 0;
                 satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
                 satph_track(conf_sat==+1 | conf_sat==+2,t) = 1;
+                prph_track(epoch_track+1:epoch_track+n_obs_epoch(t)/2) = -1;
+                prph_track(epoch_track+n_obs_epoch(t)/2+1:epoch_track+n_obs_epoch(t)) = 1;
                 pivot_track(t) = pivot;
+                epoch_index(t) = epoch_track + n_obs_epoch(t);
+                epoch_track = epoch_index(t);
             end
 
             w_bar.goTime(t);
@@ -3157,6 +3160,7 @@ for s = 1 : num_session
         index_nan = find(isnan(y0_all),1);
         y0_all(index_nan:end) = [];
         b_all(index_nan:end)  = [];
+        prph_track(index_nan:end) = [];
 
         %determine the number of unknown ambiguities
         if (goGNSS.isPH(mode))
@@ -3239,6 +3243,7 @@ for s = 1 : num_session
                 y0(rem_obs) = [];
                 b(rem_obs) = [];
                 Q(rem_obs,:) = []; Q(:,rem_obs) = [];
+                prph_track(rem_obs) = [];
             end
             A(:,rem_amb) = [];
             amb_num = amb_num - length(rem_amb);
@@ -3263,6 +3268,69 @@ for s = 1 : num_session
         T = Q\v_hat;
         sigma02_hat = (V*T)/(n-m);
         
+        %residual threshold
+        idx_pr = find(prph_track == -1);
+        idx_ph = find(prph_track == 1);
+        out_pr = abs(v_hat(idx_ph)) > max_code_residual;
+        out_ph = abs(v_hat(idx_ph)) > max_phase_residual;
+        idx_out_pr = idx_pr(out_pr == 1);
+        idx_out_ph = idx_ph(out_ph == 1);
+        idx_out = [idx_out_pr idx_out_ph];
+        if (~isempty(idx_out))
+            y0(idx_out) = [];
+            A(idx_out,:) = [];
+            Q(idx_out,:) = [];
+            Q(:,idx_out) = [];
+            b(idx_out) = [];
+            prph_track(idx_out) = [];
+            n = n - length(idx_out);
+            
+            %least-squares solution
+            K = A';
+            P = Q\A;
+            N = K*P;
+            Y = (y0-b);
+            R = Q\Y;
+            L = K*R;
+            x = N\L;
+            
+            %estimation of the variance of the observation error
+            y_hat = A*x + b;
+            v_hat = y0 - y_hat;
+            V = v_hat';
+            T = Q\v_hat;
+            sigma02_hat = (V*T)/(n-m);
+        end
+        
+        %Optimized Leave-One-Out
+        [idx_out, ~, s02_ls] = OLOO(A, y0, Q);
+        
+        if (~isempty(idx_out))
+            y0(idx_out) = [];
+            A(idx_out,:) = [];
+            Q(idx_out,:) = [];
+            Q(:,idx_out) = [];
+            b(idx_out) = [];
+            prph_track(idx_out) = [];
+            n = n - length(idx_out);
+            
+            %least-squares solution
+            K = A';
+            P = Q\A;
+            N = K*P;
+            Y = (y0-b);
+            R = Q\Y;
+            L = K*R;
+            x = N\L;
+            
+            %estimation of the variance of the observation error
+            y_hat = A*x + b;
+            v_hat = y0 - y_hat;
+            V = v_hat';
+            T = Q\v_hat;
+            sigma02_hat = (V*T)/(n-m);
+        end
+        
         %covariance matrix
         Cxx = sigma02_hat*(N^-1);
 
@@ -3281,10 +3349,17 @@ for s = 1 : num_session
             cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
             cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
             
-            if (sum(eig(cov_N)>0) == size(cov_N,1)) %if cov_N positive-definite
-%                 if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
+            if (all(eig(cov_N) > eps)) %if cov_N positive-definite
+                cov_N_orig = cov_N;
+                if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
                     [U] = chol(cov_N);
                     cov_N = U'*U;
+                end
+%                 if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
+%                     t0 = triu(cov_N);
+%                     t1 = triu(cov_N,1)';
+%                     t0(t0==0) = t1(t1~=0);
+%                     cov_N = t0;
 %                 end
                 
                 %integer phase ambiguity solving by LAMBDA
@@ -3292,7 +3367,7 @@ for s = 1 : num_session
             end
         end
     end
-
+keyboard
     %----------------------------------------------------------------------------------------------
     % INPUT/OUTPUT DATA FILE READING
     %----------------------------------------------------------------------------------------------
