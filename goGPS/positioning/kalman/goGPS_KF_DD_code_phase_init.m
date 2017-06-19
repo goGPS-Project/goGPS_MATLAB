@@ -237,10 +237,10 @@ if (length(sat_pr) >= min_nsat_LS)
     err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
     err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
 
-    if flag_XR==2
-        cov_XR=eye(3).*(0.01^2);  % da sistemare pi? accurata
-        cond_num=0;
-    end
+%     if flag_XR==2
+%         cov_XR=eye(3).*(0.01^2);  % da sistemare pi? accurata
+%         cond_num=0;
+%     end
 
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);

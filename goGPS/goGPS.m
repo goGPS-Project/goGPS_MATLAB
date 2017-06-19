@@ -129,8 +129,7 @@ if (mode_user == 1)
 
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-        filerootIN, ~, ~ , ~, ...
-        ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+        filerootIN, ~, ~ , ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
 
 else
@@ -140,8 +139,7 @@ else
 
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-        filerootIN, ~, ~, ~, ...
-        ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+        filerootIN, ~, ~, ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
 end
 
@@ -1386,7 +1384,7 @@ for s = 1 : num_session
         end
 
         %check if the dataset was surveyed with a variable dynamic model
-        d = dir([filerootIN '_dyn_000.bin']);
+        d = dir([state.obs_dir '\' state.obs_name{1}(1:end-4) '_dyn.bin']);
         if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
             logger.addWarning(' Dataset was not surveyed with a variable dynamic model:');
             logger.addMessage('      Switching off variable dynamic model mode...');
@@ -2761,7 +2759,7 @@ for s = 1 : num_session
             fclose(fid_res);
         else
 
-            fid_dyn = fopen([filerootIN '_dyn_000.bin'],'r+');
+            fid_dyn = fopen([state.obs_dir '\' state.obs_name{1}(1:end-4) '_dyn.bin'],'r+');
             fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
             fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
             fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
@@ -2871,7 +2869,7 @@ for s = 1 : num_session
                 order0 = order;
                 order = fread(fid_dyn,1,'uint8');
 
-                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(t), flag_IAR);
+                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(t), flag_IAR, antenna_PCV);
 
                 if (flag_stopGOstop == 1)
                     if (order > order0)
