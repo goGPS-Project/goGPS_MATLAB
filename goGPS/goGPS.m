@@ -3305,7 +3305,7 @@ for s = 1 : num_session
         %Optimized Leave-One-Out
         [idx_out, ~, s02_ls] = OLOO(A, y0, Q);
         
-        if (~isempty(idx_out))
+        if (~isempty(idx_out) && idx_out > 0)
             y0(idx_out) = [];
             A(idx_out,:) = [];
             Q(idx_out,:) = [];
