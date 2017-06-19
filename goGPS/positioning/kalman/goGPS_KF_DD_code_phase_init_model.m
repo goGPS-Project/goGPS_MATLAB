@@ -1,14 +1,14 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, phase, dtMdot, flag_IAR)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, frequencies, dtMdot, flag_IAR, flag_XR)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, phase, dtMdot, flag_IAR);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, frequencies, dtMdot, flag_IAR, flag_XR);
 %
 % INPUT:
-%   XR0 = rover approximate position (X,Y,Z)
+%   XR0 = rover approximate/apriori position (X,Y,Z)
 %   XM  = master known position (X,Y,Z)
 %   time_rx = GPS time
 %   pr1_R  = ROVER-SATELLITE code pseudorange (carrier L1)
@@ -33,6 +33,9 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
+%   flag_XR  = 0: unknown
+%              1: approximated
+%              2: fixed
 %
 % OUTPUT:
 %   kalman_initialized = flag to point out whether Kalman has been successfully initialized
@@ -78,6 +81,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_
 
 global sigmaq0 sigmaq0_N
 global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN
+global n_sys
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
 global azR elR distR azM elM distM
@@ -85,7 +89,6 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 global ratiotest mutest succ_rate fixed_solution
-global n_sys
 
 kalman_initialized = 0;
 
@@ -104,11 +107,11 @@ distM = zeros(nSatTot,1);
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %--------------------------------------------------------------------------------------------
-% SELECTION SINGLE / DOUBLE FREQUENCY
+% SELECTION SINGLE / DUAL FREQUENCY
 %--------------------------------------------------------------------------------------------
 
 %number of unknown phase ambiguities
-if (length(phase) == 1)
+if (length(frequencies) == 1)
     nN = nSatTot;
 else
     nN = nSatTot*2;
@@ -161,12 +164,12 @@ I = eye(o3+nN);
 % SELECTION OF THE SATELLITES
 %--------------------------------------------------------------------------------------------
 
-if (length(phase) == 2)
+if (length(frequencies) == 2)
     sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (pr2_R ~= 0) & (pr2_M ~= 0) );
     sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (ph1_R ~= 0) & (ph1_M ~= 0) & ...
                 (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
-    if (phase == 1)
+    if (frequencies == 1)
         sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
         sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
                     (ph1_R ~= 0) & (ph1_M ~= 0) );
@@ -195,9 +198,9 @@ if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
     XR0 = [];
-else
-    %approximate position available
-    flag_XR = 1;
+% else
+%     %approximate position available
+%     flag_XR = 1;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -214,14 +217,14 @@ if (length(sat_pr) >= min_nsat_LS)
 
     sat_pr_old = sat_pr;
 
-    if (phase(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+    if (frequencies(1) == 1)
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
     end
 
     err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
@@ -303,11 +306,11 @@ if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 || size(sat,1) <= mi
         [N2(sat), sigma2_N2(sat)] = amb_estimate_observ(pr2_R(sat), pr2_M(sat), ph2_R(sat), ph2_M(sat), pivot, sat, lambda(sat,2));
     end
 
-    if (length(phase) == 2)
+    if (length(frequencies) == 2)
         N = [N1; N2];
         sigma2_N = [sigma2_N1; sigma2_N2];
     else
-        if (phase == 1)
+        if (frequencies == 1)
             N = N1;
             sigma2_N = sigma2_N1;
         else
@@ -346,12 +349,12 @@ else
         cov_N2 = sigmaq0_N * eye(length(sat));
     end
 
-    if (length(phase) == 2)
+    if (length(frequencies) == 2)
         N = [N1; N2];
         sigma2_N(sat) = diag(cov_N1);
         sigma2_N(sat+nSatTot) = diag(cov_N2);
     else
-        if (phase == 1)
+        if (frequencies == 1)
             N = N1;
             sigma2_N(sat) = diag(cov_N1);
         else
