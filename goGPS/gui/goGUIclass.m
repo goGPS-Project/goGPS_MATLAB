@@ -56,7 +56,7 @@ classdef goGUIclass < handle
         BLUE = [0 0 1];                     % Blue - for flag
 
         % processing rates used in UI -> to convert UI to settings format
-        UI_P_SRATE = [1/10 1/5 1/2 1 5 15 30];
+        UI_P_SRATE = [1/10 1/5 1/2 1 5 15 30 60 300 900];
 
         % capture rates used in UI -> to convert UI to settings format
         UI_C_SRATE = [1 1/2 1/5 1/10];
@@ -336,9 +336,10 @@ classdef goGUIclass < handle
             this.strProcRate{5} = ' 5 s';
             this.strProcRate{6} = '15 s';
             this.strProcRate{7} = '30 s';
-            this.strProcRate{8} = '5 min';
-            this.strProcRate{9} = '15 min';
-            this.valProcRate = [1/10 1/5 1/2 1 5 15 30 300 900];
+            this.strProcRate{8} = '1 min';
+            this.strProcRate{9} = '5 min';
+            this.strProcRate{10} = '15 min';
+            this.valProcRate = [1/10 1/5 1/2 1 5 15 30 60 300 900];
             this.initProcRate(this.strProcRate, 4);
 
             this.strIonoModel{1} = 'no model';
