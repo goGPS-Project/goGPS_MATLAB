@@ -111,80 +111,8 @@ Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
 Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
 Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
 
-% %keep only phase observations
-% y0 = y0(n/2+1:end);
-% b = b(n/2+1:end);
-% A = A(n/2+1:end,:);
-% Q = Q(n/2+1:end,n/2+1:end);
-
-% invQ = Q^-1;
-% 
-% %normal matrix
-% N = (A'*invQ*A);
-% 
-% bad_epoch=0;
-% bad_obs=[];
-% index_obs = 1:length(y0); index_obs = index_obs';
-% 
-% if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
-%     %remove observations with residuals exceeding thresholds
-%     x_hat = (N^-1)*A'*(invQ)*(y0-b);
-%     y_hat = A*x_hat + b;
-%     v_hat = y0 - y_hat;
-%     index_outlier = find(abs(v_hat) > max_code_residual);
-%     if (~isempty(index_outlier))
-%         if (n-length(index_outlier) < m)
-%             bad_epoch = 1;
-%         else
-%             bad_obs=unique([bad_obs;index_obs(index_outlier)]);
-%             A(index_outlier,:)=[];
-%             y0(index_outlier,:)=[];
-%             b(index_outlier,:)=[];
-%             Q(index_outlier,:)=[];
-%             Q(:,index_outlier)=[];
-%             invQ=diag((diag(Q).^-1));
-%             index_obs(index_outlier) = [];
-%             [n,m]=size(A);
-%         end
-%     end
-% end
-% 
-% if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
-%     if n==m
-%         bad_epoch=-1;
-%     end
-% else
-%     %------------------------------------------------------------------------------------
-%     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
-%     %------------------------------------------------------------------------------------
-%     search_for_outlier = flag_outlier;
-% 
-%     if (search_for_outlier == 1)
-%         while search_for_outlier==1
-%             [index_outlier,~,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);
-%             if index_outlier~=0
-%                 bad_obs=unique([bad_obs;index_obs(index_outlier)]);
-%                 A(index_outlier,:)=[];
-%                 y0(index_outlier,:)=[];
-%                 b(index_outlier,:)=[];
-%                 Q(index_outlier,:)=[];
-%                 Q(:,index_outlier)=[];
-%                 invQ=diag((diag(Q).^-1));
-%                 index_obs(index_outlier)=[];
-%                 [n,m]=size(A);
-%             else
-%                 search_for_outlier=0;
-%             end
-%         end
-%     end
-%     sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
-%     sigma02_hat(1,3) = n-m;
-%     sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);
-%     if n>m
-%         if (flag_outlier && sigma02_hat(1)>SPP_threshold^2)
-%             bad_epoch=1;
-%         end
-%     else
-%         bad_epoch=-1;
-%     end
-% end
+%keep only phase observations
+y0 = y0(n/2+1:end);
+b = b(n/2+1:end);
+A = A(n/2+1:end,:);
+Q = Q(n/2+1:end,n/2+1:end);

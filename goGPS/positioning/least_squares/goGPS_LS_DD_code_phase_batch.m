@@ -132,6 +132,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     XS = XS(iR,:);
+    sys = sys(iR);
     if (~isempty(err_tropo_R))
         err_tropo_R = err_tropo_R(iR);
         err_iono_R  = err_iono_R (iR);
@@ -146,6 +147,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
     % keep only satellites that rover and master have in common both in phase and code
     [sat_pr, iR, iM] = intersect(sat_pr, sat);
     XS = XS(iR,:);
+    sys = sys(iR);
     if (~isempty(err_tropo_R))
         err_tropo_R = err_tropo_R(iR);
         err_iono_R  = err_iono_R (iR);
