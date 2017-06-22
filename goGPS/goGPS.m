@@ -2110,7 +2110,7 @@ for session = 1 : num_session
                 end
                 
                 if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
-                    Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+                    Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
                     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
                     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2419,7 +2419,7 @@ for session = 1 : num_session
                     fwrite(fid_res, nSatTot, 'int8');
                 end
                 
-                Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+                Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
                 Cee_dummy = [zeros(o3,o3) zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
                 fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -3384,7 +3384,11 @@ for session = 1 : num_session
                     end
                     
                     %integer phase ambiguity solving by LAMBDA
-                    [pos_KAL, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+                    [deltaX, fixed_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+                    
+                    pos_KAL = pos_R + deltaX;
+                    estim_amb = x(4:end);
+                    sigma_amb = diag(cov_N);
                 end
             end
         end
@@ -3395,17 +3399,6 @@ for session = 1 : num_session
         
         %if any positioning was done (either post-processing or real-time)
         if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-            %stream reading
-            % [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-            %  pos_M, Eph, iono, loss_R, loss_M, stream_R, stream_M] = load_stream(filerootIN);
-            
-            %---------------------------------
-            
-            %observation file (OBS) and ephemerides file (EPH) reading
-            %         if (mode == goGNSS.MODE_RT_NAV)
-            %             [time_GPS_diff, week_R, time_R_diff, time_M_diff, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
-            %                 pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
-            %         end
             
             %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
             time_GPS = time_GPS_diff + zero_time;
@@ -3423,15 +3416,15 @@ for session = 1 : num_session
             
             %---------------------------------
             
+            %reading of the files with Kalman filter results
+            [Xhat_t_t_OUT, Yhat_t_t_OUT, Cee_OUT, azM, azR, elM, elR, distM, distR, ...
+                conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
+                RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
+                RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
+                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+            
+            %variable saving for final graphical representations
             if (~flag_MELSA)
-                %reading of the files with Kalman filter results
-                [Xhat_t_t_OUT, Yhat_t_t_OUT, Cee_OUT, azM, azR, elM, elR, distM, distR, ...
-                    conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
-                    RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
-                    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
-                
-                %variable saving for final graphical representations
                 nSol = size(Xhat_t_t_OUT,2);
                 pos_KAL = zeros(3,nSol);
                 pos_REF = zeros(3,nSol);
@@ -3466,44 +3459,45 @@ for session = 1 : num_session
                         estim_tropo = zeros(nSol, 1);
                     end
                 end
-                
-                switch state.getForwardBackwardKF()
-                    case -1
-                        for i = 1 : nSol/2
-                            %if relative positioning (i.e. with master station)
-                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                                pos_REF(:,nSol/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                                pos_REF(:,nSol/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            else
-                                pos_REF(:,i) = pos_KAL(:,1);
-                                pos_REF(:,nSol-i+1) = pos_KAL(:,1);
-                            end
-                        end
-                    case 1
-                        for i = 1 : nSol/2
-                            %if relative positioning (i.e. with master station)
-                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                                pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                                pos_REF(:,nSol-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            else
-                                pos_REF(:,i) = pos_KAL(:,1);
-                                pos_REF(:,nSol-i+1) = pos_KAL(:,1);
-                            end
-                        end
-                    case 0
-                        for i = 1 : nSol
-                            %if relative positioning (i.e. with master station)
-                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                                pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            else
-                                pos_REF(:,i) = pos_KAL(:,1);
-                            end
-                        end
-                end
             else
-                pos_REF(:,1) = [pos_M(1,1); pos_M(2,1); pos_M(3,1)];
                 nSol = 1;
                 estim_tropo = zeros(nSol, 1);
+                Xhat_t_t_OUT = pos_KAL;
+                Cee_OUT = sigma_pos;
+            end
+            
+            switch state.getForwardBackwardKF()
+                case -1
+                    for i = 1 : nSol/2
+                        %if relative positioning (i.e. with master station)
+                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                            pos_REF(:,nSol/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            pos_REF(:,nSol/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                        else
+                            pos_REF(:,i) = pos_KAL(:,1);
+                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
+                        end
+                    end
+                case 1
+                    for i = 1 : nSol/2
+                        %if relative positioning (i.e. with master station)
+                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                            pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            pos_REF(:,nSol-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                        else
+                            pos_REF(:,i) = pos_KAL(:,1);
+                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
+                        end
+                    end
+                case 0
+                    for i = 1 : nSol
+                        %if relative positioning (i.e. with master station)
+                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                            pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                        else
+                            pos_REF(:,i) = pos_KAL(:,1);
+                        end
+                    end
             end
         end
         
@@ -3922,34 +3916,36 @@ for session = 1 : num_session
             plot(nsat); grid on;
             title('Number of satellites');
             
-            %EAST plot
-            f5 = subplot(7,3,[16 17 18]);
-            plot(EAST-EAST_O); grid on
-            hold on
-            pos = find(pivot_OUT == 0);
-            if (~isempty(pos))
-                plot(pos, EAST(pivot_OUT == 0)-EAST_O,'.y');
-            end
-            if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                plot([1, nSol], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
-                title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
-            else
-                title('East coordinates (blue); Not processed / dynamics only (yellow)');
-            end
-            
-            %NORTH plot
-            f6 = subplot(7,3,[19 20 21]);
-            plot(NORTH-NORTH_O); grid on
-            hold on
-            pos = find(pivot_OUT == 0);
-            if (~isempty(pos))
-                plot(pos, NORTH(pivot_OUT == 0)-NORTH_O,'.y');
-            end
-            if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                plot([1, nSol], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
-                title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
-            else
-                title('North coordinates (blue); Not processed / dynamics only (yellow)');
+            if (~flag_MELSA)
+                %EAST plot
+                f5 = subplot(7,3,[16 17 18]);
+                plot(EAST-EAST_O); grid on
+                hold on
+                pos = find(pivot_OUT == 0);
+                if (~isempty(pos))
+                    plot(pos, EAST(pivot_OUT == 0)-EAST_O,'.y');
+                end
+                if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                    plot([1, nSol], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
+                    title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
+                else
+                    title('East coordinates (blue); Not processed / dynamics only (yellow)');
+                end
+                
+                %NORTH plot
+                f6 = subplot(7,3,[19 20 21]);
+                plot(NORTH-NORTH_O); grid on
+                hold on
+                pos = find(pivot_OUT == 0);
+                if (~isempty(pos))
+                    plot(pos, NORTH(pivot_OUT == 0)-NORTH_O,'.y');
+                end
+                if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                    plot([1, nSol], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
+                    title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
+                else
+                    title('North coordinates (blue); Not processed / dynamics only (yellow)');
+                end
             end
             
             %print PDF
@@ -4351,7 +4347,7 @@ for session = 1 : num_session
         % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
         %----------------------------------------------------------------------------------------------
         
-        if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1)
+        if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1) && ~flag_MELSA
             epochs = (time_GPS-time_GPS(1))/interval;
             
             time = GPS_Time(GPS_Time.GPS_ZERO, time_GPS);
@@ -4434,7 +4430,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         
         %if any positioning was done (either post-processing or real-time, not constrained)
-        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1)
+        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~flag_MELSA
             %2D plot
             figure
             plot(EAST, NORTH, '.r');
@@ -4446,7 +4442,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         
         %if any positioning was done (either post-processing or real-time, not constrained)
-        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1)
+        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~flag_MELSA
             
             %     %3D plot (XYZ)
             %     figure
