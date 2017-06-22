@@ -106,7 +106,7 @@ kalman_initialized = false;
 global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold min_arc max_code_residual max_phase_residual
+global flag_outlier SPP_threshold
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
