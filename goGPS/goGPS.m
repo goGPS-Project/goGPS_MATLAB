@@ -3047,20 +3047,20 @@ for session = 1 : num_session
                 outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
             
             %variable saving for final graphical representations
-            nObs = size(Xhat_t_t_OUT,2);
-            pos_KAL = zeros(3,nObs);
-            pos_REF = zeros(3,nObs);
-            stat_SC = zeros(2,nObs);
+            nSol = size(Xhat_t_t_OUT,2);
+            pos_KAL = zeros(3,nSol);
+            pos_REF = zeros(3,nSol);
+            stat_SC = zeros(2,nSol);
             if (any(fixed_solution))
                 fixed_amb = fixed_solution;
             else
-                fixed_amb = zeros(1,nObs);
-                succ_rate = zeros(1,nObs);
+                fixed_amb = zeros(1,nSol);
+                succ_rate = zeros(1,nSol);
             end
-            estim_amb = zeros(nSatTot,nObs);
-            sigma_amb = zeros(nSatTot,nObs);
-            estim_tropo = zeros(nSatTot,nObs);
-            for i = 1 : nObs
+            estim_amb = zeros(nSatTot,nSol);
+            sigma_amb = zeros(nSatTot,nSol);
+            estim_tropo = zeros(nSatTot,nSol);
+            for i = 1 : nSol
                 if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
                     pos_KAL(:,i) = [Yhat_t_t_OUT(1,i); Yhat_t_t_OUT(2,i); Yhat_t_t_OUT(3,i)];
                     estim_amb(:,i) = Xhat_t_t_OUT(o1+1:o1+nSatTot,i);
@@ -3078,35 +3078,35 @@ for session = 1 : num_session
                 if (goGNSS.isSA(mode) && flag_tropo)
                     estim_tropo = Xhat_t_t_OUT(end-nC,:);
                 else
-                    estim_tropo = zeros(nObs, 1);
+                    estim_tropo = zeros(nSol, 1);
                 end
             end
             
             switch state.getForwardBackwardKF()
                 case -1
-                    for i = 1 : nObs/2
+                    for i = 1 : nSol/2
                         %if relative positioning (i.e. with master station)
                         if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                            pos_REF(:,nObs/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            pos_REF(:,nObs/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            pos_REF(:,nSol/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            pos_REF(:,nSol/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
                         else
                             pos_REF(:,i) = pos_KAL(:,1);
-                            pos_REF(:,nObs-i+1) = pos_KAL(:,1);
+                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
                         end
                     end
                 case 1
-                    for i = 1 : nObs/2
+                    for i = 1 : nSol/2
                         %if relative positioning (i.e. with master station)
                         if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
                             pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            pos_REF(:,nObs-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            pos_REF(:,nSol-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
                         else
                             pos_REF(:,i) = pos_KAL(:,1);
-                            pos_REF(:,nObs-i+1) = pos_KAL(:,1);
+                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
                         end
                     end
                 case 0
-                    for i = 1 : nObs
+                    for i = 1 : nSol
                         %if relative positioning (i.e. with master station)
                         if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
                             pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
@@ -3161,10 +3161,10 @@ for session = 1 : num_session
             %if no Kalman filter is used or if the positioning is constrained
             if (mode_vinc == 1) || (mode == goGNSS.MODE_PP_LS_C_SA) || (mode == goGNSS.MODE_PP_LS_CP_SA) || (mode == goGNSS.MODE_PP_LS_C_DD) || (mode == goGNSS.MODE_PP_LS_CP_DD_L)
                 %initialization to -9999 (no data available)
-                KHDOP(1:nObs) = -9999;
+                KHDOP(1:nSol) = -9999;
             end
             N = [];
-            h_ortho(1:nObs) = -9999;
+            h_ortho(1:nSol) = -9999;
             
             %time formatting
             [tow] = weektime2tow(week_R(:,1,1), time_GPS);
@@ -3173,7 +3173,7 @@ for session = 1 : num_session
             date_R = gps2date(week_R(:,1,1), tow);
             date_R(:,1) = two_digit_year(date_R(:,1));
             
-            for i = 1 : nObs
+            for i = 1 : nSol
                 if (geoid.ncols ~= 0)
                     %geoid undulation interpolation
                     N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
@@ -3227,15 +3227,15 @@ for session = 1 : num_session
                 fprintf(fid_out_f, head_str);
                 fid_out_b = fopen([filerootOUT '_position_backward.txt'], 'wt');
                 fprintf(fid_out_b, head_str);
-                for i = 1 : nObs / 2
+                for i = 1 : nSol / 2
                     %file writing
                     if (pivot_OUT(i) ~= 0)
                         if state.getForwardBackwardKF > 0
                             fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
-                            ib = nObs + 1 - i;
+                            ib = nSol + 1 - i;
                         else
-                            ii = nObs/2 + i;
-                            ib = nObs/2 + 1 - i;
+                            ii = nSol/2 + i;
+                            ib = nSol/2 + 1 - i;
                             fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ii), lam_KAL(ii), h_KAL(ii), X_KAL(ii), Y_KAL(ii), Z_KAL(ii), NORTH_UTM(ii), EAST_UTM(ii), h_ortho(ii), utm_zone(ii,:), nsat(ii), HDOP(ii), KHDOP(ii), NORTH_KAL(ii), EAST_KAL(ii), UP_KAL(ii), fixed_amb(ii), succ_rate(ii), estim_tropo(ii), ZWD(ii), PWV(ii));
                         end
                         fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ib), lam_KAL(ib), h_KAL(ib), X_KAL(ib), Y_KAL(ib), Z_KAL(ib), NORTH_UTM(ib), EAST_UTM(ib), h_ortho(ib), utm_zone(ib,:), nsat(ib), HDOP(ib), KHDOP(ib), NORTH_KAL(ib), EAST_KAL(ib), UP_KAL(ib), fixed_amb(ib), succ_rate(ib), estim_tropo(ib), ZWD(ib), PWV(ib));
@@ -3251,7 +3251,7 @@ for session = 1 : num_session
             else
                 fid_out = fopen([filerootOUT '_position.txt'], 'wt');
                 fprintf(fid_out, head_str);
-                for i = 1 : nObs
+                for i = 1 : nSol
                     %file writing
                     if (pivot_OUT(i) ~= 0)
                         fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
@@ -3549,7 +3549,7 @@ for session = 1 : num_session
                 plot(pos, EAST(pivot_OUT == 0)-EAST_O,'.y');
             end
             if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                plot([1, nObs], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
+                plot([1, nSol], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
                 title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
             else
                 title('East coordinates (blue); Not processed / dynamics only (yellow)');
@@ -3564,7 +3564,7 @@ for session = 1 : num_session
                 plot(pos, NORTH(pivot_OUT == 0)-NORTH_O,'.y');
             end
             if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                plot([1, nObs], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
+                plot([1, nSol], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
                 title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
             else
                 title('North coordinates (blue); Not processed / dynamics only (yellow)');
@@ -3606,7 +3606,7 @@ for session = 1 : num_session
             end
             fid_tropo = fopen([filerootOUT '_tropo.txt'], 'wt');
             fprintf(fid_tropo, head_str);
-            for i = 1 : nObs
+            for i = 1 : nSol
                 %file writing
                 fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), ZWD(i), PWV(i), STDs(:,i)');
             end
@@ -3626,8 +3626,8 @@ for session = 1 : num_session
             %file saving
             fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
             
-            for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
+            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
                 
                 %active satellites
                 sat = find(abs(conf_sat_OUT(:,i)));
@@ -3706,9 +3706,9 @@ for session = 1 : num_session
             label_scaleP = 0.7;
             %initialization
             
-            phiM = zeros(1, nObs / (1 + state.isForwardBackwardKF()));
-            lamM = zeros(1, nObs / (1 + state.isForwardBackwardKF()));
-            hM = zeros(1, nObs / (1 + state.isForwardBackwardKF()));
+            phiM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
+            lamM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
+            hM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
             
             %threshold on KHDOP
             if (o1 == 1)
@@ -3720,7 +3720,7 @@ for session = 1 : num_session
             %if relative positioning (i.e. with master station)
             if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
                 %master station coordinates
-                for i = 1 : nObs / (1 + state.isForwardBackwardKF())
+                for i = 1 : nSol / (1 + state.isForwardBackwardKF())
                     if (sum(abs(pos_M(:,i))) ~= 0)
                         XM = pos_M(1,i);
                         YM = pos_M(2,i);
@@ -3844,8 +3844,8 @@ for session = 1 : num_session
             fprintf(fid_kml, '\t\t\t<styleUrl>#goLine1</styleUrl>\n');
             fprintf(fid_kml, '\t\t\t<LineString>\n');
             fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
-            for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
+            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
                 fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(id),phi_KAL(id));
             end
             fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
@@ -3869,8 +3869,8 @@ for session = 1 : num_session
             end
             fprintf(fid_kml, '\t\t<Folder>\n');
             fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
-            for i = 1 : nObs / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nObs/2) + (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * i) + i;
+            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
                 
                 fprintf(fid_kml, '\t\t<Placemark>\n');
                 if (pivot_OUT(id) == 0)
@@ -3889,7 +3889,7 @@ for session = 1 : num_session
             fprintf(fid_kml, '\t\t</Folder>\n');
             
             if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                if (o1 == 1) && (nObs ~= 0)
+                if (o1 == 1) && (nSol ~= 0)
                     %static positioning coordinates
                     phiP = phi_KAL(end);
                     lamP = lam_KAL(end);
@@ -4223,17 +4223,17 @@ for session = 1 : num_session
         toc
         
         if is_batch
-            nObs = size(date_R,1);
+            nSol = size(date_R,1);
             switch state.getForwardBackwardKF()
                 case -1
-                    id_time = nObs;
-                    id_data = nObs*2;
+                    id_time = nSol;
+                    id_data = nSol*2;
                 case  1
                     id_time = 1;
-                    id_data = nObs*2;
+                    id_data = nSol*2;
                 case  0
-                    id_time = nObs;
-                    id_data = nObs;
+                    id_time = nSol;
+                    id_data = nSol;
             end
             
             tropo_vec_ZTD = nan(1,86400/interval);
@@ -4249,9 +4249,9 @@ for session = 1 : num_session
                     fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
                     fprintf(fid_extract_ZWD,'\n');
                 end
-                nObs = size(Xhat_t_t_OUT,2);
-                for e = 1 : nObs / (1 + state.isForwardBackwardKF())
-                    id = (state.getForwardBackwardKF() > 0) * (nObs + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nObs/2) + e;
+                nSol = size(Xhat_t_t_OUT,2);
+                for e = 1 : nSol / (1 + state.isForwardBackwardKF())
+                    id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
                     fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-1,id));
                 end
                 delete([filerootOUT '_*.bin']);
