@@ -3235,7 +3235,11 @@ for session = 1 : num_session
                     amb_prn_avail = find(satph_track(:,e) == 1);
                     pivot_prn = find(satph_track(:,e) == -1);
                     [~, amb_idx_avail] = intersect(amb_prn, amb_prn_avail);
-                    pivot_idx = find(amb_prn == pivot_prn);
+                    pivot_idx = amb_idx(amb_prn == pivot_prn);
+                    if (pivot_idx == 1)
+                        pivot_idx = amb_idx(amb_idx_avail(1));
+                        amb_idx_avail(1) = 1;
+                    end
                     satpr_track(pivot_track(e),e) = 0;
                     satph_track(pivot_track(e),e) = 0;
                     satph_index = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
@@ -3257,25 +3261,17 @@ for session = 1 : num_session
             %rescale Q
             Q = Q ./ (min(diag(Q)));
             
-            if (goGNSS.isPH(mode))
-                %remove ambiguity unkowns with arcs shorter than given threshold
-                rem_amb = find(sum(A~=0,1) < min_arc);
-                for r = 1 : length(rem_amb)
-                    rem_obs = find(A(:,rem_amb(r))~=0);
-                    A(rem_obs,:) = [];
-                    y0(rem_obs) = [];
-                    b(rem_obs) = [];
-                    Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-                    prph_track(rem_obs) = [];
-                end
-                A(:,rem_amb) = [];
-                amb_num = amb_num - length(rem_amb);
-            end
-            
             %exclude one of the ambiguity unkowns (to remove the rank deficiency)
-            A(:,4) = [];
-            amb_num = amb_num - 1;
-            
+            if (size(A,2) > 3)
+                A(:,4) = [];
+                ok_obs = find(sum(A(:,4:end),2));
+                amb_num = amb_num - 1;
+            end
+
+            if (goGNSS.isPH(mode))
+                [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
+            end
+
             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
             
             if (flag_outlier)
@@ -3289,19 +3285,10 @@ for session = 1 : num_session
                     Q(:,idx_out) = [];
                     b(idx_out) = [];
                     prph_track(idx_out) = [];
+                    ok_obs = find(sum(A(:,4:end),2));
+                    
                     if (goGNSS.isPH(mode))
-                        %remove ambiguity unkowns with arcs shorter than given threshold
-                        rem_amb = find(sum(A~=0,1) < min_arc);
-                        for r = 1 : length(rem_amb)
-                            rem_obs = find(A(:,rem_amb(r))~=0);
-                            A(rem_obs,:) = [];
-                            y0(rem_obs) = [];
-                            b(rem_obs) = [];
-                            Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-                            prph_track(rem_obs) = [];
-                        end
-                        A(:,rem_amb) = [];
-                        amb_num = amb_num - length(rem_amb);
+                        [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
                     end
                     
                     [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3324,20 +3311,10 @@ for session = 1 : num_session
                         Q(:,idx_out) = [];
                         b(idx_out) = [];
                         prph_track(idx_out) = [];
+                        ok_obs = find(sum(A(:,4:end),2));
                         
                         if (goGNSS.isPH(mode))
-                            %remove ambiguity unkowns with arcs shorter than given threshold
-                            rem_amb = find(sum(A~=0,1) < min_arc);
-                            for r = 1 : length(rem_amb)
-                                rem_obs = find(A(:,rem_amb(r))~=0);
-                                A(rem_obs,:) = [];
-                                y0(rem_obs) = [];
-                                b(rem_obs) = [];
-                                Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-                                prph_track(rem_obs) = [];
-                            end
-                            A(:,rem_amb) = [];
-                            amb_num = amb_num - length(rem_amb);
+                            [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
                         end
                         
                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3377,6 +3354,7 @@ for session = 1 : num_session
                 cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
                 cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
                 
+                fixed_amb = 0;
                 if (all(eig(cov_N) > eps)) %if cov_N positive-definite
                     if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
                         [U] = chol(cov_N);
@@ -3384,11 +3362,12 @@ for session = 1 : num_session
                     end
                     
                     %integer phase ambiguity solving by LAMBDA
-                    [deltaX, fixed_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+                    [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
                     
                     pos_KAL = pos_R + deltaX;
-                    estim_amb = x(4:end);
-                    sigma_amb = diag(cov_N);
+                    if (estim_amb ~= x(4:end))
+                        fixed_amb = 1;
+                    end
                 end
             end
         end
