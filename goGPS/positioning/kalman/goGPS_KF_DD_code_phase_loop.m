@@ -890,7 +890,7 @@ if (nsat >= min_nsat)
                 Cnn(idx_out,:) = [];
                 Cnn(:,idx_out) = [];
                 y0_noamb(idx_out,:) = [];
-                H1(idx_out,:) = []; %#ok<NASGU>
+                H1(idx_out,:) = [];
                 outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
                 index_outlier_i(idx_out) = [];
             end
@@ -936,7 +936,7 @@ if (nsat >= min_nsat)
                 idx_ph = index_outlier(index_outlier  > length(sat_pr_np)) - length(sat_pr_np);
                 conf_sat(sat_pr_np(idx_pr)) = 0;
                 conf_sat(sat_np(idx_ph)) = 0;
-                sat_pr_np(idx_pr) = []; %#ok<AGROW>
+                sat_pr_np(idx_pr) = [];
                 sat_np(idx_ph) = [];
             else
                 search_for_outlier = 0;
