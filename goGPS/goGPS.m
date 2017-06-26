@@ -1107,6 +1107,9 @@ for session = 1 : num_session
                     flag_XM_prep = 1;
                     [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 end
+                
+                [ph1_R, ph1_M] = cycle_slip_detect_single_diff(ph1_R, ph1_M, interval);
+                [ph2_R, ph2_M] = cycle_slip_detect_single_diff(ph2_R, ph2_M, interval);
 
                 if report.opt.write == 1
                     report.prep.tot_epoch_M=size(pr1_M,2);
@@ -1431,11 +1434,10 @@ for session = 1 : num_session
         
         flag_MELSA = 1;
         
-        % if (strcmp(filename_R_obs(end-4),'a'))
-        %     load conf_cs
-        % else
-        %     conf_cs = zeros(nSatTot, length(time_GPS));
-        % end
+%         [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr1_R, ph1_R, repmat(lambda(:,1),1,size(pr1_R,2)));
+%         for s = 1 : size(N_stim,1)
+%             ph1_R(s,ph1_R(s,:)~=0) = ph1_R(s,ph1_R(s,:)~=0) + round(median(N_stim(s,N_stim(s,:)~=0)));
+%         end
         
         if (flag_MELSA)
             %number of position solutions to be estimated
@@ -3221,7 +3223,8 @@ for session = 1 : num_session
                             
                             %add a new amb column for the same satellite only if it already had estimates previously
                             old_amb = find(any(mat_amb(:,1:e-1) == -1,2));
-                            amb_prn_new = intersect(amb_prn_new,old_amb);
+                            [amb_prn_new, idx] = intersect(amb_prn_new,old_amb);
+                            amb_idx_new = amb_idx_new(idx);
                             
                             if (~isempty(amb_prn_new))
                                 amb_idx(amb_idx_new) = max(amb_idx) + [1 : length(amb_prn_new)];
@@ -3236,10 +3239,10 @@ for session = 1 : num_session
                     pivot_prn = find(satph_track(:,e) == -1);
                     [~, amb_idx_avail] = intersect(amb_prn, amb_prn_avail);
                     pivot_idx = amb_idx(amb_prn == pivot_prn);
-                    if (pivot_idx == 1)
-                        pivot_idx = amb_idx(amb_idx_avail(1));
-                        amb_idx_avail(1) = 1;
-                    end
+%                     if (pivot_idx == 1)
+%                         pivot_idx = amb_idx(amb_idx_avail(1));
+%                         amb_idx_avail(1) = 1;
+%                     end
                     satpr_track(pivot_track(e),e) = 0;
                     satph_track(pivot_track(e),e) = 0;
                     satph_index = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
@@ -3260,16 +3263,15 @@ for session = 1 : num_session
             
             %rescale Q
             Q = Q ./ (min(diag(Q)));
+
+            if (goGNSS.isPH(mode))
+                [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
+            end
             
             %exclude one of the ambiguity unkowns (to remove the rank deficiency)
             if (size(A,2) > 3)
                 A(:,4) = [];
-                ok_obs = find(sum(A(:,4:end),2));
                 amb_num = amb_num - 1;
-            end
-
-            if (goGNSS.isPH(mode))
-                [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
             end
 
             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3285,10 +3287,9 @@ for session = 1 : num_session
                     Q(:,idx_out) = [];
                     b(idx_out) = [];
                     prph_track(idx_out) = [];
-                    ok_obs = find(sum(A(:,4:end),2));
                     
                     if (goGNSS.isPH(mode))
-                        [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
+                        [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
                     end
                     
                     [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3311,10 +3312,9 @@ for session = 1 : num_session
                         Q(:,idx_out) = [];
                         b(idx_out) = [];
                         prph_track(idx_out) = [];
-                        ok_obs = find(sum(A(:,4:end),2));
                         
                         if (goGNSS.isPH(mode))
-                            [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs);
+                            [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
                         end
                         
                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -4581,16 +4581,21 @@ for session = 1 : num_session
         
         if is_batch
             nSol = size(date_R,1);
-            switch state.getForwardBackwardKF()
-                case -1
-                    id_time = nSol;
-                    id_data = nSol*2;
-                case  1
-                    id_time = 1;
-                    id_data = nSol*2;
-                case  0
-                    id_time = nSol;
-                    id_data = nSol;
+            if (~flag_MELSA)
+                switch state.getForwardBackwardKF()
+                    case -1
+                        id_time = nSol;
+                        id_data = nSol*2;
+                    case  1
+                        id_time = 1;
+                        id_data = nSol*2;
+                    case  0
+                        id_time = nSol;
+                        id_data = nSol;
+                end
+            else
+                id_time = nSol;
+                id_data = 1;
             end
             
             tropo_vec_ZTD = nan(1,86400/interval);

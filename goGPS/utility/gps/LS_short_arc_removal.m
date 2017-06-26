@@ -1,4 +1,4 @@
-function [A, y0, b, Q, prph_track, amb_num, ok_obs] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc, ok_obs)
+function [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc)
 
 % %remove observations without pivot OR slave satellite
 % rem_obs = find(sum(A(:,4:end),2));
