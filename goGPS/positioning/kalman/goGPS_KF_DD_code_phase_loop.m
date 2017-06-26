@@ -57,7 +57,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     Andrea Nardo,
-%                    Stefano Caldera, ...
+%                    Stefano Caldera,
+%                    Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %

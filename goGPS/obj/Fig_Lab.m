@@ -54,14 +54,14 @@ classdef Fig_Lab < handle
 
     methods (Static) % Public Access Generic utilities
 
-        function plotENU(time, enu, spline_base, hold_on)
+        function plotENU(time, enu, spline_base, color_type)
             narginchk(2,4);
 
             if nargin == 2
                 spline_base = 0;
             end
             if nargin < 4
-                hold_on = 0;
+                color_type = 0;
             end
             if time.getRate > 86000
                 date_style = 'dd mmm yyyy';
@@ -72,12 +72,12 @@ classdef Fig_Lab < handle
             spline_base = spline_base * (size(enu,1) > spline_base);
 
             m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
-            if ~hold_on; fh = figure(); maximizeFig(fh); end
+            if (color_type == 0); fh = figure(); maximizeFig(fh); end
             color_order = handle(gca).ColorOrder;
-            if hold_on == 1
+            if color_type == 1
                 color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
             end
-            if hold_on == -1
+            if color_type == -1
                 color_order = color_order * 0;
             end
 
@@ -100,48 +100,48 @@ classdef Fig_Lab < handle
             end
 
             if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
-                subplot(3,1,1); if hold_on; hold on; end
+                subplot(3,1,1); if color_type; hold on; end
                 plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(data_e_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_e_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
 
                 subplot(3,1,2);
                 plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(data_n_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_n_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
 
                 subplot(3,1,3);
                 plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(data_u_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_u_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
             else
                 subplot(3,1,1);
                 plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_e_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_e_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,2);
                 plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_n_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_n_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,3);
                 plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_u_s, '--', 'Color', iif(hold_on, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_u_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
                 end
                 setTimeTicks(4,date_style);
             end
             subplot(3,1,1); ax(1) = gca;
             grid on;
-            if hold_on
+            if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_e(~isnan(data_e)))));
             else
                 title(sprintf('East - std %.2f [mm]', std(data_e(~isnan(data_e)))));
@@ -150,7 +150,7 @@ classdef Fig_Lab < handle
 
             subplot(3,1,2); ax(2) = gca;
             grid on;
-            if hold_on
+            if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_n(~isnan(data_n)))));
             else
                 title(sprintf('North - std %.2f [mm]', std(data_n(~isnan(data_n)))));
@@ -159,7 +159,7 @@ classdef Fig_Lab < handle
 
             subplot(3,1,3); ax(3) = gca;
             grid on;
-            if hold_on
+            if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_u(~isnan(data_u)))));
             else
                 title(sprintf('Up - std %.2f [mm]', std(data_u(~isnan(data_u)))));

@@ -270,23 +270,42 @@ classdef File_Name_Processor < handle
 
             fnp = File_Name_Processor;
             dir_base = fnp.getFullDirPath(dir_base, pwd);
-            dir_path = fnp.getFullDirPath(dir_path, dir_base);
             list_base = regexp(dir_base, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
-            list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
             n_dir_base = numel(list_base);
-            n_dir_path = numel(list_path);
-            i = 0;
-            while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
-                i = i + 1;
-            end
-            if (n_dir_base -i) > 0
-                list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
-            else
-                list_path = list_path(i+1:end);
-            end
 
-            dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
-            %dir_path = File_Name_Processor.getFullDirPath(dir_path);
+            if iscell(dir_path)
+                for j = 1 : numel(dir_path)
+                    dir_pat{j} = fnp.getFullDirPath(dir_path{j}, dir_base);
+                    list_path = regexp(dir_path{j}, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+                    n_dir_path = numel(list_path);
+                    i = 0;
+                    while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
+                        i = i + 1;
+                    end
+                    if (n_dir_base -i) > 0
+                        list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+                    else
+                        list_path = list_path(i+1:end);
+                    end
+                    
+                    dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);                    
+                end
+            else
+                dir_path = fnp.getFullDirPath(dir_path, dir_base);
+                list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+                n_dir_path = numel(list_path);
+                i = 0;
+                while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
+                    i = i + 1;
+                end
+                if (n_dir_base -i) > 0
+                    list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+                else
+                    list_path = list_path(i+1:end);
+                end
+                
+                dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
+            end
         end
 
         function file_name = keyRep(file_name, key, substitution)
@@ -327,7 +346,6 @@ classdef File_Name_Processor < handle
                 full_path = fnp.checkPath(fullfile(dir_path, file_path));
             end
         end
-
 
         function [universal_path, is_valid] = checkPath(path)
             % Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep
