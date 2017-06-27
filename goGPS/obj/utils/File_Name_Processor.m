@@ -287,8 +287,8 @@ classdef File_Name_Processor < handle
                     else
                         list_path = list_path(i+1:end);
                     end
-                    
-                    dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);                    
+
+                    dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
                 end
             else
                 dir_path = fnp.getFullDirPath(dir_path, dir_base);
@@ -303,7 +303,7 @@ classdef File_Name_Processor < handle
                 else
                     list_path = list_path(i+1:end);
                 end
-                
+
                 dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
             end
         end

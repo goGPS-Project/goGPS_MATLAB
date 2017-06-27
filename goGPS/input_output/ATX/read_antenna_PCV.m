@@ -165,7 +165,7 @@ for file_pcv = 1 : size(filename, 1)
                                             end
                                         end
 
-                                        if (~isempty(validity_start)) %satellite antenna
+                                        if (~isempty(validity_start)) % satellite antenna
                                             if ~((datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end)))
                                                 invalid_date = 1;
                                                 antenna_PCV(m(1)).n_frequency = 0;

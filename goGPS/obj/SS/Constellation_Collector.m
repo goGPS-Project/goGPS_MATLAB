@@ -265,6 +265,16 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
 
+        function ant_mod = getAntennaId(this)
+            % Equivalent to the old function sat_antenna_ID
+            % return the "name" of the antennas of each active satellite
+            % SYNTAX:
+            %   ant_mod = getAntennaId(this)
+            % SEE ALSO:
+            %   sat_antenna_ID
+            ant_mod = mat2cell([this.system' reshape(sprintf('%02d', this.prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
+        end
+
     end
 
     % =========================================================================
