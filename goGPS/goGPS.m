@@ -3441,8 +3441,12 @@ for session = 1 : num_session
             else
                 nSol = 1;
                 estim_tropo = zeros(nSol, 1);
+                succ_rate = zeros(1,nSol);
                 Xhat_t_t_OUT = pos_KAL;
                 Cee_OUT = sigma_pos;
+                if (exist('antoff_R','var'))
+                    pos_KAL(:,1) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,1));
+                end
             end
             
             switch state.getForwardBackwardKF()
