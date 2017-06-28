@@ -1457,14 +1457,15 @@ for session = 1 : num_session
             
             %total number of observations (for matrix initialization)
             if (goGNSS.isPH(mode))
-                n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0)) + sum(sum(ph1_R(:,:,1) ~= 0));
+                %n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0)) + sum(sum(ph1_R(:,:,1) ~= 0));
+                n_obs_tot = sum(sum(ph1_R(:,:,1) ~= 0));
             else
                 n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
             end
             
             y0_all = NaN(n_obs_tot,1);
             b_all  = NaN(n_obs_tot,1);
-            prph_track = NaN(n_obs_tot,1);
+            sat_track = NaN(n_obs_tot,3); %epoch; PRN; code/phase
             if (goGNSS.isSA(mode))
                 A_all = NaN(n_obs_tot,npos*3+length(time_GPS));
             else
@@ -2148,7 +2149,9 @@ for session = 1 : num_session
                             Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
                             satpr_track(:,t) = 0;
                             satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
-                            prph_track(epoch_track+1:epoch_track+n_obs_epoch(t)) = -1;
+                            sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),3) = -1;
+                            sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),2) = find(satpr_track(:,t) == 1);
+                            sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),1) = t;
                             pivot_track(t) = pivot;
                             epoch_index(t) = epoch_track + n_obs_epoch(t);
                             epoch_track = epoch_index(t);
@@ -2439,8 +2442,10 @@ for session = 1 : num_session
                     satpr_track(:,t) = 0; satph_track(:,t) = 0;
                     %                 satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
                     satph_track(conf_sat==+1 | conf_sat==+2,t) = 1;
-                    %                 prph_track(epoch_track+1:epoch_track+n_obs_epoch(t)/2) = -1;
-                    prph_track(epoch_track+1:epoch_track+n_obs_epoch(t)) = 1;
+                    %                 sat_track(epoch_track+1:epoch_track+n_obs_epoch(t)/2,3) = -1;
+                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),3) = 1;
+                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),2) = setdiff(find(satph_track(:,t) == 1),pivot);
+                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),1) = t;
                     pivot_track(t) = pivot;
                     epoch_index(t) = epoch_track + n_obs_epoch(t);
                     epoch_track = epoch_index(t);
@@ -3182,7 +3187,7 @@ for session = 1 : num_session
             index_nan = find(isnan(y0_all),1);
             y0_all(index_nan:end) = [];
             b_all(index_nan:end)  = [];
-            prph_track(index_nan:end) = [];
+            sat_track(index_nan:end,:) = [];
             
             %determine the number of unknown ambiguities
             if (goGNSS.isPH(mode))
@@ -3261,7 +3266,7 @@ for session = 1 : num_session
             Q = Q ./ (min(diag(Q)));
 
             if (goGNSS.isPH(mode))
-                [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
+                [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
             end
             
             %exclude one of the ambiguity unkowns (to remove the rank deficiency)
@@ -3282,10 +3287,10 @@ for session = 1 : num_session
                     Q(idx_out,:) = [];
                     Q(:,idx_out) = [];
                     b(idx_out) = [];
-                    prph_track(idx_out) = [];
+                    sat_track(idx_out,:) = [];
                     
                     if (goGNSS.isPH(mode))
-                        [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
+                        [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
                     end
                     
                     [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3294,8 +3299,8 @@ for session = 1 : num_session
                 %residual threshold
                 search_for_outlier = 1;
                 while (search_for_outlier == 1)
-                    idx_pr = find(prph_track == -1);
-                    idx_ph = find(prph_track == 1);
+                    idx_pr = find(sat_track(:,3) == -1);
+                    idx_ph = find(sat_track(:,3) == 1);
                     out_pr = abs(v_hat(idx_pr)) > max_code_residual;
                     out_ph = abs(v_hat(idx_ph)) > max_phase_residual;
                     idx_out_pr = idx_pr(out_pr == 1);
@@ -3307,10 +3312,10 @@ for session = 1 : num_session
                         Q(idx_out,:) = [];
                         Q(:,idx_out) = [];
                         b(idx_out) = [];
-                        prph_track(idx_out) = [];
+                        sat_track(idx_out,:) = [];
                         
                         if (goGNSS.isPH(mode))
-                            [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc);
+                            [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
                         end
                         
                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3363,6 +3368,17 @@ for session = 1 : num_session
                     pos_KAL = pos_R + deltaX;
                     if (estim_amb ~= x(4:end))
                         fixed_amb = 1;
+                    end
+                    
+                    epochs_avail = unique(sat_track(:,1));
+                    RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                    RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                    RES_PHASE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                    RES_CODE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                    for e = 1 : length(epochs_avail)
+                        epoch = epochs_avail(e);
+                        idx = find(sat_track(:,1) == epoch);
+                        RES_PHASE1_FLOAT_MELSA(sat_track(idx,2),epoch) = v_hat(idx,1);
                     end
                 end
             end
@@ -3736,16 +3752,27 @@ for session = 1 : num_session
                 close(f)
             end
 
-            if (any(RES_PHASE1_FIXED(:)))
-                RES_PHASE1 = RES_PHASE1_FIXED;
-                RES_CODE1  = RES_CODE1_FIXED;
-                RES_PHASE2 = RES_PHASE2_FIXED;
-                RES_CODE2  = RES_CODE2_FIXED;
+            if (~flag_MELSA)
+                if (any(RES_PHASE1_FIXED(:)))
+                    RES_PHASE1 = RES_PHASE1_FIXED;
+                    RES_CODE1  = RES_CODE1_FIXED;
+                    RES_PHASE2 = RES_PHASE2_FIXED;
+                    RES_CODE2  = RES_CODE2_FIXED;
+                else
+                    RES_PHASE1 = RES_PHASE1_FLOAT;
+                    RES_CODE1  = RES_CODE1_FLOAT;
+                    RES_PHASE2 = RES_PHASE2_FLOAT;
+                    RES_CODE2  = RES_CODE2_FLOAT;
+                end
             else
-                RES_PHASE1 = RES_PHASE1_FLOAT;
-                RES_CODE1  = RES_CODE1_FLOAT;
-                RES_PHASE2 = RES_PHASE2_FLOAT;
-                RES_CODE2  = RES_CODE2_FLOAT;
+                RES_PHASE1 = RES_PHASE1_FLOAT_MELSA;
+                RES_CODE1  = RES_CODE1_FLOAT_MELSA;
+                RES_PHASE2 = RES_PHASE2_FLOAT_MELSA;
+                RES_CODE2  = RES_CODE2_FLOAT_MELSA;
+                RES_PHASE1(RES_PHASE1==0) = NaN;
+                RES_CODE1(RES_CODE1==0) = NaN;
+                RES_PHASE2(RES_PHASE2==0) = NaN;
+                RES_CODE2(RES_CODE2==0) = NaN;
             end
 
             if (length(frequencies) > 1)

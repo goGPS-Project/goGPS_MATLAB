@@ -1,4 +1,4 @@
-function [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, prph_track, amb_num, min_arc)
+function [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc)
 
 % %remove observations without pivot OR slave satellite
 % rem_obs = find(sum(A(:,4:end),2));
@@ -8,7 +8,7 @@ function [A, y0, b, Q, prph_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, 
 %     y0(rem_obs) = [];
 %     b(rem_obs) = [];
 %     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-%     prph_track(rem_obs) = [];
+%     sat_track(rem_obs,:) = [];
 %     ok_obs = find(sum(A(:,4:end),2));
 % end
 
@@ -21,7 +21,7 @@ if (~isempty(rem_amb))
         y0(rem_obs) = [];
         b(rem_obs) = [];
         Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-        prph_track(rem_obs) = [];
+        sat_track(rem_obs,:) = [];
     end
     A(:,rem_amb) = [];
     amb_num = amb_num - length(rem_amb);
@@ -32,7 +32,7 @@ if (~isempty(rem_amb))
 %     y0(rem_obs) = [];
 %     b(rem_obs) = [];
 %     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-%     prph_track(rem_obs) = [];
+%     sat_track(rem_obs,:) = [];
 %     
 %     rem_amb = find(sum(A~=0,1) < min_arc);
 end
