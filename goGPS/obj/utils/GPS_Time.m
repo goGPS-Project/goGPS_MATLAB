@@ -82,7 +82,6 @@ classdef GPS_Time < handle
         UNIX_ZERO = 719529;             % datenum('Jan 1, 1970')
     end
 
-
     properties (Constant, GetAccess = private)
         MAT_TIME = 0;       % time_type value for times stored in matalb format: (double array) time in days since January 1, 0000 (matlab datenum fomat), precision up to the 0.1 milliseconds
         UNIX_TIME = 1;      % time_type value for times stored in unix format: (uint32 array) time in seconds since January 1, 1970 (UNIX standard) + (double array) fraction of seconds

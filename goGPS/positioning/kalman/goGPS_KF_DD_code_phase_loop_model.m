@@ -628,7 +628,7 @@ if (nsat >= min_nsat)
                 ph2_R(sat)    = ph2_R(sat)    - (PCO1_R(index_ph) + PCV2_R(index_ph))./lambda(sat,2);
             end
         end
-        
+
         %function that calculates the Kalman filter parameters
         [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
 

@@ -1154,6 +1154,12 @@ classdef IO_Settings < Settings_Interface
             date = this.sss_date_stop;
         end
 
+        function date = getSessionLimits(this)
+            % SYNTAX: date = getSessionLimits(this)
+            date = this.sss_date_start.getCopy;
+            date.append(this.sss_date_stop);
+        end
+
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
@@ -1819,21 +1825,23 @@ classdef IO_Settings < Settings_Interface
             % check whether or not all the ephemeris files are available
             eph_ok = true;
 
+            state = Go_State.getCurrentSettings();
             file_name = this.getFullNavEphPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
             if isempty(file_name)
                 eph_ok = false;
             elseif isempty(file_name{1})
                 eph_ok = false;
             else
-                this.logger.addMarkedMessage('Checking navigational files');
+                this.logger.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
                 this.logger.newLine();
                 i = 0;
                 while (i < numel(file_name) && eph_ok)
                     i = i + 1;
                     eph_ok = exist(file_name{i}, 'file') == 2;
                     if eph_ok
-                        this.logger.addStatusOk(sprintf('%s', file_name{i}));
+                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
                             this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
@@ -1850,21 +1858,23 @@ classdef IO_Settings < Settings_Interface
             % check whether or not all the navigational clock files are available
 
             clk_ok = true;
+            state = Go_State.getCurrentSettings();
             file_name = this.getFullNavClkPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
             if isempty(file_name)
                 clk_ok = true;
             elseif isempty(file_name{1})
                 clk_ok = true;
             else
-                this.logger.addMarkedMessage('Checking clock offsets files');
+                this.logger.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
                 this.logger.newLine();
                 i = 0;
                 while (i < numel(file_name) && clk_ok)
                     i = i + 1;
                     clk_ok = exist(file_name{i}, 'file') == 2;
                     if clk_ok
-                        this.logger.addStatusOk(sprintf('%s', file_name{i}));
+                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
                             this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
