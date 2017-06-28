@@ -3239,10 +3239,6 @@ for session = 1 : num_session
                     pivot_prn = find(satph_track(:,e) == -1);
                     [~, amb_idx_avail] = intersect(amb_prn, amb_prn_avail);
                     pivot_idx = amb_idx(amb_prn == pivot_prn);
-%                     if (pivot_idx == 1)
-%                         pivot_idx = amb_idx(amb_idx_avail(1));
-%                         amb_idx_avail(1) = 1;
-%                     end
                     satpr_track(pivot_track(e),e) = 0;
                     satph_track(pivot_track(e),e) = 0;
                     satph_index = sum(satpr_track(:,e))+1:sum(satpr_track(:,e))+sum(satph_track(:,e));
