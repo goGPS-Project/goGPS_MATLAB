@@ -3194,6 +3194,7 @@ for session = 1 : num_session
                 sat_avail = max(satph_track, [], 2);
                 amb_num = sum(sat_avail);
                 amb_prn = find(sat_avail);
+                amb_prn_track = amb_prn;
                 amb_idx = 1 : amb_num;
             end
             
@@ -3234,6 +3235,7 @@ for session = 1 : num_session
                             if (~isempty(amb_prn_new))
                                 amb_idx(amb_idx_new) = max(amb_idx) + [1 : length(amb_prn_new)];
                                 amb_num = amb_num + length(amb_prn_new);
+                                amb_prn_track = [amb_prn_track; amb_prn_new]; %#ok<AGROW>
                             end
                         end
                     end
@@ -3266,13 +3268,14 @@ for session = 1 : num_session
             Q = Q ./ (min(diag(Q)));
 
             if (goGNSS.isPH(mode))
-                [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
+                [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
             end
             
             %exclude one of the ambiguity unkowns (to remove the rank deficiency)
             if (size(A,2) > 3)
                 A(:,4) = [];
                 amb_num = amb_num - 1;
+                amb_prn_track(1) = [];
             end
 
             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3290,7 +3293,7 @@ for session = 1 : num_session
                     sat_track(idx_out,:) = [];
                     
                     if (goGNSS.isPH(mode))
-                        [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
+                        [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
                     end
                     
                     [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3315,7 +3318,7 @@ for session = 1 : num_session
                         sat_track(idx_out,:) = [];
                         
                         if (goGNSS.isPH(mode))
-                            [A, y0, b, Q, sat_track, amb_num] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, min_arc);
+                            [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
                         end
                         
                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
@@ -3773,6 +3776,10 @@ for session = 1 : num_session
                 RES_CODE1(RES_CODE1==0) = NaN;
                 RES_PHASE2(RES_PHASE2==0) = NaN;
                 RES_CODE2(RES_CODE2==0) = NaN;
+                outliers_PHASE1 = zeros(size(RES_PHASE1));
+                outliers_CODE1 = zeros(size(RES_CODE1));
+                outliers_PHASE2 = zeros(size(RES_PHASE2));
+                outliers_CODE2 = zeros(size(RES_CODE2));
             end
 
             if (length(frequencies) > 1)
