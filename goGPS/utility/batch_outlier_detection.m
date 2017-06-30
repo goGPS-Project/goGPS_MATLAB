@@ -20,6 +20,8 @@ for b = 1 : num_batches
         end_idx = batch_idx(b+1)-1;
     end
     [~,~,outliers_batch] = deleteoutliers(time_series(start_idx:end_idx), outlier_thres);
-    outliers = [outliers; outliers_batch]; %#ok<AGROW>
+    if (~isempty(outliers_batch))
+        outliers = [outliers; outliers_batch(:)]; %#ok<AGROW>
+    end
 end
 end
