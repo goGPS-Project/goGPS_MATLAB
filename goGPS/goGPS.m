@@ -143,6 +143,8 @@ else
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
 end
 
+flag_tropo_gradient = 1;
+
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
@@ -1397,9 +1399,9 @@ for session = 1 : num_session
         end
 
         %update variance of tropospheric delay
-        global sigmaq_tropo %#ok<TLEV>
+        global sigmaq_tropo sigmaq_tropo_gradient %#ok<TLEV>
         sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
-        % sigmaq_tropo = (0.05/sqrt(3600/interval))^2;
+        sigmaq_tropo_gradient = (0.001/sqrt(3600/interval))^2;
 
         %----------------------------------------------------------------------------------------------
         % SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
@@ -1911,6 +1913,7 @@ for session = 1 : num_session
                     sbas_t = find_sbas(sbas, 1);
 
                     kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
+%                     kalman_initialized = goGPS_KF_SA_code_phase_init_gradient(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
 
                     if (~kalman_initialized)
                         time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1973,6 +1976,7 @@ for session = 1 : num_session
                 sbas_t = find_sbas(sbas, t);
 
                 [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
+%                 [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop_gradient(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S);
 
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

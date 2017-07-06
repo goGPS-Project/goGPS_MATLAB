@@ -404,7 +404,7 @@ classdef Go_State < Settings_Interface
             varargout{40} = state.getMetFile();
 
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
-            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
+            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_tropo_gradient sigmaq0_rclock sigmaq_rclock
             global min_nsat min_arc cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
             global h_antenna
             global tile_header tile_georef dtm_dir
@@ -458,6 +458,7 @@ classdef Go_State < Settings_Interface
             sigmaq_dtm = state.std_dtm ^ 2;
             sigmaq0_tropo = 1e-2;               % <-- to be changed in the future
             sigmaq_tropo = 2.0834e-07;          %(0.005/sqrt(120))^2 % <-- to be changed in the future
+            sigmaq_tropo_gradient = 8.3333e-09; %(0.001/sqrt(120))^2 % <-- to be changed in the future
             sigmaq0_rclock = 2e-17;             % <-- to be changed in the future
             sigmaq_rclock = 1e3;                % <-- to be changed in the future
 
