@@ -50,7 +50,9 @@ emp_std = median(emp_std);
 for s = 1 : size(ph_R,1)
     if (any(ph_R(s,:)) && any(ph_M(s,:)))
         jmp_thres = find(abs(delta_sd(s,:)-emp_mean(s,1)) > 3*emp_std)';
-        ph_R(s, jmp_thres) = 0;
-        ph_M(s, jmp_thres) = 0;
+%         ph_R(s, jmp_thres) = 0;
+%         ph_M(s, jmp_thres) = 0;
+        ph_R(s, jmp_thres+1) = 0;
+        ph_M(s, jmp_thres+1) = 0;
     end
 end

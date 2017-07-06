@@ -1434,6 +1434,8 @@ for session = 1 : num_session
         
         flag_MELSA = 1;
         
+        MELSA_threshold = 1;
+        
 %         [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr1_R, ph1_R, repmat(lambda(:,1),1,size(pr1_R,2)));
 %         for s = 1 : size(N_stim,1)
 %             ph1_R(s,ph1_R(s,:)~=0) = ph1_R(s,ph1_R(s,:)~=0) + round(median(N_stim(s,N_stim(s,:)~=0)));
@@ -3280,35 +3282,14 @@ for session = 1 : num_session
 
             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
             
-            if (flag_outlier)
-                
-                %statistical test detection
-                [~, idx_out] = deleteoutliers(v_hat);
-                if (~isempty(idx_out))
-                    y0(idx_out) = [];
-                    A(idx_out,:) = [];
-                    Q(idx_out,:) = [];
-                    Q(:,idx_out) = [];
-                    b(idx_out) = [];
-                    sat_track(idx_out,:) = [];
+            sigma_pos = [];
+            
+            try
+                if (flag_outlier)
                     
-                    if (goGNSS.isPH(mode))
-                        [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
-                    end
-                    
-                    [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
-                end
-                
-                %residual threshold
-                search_for_outlier = 1;
-                while (search_for_outlier == 1)
-                    idx_pr = find(sat_track(:,3) == -1);
-                    idx_ph = find(sat_track(:,3) == 1);
-                    out_pr = abs(v_hat(idx_pr)) > max_code_residual;
-                    out_ph = abs(v_hat(idx_ph)) > max_phase_residual;
-                    idx_out_pr = idx_pr(out_pr == 1);
-                    idx_out_ph = idx_ph(out_ph == 1);
-                    idx_out = [idx_out_pr idx_out_ph];
+                    %statistical test detection
+                    [~, idx_out] = deleteoutliers(v_hat);
+%                     outliers = batch_outlier_detection(v_hat,median(round(interval)));
                     if (~isempty(idx_out))
                         y0(idx_out) = [];
                         A(idx_out,:) = [];
@@ -3322,68 +3303,110 @@ for session = 1 : num_session
                         end
                         
                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
-                    else
-                        search_for_outlier = 0;
                     end
+                    
+                    %residual threshold
+                    search_for_outlier = 1;
+                    while (search_for_outlier == 1)
+                        idx_pr = find(sat_track(:,3) == -1);
+                        idx_ph = find(sat_track(:,3) == 1);
+                        out_pr = abs(v_hat(idx_pr)) > max_code_residual;
+                        out_ph = abs(v_hat(idx_ph)) > max_phase_residual;
+                        idx_out_pr = idx_pr(out_pr == 1);
+                        idx_out_ph = idx_ph(out_ph == 1);
+                        idx_out = [idx_out_pr idx_out_ph];
+                        if (~isempty(idx_out))
+                            y0(idx_out) = [];
+                            A(idx_out,:) = [];
+                            Q(idx_out,:) = [];
+                            Q(:,idx_out) = [];
+                            b(idx_out) = [];
+                            sat_track(idx_out,:) = [];
+                            
+                            if (goGNSS.isPH(mode))
+                                [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
+                            end
+                            
+                            [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
+                        else
+                            search_for_outlier = 0;
+                        end
+                    end
+                    
+                    %             %OLOO
+                    %             search_for_outlier = 1;
+                    %             while search_for_outlier==1
+                    %                 [index_outlier,x,sigma02_hat,v_hat, Cxx]=OLOO(A, y0-b, Q);
+                    %                 if index_outlier~=0
+                    %                     A(index_outlier,:)=[];
+                    %                     y0(index_outlier,:)=[];
+                    %                     b(index_outlier,:)=[];
+                    %                     Q(index_outlier,:)=[];
+                    %                     Q(:,index_outlier)=[];
+                    %                 else
+                    %                     search_for_outlier=0;
+                    %                 end
+                    %             end
                 end
                 
-                %             %OLOO
-                %             search_for_outlier = 1;
-                %             while search_for_outlier==1
-                %                 [index_outlier,x,sigma02_hat,v_hat, Cxx]=OLOO(A, y0-b, Q);
-                %                 if index_outlier~=0
-                %                     A(index_outlier,:)=[];
-                %                     y0(index_outlier,:)=[];
-                %                     b(index_outlier,:)=[];
-                %                     Q(index_outlier,:)=[];
-                %                     Q(:,index_outlier)=[];
-                %                 else
-                %                     search_for_outlier=0;
-                %                 end
-                %             end
+                if (goGNSS.isPH(mode))
+                    %switch from SD to DD
+                    D = zeros(amb_num-1,amb_num);
+                    D(:,1) = 1;
+                    D(:,2:end) = -eye(amb_num-1);
+                    G = zeros(3+amb_num-1,3+amb_num);
+                    G(1:3,1:3) = eye(3);
+                    G(4:end,4:end) = D;
+                    x = G*x;
+                    Cxx = G*Cxx*G';
+                    
+                    cov_X  = Cxx(1:3,1:3);     %position covariance block
+                    cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
+                    cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
+                    
+                    fixed_amb = 0;
+%                     if (all(eig(cov_N) > eps)) %if cov_N positive-definite
+%                         if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
+                            [U] = chol(cov_N);
+                            cov_N = U'*U;
+%                         end
+                        
+                        %integer phase ambiguity solving by LAMBDA
+                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+                        
+                        pos_KAL = pos_R + deltaX;
+                        if (estim_amb ~= x(4:end))
+                            fixed_amb = 1;
+                        end
+                        
+                        epochs_avail = unique(sat_track(:,1));
+                        RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                        RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                        RES_PHASE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                        RES_CODE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                        for e = 1 : length(epochs_avail)
+                            epoch = epochs_avail(e);
+                            idx = find(sat_track(:,1) == epoch);
+                            RES_PHASE1_FLOAT_MELSA(sat_track(idx,2),epoch) = v_hat(idx,1);
+                        end
+%                     end
+                end
+            catch
             end
             
-            if (goGNSS.isPH(mode))
-                %switch from SD to DD
-                D = zeros(amb_num-1,amb_num);
-                D(:,1) = 1;
-                D(:,2:end) = -eye(amb_num-1);
-                G = zeros(3+amb_num-1,3+amb_num);
-                G(1:3,1:3) = eye(3);
-                G(4:end,4:end) = D;
-                x = G*x;
-                Cxx = G*Cxx*G';
+            if isempty(sigma_pos)
+                fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
                 
-                cov_X  = Cxx(1:3,1:3);     %position covariance block
-                cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
-                cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
-                
+                pos_KAL = NaN(3*npos,1);
+                sigma_pos = NaN(3*npos);
+                estim_amb = NaN(length(x) - 3*npos,1);
+                sigma_amb = NaN(length(x) - 3*npos);
                 fixed_amb = 0;
-                if (all(eig(cov_N) > eps)) %if cov_N positive-definite
-                    if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
-                        [U] = chol(cov_N);
-                        cov_N = U'*U;
-                    end
-                    
-                    %integer phase ambiguity solving by LAMBDA
-                    [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
-                    
-                    pos_KAL = pos_R + deltaX;
-                    if (estim_amb ~= x(4:end))
-                        fixed_amb = 1;
-                    end
-                    
-                    epochs_avail = unique(sat_track(:,1));
-                    RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_PHASE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_CODE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    for e = 1 : length(epochs_avail)
-                        epoch = epochs_avail(e);
-                        idx = find(sat_track(:,1) == epoch);
-                        RES_PHASE1_FLOAT_MELSA(sat_track(idx,2),epoch) = v_hat(idx,1);
-                    end
-                end
+                epochs_avail = unique(sat_track(:,1));
+                RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                RES_PHASE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
+                RES_CODE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
             end
         end
         
@@ -3514,13 +3537,23 @@ for session = 1 : num_session
             Y_KAL = pos_KAL(2,:)';
             Z_KAL = pos_KAL(3,:)';
 
-            %coordinate transformation (geodetic)
-            [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
-            phi_KAL = phi_KAL * 180/pi;
-            lam_KAL = lam_KAL * 180/pi;
-
-            %coordinate transformation (UTM)
-            [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+            if (any(pos_KAL))
+                %coordinate transformation (geodetic)
+                [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
+                phi_KAL = phi_KAL * 180/pi;
+                lam_KAL = lam_KAL * 180/pi;
+                
+                %coordinate transformation (UTM)
+                [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+            else
+                phi_KAL = nan(size(pos_KAL,2));
+                lam_KAL = nan(size(pos_KAL,2));
+                h_KAL = nan(size(pos_KAL,2));
+                EAST_UTM = nan(size(pos_KAL,2));
+                NORTH_UTM = nan(size(pos_KAL,2));
+                h_UTM = nan(size(pos_KAL,2));
+                utm_zone = nan(size(pos_KAL,2));
+            end
 
             %if relative positioning (i.e. with master station)
             if goGNSS.isDD(mode) || (mode == goGNSS.MODE_RT_NAV)
@@ -4687,4 +4720,3 @@ if is_batch && ~state.isModeSEID()
     fclose(fid_extract_POS);
     fclose(fid_extract_OBS);
 end
-
