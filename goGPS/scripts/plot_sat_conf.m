@@ -2,7 +2,7 @@
 % REPRESENTATION OF THE VISIBLE SATELLITES CONFIGURATION
 %----------------------------------------------------------------------------------------------
 
-if (mode == goGNSS.MODE_PP_KF_CP_DD)
+% if (mode == goGNSS.MODE_PP_KF_CP_DD)
 
    %figure
    %imagesc(abs(conf_sat_OUT)), grid;
@@ -38,4 +38,4 @@ if (mode == goGNSS.MODE_PP_KF_CP_DD)
    hold off;
    clear s1 s2 s3
 
-end
+% end

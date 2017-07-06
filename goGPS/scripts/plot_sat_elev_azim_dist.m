@@ -2,7 +2,7 @@
 % REPRESENTATION OF AZIMUTH, ELEVATION AND DISTANCE FOR VISIBILE SATELLITES
 %----------------------------------------------------------------------------------------------
 
-if (mode == goGNSS.MODE_PP_KF_CP_DD)
+% if (mode == goGNSS.MODE_PP_KF_CP_DD)
 
    coltab = jet(2*nSatTot);
 
@@ -37,4 +37,4 @@ if (mode == goGNSS.MODE_PP_KF_CP_DD)
    clear i k h
    clear coltab
 
-end
+% end
