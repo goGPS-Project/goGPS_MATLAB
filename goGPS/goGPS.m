@@ -1928,7 +1928,7 @@ for session = 1 : num_session
                 fwrite(fid_res, nSatTot, 'int8');
                 fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
                 fwrite(fid_trp, nSatTot, 'int8');
-                fwrite(fid_trp, [ZHD; STDs], 'double');
+                fwrite(fid_trp, [apriori_ZHD; STDs], 'double');
 
                 if (flag_plotproc)
                     if (flag_cov == 0)
@@ -1979,7 +1979,7 @@ for session = 1 : num_session
                 fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
-                fwrite(fid_trp, [ZHD; STDs], 'double');
+                fwrite(fid_trp, [apriori_ZHD; STDs], 'double');
 
                 if (flag_plotproc)
                     if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
@@ -3044,7 +3044,7 @@ for session = 1 : num_session
                 conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
                 RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
                 RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
 
             %variable saving for final graphical representations
             nSol = size(Xhat_t_t_OUT,2);
@@ -3186,6 +3186,7 @@ for session = 1 : num_session
             % PWV RETRIEVAL
             %-----------------------------------------------------------------------------------------------
 
+            ZHD = zeros(size(estim_tropo));
             ZWD = zeros(size(estim_tropo));
             PWV = zeros(size(estim_tropo));
 
@@ -3210,6 +3211,10 @@ for session = 1 : num_session
 
                     %Precipitable Water Vapor
                     PWV = ZWD ./ Q * 1e3;
+                else
+                    ZHD = apriori_ZHD;
+                    ZTD = estim_tropo(:);
+                    ZWD = ZTD - ZHD;
                 end
             end
 

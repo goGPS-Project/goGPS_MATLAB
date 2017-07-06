@@ -80,7 +80,7 @@ global geoid
 
 global t residuals_fixed residuals_float outliers s02_ls
 global max_code_residual max_phase_residual
-global ZHD STDs
+global apriori_ZHD apriori_ZWD STDs
 global flag_outlier
 
 %----------------------------------------------------------------------------------------
@@ -104,7 +104,6 @@ elM = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 STDs = zeros(nSatTot,1);
-ZHD = 0;
 
 %compute inter-frequency factors (for the ionospheric delay)
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
@@ -281,11 +280,9 @@ if (flag_tropo)
         %geoid ondulation interpolation
         undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     end
-    ZHD = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
-    %ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
-
-    %ZHD = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
-    ZWD = 0.1;
+    %apriori_ZHD = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
+    %apriori_ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
+    %apriori_ZHD = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
 end
 
 %------------------------------------------------------------------------------------
@@ -400,7 +397,7 @@ if (nsat >= min_nsat)
         beta_R = zeros(n,nT);
         for s = 1 : n
             [gmfh_R(s,1), gmfw_R(s,1)] = gmf_f_hu(mjd, phiR_app, lamR_app, hR_app, (90-elR(sat_pr(s),1))*pi/180);
-            err_tropo0(s,1) = gmfh_R(s,1)*ZHD + gmfw_R(s,1)*ZWD;
+            err_tropo0(s,1) = gmfh_R(s,1)*apriori_ZHD + gmfw_R(s,1)*apriori_ZWD;
         end
 
         beta_R(:,nT) = gmfw_R(:,ones(nT,1));
@@ -994,7 +991,7 @@ residuals_fixed = residuals_float;
 %--------------------------------------------------------------------------------------------
 
 if (flag_tropo && exist('gmfh_R','var') && nsat >= min_nsat)
-    STDs(sat,1) = gmfh_R(index_ph)*ZHD + gmfw_R(index_ph).*(ZWD + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
+    STDs(sat,1) = gmfh_R(index_ph)*apriori_ZHD + gmfw_R(index_ph).*(apriori_ZWD + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
 end
 
 %--------------------------------------------------------------------------------------------
@@ -1003,7 +1000,7 @@ end
 
 if (flag_tropo)
     if (nsat >= min_nsat)
-        Xhat_t_t(o3+nN+(1:nT)) = ZHD + ZWD + Xhat_t_t(o3+nN+(1:nT));
+        Xhat_t_t(o3+nN+(1:nT)) = apriori_ZHD + apriori_ZWD + Xhat_t_t(o3+nN+(1:nT));
     else
         Xhat_t_t(o3+nN+(1:nT)) = NaN;
     end

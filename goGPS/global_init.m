@@ -446,10 +446,11 @@ residuals_float = NaN(4*nSatTot,1);
 outliers = zeros(4*nSatTot,1);
 
 %-------------------------------------------------------------------------------
-% Zenith hydrostatic delay
+% A-priori zenith hydrostatic/wet delay
 %-------------------------------------------------------------------------------
-global ZHD
-ZHD = 0;
+global apriori_ZHD apriori_ZWD
+apriori_ZHD = 0;
+apriori_ZWD = 0.1;
 
 %-------------------------------------------------------------------------------
 % Slant total delays

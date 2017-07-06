@@ -71,7 +71,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global n_sys geoid
-global ZHD
+global apriori_ZHD apriori_ZWD
 
 kalman_initialized = 0;
 
@@ -446,14 +446,15 @@ if (flag_tropo)
         %geoid ondulation interpolation
         undu_R = grid_bilin_interp(lam_R*180/pi, phi_R*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     end
-    ZHD = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
+    apriori_ZHD = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
     ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
+    delta_ZWD = ZWD - apriori_ZWD;
 else
-    ZWD = 0;
+    delta_ZWD = 0;
 end
 
 %initialization of the state vector
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; delta_ZWD; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
 
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -463,7 +464,7 @@ X_t1_t = T*Xhat_t_t;
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
 if (flag_tropo)
-    Xhat_t_t(o3+nN+(1:nT)) = ZHD + Xhat_t_t(o3+nN+(1:nT));
+    Xhat_t_t(o3+nN+(1:nT)) = apriori_ZHD + apriori_ZWD + Xhat_t_t(o3+nN+(1:nT));
 end
 
 %--------------------------------------------------------------------------------------------
