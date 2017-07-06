@@ -3216,7 +3216,7 @@ for session = 1 : num_session
             %file saving
             if (strcmp(fsep_char,'default'))
                 head_str = '    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV\n';
-                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.3f %16.3f %16.3f\n';
+                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.5f %16.5f %16.5f\n';
             else
                 head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'Num. Sat.',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV\n');
                 row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f\n');
@@ -3587,10 +3587,10 @@ for session = 1 : num_session
             %file saving
             if (strcmp(fsep_char,'default'))
                 head_str = '    Date          GPS time         GPS week          GPS tow              ZHD              ZTD              ZWD              PWV';
-                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f %16.3f %16.3f %16.3f';
+                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f';
                 for s = 1 : nSatTot
                     head_str = [head_str '         STD ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
-                    row_str  = [row_str  '%16.3f']; %#ok<AGROW>
+                    row_str  = [row_str  '%16.5f']; %#ok<AGROW>
                 end
                 head_str = [head_str '\n']; %#ok<AGROW>
                 row_str  = [row_str  '\n']; %#ok<AGROW>
@@ -3599,7 +3599,7 @@ for session = 1 : num_session
                 row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
                 for s = 1 : nSatTot
                     head_str = [head_str,fsep_char,constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
-                    row_str  = [row_str, fsep_char,'%16.3f']; %#ok<AGROW>
+                    row_str  = [row_str, fsep_char,'%16.5f']; %#ok<AGROW>
                 end
                 head_str = [head_str '\n']; %#ok<AGROW>
                 row_str  = [row_str  '\n']; %#ok<AGROW>
