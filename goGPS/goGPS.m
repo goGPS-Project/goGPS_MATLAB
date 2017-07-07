@@ -1398,8 +1398,8 @@ for session = 1 : num_session
 
         %update variance of tropospheric delay
         global sigmaq_tropo sigmaq_tropo_gradient %#ok<TLEV>
-        sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
-        sigmaq_tropo_gradient = (0.001/sqrt(3600/interval))^2;
+        sigmaq_tropo = (0.001/sqrt(3600/interval))^2;
+        sigmaq_tropo_gradient = (0.0002/sqrt(3600/interval))^2;
 
         %----------------------------------------------------------------------------------------------
         % SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
