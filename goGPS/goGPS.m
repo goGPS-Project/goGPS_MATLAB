@@ -130,7 +130,7 @@ if (mode_user == 1)
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, ~, ~ , ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
+        flag_ocean, flag_outlier, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
 
 else
     %----------------------------------------------------------------------------------------------
@@ -140,7 +140,7 @@ else
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, ~, ~, ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
+        flag_ocean, flag_outlier, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
 end
 
 %-------------------------------------------------------------------------------------------
@@ -1397,9 +1397,9 @@ for session = 1 : num_session
         end
 
         %update variance of tropospheric delay
-        global sigmaq_tropo %#ok<TLEV>
-        sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
-        % sigmaq_tropo = (0.05/sqrt(3600/interval))^2;
+        global sigmaq_tropo sigmaq_tropo_gradient %#ok<TLEV>
+        sigmaq_tropo = (0.001/sqrt(3600/interval))^2;
+        sigmaq_tropo_gradient = (0.0002/sqrt(3600/interval))^2;
 
         %----------------------------------------------------------------------------------------------
         % SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
@@ -1910,7 +1910,7 @@ for session = 1 : num_session
 
                     sbas_t = find_sbas(sbas, 1);
 
-                    kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
+                    kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient);
 
                     if (~kalman_initialized)
                         time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1972,7 +1972,7 @@ for session = 1 : num_session
 
                 sbas_t = find_sbas(sbas, t);
 
-                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
+                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S);
 
                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -3060,6 +3060,8 @@ for session = 1 : num_session
             estim_amb = zeros(nSatTot,nSol);
             sigma_amb = zeros(nSatTot,nSol);
             estim_tropo = zeros(nSatTot,nSol);
+            estim_gradN = zeros(nSatTot,nSol);
+            estim_gradE = zeros(nSatTot,nSol);
             for i = 1 : nSol
                 if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
                     pos_KAL(:,i) = [Yhat_t_t_OUT(1,i); Yhat_t_t_OUT(2,i); Yhat_t_t_OUT(3,i)];
@@ -3076,9 +3078,17 @@ for session = 1 : num_session
                 end
                 %if tropospheric delay was estimated in PPP
                 if (goGNSS.isSA(mode) && flag_tropo)
-                    estim_tropo = Xhat_t_t_OUT(end-nC,:);
+                    if (~flag_tropo_gradient)
+                        estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
+                    else
+                        estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
+                        estim_gradN = Xhat_t_t_OUT(end-nC-1,:);
+                        estim_gradE = Xhat_t_t_OUT(end-nC  ,:);
+                    end
                 else
                     estim_tropo = zeros(nSol, 1);
+                    estim_gradN = zeros(nSol, 1);
+                    estim_gradE = zeros(nSol, 1);
                 end
             end
 
@@ -3591,19 +3601,19 @@ for session = 1 : num_session
             fprintf('Writing troposphere file...\n');
             %file saving
             if (strcmp(fsep_char,'default'))
-                head_str = '    Date          GPS time         GPS week          GPS tow              ZHD              ZTD              ZWD              PWV';
-                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f';
+                head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
+                row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
                 for s = 1 : nSatTot
-                    head_str = [head_str '         STD ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                    head_str = [head_str '      STD[m] ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                     row_str  = [row_str  '%16.5f']; %#ok<AGROW>
                 end
                 head_str = [head_str '\n']; %#ok<AGROW>
                 row_str  = [row_str  '\n']; %#ok<AGROW>
             else
-                head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV');
-                row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
+                head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
+                row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
                 for s = 1 : nSatTot
-                    head_str = [head_str,fsep_char,constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                    head_str = [head_str,fsep_char,'STD[m] ',constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                     row_str  = [row_str, fsep_char,'%16.5f']; %#ok<AGROW>
                 end
                 head_str = [head_str '\n']; %#ok<AGROW>
@@ -3613,7 +3623,7 @@ for session = 1 : num_session
             fprintf(fid_tropo, head_str);
             for i = 1 : nSol
                 %file writing
-                fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), ZWD(i), PWV(i), STDs(:,i)');
+                fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), estim_gradN(i)*1e3, estim_gradE(i)*1e3, ZWD(i), PWV(i), STDs(:,i)');
             end
 
             %file closing

@@ -646,13 +646,14 @@ classdef goGUIclass < handle
           %   MODE
           % ---------------------------------------------------------------
 
-            i=i+1; id.lProcMode     = i;    id2h(i) = this.goh.mode;
-            i=i+1; id.lCaptMode     = i;    id2h(i) = this.goh.nav_mon;
-            i=i+1; id.lAlgType      = i;    id2h(i) = this.goh.kalman_ls;
-            i=i+1; id.lProcType     = i;    id2h(i) = this.goh.code_dd_sa;
-            i=i+1; id.cTropo        = i;    id2h(i) = this.goh.flag_tropo;
+            i=i+1; id.lProcMode      = i;   id2h(i) = this.goh.mode;
+            i=i+1; id.lCaptMode      = i;   id2h(i) = this.goh.nav_mon;
+            i=i+1; id.lAlgType       = i;   id2h(i) = this.goh.kalman_ls;
+            i=i+1; id.lProcType      = i;   id2h(i) = this.goh.code_dd_sa;
+            i=i+1; id.cTropo         = i;   id2h(i) = this.goh.flag_tropo;
+            i=i+1; id.cTropoGradient = i;   id2h(i) = this.goh.flag_tropo_gradient;
 
-            idG.pMode = [id.pMode id.lProcMode:id.cTropo];
+            idG.pMode = [id.pMode id.lProcMode:id.cTropoGradient];
 
           %   DATA SELECTION
           % ---------------------------------------------------------------
@@ -1190,7 +1191,7 @@ classdef goGUIclass < handle
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone (PPP)
             idG.onPP_KF_CP_SA = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
-                                 id.cDoppler id.cUse_SBAS  id.cTropo id.cL2 idG.PhaseThr];
+                                 id.cDoppler id.cUse_SBAS  id.cTropo id.cTropoGradient id.cL2 idG.PhaseThr];
 
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.cConstraint idG.pAvailableGNSSPhase ...
@@ -1208,7 +1209,7 @@ classdef goGUIclass < handle
             % On Post Proc => SEID < + PPP >
             idG.onPP_SEID_PPP = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS id.pMSt ...
-                                 id.cDoppler id.cUse_SBAS id.cTropo id.cL2 idG.PhaseThr];
+                                 id.cDoppler id.cUse_SBAS id.cTropo id.cTropoGradient id.cL2 idG.PhaseThr];
            % ---------------------------------------------------------------
 
 
@@ -2663,6 +2664,7 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.lProcType, max(1,code_dd_sa), 0);
 
             this.setElVal(this.idUI.cTropo, state.flag_tropo, 0);
+            this.setElVal(this.idUI.cTropoGradient, state.flag_tropo_gradient, 0);
 
             %   DATA SELECTION
             % ===============================================================
@@ -3062,6 +3064,7 @@ classdef goGUIclass < handle
             tmp_state.kalman_ls         = this.getElVal(this.idUI.lAlgType);
             tmp_state.code_dd_sa        = this.getElVal(this.idUI.lProcType);
             tmp_state.tropo             = this.isActive(this.idUI.cTropo);
+            tmp_state.tropo_gradient    = this.isActive(this.idUI.cTropoGradient);
 
             %   DATA SELECTION
             % ===============================================================
