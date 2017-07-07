@@ -78,7 +78,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
-        FLAG_TROPO = false;                             % Flag for enabling the computation of thropospheric derived informations
+        FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
+        FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
         VARIOMETRIC_STEP = 1;                           % Step in second for variometric approach
         W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 0: same weight for all the observations
@@ -308,8 +309,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
 
-        % Flag for enabling the computation of thropospheric derived informations
+        % Flag for enabling the estimation of tropospheric delay
         flag_tropo = Main_Settings.FLAG_TROPO;
+        
+        % Flag for enabling the estimation of tropospheric delay
+        flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
 
         % Step in second for variometric approach
         variometric_step = Main_Settings.VARIOMETRIC_STEP;
@@ -570,6 +574,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % PROCESSING PARAMETERS
                 this.flag_tropo = state.getData('flag_tropo');
+                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
                 this.variometric_step = state.getData('variometric_step');
                 this.w_mode = state.getData('w_mode');
                 tmp = state.getData('w_snr');
@@ -670,6 +675,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % PROCESSING PARAMETERS
                 this.flag_tropo = state.flag_tropo;
+                this.flag_tropo_gradient = state.flag_tropo_gradient;
                 this.variometric_step = state.variometric_step;
                 this.w_mode = state.w_mode;
                 this.w_snr = state.w_snr;
@@ -781,7 +787,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = this.toString@Mode_Settings(str);
-            str = [str sprintf(' Compute tropospheric indicators                   %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay                       %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
             str = [str sprintf(' Variometric step [s] for velocity estimation:     %g\n', this.variometric_step)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Weight function parameters (when based on SNR): \n')];
@@ -957,6 +964,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
             str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Variometric step [s] for velocity estimation', str_cell);
             str_cell = Ini_Manager.toIniString('variometric_step', this.variometric_step, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
@@ -1204,6 +1212,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 if (isfield(state,'tropo'))
                     this.flag_tropo = state.tropo;
+                end
+                if (isfield(state,'tropo_gradient'))
+                    this.flag_tropo_gradient = state.tropo_gradient;
                 end
                 this.legacyImport@Mode_Settings(state);
                 this.constrain = state.constraint;
@@ -1497,6 +1508,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_tropo');
+            this.checkLogicalField('flag_tropo_gradient');
             this.checkNumericField('variometric_step',[0.001 60]);
             this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
 
@@ -1671,6 +1683,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Check whether the tropospheric delay estimation is enabled
             % SYNTAX = this.isTropoEnabled();
             is_tropo = this.flag_tropo;
+        end
+        
+        function is_tropo_gradient = isTropoGradientEnabled(this)
+            % Check whether the tropospheric delay gradient estimation is enabled
+            % SYNTAX = this.isTropoGradientEnabled();
+            is_tropo_gradient = this.flag_tropo_gradient;
         end
     end
     % =========================================================================

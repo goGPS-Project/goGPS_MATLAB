@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 07-Apr-2017 16:29:24
+% Last Modified by GUIDE v2.5 07-Jul-2017 14:37:19
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -222,6 +222,16 @@ function flag_tropo_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of flag_tropo
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.cTropo);
+
+% --- Executes on button press in flag_tropo_gradient.
+function flag_tropo_gradient_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_tropo_gradient (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_tropo_gradient
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cTropoGradient);
 
 %   USAGE
 % ===============================================================
