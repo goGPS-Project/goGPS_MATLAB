@@ -724,6 +724,7 @@ classdef goGUIclass < handle
           % ---------------------------------------------------------------
 
             i=i+1; id.cOutlier      = i;    id2h(i) = this.goh.flag_rem_outliers;
+            i=i+1; id.cOutlierOLOO  = i;    id2h(i) = this.goh.flag_apply_OLOO;
 
             % SPP threshold -----------------------------------------------
 
@@ -1141,7 +1142,7 @@ classdef goGUIclass < handle
                               id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions ...
                               idG.CutOff idG.OM ...
-                              id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOcean ...
+                              id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOutlierOLOO id.cOcean ...
                               idG.SPPthr idG.CodeThr idG.MinArc id.cPrePro];
 
             % On Post Proc => Least Squares
@@ -2693,6 +2694,7 @@ classdef goGUIclass < handle
             % ===============================================================
 
             this.setElVal(this.idUI.cOutlier, state.flag_outlier, 0);
+            this.setElVal(this.idUI.cOutlierOLOO, state.flag_outlier_OLOO, 0);
             this.setElVal(this.idUI.nSPPthr, num2str(state.pp_spp_thr,'%g'), 0);
             this.setElVal(this.idUI.nCodeThr, num2str(state.pp_max_code_err_thr,'%g'), 0);
             this.setElVal(this.idUI.nPhaseThr, num2str(state.pp_max_phase_err_thr,'%g'), 0);
@@ -2891,6 +2893,9 @@ classdef goGUIclass < handle
 
             if (isfield(old_state,'outlier'))
                 this.setElVal(this.idUI.cOutlier, old_state.outlier, 0);
+            end
+            if (isfield(old_state,'outlier_OLOO'))
+                this.setElVal(this.idUI.cOutlier, old_state.outlier_OLOO, 0);
             end
             if (isfield(old_state,'spp_thr'))
                 this.setElVal(this.idUI.nSPPthr, old_state.spp_thr, 0);
@@ -3099,6 +3104,7 @@ classdef goGUIclass < handle
             tmp_state.flag_doppler      = this.getElVal(this.idUI.cDoppler);
             tmp_state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
             tmp_state.outlier           = this.getElVal(this.idUI.cOutlier);
+            tmp_state.outlier_OLOO      = this.getElVal(this.idUI.cOutlierOLOO);
             tmp_state.spp_thr           = this.getElVal(this.idUI.nSPPthr);
             tmp_state.code_thr          = this.getElVal(this.idUI.nCodeThr);
             tmp_state.phase_thr         = this.getElVal(this.idUI.nPhaseThr);

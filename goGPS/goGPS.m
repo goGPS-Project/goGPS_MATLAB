@@ -106,7 +106,7 @@ kalman_initialized = false;
 global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold
+global flag_outlier flag_outlier_OLOO SPP_threshold
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -130,7 +130,7 @@ if (mode_user == 1)
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, ~, ~ , ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
+        flag_ocean, flag_outlier, flag_outlier_OLOO, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
 
 else
     %----------------------------------------------------------------------------------------------
@@ -140,7 +140,7 @@ else
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, ~, ~, ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
+        flag_ocean, flag_outlier, flag_outlier_OLOO, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
 end
 
 %-------------------------------------------------------------------------------------------

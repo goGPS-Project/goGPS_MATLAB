@@ -98,7 +98,7 @@ global ratiotest mutest succ_rate fixed_solution
 
 global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
 global max_code_residual max_phase_residual
-global flag_outlier
+global flag_outlier flag_outlier_OLOO
 %global min_ambfixRMS min_ambfloatRMS
 
 %----------------------------------------------------------------------------------------
@@ -811,6 +811,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
 
         search_for_outlier = flag_outlier;
+        search_for_outlier_OLOO = flag_outlier_OLOO;
 
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
@@ -916,7 +917,7 @@ if (nsat >= min_nsat)
 %         index_outlier_i=index_outlier_i(1:length(sat_pr_np));
 %         sat_np = [];
 
-        while (search_for_outlier == 1)
+        while (search_for_outlier_OLOO == 1)
 
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
 %             if (s02_ls(t) > s02_ls_threshold)
@@ -939,7 +940,7 @@ if (nsat >= min_nsat)
                 sat_pr_np(idx_pr) = [];
                 sat_np(idx_ph) = [];
             else
-                search_for_outlier = 0;
+                search_for_outlier_OLOO = 0;
             end
         end
 

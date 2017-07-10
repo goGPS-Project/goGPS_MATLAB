@@ -73,6 +73,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % OUTLIER DETECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
+        FLAG_OUTLIER_OLOO = false;                      % Flag for enabling OLOO outlier detection
         PP_SPP_THR = 4;                                 % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
@@ -297,6 +298,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % Flag for enabling outlier detection
         flag_outlier = Main_Settings.FLAG_OUTLIER;
+        flag_outlier_OLOO = Main_Settings.FLAG_OUTLIER_OLOO;
 
         % Threshold on the code point-positioning least squares estimation error [m]
         pp_spp_thr = Main_Settings.PP_SPP_THR;
@@ -568,6 +570,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % OUTLIER DETECTION
                 this.flag_outlier = state.getData('flag_outlier');
+                this.flag_outlier_OLOO = state.getData('flag_outlier_OLOO');
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
@@ -669,6 +672,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % OUTLIER DETECTION
                 this.flag_outlier = state.flag_outlier;
+                this.flag_outlier_OLOO = state.flag_outlier_OLOO;
                 this.pp_spp_thr = state.pp_spp_thr;
                 this.pp_max_code_err_thr = state.pp_max_code_err_thr;
                 this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
@@ -781,6 +785,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             str = [str '---- OUTLIER DETECTION ---------------------------------------------------' 10 10];
             str = [str sprintf(' Enable Outlier detection                          %d\n', this.flag_outlier)];
+            str = [str sprintf(' Apply OLOO for outlier detection                  %d\n', this.flag_outlier_OLOO)];
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', this.pp_spp_thr)];
             str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', this.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
@@ -950,6 +955,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('OUTLIER_DETECTION', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable outlier detection (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_outlier', this.flag_outlier, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Apply OLOO for outlier detection (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_outlier_OLOO', this.flag_outlier_OLOO, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on code LS estimation error [m]', str_cell);
             str_cell = Ini_Manager.toIniString('pp_spp_thr', this.pp_spp_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
@@ -1194,6 +1201,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 if (isfield(state,'outlier'))
                     this.flag_outlier = state.outlier;
+                end
+                if (isfield(state,'outlier_OLOO'))
+                    this.flag_outlier_OLOO = state.outlier_OLOO;
                 end
                 if (isfield(state,'spp_thr'))
                     this.pp_spp_thr = str2double(state.spp_thr);
@@ -1502,6 +1512,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             % OUTLIER DETECTION
             this.checkLogicalField('flag_outlier');
+            this.checkLogicalField('flag_outlier_OLOO');
             this.checkNumericField('pp_spp_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);

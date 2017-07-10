@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 07-Jul-2017 14:37:19
+% Last Modified by GUIDE v2.5 10-Jul-2017 10:55:13
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -460,6 +460,17 @@ function flag_rem_outliers_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of flag_rem_outliers
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.cOutlier);
+
+
+% --- Executes on button press in flag_apply_OLOO.
+function flag_apply_OLOO_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_apply_OLOO (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_apply_OLOO
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cOutlierOLOO);
 
 %   INPUT/OUTPUT FILE AND FOLDERS
 % ===============================================================
@@ -2049,3 +2060,4 @@ function out_prefix_str_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
