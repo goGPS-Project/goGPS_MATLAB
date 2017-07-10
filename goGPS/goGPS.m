@@ -4253,14 +4253,14 @@ for session = 1 : num_session
 
             tropo_vec_ZTD = nan(1,86400/interval);
             tropo_vec_ZWD = nan(1,86400/interval);
-            if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
+            if exist('X_KAL','var') && exist('estim_tropo','var')
 
                 fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
-                tropo_vec_ZTD(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:);
+                tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
                 fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
                 fprintf(fid_extract_ZTD,'\n');
                 if (~isempty(ZHD))
-                    tropo_vec_ZWD(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:)-ZHD';
+                    tropo_vec_ZWD(1,1:length(estim_tropo)) = estim_tropo-ZHD';
                     fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
                     fprintf(fid_extract_ZWD,'\n');
                 end
