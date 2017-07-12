@@ -3045,7 +3045,7 @@ for session = 1 : num_session
                 conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
                 RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
                 RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
 
             %variable saving for final graphical representations
             nSol = size(Xhat_t_t_OUT,2);
@@ -3223,7 +3223,7 @@ for session = 1 : num_session
                     %Precipitable Water Vapor
                     PWV = ZWD ./ Q * 1e3;
                 else
-                    ZHD = apriori_ZHD;
+                    ZHD = apriori_ZHD_OUT;
                     ZTD = estim_tropo(:);
                     ZWD = ZTD - ZHD;
                 end
