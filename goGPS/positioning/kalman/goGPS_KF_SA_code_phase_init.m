@@ -1,7 +1,7 @@
-function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo)
+function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient)
 
 % SYNTAX:
-%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
+%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient);
 %
 % INPUT:
 %   pos_R = rover approximate coordinates (X, Y, Z)
@@ -62,7 +62,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-global sigmaq0 sigmaq0_N sigmaq0_tropo sigmaq0_rclock zero_time
+global sigmaq0 sigmaq0_N sigmaq0_tropo sigmaq0_tropo_gradient sigmaq0_rclock zero_time
 global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT nC
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
@@ -71,7 +71,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global n_sys geoid
-global ZHD
+global apriori_ZHD apriori_ZWD
 
 kalman_initialized = 0;
 
@@ -131,7 +131,7 @@ end
 % NUMBER OF TROPOSPHERIC PARAMETERS
 %--------------------------------------------------------------------------------------------
 
-nT = 1;
+nT = 3;
 
 %--------------------------------------------------------------------------------------------
 % NUMBER OF CLOCK PARAMETERS (1 RECEIVER CLOCK & nsys-1 INTER-SYSTEM BIASES)
@@ -446,14 +446,17 @@ if (flag_tropo)
         %geoid ondulation interpolation
         undu_R = grid_bilin_interp(lam_R*180/pi, phi_R*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     end
-    ZHD = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
+    apriori_ZHD = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
     ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
+    delta_ZWD = ZWD - apriori_ZWD;
 else
-    ZWD = 0;
+    delta_ZWD = 0;
 end
+grad_ZWD_N = 0;
+grad_ZWD_E = 0;
 
 %initialization of the state vector
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; delta_ZWD; grad_ZWD_N; grad_ZWD_E; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
 
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -463,7 +466,7 @@ X_t1_t = T*Xhat_t_t;
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
 if (flag_tropo)
-    Xhat_t_t(o3+nN+(1:nT)) = ZHD + Xhat_t_t(o3+nN+(1:nT));
+    Xhat_t_t(o3+nN+1) = apriori_ZHD + apriori_ZWD + Xhat_t_t(o3+nN+1);
 end
 
 %--------------------------------------------------------------------------------------------
@@ -479,7 +482,12 @@ Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
-Cee(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq0_tropo * eye(nT);
+if (flag_tropo)
+    Cee(o3+nN+1,o3+nN+1) = sigmaq0_tropo;
+    if (flag_tropo_gradient)
+        Cee(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = sigmaq0_tropo_gradient * eye(nT-1);
+    end
+end
 Cee(o3+nN+nT+1,o3+nN+nT+1) = goGNSS.V_LIGHT^2*var_dtR;
 if (~isempty(ISB))
     Cee(o3+nN+nT+2:o3+nN+nT+nC,o3+nN+nT+2:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_ISB * eye(nC-1);

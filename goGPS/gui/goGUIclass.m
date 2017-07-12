@@ -647,13 +647,14 @@ classdef goGUIclass < handle
           %   MODE
           % ---------------------------------------------------------------
 
-            i=i+1; id.lProcMode     = i;    id2h(i) = this.goh.mode;
-            i=i+1; id.lCaptMode     = i;    id2h(i) = this.goh.nav_mon;
-            i=i+1; id.lAlgType      = i;    id2h(i) = this.goh.kalman_ls;
-            i=i+1; id.lProcType     = i;    id2h(i) = this.goh.code_dd_sa;
-            i=i+1; id.cTropo        = i;    id2h(i) = this.goh.flag_tropo;
+            i=i+1; id.lProcMode      = i;   id2h(i) = this.goh.mode;
+            i=i+1; id.lCaptMode      = i;   id2h(i) = this.goh.nav_mon;
+            i=i+1; id.lAlgType       = i;   id2h(i) = this.goh.kalman_ls;
+            i=i+1; id.lProcType      = i;   id2h(i) = this.goh.code_dd_sa;
+            i=i+1; id.cTropo         = i;   id2h(i) = this.goh.flag_tropo;
+            i=i+1; id.cTropoGradient = i;   id2h(i) = this.goh.flag_tropo_gradient;
 
-            idG.pMode = [id.pMode id.lProcMode:id.cTropo];
+            idG.pMode = [id.pMode id.lProcMode:id.cTropoGradient];
 
           %   DATA SELECTION
           % ---------------------------------------------------------------
@@ -724,6 +725,7 @@ classdef goGUIclass < handle
           % ---------------------------------------------------------------
 
             i=i+1; id.cOutlier      = i;    id2h(i) = this.goh.flag_rem_outliers;
+            i=i+1; id.cOutlierOLOO  = i;    id2h(i) = this.goh.flag_apply_OLOO;
 
             % SPP threshold -----------------------------------------------
 
@@ -1141,7 +1143,7 @@ classdef goGUIclass < handle
                               id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions ...
                               idG.CutOff idG.OM ...
-                              id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOcean ...
+                              id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOutlierOLOO id.cOcean ...
                               idG.SPPthr idG.CodeThr idG.MinArc id.cPrePro];
 
             % On Post Proc => Least Squares
@@ -1191,7 +1193,7 @@ classdef goGUIclass < handle
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone (PPP)
             idG.onPP_KF_CP_SA = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
-                                 id.cDoppler id.cUse_SBAS  id.cTropo id.cL2 idG.PhaseThr];
+                                 id.cDoppler id.cUse_SBAS  id.cTropo id.cTropoGradient id.cL2 idG.PhaseThr];
 
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.cConstraint idG.pAvailableGNSSPhase ...
@@ -1209,7 +1211,7 @@ classdef goGUIclass < handle
             % On Post Proc => SEID < + PPP >
             idG.onPP_SEID_PPP = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS id.pMSt ...
-                                 id.cDoppler id.cUse_SBAS id.cTropo id.cL2 idG.PhaseThr];
+                                 id.cDoppler id.cUse_SBAS id.cTropo id.cTropoGradient id.cL2 idG.PhaseThr];
            % ---------------------------------------------------------------
 
 
@@ -2664,6 +2666,7 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.lProcType, max(1,code_dd_sa), 0);
 
             this.setElVal(this.idUI.cTropo, state.flag_tropo, 0);
+            this.setElVal(this.idUI.cTropoGradient, state.flag_tropo_gradient, 0);
 
             %   DATA SELECTION
             % ===============================================================
@@ -2692,6 +2695,7 @@ classdef goGUIclass < handle
             % ===============================================================
 
             this.setElVal(this.idUI.cOutlier, state.flag_outlier, 0);
+            this.setElVal(this.idUI.cOutlierOLOO, state.flag_outlier_OLOO, 0);
             this.setElVal(this.idUI.nSPPthr, num2str(state.pp_spp_thr,'%g'), 0);
             this.setElVal(this.idUI.nCodeThr, num2str(state.pp_max_code_err_thr,'%g'), 0);
             this.setElVal(this.idUI.nPhaseThr, num2str(state.pp_max_phase_err_thr,'%g'), 0);
@@ -2891,6 +2895,9 @@ classdef goGUIclass < handle
             if (isfield(old_state,'outlier'))
                 this.setElVal(this.idUI.cOutlier, old_state.outlier, 0);
             end
+            if (isfield(old_state,'outlier_OLOO'))
+                this.setElVal(this.idUI.cOutlier, old_state.outlier_OLOO, 0);
+            end
             if (isfield(old_state,'spp_thr'))
                 this.setElVal(this.idUI.nSPPthr, old_state.spp_thr, 0);
             end
@@ -3063,6 +3070,7 @@ classdef goGUIclass < handle
             tmp_state.kalman_ls         = this.getElVal(this.idUI.lAlgType);
             tmp_state.code_dd_sa        = this.getElVal(this.idUI.lProcType);
             tmp_state.tropo             = this.isActive(this.idUI.cTropo);
+            tmp_state.tropo_gradient    = this.isActive(this.idUI.cTropoGradient);
 
             %   DATA SELECTION
             % ===============================================================
@@ -3097,6 +3105,7 @@ classdef goGUIclass < handle
             tmp_state.flag_doppler      = this.getElVal(this.idUI.cDoppler);
             tmp_state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
             tmp_state.outlier           = this.getElVal(this.idUI.cOutlier);
+            tmp_state.outlier_OLOO      = this.getElVal(this.idUI.cOutlierOLOO);
             tmp_state.spp_thr           = this.getElVal(this.idUI.nSPPthr);
             tmp_state.code_thr          = this.getElVal(this.idUI.nCodeThr);
             tmp_state.phase_thr         = this.getElVal(this.idUI.nPhaseThr);

@@ -71,7 +71,7 @@ function [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, 
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-global flag_outlier max_code_residual
+global flag_outlier flag_outlier_OLOO max_code_residual
 
 v_light = goGNSS.V_LIGHT;
 sigma02_hat = NaN(1,3);
@@ -182,7 +182,7 @@ else
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
-    search_for_outlier = flag_outlier;
+    search_for_outlier = flag_outlier_OLOO;
 
     if (num_sys > 1)
         sys0=sys;

@@ -73,12 +73,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % OUTLIER DETECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
+        FLAG_OUTLIER_OLOO = false;                      % Flag for enabling OLOO outlier detection
         PP_SPP_THR = 4;                                 % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
-        FLAG_TROPO = false;                             % Flag for enabling the computation of thropospheric derived informations
+        FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
+        FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
         VARIOMETRIC_STEP = 1;                           % Step in second for variometric approach
         W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 0: same weight for all the observations
@@ -296,6 +298,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % Flag for enabling outlier detection
         flag_outlier = Main_Settings.FLAG_OUTLIER;
+        flag_outlier_OLOO = Main_Settings.FLAG_OUTLIER_OLOO;
 
         % Threshold on the code point-positioning least squares estimation error [m]
         pp_spp_thr = Main_Settings.PP_SPP_THR;
@@ -308,8 +311,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
 
-        % Flag for enabling the computation of thropospheric derived informations
+        % Flag for enabling the estimation of tropospheric delay
         flag_tropo = Main_Settings.FLAG_TROPO;
+        
+        % Flag for enabling the estimation of tropospheric delay
+        flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
 
         % Step in second for variometric approach
         variometric_step = Main_Settings.VARIOMETRIC_STEP;
@@ -564,12 +570,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % OUTLIER DETECTION
                 this.flag_outlier = state.getData('flag_outlier');
+                this.flag_outlier_OLOO = state.getData('flag_outlier_OLOO');
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
 
                 % PROCESSING PARAMETERS
                 this.flag_tropo = state.getData('flag_tropo');
+                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
                 this.variometric_step = state.getData('variometric_step');
                 this.w_mode = state.getData('w_mode');
                 tmp = state.getData('w_snr');
@@ -664,12 +672,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % OUTLIER DETECTION
                 this.flag_outlier = state.flag_outlier;
+                this.flag_outlier_OLOO = state.flag_outlier_OLOO;
                 this.pp_spp_thr = state.pp_spp_thr;
                 this.pp_max_code_err_thr = state.pp_max_code_err_thr;
                 this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
 
                 % PROCESSING PARAMETERS
                 this.flag_tropo = state.flag_tropo;
+                this.flag_tropo_gradient = state.flag_tropo_gradient;
                 this.variometric_step = state.variometric_step;
                 this.w_mode = state.w_mode;
                 this.w_snr = state.w_snr;
@@ -775,13 +785,15 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             str = [str '---- OUTLIER DETECTION ---------------------------------------------------' 10 10];
             str = [str sprintf(' Enable Outlier detection                          %d\n', this.flag_outlier)];
+            str = [str sprintf(' Apply OLOO for outlier detection                  %d\n', this.flag_outlier_OLOO)];
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', this.pp_spp_thr)];
             str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', this.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = this.toString@Mode_Settings(str);
-            str = [str sprintf(' Compute tropospheric indicators                   %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay                       %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
             str = [str sprintf(' Variometric step [s] for velocity estimation:     %g\n', this.variometric_step)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Weight function parameters (when based on SNR): \n')];
@@ -943,6 +955,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('OUTLIER_DETECTION', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable outlier detection (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_outlier', this.flag_outlier, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Apply OLOO for outlier detection (0/1)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_outlier_OLOO', this.flag_outlier_OLOO, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on code LS estimation error [m]', str_cell);
             str_cell = Ini_Manager.toIniString('pp_spp_thr', this.pp_spp_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
@@ -957,6 +971,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
             str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Variometric step [s] for velocity estimation', str_cell);
             str_cell = Ini_Manager.toIniString('variometric_step', this.variometric_step, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
@@ -1187,6 +1202,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 if (isfield(state,'outlier'))
                     this.flag_outlier = state.outlier;
                 end
+                if (isfield(state,'outlier_OLOO'))
+                    this.flag_outlier_OLOO = state.outlier_OLOO;
+                end
                 if (isfield(state,'spp_thr'))
                     this.pp_spp_thr = str2double(state.spp_thr);
                 end
@@ -1204,6 +1222,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 if (isfield(state,'tropo'))
                     this.flag_tropo = state.tropo;
+                end
+                if (isfield(state,'tropo_gradient'))
+                    this.flag_tropo_gradient = state.tropo_gradient;
                 end
                 this.legacyImport@Mode_Settings(state);
                 this.constrain = state.constraint;
@@ -1491,12 +1512,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             % OUTLIER DETECTION
             this.checkLogicalField('flag_outlier');
+            this.checkLogicalField('flag_outlier_OLOO');
             this.checkNumericField('pp_spp_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
 
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_tropo');
+            this.checkLogicalField('flag_tropo_gradient');
             this.checkNumericField('variometric_step',[0.001 60]);
             this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
 
@@ -1672,6 +1695,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Check whether the tropospheric delay estimation is enabled
             % SYNTAX = this.isTropoEnabled();
             is_tropo = this.flag_tropo;
+        end
+        
+        function is_tropo_gradient = isTropoGradientEnabled(this)
+            % Check whether the tropospheric delay gradient estimation is enabled
+            % SYNTAX = this.isTropoGradientEnabled();
+            is_tropo_gradient = this.flag_tropo_gradient;
         end
     end
     % =========================================================================

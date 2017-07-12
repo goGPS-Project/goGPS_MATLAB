@@ -88,7 +88,7 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 
 global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
-global flag_outlier
+global flag_outlier_OLOO
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -618,7 +618,7 @@ if (nsat >= min_nsat)
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
 
-        search_for_outlier = flag_outlier;
+        search_for_outlier_OLOO = flag_outlier_OLOO;
 
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
@@ -649,7 +649,7 @@ if (nsat >= min_nsat)
 
         index_outlier_i=1:length(y0_noamb);
 
-        while (search_for_outlier == 1)
+        while (search_for_outlier_OLOO == 1)
 
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
             if (s02_ls(t) > s02_ls_threshold)
@@ -666,7 +666,7 @@ if (nsat >= min_nsat)
                 H1(index_outlier,:)  = [];
                 outliers(index_residuals_outlier(index_outlier_i(index_outlier)))=1;
             else
-                search_for_outlier = 0;
+                search_for_outlier_OLOO = 0;
             end
         end
 

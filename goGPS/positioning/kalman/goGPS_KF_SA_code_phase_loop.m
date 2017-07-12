@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S);
 %
 % INPUT:
 %   time_rx = GPS time
@@ -20,6 +20,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %   frequencies = L1 carrier (frequencies=1), L2 carrier (frequencies=2)
 %   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
+%   flag_tropo_gradient = boolean variable to enable/disable tropospheric delay grdient estimation
 %   antenna_PCV = receiver antenna phase center offset/variation
 %   antenna_PCV_S = satellite antenna phase center offset/variation
 %
@@ -65,7 +66,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-global sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_tropo sigmaq_rclock sigmaq0_N
+global sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_tropo sigmaq_tropo_gradient sigmaq_rclock sigmaq0_N
 global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN nT nC
 global tile_header tile_georef dtm_dir
@@ -76,12 +77,12 @@ global azR elR distR azM elM distM phwindup
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
-global geoid
+% global geoid
 
 global t residuals_fixed residuals_float outliers s02_ls
 global max_code_residual max_phase_residual
-global ZHD STDs
-global flag_outlier
+global apriori_ZHD apriori_ZWD STDs
+global flag_outlier flag_outlier_OLOO
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -104,7 +105,6 @@ elM = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 STDs = zeros(nSatTot,1);
-ZHD = 0;
 
 %compute inter-frequency factors (for the ionospheric delay)
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
@@ -143,7 +143,10 @@ if (o1 > 1)
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
 if (flag_tropo)
-    Cvv(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq_tropo * eye(nT);
+    Cvv(o3+nN+1,o3+nN+1) = sigmaq_tropo;
+    if (flag_tropo_gradient)
+        Cvv(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = sigmaq_tropo_gradient*eye(nT-1);
+    end
 end
 Cvv(o3+nN+nT+1,o3+nN+nT+1) = sigmaq_rclock;
 
@@ -267,26 +270,20 @@ end
 %------------------------------------------------------------------------------------
 % TROPOSPHERE A-PRIORI VALUES
 %------------------------------------------------------------------------------------
-if (flag_tropo)
-    [week, sow] = time2weektow(time_rx + zero_time);
-    date = gps2date(week, sow);
-    [~, mjd] = date2jd(date);
-
-    %pressure = goGNSS.STD_PRES;
-    %temperature = goGNSS.STD_TEMP;
-    %humidity = goGNSS.STD_HUMI;
-
-    [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
-    if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
-        %geoid ondulation interpolation
-        undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
-    end
-    ZHD = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
-    %ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
-
-    %ZHD = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
-    ZWD = 0.1;
-end
+% if (flag_tropo)
+%     pressure = goGNSS.STD_PRES;
+%     temperature = goGNSS.STD_TEMP;
+%     humidity = goGNSS.STD_HUMI;
+%     
+%     [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
+%     if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
+%         %geoid ondulation interpolation
+%         undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+%     end
+%     apriori_ZHD = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
+%     apriori_ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
+%     apriori_ZHD = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
+% end
 
 %------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
@@ -394,18 +391,31 @@ if (nsat >= min_nsat)
 
     %when the tropospheric delay is estimated, only its hydrostatic part is modelled
     if (flag_tropo && n > 0)
+        [week, sow] = time2weektow(time_rx + zero_time);
+        date = gps2date(week, sow);
+        [~, mjd] = date2jd(date);
+        
         gmfh_R = zeros(size(err_tropo));
         gmfw_R = zeros(size(err_tropo));
         err_tropo0 = zeros(size(err_tropo));
         beta_R = zeros(n,nT);
         for s = 1 : n
             [gmfh_R(s,1), gmfw_R(s,1)] = gmf_f_hu(mjd, phiR_app, lamR_app, hR_app, (90-elR(sat_pr(s),1))*pi/180);
-            err_tropo0(s,1) = gmfh_R(s,1)*ZHD + gmfw_R(s,1)*ZWD;
+            err_tropo0(s,1) = gmfh_R(s,1)*apriori_ZHD + gmfw_R(s,1)*apriori_ZWD;
         end
 
-        beta_R(:,nT) = gmfw_R(:,ones(nT,1));
-
-        err_tropo = err_tropo0 + gmfw_R.*X_t1_t(o3+nN+(1:nT));
+        delta_ZWD = X_t1_t(o3+nN+1);
+        grad_ZWD_N = X_t1_t(o3+nN+2);
+        grad_ZWD_E = X_t1_t(o3+nN+3);
+        if (~flag_tropo_gradient)
+            beta_R(:,1) = gmfw_R(:,1);
+            err_tropo = err_tropo0 + gmfw_R.*delta_ZWD;
+        else
+            beta_R(:,1) = gmfw_R(:,1);
+            beta_R(:,2) = gmfw_R(:,1).*cotd(elR(sat_pr,1)).*cosd(azR(sat_pr,1));
+            beta_R(:,3) = gmfw_R(:,1).*cotd(elR(sat_pr,1)).*sind(azR(sat_pr,1));
+            err_tropo = err_tropo0 + gmfw_R.*(delta_ZWD + cotd(elR(sat_pr,1)).*(grad_ZWD_N*cosd(azR(sat_pr,1)) + grad_ZWD_E*sind(azR(sat_pr,1))));
+        end
     else
         err_tropo0 = err_tropo;
         beta_R = zeros(n,nT);
@@ -768,6 +778,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
 
         search_for_outlier = flag_outlier;
+        search_for_outlier_OLOO = flag_outlier_OLOO;
 
         if (length(frequencies) == 2)
             if (strcmp(obs_comb,'NONE'))
@@ -786,11 +797,13 @@ if (nsat >= min_nsat)
         if (h_dtm ~= tile_header.nodata)
             y0_residuals=y0(1:end-1);
             H1_residuals=H(1:end-1,:);
+            %Cnn_residuals=Cnn(1:end-1,1:end-1);
             y0_noamb=y0(1:end-1);
             H1=H(1:end-1,[1 o1+1 o2+1]);
         else
             y0_residuals=y0;
             H1_residuals=H;
+            %Cnn_residuals=Cnn;
             y0_noamb=y0;
             H1=H(:,[1 o1+1 o2+1]);
         end
@@ -814,23 +827,30 @@ if (nsat >= min_nsat)
                 end
             end
         end
+        
+        if (flag_tropo)
+            delta_ZWD_slant = gmfw_R.*delta_ZWD;
+            if (flag_tropo_gradient)
+                delta_ZWD_slant = delta_ZWD_slant + gmfw_R.*cotd(elR(sat_pr,1)).*(grad_ZWD_N*cosd(azR(sat_pr,1)) + grad_ZWD_E*sind(azR(sat_pr,1)));
+            end
+        end
 
         if (~isempty(sat_pr))
             if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
                 if (flag_tropo)
-                    y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
-                    y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
-                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
-                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))                 +delta_ZWD_slant;
+                    y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(length(sat_pr)+(1:length(sat_pr)))+delta_ZWD_slant;
+                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+delta_ZWD_slant(index_ph);
+                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+delta_ZWD_slant(index_ph);
                 end
-                y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+[1:nC]));
-                y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))                 +sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(length(sat_pr)+(1:length(sat_pr)))+sum(X_t1_t(o3+nN+nT+[1:nC]));
                 y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(X_t1_t(o3+nN+nT+[1:nC]));
                 y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(X_t1_t(o3+nN+nT+[1:nC]));
             else
                 if (flag_tropo)
-                    y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
-                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +delta_ZWD_slant;
+                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+delta_ZWD_slant(index_ph);
                 end
                 y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(X_t1_t(o3+nN+nT+[1:nC]));
                 y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(X_t1_t(o3+nN+nT+[1:nC]));
@@ -891,7 +911,7 @@ if (nsat >= min_nsat)
 %         index_outlier_i=index_outlier_i(1:length(sat_pr));
 %         sat = [];
 
-        while (search_for_outlier == 1)
+        while (search_for_outlier_OLOO == 1)
 
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
             if (all(index_outlier ~= 0))
@@ -911,7 +931,7 @@ if (nsat >= min_nsat)
                 sat(idx_ph) = [];
                 index_ph(idx_ph) = [];
             else
-                search_for_outlier = 0;
+                search_for_outlier_OLOO = 0;
             end
         end
 
@@ -989,23 +1009,30 @@ succ_rate = [succ_rate NaN];
 fixed_solution = [fixed_solution 0];
 residuals_fixed = residuals_float;
 
-%--------------------------------------------------------------------------------------------
-% RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
-%--------------------------------------------------------------------------------------------
-
-if (flag_tropo && exist('gmfh_R','var') && nsat >= min_nsat)
-    STDs(sat,1) = gmfh_R(index_ph)*ZHD + gmfw_R(index_ph).*(ZWD + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
-end
-
-%--------------------------------------------------------------------------------------------
-% RECONSTRUCTION OF FULL ZTD
-%--------------------------------------------------------------------------------------------
-
 if (flag_tropo)
+    delta_ZWD = Xhat_t_t(o3+nN+1);
+
+    %--------------------------------------------------------------------------------------------
+    % RECONSTRUCTION OF FULL ZTD
+    %--------------------------------------------------------------------------------------------
     if (nsat >= min_nsat)
-        Xhat_t_t(o3+nN+(1:nT)) = ZHD + ZWD + Xhat_t_t(o3+nN+(1:nT));
+        Xhat_t_t(o3+nN+1) = apriori_ZHD + apriori_ZWD + delta_ZWD;
     else
-        Xhat_t_t(o3+nN+(1:nT)) = NaN;
+        Xhat_t_t(o3+nN+1) = NaN;
+    end
+    
+    %--------------------------------------------------------------------------------------------
+    % RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
+    %--------------------------------------------------------------------------------------------
+    if (~flag_tropo_gradient)
+        ZWD = apriori_ZWD + delta_ZWD;
+    else
+        grad_ZWD_N = Xhat_t_t(o3+nN+2);
+        grad_ZWD_E = Xhat_t_t(o3+nN+3);
+        ZWD = apriori_ZWD + delta_ZWD + cotd(elR(sat,1)).*(grad_ZWD_N*cosd(azR(sat,1)) + grad_ZWD_E*sind(azR(sat,1)));
+    end
+    if (exist('gmfh_R','var') && nsat >= min_nsat)
+        STDs(sat,1) = gmfh_R(index_ph)*apriori_ZHD + gmfw_R(index_ph).*ZWD + residuals_float(nSatTot*2+sat);
     end
 end
 
@@ -1034,10 +1061,23 @@ end
             np = sat_residuals;
             if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
                 X_est = X([[1 o1+1 o2+1]';o3+np;o3+nSatTot+np]);
-                residuals([nc;nSatTot+nc;nSatTot*2+np;nSatTot*3+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nSatTot+np])*X_est;
+                res = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nSatTot+np])*X_est;
+                %%normalized residuals
+                %Dn = Cnn_residuals^-1;
+                %res = res.*sqrt(diag(Dn));
+                residuals([nc;nSatTot+nc;nSatTot*2+np;nSatTot*3+np]) = res;
             else
-                X_est = X([[1 o1+1 o2+1]';o3+np;o3+nN+nT;o3+nN+nT+nC]);
-                residuals([nc;nSatTot*2+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nN+nT;o3+nN+nT+nC])*X_est;
+                if (~flag_tropo_gradient)
+                    idxT = 1;
+                else
+                    idxT = (1:nT)';
+                end
+                X_est = X([[1 o1+1 o2+1]';o3+np;o3+nN+idxT;o3+nN+nT+nC]);
+                res = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nN+idxT;o3+nN+nT+nC])*X_est;
+                %%normalized residuals
+                %Dn = Cnn_residuals^-1;
+                %res = res.*sqrt(diag(Dn));
+                residuals([nc;nSatTot*2+np]) = res;
             end
         end
         if(strcmp(type, 'float'))
