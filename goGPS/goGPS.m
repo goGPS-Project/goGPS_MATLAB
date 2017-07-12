@@ -107,6 +107,7 @@ global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
 global flag_outlier flag_outlier_OLOO SPP_threshold
+global apriori_ZHD
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
