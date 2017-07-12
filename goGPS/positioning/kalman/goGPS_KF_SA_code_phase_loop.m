@@ -797,11 +797,13 @@ if (nsat >= min_nsat)
         if (h_dtm ~= tile_header.nodata)
             y0_residuals=y0(1:end-1);
             H1_residuals=H(1:end-1,:);
+            %Cnn_residuals=Cnn(1:end-1,1:end-1);
             y0_noamb=y0(1:end-1);
             H1=H(1:end-1,[1 o1+1 o2+1]);
         else
             y0_residuals=y0;
             H1_residuals=H;
+            %Cnn_residuals=Cnn;
             y0_noamb=y0;
             H1=H(:,[1 o1+1 o2+1]);
         end
@@ -1059,7 +1061,11 @@ end
             np = sat_residuals;
             if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
                 X_est = X([[1 o1+1 o2+1]';o3+np;o3+nSatTot+np]);
-                residuals([nc;nSatTot+nc;nSatTot*2+np;nSatTot*3+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nSatTot+np])*X_est;
+                res = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nSatTot+np])*X_est;
+                %%normalized residuals
+                %Dn = Cnn_residuals^-1;
+                %res = res.*sqrt(diag(Dn));
+                residuals([nc;nSatTot+nc;nSatTot*2+np;nSatTot*3+np]) = res;
             else
                 if (~flag_tropo_gradient)
                     idxT = 1;
@@ -1067,7 +1073,11 @@ end
                     idxT = (1:nT)';
                 end
                 X_est = X([[1 o1+1 o2+1]';o3+np;o3+nN+idxT;o3+nN+nT+nC]);
-                residuals([nc;nSatTot*2+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nN+idxT;o3+nN+nT+nC])*X_est;
+                res = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nN+idxT;o3+nN+nT+nC])*X_est;
+                %%normalized residuals
+                %Dn = Cnn_residuals^-1;
+                %res = res.*sqrt(diag(Dn));
+                residuals([nc;nSatTot*2+np]) = res;
             end
         end
         if(strcmp(type, 'float'))
