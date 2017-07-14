@@ -4268,7 +4268,7 @@ for session = 1 : num_session
                 nSol = size(Xhat_t_t_OUT,2);
                 for e = 1 : nSol / (1 + state.isForwardBackwardKF())
                     id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
-                    fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-1,id));
+                    fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-nC-2,id));
                 end
                 delete([filerootOUT '_*.bin']);
             else
