@@ -319,7 +319,7 @@ if (nsat >= nsat_required)
         %computation of tropospheric errors
         err_tropo = tropo_error_correction(time_rx, phiR, lamR, hR, el);
 
-        if (~isreal(err_tropo))
+        if (~isreal(err_tropo) || any(isnan(err_tropo)))
             XR   = [];
             dtR  = [];
             az   = [];

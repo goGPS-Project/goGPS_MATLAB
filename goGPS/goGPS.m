@@ -106,7 +106,9 @@ kalman_initialized = false;
 global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
-global flag_outlier flag_outlier_OLOO SPP_threshold min_arc max_code_residual max_phase_residual
+global flag_outlier flag_outlier_OLOO SPP_threshold
+global apriori_ZHD
+global min_arc max_code_residual max_phase_residual
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -3438,7 +3440,7 @@ for session = 1 : num_session
                 conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
                 RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
                 RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
 
             %variable saving for final graphical representations
             if (~flag_MELSA)
@@ -3637,7 +3639,7 @@ for session = 1 : num_session
                     %Precipitable Water Vapor
                     PWV = ZWD ./ Q * 1e3;
                 else
-                    ZHD = apriori_ZHD;
+                    ZHD = apriori_ZHD_OUT;
                     ZTD = estim_tropo(:);
                     ZWD = ZTD - ZHD;
                 end
@@ -4696,7 +4698,7 @@ for session = 1 : num_session
                 nSol = size(Xhat_t_t_OUT,2);
                 for e = 1 : nSol / (1 + state.isForwardBackwardKF())
                     id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
-                    fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-1,id));
+                    fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-nC-2,id));
                 end
                 delete([filerootOUT '_*.bin']);
             else

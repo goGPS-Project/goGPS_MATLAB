@@ -74,6 +74,7 @@ global n_sys geoid
 global apriori_ZHD apriori_ZWD
 
 kalman_initialized = 0;
+apriori_ZHD = 0;
 
 %total number of satellite slots (depending on the constellations enabled)
 nSatTot = size(pr1,1);
