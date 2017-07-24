@@ -159,6 +159,7 @@ classdef File_Wizard < handle
             end
             this.state.setProcessingTime(date_start, date_stop, false);
             this.state.updateNavFileName();
+            this.state.updateErpFileName();
             this.conjureNavFiles(date_start, date_stop);
         end
 

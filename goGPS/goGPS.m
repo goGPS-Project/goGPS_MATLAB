@@ -523,6 +523,13 @@ for session = 1 : num_session
                     SP3.t_sun  = time_GPS;
                     SP3.X_sun  = X_sun;
                     SP3.X_moon = X_moon;
+                    
+                    %----------------------------------------------------------------------------------------------
+                    % LOAD ERP DATA (EARTH ROTATION/ORIENTATION PARAMETERS)
+                    %----------------------------------------------------------------------------------------------
+
+                    ERP = load_ERP(state.erp_full_name, time_GPS);
+                    SP3.ERP = ERP;
 
                     %----------------------------------------------------------------------------------------------
                     % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
