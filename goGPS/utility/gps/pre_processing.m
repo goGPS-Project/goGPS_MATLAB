@@ -505,6 +505,9 @@ else
 
             index_s = find(pr1(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            pr1(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -527,6 +530,9 @@ else
 
             index_s = find(pr2(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            pr2(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -548,6 +554,9 @@ else
         if (any(ph1(s,:)) && freq1_required)
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            ph1(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -563,6 +572,9 @@ else
         if (any(ph2(s,:)) && freq2_required)
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            ph2(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -579,6 +591,9 @@ else
 
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            ph1(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -589,9 +604,12 @@ else
                     cs_correction_i(:,2) = 1;
                     status_cs=[status_cs;cs_correction_i];
                 end
-
+                
                 index_s = find(ph1(s,:) ~= 0);
                 index = intersect(index_e,index_s);
+                
+                index_x = setdiff(index_s, index_e);
+                ph1(s,index_x) = 0;
 
 %                 if (any(dop1(s,index)))
 %                     corr = dop1(s,index).*(time_desync(index) + dtR(index))';
@@ -616,6 +634,9 @@ else
 
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
+            
+            index_x = setdiff(index_s, index_e);
+            ph2(s,index_x) = 0;
 
             if (length(index) > lagr_order)
 
@@ -629,6 +650,9 @@ else
 
                 index_s = find(ph2(s,:) ~= 0);
                 index = intersect(index_e,index_s);
+                
+                index_x = setdiff(index_s, index_e);
+                ph2(s,index_x) = 0;
 
 %                 if (any(dop2(s,index)))
 %                     corr = dop2(s,index).*(time_desync(index) + dtR(index))';
