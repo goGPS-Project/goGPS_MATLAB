@@ -53,7 +53,7 @@ classdef Meteo_Data < handle
         RI_ID = sum(uint16('RI').*uint16([1 256]));     % Internal id of Rain increment (1/10 mm): Rain accumulation since last measurement
         HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement
 
-        % Array of all the metereological data types
+        % Array of all the meteorological data types
         DATA_TYPE_ID = [Meteo_Data.PR_ID, ...
                         Meteo_Data.TD_ID, ...
                         Meteo_Data.HR_ID, ...
@@ -237,7 +237,7 @@ classdef Meteo_Data < handle
                     this.data(col_id, l - eoh) = str2double(value);
                 end
             catch ex
-                this.logger.addWarning(sprintf('Problem detected while reading metereological data: %s', ex.message));
+                this.logger.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
                 this.is_valid = false;
             end
             this.data = this.data'; % keep one column per data type
@@ -262,7 +262,7 @@ classdef Meteo_Data < handle
                 return
             end
 
-            % Parse the header and detect the types of data contained in the metereological file
+            % Parse the header and detect the types of data contained in the meteorological file
             this.parseHeader(meteo_file);
 
             if (nargin == 3) && ~isempty(type)
@@ -350,7 +350,7 @@ classdef Meteo_Data < handle
         end
 
         function export(this, file_name)
-            % Export data to a metereological RINEX
+            % Export data to a meteorological RINEX
             % SYNTAX: this.toString(str)
 
             narginchk(1,2);
@@ -409,7 +409,7 @@ classdef Meteo_Data < handle
         end
 
         function str = toString(this, str)
-            % Display the loaded metereological data
+            % Display the loaded meteorological data
             % SYNTAX: this.toString(str)
 
             if (nargin == 1)
@@ -477,7 +477,7 @@ classdef Meteo_Data < handle
         function data = getComponent(this, id, time)
             % Get the data with id of the type wanted
             % Passing a time array as GPS_Time the object interpolate the
-            % data contained in the metereological file
+            % data contained in the meteorological file
             % SYNTAX: data = this.getComponent(id, <time>)
             id = find(this.type == id);
             if isempty(id)
