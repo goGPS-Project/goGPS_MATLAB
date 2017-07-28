@@ -43,7 +43,7 @@
 classdef Mode_Settings < Settings_Interface
 
     % Default values for each field - useful to restore corrupted fields
-    properties (Constant, Access = 'protected')
+    properties (Constant, GetAccess = public)
         P_MODE = 1;                                     % Processing mode
     end
 
@@ -62,6 +62,8 @@ classdef Mode_Settings < Settings_Interface
         MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
         MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
 
+        MODE_PP_BLK_CP_DD_STATIC = 30  % Post Proc Block solution on Code and Phase Double Differences - Static
+        
         MODE_PP_KF_C_SA          = 2;   % Post Proc Kalman Filter on Code Stand Alone
         MODE_PP_KF_C_DD          = 12;  % Post Proc Kalman Filter on Code Double Differences
         MODE_PP_KF_CP_SA         = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
@@ -84,7 +86,8 @@ classdef Mode_Settings < Settings_Interface
             Mode_Settings.MODE_PP_LS_C_SA_MR ...
             Mode_Settings.MODE_PP_LS_CP_DD_MR ...
             Mode_Settings.MODE_PP_KF_CP_DD_MR ...
-            Mode_Settings.MODE_PP_SEID_PPP];
+            Mode_Settings.MODE_PP_SEID_PPP ...
+            Mode_Settings.MODE_PP_BLK_CP_DD_STATIC];
 
         % Group of real time modes
         GMODE_RT = [ Mode_Settings.MODE_RT_NAV ...
@@ -115,7 +118,8 @@ classdef Mode_Settings < Settings_Interface
             Mode_Settings.MODE_PP_KF_CP_DD ...
             Mode_Settings.MODE_PP_LS_CP_DD_MR ...
             Mode_Settings.MODE_PP_KF_CP_DD_MR ...
-            Mode_Settings.MODE_PP_SEID_PPP];
+            Mode_Settings.MODE_PP_SEID_PPP ...
+            Mode_Settings.MODE_PP_BLK_CP_DD_STATIC];
 
         % Group of multi-receiver modes
         GMODE_MR = [ Mode_Settings.MODE_PP_LS_C_SA_MR ...
@@ -135,7 +139,8 @@ classdef Mode_Settings < Settings_Interface
             Mode_Settings.MODE_PP_KF_CP_SA ...
             Mode_Settings.MODE_PP_KF_CP_DD ...
             Mode_Settings.MODE_PP_KF_CP_DD_MR ...
-            Mode_Settings.MODE_PP_SEID_PPP];
+            Mode_Settings.MODE_PP_SEID_PPP ...
+            Mode_Settings.MODE_PP_BLK_CP_DD_STATIC];
 
         % Group of modes using Kalman Filter
         GMODE_KM = [ Mode_Settings.MODE_PP_KF_C_SA ...
@@ -149,11 +154,12 @@ classdef Mode_Settings < Settings_Interface
         GMODE_PPP = [ Mode_Settings.MODE_PP_SEID_PPP ...
             Mode_Settings.MODE_PP_KF_CP_SA];
 
+        % Group of Block solution modes
+        GMODE_BLOCK = [ Mode_Settings.MODE_PP_BLK_CP_DD_STATIC];
+
         % Group of SEID modes
         GMODE_SEID = [ Mode_Settings.MODE_PP_SEID_PPP ...
             Mode_Settings.MODE_PP_KF_CP_DD_MR];
-
-
     end
 
     properties (Constant, GetAccess = protected)
@@ -169,12 +175,13 @@ classdef Mode_Settings < Settings_Interface
             09, 2013, Mode_Settings.MODE_PP_LS_CP_DD_L;
             10, 0000, Mode_Settings.MODE_PP_LS_CP_DD_MR;
             11, 0000, Mode_Settings.MODE_PP_LS_C_SA_MR;
-            12, 2021, Mode_Settings.MODE_PP_KF_C_SA;
-            13, 2022, Mode_Settings.MODE_PP_KF_C_DD;
-            14, 2023, Mode_Settings.MODE_PP_KF_CP_SA;
-            15, 2024, Mode_Settings.MODE_PP_KF_CP_DD;
-            16, 2031, Mode_Settings.MODE_PP_KF_CP_DD_MR;
-            17, 2032, Mode_Settings.MODE_PP_SEID_PPP;];
+            12, 2021, Mode_Settings.MODE_PP_BLK_CP_DD_STATIC;
+            13, 2031, Mode_Settings.MODE_PP_KF_C_SA;
+            14, 2032, Mode_Settings.MODE_PP_KF_C_DD;
+            15, 2033, Mode_Settings.MODE_PP_KF_CP_SA;
+            16, 2034, Mode_Settings.MODE_PP_KF_CP_DD;
+            17, 2041, Mode_Settings.MODE_PP_KF_CP_DD_MR;
+            18, 2042, Mode_Settings.MODE_PP_SEID_PPP;];
 
         P_SMODE = { sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(1,3),'Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)'), ...
             sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(2,3),'Real Time Rover Monitor'), ...
@@ -187,15 +194,16 @@ classdef Mode_Settings < Settings_Interface
             sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(9,3),'Post Proc Least Squares on Code and Phase Double Differences with LAMBDA'), ...
             sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(10,3),'Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers'), ...
             sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(11,3),'Post Proc Least Squares on Code Stand Alone, Multiple Receivers'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(12,3),'Post Proc Kalman Filter on Code Stand Alone'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(13,3),'Post Proc Kalman Filter on Code Double Differences'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(14,3),'Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(15,3),'Post Proc Kalman Filter on Code and Phase Double Differences'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(16,3),'Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers (SEID - only rinex writing)'), ...
-            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(17,3),'SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD') };
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(12,3),'Post Proc Block solution on Code and Phase Double Differences, Static'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(13,3),'Post Proc Kalman Filter on Code Stand Alone'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(14,3),'Post Proc Kalman Filter on Code Double Differences'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(15,3),'Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(16,3),'Post Proc Kalman Filter on Code and Phase Double Differences'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(17,3),'Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers (SEID - only rinex writing)'), ...
+            sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(18,3),'SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD') };
     end
 
-    properties (SetAccess = protected, GetAccess = public)
+    properties (SetAccess = public, GetAccess = public)
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
@@ -390,6 +398,14 @@ classdef Mode_Settings < Settings_Interface
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
         end
 
+        function is_block = isModeBlock(this, mode)
+            % return whether or not the mode in use uses a Block solution approach
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_block = sum(intersect(mode, Mode_Settings.GMODE_BLOCK));
+        end
+        
         function is_seid = isModeSEID(this, mode)
             % return whether or not the mode in use uses Kalman Filter
             if nargin == 1
@@ -448,6 +464,11 @@ classdef Mode_Settings < Settings_Interface
         function is_ppp = isPPP(mode)
             % return whether or not the given mode in use uses Kalman Filter
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
+        end
+        
+        function is_block = isBlock(mode)
+            % return whether or not the given mode in use uses Kalman Filter
+            is_block = sum(intersect(mode, Mode_Settings.GMODE_BLOCK));
         end
 
         function is_seid = isSEID(mode)

@@ -117,8 +117,9 @@ classdef goGUIclass < handle
 
         % Algorithm type
         idLS = 1;          % Least Squares
-        idKF = 2;          % Kalman Filter
-        idSEID = 3;        % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
+        idBlock = 2;       % Block Solution
+        idKF = 3;          % Kalman Filter
+        idSEID = 4;        % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
         strAlgorithm = {}; % string containing the pop-up menu fields
 
         % Processing type
@@ -130,10 +131,12 @@ classdef goGUIclass < handle
         idCP_DD = 4;     % Code and phase double difference
         idC_SA_MR = 5;   % Code and phase stand-alone (i.e. undifferenced) for multiple receivers
         idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
+        idBLK_DD_S = 1;  % Code and phase double difference Static Block
         idSEID_RO = 1;   % Seid to generate a rinex files containing a fake L2
         idSEID_PPP = 2;  % Generation of the rinex using SEID followed by PPP
 
         strTypeLS    = {};  % string containing the pop-up menu fields
+        strTypeBlock = {};  % string containing the pop-up menu fields
         strTypeKF    = {};  % string containing the pop-up menu fields
         strTypeSEID  = {};  % string containing the pop-up menu fields
 
@@ -289,6 +292,7 @@ classdef goGUIclass < handle
             this.strCaptureMode{this.idRMMon} = 'Rover and Master Monitor';
 
             this.strAlgorithm{this.idLS} = 'Least squares';
+            this.strAlgorithm{this.idBlock} = 'Block solution';
             this.strAlgorithm{this.idKF} = 'Kalman filter';
             this.strAlgorithm{this.idSEID} = 'SEID';
 
@@ -298,6 +302,8 @@ classdef goGUIclass < handle
 			this.strTypeLS{this.idCP_Vel} = 'Variometric approach for velocity estimation';
             %this.strTypeLS{this.idC_SA_MR} = 'Code undifferenced for multiple receivers';
             %this.strTypeLS{this.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
+
+            this.strTypeBlock{this.idBLK_DD_S} = 'Code and phase double difference - Static';
 
             this.strTypeKF{this.idC_SA} = 'Code undifferenced';
             this.strTypeKF{this.idC_DD} = 'Code double difference';
@@ -386,6 +392,8 @@ classdef goGUIclass < handle
             if nargin < 2
                 if get(this.goh.kalman_ls,'Value') == this.idLS
                     str = this.strTypeLS;
+                elseif get(this.goh.kalman_ls,'Value') == this.idBlock
+                    str = this.strTypeBlock;
                 elseif get(this.goh.kalman_ls,'Value') == this.idKF
                     str = this.strTypeKF;
                 else
@@ -1176,6 +1184,14 @@ classdef goGUIclass < handle
                                    idG.StdCode idG.StdPhase ...
                                    id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
 
+            % On Post Proc => Block Solution
+            idG.onPP_Block = [idG.onPostProc];
+
+            % On Post Proc => Least Squares => Code and Phase Double Differences
+            idG.onPP_BLK_CP_DD_STATIC = [idG.onPP_Block id.cPlotProc idG.pAvailableGNSSPhase ...
+                                   idG.StdCode idG.StdPhase ...
+                                   id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
+
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
                            idG.pDynModel ...
@@ -1218,7 +1234,7 @@ classdef goGUIclass < handle
             % On RINEX / BIN
             idG.onRin = [idG.RinRover idG.RinMaster idG.PCO idG.BLQ idG.STA idG.MET];
 
-            [idG.gPanels idG.strEl idG.valEl] = this.autoElClassification(id2h);
+            [idG.gPanels, idG.strEl, idG.valEl] = this.autoElClassification(id2h);
 
             % Save in object
             this.idUI = id;
@@ -1736,6 +1752,7 @@ classdef goGUIclass < handle
                     case this.idRMMon
                         mode = goGNSS.MODE_RT_RM_MON;
                 end
+                
             elseif this.isPostProc()
                 if this.isLS()
                     switch this.getElVal(this.idUI.lProcType)
@@ -1752,8 +1769,14 @@ classdef goGUIclass < handle
                         case this.idCP_DD_MR
                             mode = goGNSS.MODE_PP_LS_CP_DD_MR;
                     end
-                end
-                if this.isKF()
+                    
+                elseif this.isBlock()
+                    switch this.getElVal(this.idUI.lProcType)
+                        case this.idBLK_DD_S
+                            mode = goGNSS.MODE_PP_BLK_CP_DD_STATIC;
+                    end
+                    
+                elseif this.isKF()
                     switch this.getElVal(this.idUI.lProcType)
                         case this.idC_SA
                             mode = goGNSS.MODE_PP_KF_C_SA;
@@ -1766,9 +1789,8 @@ classdef goGUIclass < handle
                         case this.idCP_DD_MR
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                     end
-                end
-
-                if this.isSEID()
+                    
+                elseif this.isSEID()
                     switch this.getElVal(this.idUI.lProcType)
                         case this.idSEID_RO
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
@@ -1816,11 +1838,19 @@ classdef goGUIclass < handle
             isOn = this.isEnabled(this.idUI.lAlgType);
             isLeastSquares = isOn  && this.isPostProc() && (this.getElVal(this.idUI.lAlgType) == this.idLS);
         end
+        
+        function isBlock = isBlock(this)
+            % return true if Block solution
+            isOn = this.isEnabled(this.idUI.lAlgType);
+            isBlock = isOn && this.isPostProc() && (this.getElVal(this.idUI.lAlgType) == this.idBlock);
+        end
+
         function isKalman = isKF(this)
             % return true if Kalman
             isOn = this.isEnabled(this.idUI.lAlgType);
             isKalman = isOn && this.isPostProc() && (this.getElVal(this.idUI.lAlgType) == this.idKF);
         end
+        
         function isSEID_L2 = isSEID(this)
             % return true if SEID
             isOn = this.isEnabled(this.idUI.lAlgType);
@@ -2252,8 +2282,15 @@ classdef goGUIclass < handle
                             case this.idCP_DD_MR
                                 this.setElStatus(this.idGroup.onPP_LS_CP_DD_MR, 1, 0);
                         end
-                    end
-                    if this.isKF()
+                        
+                    elseif this.isBlock()
+                        this.setElStatus(this.idGroup.Fig, 0, 0);
+                        switch this.getElVal(this.idUI.lProcType)
+                            case this.idBLK_DD_S
+                                this.setElStatus(this.idGroup.onPP_BLK_CP_DD_STATIC, 1, 0);
+                        end
+                        
+                    elseif this.isKF()
                         this.setElStatus(this.idGroup.Fig, 0, 0);
                         switch this.getElVal(this.idUI.lProcType)
                             case this.idC_SA
@@ -2267,10 +2304,8 @@ classdef goGUIclass < handle
                             case this.idCP_DD_MR
                                 this.setElStatus(this.idGroup.onPP_KF_CP_DD_MR, 1, 0);
                         end
-                    end
-
-                    % PPP for SEID
-                    if this.isSEID()
+                        
+                    elseif this.isSEID()
                         this.setElStatus(this.idGroup.Fig, 0, 0);
                         this.setElStatus(this.idGroup.onPP_SEID_PPP, 1, 0);
                     end
