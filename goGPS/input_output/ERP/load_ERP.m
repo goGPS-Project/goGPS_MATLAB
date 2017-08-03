@@ -112,29 +112,33 @@ if ~any(ERP_time <= max(time) | ERP_time >= min(time))
 end
     
 % assign ERP values and compute rates (@ epoch of the first epoch of orbits
-ERP.t0 = min(time);
+% ERP.t0 = min(time);
 
-%correct MJD with the lenght of day
+%correct MJD with the length of day
 for i = 2 : length(ERP_time)
-    ERP_time(i)=ERP_time(i)+(LOD(i-1)*0.000001);
+    ERP_time(i)=ERP_time(i)+(LOD(i-1)*0.1e-6);
 end
 
-% compute rates
-a = polyfit(ERP_time,Xpole,1); %#ok<*ASGLU>
-ERP.X0 = polyval(a,ERP.t0);
-ERP.Xrt = a(1)*86400;
+ERP.t = ERP_time;
+ERP.Xpole = Xpole;
+ERP.Ypole = Ypole;
 
-a = polyfit(ERP_time,Ypole,1);
-ERP.Y0 = polyval(a,ERP.t0);
-ERP.Yrt = a(1)*86400;
-
-a = polyfit(ERP_time,UT1_UTC,1);
-ERP.UT1_UTC0 = polyval(a,ERP.t0);
-ERP.UT1_UTCrt = a(1)*86400;
-
-ERP.units.X0Y0='10**-6"';
-ERP.units.XYrt='10**-6"/d';
-ERP.units.UT1_UTC0='0.1 usec';
-ERP.units.UT1_UTCrt='0.1 usec/d';
+% % compute rates
+% a = polyfit(ERP_time,Xpole,1); %#ok<*ASGLU>
+% ERP.X0 = polyval(a,ERP.t0);
+% ERP.Xrt = a(1)*86400;
+% 
+% a = polyfit(ERP_time,Ypole,1);
+% ERP.Y0 = polyval(a,ERP.t0);
+% ERP.Yrt = a(1)*86400;
+% 
+% a = polyfit(ERP_time,UT1_UTC,1);
+% ERP.UT1_UTC0 = polyval(a,ERP.t0);
+% ERP.UT1_UTCrt = a(1)*86400;
+% 
+% ERP.units.X0Y0='10**-6"';
+% ERP.units.XYrt='10**-6"/d';
+% ERP.units.UT1_UTC0='0.1 usec';
+% ERP.units.UT1_UTCrt='0.1 usec/d';
 
 fclose(fid);
