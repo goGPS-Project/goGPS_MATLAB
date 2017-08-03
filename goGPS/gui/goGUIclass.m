@@ -1752,7 +1752,7 @@ classdef goGUIclass < handle
                     case this.idRMMon
                         mode = goGNSS.MODE_RT_RM_MON;
                 end
-                
+
             elseif this.isPostProc()
                 if this.isLS()
                     switch this.getElVal(this.idUI.lProcType)
@@ -1769,13 +1769,13 @@ classdef goGUIclass < handle
                         case this.idCP_DD_MR
                             mode = goGNSS.MODE_PP_LS_CP_DD_MR;
                     end
-                    
+
                 elseif this.isBlock()
                     switch this.getElVal(this.idUI.lProcType)
                         case this.idBLK_DD_S
                             mode = goGNSS.MODE_PP_BLK_CP_DD_STATIC;
                     end
-                    
+
                 elseif this.isKF()
                     switch this.getElVal(this.idUI.lProcType)
                         case this.idC_SA
@@ -1789,7 +1789,7 @@ classdef goGUIclass < handle
                         case this.idCP_DD_MR
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                     end
-                    
+
                 elseif this.isSEID()
                     switch this.getElVal(this.idUI.lProcType)
                         case this.idSEID_RO
@@ -1838,7 +1838,7 @@ classdef goGUIclass < handle
             isOn = this.isEnabled(this.idUI.lAlgType);
             isLeastSquares = isOn  && this.isPostProc() && (this.getElVal(this.idUI.lAlgType) == this.idLS);
         end
-        
+
         function isBlock = isBlock(this)
             % return true if Block solution
             isOn = this.isEnabled(this.idUI.lAlgType);
@@ -1850,7 +1850,7 @@ classdef goGUIclass < handle
             isOn = this.isEnabled(this.idUI.lAlgType);
             isKalman = isOn && this.isPostProc() && (this.getElVal(this.idUI.lAlgType) == this.idKF);
         end
-        
+
         function isSEID_L2 = isSEID(this)
             % return true if SEID
             isOn = this.isEnabled(this.idUI.lAlgType);
@@ -2282,14 +2282,14 @@ classdef goGUIclass < handle
                             case this.idCP_DD_MR
                                 this.setElStatus(this.idGroup.onPP_LS_CP_DD_MR, 1, 0);
                         end
-                        
+
                     elseif this.isBlock()
                         this.setElStatus(this.idGroup.Fig, 0, 0);
                         switch this.getElVal(this.idUI.lProcType)
                             case this.idBLK_DD_S
                                 this.setElStatus(this.idGroup.onPP_BLK_CP_DD_STATIC, 1, 0);
                         end
-                        
+
                     elseif this.isKF()
                         this.setElStatus(this.idGroup.Fig, 0, 0);
                         switch this.getElVal(this.idUI.lProcType)
@@ -2304,7 +2304,7 @@ classdef goGUIclass < handle
                             case this.idCP_DD_MR
                                 this.setElStatus(this.idGroup.onPP_KF_CP_DD_MR, 1, 0);
                         end
-                        
+
                     elseif this.isSEID()
                         this.setElStatus(this.idGroup.Fig, 0, 0);
                         this.setElStatus(this.idGroup.onPP_SEID_PPP, 1, 0);

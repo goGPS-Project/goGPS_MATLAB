@@ -21,14 +21,14 @@ for s = 1 : size(ph_R,1)
         avail_ep = intersect(not_zero, not_nan);
         avail_ep_num(s,1) = length(avail_ep);
         avail_sd(s,1:avail_ep_num(s,1)) = avail_ep;
-        
+
         if (~isempty(delta_sd(s,avail_sd(s,1:avail_ep_num(s,1)))))
             outliers = batch_outlier_detection(delta_sd(s,avail_sd(s,1:avail_ep_num(s,1))),median(round(interval)));
             [~,jmp_sd] = intersect(delta_sd(s,:),outliers);
         end
-        
+
         %figure; plot(avail_sd(s,1:avail_ep_num(s,1)), delta_sd(s,avail_sd(s,1:avail_ep_num(s,1))),'.')
-        
+
         jmp_sd = sort(jmp_sd);
         delta_sd(s,jmp_sd) = NaN;
         p = setdiff(avail_sd(s,1:avail_ep_num(s,1)), jmp_sd);

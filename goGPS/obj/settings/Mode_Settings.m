@@ -63,7 +63,7 @@ classdef Mode_Settings < Settings_Interface
         MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
 
         MODE_PP_BLK_CP_DD_STATIC = 30  % Post Proc Block solution on Code and Phase Double Differences - Static
-        
+
         MODE_PP_KF_C_SA          = 2;   % Post Proc Kalman Filter on Code Stand Alone
         MODE_PP_KF_C_DD          = 12;  % Post Proc Kalman Filter on Code Double Differences
         MODE_PP_KF_CP_SA         = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
@@ -405,7 +405,7 @@ classdef Mode_Settings < Settings_Interface
             end
             is_block = sum(intersect(mode, Mode_Settings.GMODE_BLOCK));
         end
-        
+
         function is_seid = isModeSEID(this, mode)
             % return whether or not the mode in use uses Kalman Filter
             if nargin == 1
@@ -465,7 +465,7 @@ classdef Mode_Settings < Settings_Interface
             % return whether or not the given mode in use uses Kalman Filter
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
         end
-        
+
         function is_block = isBlock(mode)
             % return whether or not the given mode in use uses Kalman Filter
             is_block = sum(intersect(mode, Mode_Settings.GMODE_BLOCK));

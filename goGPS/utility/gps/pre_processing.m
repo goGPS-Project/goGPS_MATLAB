@@ -27,7 +27,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
 %           = 0: no apriori coordinates available
 %   sbas = SBAS corrections
 %   constellations = struct with multi-constellation settings
-%   flag_full_prepro = do  afull preprocessing
+%   flag_full_prepro = do  a full preprocessing
 %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
 % OUTPUT:

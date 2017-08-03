@@ -274,7 +274,7 @@ end
 %     pressure = goGNSS.STD_PRES;
 %     temperature = goGNSS.STD_TEMP;
 %     humidity = goGNSS.STD_HUMI;
-%     
+%
 %     [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
 %     if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
 %         %geoid ondulation interpolation
@@ -394,7 +394,7 @@ if (nsat >= min_nsat)
         [week, sow] = time2weektow(time_rx + zero_time);
         date = gps2date(week, sow);
         [~, mjd] = date2jd(date);
-        
+
         gmfh_R = zeros(size(err_tropo));
         gmfw_R = zeros(size(err_tropo));
         err_tropo0 = zeros(size(err_tropo));
@@ -827,7 +827,7 @@ if (nsat >= min_nsat)
                 end
             end
         end
-        
+
         if (flag_tropo)
             delta_ZWD_slant = gmfw_R.*delta_ZWD;
             if (flag_tropo_gradient)
@@ -1020,7 +1020,7 @@ if (flag_tropo)
     else
         Xhat_t_t(o3+nN+1) = NaN;
     end
-    
+
     %--------------------------------------------------------------------------------------------
     % RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
     %--------------------------------------------------------------------------------------------

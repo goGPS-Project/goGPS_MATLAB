@@ -55,11 +55,11 @@ if (~isempty(rem_amb))
     b(rem_obs) = [];
     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
     sat_track(rem_obs,:) = [];
-    
+
     A(:,rem_amb) = [];
     amb_num = amb_num - length(rem_amb);
     amb_prn_track(rem_amb-3) = [];
-    
+
 %     %check again and remove observations without pivot OR slave satellite
 %     rem_obs = find(sum(A(:,4:end),2));
 %     A(rem_obs,:) = [];
@@ -67,6 +67,6 @@ if (~isempty(rem_amb))
 %     b(rem_obs) = [];
 %     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
 %     sat_track(rem_obs,:) = [];
-%     
+%
 %     rem_amb = find(sum(A~=0,1) < min_arc);
 end

@@ -71,7 +71,6 @@ classdef Fig_Lab < handle
 
             spline_base = spline_base * (size(enu,1) > spline_base);
 
-            m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
             if (color_type == 0); fh = figure(); maximizeFig(fh); end
             color_order = handle(gca).ColorOrder;
             if color_type == 1
@@ -82,9 +81,13 @@ classdef Fig_Lab < handle
             end
 
             % prepare data
-            data_e = (enu(:,1) - m_enu(:,1))*1e3;
-            data_n = (enu(:,2) - m_enu(:,2))*1e3;
-            data_u = (enu(:,3) - m_enu(:,3))*1e3;
+            %m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
+            %data_e = (enu(:,1) - m_enu(:,1))*1e3;
+            %data_n = (enu(:,2) - m_enu(:,2))*1e3;
+            %data_u = (enu(:,3) - m_enu(:,3))*1e3;
+            data_e = enu(:,1) * 1e3;
+            data_n = enu(:,2) * 1e3;
+            data_u = enu(:,3) * 1e3;
 
             if spline_base > 0
                 if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
@@ -278,7 +281,7 @@ classdef Fig_Lab < handle
                 err = data(:,12);
                 clear data;
 
-                Fig_Lab.plotENU(time, enu, round(1*86400/time.getRate()), hold_on);
+                Fig_Lab.plotENU(time, enu, 0*round(1*86400/time.getRate()), hold_on);
             end
         end
 

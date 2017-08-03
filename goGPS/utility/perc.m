@@ -1,14 +1,28 @@
+function perc_val = perc(data, p)
+% SYNTAX:
+%   perc_val = perc(data, thr)
+%
+% INPUT:
+%   data    array of values
+%   p       percentile requested (0 1]
+%
+% OUTPUT:
+%   perc_val
+%
+% DESCRIPTION:
+%   returns percentile of the values in data
+
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __|
+%     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.1 beta 3
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       < put here the name of the reference author >
-%  Contributors:     < put here the list of the contributors of the file >
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -28,3 +42,11 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
+    data(isnan(data)) = [];
+    data = sort(data(:));
+    if numel(data) > 0
+        perc_val = data(max(round(numel(data) * p),1));
+    else
+        perc_val = 0;
+    end
+end

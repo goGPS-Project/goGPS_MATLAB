@@ -313,7 +313,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % Flag for enabling the estimation of tropospheric delay
         flag_tropo = Main_Settings.FLAG_TROPO;
-        
+
         % Flag for enabling the estimation of tropospheric delay
         flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
 
@@ -1696,7 +1696,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX = this.isTropoEnabled();
             is_tropo = this.flag_tropo;
         end
-        
+
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled
             % SYNTAX = this.isTropoGradientEnabled();

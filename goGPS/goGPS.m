@@ -1109,7 +1109,7 @@ for session = 1 : num_session
                     flag_XM_prep = 1;
                     [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                 end
-                
+
                 [ph1_R, ph1_M] = cycle_slip_detect_single_diff(ph1_R, ph1_M, interval);
                 [ph2_R, ph2_M] = cycle_slip_detect_single_diff(ph2_R, ph2_M, interval);
 
@@ -1433,30 +1433,30 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         % STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
         %----------------------------------------------------------------------------------------------
-                
+
         MELSA_threshold = 1;
-        
+
 %         [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr1_R, ph1_R, repmat(lambda(:,1),1,size(pr1_R,2)));
 %         for s = 1 : size(N_stim,1)
 %             ph1_R(s,ph1_R(s,:)~=0) = ph1_R(s,ph1_R(s,:)~=0) + round(median(N_stim(s,N_stim(s,:)~=0)));
 %         end
-        
+
         if (state.isModeBlock())
             %number of position solutions to be estimated
             npos = 1;
-            
+
             %vector to keep track of the number of observations available at each epoch
             n_obs_epoch = NaN(size(time_GPS));
-            
+
             %cumulative number of observations, to keep track of where each epoch begins
             epoch_index = NaN(size(time_GPS));
             epoch_track = 0;
-            
+
             %matrices to keep track of the satellite configuration changes (to fill in the proper ambiguity slots)
             satpr_track = NaN(nSatTot, length(time_GPS));
             satph_track = NaN(nSatTot, length(time_GPS));
             pivot_track = NaN(size(time_GPS));
-            
+
             %total number of observations (for matrix initialization)
             if (goGNSS.isPH(mode))
                 %n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0)) + sum(sum(ph1_R(:,:,1) ~= 0));
@@ -1464,7 +1464,7 @@ for session = 1 : num_session
             else
                 n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
             end
-            
+
             y0_all = NaN(n_obs_tot,1);
             b_all  = NaN(n_obs_tot,1);
             sat_track = NaN(n_obs_tot,3); %epoch; PRN; code/phase
@@ -1474,7 +1474,7 @@ for session = 1 : num_session
                 A_all = sparse(zeros(n_obs_tot,npos*3));
             end
             Q_all  = sparse(zeros(n_obs_tot,n_obs_tot));
-            
+
             %set a priori coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 pos_R = pos_R_crd;
@@ -1483,7 +1483,7 @@ for session = 1 : num_session
             end
             flag_XR = 1;
         end
-        
+
         %----------------------------------------------------------------------------------------------
         % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
         %----------------------------------------------------------------------------------------------
@@ -2105,9 +2105,9 @@ for session = 1 : num_session
             for t = 1 : length(time_GPS)
 
                 Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
-                
+
                 goGPS_LS_DD_code(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
-                
+
                 if (t == 1)
                     fwrite(fid_sat, nSatTot, 'int8');
                     fwrite(fid_conf, nSatTot, 'int8');
@@ -2295,34 +2295,34 @@ for session = 1 : num_session
             fclose(fid_dop);
             fclose(fid_conf);
             fclose(fid_res);
-            
+
             %----------------------------------------------------------------------------------------------
             % POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES
             %----------------------------------------------------------------------------------------------
-            
+
         elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
-            
+
             fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
             fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
             fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
             fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
             fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
-            
+
             nN = nSatTot;
             nT = 0;
             check_on = 0;
             check_off = 0;
             check_pivot = 0;
             check_cs = 0;
-            
+
             plot_t = 1;
-            
+
             % goGPS waiting bar
             w_bar.setBarLen(length(time_GPS_diff));
             w_bar.createNewBar('Processing...');
-            
+
             for t = 1 : length(time_GPS_diff)
-                
+
                 Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
 
                 goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
@@ -2339,7 +2339,7 @@ for session = 1 : num_session
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                     residuals_dummy = NaN(1,nSatTot);
                     fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
-                    
+
                     if (flag_plotproc)
                         if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                         if (flag_cov == 0)
@@ -2529,11 +2529,11 @@ for session = 1 : num_session
             fclose(fid_dop);
             fclose(fid_conf);
             fclose(fid_res);
- 
+
             %----------------------------------------------------------------------------------------------
             % POST-PROCESSING (RELATIVE POSITIONING): BLOCK ON CODE AND PHASE DOUBLE DIFFERENCES
             %----------------------------------------------------------------------------------------------
-            
+
         elseif (mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC)
 
             fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
@@ -2558,15 +2558,15 @@ for session = 1 : num_session
             for t = 1 : length(time_GPS_diff)
 
                 Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
-                
+
                 goGPS_LS_DD_code_phase_batch(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), antenna_PCV);
-                
+
                 if (t == 1)
                     fwrite(fid_sat, nSatTot, 'int8');
                     fwrite(fid_conf, nSatTot, 'int8');
                     fwrite(fid_res, nSatTot, 'int8');
                 end
-                
+
                 Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
                 Cee_dummy = [zeros(o3,o3) zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
                 fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
@@ -2575,25 +2575,25 @@ for session = 1 : num_session
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 residuals_dummy = NaN(1,nSatTot);
                 fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
-                
+
                 if (~isempty(A_epo))
                     n_obs_epoch(t) = length(y0_epo);
-                    y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
-                    b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
-                    A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo;
-                    Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                    y0_all(epoch_track + 1 : epoch_track + n_obs_epoch(t)) = y0_epo;
+                    b_all( epoch_track + 1 : epoch_track + n_obs_epoch(t)) =  b_epo;
+                    A_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), 1:3) = A_epo;
+                    Q_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), epoch_track + 1 : epoch_track + n_obs_epoch(t)) = Q_epo;
                     satpr_track(:,t) = 0; satph_track(:,t) = 0;
                     %                 satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
-                    satph_track(conf_sat==+1 | conf_sat==+2,t) = 1;
+                    satph_track(conf_sat == + 1 | conf_sat == + 2, t) = 1;
                     %                 sat_track(epoch_track+1:epoch_track+n_obs_epoch(t)/2,3) = -1;
-                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),3) = 1;
-                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),2) = setdiff(find(satph_track(:,t) == 1),pivot);
-                    sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),1) = t;
+                    sat_track(epoch_track + 1 : epoch_track + n_obs_epoch(t), 3) = 1;
+                    sat_track(epoch_track + 1 : epoch_track + n_obs_epoch(t), 2) = setdiff(find(satph_track(:,t) == 1), pivot);
+                    sat_track(epoch_track + 1 : epoch_track +n_obs_epoch(t), 1) = t;
                     pivot_track(t) = pivot;
                     epoch_index(t) = epoch_track + n_obs_epoch(t);
                     epoch_track = epoch_index(t);
                 end
-                
+
                 w_bar.goTime(t);
             end
 
@@ -2604,7 +2604,7 @@ for session = 1 : num_session
             fclose(fid_dop);
             fclose(fid_conf);
             fclose(fid_res);
-            
+
             %--------------------------------------------------------------------------------------------------------------------
             % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES WITHOUT LINE CONSTRAINT
             %--------------------------------------------------------------------------------------------------------------------
@@ -3160,7 +3160,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         % STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
         %----------------------------------------------------------------------------------------------
-        
+
         if (state.isModeBlock())
             n_obs_epoch(isnan(n_obs_epoch)) = [];
             epoch_index(isnan(epoch_index)) = [];
@@ -3168,12 +3168,12 @@ for session = 1 : num_session
             satpr_track(:,index_nan) = [];
             satph_track(:,index_nan) = [];
             pivot_track(index_nan)   = [];
-            
+
             index_nan = find(isnan(y0_all),1);
             y0_all(index_nan:end) = [];
             b_all(index_nan:end)  = [];
             sat_track(index_nan:end,:) = [];
-            
+
             %determine the number of unknown ambiguities
             if (goGNSS.isPH(mode))
                 sat_avail = max(satph_track, [], 2);
@@ -3182,15 +3182,15 @@ for session = 1 : num_session
                 amb_prn_track = amb_prn;
                 amb_idx = 1 : amb_num;
             end
-            
+
             if (~isempty(index_nan))
                 A_all = A_all(1:index_nan-1,1:size(A_all,2));
                 Q_all = Q_all(1:index_nan-1,1:index_nan-1);
             end
-            
+
             A_all(isnan(A_all)) = 0;
             Q_all(isnan(Q_all)) = 0;
-            
+
             if (goGNSS.isSA(mode))
                 %set the design matrix to estimate the receiver clock
                 A_all(1:epoch_index(1),3*npos+1) = 1;
@@ -3200,23 +3200,23 @@ for session = 1 : num_session
             elseif (goGNSS.isPH(mode))
                 %matrix to detect re-initialized ambiguities
                 mat_amb = diff(satph_track')';
-                
+
                 %set the design matrix to estimate phase ambiguities
                 A_all = [A_all zeros(size(A_all,1),amb_num)]; %#ok<AGROW>
-                
+
                 for e = 1 : length(epoch_index)
-                    
+
                     if (e < length(epoch_index))
                         %detect new ambiguities on epoch e
                         amb_prn_new = find(mat_amb(:,e) == 1);
                         if (~isempty(amb_prn_new))
                             [~, amb_idx_new] = intersect(amb_prn, amb_prn_new);
-                            
+
                             %add a new amb column for the same satellite only if it already had estimates previously
                             old_amb = find(any(mat_amb(:,1:e-1) == -1,2));
                             [amb_prn_new, idx] = intersect(amb_prn_new,old_amb);
                             amb_idx_new = amb_idx_new(idx);
-                            
+
                             if (~isempty(amb_prn_new))
                                 amb_idx(amb_idx_new) = max(amb_idx) + [1 : length(amb_prn_new)];
                                 amb_num = amb_num + length(amb_prn_new);
@@ -3224,7 +3224,7 @@ for session = 1 : num_session
                             end
                         end
                     end
-                    
+
                     satpr_track(pivot_track(e),e) = -1;
                     satph_track(pivot_track(e),e) = -1;
                     amb_prn_avail = find(satph_track(:,e) == 1);
@@ -3243,19 +3243,19 @@ for session = 1 : num_session
                     A_all(rows,3*npos+pivot_idx) = lambda(amb_prn_avail,1);
                 end
             end
-            
+
             A  = A_all;
             y0 = y0_all;
             b  = b_all;
             Q  = Q_all;
-            
+
             %rescale Q
             Q = Q ./ (min(diag(Q)));
 
             if (goGNSS.isPH(mode))
                 [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
             end
-            
+
             %exclude one of the ambiguity unkowns (to remove the rank deficiency)
             if (size(A,2) > 3)
                 A(:,4) = [];
@@ -3264,37 +3264,39 @@ for session = 1 : num_session
             end
 
             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
-            
+
             sigma_pos = [];
-            
+
             try
                 if (flag_outlier)
-                    
-                    %statistical test detection
-                    [~, idx_out] = deleteoutliers(v_hat);
-%                     outliers = batch_outlier_detection(v_hat,median(round(interval)));
-                    if (~isempty(idx_out))
-                        y0(idx_out) = [];
-                        A(idx_out,:) = [];
-                        Q(idx_out,:) = [];
-                        Q(:,idx_out) = [];
-                        b(idx_out) = [];
-                        sat_track(idx_out,:) = [];
-                        
-                        if (goGNSS.isPH(mode))
-                            [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
-                        end
-                        
-                        [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
-                    end
-                    
-                    %residual threshold
+
+%                     %statistical test detection
+%                     [~, idx_out] = deleteoutliers(v_hat);
+% %                     outliers = batch_outlier_detection(v_hat,median(round(interval)));
+%                     if (~isempty(idx_out))
+%                         y0(idx_out) = [];
+%                         A(idx_out,:) = [];
+%                         Q(idx_out,:) = [];
+%                         Q(:,idx_out) = [];
+%                         b(idx_out) = [];
+%                         sat_track(idx_out,:) = [];
+%
+%                         if (goGNSS.isPH(mode))
+%                             [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
+%                         end
+%
+%                         [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
+%                     end
+
+                    % residual threshold
                     search_for_outlier = 1;
+                    %figure; plot(sort(abs(v_hat)),'.');
                     while (search_for_outlier == 1)
                         idx_pr = find(sat_track(:,3) == -1);
                         idx_ph = find(sat_track(:,3) == 1);
-                        out_pr = abs(v_hat(idx_pr)) > max_code_residual;
-                        out_ph = abs(v_hat(idx_ph)) > max_phase_residual;
+                        % never remove more than 1% of data at time
+                        out_pr = abs(v_hat(idx_pr)) > max(max_code_residual, perc(abs(v_hat(idx_pr)), 0.99));
+                        out_ph = abs(v_hat(idx_ph)) > max(max_phase_residual, perc(abs(v_hat(idx_ph)), 0.99));
                         idx_out_pr = idx_pr(out_pr == 1);
                         idx_out_ph = idx_ph(out_ph == 1);
                         idx_out = [idx_out_pr idx_out_ph];
@@ -3305,17 +3307,18 @@ for session = 1 : num_session
                             Q(:,idx_out) = [];
                             b(idx_out) = [];
                             sat_track(idx_out,:) = [];
-                            
+
                             if (goGNSS.isPH(mode))
                                 [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc);
                             end
-                            
+
                             [x, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0, b, A, Q);
+                            %hold on; plot(sort(abs(v_hat)),'.')
                         else
                             search_for_outlier = 0;
                         end
                     end
-                    
+
                     %             %OLOO
                     %             search_for_outlier = 1;
                     %             while search_for_outlier==1
@@ -3331,7 +3334,7 @@ for session = 1 : num_session
                     %                 end
                     %             end
                 end
-                
+
                 if (goGNSS.isPH(mode))
                     %switch from SD to DD
                     D = zeros(amb_num-1,amb_num);
@@ -3342,26 +3345,26 @@ for session = 1 : num_session
                     G(4:end,4:end) = D;
                     x = G*x;
                     Cxx = G*Cxx*G';
-                    
+
                     cov_X  = Cxx(1:3,1:3);     %position covariance block
                     cov_N  = Cxx(4:end,4:end); %ambiguity covariance block
                     cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
-                    
+
                     fixed_amb = 0;
 %                     if (all(eig(cov_N) > eps)) %if cov_N positive-definite
-%                         if (~isequal(cov_N-cov_N'<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
+%                         if (~isequal('<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
                             [U] = chol(cov_N);
                             cov_N = U'*U;
 %                         end
-                        
+
                         %integer phase ambiguity solving by LAMBDA
                         [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
-                        
+
                         pos_KAL = pos_R + deltaX;
                         if (estim_amb ~= x(4:end))
                             fixed_amb = 1;
                         end
-                        
+
                         epochs_avail = unique(sat_track(:,1));
                         RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
                         RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
@@ -3376,10 +3379,10 @@ for session = 1 : num_session
                 end
             catch
             end
-            
+
             if isempty(sigma_pos)
                 fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
-                
+
                 pos_KAL = NaN(3*npos,1);
                 sigma_pos = NaN(3*npos);
                 estim_amb = NaN(length(x) - 3*npos,1);
@@ -3396,10 +3399,10 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         % OUTPUT DATA FILE READING
         %----------------------------------------------------------------------------------------------
-        
+
         %if any positioning was done (either post-processing or real-time)
         if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-            
+
             %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
             time_GPS = time_GPS_diff + zero_time;
             time_R   = time_R_diff   + zero_time;
@@ -3450,7 +3453,7 @@ for session = 1 : num_session
                         estim_amb(:,i) = Xhat_t_t_OUT(o3+1:o3+nSatTot,i);
                         sigma_amb(:,i) = sqrt(diag(Cee_OUT(o3+1:o3+nSatTot,o3+1:o3+nSatTot,i)));
                     end
-                    
+
                     if (exist('antoff_R','var'))
                         pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
                     end
@@ -3535,7 +3538,7 @@ for session = 1 : num_session
                 [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
                 phi_KAL = phi_KAL * 180/pi;
                 lam_KAL = lam_KAL * 180/pi;
-                
+
                 %coordinate transformation (UTM)
                 [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
             else
@@ -3690,7 +3693,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         % REPORT FILE (PDF)
         %----------------------------------------------------------------------------------------------
-        
+
         %if any positioning was done (either post-processing or real-time)
         if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
             %display information
@@ -3959,7 +3962,7 @@ for session = 1 : num_session
             f4 = subplot(7,3,[13 14 15]);
             plot(nsat); grid on;
             title('Number of satellites');
-            
+
             if (~state.isModeBlock())
                 %EAST plot
                 f5 = subplot(7,3,[16 17 18]);
@@ -3975,7 +3978,7 @@ for session = 1 : num_session
                 else
                     title('East coordinates (blue); Not processed / dynamics only (yellow)');
                 end
-                
+
                 %NORTH plot
                 f6 = subplot(7,3,[19 20 21]);
                 plot(NORTH-NORTH_O); grid on
@@ -3991,7 +3994,7 @@ for session = 1 : num_session
                     title('North coordinates (blue); Not processed / dynamics only (yellow)');
                 end
             end
-            
+
             %print PDF
             print(f, '-dpdf', [filerootOUT '_report']);
 
@@ -4390,7 +4393,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
         %----------------------------------------------------------------------------------------------
-        
+
         if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1) && ~state.isModeBlock()
             epochs = (time_GPS-time_GPS(1))/interval;
 
@@ -4487,7 +4490,7 @@ for session = 1 : num_session
 
         %if any positioning was done (either post-processing or real-time, not constrained)
         if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~state.isModeBlock()
-            
+
             %     %3D plot (XYZ)
             %     figure
             %     plot3(X_KAL, Y_KAL, Z_KAL, '.r');
