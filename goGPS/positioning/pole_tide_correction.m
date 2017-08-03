@@ -55,12 +55,12 @@ poletidecorr = zeros(size(XS,1),1);
 
 %interpolate the pole displacements
 if (~isempty(SP3.ERP))
-    Xinterp = interp1(SP3.ERP.t, SP3.ERP.Xpole, time)*1e-6;
-    Yinterp = interp1(SP3.ERP.t, SP3.ERP.Ypole, time)*1e-6;
+    m1 = interp1(SP3.ERP.t, SP3.ERP.m1, time, 'linear', 'extrap');
+    m2 = interp1(SP3.ERP.t, SP3.ERP.m2, time, 'linear', 'extrap');
     
-    deltaR   = -32*sin(2*phiC)*( Xinterp*cos(lam) + Yinterp*sin(lam))*1e-3;
-    deltaLam = -9* sin(  phiC)*(-Xinterp*sin(lam) + Yinterp*cos(lam))*1e-3;
-    deltaPhi = -9* cos(2*phiC)*( Xinterp*cos(lam) + Yinterp*sin(lam))*1e-3;
+    deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+    deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
+    deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
 
     corrENU(1,1) = deltaLam; %east
     corrENU(2,1) = deltaPhi; %north
@@ -72,7 +72,7 @@ if (~isempty(SP3.ERP))
     for s = 1 : size(XS,1)
         LOS  = XR - XS(s,:)';
         LOSu = LOS / norm(LOS);
-        poletidecorr(s,1) = dot(corrXYZ,LOSu);
+        poletidecorr(s,1) = -dot(corrXYZ,LOSu);
     end
 end
 

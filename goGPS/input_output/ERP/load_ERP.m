@@ -102,6 +102,7 @@ end
 
 jd = MJD + 2400000.5;
 [gps_week, gps_sow, ~] = jd2gps(jd);
+[ERP_date] = gps2date(gps_week, gps_sow);
 [ERP_time] = weektow2time(gps_week, gps_sow ,'G');
 
 if ~any(ERP_time <= max(time) | ERP_time >= min(time))
@@ -123,6 +124,39 @@ ERP.t = ERP_time;
 ERP.Xpole = Xpole;
 ERP.Ypole = Ypole;
 
+%coefficients of the IERS (2010) mean pole model
+t0 = 2000;
+cf_ante = [0   55.974   346.346; ...
+           1   1.8243    1.7896; ...
+           2  0.18413  -0.10729; ...
+           3 0.007024 -0.000908];
+          
+cf_post = [0   23.513   358.891; ...
+           1   7.6141   -0.6287; ...
+           2      0.0       0.0; ...
+           3      0.0       0.0];
+
+idx_ante = find(ERP_date(:,1) <= 2010);
+idx_post = find(ERP_date(:,1)  > 2010);
+
+%computation of the IERS (2010) mean pole
+ERP.meanXpole = zeros(size(ERP.Xpole));
+ERP.meanYpole = zeros(size(ERP.Ypole));
+for d = 1 : 4
+    if (~isempty(idx_ante))
+        ERP.meanXpole(idx_ante) = ERP.meanXpole(idx_ante) + (ERP_date(idx_ante,1) - t0).^cf_ante(d,1) .* cf_ante(d,2);
+        ERP.meanYpole(idx_ante) = ERP.meanYpole(idx_ante) + (ERP_date(idx_ante,1) - t0).^cf_ante(d,1) .* cf_ante(d,3);
+    end
+    
+    if (~isempty(idx_post))
+        ERP.meanXpole(idx_post) = ERP.meanXpole(idx_post) + (ERP_date(idx_post,1) - t0).^cf_post(d,1) .* cf_post(d,2);
+        ERP.meanYpole(idx_post) = ERP.meanYpole(idx_post) + (ERP_date(idx_post,1) - t0).^cf_post(d,1) .* cf_post(d,3);
+    end
+end
+
+ERP.m1 =   ERP.Xpole*1e-6 - ERP.meanXpole*1e-3;
+ERP.m2 = -(ERP.Ypole*1e-6 - ERP.meanYpole*1e-3);
+          
 % % compute rates
 % a = polyfit(ERP_time,Xpole,1); %#ok<*ASGLU>
 % ERP.X0 = polyval(a,ERP.t0);

@@ -681,6 +681,7 @@ for session = 1 : num_session
                     SP3.time    = SP3.time - zero_time;
                     SP3.time_hr = SP3.time_hr - zero_time;
                     SP3.t_sun   = SP3.t_sun - zero_time;
+                    SP3.ERP.t   = SP3.ERP.t - zero_time;
                 end
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
@@ -1046,6 +1047,7 @@ for session = 1 : num_session
                     SP3.time    = SP3.time - zero_time;
                     SP3.time_hr = SP3.time_hr - zero_time;
                     SP3.t_sun   = SP3.t_sun - zero_time;
+                    SP3.ERP.t   = SP3.ERP.t - zero_time;
                 end
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
@@ -3043,6 +3045,7 @@ for session = 1 : num_session
                 SP3.time    = SP3.time + zero_time;
                 SP3.time_hr = SP3.time_hr + zero_time;
                 SP3.t_sun   = SP3.t_sun + zero_time;
+                SP3.ERP.t   = SP3.ERP.t + zero_time;
             end
 
             %---------------------------------
