@@ -118,7 +118,7 @@ codeC1 = zeros(nSatTot, ref_len, nObsSet);
 
 for s = 1 : nObsSet
     time_prog = time_i(s).getGpsTime(time_zero); % substract the first element to reduce the magnitude of all the values
-    [~, idx_t, idx_z] = intersect(roundmod(time_GPS, max_int), roundmod(time_prog, interval(s)));
+    [~, idx_t, idx_z] = intersect(roundmod(time_GPS-1, max_int), roundmod(time_prog-1, interval(s)));
     tmp_time = time_i(s).getId(idx_z);
     time(idx_t, s) = tmp_time.getGpsTime(time_zero);
     week(idx_t, s) = tmp_time.getGpsWeek();
