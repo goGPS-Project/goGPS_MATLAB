@@ -4134,7 +4134,6 @@ for session = 1 : num_session
             label_scaleM = 0.7;
             label_scaleP = 0.7;
             %initialization
-
             phiM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
             lamM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
             hM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
@@ -4317,7 +4316,7 @@ for session = 1 : num_session
             end
             fprintf(fid_kml, '\t\t</Folder>\n');
 
-            if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+            if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV) || (mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC))
                 if (o1 == 1) && (nSol ~= 0)
                     %static positioning coordinates
                     phiP = phi_KAL(end);
