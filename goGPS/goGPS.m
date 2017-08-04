@@ -3381,8 +3381,12 @@ for session = 1 : num_session
             end
 
             if isempty(sigma_pos)
+                fprintf('It was not possible to estimate integer ambiguities: a float solution will be output.\n');
+                sigma_pos = cov_X;
+            end
+            
+            if (isempty(sigma02_hat) || sigma02_hat > 10)
                 fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
-
                 pos_KAL = NaN(3*npos,1);
                 sigma_pos = NaN(3*npos);
                 estim_amb = NaN(length(x) - 3*npos,1);
