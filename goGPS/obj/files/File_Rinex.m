@@ -156,14 +156,17 @@ classdef File_Rinex < handle
                         if this.last_epoch.lenght < f
                             this.last_epoch.addEpoch(0);
                         end
-                        this.logger.addWarning(sprintf('"%s" appears to be a corrupted RINEX file - %s', full_path, ex.message()));
+                        this.logger.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
                         this.is_valid_list(f) = false;
                     end
+                else
+                    this.logger.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing']);
+                    this.is_valid_list(f) = false;
                 end
             end
             this.is_valid = all(this.is_valid_list);
             if (~this.is_valid)
-                this.logger.addWarning('No valid RINEX found!!!');
+                this.logger.addWarning('Some or all the RINEX files are corrupted or missing!!!');
             end
         end
 

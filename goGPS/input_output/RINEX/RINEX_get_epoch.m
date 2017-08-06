@@ -78,36 +78,36 @@ while (cur_line < numel(buf) && ~eof)
             s = s + 1;
         end
     end
-    
+
     if (cur_line < numel(buf))
         % check RINEX version
         if strcmp(lin(1),' ') %RINEX v2.xx
-            
+
             % check if it is a string that should be analyzed
             if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
-                
+
                 % save time information
                 datee = sscanf(lin(1:min(26,end)),'%f%f%f%f%f%f')';
-                
+
                 % year format from 2 to 4 digits
                 [datee(1)] = four_digit_year(datee(1));
-                
+
                 % number of visible satellites
                 [num_sat] = sscanf(lin(30:32),'%d');
-                
+
                 % keep just the satellite data
                 lin = ExtractSubstring(lin, 33, 68);
-                
+
                 % remove 'blank spaces' and unwanted characters at the end of the string
                 lin = deblank(lin);
-                
+
                 % read additional lines, depending on the number of satellites
                 nlines = ceil(num_sat/12);
                 for n = 1 : nlines - 1
                     cur_line = cur_line + 1;
                     lin = deblank([lin ExtractSubstring(buf{cur_line}, 33, 68)]);
                 end
-                
+
                 pos = 1;
                 sat = zeros(num_sat,1);
                 sat_types = char(32*uint8(ones(num_sat,1))');
@@ -124,21 +124,21 @@ while (cur_line < numel(buf) && ~eof)
                     sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
                     pos = pos + 3;
                 end
-                
+
                 eof = 1;
             end
-            
+
         elseif strcmp(lin(1),'>') %RINEX v3.xx
-            
+
             % check if it is a string that should be analyzed
             if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
-                
+
                 % save time information
                 datee = sscanf(lin(3:min(30,end)),'%f%f%f%f%f%f');
-                
+
                 % number of visible satellites
                 [num_sat] = sscanf(lin(33:35),'%d');
-                
+
                 eof = 1;
             end
         end

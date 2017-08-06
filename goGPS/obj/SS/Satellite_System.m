@@ -134,9 +134,9 @@ classdef Satellite_System < Settings_Interface
 
         function id = getFirstId(this)
             % get the first goGPS id -> if constellation is inactive
-            try
-                id = this.go_ids(1) * this.isActive();
-            catch
+            if this.flag_enable % this.isActive()
+                id = this.go_ids(1);
+            else
                 id = 0;
             end
         end

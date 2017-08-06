@@ -118,7 +118,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
                 obsId = obsId+1;
                 %obs = sscanf(lin(mask(:,k)), '%f');
                 obs = fltObs(obsId);
-                
+
                 %check and assign the observation type
                 if (any(~(k-obs_col.C1)))
                     obs_struct.C1(sat_types_id(s)+sat(s)-1) = obs;
@@ -278,7 +278,7 @@ else %RINEX v3.xx
                         % faster conversion of a single ASCII character into an int
                         snr = mod((lin(16*k)-48),16);
                         obs_tmp(index, 2) = 6 * snr;
-                    end                
+                    end
                 elseif (any(~(k-obs_col.(sysId).P2)))
                     obs_struct.P2(index) = obs;
                 elseif (any(~(k-obs_col.(sysId).D2)))

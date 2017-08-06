@@ -139,8 +139,8 @@ for f = 1 : nFiles
 
     logger.addMessage(sprintf('Opening file %s', current_file));
     File_Rinex(current_file,9);
-    
-    
+
+
     %open RINEX observation file
     fid = fopen(current_file,'r');
     file_buf = textscan(fid, '%s', 'Delimiter', '\n', 'whitespace', '');
@@ -149,7 +149,7 @@ for f = 1 : nFiles
     fclose(fid);
 
     logger.addMessage('Start parsing (this operation could last several seconds)');
-    
+
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg, ['RINEX file ' current_file ': parsing header...'])
     end
