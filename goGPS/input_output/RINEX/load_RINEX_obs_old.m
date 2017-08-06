@@ -68,15 +68,10 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-t0 = tic;
-
 global report
 
 logger = Logger.getInstance();
 state = Go_State.getCurrentSettings();
-
-logger.addMarkedMessage('Reading observations... ');
-logger.newLine();
 
 % Check the input arguments
 if (nargin < 4)
@@ -117,18 +112,6 @@ antmod = cell(1,1,nFiles);
 codeC1 = zeros(nSatTot,nEpochs,nFiles);
 marker = cell(1,1,nFiles);
 
-% to be used in get obs:
-% starting index in the total array for the various constellations
-idGPS = cc.getGPS().getFirstId();
-idGLONASS = cc.getGLONASS().getFirstId();
-idGalileo = cc.getGalileo().getFirstId();
-idBeiDou = cc.getBeiDou().getFirstId();
-idQZSS = cc.getQZSS().getFirstId();
-idSBAS = cc.getSBAS().getFirstId();
-% to speed-up get obs in MATLAB I need to precompute these values
-first_id_sys = [idGPS idGLONASS idGalileo idBeiDou idQZSS idSBAS];
-active_sys = cc.getActive();
-
 max_k = 0;
 for f = 1 : nFiles
     if (iscell(filename))
@@ -137,25 +120,18 @@ for f = 1 : nFiles
         current_file = filename;
     end
 
-    logger.addMessage(sprintf('Opening file %s', current_file));
+    logger.addMessage(sprintf('Reading file %s', current_file));
     File_Rinex(current_file,9);
-    
-    
+
     %open RINEX observation file
     fid = fopen(current_file,'r');
-    file_buf = textscan(fid, '%s', 'Delimiter', '\n', 'whitespace', '');
-    file_buf = file_buf{1};
-    cur_line = 0;
-    fclose(fid);
 
-    logger.addMessage('Start parsing (this operation could last several seconds)');
-    
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg, ['RINEX file ' current_file ': parsing header...'])
     end
 
     %parse RINEX header
-    [cur_line, obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}, marker{1,1,f}] = RINEX_parse_hdr(file_buf, cur_line);
+    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}, marker{1,1,f}] = RINEX_parse_hdr_old(fid);
 
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
@@ -176,10 +152,10 @@ for f = 1 : nFiles
     end
 
     k = 1;
-    while (cur_line < numel(file_buf))
+    while (~feof(fid))
 
         %read data for the current epoch (ROVER)
-        [cur_line, date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch(file_buf, cur_line);
+        [date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch_old(fid);
         if ~isempty(date(k,1,f))
             if (k > nEpochs)
                 %variable initialization (GPS)
@@ -196,7 +172,7 @@ for f = 1 : nFiles
             end
 
             %read ROVER observations
-            [cur_line, obs] = RINEX_get_obs(file_buf, cur_line, num_sat, sat, sat_types, obsColumns, nObsTypes, cc, active_sys, first_id_sys);
+            obs = RINEX_get_obs_old(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, cc);
 
             idx_P1 = obs.P1 ~= 0;
             idx_C1 = obs.C1 ~= 0;
@@ -237,6 +213,8 @@ for f = 1 : nFiles
     end
 
     %-------------------------------------------------------------------------------
+
+    fclose(fid);
 
 %     if (processing_interval > interval(:,1,f))
 %         interval(:,1,f) = processing_interval;
@@ -284,8 +262,7 @@ for f = 1 : nFiles
         end
     end
 
-    logger.addMessage('RINEX parsing completed');
-    logger.newLine();
+    logger.addMessage('Done reading current RINEX');
 end
 
 % trim output (it have been pre-allocated bigger)
@@ -300,6 +277,7 @@ snr2 = snr2(:,(1 : max_k),:);
 date = date((1 : max_k),:,:);
 codeC1 = codeC1(:,(1 : max_k),:);
 
+logger.newLine();
 logger.addMessage('Syncing observations if needed');
 
 %sync observations
@@ -349,6 +327,7 @@ for f = 1 : nFiles
         end
     end
 end
+logger.newLine();
 
 if (~isempty(report) && report.opt.write == 1)
     % extract quality parameters for report
@@ -385,6 +364,3 @@ if (~isempty(report) && report.opt.write == 1)
         end
     end
 end
-
-logger.addMessage(sprintf('Parsing completed in %f.2 seconds', toc(t0)));
-logger.newLine();
