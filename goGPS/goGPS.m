@@ -3362,7 +3362,7 @@ for session = 1 : num_session
                             [U] = chol(cov_N);
                             cov_N = U'*U;
                         catch ex
-                            logger.addError(sprintf('%s',ex.message()));
+                            logger.addWarning(sprintf('Covariance matrix unstable %s',ex.message()));
                         end
                         %                         end
 
@@ -3392,12 +3392,12 @@ for session = 1 : num_session
             end
 
             if isempty(sigma_pos)
-                fprintf('It was not possible to estimate integer ambiguities: a float solution will be output.\n');
+                logger.addWarning('It was not possible to estimate integer ambiguities: a float solution will be output.');
                 sigma_pos = cov_X;
             end
 
             if (isempty(sigma02_hat) || sigma02_hat > 10)
-                fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
+                logger.addWarning('It was not possible to compute a solution by the block adjustment procedure.');
 
                 pos_KAL = NaN(3*npos,1);
                 sigma_pos = NaN(3*npos);
