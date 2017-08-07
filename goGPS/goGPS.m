@@ -56,7 +56,7 @@ fclose('all');
 %clc
 
 % disable warnings
-warning off; %#ok<WNOFF>
+warning off;
 
 % include all subdirectories
 if (~isdeployed)
@@ -1546,10 +1546,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -1634,10 +1634,10 @@ for session = 1 : num_session
 
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end
                             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath());
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end
                             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, gs.getReferencePath());
                         end
                         if (flag_skyplot == 1)
@@ -1678,10 +1678,10 @@ for session = 1 : num_session
                     if (flag_plotproc)
                         if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end
                             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                         end
                         if (flag_skyplot == 1)
@@ -1755,10 +1755,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -1874,8 +1874,8 @@ for session = 1 : num_session
                 lastX=0;
                 lastY=0;
                 lastZ=0;
-                for epo=1:length(jumps)-1;
-                    if (jumps(epo+1)-jumps(epo))~=1;
+                for epo=1:length(jumps)-1
+                    if (jumps(epo+1)-jumps(epo))~=1
                         mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
                         mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
                         mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
@@ -2001,10 +2001,10 @@ for session = 1 : num_session
 
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end
                             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end
                             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                         end
                         if (flag_amb == 1)
@@ -2053,10 +2053,10 @@ for session = 1 : num_session
                     if (flag_plotproc)
                         if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end
                             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                         end
                         if (flag_amb == 1)
@@ -2135,10 +2135,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -2155,8 +2155,8 @@ for session = 1 : num_session
                                 n_obs_epoch(t) = length(y0_epo);
                                 y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
                                 b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
-                                A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
-                                Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                                A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);  %#ok<SPRIX>
+                                Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;  %#ok<SPRIX>
                                 satpr_track(:,t) = 0;
                                 satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
                                 sat_track(epoch_track+1:epoch_track+n_obs_epoch(t),3) = -1;
@@ -2235,10 +2235,10 @@ for session = 1 : num_session
 
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end
                             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath());
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end
                             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, gs.getReferencePath());
                         end
                         if (flag_skyplot == 1)
@@ -2278,10 +2278,10 @@ for session = 1 : num_session
                     if (flag_plotproc)
                         if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                         if (flag_cov == 0)
-                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                         else
-                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                         end
                         if (flag_skyplot == 1)
@@ -2351,10 +2351,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -2428,10 +2428,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -2509,10 +2509,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end
                                 rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath());
                             end
                             if (flag_skyplot == 1)
@@ -2588,8 +2588,8 @@ for session = 1 : num_session
                         n_obs_epoch(t) = length(y0_epo);
                         y0_all(epoch_track + 1 : epoch_track + n_obs_epoch(t)) = y0_epo;
                         b_all( epoch_track + 1 : epoch_track + n_obs_epoch(t)) =  b_epo;
-                        A_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), 1:3) = A_epo;
-                        Q_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), epoch_track + 1 : epoch_track + n_obs_epoch(t)) = Q_epo;
+                        A_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), 1:3) = A_epo; %#ok<SPRIX>
+                        Q_all( epoch_track + 1 : epoch_track + n_obs_epoch(t), epoch_track + 1 : epoch_track + n_obs_epoch(t)) = Q_epo;  %#ok<SPRIX>
                         satpr_track(:,t) = 0; satph_track(:,t) = 0;
                         %                 satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
                         satph_track(conf_sat == + 1 | conf_sat == + 2, t) = 1;
@@ -2678,10 +2678,10 @@ for session = 1 : num_session
 
                         if (flag_plotproc)
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end
                                 rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end
                                 rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                             end
                             if (flag_amb == 1)
@@ -2748,10 +2748,10 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                             end
                             if (flag_amb == 1)
@@ -2845,14 +2845,14 @@ for session = 1 : num_session
 
                         if (flag_plotproc)
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end
                                 if (flag_stopGOstop == 1)
                                     rtplot_matlab_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, gs.getReferencePath(), flag_dyn, flag_amb);
                                 else
                                     rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                                 end
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end
                                 if (flag_stopGOstop == 1)
                                     rtplot_matlab_cov_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, gs.getReferencePath(), flag_dyn, flag_amb);
                                 else
@@ -2947,14 +2947,14 @@ for session = 1 : num_session
                         if (flag_plotproc)
                             if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                             if (flag_cov == 0)
-                                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end
                                 if (flag_stopGOstop == 1)
                                     rtplot_matlab_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, gs.getReferencePath(), flag_dyn, flag_amb);
                                 else
                                     rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                                 end
                             else
-                                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end
                                 if (flag_stopGOstop == 1)
                                     rtplot_matlab_cov_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, gs.getReferencePath(), flag_dyn, flag_amb);
                                 else
@@ -3058,7 +3058,7 @@ for session = 1 : num_session
                     fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
 
                     if (flag_plotproc)
-                        if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date_R(1,:)), end;
+                        if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date_R(1,:)), end
                         rtplot_matlab (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, gs.getReferencePath(), flag_amb);
                         if (flag_amb == 1)
                             rtplot_amb (1, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
@@ -3100,7 +3100,7 @@ for session = 1 : num_session
 
                     if (flag_plotproc)
                         if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
-                        if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date_R(t,:)), end;
+                        if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date_R(t,:)), end
                         rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, gs.getReferencePath(), flag_amb);
                         if (flag_amb == 1)
                             rtplot_amb (t, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
@@ -3196,14 +3196,11 @@ for session = 1 : num_session
                     Q_all = Q_all(1:index_nan-1,1:index_nan-1);
                 end
 
-                A_all(isnan(A_all)) = 0;
-                Q_all(isnan(Q_all)) = 0;
-
                 if (goGNSS.isSA(mode))
                     %set the design matrix to estimate the receiver clock
-                    A_all(1:epoch_index(1),3*npos+1) = 1;
+                    A_all(1:epoch_index(1),3*npos+1) = 1; %#ok<SPRIX>
                     for e = 2 : length(epoch_index)
-                        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+                        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1; %#ok<SPRIX>
                     end
                 elseif (goGNSS.isPH(mode))
                     %matrix to detect re-initialized ambiguities
@@ -3226,7 +3223,7 @@ for session = 1 : num_session
                                 amb_idx_new = amb_idx_new(idx);
 
                                 if (~isempty(amb_prn_new))
-                                    amb_idx(amb_idx_new) = max(amb_idx) + [1 : length(amb_prn_new)];
+                                    amb_idx(amb_idx_new) = max(amb_idx) + (1 : length(amb_prn_new));
                                     amb_num = amb_num + length(amb_prn_new);
                                     amb_prn_track = [amb_prn_track; amb_prn_new]; %#ok<AGROW>
                                 end
@@ -3361,8 +3358,12 @@ for session = 1 : num_session
                         fixed_amb = 0;
                         %                     if (all(eig(cov_N) > eps)) %if cov_N positive-definite
                         %                         if (~isequal('<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
-                        [U] = chol(cov_N);
-                        cov_N = U'*U;
+                        try
+                            [U] = chol(cov_N);
+                            cov_N = U'*U;
+                        catch ex
+                            logger.addError(sprintf('%s',ex.message()));
+                        end
                         %                         end
 
                         %integer phase ambiguity solving by LAMBDA
@@ -3385,7 +3386,8 @@ for session = 1 : num_session
                         end
                         %                     end
                     end
-                catch
+                catch ex
+                    logger.addError(ex.message());
                 end
             end
 
@@ -3396,6 +3398,7 @@ for session = 1 : num_session
 
             if (isempty(sigma02_hat) || sigma02_hat > 10)
                 fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
+
                 pos_KAL = NaN(3*npos,1);
                 sigma_pos = NaN(3*npos);
                 estim_amb = NaN(length(x) - 3*npos,1);
@@ -3451,34 +3454,6 @@ for session = 1 : num_session
                     fixed_amb = zeros(1,nSol);
                     succ_rate = zeros(1,nSol);
                 end
-                Eph(32,:) = Eph(32,:) + zero_time;
-                Eph(33,:) = Eph(33,:) + zero_time;
-                if (flag_SP3)
-                    SP3.time    = SP3.time + zero_time;
-                    SP3.time_hr = SP3.time_hr + zero_time;
-                    SP3.t_sun   = SP3.t_sun + zero_time;
-                end
-
-                %---------------------------------
-
-                %reading of the files with Kalman filter results
-                [Xhat_t_t_OUT, Yhat_t_t_OUT, Cee_OUT, azM, azR, elM, elR, distM, distR, ...
-                    conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
-                    RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
-                    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
-
-                %variable saving for final graphical representations
-                nSol = size(Xhat_t_t_OUT,2);
-                pos_KAL = zeros(3,nSol);
-                pos_REF = zeros(3,nSol);
-                stat_SC = zeros(2,nSol);
-                if (any(fixed_solution))
-                    fixed_amb = fixed_solution;
-                else
-                    fixed_amb = zeros(1,nSol);
-                    succ_rate = zeros(1,nSol);
-                end
                 estim_amb = zeros(nSatTot,nSol);
                 sigma_amb = zeros(nSatTot,nSol);
                 estim_tropo = zeros(nSatTot,nSol);
@@ -3523,6 +3498,7 @@ for session = 1 : num_session
                     pos_KAL(:,1) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,1));
                 end
             end
+
 
             switch state.getForwardBackwardKF()
                 case -1
@@ -4682,7 +4658,7 @@ for session = 1 : num_session
         end
 
         %re-enable MATLAB warnings
-        warning on %#ok<WNON>
+        warning on
 
         %evaluate computation time
         toc
@@ -4735,7 +4711,7 @@ for session = 1 : num_session
             fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
             if fid_rep_i~=-1
                 line=fgetl(fid_rep_i);
-                while (isempty(strfind(line,'Observations (RAW)              Start time')))
+                while (isempty(strfind(line,'Observations (RAW)              Start time'))) %#ok<STREMP>
                     line = fgetl(fid_rep_i);
                 end
                 line=fgetl(fid_rep_i);

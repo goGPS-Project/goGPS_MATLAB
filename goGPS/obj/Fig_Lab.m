@@ -71,10 +71,14 @@ classdef Fig_Lab < handle
 
             spline_base = spline_base * (size(enu,1) > spline_base);
 
-            if (color_type == 0); fh = figure(); end
+            persistent m_enu
+            if (color_type == 0)
+                fh = figure();
+                m_enu = [];
+            end
             maximizeFig(gcf);
             color_order = handle(gca).ColorOrder;
-            if color_type == 0
+            if color_type == 1
                 color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
             end
             if color_type == -1
@@ -82,7 +86,9 @@ classdef Fig_Lab < handle
             end
 
             % prepare data
-            m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
+            if isempty(m_enu)
+                m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
+            end
             data_e = (enu(:,1) - m_enu(:,1))*1e3;
             data_n = (enu(:,2) - m_enu(:,2))*1e3;
             data_u = (enu(:,3) - m_enu(:,3))*1e3;
@@ -105,41 +111,41 @@ classdef Fig_Lab < handle
 
             if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
                 subplot(3,1,1); if color_type; hold on; end
-                plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(data_e, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(data_e_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_e_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
 
                 subplot(3,1,2);
-                plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                plot(data_n, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(data_n_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_n_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
 
                 subplot(3,1,3);
                 plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(data_u_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(data_u_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
             else
                 subplot(3,1,1);
-                plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(time.getMatlabTime, data_e, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_e_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_e_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,2);
-                plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                plot(time.getMatlabTime, data_n, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_n_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_n_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,3);
-                plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
+                plot(time.getMatlabTime, data_u, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_u_s, '--', 'Color', iif(color_type, [0.5 0.5 0.5], [0 0 0]));
+                    plot(time.getMatlabTime, data_u_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
                 end
                 setTimeTicks(4,date_style);
             end
@@ -148,28 +154,28 @@ classdef Fig_Lab < handle
             if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_e(~isnan(data_e)))));
             else
-                title(sprintf('East - std %.2f [mm]', std(data_e(~isnan(data_e)))));
+                title(sprintf('std %.2f [mm]', std(data_e(~isnan(data_e)))));
             end
-            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta EAST [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,2); ax(2) = gca;
             grid on;
             if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_n(~isnan(data_n)))));
             else
-                title(sprintf('North - std %.2f [mm]', std(data_n(~isnan(data_n)))));
+                title(sprintf('std %.2f [mm]', std(data_n(~isnan(data_n)))));
             end
-            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta NORTH [mm]', 'FontWeight', 'Bold')
 
             subplot(3,1,3); ax(3) = gca;
             grid on;
             if color_type
                 title(sprintf('%s vs std %.2f [mm]', handle(gca).Title.String, std(data_u(~isnan(data_u)))));
             else
-                title(sprintf('Up - std %.2f [mm]', std(data_u(~isnan(data_u)))));
+                title(sprintf('std %.2f [mm]', std(data_u(~isnan(data_u)))));
             end
             linkaxes(ax,'x');
-            ylabel('displacement [mm]', 'FontWeight', 'Bold')
+            ylabel('\Delta UP [mm]', 'FontWeight', 'Bold')
         end
     end
 
@@ -219,7 +225,7 @@ classdef Fig_Lab < handle
                 data = reshape(data, 14, numel(data)/14)';
                 time = GPS_Time(datenum([data(:,1), data(:,4:8)]));
                 xyz = data(:,9:11);
-                enu = data(:,[12 13 14]);
+                enu = data(:,12:14);
                 clear data;
 
                 m_xyz = mean(xyz);
