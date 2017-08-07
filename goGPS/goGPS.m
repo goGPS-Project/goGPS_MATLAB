@@ -3387,21 +3387,6 @@ for session = 1 : num_session
                     end
                 catch
                 end
-
-                if isempty(sigma_pos)
-                    fprintf('It was not possible to compute a solution by the multi-epoch least-squares adjustment procedure.\n');
-
-                    pos_KAL = NaN(3*npos,1);
-                    sigma_pos = NaN(3*npos);
-                    estim_amb = NaN(length(x) - 3*npos,1);
-                    sigma_amb = NaN(length(x) - 3*npos);
-                    fixed_amb = 0;
-                    epochs_avail = unique(sat_track(:,1));
-                    RES_PHASE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_CODE1_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_PHASE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                    RES_CODE2_FLOAT_MELSA = zeros(nSatTot,max(epochs_avail));
-                end
             end
 
             if isempty(sigma_pos)
