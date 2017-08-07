@@ -1,4 +1,4 @@
-function goGPS_LS_DD_code_phase_batch(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, antenna_PCV)
+function goGPS_BLK_DD_code_phase_static(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, antenna_PCV)
 
 % SYNTAX:
 %   goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, antenna_PCV);
@@ -221,9 +221,9 @@ if (size(sat_pr,1) >= min_nsat_LS)
     if (size(sat,1) >= min_nsat_LS && (isempty(cond_num) || cond_num < cond_num_threshold))
 
         if (frequencies == 1)
-            [y0_epo, A_epo, b_epo, Q_epo] = input_LS_DD_code_phase_batch(XR0, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1));
+            [y0_epo, A_epo, b_epo, Q_epo] = input_BLK_DD_code_phase_static(XR0, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1));
         else
-            [y0_epo, A_epo, b_epo, Q_epo] = input_LS_DD_code_phase_batch(XR0, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2));
+            [y0_epo, A_epo, b_epo, Q_epo] = input_BLK_DD_code_phase_static(XR0, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2));
         end
 
 %         if (any(bad_obs))

@@ -880,7 +880,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         function showTextMode(this)
             % Display informations about the processing
 
-            str = sprintf('Processing using %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
+            str = sprintf('Processing using mode %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
             if this.isModeKM() && this.getForwardBackwardKF() > 0
                 str = strcat(str, 10, 'Kalman forward/backward processing enabled');
             end
