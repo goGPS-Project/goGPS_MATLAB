@@ -3356,19 +3356,15 @@ for session = 1 : num_session
                         cov_XN = Cxx(1:3,4:end);   %position-ambiguity covariance block
 
                         fixed_amb = 0;
-                        %                     if (all(eig(cov_N) > eps)) %if cov_N positive-definite
-                        %                         if (~isequal('<1E-6,ones(size(cov_N)))) %if cov_N not symmetric
                         try
                             [U] = chol(cov_N);
                             cov_N = U'*U;
                         catch ex
-                            logger.addWarning(sprintf('Covariance matrix unstable %s',ex.message()));
+                            logger.addWarning(sprintf('Covariance matrix unstable %s', ex.message));
                         end
-                        %                         end
 
                         %integer phase ambiguity solving by LAMBDA
-                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
-
+                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);                            
                         pos_KAL = pos_R + deltaX;
                         if (estim_amb ~= x(4:end))
                             fixed_amb = 1;
@@ -3384,16 +3380,14 @@ for session = 1 : num_session
                             idx = find(sat_track(:,1) == epoch);
                             RES_PHASE1_FLOAT_MELSA(sat_track(idx,2),epoch) = v_hat(idx,1);
                         end
-                        %                     end
+                        if isempty(sigma_pos)
+                            throw(MException('VerifyOutput:Systemunstable', 'The fixed block solution is unstable'));
+                        end                        
                     end
                 catch ex
-                    logger.addError(ex.message());
+                    logger.addWarning('It was not possible to estimate integer ambiguities: a float solution will be output.');
+                    sigma_pos = cov_X;
                 end
-            end
-
-            if isempty(sigma_pos)
-                logger.addWarning('It was not possible to estimate integer ambiguities: a float solution will be output.');
-                sigma_pos = cov_X;
             end
 
             if (isempty(sigma02_hat) || sigma02_hat > 10)
