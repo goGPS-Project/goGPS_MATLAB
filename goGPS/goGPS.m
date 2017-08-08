@@ -1477,11 +1477,11 @@ for session = 1 : num_session
                 b_all  = NaN(n_obs_tot,1);
                 sat_track = NaN(n_obs_tot,3); %epoch; PRN; code/phase
                 if (goGNSS.isSA(mode))
-                    A_all = sparse(zeros(n_obs_tot,npos*3+length(time_GPS)));
+                    A_all = sparse(n_obs_tot,npos*3+length(time_GPS));
                 else
-                    A_all = sparse(zeros(n_obs_tot,npos*3));
+                    A_all = sparse(n_obs_tot,npos*3);
                 end
-                Q_all  = sparse(zeros(n_obs_tot,n_obs_tot));
+                Q_all  = sparse(n_obs_tot,n_obs_tot);
 
                 %set a priori coordinates
                 if (exist('pos_R_crd','var') && any(pos_R_crd))
@@ -2587,7 +2587,7 @@ for session = 1 : num_session
                         %                 sat_track(epoch_track+1:epoch_track+n_obs_epoch(t)/2,3) = -1;
                         sat_track(epoch_track + 1 : epoch_track + n_obs_epoch(t), 3) = 1;
                         sat_track(epoch_track + 1 : epoch_track + n_obs_epoch(t), 2) = setdiff(find(satph_track(:,t) == 1), pivot);
-                        sat_track(epoch_track + 1 : epoch_track +n_obs_epoch(t), 1) = t;
+                        sat_track(epoch_track + 1 : epoch_track + n_obs_epoch(t), 1) = t;
                         pivot_track(t) = pivot;
                         epoch_index(t) = epoch_track + n_obs_epoch(t);
                         epoch_track = epoch_index(t);
@@ -3260,7 +3260,10 @@ for session = 1 : num_session
                 y0 = y0_all;
                 b  = b_all;
                 Q  = Q_all;
-
+                sat_track_all = sat_track;
+                amb_num_all = amb_num;
+                amb_prn_track_all = amb_prn_track;
+                
                 %rescale Q
                 Q = Q ./ (min(diag(Q)));
 
