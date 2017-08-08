@@ -2575,15 +2575,6 @@ for session = 1 : num_session
                         fwrite(fid_res, nSatTot, 'int8');
                     end
 
-                    Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
-                    Cee_dummy = [zeros(o3,o3) zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
-                    fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
-                    fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
-                    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    residuals_dummy = NaN(1,nSatTot);
-                    fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
-
                     if (~isempty(A_epo))
                         n_obs_epoch(t) = length(y0_epo);
                         y0_all(epoch_track + 1 : epoch_track + n_obs_epoch(t)) = y0_epo;
@@ -2600,7 +2591,23 @@ for session = 1 : num_session
                         pivot_track(t) = pivot;
                         epoch_index(t) = epoch_track + n_obs_epoch(t);
                         epoch_track = epoch_index(t);
+                    else
+                        conf_sat = zeros(nSatTot,1);
+                        conf_cs = zeros(nSatTot,1);
+                        pivot = 0;
+                        PDOP = 0;
+                        HDOP = 0;
+                        VDOP = 0;
                     end
+
+                    Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
+                    Cee_dummy = [zeros(o3,o3) zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+                    fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+                    fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+                    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+                    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+                    residuals_dummy = NaN(1,nSatTot);
+                    fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
 
                     w_bar.goTime(t);
                 end
@@ -3679,7 +3686,7 @@ for session = 1 : num_session
                     fprintf(fid_out, head_str);
                     for i = 1 : nSol
                         %file writing
-                        if (pivot_OUT(i) ~= 0)
+                        if (pivot_OUT(i) ~= 0 || state.isModeBlock())
                             fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
                         else
                             fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
