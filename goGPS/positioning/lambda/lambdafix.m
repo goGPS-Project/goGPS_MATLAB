@@ -96,6 +96,7 @@ try
         % compute the fixed solution
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
         acheck = afixed(:,1);
+        Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
 
     elseif (IAR_method == 5)
         % Partial Ambiguity Resolution, method 5
@@ -110,6 +111,7 @@ try
             try
                 %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
                 bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
+                Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
             catch ME
                 disp('Problems in PAR (lambdafix.m)');
                 %keyboard;

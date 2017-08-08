@@ -3367,7 +3367,7 @@ for session = 1 : num_session
                             [U] = chol(cov_N);
                             cov_N = U'*U;
                         catch ex
-                            logger.addWarning(sprintf('Covariance matrix unstable %s', ex.message));
+                            logger.addWarning(sprintf('Phase ambiguities covariance matrix unstable %s', ex.message));
                         end
 
                         %integer phase ambiguity solving by LAMBDA
@@ -3387,8 +3387,8 @@ for session = 1 : num_session
                             idx = find(sat_track(:,1) == epoch);
                             RES_PHASE1_FLOAT_MELSA(sat_track(idx,2),epoch) = v_hat(idx,1);
                         end
-                        if isempty(sigma_pos)
-                            throw(MException('VerifyOutput:Systemunstable', 'The fixed block solution is unstable'));
+                        if (~fixed_solution)
+                            throw(MException('VerifyOutput:Systemunstable', 'LAMBDA did not return a fixed solution.'));
                         end                        
                     end
                 catch ex
