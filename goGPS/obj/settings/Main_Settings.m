@@ -1565,6 +1565,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_RT)-1]);
             end
 
+            if (this.getMode() == this.MODE_PP_BLK_CP_DD_STATIC) && ~(this.isStaticKF())
+               this.kf_mode = 0;
+            end
+
             this.checkLogicalField('flag_seamless_proc');
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);

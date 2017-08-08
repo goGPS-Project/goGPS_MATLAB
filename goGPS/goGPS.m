@@ -2558,11 +2558,9 @@ for session = 1 : num_session
                 check_cs = 0;
 
                 plot_t = 1;
-
                 % goGPS waiting bar
                 w_bar.setBarLen(length(time_GPS_diff));
                 w_bar.createNewBar('Processing...');
-
                 for t = 1 : length(time_GPS_diff)
 
                     Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
@@ -3256,14 +3254,18 @@ for session = 1 : num_session
                     end
                 end
 
+                sat_track_all = sat_track;
+                amb_num_all = amb_num;
+                amb_prn_track_all = amb_prn_track;
+
                 A  = A_all;
                 y0 = y0_all;
                 b  = b_all;
                 Q  = Q_all;
-                sat_track_all = sat_track;
-                amb_num_all = amb_num;
-                amb_prn_track_all = amb_prn_track;
-                
+                sat_track = sat_track_all;
+                amb_num = amb_num_all;
+                amb_prn_track = amb_prn_track_all;
+
                 %rescale Q
                 Q = Q ./ (min(diag(Q)));
 
@@ -3374,7 +3376,7 @@ for session = 1 : num_session
                         end
 
                         %integer phase ambiguity solving by LAMBDA
-                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);                            
+                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
                         pos_KAL = pos_R + deltaX;
                         if (estim_amb ~= x(4:end))
                             fixed_amb = 1;
@@ -3392,7 +3394,7 @@ for session = 1 : num_session
                         end
                         if (~fixed_solution)
                             throw(MException('VerifyOutput:Systemunstable', 'LAMBDA did not return a fixed solution.'));
-                        end                        
+                        end
                     end
                 catch ex
                     logger.addWarning('It was not possible to estimate integer ambiguities: a float solution will be output.');

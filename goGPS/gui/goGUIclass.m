@@ -934,6 +934,7 @@ classdef goGUIclass < handle
             idG.HAntenna = [id.tHAntenna id.nHAntenna id.uHAntenna];
 
             % Velocity ----------------------------------------------------
+
             i=i+1; id.tStdVel       = i;    id2h(i) = this.goh.text_std_vel;
             i=i+1; id.nStdVel       = i;    id2h(i) = this.goh.std_vel;
             i=i+1; id.uStdVel       = i;    id2h(i) = this.goh.text_std_vel_unit;
@@ -1998,7 +1999,7 @@ classdef goGUIclass < handle
 
             % Check File input dependencies
             this.setElStatus([this.idGroup.onRin], 1, 0);
-            if (this.isStandAlone() && not(this.isSEID))
+            if (Main_Settings.isSA(this.getgoGPSMode) && not(this.isSEID))
                 this.setElStatus([this.idGroup.RinMaster], 0, 0);
             end
 
