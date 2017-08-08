@@ -204,36 +204,33 @@ fnp = File_Name_Processor();
 
 if num_session > 1
     is_batch = true;
-
+    
     % Composing the name of the batch output
     sss_date_start = state.getSessionStart();
     sss_date_stop = state.getSessionStop();
-
-    if ~state.isModeSEID()
-        [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
-        marker_trg = file_name(1:4);
-        if state.isModeDD()
-            [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
-            marker_mst = [file_name(1:4) '_'];
-        else
-            marker_mst = '';
-        end
-
-        file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
-        file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
-        fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
-
-        fid_extract_ZTD = fopen(sprintf('%s_ZTD.txt', file_name_base),'w');
-        fid_extract_ZWD = fopen(sprintf('%s_ZWD.txt', file_name_base),'w');
-
-        fid_extract_POS = fopen(sprintf('%s_position.txt', file_name_base),'w');
-        fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
-        fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
-
-        fid_extract_OBS = fopen(sprintf('%s_qualityOBS.txt', file_name_base),'w');
-        fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
-        fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
+    [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
+    marker_trg = file_name(1:4);
+    if state.isModeDD() && ~state.isModeSEID()
+        [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
+        marker_mst = [file_name(1:4) '_'];
+    else
+        marker_mst = '';
     end
+    
+    file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
+    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
+    fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
+    
+    fid_extract_ZTD = fopen(sprintf('%s_ZTD.txt', file_name_base),'w');
+    fid_extract_ZWD = fopen(sprintf('%s_ZWD.txt', file_name_base),'w');
+    
+    fid_extract_POS = fopen(sprintf('%s_position.txt', file_name_base),'w');
+    fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
+    fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
+    
+    fid_extract_OBS = fopen(sprintf('%s_qualityOBS.txt', file_name_base),'w');
+    fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
+    fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 else
     is_batch = false;
 end
