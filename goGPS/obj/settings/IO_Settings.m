@@ -89,8 +89,8 @@ classdef IO_Settings < Settings_Interface
         CUSTOM_PORT = '21'
         CUSTOM_PATH = 'pub/gps/products/'
         CUSTOM_NAME_EPH = '${WWWW}/igs${WWWWD}.sp3';
-        CUSTOM_NAME_ERP = '${WWWW}/igs${WWWWD}.erp';
         CUSTOM_NAME_CLK = '${WWWW}/igs${WWWWD}.clk_30s';
+        CUSTOM_NAME_ERP = '${WWWW}/igs${WWWW}7.erp';
 
         % SATELLITES
         EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep]; % Path to Ephemeris files folder
@@ -110,6 +110,7 @@ classdef IO_Settings < Settings_Interface
         % REFERENCE
         REF_GRAPH_FILE = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ref_path' filesep 'ref_path.mat']; % Reference path constraints
         ERP_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
+        ERP_NAME = ''; % Name of ERP files
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
 
@@ -170,8 +171,8 @@ classdef IO_Settings < Settings_Interface
         custom_port = IO_Settings.CUSTOM_PORT; % ftp port for a custom server
         custom_path = IO_Settings.CUSTOM_PATH; % remote path
         custom_name_eph = IO_Settings.CUSTOM_NAME_EPH; % name of the ephemeris file in the remote dir
-        custom_name_erp = IO_Settings.CUSTOM_NAME_ERP; % name of the Earth Rotation Parameters file in the remote dir
         custom_name_clk = IO_Settings.CUSTOM_NAME_CLK; % name of the clock file in the remote dir
+        custom_name_erp = IO_Settings.CUSTOM_NAME_ERP; % name of the Earth Rotation Parameters file in the remote dir
 
         %------------------------------------------------------------------
         % DEPRECATE
@@ -228,6 +229,10 @@ classdef IO_Settings < Settings_Interface
         clk_name = IO_Settings.CLK_NAME;  % File name of clock offsets
         clk_full_name;                    % Full name of the clock offsets generated during runtime from the provided parameters
 
+        erp_dir = IO_Settings.ERP_DIR;    % Path to ERP files folder
+        erp_name = IO_Settings.ERP_NAME;  % File name of ERP
+        erp_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
+
         % Path to CRX folder containing files of Satellites problems
         crx_dir = IO_Settings.CRX_DIR;
         % Path to DCB folder containing files of Differential Code Biases
@@ -245,7 +250,7 @@ classdef IO_Settings < Settings_Interface
         % Location of the stations coordinate file
         crd_name = IO_Settings.CRD_NAME;
 
-        % Path to stations metereological files
+        % Path to stations meteorological files
         met_dir = IO_Settings.MET_DIR;
         % Location of the meteorological file
         met_name =  IO_Settings.MET_NAME;
@@ -259,9 +264,6 @@ classdef IO_Settings < Settings_Interface
 
         % Path to file containing the reference path
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
-
-        % Path to ERP folder containing Earth Rotation Parameters (tipically realesed together with the orbits)
-        erp_dir = IO_Settings.ERP_DIR;
 
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         geoid_dir = IO_Settings.GEOID_DIR;
@@ -348,8 +350,8 @@ classdef IO_Settings < Settings_Interface
                 this.custom_port = fnp.checkPath(settings.getData('custom_port'));
                 this.custom_path = fnp.checkPath(settings.getData('custom_path'));
                 this.custom_name_eph = fnp.checkPath(settings.getData('custom_name_eph'));
-                this.custom_name_erp = fnp.checkPath(settings.getData('custom_name_erp'));
                 this.custom_name_clk = fnp.checkPath(settings.getData('custom_name_clk'));
+                this.custom_name_erp = fnp.checkPath(settings.getData('custom_name_erp'));
                 % DEPRECATE
                 this.input_file_ini_path = fnp.checkPath(settings.getData('input_file_ini_path'));
                 % RECEIVERS
@@ -391,6 +393,8 @@ classdef IO_Settings < Settings_Interface
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
+                this.erp_dir    = fnp.getFullDirPath(settings.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir'))));
+                this.erp_name   = fnp.checkPath(settings.getData('erp_name'));
                 this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir'))));
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
                 this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir'))));
@@ -423,8 +427,8 @@ classdef IO_Settings < Settings_Interface
                 this.custom_port = settings.custom_port;
                 this.custom_path = settings.custom_path;
                 this.custom_name_eph = settings.custom_name_eph;
-                this.custom_name_erp = settings.custom_name_erp;
                 this.custom_name_clk = settings.custom_name_clk;
+                this.custom_name_erp = settings.custom_name_erp;
                 % DEPRECATE
                 this.input_file_ini_path = settings.input_file_ini_path;
                 % RECEIVERS
@@ -472,6 +476,7 @@ classdef IO_Settings < Settings_Interface
             this.updateExternals();
             this.eph_full_name = '';
             this.clk_full_name = '';
+            this.erp_full_name = '';
             this.updateObsFileName();
         end
 
@@ -523,8 +528,8 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf('  port:                                            %s\n', this.custom_port)];
             str = [str sprintf('  path:                                            %s\n', this.custom_path)];
             str = [str sprintf('  eph name:                                        %s\n', this.custom_name_eph)];
-            str = [str sprintf('  erp name:                                        %s\n', this.custom_name_erp)];
             str = [str sprintf('  clk name:                                        %s\n\n', this.custom_name_clk)];
+            str = [str sprintf('  erp name:                                        %s\n', this.custom_name_erp)];
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
@@ -542,6 +547,8 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
             str = [str '---- INPUT FOLDERS: REFERENCE ---------------------------------------------' 10 10];
             str = [str sprintf(' File contraining the reference graph:             %s\n', this.ref_graph_file)];
+            str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
+            str = [str sprintf(' Name of ERP files:                                %s\n', this.erp_name)];
             str = [str sprintf(' Directory of Geoid models:                        %s\n', fnp.getRelDirPath(this.geoid_dir, this.prj_home))];
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', fnp.getRelDirPath(this.dtm_dir, this.prj_home))];
@@ -659,8 +666,8 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('custom_path', this.custom_path, str_cell);
             str_cell = Ini_Manager.toIniStringComment('The "variable" part of the path should be in the name, e.g. ${WWWW}/igs${WWWWD}.sp3', str_cell);
             str_cell = Ini_Manager.toIniString('custom_name_eph', this.custom_name_eph, str_cell);
-            str_cell = Ini_Manager.toIniString('custom_name_erp', this.custom_name_erp, str_cell);
             str_cell = Ini_Manager.toIniString('custom_name_clk', this.custom_name_clk, str_cell);
+            str_cell = Ini_Manager.toIniString('custom_name_erp', this.custom_name_erp, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % SATELLITES
             str_cell = Ini_Manager.toIniStringSection('INPUT_SATELLITE', str_cell);
@@ -691,7 +698,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('crd_dir', fnp.getRelDirPath(this.crd_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of coordinates (CRD) file', str_cell);
             str_cell = Ini_Manager.toIniString('crd_name', this.crd_name, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Directory of metereological data', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of meteorological data', str_cell);
             str_cell = Ini_Manager.toIniString('met_dir', fnp.getRelDirPath(this.met_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteorological file', str_cell);
             str_cell = Ini_Manager.toIniString('met_name', this.met_name, str_cell);
@@ -702,14 +709,19 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % REFERENCE
             str_cell = Ini_Manager.toIniStringSection('INPUT_REFERENCE', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('File containing a graph of path constraints', str_cell);
-            str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Earth rotation/orientation parameters (ERP) files', str_cell);
+            str_cell = Ini_Manager.toIniString('erp_dir', fnp.getRelDirPath(this.erp_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of ERP files - special keywords can be used', str_cell);
+            str_cell = Ini_Manager.toIniString('erp_name', this.erp_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_dir', fnp.getRelDirPath(this.geoid_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DTM data', str_cell);
             str_cell = Ini_Manager.toIniString('dtm_dir', fnp.getRelDirPath(this.dtm_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('File containing a graph of path constraints', str_cell);
+            str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % UI
             str_cell = Ini_Manager.toIniStringSection('INPUT_UI', str_cell);
@@ -889,12 +901,24 @@ classdef IO_Settings < Settings_Interface
         end
 
         function file_name = getFullNavClkPath(this, id)
-            % Get the file list of ephemeris files
+            % Get the file list of clock files
             % SYNTAX: file_name = this.getFullNavClkPath(id)
             if isempty(this.clk_full_name)
                 this.updateNavFileName();
             end
             file_name = this.clk_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
+        
+        function file_name = getFullErpPath(this, id)
+            % Get the file list of ephemeris files
+            % SYNTAX: file_name = this.getFullErpPath(id)
+            if isempty(this.erp_full_name)
+                this.updateErpFileName();
+            end
+            file_name = this.erp_full_name;
             if (nargin == 2)
                 file_name = file_name{id};
             end
@@ -911,6 +935,12 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: clk_path = this.getClkPath()
             clk_file = this.clk_name;
         end
+        
+        function erp_file = getErpFile(this)
+            % Get the file name of the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            erp_file = this.erp_name;
+        end
 
         function out = getNavEphDir(this)
             % Get the path to the navigational files
@@ -923,6 +953,12 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: nav_path = this.getClkPath()
             out = this.clk_dir;
         end
+        
+        function out = getErpDir(this)
+            % Get the path to the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            out = this.erp_dir;
+        end
 
         function out = getNavEphPath(this)
             % Get the path to the navigational files
@@ -934,6 +970,12 @@ classdef IO_Settings < Settings_Interface
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getNavClkPath()
             out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+        end
+        
+        function out = getErpPath(this)
+            % Get the path to the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
         end
 
         function out = getCrdFile(this)
@@ -1105,6 +1147,18 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: this.getClkFile(nav_name)
             this.clk_name = clk_name;
         end
+        
+        function setErpPath(this, erp_dir)
+            % Set the path to the clock files
+            % SYNTAX: this.getClkPath(nav_path)
+            this.erp_dir = erp_dir;
+        end
+
+        function setErpFile(this, erp_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.erp_name = erp_name;
+        end
 
         function setOutPrefix(this, out_prefix)
             % Set the path of the out_prefix
@@ -1142,6 +1196,12 @@ classdef IO_Settings < Settings_Interface
             % Update the full name of the clock offset files (replacing special keywords)
             % SYNTAX: this.updateClkFileName();
             this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
+        end
+        
+        function updateErpFileName(this)
+            % Update the full name of the ERP files (replacing special keywords)
+            % SYNTAX: this.updateClkFileName();
+            this.erp_full_name = this.getErpFileName(this.sss_date_start, this.sss_date_stop);
         end
 
         function date = getSessionStart(this)
@@ -1186,6 +1246,19 @@ classdef IO_Settings < Settings_Interface
                 date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
             end
             clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function erp_full_name = getErpFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
 
         function updateExternals(this)
@@ -1638,8 +1711,8 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('custom_port', false);
             this.checkStringField('custom_path', false);
             this.checkStringField('custom_name_eph', false);
-            this.checkStringField('custom_name_erp', false);
             this.checkStringField('custom_name_clk', false);
+            this.checkStringField('custom_name_erp', false);
 
             this.checkStringField('sss_id_list', false);
             this.checkStringField('sss_id_start', false);
@@ -1669,6 +1742,8 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('eph_name', true);
             this.checkPathField('clk_dir', false, true);
             this.checkStringField('clk_name', true);
+            this.checkPathField('erp_dir', false, true);
+            this.checkStringField('erp_name', true);
             this.checkPathField('crx_dir', false);
             this.checkPathField('dcb_dir', false);
             this.checkPathField('ems_dir', true);
@@ -1874,6 +1949,39 @@ classdef IO_Settings < Settings_Interface
                     i = i + 1;
                     clk_ok = exist(file_name{i}, 'file') == 2;
                     if clk_ok
+                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
+                    else
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                        end
+                    end
+                end
+                this.logger.newLine();
+            end
+        end
+        
+        function erp_ok = checkErpFiles(this)
+            % check whether or not all the ERP files are available
+
+            erp_ok = true;
+            state = Go_State.getCurrentSettings();
+            file_name = this.getFullErpPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
+
+            if isempty(file_name)
+                erp_ok = true;
+            elseif isempty(file_name{1})
+                erp_ok = true;
+            else
+                this.logger.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
+                this.logger.newLine();
+                i = 0;
+                while (i < numel(file_name) && erp_ok)
+                    i = i + 1;
+                    erp_ok = exist(file_name{i}, 'file') == 2;
+                    if erp_ok
                         this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder

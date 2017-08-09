@@ -520,6 +520,13 @@ for session = 1 : num_session
                     SP3.t_sun  = time_GPS;
                     SP3.X_sun  = X_sun;
                     SP3.X_moon = X_moon;
+                    
+                    %----------------------------------------------------------------------------------------------
+                    % LOAD ERP DATA (EARTH ROTATION/ORIENTATION PARAMETERS)
+                    %----------------------------------------------------------------------------------------------
+
+                    ERP = load_ERP(state.erp_full_name, time_GPS);
+                    SP3.ERP = ERP;
 
                     %----------------------------------------------------------------------------------------------
                     % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
@@ -671,6 +678,7 @@ for session = 1 : num_session
                     SP3.time    = SP3.time - zero_time;
                     SP3.time_hr = SP3.time_hr - zero_time;
                     SP3.t_sun   = SP3.t_sun - zero_time;
+                    SP3.ERP.t   = SP3.ERP.t - zero_time;
                 end
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
@@ -1036,6 +1044,7 @@ for session = 1 : num_session
                     SP3.time    = SP3.time - zero_time;
                     SP3.time_hr = SP3.time_hr - zero_time;
                     SP3.t_sun   = SP3.t_sun - zero_time;
+                    SP3.ERP.t   = SP3.ERP.t - zero_time;
                 end
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
@@ -3033,6 +3042,7 @@ for session = 1 : num_session
                 SP3.time    = SP3.time + zero_time;
                 SP3.time_hr = SP3.time_hr + zero_time;
                 SP3.t_sun   = SP3.t_sun + zero_time;
+                SP3.ERP.t   = SP3.ERP.t + zero_time;
             end
 
             %---------------------------------

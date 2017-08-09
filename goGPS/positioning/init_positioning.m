@@ -310,6 +310,10 @@ if (nsat >= nsat_required)
             %correct the geometric distance for the ocean loading
             oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
             dist = dist + oceanloadcorr;
+            
+            %correct the geometric distance for pole tides
+            poletidecorr = pole_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
+            dist = dist + poletidecorr;
         end
 
         %radians to degrees
@@ -479,6 +483,10 @@ if (nsat >= nsat_required)
         %correct the geometric distance for the ocean loading
         oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
         dist = dist + oceanloadcorr;
+        
+        %correct the geometric distance for pole tides
+        poletidecorr = pole_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
+        dist = dist + poletidecorr;
     end
 else
     %empty variables
