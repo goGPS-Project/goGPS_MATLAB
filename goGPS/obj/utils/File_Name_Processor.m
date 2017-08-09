@@ -93,8 +93,7 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
             file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
             file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
-            file_name_out = strrep(file_name_out, this.GPS_SESSION, session);
-
+            file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
         end
 
         function step_sec = getStepSec(this, file_name)
@@ -157,6 +156,7 @@ classdef File_Name_Processor < handle
                     date0.addIntSeconds(step_sec);
                 end
             else
+                i = 1;
                 % run over session
                 if session
                     for s = sss_start : length(session_list)

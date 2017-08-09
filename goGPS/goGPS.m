@@ -308,7 +308,7 @@ for session = 1 : num_session
         cur_date_stop = fr.last_epoch.last();
 
         % updating the file path of the output -> special key are now supported
-        state.updateOutPath(cur_date_start);
+        state.updateOutPath(cur_date_start, session);
         filerootOUT = state.getFullOutPath();
 
         % create a new directory when required
