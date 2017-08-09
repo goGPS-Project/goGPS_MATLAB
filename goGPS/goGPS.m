@@ -3375,11 +3375,16 @@ for session = 1 : num_session
                             logger.addWarning(sprintf('Phase ambiguities covariance matrix unstable %s', ex.message));
                         end
 
-                        %integer phase ambiguity solving by LAMBDA
-                        [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
-                        pos_KAL = pos_R + deltaX;
-                        if (estim_amb ~= x(4:end))
-                            fixed_amb = 1;
+                        if (state.flag_iar)
+                            %integer phase ambiguity solving by LAMBDA
+                            [deltaX, estim_amb, sigma_amb, sigma_pos] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
+                            pos_KAL = pos_R + deltaX;
+                            if (estim_amb ~= x(4:end))
+                                fixed_amb = 1;
+                            end
+                        else
+                            pos_KAL = pos_R + x(1:3);
+                            sigma_pos = cov_X;
                         end
 
                         epochs_avail = unique(sat_track(:,1));
