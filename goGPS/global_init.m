@@ -366,8 +366,7 @@ global clock_delay_thresh cond_num_threshold
 
 clock_delay_thresh = 100;
 
-cond_num_threshold = 1e6;  %threshold on the condition number on the
-                           %   eigenvalues of the N matrix (least squares)
+cond_num_threshold = state.cond_num_thr;
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE

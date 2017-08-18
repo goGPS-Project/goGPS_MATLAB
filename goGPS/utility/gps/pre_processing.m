@@ -84,7 +84,10 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
 %--------------------------------------------------------------------------
 
 
-global cutoff snr_threshold n_sys flag_doppler_cs min_arc
+global cutoff snr_threshold n_sys flag_doppler_cs
+
+state = Go_State.getCurrentSettings();
+logger = Logger.getInstance();
 
 v_light = goGNSS.V_LIGHT;
 
@@ -156,12 +159,13 @@ var_ISBs = NaN(nisbs-1,nEpochs);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
 
-%remove short arcs
-min_arc = max([min_arc lagr_order]);
-[pr1] = remove_short_arcs(pr1, min_arc);
-[pr2] = remove_short_arcs(pr2, min_arc);
-[ph1] = remove_short_arcs(ph1, min_arc);
-[ph2] = remove_short_arcs(ph2, min_arc);
+% remove short arcs
+min_arc = max([state.getMinArc() lagr_order]);
+logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+pr1 = remove_short_arcs(pr1, min_arc);
+pr2 = remove_short_arcs(pr2, min_arc);
+ph1 = remove_short_arcs(ph1, min_arc);
+ph2 = remove_short_arcs(ph2, min_arc);
 
 %correct nominal time desynchronization
 % [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
@@ -653,11 +657,12 @@ else
         end
 
         %repeat remove short arcs after cycle slip detection
-        min_arc = max([min_arc lagr_order]);
-        [pr1_interp(s,:)] = remove_short_arcs(pr1_interp(s,:), min_arc);
-        [pr2_interp(s,:)] = remove_short_arcs(pr2_interp(s,:), min_arc);
-        [ph1_interp(s,:)] = remove_short_arcs(ph1_interp(s,:), min_arc);
-        [ph2_interp(s,:)] = remove_short_arcs(ph2_interp(s,:), min_arc);
+        % remove short arcs
+        min_arc = max([state.getMinArc() lagr_order]);
+        pr1_interp(s,:) = remove_short_arcs(pr1_interp(s,:), min_arc);
+        pr2_interp(s,:) = remove_short_arcs(pr2_interp(s,:), min_arc);
+        ph1_interp(s,:) = remove_short_arcs(ph1_interp(s,:), min_arc);
+        ph2_interp(s,:) = remove_short_arcs(ph2_interp(s,:), min_arc);
 
 %         if (freq1_required)
 %             if (any(ph1(s,:)))

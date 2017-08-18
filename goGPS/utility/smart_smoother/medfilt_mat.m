@@ -3,6 +3,7 @@
 %
 % DESCRIPTION:
 %    Compute a moving window median to filter the data in input
+%    NaN data are filled with interp1q to compute median
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
@@ -39,6 +40,9 @@
 function filtered_data = medfilt_mat(data, filter_size)
     % compute a moving window median to filter the data in input
     data = data(:);
+    inan = isnan(data);
+    id_ok = find(~inan);
+    data = interp1q(id_ok, data(idok), (1 : length(data))');
     filtered_data = zeros(size(data));
     filter_size = filter_size + mod(filter_size+1,2); % filter size must be odd
     half_size = (filter_size-1) / 2;
@@ -75,6 +79,7 @@ function filtered_data = medfilt_mat(data, filter_size)
             filtered_data(i) = win((length(win)+1)/2);
         end
         filtered_data(end) = data(end);
+        filtered_data(inan) = nan;
         % Solution with constant median in the borders
 %         % get the median value
 %         m = win(half_size + 1);

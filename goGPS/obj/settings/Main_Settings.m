@@ -79,6 +79,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
+        COND_NUM_THR = 1e6;                             % threshold on the condition number on the eigenvalues of the N matrix (least squares)
+
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
         FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
         VARIOMETRIC_STEP = 1;                           % Step in second for variometric approach
@@ -310,6 +312,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
+
+        % threshold on the condition number on the eigenvalues of the N matrix (least squares)
+        cond_num_thr = Main_Settings.COND_NUM_THR;
 
         % Flag for enabling the estimation of tropospheric delay
         flag_tropo = Main_Settings.FLAG_TROPO;
@@ -1654,15 +1659,27 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         end
 
         function proc_rate = getProcessingRate(this)
-            % Get the Capture Rate
-            % SYNTAX: capture_rate = this.getProcessingRate();
+            % Get the Processing Rate
+            % SYNTAX: proc_rate = this.getProcessingRate()
             proc_rate = this.p_rate;
         end
 
         function min_arc = getMinArc(this)
             % Get the minimum arc legnth to be kept
-            % SYNTAX: capture_rate = this.getCaptureRate();
+            % SYNTAX: min_arc = this.getMinArc()
             min_arc = this.min_arc;
+        end
+
+        function err_thr = getMaxCodeErrThr(this)
+            % Get the maximum error acceptable on code observations
+            % SYNTAX: err_thr = this.getMaxCodeErrThr()
+            err_thr = this.pp_max_code_err_thr;
+        end
+
+        function err_thr = getMaxPhaseErrThr(this)
+            % Get the maximum error acceptable on phase observations
+            % SYNTAX: capture_rate = this.getCaptureRate();
+            err_thr = this.pp_max_phase_err_thr;
         end
 
         function is_seamless = isSeamlessKF(this)

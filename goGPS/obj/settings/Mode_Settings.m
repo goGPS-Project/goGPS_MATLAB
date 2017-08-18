@@ -374,7 +374,7 @@ classdef Mode_Settings < Settings_Interface
             is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
         end
 
-        function is_using_phase = isModePH(this, mode)
+        function is_using_phase = isModePh(this, mode)
             % return whether or not the mode in use uses Phase
             if nargin == 1
                 mode = this.getMode();
@@ -451,7 +451,7 @@ classdef Mode_Settings < Settings_Interface
             is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
         end
 
-        function is_using_phase = isPH(mode)
+        function is_using_phase = isPh(mode)
             % return whether or not the given mode in use uses Phase
             is_using_phase = sum(intersect(mode, Mode_Settings.GMODE_PH));
         end

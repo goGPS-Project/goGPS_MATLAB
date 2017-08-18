@@ -36,6 +36,7 @@ function report_generator(report)
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
+state = Go_State.getCurrentSettings();;
 
 if is_subfield(report,'opt.write') && report.opt.write == 1
 
@@ -114,7 +115,7 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     end
     fprintf(fout_report,'Apply SBAS corrections                : %s\n', option_i);
 
-    if goGNSS.isPH(report.opt.mode)
+    if state.isPh(report.opt.mode)
         if report.opt.flag_IAR == 1
             option_i = 'YES';
         else
@@ -167,7 +168,7 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     end
     fprintf(fout_report,'Variance of CODE 1 observation       : %7.4f m\n', sqrt(report.opt.sigmaq_cod1));
     fprintf(fout_report,'Variance of CODE 2 observation       : %7.4f m\n', sqrt(report.opt.sigmaq_cod2));
-    if goGNSS.isPH(report.opt.mode)
+    if state.isPh(report.opt.mode)
         fprintf(fout_report,'Variance of PHASE observations       : %7.4f m\n', sqrt(report.opt.sigmaq_ph));
         fprintf(fout_report,'Variance of ambiguity combinations   : %d cycles \n', report.opt.sigmaq0_N);
         fprintf(fout_report,'Cycle slip threshold                 : %.2f cycles\n', report.opt.cs_threshold);
@@ -187,7 +188,7 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     end
     fprintf(fout_report,'Weight of observations               : %s\n', option_i);
 
-    if goGNSS.isPH(report.opt.mode) && report.opt.flag_IAR == 1
+    if state.isPh(report.opt.mode) && report.opt.flag_IAR == 1
         fprintf(fout_report,'LAMBDA options:\n');
         switch report.opt.IAR_method
             case 0
