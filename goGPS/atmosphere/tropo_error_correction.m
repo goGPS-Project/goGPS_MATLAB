@@ -64,10 +64,11 @@ end
 % -------------------------------------------------------------------------
 
     function [delay] = saastamoinen_model(lat, lon, h, el)
-        global geoid
+        gs = Go_State.getInstance;
+        geoid = gs.getRefGeoid();
 
         %Saastamoinen model requires (positive) orthometric height
-        if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
+        if geoid.ncols > 0
             %geoid ondulation interpolation
             undu = grid_bilin_interp(lon, lat, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
             h = h - undu;

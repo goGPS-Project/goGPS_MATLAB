@@ -386,5 +386,5 @@ if (~isempty(report) && report.opt.write == 1)
     end
 end
 
-logger.addMessage(sprintf('Parsing completed in %f.2 seconds', toc(t0)));
+logger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
 logger.newLine();

@@ -112,11 +112,15 @@ else
     obs_comb = 'IONO_FREE';
 end
 
-if (~exist('flag_static_batch','var'))
+% arg 20 == flag_static_batch
+% if (~exist('flag_static_batch','var'))
+if (nargin < 20)
     flag_static_batch = 0;
 end
 
-if (~exist('flag_ISBs','var'))
+% arg 19 == flag_ISBs
+% if (~exist('flag_ISBs','var'))
+if (nargin < 21)
     flag_ISBs = 0;
 end
 
@@ -403,7 +407,7 @@ if (nsat >= nsat_required)
 
         else
             [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
-            residuals_obs(index_obs,2)=sat;
+            residuals_obs(index_obs,2) = sat;
             cond_num = 0;
 %             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)

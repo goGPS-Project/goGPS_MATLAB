@@ -1,15 +1,15 @@
-function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
+function [eph_t] = rt_find_eph(eph_in, time, n_sat)
 
 % SYNTAX:
-%   [Eph_t] = rt_find_eph(Eph_in, time, nsat);
+%   [eph_t] = rt_find_eph(eph_in, time, n_sat);
 %
 % INPUT:
-%   Eph_in = ephemerides in input
-%   time = GPS time
-%   nsat = total number of satellites (depending on enabled constellations)
+%   eph_in = ephemerides in input
+%   time   = GPS time
+%   n_sat  = total number of satellites (depending on enabled constellations)
 %
 % OUTPUT:
-%   Eph_t = selected ephemerides
+%   eph_t = selected ephemerides
 %
 % DESCRIPTION:
 %   Extract the ephemerides referred to the current epoch.
@@ -45,14 +45,11 @@ function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-empty_col = zeros(33,1);
-Eph_t     = zeros(33,nsat);
+eph_t     = zeros(33, n_sat);
 
-for sv = 1 : nsat
-    icol = find_eph(Eph_in, sv, time);
+for sv = 1 : n_sat
+    icol = find_eph(eph_in, sv, time);
     if (~isempty(icol))
-        Eph_t(:,sv) = Eph_in(:,icol);
-    else
-        Eph_t(:,sv) = empty_col;
+        eph_t(:, sv) = eph_in(:, icol);
     end
 end
