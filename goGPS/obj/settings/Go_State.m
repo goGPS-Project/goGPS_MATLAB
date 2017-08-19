@@ -220,7 +220,10 @@ classdef Go_State < Settings_Interface
             this.initRef();
             this.initGeoid();
             fw = File_Wizard;
+            c_mode = this.logger.getColorMode();
+            this.logger.setColorMode(0);
             fw.conjureFiles();
+            this.logger.setColorMode(c_mode);
         end
 
     end
