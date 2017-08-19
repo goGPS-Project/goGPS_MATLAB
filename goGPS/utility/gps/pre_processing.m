@@ -173,7 +173,7 @@ ph2 = remove_short_arcs(ph2, min_arc);
 % time = time_ref;
 
 if not(flag_full_prepro)
-    XR = XR0;
+    XR = repmat(XR0, 1, length(dtR));
     dtRdot(end+1) = dtRdot(end);
 else
 

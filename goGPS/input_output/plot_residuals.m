@@ -72,12 +72,12 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 xlabel('Epoch','FontName','Verdana','FontSize',6,'FontWeight','Bold');
                 plot(RES_PHASE(constellations.(systems{s}).indexes(i),~outliers_PHASE(constellations.(systems{s}).indexes(i),:))*1000,'.b');
            end
-    
+
             try
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals']);
             catch ex
                 logger = Logger.getInstance();
-                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))                
+                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
             end
             %remove figure
             close(f);
@@ -106,7 +106,7 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
             catch ex
                 logger = Logger.getInstance();
-                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))                
+                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
             end
 
 
@@ -137,9 +137,9 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals_with_OUTLIERS']);
             catch ex
                 logger = Logger.getInstance();
-                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))                
+                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
             end
-            
+
             %remove figure
             close(f);
         end
@@ -169,7 +169,7 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
             catch ex
                 logger = Logger.getInstance();
-                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))                
+                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
             end
             close(f1);
         end
