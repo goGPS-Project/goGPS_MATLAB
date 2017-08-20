@@ -46,7 +46,7 @@ if (nargin < 2)
     rem_spaces = false;
 end
 
-if exist(base_dir, 'file')
+if ~exist(base_dir, 'dir')
     if iscell(base_dir)
         list = base_dir;
     else
