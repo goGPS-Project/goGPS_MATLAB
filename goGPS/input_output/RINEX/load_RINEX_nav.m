@@ -62,6 +62,7 @@ end
 
 flag_return = 0;
 logger = Logger.getInstance();
+state = Go_State.getCurrentSettings();
 
 %number of satellite slots for enabled constellations
 nSatTot = cc.getNumSat();
@@ -74,53 +75,56 @@ else
     iono = zeros(8,1);
 end
 
-%if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
-if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
-    [week, sow] = time2weektow(time(1));
-    [date, DOY] = gps2date(week, sow);
-
-    filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'p'];
-    filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
-    filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
-
-    pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end
-    nav_path = filename(1:pos(end));
-
-    flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
-
-    file_avail = 0;
-    if (exist([nav_path filename_brdm],'file') && flag_GLO)
-        filename = [nav_path filename_brdm];
-        file_avail = 1;
-    elseif (exist([nav_path filename_CGIM],'file') && ~flag_GLO)
-        filename = [nav_path filename_CGIM];
-        file_avail = 1;
-    elseif (exist([nav_path filename_brdc],'file') && ~flag_GLO)
-        filename = [nav_path filename_brdc];
-        file_avail = 1;
-    else
-        if (flag_GLO)
-            filename = filename_brdm;
-        else
-            filename = filename_brdc;
-        end
-        [download_successful, compressed] = download_nav(filename, nav_path);
-        filename = [nav_path filename];
-        if (download_successful)
+% Broadcast corrections in DD are currently causing problems (offset in UP) => not using them
+if state.isModeSA()
+    %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
+    if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
+        [week, sow] = time2weektow(time(1));
+        [date, DOY] = gps2date(week, sow);
+        
+        filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'p'];
+        filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
+        filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
+        
+        pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end
+        nav_path = filename(1:pos(end));
+        
+        flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
+        
+        file_avail = 0;
+        if (exist([nav_path filename_brdm],'file') && flag_GLO)
+            filename = [nav_path filename_brdm];
             file_avail = 1;
-        end
-        if (compressed)
-            flag_return = 1;
-        end
-    end
-
-    if (file_avail)
-        if (flag_GLO)
-            only_iono = 0;
+        elseif (exist([nav_path filename_CGIM],'file') && ~flag_GLO)
+            filename = [nav_path filename_CGIM];
+            file_avail = 1;
+        elseif (exist([nav_path filename_brdc],'file') && ~flag_GLO)
+            filename = [nav_path filename_brdc];
+            file_avail = 1;
         else
-            only_iono = 1;
+            if (flag_GLO)
+                filename = filename_brdm;
+            else
+                filename = filename_brdc;
+            end
+            [download_successful, compressed] = download_nav(filename, nav_path);
+            filename = [nav_path filename];
+            if (download_successful)
+                file_avail = 1;
+            end
+            if (compressed)
+                flag_return = 1;
+            end
         end
-        parse_file(only_iono);
+        
+        if (file_avail)
+            if (flag_GLO)
+                only_iono = 0;
+            else
+                only_iono = 1;
+            end
+            parse_file(only_iono);
+        end
     end
 end
 
