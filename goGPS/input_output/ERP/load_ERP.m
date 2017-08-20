@@ -98,6 +98,7 @@ for f = 1 : length(filename)
     Ypole = [Ypole; ERP_data{3}];
     UT1_UTC = [UT1_UTC; ERP_data{4}];
     LOD = [LOD; ERP_data{5}];
+    fclose(fid);    
 end
 
 jd = MJD + 2400000.5;
@@ -107,7 +108,6 @@ jd = MJD + 2400000.5;
 
 if ~any(ERP_time <= max(time) | ERP_time >= min(time))
     % no suitable epochs found in erp file
-    fclose(fid);
     ERP = [];
     return
 end
@@ -161,18 +161,16 @@ ERP.m2 = -(ERP.Ypole*1e-6 - ERP.meanYpole*1e-3);
 % a = polyfit(ERP_time,Xpole,1); %#ok<*ASGLU>
 % ERP.X0 = polyval(a,ERP.t0);
 % ERP.Xrt = a(1)*86400;
-% 
+%
 % a = polyfit(ERP_time,Ypole,1);
 % ERP.Y0 = polyval(a,ERP.t0);
 % ERP.Yrt = a(1)*86400;
-% 
+%
 % a = polyfit(ERP_time,UT1_UTC,1);
 % ERP.UT1_UTC0 = polyval(a,ERP.t0);
 % ERP.UT1_UTCrt = a(1)*86400;
-% 
+%
 % ERP.units.X0Y0='10**-6"';
 % ERP.units.XYrt='10**-6"/d';
 % ERP.units.UT1_UTC0='0.1 usec';
 % ERP.units.UT1_UTCrt='0.1 usec/d';
-
-fclose(fid);
