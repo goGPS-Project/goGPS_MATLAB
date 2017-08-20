@@ -208,7 +208,7 @@ if num_session > 1
     if ~state.isModeSEID()
         [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
         marker_trg = file_name(1:4);
-        if state.isModeDD()
+        if state.isModeDD() && ~state.isModeSEID()
             [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
             marker_mst = [file_name(1:4) '_'];
         else
