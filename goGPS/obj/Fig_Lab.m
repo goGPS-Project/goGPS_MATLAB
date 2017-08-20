@@ -72,19 +72,28 @@ classdef Fig_Lab < handle
             spline_base = spline_base * (size(enu,1) > spline_base);
 
             persistent m_enu
-            if (color_type == 0)
-                fh = figure();
-                m_enu = [];
+            
+            if size(color_type, 2) == 3
+                if size(color_type, 1) < 3
+                    color_order = repmat(color_type, 3, 1);
+                else
+                    color_order = color_type;
+                end
+            else
+                if (color_type == 0)
+                    fh = figure();
+                    m_enu = [];
+                end
+                maximizeFig(gcf);
+                color_order = handle(gca).ColorOrder;
+                if color_type == 1
+                    color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
+                end
+                if color_type == -1
+                    color_order = color_order * 0;
+                end
             end
-            maximizeFig(gcf);
-            color_order = handle(gca).ColorOrder;
-            if color_type == 1
-                color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
-            end
-            if color_type == -1
-                color_order = color_order * 0;
-            end
-
+            
             % prepare data
             if isempty(m_enu)
                 m_enu = [mean(enu(~isnan(enu(:,1)),1)) mean(enu(~isnan(enu(:,2)),2)) mean(enu(~isnan(enu(:,3)),3))];
