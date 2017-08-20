@@ -202,37 +202,34 @@ if num_session > 1
     % Composing the name of the batch output
     sss_date_start = state.getSessionStart();
     sss_date_stop = state.getSessionStop();
-
-    if ~state.isModeSEID()
-        [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
-        marker_trg = file_name(1:4);
-        if state.isModeDD() && ~state.isModeSEID()
-            [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
-            marker_mst = [file_name(1:4) '_'];
-        else
-            marker_mst = '';
-        end
-
-        file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
-        file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
-        fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
-
-        if (state.isModeBlock())
-            fid_extract_float = fopen(sprintf('%s_extraction_float.txt', file_name_base),'w');
-            fid_extract_fix = fopen(sprintf('%s_extraction_fix.txt', file_name_base),'w');
-        end
-
-        fid_extract_ZTD = fopen(sprintf('%s_ZTD.txt', file_name_base),'w');
-        fid_extract_ZWD = fopen(sprintf('%s_ZWD.txt', file_name_base),'w');
-
-        fid_extract_POS = fopen(sprintf('%s_position.txt', file_name_base),'w');
-        fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
-        fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
-
-        fid_extract_OBS = fopen(sprintf('%s_qualityOBS.txt', file_name_base),'w');
-        fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
-        fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
+    [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
+    marker_trg = file_name(1:4);
+    if state.isModeDD() && ~state.isModeSEID()
+        [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
+        marker_mst = [file_name(1:4) '_'];
+    else
+        marker_mst = '';
     end
+    
+    file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
+    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
+    fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
+    
+    if (state.isModeBlock())
+        fid_extract_float = fopen(sprintf('%s_extraction_float.txt', file_name_base),'w');
+        fid_extract_fix = fopen(sprintf('%s_extraction_fix.txt', file_name_base),'w');
+    end
+
+    fid_extract_ZTD = fopen(sprintf('%s_ZTD.txt', file_name_base),'w');
+    fid_extract_ZWD = fopen(sprintf('%s_ZWD.txt', file_name_base),'w');
+    
+    fid_extract_POS = fopen(sprintf('%s_position.txt', file_name_base),'w');
+    fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
+    fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
+    
+    fid_extract_OBS = fopen(sprintf('%s_qualityOBS.txt', file_name_base),'w');
+    fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
+    fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 else
     is_batch = false;
 end
@@ -438,7 +435,7 @@ for session = 1 : num_session
                 % prepare the input for the load_RINEX_obs function
                 filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
 
-                if goGNSS.isSA(mode) % absolute positioning
+                if state.isSA(mode) % absolute positioning
 
                     %read observation RINEX file(s)
                     [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
@@ -537,7 +534,14 @@ for session = 1 : num_session
                         SP3.t_sun  = time_GPS;
                         SP3.X_sun  = X_sun;
                         SP3.X_moon = X_moon;
-
+                        
+                        %----------------------------------------------------------------------------------------------
+                        %% LOAD ERP DATA (EARTH ROTATION/ORIENTATION PARAMETERS)
+                        %----------------------------------------------------------------------------------------------
+                        
+                        ERP = load_ERP(state.erp_full_name, time_GPS);
+                        SP3.ERP = ERP;
+                        
                         %----------------------------------------------------------------------------------------------
                         %% LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
                         %----------------------------------------------------------------------------------------------
@@ -689,6 +693,9 @@ for session = 1 : num_session
                         SP3.time    = SP3.time - zero_time;
                         SP3.time_hr = SP3.time_hr - zero_time;
                         SP3.t_sun   = SP3.t_sun - zero_time;
+                        if state.isSA(mode)
+                            SP3.ERP.t   = SP3.ERP.t - zero_time;
+                        end
                     end
                     Eph(32,:) = Eph(32,:) - zero_time;
                     Eph(33,:) = Eph(33,:) - zero_time;
@@ -909,6 +916,13 @@ for session = 1 : num_session
                         SP3.X_moon = X_moon;
 
                         %----------------------------------------------------------------------------------------------
+                        %% LOAD ERP DATA (EARTH ROTATION/ORIENTATION PARAMETERS)
+                        %----------------------------------------------------------------------------------------------
+                        
+                        ERP = load_ERP(state.erp_full_name, time_GPS);
+                        SP3.ERP = ERP;
+
+                        %----------------------------------------------------------------------------------------------
                         %% LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
                         %----------------------------------------------------------------------------------------------
 
@@ -1058,6 +1072,9 @@ for session = 1 : num_session
                         SP3.time    = SP3.time - zero_time;
                         SP3.time_hr = SP3.time_hr - zero_time;
                         SP3.t_sun   = SP3.t_sun - zero_time;
+                        if state.isSA(mode)
+                            SP3.ERP.t   = SP3.ERP.t - zero_time;
+                        end
                     end
                     Eph(32,:) = Eph(32,:) - zero_time;
                     Eph(33,:) = Eph(33,:) - zero_time;
@@ -3089,6 +3106,9 @@ for session = 1 : num_session
                 SP3.time    = SP3.time + zero_time;
                 SP3.time_hr = SP3.time_hr + zero_time;
                 SP3.t_sun   = SP3.t_sun + zero_time;
+                if state.isSA(mode)
+                    SP3.ERP.t   = SP3.ERP.t - zero_time;
+                end
             end
 
             %---------------------------------
@@ -3136,7 +3156,7 @@ for session = 1 : num_session
                         pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
                     end
                     %if tropospheric delay was estimated in PPP
-                    if (goGNSS.isSA(mode) && flag_tropo)
+                    if (state.isSA(mode) && flag_tropo)
                         if (~flag_tropo_gradient)
                             estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
                         else
@@ -3693,7 +3713,7 @@ for session = 1 : num_session
             %% TROPOSPHERE FILE SAVING
             %----------------------------------------------------------------------------------------------
 
-            if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(mode) && flag_tropo && (~isempty(EAST)))
+            if (goGNSS.isPP(mode) && state.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(mode) && flag_tropo && (~isempty(EAST)))
                 %display information
                 fprintf('Writing troposphere file...\n');
                 %file saving

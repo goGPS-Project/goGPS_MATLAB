@@ -9,7 +9,7 @@
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
 %
-% Note for the future: the class uses the current obs storage of goGPS 
+% Note for the future: the class uses the current obs storage of goGPS
 % -> switch to objects for rover and master observations is suggested
 
 %--------------------------------------------------------------------------
@@ -484,7 +484,7 @@ classdef Core_Block < handle
             %   go_block.setAmbiguities(lambda)
             %   go_block.solveFloat()
             %   go_block.solveFix()
-            %            
+            %
             % CONCRETE IMPLEMENTATION IN:
             %   solveFixPar
             %
@@ -509,7 +509,7 @@ classdef Core_Block < handle
         end
 
         function [pos, pos_cov, sigma02_hat, v_hat] = solve(this)
-            % Solve Float -> try to extract the most stable float solution 
+            % Solve Float -> try to extract the most stable float solution
             % Compute a first float solution using the internal object properties
             %
             % METHODS CALL REQUIREMENTS:
