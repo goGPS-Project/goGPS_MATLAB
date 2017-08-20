@@ -89,7 +89,7 @@ classdef Go_State < Settings_Interface
                 if ismac()
                     this.local_storage = [home '/Library/Application Support/goGPS'];
                 else
-                    this.local_storage = [home '.goGPS'];
+                    this.local_storage = [home '/.goGPS'];
                 end
             end
             if ~(exist(this.local_storage, 'dir'))
