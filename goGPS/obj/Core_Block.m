@@ -1,4 +1,4 @@
-%   CLASS Core BBlock
+%   CLASS Core Block
 % =========================================================================
 %
 % DESCRIPTION
@@ -8,7 +8,9 @@
 %   go_block = Core_Block();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
-
+%
+% Note for the future: the class uses the current obs storage of goGPS 
+% -> switch to objects for rover and master observations is suggested
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -42,12 +44,6 @@
 %--------------------------------------------------------------------------
 
 classdef Core_Block < handle
-
-    properties (Constant)
-        FLAG_CODE_ONLY  = int8(-1);
-        FLAG_CODE_PHASE = int8(0);
-        FLAG_PHASE_ONLY = int8(1);
-    end
 
     properties % Public Access
         logger;
@@ -102,10 +98,17 @@ classdef Core_Block < handle
         id_res;       % id in the design matrix of the observations in phase_res
     end
 
+    properties (Constant, Access = private)
+        FLAG_CODE_ONLY  = int8(-1);
+        FLAG_CODE_PHASE = int8(0);
+        FLAG_PHASE_ONLY = int8(1);
+    end
+
     methods (Static)
         function this = Core_Block(n_epoch, n_pr_obs, n_ph_obs)
             % Core object creator initialize the structures needed for the computation:
-
+            % EXAMPLE: go_block = Core_Block(n_epoch, n_pr_obs, n_ph_obs)
+            
             this.logger = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
 
@@ -267,11 +270,17 @@ classdef Core_Block < handle
             this.Q(id_ko, :) = [];
             this.obs_track(id_ko,:) = [];
             w_bar.close();
+            
+            % Add to the Design matric the columns relative to the ambbiguities
+            this.setAmbiguities (lambda);
         end
 
         function setAmbiguities (this, lambda)
             % Add to the internal Design Matrix the columns related to the phase observations
             % (Integer ambiguities - N)
+            %
+            % METHODS CALL REQUIREMENTS:
+            %  -> prepare
             %
             % SYNTAX:
             %   this.setAmbiguities(lambda)
@@ -354,7 +363,10 @@ classdef Core_Block < handle
         end
 
         function [pos, pos_cov] = solveFloat (this, flag_outlier)
-            % Compute a first float solution using the object structure
+            % Compute a first float solution using the internal object properties
+            %
+            % METHODS CALL REQUIREMENTS:
+            %  -> prepare -> setAmbiguities
             %
             % SYNTAX:
             %   [pos, pos_cov] = this.solveFloat(this)
@@ -403,7 +415,7 @@ classdef Core_Block < handle
             end
 
             % Compute phase residuals
-            [this.phase_res, this.id_res] = this.computePhRes(this.v_hat, this.A, this.Q, this.obs_track, this.amb_prn_track);
+            [this.phase_res, this.id_res] = this.computePhRes();
 
             % Try to correct integer ambiguities (missed cycle slips
             this.logger.addMessage('       - try to fix previously undetected cycle slips');
@@ -435,7 +447,7 @@ classdef Core_Block < handle
             end
 
             % Compute phase residuals
-            [this.phase_res, this.id_res] = this.computePhRes(this.v_hat, this.A, this.Q, this.obs_track, this.amb_prn_track);
+            [this.phase_res, this.id_res] = this.computePhRes();
 
             % show residuals
             %close all; this.plotPhRes();
@@ -451,11 +463,17 @@ classdef Core_Block < handle
             this.pos_cov = pos_cov;
         end
 
-        function [pos, pos_cov, estim_amb, amb_cov, estim_amb_float, best_arc] = solveFix (this)
-            % Compute a fixed solution using LAMBDA, and the float solution stored in the object structure
+        function [pos, pos_cov, estim_amb, amb_cov, estim_amb_float, ref_arc] = solveFix (this)
+            % Compute a fixed solution using LAMBDA, and the the internal object properties
+            %
+            % METHODS CALL REQUIREMENTS:
+            %   prepare -> setAmbiguities -> solveFloat
             %
             % SYNTAX:
-            %   pos = this.solveFloat(this)
+            %   [pos, pos_cov, estim_amb, amb_cov, estim_amb_float, ref_arc] = this.solveFix()
+            %
+            % INPUT:
+            %   internal structure
             %
             % OUTPUT:
             %   pos     coordinates of the estimated positions
@@ -466,10 +484,14 @@ classdef Core_Block < handle
             %   go_block.setAmbiguities(lambda)
             %   go_block.solveFloat()
             %   go_block.solveFix()
-
+            %            
+            % CONCRETE IMPLEMENTATION IN:
+            %   solveFixPar
+            %
+            
             this.logger.addMarkedMessage('Compute ambiguity fix through LAMBDA');
 
-            [delta_pos, pos_cov, is_fixed, estim_amb, amb_cov, estim_amb_float, best_arc] = this.solveFixPar (this.x_float, this.Cxx, size(this.A, 2) - 3 * this.n_pos - 1);
+            [delta_pos, pos_cov, is_fixed, estim_amb, amb_cov, estim_amb_float, ref_arc] = this.solveFixPar (this.x_float, this.Cxx, size(this.A, 2) - 3 * this.n_pos - 1);
             this.is_fixed = is_fixed;
 
             pos = this.pos;
@@ -487,10 +509,31 @@ classdef Core_Block < handle
         end
 
         function [pos, pos_cov, sigma02_hat, v_hat] = solve(this)
+            % Solve Float -> try to extract the most stable float solution 
+            % Compute a first float solution using the internal object properties
+            %
+            % METHODS CALL REQUIREMENTS:
+            %  -> prepare -> setAmbiguities
+            %
+            % SYNTAX:
+            %   [pos, pos_cov] = this.solveFloat(this)
+            %
+            % OUTPUT:
+            %   pos     coordinates of the estimated positions
+            %
+            % EXAMPLE:
+            %   go_block = Core_Block(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
+            %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
+            %   go_block.setAmbiguities(lambda)
+            %   go_block.solveFloat()
+
             this.solveFloat();
 
             if (this.state.flag_iar)
-                [~, ~, estim_amb, amb_cov, estim_amb_float, best_arc] = this.solveFix();
+                % Solve Fix -> get a valid estimation of the integer ambiguities
+                [~, ~, estim_amb, amb_cov, estim_amb_float, ref_arc] = this.solveFix();
+                
+                % Use fixed ambiguities as "suggestions" for a float solution
                 if (this.is_fixed)
 
                     this.logger.addMarkedMessage('Using LAMBDA fix suggestions and recompute float:');
@@ -499,14 +542,15 @@ classdef Core_Block < handle
                     num_est = this.n_pos;
 
                     % Build a Design matrix with LAMBDA fix suggestions
-                    idx = [1 : best_arc - 1, best_arc + 1 : num_amb + 1];
+                    idx = [1 : ref_arc - 1, ref_arc + 1 : num_amb + 1];
                     A_fix = [this.A; sparse(num_amb, size(this.A, 2))];
-                    y0_fix = [this.y0; estim_amb_float(idx)];
+                    y0_fix = [this.y0; round(estim_amb_float(idx))];
                     b_fix = [this.b; zeros(num_amb, 1)];
                     Q_fix = [[this.Q sparse(size(this.Q, 1), num_amb)]; sparse(num_amb, size(this.Q, 1) + num_amb)];
                     for i = 1 : numel(estim_amb)
                         A_fix(num_obs + i, 3 * num_est + idx(i)) = 1;
                     end
+                    
                     Q_fix(num_obs + (1:numel(estim_amb)), num_obs +  (1:numel(estim_amb))) = amb_cov;
 
                     [x_float, Cxx, sigma02_hat, v_hat] = fast_least_squares_solver(y0_fix, b_fix, A_fix(:, 1 : end - 1), Q_fix);
@@ -521,6 +565,7 @@ classdef Core_Block < handle
                     pos = repmat(this.pos0(:), 1, this.n_pos) + delta_pos;
                     this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [mean(this.getENU(pos), 2) mean(this.getDeltaENU(pos), 2)]'));
                     pos_cov = full(Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
+                    %%
                     this.is_fixed = 2;
                     this.pos = pos;
                     this.pos_cov = pos_cov;
@@ -530,7 +575,7 @@ classdef Core_Block < handle
             pos = this.pos;
         end
 
-        function [delta_pos, pos_cov, is_fixed, estim_amb, amb_cov, estim_amb_float, best_arc] = solveFixPar (this, x_float, Cxx, amb_num)
+        function [delta_pos, pos_cov, is_fixed, estim_amb, amb_cov, estim_amb_float, ref_arc] = solveFixPar (this, x_float, Cxx, amb_num)
             % Compute a fixed solution using LAMBDA, and the float solution stored in the object structure
             %
             % SYNTAX:
@@ -556,9 +601,10 @@ classdef Core_Block < handle
             % switch from SD to DD
             D = zeros(amb_num - 1, amb_num);
             % find best estimated arc:
-            [~, best_arc] = sort(diag(Cxx(4 : end, 4 : end))); best_arc = best_arc(1);
-            D(:, best_arc) = 1;
-            D(:, [1 : best_arc - 1, best_arc + 1 : end]) = -eye(amb_num - 1);
+            %[~, ref_arc] = sort(diag(Cxx(4 : end, 4 : end))); ref_arc = ref_arc(1);
+            ref_arc = 1; % there are no differences choosing one arc or another (~1e-10 differences in the results)
+            D(:, ref_arc) = 1;
+            D(:, [1 : ref_arc - 1, ref_arc + 1 : end]) = -eye(amb_num - 1);
             G = zeros(3 + amb_num - 1, 3 + amb_num);
             G(1 : 3, 1 : 3) = eye(3);
             G(4 : end, 4 : end) = D;
@@ -591,8 +637,8 @@ classdef Core_Block < handle
                 end
 
                 estim_amb_float = zeros(amb_num, 1);
-                estim_amb_float([1 : best_arc - 1, best_arc + 1 : end]) = -(estim_amb - x_float(best_arc + 3));
-                estim_amb_float(best_arc) = x_float(3 + best_arc);
+                estim_amb_float([1 : ref_arc - 1, ref_arc + 1 : end]) = -(estim_amb - x_float(ref_arc + 3));
+                estim_amb_float(ref_arc) = x_float(3 + ref_arc);
             catch ex
                 this.logger.addWarning(sprintf('It was not possible to estimate integer ambiguities: a float solution will be output.\n%s',ex.message));
                 pos_cov = cov_X;
@@ -600,7 +646,7 @@ classdef Core_Block < handle
                 estim_amb_float = x_float(4 : end);
                 estim_amb = estim_amb_float;
                 delta_pos = x_float(1 : 3);
-                best_arc = 0;
+                ref_arc = 0;
             end
         end
 
@@ -1225,6 +1271,14 @@ classdef Core_Block < handle
         end
 
         function [phase_res, id_res] = computePhRes(this, v_hat, A, Q, obs_track, amb_prn_track)
+            if (nargin == 1)
+                v_hat = this.v_hat;
+                A = this.A;
+                Q = this.Q;
+                obs_track = this.obs_track;
+                amb_prn_track = this.amb_prn_track;
+            end
+            
             % EXAMPLE: phase_res = this.computePhRes(A, Q, obs_track, amb_prn_track)
             phase_res = nan(this.n_tot_epoch, numel(amb_prn_track), 2);
             id_res = spalloc(this.n_tot_epoch, numel(amb_prn_track), round(this.n_tot_epoch * numel(amb_prn_track) * 0.5));
