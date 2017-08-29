@@ -13,7 +13,7 @@
 %
 %  GENERIC ------------------------------------------------------------
 %
-%   init(this, nSteps, msg)  Init the waitbar (and display it
+%   init(this, n_steps, msg)  Init the waitbar (and display it
 %   close(this)              Close the window
 %
 %  DISPLAY ------------------------------------------------------------
@@ -70,26 +70,26 @@ classdef Go_Wait_Bar < handle
     end
 
     properties (GetAccess = 'public', SetAccess = 'public')
-        type = 0;       % 0 means text, 1 means GUI, 5 both
-        h = [];         % handle of the waitbar
-        ext_h = [];     % extendend handles to the waitbar
-        t0 = 0;         % start time of process
-        nSteps = 1;     % number of step of the bar
-        lastStep = 0;   % Last step done
-        title = '';     % Title of the window
+        type = 0;        % 0 means text, 1 means GUI, 5 both
+        h = [];          % handle of the waitbar
+        ext_h = [];      % extendend handles to the waitbar
+        t0 = 0;          % start time of process
+        n_steps = 1;     % number of step of the bar
+        last_step = 0;   % Last step done
+        title = '';      % Title of the window
         msg = 'Please wait...'; % Message to display on the waitbar
-        textBar = '[]'; % Text Bar
-        bar_len = 2;    % Length of the latest text bar
+        text_bar = '[]'; % Text Bar
+        bar_len = 2;     % Length of the latest text bar
     end
 
     methods (Access = 'private')
 
         % Creator
-        function this = Go_Wait_Bar(nSteps, msg, type)
+        function this = Go_Wait_Bar(n_steps, msg, type)
             % Creator
             if (nargin >= 1)
-                this.nSteps = nSteps;
-                this.lastStep = 0;
+                this.n_steps = n_steps;
+                this.last_step = 0;
             end
             if (nargin >= 2)
                 this.msg = msg;
@@ -142,23 +142,37 @@ classdef Go_Wait_Bar < handle
                     this.title = title;
                     fprintf('%s', title);
                 end
-                this.textBar = this.getTextBar();
-                txt = sprintf(' %s\n%s\n', this.msg, this.textBar);
+                this.msg = '                ';
+                this.text_bar = this.getTextBar();
+                txt = sprintf(' %s\n%s\n', this.msg, this.text_bar);
                 fprintf('\n%s', txt);
                 this.bar_len = length(txt);
             end
         end
 
-        function bar = getTextBar(this)
+        function [bar, is_changed] = getTextBar(this)
             % Get the standard text bar
-            bar = sprintf('%3d%% [%s]', round(this.lastStep / this.nSteps * 100), this.SPC(1:this.MAX_BAR_LEN));
-            last = round(this.lastStep / this.nSteps * this.MAX_BAR_LEN);
-            if (last > 0)
-                bar((1:last) + 6) = '=';
-                if (last < this.MAX_BAR_LEN)
-                    bar(last + 6) = '>';
+            persistent last_perc;
+            persistent last_perc2;
+            persistent old_bar;
+            
+            perc = round(this.last_step / this.n_steps * 100);
+            last = round(this.last_step / this.n_steps * this.MAX_BAR_LEN);
+            if isempty(last_perc) || last_perc ~= perc || last_perc2 ~= last
+                old_bar = sprintf('%3d%% [%s]', perc, this.SPC(1:this.MAX_BAR_LEN));
+                if (last > 0)
+                    old_bar((1:last) + 6) = '=';
+                    if (last < this.MAX_BAR_LEN)
+                        old_bar(last + 6) = '>';
+                    end
                 end
+                last_perc = perc;
+                last_perc2 = last;
+                is_changed = true;
+            else
+                is_changed = false;
             end
+            bar = old_bar;
         end
 
         function setMsg(this, msg)
@@ -170,15 +184,15 @@ classdef Go_Wait_Bar < handle
     end
 
     methods (Static)
-        function this = getInstance(nSteps, msg, type)
+        function this = getInstance(n_steps, msg, type)
             % Implementation for a Singleton Class
             persistent unique_instance_waitbar__
             if isempty(unique_instance_waitbar__)
                 switch (nargin)
                     case 0, this = Go_Wait_Bar();
-                    case 1, this = Go_Wait_Bar(nSteps);
-                    case 2, this = Go_Wait_Bar(nSteps, msg);
-                    otherwise, this = Go_Wait_Bar(nSteps, msg, type);
+                    case 1, this = Go_Wait_Bar(n_steps);
+                    case 2, this = Go_Wait_Bar(n_steps, msg);
+                    otherwise, this = Go_Wait_Bar(n_steps, msg, type);
                 end
                 unique_instance_waitbar__ = this;
             else
@@ -187,8 +201,8 @@ classdef Go_Wait_Bar < handle
                     this.type = type;
                 end
                 if (nargin >= 1)
-                    this.nSteps = nSteps;
-                    this.lastStep = 0;
+                    this.n_steps = n_steps;
+                    this.last_step = 0;
                 end
                 if (nargin >= 2)
                     this.msg = msg;
@@ -214,7 +228,7 @@ classdef Go_Wait_Bar < handle
 
         % Create a new window or plot the first bar
         function createNewBar(this, title, type)
-            this.lastStep = 0;
+            this.last_step = 0;
             this.t0 = tic;
             % Create the window or plot the first bar
             if (nargin == 3)
@@ -248,14 +262,16 @@ classdef Go_Wait_Bar < handle
         % Just update the waitbar
         function go(this,step)
             % Just update the waitbar
+
+            persistent t_old;
             if nargin == 2
-                this.lastStep = min(this.nSteps, step);
+                this.last_step = min(this.n_steps, step);
             else
-                this.lastStep = min(this.lastStep + 1,this.nSteps);
+                this.last_step = min(this.last_step + 1,this.n_steps);
             end
 
             if (this.type == 1) ||  (this.type == 5)
-                this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
+                this.ext_h.progressbar.Value = this.last_step / this.n_steps * this.ext_h.progressbar.Maximum;
                 if verLessThan('matlab','8.5') % matlab 2015a
                     drawnow; % slower but supported
                 else
@@ -264,11 +280,15 @@ classdef Go_Wait_Bar < handle
 
             end
             if (this.type == 0) ||  (this.type == 5)
-                this.textBar = this.getTextBar();
-                %txt = sprintf(' %s\n %s\n%s\n', this.title, this.msg, this.textBar);
-                txt = sprintf(' %s\n%s\n', this.msg, this.textBar);
-                fprintf('%s%s', this.DEL(1:this.bar_len), txt);
-                this.bar_len = length(txt);
+                text_bar_old = this.text_bar;
+                this.text_bar = this.getTextBar();
+                if isempty(t_old) || toc(t_old) > 0.05 || ~strcmp(text_bar_old, this.text_bar)
+                    %txt = sprintf(' %s\n %s\n%s\n', this.title, this.msg, this.text_bar);
+                    txt = sprintf(' %s\n%s\n', this.msg, this.text_bar);
+                    fprintf('%s%s', this.DEL(1:this.bar_len), txt);
+                    this.bar_len = length(txt);
+                end
+                t_old = tic;
             end
 
         end
@@ -277,16 +297,16 @@ classdef Go_Wait_Bar < handle
         function goMsg(this, step, msg)
             % Update the waitbar and accept a message to display within the window
             if nargin == 3
-                this.lastStep = min(this.nSteps, step);
+                this.last_step = min(this.n_steps, step);
             else
                 msg = step;
-                this.lastStep = min(this.lastStep + 1,this.nSteps);
+                this.last_step = min(this.last_step + 1,this.n_steps);
             end
             this.msg = msg;
 
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
-                this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
+                this.ext_h.progressbar.Value = this.last_step / this.n_steps * this.ext_h.progressbar.Maximum;
                 if ~isempty(strfind(this.msg,'\n'))
                     this.ext_h.axesTitle.Position(2) = 16;
                 else
@@ -303,9 +323,9 @@ classdef Go_Wait_Bar < handle
 
             %if text bar
             if (this.type == 0) ||  (this.type == 5)
-                this.textBar = this.getTextBar();
-                %txt = sprintf(' %s\n %s\n%s\n', this.title, this.msg, this.textBar);
-                txt = sprintf(' %s\n%s\n', this.msg, this.textBar);
+                this.text_bar = this.getTextBar();
+                %txt = sprintf(' %s\n %s\n%s\n', this.title, this.msg, this.text_bar);
+                txt = sprintf(' %s\n%s\n', this.msg, this.text_bar);
                 fprintf('%s%s', this.DEL(1:this.bar_len), txt);
                 this.bar_len = length(txt);
             end
@@ -314,29 +334,41 @@ classdef Go_Wait_Bar < handle
         % Update the waitbar and estimate the remaining computational time supposing a linear trend
         function goTime(this,step)
             % Update the waitbar and estimate the remaining computational time supposing a linear trend
+            persistent t1_old
             if nargin == 2
-                this.lastStep = min(this.nSteps, step);
+                this.last_step = min(this.n_steps, step);
             else
-                this.lastStep = min(this.lastStep + 1,this.nSteps);
+                this.last_step = min(this.last_step + 1,this.n_steps);
             end
             % Elapsed time:
             t1= toc(this.t0);
-            e_hh = floor(t1 / 3600);
-            e_mm = floor((t1 - e_hh * 3600) / 60);
-            e_ss = (t1 - e_hh * 3600 - e_mm * 60);
-            %elapsedTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
-            % Remaining Time
-            t1 = t1 / this.lastStep * (this.nSteps - this.lastStep);
-            r_hh = floor(t1 / 3600);
-            r_mm = floor((t1 - r_hh * 3600) / 60);
-            r_ss = (t1 - r_hh * 3600 - r_mm * 60);
-            %remainingTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
-
-            this.msg = sprintf(' Elapsed time                %02d:%02d:%04.1f\n Remaining time            %02d:%02d:%04.1f', e_hh, e_mm, e_ss, r_hh, r_mm, r_ss);
-
+            
+            bar_is_changed = false;
+            if (this.type == 0) ||  (this.type == 5)
+                [this.text_bar, bar_is_changed] = this.getTextBar();
+            end
+            
+            new_time = false;
+            if bar_is_changed || isempty(t1_old) || (toc(t1_old + this.t0) > 0.25)
+                e_hh = floor(t1 / 3600);
+                e_mm = floor((t1 - e_hh * 3600) / 60);
+                e_ss = (t1 - e_hh * 3600 - e_mm * 60);
+                %elapsedTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
+                % Remaining Time
+                t1 = t1 / this.last_step * (this.n_steps - this.last_step);
+                r_hh = floor(t1 / 3600);
+                r_mm = floor((t1 - r_hh * 3600) / 60);
+                r_ss = (t1 - r_hh * 3600 - r_mm * 60);
+                %remainingTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
+                
+                this.msg = sprintf(' Elapsed time                %02d:%02d:%04.1f\n Remaining time            %02d:%02d:%04.1f', e_hh, e_mm, e_ss, r_hh, r_mm, r_ss);
+                t1_old = t1;
+                new_time = true;
+            end
+            
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
-                this.ext_h.progressbar.Value = this.lastStep / this.nSteps * this.ext_h.progressbar.Maximum;
+                this.ext_h.progressbar.Value = this.last_step / this.n_steps * this.ext_h.progressbar.Maximum;
                 if (this.ext_h.axesTitle.Position(2) ~= 25)
                     %this.ext_h.axesTitle.FontName = 'Courier';
                     %this.ext_h.axesTitle.FontWeight = 'bold';
@@ -353,19 +385,20 @@ classdef Go_Wait_Bar < handle
 
             %if text bar
             if (this.type == 0) ||  (this.type == 5)
-                this.textBar = this.getTextBar();
-                %txt = sprintf(' %s\n%s\n%s\n', this.title, this.msg([1:13 16:end]), this.textBar);
-                txt = sprintf('%s%s\n%s\n', this.DEL(1:this.bar_len), this.msg([1:13 16:end]), this.textBar);
-                fprintf('%s', txt);
-                this.bar_len = length(txt) - this.bar_len;
+                if new_time
+                    %txt = sprintf(' %s\n%s\n%s\n', this.title, this.msg([1:13 16:end]), this.text_bar);
+                    txt = sprintf('%s%s\n%s\n', this.DEL(1:this.bar_len), this.msg([1:13 16:end]), this.text_bar);
+                    fprintf('%s', txt);
+                    this.bar_len = length(txt) - this.bar_len;
+                end
             end
         end
 
         % Set the max value accepted by the bar ( == 100%)
-        function setBarLen(this, nSteps)
+        function setBarLen(this, n_steps)
             % Set output type: 0 means text, 1 means GUI, 5 both
-            this.nSteps = nSteps;
-            this.lastStep = min(this.lastStep, nSteps);
+            this.n_steps = n_steps;
+            this.last_step = min(this.last_step, n_steps);
         end
 
         % Set output type: 0 means text, 1 means GUI, 5 both
@@ -425,6 +458,7 @@ classdef Go_Wait_Bar < handle
         function close(this)
             % Close the window
             delete(this.h);
+            fprintf('\n');
         end
     end
 
@@ -434,7 +468,7 @@ classdef Go_Wait_Bar < handle
             if nargin == 0
                 type = 5;
             end
-            profile off
+            % profile on
             nMax = 10000;
             b = Go_Wait_Bar.getInstance(nMax,'Whats''up!',type);
 
@@ -463,8 +497,8 @@ classdef Go_Wait_Bar < handle
             fprintf('\n Test completec');
 
             toc(t0);
-            %profile off
-            %profile viewer
+            % profile off
+            % profile viewer
         end
 
         function testOld()
