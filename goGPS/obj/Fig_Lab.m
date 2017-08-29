@@ -63,12 +63,22 @@ classdef Fig_Lab < handle
             if nargin < 4
                 color_type = 0;
             end
-            if time.getRate > 86000
-                date_style = 'dd mmm yyyy';
-            else
-                date_style = 'dd mmm yyyy HH:MM';
+            
+            if ~isempty(time)
+                if time.getRate > 86000
+                    date_style = 'dd mmm yyyy';
+                else
+                    date_style = 'dd mmm yyyy HH:MM';
+                end
             end
 
+            if size(enu, 3) == 2
+                enu_var = enu(:,:,2);
+                enu = enu(:,:,1);
+            else
+                enu_var = [];
+            end
+            
             spline_base = spline_base * (size(enu,1) > spline_base);
 
             persistent m_enu
@@ -84,7 +94,7 @@ classdef Fig_Lab < handle
                     fh = figure();
                     m_enu = [];
                 end
-                maximizeFig(gcf);
+                %maximizeFig(gcf);
                 color_order = handle(gca).ColorOrder;
                 if color_type == 1
                     color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
@@ -120,41 +130,59 @@ classdef Fig_Lab < handle
 
             if isempty(time) || (isa(time, 'GPS_Time') && time.isempty())
                 subplot(3,1,1); if color_type; hold on; end
-                plot(data_e, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(data_e_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(data_e_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(data_e, enu_var(:,1), color_order(1,:));
                 end
 
                 subplot(3,1,2);
-                plot(data_n, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                plot(data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(data_n_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(data_n_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(data_n, enu_var(:,2), color_order(2,:));
                 end
 
                 subplot(3,1,3);
                 plot(data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(data_u_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(data_u_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(data_u, enu_var(:,3), color_order(3,:));
                 end
             else
                 subplot(3,1,1);
-                plot(time.getMatlabTime, data_e, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_e_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(time.getMatlabTime, data_e_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(time.getMatlabTime, data_e, enu_var(:,1), color_order(1,:));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,2);
-                plot(time.getMatlabTime, data_n, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_n_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(time.getMatlabTime, data_n_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(time.getMatlabTime, data_n, enu_var(:,2), color_order(2,:));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,3);
-                plot(time.getMatlabTime, data_u, '.', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
+                plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_u_s, '--', 'LineWidth', 2, 'Color', iif(color_type, [0.5 0.5 0.5], [0.1 0.1 0.1]));
+                    plot(time.getMatlabTime, data_u_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                end
+                if ~isempty(enu_var)
+                    Fig_Lab.plotError(time.getMatlabTime, data_u, enu_var(:,3), color_order(3,:));
                 end
                 setTimeTicks(4,date_style);
             end
@@ -187,9 +215,37 @@ classdef Fig_Lab < handle
             ylabel('\Delta UP [mm]', 'FontWeight', 'Bold')
         end
     end
-
+    
     methods (Static) % Public Access
-
+        function plotError(x, y, e, color)
+            % SYNTAX:
+            %   plotError(x, y, e, color)
+            %   plotError(y, e, color)
+            %   plotError(y, e)
+            
+            switch nargin
+                case 4
+                    patchColor = min(color + 0.3, 1);
+                case 3
+                    patchColor = min(e + 0.3, 1);
+                    e = y;
+                    y = x;
+                    x = 1:length(y);
+                case 2
+                    patchColor = min([0.5 0.5 0.5] + 0.3, 1);
+                    e = y;
+                    y = x;
+                    x = 1:length(y);
+            end
+            % plotError(x,y, hline(1).Color)
+            plot(x, y + e, x, y - e, 'color', patchColor);
+            patch([x(~isnan(e)) fliplr(x(~isnan(e)))], [y(~isnan(e)) + e(~isnan(e)); flipud(y(~isnan(e)) -e(~isnan(e)))], 1, ...
+                'facecolor',patchColor, ...
+                'edgecolor','none', ...
+                'facealpha', 0.1);
+            
+        end
+        
         function [time, enu, xyz] = plotExtractionPos(file_name_extraction, hold_on, plot_list)
             % SYNTAX:
             %   plotExtractionPos(<file_name_extraction>, plot_list)
@@ -231,6 +287,9 @@ classdef Fig_Lab < handle
                 fclose(fid);
 
                 data = sscanf(txt','%4d-%3d  %2d/%2d/%2d    %2d:%2d:%6f   %14f   %14f   %14f   %14f   %14f   %14f\n');
+                if numel(data) < 14
+                    data = sscanf(txt','%4d-%3d  %4d/%2d/%2d    %2d:%2d:%6f   %14f   %14f   %14f   %14f   %14f   %14f\n');
+                end
                 data = reshape(data, 14, numel(data)/14)';
                 time = GPS_Time(datenum([data(:,1), data(:,4:8)]));
                 xyz = data(:,9:11);
@@ -240,7 +299,7 @@ classdef Fig_Lab < handle
                 m_xyz = mean(xyz);
 
                 if ~isempty(intersect(plot_list, 1))
-                    Fig_Lab.plotENU(time, enu, 14, hold_on)
+                    Fig_Lab.plotENU(time, enu, 0, hold_on)
                 end
 
                 if ~isempty(intersect(plot_list, 2))
