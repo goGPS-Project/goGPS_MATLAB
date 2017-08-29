@@ -161,7 +161,7 @@ status_cs=[];
 
 % remove short arcs
 min_arc = max([state.getMinArc() lagr_order]);
-logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+%logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
 pr1 = remove_short_arcs(pr1, min_arc);
 pr2 = remove_short_arcs(pr2, min_arc);
 ph1 = remove_short_arcs(ph1, min_arc);
