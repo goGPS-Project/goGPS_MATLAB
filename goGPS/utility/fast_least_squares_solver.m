@@ -17,7 +17,11 @@ T = Q \ v_hat;
 sigma02_hat = (V * T) / (n - m);
 
 %covariance matrix
-Cxx = sigma02_hat * N^-1;
+try
+    Cxx = sigma02_hat * cholinv(N);
+catch
+    Cxx = sigma02_hat * N^-1;
+end
 
 if nargout == 5
     Cyy = sigma02_hat * A/N*A';
