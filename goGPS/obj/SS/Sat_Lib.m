@@ -110,7 +110,7 @@ classdef Sat_Lib < handle
 
     methods % Public Access (Legacy support)
 
-        function [antenna_PCV] = read_antenna_pcv(this, filename, antmod, date)
+        function [antenna_PCV] = read_antenna_pcv(this, filename, antmod, date_limits)
             % SYNTAX:
             %   [antPCV] = this.read_antenna_PCV(filename, antmod, date_start, date_stop);
             %
@@ -164,7 +164,7 @@ classdef Sat_Lib < handle
                     'tablePCV_azi', [], ...
                     'tablePCV', []);
             end
-            antenna_found=zeros(length(antmod),1);
+            antenna_found = zeros(length(antmod),1);
 
             % for each PCV file
             for file_pcv = 1 : size(filename, 1)
@@ -244,13 +244,13 @@ classdef Sat_Lib < handle
                                                     end
 
                                                     if (~isempty(validity_start)) % satellite antenna
-                                                        if ~(date.first.getMatlabTime() > datenum(validity_start) && (date.last.getMatlabTime() < datenum(validity_end)))
+                                                        if ~(date_limits.first.getMatlabTime() > datenum(validity_start) && (date_limits.last.getMatlabTime() < datenum(validity_end)))
                                                             invalid_date = 1;
                                                             antenna_PCV(m(1)).n_frequency = 0;
                                                             if isinf(validity_end)
-                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', date.first.toString(), date.last.toString(), datestr(validity_start)), 100)
+                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start)), 100)
                                                             else
-                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', date.first.toString(), date.last.toString(), datestr(validity_start), datestr(validity_end)), 100)
+                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start), datestr(validity_end)), 100)
                                                             end
                                                         end
                                                     else  %receiver antenna

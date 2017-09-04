@@ -1,7 +1,7 @@
-function [bcheck, acheck, Qzhat, Qbcheck] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
+function [bcheck, acheck, Qzhat, Qbcheck, bfixed, afixed] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 
 % SYNTAX:
-%   [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba);
+%   [bcheck, acheck, Qzhat, Qbcheck, bfixed, afixed] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 %
 % INPUT:
 %   bhat  = position coordinates (float solution)
@@ -11,9 +11,12 @@ function [bcheck, acheck, Qzhat, Qbcheck] = lambdafix(bhat, ahat, Qbb, Qahat, Qb
 %   Qba   = VCV-matrix (position-ambiguity covariance block)
 %
 % OUTPUT:
-%   bcheck = output baseline (fixed or float depending on method and ratio test)
-%   acheck = output ambiguities (fixed or float depending on method and ratio test)
-%   Qzhat  = variance-covariance matrix of decorrelated ambiguities
+%   bcheck  = output baseline (fixed or float depending on method and ratio test)
+%   acheck  = output ambiguities (fixed or float depending on method and ratio test)
+%   Qzhat   = variance-covariance matrix of decorrelated ambiguities
+%   Qbcheck = variance-covariance matrix of the baseline
+%   bfixed  = output baseline (fixed or float depending on method)
+%   afixed  = output ambiguities (fixed or float depending on method)
 %
 % DESCRIPTION:
 %   A wrapper for LAMBDA function to be used in goGPS.
@@ -66,6 +69,7 @@ if (flag_default_P0)
 end
 
 try
+    bfixed = [];
     % perform ambiguity resolution
     if (IAR_method == 0)
         %ILS enumeration (LAMBDA2)
@@ -85,7 +89,8 @@ try
         % ILS enumeration, method 2
         [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
         % compute the fixed solution
-        bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+        bfixed = repmat(bhat, 1, size(afixed, 2)) - Qba*cholinv(Qahat) * (repmat(ahat, 1, size(afixed, 2)) - afixed);
+        bcheck = bfixed(:,1);
         acheck = afixed(:,1);
         Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
 
@@ -96,6 +101,7 @@ try
         % compute the fixed solution
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
         acheck = afixed(:,1);
+        Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
 
     elseif (IAR_method == 5)
         % Partial Ambiguity Resolution, method 5
@@ -110,14 +116,18 @@ try
             try
                 %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
                 bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
+                bfixed = repmat(bhat, 1, size(afixed, 2)) - Qba*cholinv(Qahat) * (repmat(ahat, 1, size(afixed, 2)) - afixed);
+                bcheck = bfixed(:,1);
+                acheck = afixed(:,1);
+                Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
             catch ME
                 disp('Problems in PAR (lambdafix.m)');
                 %keyboard;
+                % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
+                acheck = ahat;
+                Qzhat = Qahat;
             end
 
-            % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
-            acheck = ahat;
-            Qzhat = Qahat;
         else
             % keep float solution
             bcheck = bhat;
@@ -137,6 +147,10 @@ catch
     succ_rate = [succ_rate NaN];
 
     return
+end
+
+if isempty(bfixed)
+    bfixed = bcheck;
 end
 
 % If IAR_method = 0 or IAR_method = 1 or IAR_method = 2 perform ambiguity validation through ratio test
@@ -166,7 +180,6 @@ if (IAR_method == 0 || IAR_method == 1 || IAR_method == 2)
     mutest    = [mutest mu];
 
 elseif (IAR_method == 5)
-
     if (nfx > 0)
         fixed_solution = [fixed_solution 1];
     else

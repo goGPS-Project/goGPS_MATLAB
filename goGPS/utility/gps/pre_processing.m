@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
+function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
+%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -27,7 +27,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %           = 0: no apriori coordinates available
 %   sbas = SBAS corrections
 %   constellations = struct with multi-constellation settings
-%   flag_full_prepro = do  afull preprocessing
+%   flag_full_prepro = do  a full preprocessing
 %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
 % OUTPUT:
@@ -35,6 +35,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   ph1 = processed phase observation (L1 carrier)
 %   pr2 = processed code observation (L2 carrier)
 %   ph2 = processed phase observation (L2 carrier)
+%   XR  = receiver position
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
@@ -83,7 +84,10 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %--------------------------------------------------------------------------
 
 
-global cutoff snr_threshold n_sys flag_doppler_cs min_arc
+global cutoff snr_threshold n_sys flag_doppler_cs
+
+state = Go_State.getCurrentSettings();
+logger = Logger.getInstance();
 
 v_light = goGNSS.V_LIGHT;
 
@@ -155,12 +159,13 @@ var_ISBs = NaN(nisbs-1,nEpochs);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
 
-%remove short arcs
-min_arc = max([min_arc lagr_order]);
-[pr1] = remove_short_arcs(pr1, min_arc);
-[pr2] = remove_short_arcs(pr2, min_arc);
-[ph1] = remove_short_arcs(ph1, min_arc);
-[ph2] = remove_short_arcs(ph2, min_arc);
+% remove short arcs
+min_arc = max([state.getMinArc() lagr_order]);
+%logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+pr1 = remove_short_arcs(pr1, min_arc);
+pr2 = remove_short_arcs(pr2, min_arc);
+ph1 = remove_short_arcs(ph1, min_arc);
+ph2 = remove_short_arcs(ph2, min_arc);
 
 %correct nominal time desynchronization
 % [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
@@ -168,6 +173,7 @@ min_arc = max([min_arc lagr_order]);
 % time = time_ref;
 
 if not(flag_full_prepro)
+    XR = repmat(XR0, 1, length(dtR));
     dtRdot(end+1) = dtRdot(end);
 else
 
@@ -265,6 +271,7 @@ else
             status_obs(find(bad_sat_i==1),i)=-1; %#ok<FNDSB> % satellite outlier
 
             if (~isempty(dtR_tmp) && ~isempty(sat))
+                XR(:,i) = XR_tmp;
                 dtR(i) = dtR_tmp;
                 %             if (~isempty(ISBs_tmp))
                 %                 ISBs(:,i) = ISBs_tmp;
@@ -674,11 +681,12 @@ else
         end
 
         %repeat remove short arcs after cycle slip detection
-        min_arc = max([min_arc lagr_order]);
-        [pr1_interp(s,:)] = remove_short_arcs(pr1_interp(s,:), min_arc);
-        [pr2_interp(s,:)] = remove_short_arcs(pr2_interp(s,:), min_arc);
-        [ph1_interp(s,:)] = remove_short_arcs(ph1_interp(s,:), min_arc);
-        [ph2_interp(s,:)] = remove_short_arcs(ph2_interp(s,:), min_arc);
+        % remove short arcs
+        min_arc = max([state.getMinArc() lagr_order]);
+        pr1_interp(s,:) = remove_short_arcs(pr1_interp(s,:), min_arc);
+        pr2_interp(s,:) = remove_short_arcs(pr2_interp(s,:), min_arc);
+        ph1_interp(s,:) = remove_short_arcs(ph1_interp(s,:), min_arc);
+        ph2_interp(s,:) = remove_short_arcs(ph2_interp(s,:), min_arc);
 
 %         if (freq1_required)
 %             if (any(ph1(s,:)))
@@ -1123,32 +1131,6 @@ for t = 1 : length(time_series)
 end
 if (~isempty(mov_std))
     min_std = min(mov_std);
-end
-end
-
-function [outliers] = batch_outlier_detection(time_series, interval)
-
-outlier_thres = 1e-3;
-batch_size = 3600; %seconds
-
-num_batches = floor(length(time_series)*interval/batch_size);
-batch_idx = 1 : batch_size/interval : batch_size*num_batches/interval;
-
-if (num_batches == 0 && ~isempty(time_series))
-    num_batches = 1;
-    batch_idx = 1;
-end
-
-outliers = [];
-for b = 1 : num_batches
-    start_idx = batch_idx(b);
-    if (b == num_batches)
-        end_idx = length(time_series);
-    else
-        end_idx = batch_idx(b+1)-1;
-    end
-    [~,~,outliers_batch] = deleteoutliers(time_series(start_idx:end_idx), outlier_thres);
-    outliers = [outliers; outliers_batch];
 end
 end
 

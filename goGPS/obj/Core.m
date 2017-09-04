@@ -51,12 +51,14 @@ classdef Core < handle
 
     properties % Public Access
         logger;
+        state;
     end
 
     methods (Static)
         function this = Core()
             % Core object creator
             this.logger = Logger.getInstance();
+            this.state = Go_State.getCurrentSettings();
         end
 
         % Concrete implementation.  See Singleton superclass.
@@ -284,6 +286,7 @@ classdef Core < handle
                 ]);
         end
     end
+
     % =========================================================================
     %  CONSTELLATION MANAGEMENT
     % =========================================================================
@@ -319,10 +322,6 @@ classdef Core < handle
             cc = obj.cc;
         end
 
-        function [cc] = getConstellations(obj)
-            % Get the object containing the actual status of the enabled constallation
-            cc = obj.cc;
-        end
     end
 
     methods % Public Access (Legacy support)

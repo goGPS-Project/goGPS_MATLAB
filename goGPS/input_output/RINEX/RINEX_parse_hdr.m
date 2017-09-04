@@ -1,4 +1,4 @@
-function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod, marker] = RINEX_parse_hdr(file)
+function [cur_line, Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod, marker] = RINEX_parse_hdr(buf, cur_line)
 
 % SYNTAX:
 %   [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod, marker] = RINEX_parse_hdr(file);
@@ -59,7 +59,7 @@ interval = 0;
 antmod = '';
 
 %parse first line
-line = fgetl(file);
+cur_line = cur_line + 1; line = buf{cur_line};
 
 %constellation counter for RINEX v3.xx
 c = 1;
@@ -75,7 +75,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         nLinObs = ceil(nObs/9);
         for i = 1 : nLinObs
             if (i > 1)
-                line = fgetl(file);
+                cur_line = cur_line + 1; line = buf{cur_line};
             end
             n = min(nObs,9);
             for k = 1 : n
@@ -96,7 +96,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         nLinObs = ceil(nObs/13);
         for i = 1 : nLinObs
             if (i > 1)
-                line = fgetl(file);
+                cur_line = cur_line + 1; line = buf{cur_line};
             end
             n = min(nObs,13);
             for k = 0 : n-1
@@ -147,7 +147,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     end
 
     %parse next line
-    line = fgetl(file);
+    cur_line = cur_line + 1; line = buf{cur_line};
 end
 
 % %apply the antenna offset from the marker (if available)

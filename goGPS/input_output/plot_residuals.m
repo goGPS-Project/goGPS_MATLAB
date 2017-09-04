@@ -73,7 +73,12 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 plot(RES_PHASE(constellations.(systems{s}).indexes(i),~outliers_PHASE(constellations.(systems{s}).indexes(i),:))*1000,'.b');
            end
 
-            print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals']);
+            try
+                print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals']);
+            catch ex
+                logger = Logger.getInstance();
+                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
+            end
             %remove figure
             close(f);
         end
@@ -97,7 +102,13 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 xlabel('Epoch','FontName','Verdana','FontSize',6,'FontWeight','Bold');
                 plot(RES_CODE(constellations.(systems{s}).indexes(i),~outliers_CODE(constellations.(systems{s}).indexes(i),:)),'.b');
             end
-            print(f1, '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
+            try
+                print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
+            catch ex
+                logger = Logger.getInstance();
+                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
+            end
+
 
             close(f1);
         end
@@ -122,8 +133,13 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 hold on
                 plot(find(outliers_PHASE(constellations.(systems{s}).indexes(i),:) == 1),RES_PHASE(constellations.(systems{s}).indexes(i), outliers_PHASE(constellations.(systems{s}).indexes(i),:) == 1)*1000,'.r');
             end
+            try
+                print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals_with_OUTLIERS']);
+            catch ex
+                logger = Logger.getInstance();
+                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
+            end
 
-            print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals_with_OUTLIERS']);
             %remove figure
             close(f);
         end
@@ -149,8 +165,12 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 hold on
                 plot(find(outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),RES_CODE(constellations.(systems{s}).indexes(i), outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),'.r');
             end
-            print(f1, '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals_with_OUTLIERS']);
-
+            try
+                print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
+            catch ex
+                logger = Logger.getInstance();
+                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
+            end
             close(f1);
         end
     end

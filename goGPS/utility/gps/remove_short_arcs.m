@@ -54,7 +54,7 @@ obs_out = obs_in;
 for s = 1 : size(obs_in,1)
 
     % find intervals of zeros
-    fI = getOutliers(obs_in(s,:) == 0);
+    fI = getOutliers(obs_in(s,:) == 0 | isnan(obs_in(s, :)));
 
     % find the intervals of good obs_in
     vI = [[1; fI(:,2)+1] [fI(:,1)-1; size(obs_in,2)]];

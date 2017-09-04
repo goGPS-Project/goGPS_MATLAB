@@ -118,7 +118,8 @@ A0=A;
 y00=y0-b;
 index_obs = 1:length(y00); index_obs = index_obs';
 
-if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
+% arg 10 => flag_residual_thres
+if flag_outlier && nargin >= 10 && flag_residual_thres
     %remove observations with residuals exceeding thresholds
     x = (N^-1)*A'*(invQ)*(y0-b);
     y_hat = A*x + b;
@@ -142,7 +143,8 @@ if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres ==
     end
 end
 
-if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
+% arg 9 => SPP_threshold
+if nargin<9 || (n == m)
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
     %estimation of the variance of the observation error

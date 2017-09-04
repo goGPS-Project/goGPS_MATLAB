@@ -1081,7 +1081,7 @@ if (flag_IAR && exist('sat_np', 'var') && ~isempty(sat_np) && nsat >= min_nsat)
         y0_residuals(length(sat_pr_np_residuals)+find(idx_ph)) = [];
         H1_residuals(length(sat_pr_np_residuals)+find(idx_ph),:) = [];
         sat_np_residuals(idx_ph) = [];
-        outliers(index_residuals_outlier(index_outlier_i(length(sat_pr_np_residuals)+find(idx_ph)))) = 1;
+        outliers(index_residuals_outlier(index_outlier_i(length(sat_pr_np)+find(idx_ph)))) = 1;
 
         compute_residuals(Xhat_t_t, 'fixed');
     end

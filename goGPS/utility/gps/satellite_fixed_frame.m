@@ -50,12 +50,12 @@ function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
 t_sun = SP3.t_sun;
 X_sun = SP3.X_sun;
 
-interval = SP3.clock_rate;
+% interval = SP3.clock_rate;
 
-% [~, q] = min(abs(t_sun - time));
+[~, q] = min(abs(t_sun - time));
 % speed improvement of the above line
 % supposing t_sun regularly sampled
-q = round((time-t_sun(1))/interval)+1;
+% q = round((time-t_sun(1))/interval)+1; %should be processing interval, not SP3 interval
 
 X_sun = X_sun(:,q);
 e = (X_sun-X_sat)/norm(X_sun-X_sat);

@@ -58,6 +58,14 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     if (nargin < 4)
         regFactor = 0;
     end
+    if isempty(x)
+        x = 1:numel(y);
+    end
+    
+    inan = isnan(y);
+    x(inan) = [];
+    y(inan) = [];
+    
     if ((nargin == 3) || (regFactor == 0))
         if (size(y,2) == 2)
             [ySplined xSpline sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
@@ -91,6 +99,9 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     else
         ySplined_ext = ySplined;
     end
+    tmp = nan(numel(inan),1);
+    tmp(~inan) = ySplined;
+    ySplined = tmp;
 end
 
 % No Regularization + variances
@@ -451,6 +462,9 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
     sWeights = [sWeights; sPar];
 
     for s = first_spline:curSpline
+        if (skips(s) == 0 && s > 1)
+            skips(s) = skips(s-1);
+        end
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
@@ -543,12 +557,12 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
     % find the interpolation for the last subset of observations
     sPar = [];
     if (size(N,2)>2)
-        fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
+        %fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
         R = sparse(eye(size(N,2))-diag(ones(size(N,2)-1,1),1)-diag(ones(size(N,2)-1,1),-1) + diag([0; ones(size(N,2)-2,1); 0]))*regFactor;
         sPar = (N+R)\TN;
     else
         if (usedObs < size(N,2))
-            fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
+            %fprintf('WARNING: Regularization is needed observations are less than splines.\n         Adding 1e-9 on the normal matrix diagonal\n');
             R = sparse(eye(size(N,2))*regFactor);
             sPar = (N+R)\TN;
         else
@@ -558,6 +572,9 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
     sWeights = [sWeights; sPar];
 
     for s = first_spline:curSpline
+        if (skips(s) == 0 && s > 1)
+            skips(s) = skips(s-1);
+        end
         if ((skips(s)<skips(s+1)))
             ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) = ySplined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * sPar(s-first_spline+1:s+3-first_spline+1);
         end
