@@ -58,6 +58,14 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     if (nargin < 4)
         regFactor = 0;
     end
+    if isempty(x)
+        x = 1:numel(y);
+    end
+    
+    inan = isnan(y);
+    x(inan) = [];
+    y(inan) = [];
+    
     if ((nargin == 3) || (regFactor == 0))
         if (size(y,2) == 2)
             [ySplined xSpline sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
@@ -91,6 +99,9 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     else
         ySplined_ext = ySplined;
     end
+    tmp = nan(numel(inan),1);
+    tmp(~inan) = ySplined;
+    ySplined = tmp;
 end
 
 % No Regularization + variances
