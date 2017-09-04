@@ -1403,7 +1403,7 @@ classdef Core_Block < handle
                 amb_idx = 1 : amb_num;
             end
             full_slip_split = this.state.getFullSlipSplit();
-            [full_slip, ia] = unique(this.empty_epoch(:) - (0 : length(this.empty_epoch) - 1)');
+            [full_slip, ia] = unique(setdiff(this.empty_epoch(:),1) - (0 : length(setdiff(this.empty_epoch(:),1)) - 1)');
             full_slip = full_slip(find(diff(ia) > full_slip_split-1));
             if (this.state.isModeSA())
                 % set the design matrix to estimate the receiver clock

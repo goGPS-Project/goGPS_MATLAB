@@ -300,7 +300,12 @@ classdef Fig_Lab < handle
                 m_xyz = mean(xyz);
 
                 if ~isempty(intersect(plot_list, 1))
-                    Fig_Lab.plotENU(time, enu, 0, hold_on)
+                    if time.getRate < 3600
+                        spline_base = double(((time.last.getUnixTime - time.first.getUnixTime) / 86400)) * round(86400 / time.getRate() / 24 * 1);
+                    else
+                        spline_base = 0;
+                    end
+                    Fig_Lab.plotENU(time, enu, spline_base, hold_on);
                 end
 
                 if ~isempty(intersect(plot_list, 2))
