@@ -1094,8 +1094,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system', str_cell);
             str_cell = Ini_Manager.toIniStringComment('This could improve the results when processing daily datasets, when processing at high rate with no seamless mode it is best to turn this feature off.', str_cell);
             str_cell = Ini_Manager.toIniString('block_full_slip_split', this.block_full_slip_split, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Often the computed positions are good wether or not the Covariance Matrix is stable', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Try to remove the arcs that are making the covariance matrix of the ambiguities unstable', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Often, the computed positions are good wether or not the covariance matrix is stable', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Under particular conditions forcing the stabilization can remove most or all the arcs making the solution worse', str_cell);
             str_cell = Ini_Manager.toIniString('block_force_stabilization', this.block_force_stabilization, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);

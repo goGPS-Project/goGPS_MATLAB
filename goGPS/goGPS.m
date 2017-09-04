@@ -2548,7 +2548,7 @@ for session = 1 : num_session
                     %-----------------------------------------------------------------------------------------------------------
                     %% GO BLOCK HR) POST-PROCESSING (RELATIVE POSITIONING): BLOCK ON CODE AND PHASE DOUBLE DIFFERENCES HIGH RATE
                     %-----------------------------------------------------------------------------------------------------------
-                        go_block2 = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, state.getSolutionRate());
+                        go_block = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, state.getSolutionRate());
                         unused_epochs = [];
                     end
                     %Fig_Lab.plotENU([], go_block.getENU(), 0);

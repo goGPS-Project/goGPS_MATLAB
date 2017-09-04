@@ -1259,20 +1259,21 @@ classdef Core_Block < handle
             
             Y = (y0 - b);
             L = P * Y;
-            x = N\L;
+            x = N_inv * L;
             
             % estimation of the variance of the observation error
             y_hat = A(:, col_ok) * x + b;
             v_hat = y0 - y_hat;
             T = Q \ v_hat;
             s02 = (v_hat' * T) / (n_obs - n_col);
-            
-            if nargout == 7
-                Cyy = s02 * A(:, col_ok) * N_inv * A(:, col_ok)';
-            end
-            
+                        
             % covariance matrix
             Cxx = s02 * N_inv;
+            
+            if nargout == 7
+                A = A(:, col_ok)';
+                Cyy = s02 * A' * N_inv * A;
+            end
         end
     end
 
