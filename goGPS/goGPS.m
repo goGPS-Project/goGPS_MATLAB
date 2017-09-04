@@ -198,7 +198,9 @@ fnp = File_Name_Processor();
 
 if num_session > 1
     is_batch = true;
-
+    w_bar.setOutputType(0);
+    %logger.setColorMode(0);
+    
     % Composing the name of the batch output
     sss_date_start = state.getSessionStart();
     sss_date_stop = state.getSessionStop();
@@ -212,22 +214,27 @@ if num_session > 1
     end
     
     file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
-    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
-    fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
+    file_name_base = [fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop) filesep];
+    if ~(exist(file_name_base, 'dir') == 7)
+        mkdir(file_name_base);
+    end
+    fid_extract = fopen(sprintf('%sextraction.txt', file_name_base),'w');
     
     if (state.isModeBlock())
-        fid_extract_float = fopen(sprintf('%s_extraction_float.txt', file_name_base),'w');
-        fid_extract_fix = fopen(sprintf('%s_extraction_fix.txt', file_name_base),'w');
+        fid_extract_hr = fopen(sprintf('%sextraction_hr.txt', file_name_base),'w');
+        fid_extract_hr_median = fopen(sprintf('%sextraction_hr_median.txt', file_name_base),'w');
+        fid_extract_float = fopen(sprintf('%sextraction_float.txt', file_name_base),'w');
+        fid_extract_fix = fopen(sprintf('%sextraction_fix.txt', file_name_base),'w');
     end
 
-    fid_extract_ZTD = fopen(sprintf('%s_ZTD.txt', file_name_base),'w');
-    fid_extract_ZWD = fopen(sprintf('%s_ZWD.txt', file_name_base),'w');
+    fid_extract_ZTD = fopen(sprintf('%sZTD.txt', file_name_base),'w');
+    fid_extract_ZWD = fopen(sprintf('%sZWD.txt', file_name_base),'w');
     
-    fid_extract_POS = fopen(sprintf('%s_position.txt', file_name_base),'w');
+    fid_extract_POS = fopen(sprintf('%sposition.txt', file_name_base),'w');
     fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
     fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
     
-    fid_extract_OBS = fopen(sprintf('%s_qualityOBS.txt', file_name_base),'w');
+    fid_extract_OBS = fopen(sprintf('%squalityOBS.txt', file_name_base),'w');
     fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
     fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 else
@@ -710,9 +717,9 @@ for session = 1 : num_session
 
                         %pre-processing
                         logger.addMarkedMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
+                        logger.newLine();
                         w_bar.setBarLen(length(time_GPS_diff));
                         w_bar.createNewBar('Pre-processing rover...');
-                        logger.newLine();
 
                         [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
 
@@ -2521,10 +2528,8 @@ for session = 1 : num_session
                     
                 case goGNSS.MODE_PP_BLK_CP_DD_STATIC
                     %----------------------------------------------------------------------------------------------
-                    %% goBlock) POST-PROCESSING (RELATIVE POSITIONING): BLOCK ON CODE AND PHASE DOUBLE DIFFERENCES
+                    %% GO BLOCK) POST-PROCESSING (RELATIVE POSITIONING): BLOCK ON CODE AND PHASE DOUBLE DIFFERENCES
                     %----------------------------------------------------------------------------------------------
-                    
-                    go_block = Core_Block (numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
                     
                     % set a priori coordinates
                     if (exist('pos_R_crd','var') && any(pos_R_crd))
@@ -2533,12 +2538,23 @@ for session = 1 : num_session
                         pos_R = median (pos_R_new(:,:,1),2);
                     end
                     
-                    go_block.prepare (time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
-                    unused_epochs = go_block.empty_epoch;
-                    
-                    go_block.setAmbiguities (lambda);
-                    go_block.solve ();
-                    
+                    if state.isSeamlessHR()
+                        go_block = Core_Block (numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
+                        go_block.prepare (time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
+                        unused_epochs = go_block.getEmptyEpochs();
+                        go_block.solve(state.getSolutionRate());
+                    else
+                        
+                    %-----------------------------------------------------------------------------------------------------------
+                    %% GO BLOCK HR) POST-PROCESSING (RELATIVE POSITIONING): BLOCK ON CODE AND PHASE DOUBLE DIFFERENCES HIGH RATE
+                    %-----------------------------------------------------------------------------------------------------------
+                        go_block2 = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, state.getSolutionRate());
+                        unused_epochs = [];
+                    end
+                    %Fig_Lab.plotENU([], go_block.getENU(), 0);
+                    %Fig_Lab.plotENU([], go_block.getENU(enu_float'), 0, 1);
+                    %Fig_Lab.plotENU([], go_block.getENU(enu_fix'), 0, -1);
+                    %dockAllFigures;
                 case goGNSS.MODE_PP_KF_CP_DD
                     if (mode_vinc == 0)
                         %--------------------------------------------------------------------------------------------------------------------
@@ -3121,7 +3137,7 @@ for session = 1 : num_session
                 outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
 
             if (state.isModeBlock())
-                [pos_KAL, Xhat_t_t_OUT, Cee_OUT, pivot_OUT, nsat, fixed_amb] = go_block.getLegacyOutput();
+                [pos_KAL, Xhat_t_t_OUT, conf_sat_OUT, Cee_OUT, pivot_OUT, nsat, fixed_amb] = go_block.getLegacyOutput();
             end
 
             %variable saving for final graphical representations
@@ -3503,8 +3519,8 @@ for session = 1 : num_session
                         RES_CODE2  = RES_CODE2_FLOAT;
                     end
                 else
-                    RES_PHASE1_FLOAT_MELSA = go_block.getPhRes()';
-                    RES_PHASE1_FLOAT_MELSA(:, go_block.empty_epoch) = [];
+                    RES_PHASE1_FLOAT_MELSA = go_block.getPhaseResiduals()';
+                    RES_PHASE1_FLOAT_MELSA(:, go_block.getEmptyEpochs()) = [];
                     RES_CODE1_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
                     RES_PHASE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
                     RES_CODE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
@@ -4378,21 +4394,6 @@ for session = 1 : num_session
             if exist('X_KAL','var') && exist('estim_tropo','var')
 
                 fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
-                if (state.isModeBlock())
-                    pos = go_block.getFloatPos();
-                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
-
-                    %coordinate transformation (UTM)
-                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
-                    fprintf(fid_extract_float,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
-
-                    pos = go_block.getFixPos();
-                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
-
-                    %coordinate transformation (UTM)
-                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
-                    fprintf(fid_extract_fix,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
-                end
                 tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
                 fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
                 fprintf(fid_extract_ZTD,'\n');
@@ -4412,7 +4413,46 @@ for session = 1 : num_session
                 %fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
                 %fprintf(fid_extract_TRP,'\n');
             end
-
+            
+            if (state.isModeBlock())
+                pos = go_block.getPosHR()';
+                ko_pos = isnan(sum(pos));
+                pos(:,ko_pos) = [];
+                tmp = (GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR())/86400);
+                date_s = datevec(tmp(~ko_pos));
+                
+                if ~isempty(pos)
+                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                    
+                    %coordinate transformation (UTM)
+                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :)', pos(2, :)', pos(3, :)');
+                    fprintf(fid_extract_hr, '%c%c%c%c%c%c%c%c  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', ...
+                        [double(repmat(fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), size(pos,2), 1)), ...
+                        date_s(:,1), date_s(:,2), date_s(:,3), date_s(:,4), date_s(:,5), date_s(:,6), ...
+                        pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
+                end
+                pos = median(go_block.getPosHR(), 'omitnan')';
+                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                
+                %coordinate transformation (UTM)
+                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
+                fprintf(fid_extract_hr_median,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
+                
+                pos = go_block.getFloatPos()';
+                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                
+                %coordinate transformation (UTM)
+                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
+                fprintf(fid_extract_float,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
+                
+                pos = go_block.getFixPos()';
+                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                
+                %coordinate transformation (UTM)
+                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
+                fprintf(fid_extract_fix,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
+            end
+            
             % append report information in the database
             fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
             if fid_rep_i~=-1
@@ -4440,6 +4480,8 @@ end
 if is_batch && ~state.isModeSEID()
     fclose(fid_extract);
     if (state.isModeBlock())
+        fclose(fid_extract_hr);
+        fclose(fid_extract_hr_median);
         fclose(fid_extract_float);
         fclose(fid_extract_fix);
     end

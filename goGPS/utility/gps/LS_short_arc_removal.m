@@ -1,4 +1,6 @@
-function [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal(A, y0, b, Q, sat_track, amb_num, amb_prn_track, min_arc)
+function [A, y0, b, Q, obs_track, amb_num, amb_prn_track, rem_amb] = LS_short_arc_removal(A, y0, b, Q, obs_track, amb_num, amb_prn_track, min_arc)
+% Remove ambiguity unkowns with arcs shorter than given threshold
+% SYNTAX: [A, y0, b, Q, obs_track, amb_num, amb_prn_track, rem_amb] = LS_short_arc_removal(A, y0, b, Q, obs_track, [], amb_prn_track, min_arc)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -39,12 +41,14 @@ function [A, y0, b, Q, sat_track, amb_num, amb_prn_track] = LS_short_arc_removal
 %     y0(rem_obs) = [];
 %     b(rem_obs) = [];
 %     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-%     sat_track(rem_obs,:) = [];
+%     obs_track(rem_obs,:) = [];
 %     ok_obs = find(sum(A(:,4:end),2));
 % end
 
-%remove ambiguity unkowns with arcs shorter than given threshold
-rem_amb = find(sum(A~=0,1) < min_arc);
+amb_num = numel(amb_prn_track);
+pos_num = size(A,2) - amb_num;
+rem_amb = setdiff(find(sum(A~=0,1) < min_arc), 1 : pos_num);
+
 if (~isempty(rem_amb))
     rem_obs = [];
     for r = 1 : length(rem_amb)
@@ -54,11 +58,11 @@ if (~isempty(rem_amb))
     y0(rem_obs) = [];
     b(rem_obs) = [];
     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-    sat_track(rem_obs,:) = [];
+    obs_track(rem_obs,:) = [];
 
     A(:,rem_amb) = [];
     amb_num = amb_num - length(rem_amb);
-    amb_prn_track(rem_amb-3) = [];
+    amb_prn_track(rem_amb - pos_num) = [];
 
 %     %check again and remove observations without pivot OR slave satellite
 %     rem_obs = find(sum(A(:,4:end),2));
@@ -66,7 +70,7 @@ if (~isempty(rem_amb))
 %     y0(rem_obs) = [];
 %     b(rem_obs) = [];
 %     Q(rem_obs,:) = []; Q(:,rem_obs) = [];
-%     sat_track(rem_obs,:) = [];
+%     obs_track(rem_obs,:) = [];
 %
 %     rem_amb = find(sum(A~=0,1) < min_arc);
 end

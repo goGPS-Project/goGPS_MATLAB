@@ -98,7 +98,7 @@ for f = 1 : length(filename)
     Ypole = [Ypole; ERP_data{3}];
     UT1_UTC = [UT1_UTC; ERP_data{4}];
     LOD = [LOD; ERP_data{5}];
-    fclose(fid);    
+    fclose(fid);
 end
 
 jd = MJD + 2400000.5;

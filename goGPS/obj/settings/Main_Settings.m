@@ -95,6 +95,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         FLAG_IONOFREE = false;                          % Flag for enabling the usage of iono-free combination
         CONSTRAIN = false;                              % Constrain the solution using a reference path
         STOP_GO_STOP = false;                           % This flag add the possibility to process in stop go stop mode
+        
+        S_RATE = 3600;                           % In goBlock this is the solution high rate to be exported
 
         % INTEGER AMBIGUITY RESOLUTION
         FLAG_IAR = 0;                                   % Flag for enabling the automatic detection of cycle slip
@@ -115,6 +117,13 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         FLAG_IAR_AUTO_MU = true;                        % Flag for enabling the automatic determination of mu
         FLAG_IAR_DEFAULT_P0 = true;                     % Flag for enabling the default value for P0
         FLAG_DOPPLER = false;                           % Flag for using doppler-predicted phase range for detecting cycle slips
+        
+        % GO BLOCK
+        BLOCK_PRE_CLEANING = false;                     % Try to correct cycle slips / discontinuities in the observations and increase spike variance
+        BLOCK_POST_CLEANING_LOOPS = 4;                  % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
+        BLOCK_SEAMLESS_HR = true;                       % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
+        BLOCK_FULL_SLIP_SPLIT = true;                   % When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system
+        BLOCK_FORCE_STABILIZATION = false;              % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
 
         % KF
         KF_MODE = 1;                                    % Order of the dynamic model polynomial
@@ -348,7 +357,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % This flag add the possibility to process in stop go stop mode
         % static convergence / movement / static convergence
         stop_go_stop = Main_Settings.STOP_GO_STOP;
-
+        
+        % In goBlock this is the solution high rate to be exported
+        s_rate = Main_Settings.S_RATE;
+        
         %------------------------------------------------------------------
         % INTEGER AMBIGUITY RESOLUTION
         %------------------------------------------------------------------
@@ -388,6 +400,21 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % Flag for using doppler-predicted phase range for detecting cycle slips
         flag_doppler = Main_Settings.FLAG_DOPPLER;
+
+        %------------------------------------------------------------------
+        % GO BLOCK
+        %------------------------------------------------------------------
+
+        % Try to correct cycle slips / discontinuities in the observations and increase spike variance
+        block_pre_cleaning = Main_Settings.BLOCK_PRE_CLEANING;
+        % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
+        block_post_cleaning_loops = Main_Settings.BLOCK_POST_CLEANING_LOOPS;
+        % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
+        block_seamless_hr = Main_Settings.BLOCK_SEAMLESS_HR;
+        % When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system
+        block_full_slip_split = Main_Settings.BLOCK_FULL_SLIP_SPLIT;
+        % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
+        block_force_stabilization = Main_Settings.BLOCK_FORCE_STABILIZATION;
 
         %------------------------------------------------------------------
         % KF
@@ -591,6 +618,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_ionofree = state.getData('flag_ionofree');
                 this.constrain = state.getData('constrain');
                 this.stop_go_stop = state.getData('stop_go_stop');
+                this.s_rate = state.getData('s_rate');
 
                 % INTEGER AMBIGUITY RESOLUTION
                 this.flag_iar = state.getData('flag_iar');
@@ -602,7 +630,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_iar_auto_mu = state.getData('flag_iar_auto_mu');
                 this.flag_iar_default_p0 = state.getData('flag_iar_default_p0');
                 this.flag_doppler = state.getData('flag_doppler');
-
+                
+                % GO BLOCK
+                this.block_pre_cleaning = state.getData('block_pre_cleaning');
+                this.block_post_cleaning_loops = state.getData('block_post_cleaning_loops');
+                this.block_seamless_hr = state.getData('block_seamless_hr');
+                this.block_full_slip_split = state.getData('block_full_slip_split');
+                this.block_force_stabilization = state.getData('block_force_stabilization');
+                
                 % KF
                 this.kf_mode = state.getData('kf_mode');
                 this.flag_kf_fb = state.getData('flag_kf_fb');
@@ -692,6 +727,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_ionofree = state.flag_ionofree;
                 this.constrain = state.constrain;
                 this.stop_go_stop = state.stop_go_stop;
+                this.s_rate = state.s_rate;
 
                 % INTEGER AMBIGUITY RESOLUTION
                 this.flag_iar = state.flag_iar;
@@ -703,7 +739,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_iar_auto_mu = state.flag_iar_auto_mu;
                 this.flag_iar_default_p0 = state.flag_iar_default_p0;
                 this.flag_doppler = state.flag_doppler;
-
+                
+                % GO BLOCK
+                this.block_pre_cleaning = state.block_pre_cleaning;
+                this.block_post_cleaning_loops = state.block_post_cleaning_loops;
+                this.block_seamless_hr = state.block_seamless_hr;
+                this.block_full_slip_split = state.block_full_slip_split;
+                this.block_force_stabilization = state.block_force_stabilization;
+                
                 % KF
                 this.kf_mode = state.kf_mode;
                 this.flag_kf_fb = state.flag_kf_fb;
@@ -810,6 +853,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Enable iono free combination:                     %d\n', this.flag_ionofree)];
             str = [str sprintf(' Constrain the solution using a reference path:    %d\n', this.constrain)];
             str = [str sprintf(' Stop go stop option:                              %d\n\n', this.stop_go_stop)];
+            str = [str sprintf(' Solution rate [seconds]:                          %d\n\n', this.s_rate)];
 
             str = [str '---- AMBIGUITY (IAR) ------------------------------------------------------' 10 10];
             str = [str sprintf(' Use ambiguity fix resolution:                     %d\n\n', this.flag_iar)];
@@ -817,11 +861,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Using method %s\n\n', this.IAR_SMODE{this.iar_mode+1})];
             str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_p0)];
             str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_p0)];
-            str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:   %d\n\n', this.sigma0_N)];
+            str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:  %d\n\n', this.sigma0_N)];
             str = [str sprintf(' User defined threshold for ratio test:            %g\n', this.iar_mu)];
             str = [str sprintf(' Automatic determination of mu:                    %d\n', this.flag_iar_auto_mu)];
             str = [str sprintf(' Use default value for P0:                         %d\n', this.flag_iar_default_p0)];
             str = [str sprintf(' Use doppler predicted phase range:                %d\n\n', this.flag_doppler)];
+
+            str = [str '---- GO BLOCK PARAMETERS ---.....-----------------------------------------' 10 10];
+            str = [str sprintf(' Pre cleaning:                                     %d\n', this.block_pre_cleaning)];
+            str = [str sprintf(' Number of post cleaning loops                     %g\n', this.block_post_cleaning_loops)];
+            str = [str sprintf(' Seamless high rate processing:                    %d\n', this.block_seamless_hr)];
+            str = [str sprintf(' Full slip split:                                  %d\n', this.block_full_slip_split)];
+            str = [str sprintf(' Force covariance stabilization:                   %d\n\n', this.block_force_stabilization)];
 
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
             if this.isPP(this.p_mode)
@@ -996,7 +1047,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('Enable / Disable stop go stop mode option (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('stop_go_stop', this.stop_go_stop, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            %
+            str_cell = Ini_Manager.toIniStringComment('Solution rate to be exported [seconds] (goBlock only), the static mean solution is always computed', str_cell);
+            str_cell = Ini_Manager.toIniString('s_rate', this.s_rate, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % INTEGER AMBIGUITY RESOLUTION
             str_cell = Ini_Manager.toIniStringSection('AMBIGUITY', str_cell);
@@ -1026,6 +1079,25 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('flag_iar_default_p0', this.flag_iar_default_p0, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use Doppler-predicted phase range for detecting cycle slips (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_doppler', this.flag_doppler, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+
+            % GO BLOCK
+            str_cell = Ini_Manager.toIniStringSection('GO_BLOCK', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Try to correct cycle slips / discontinuities in the observations and increase spike variance', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('WARNING: risky operation, do it with consciousness, check the results against disabled pre-cleaning', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('         this feature can be used when the phase residuals show unresolved anbiguities', str_cell);
+            str_cell = Ini_Manager.toIniString('block_pre_cleaning', this.block_pre_cleaning, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('After a first solution iterate # times to stabilize the solution introducing a correction (when needed) in the observations of N (integer) cycles', str_cell);
+            str_cell = Ini_Manager.toIniString('block_post_cleaning_loops', this.block_post_cleaning_loops, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)', str_cell);
+            str_cell = Ini_Manager.toIniString('block_seamless_hr', this.block_seamless_hr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('This could improve the results when processing daily datasets, when processing at high rate with no seamless mode it is best to turn this feature off.', str_cell);
+            str_cell = Ini_Manager.toIniString('block_full_slip_split', this.block_full_slip_split, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Often the computed positions are good wether or not the Covariance Matrix is stable', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Under particular conditions forcing the stabilization can remove most or all the arcs making the solution worse', str_cell);
+            str_cell = Ini_Manager.toIniString('block_force_stabilization', this.block_force_stabilization, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % KF
@@ -1551,6 +1623,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
+            this.checkNumericField('s_rate',[0 86400]);
+
 
             % INTEGER AMBIGUITY RESOLUTION
             this.checkLogicalField('flag_iar');
@@ -1562,7 +1636,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_iar_auto_mu');
             this.checkLogicalField('flag_iar_default_p0');
             this.checkLogicalField('flag_doppler');
-
+            
+            % GO BLOCK
+            this.checkLogicalField('block_pre_cleaning');
+            this.checkNumericField('block_post_cleaning_loops',[0 10]);
+            this.checkLogicalField('block_seamless_hr');
+            this.checkNumericField('block_full_slip_split', [0 1000]);
+            this.checkLogicalField('block_force_stabilization');
+            
             % KF
             if this.isPP(this.p_mode)
                 this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_PP)-1]);
@@ -1577,12 +1658,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_seamless_proc');
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);
-%             this.flag_kf_fb = 1;
             if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
                 this.logger.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
                 this.flag_kf_fb = 0;
             end
-
 
             % RECEIVER POSITION / MOTION
             this.checkNumericField('sigma0_k_pos',[0 1e3]);
@@ -1702,27 +1781,70 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         function is_static = isStaticKF(this)
             % Check wether the current KF mode is static (PP)
-            % SYNTAX is_static = this.isStaticKF();
+            % SYNTAX: is_static = this.isStaticKF();
             is_static = (~this.isModeMonitor() && this.kf_mode == 0);
         end
 
         function is_variable = isVariableKF(this)
             % Check wether the current KF mode is variable
-            % SYNTAX = this.isVariableKF();
+            % SYNTAX: is_variable = this.isVariableKF();
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
         end
 
         function is_tropo = isTropoEnabled(this)
             % Check whether the tropospheric delay estimation is enabled
-            % SYNTAX = this.isTropoEnabled();
+            % SYNTAX: is_tropo = this.isTropoEnabled();
             is_tropo = this.flag_tropo;
         end
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled
-            % SYNTAX = this.isTropoGradientEnabled();
+            % SYNTAX: is_tropo_gradient = this.isTropoGradientEnabled();
             is_tropo_gradient = this.flag_tropo_gradient;
         end
+        
+        function s_rate = getSolutionRate(this)
+            % Get the solution rate to be exported (high rate) in go Block
+            % SYNTAX: s_rate = this.isTropoGradientEnabled();
+            s_rate = this.s_rate;
+        end
+
+        function flag = isPreCleaningOn(this)
+            % Try to correct cycle slips / discontinuities in the observations and increase spike variance
+            % SYNTAX: flag = this.isPreCleaningOn()
+            flag = this.block_pre_cleaning;
+        end
+
+        function n_loop = getBlockPostCleaningLoops(this)
+            % Try to correct cycle slips / discontinuities in the observations and increase spike variance
+            % SYNTAX: flag = this.useBlockPreCleaning()
+            n_loop = this.block_post_cleaning_loops;
+        end
+        
+        function flag = isSeamlessHR(this)
+            % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
+            % SYNTAX: flag = this.useBlockSeamlessHR()
+            flag = this.block_seamless_hr;
+        end
+
+        function flag = getFullSlipSplit(this)
+            % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
+            % SYNTAX: flag = this.useBlockSeamlessHR()
+            flag = this.block_full_slip_split;
+        end
+        
+        function flag = isOutlierRejectionOn(this)
+            % Get the status of outlier rejection
+            % SYNTAX: flag = this.isOutlierRejectionOn()
+            flag = this.flag_outlier;
+        end
+            
+        function flag = isBlockForceStabilizationOn(this)
+            % Get the status of outlier rejection
+            % SYNTAX: flag = this.isOutlierRejectionOn()
+            flag = this.block_force_stabilization;
+        end
+
     end
     % =========================================================================
     %  TEST
