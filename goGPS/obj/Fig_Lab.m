@@ -89,6 +89,7 @@ classdef Fig_Lab < handle
                 else
                     color_order = color_type;
                 end
+                color_type = true;
             else
                 if (color_type == 0)
                     fh = figure();
