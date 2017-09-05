@@ -1,4 +1,4 @@
-function [data, flag_array] = cleanPhaseObs(data, thr)
+function [data, flag_array] = cleanPhaseObs(data_in, thr)
 % SYNTAX:
 %    [flagIntervals] = getOutliers(flags)
 %
@@ -37,8 +37,7 @@ function [data, flag_array] = cleanPhaseObs(data, thr)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-data = data';
-data(data == 0) = nan;
+data = zero2nan(data_in');
 state = Go_State.getCurrentSettings();
 
 % get dimension of the set
@@ -157,6 +156,5 @@ data_out = ~isnan(data) & ~remove_short_arcs(~isnan(data)', state.getMinArc())';
 data(data_out) = nan;
 %figure; plot(data, '.-'); set(gcf, 'Name', 'data clean');
 
-flag_array = ~flag_array & data_out;
-data = data';
-data(isnan(data)) = 0;
+data = nan2zero(data');
+flag_array = (data ~= data_in);

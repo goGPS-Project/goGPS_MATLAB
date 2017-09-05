@@ -125,8 +125,6 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     end
     fprintf(fout_report,'\n\n');
 
-
-
     fprintf(fout_report,'INPUT FILENAMES\n');
     fprintf(fout_report,'***************\n');
     if is_subfield(report,'inp.iniFile')
@@ -143,8 +141,8 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
         fprintf(fout_report,'ROVER STATION filename        : %s\n', report.inp.filename_R_obs);
     else
         fprintf(fout_report,'ROVER STATIONS filename       : ');
-        for i=2:length(report.inp.filename_R_obs)
-            fprintf(fout_report, '%s%s\n', report.inp.filename_R_obs{i});
+        for i = 1 : length(report.inp.filename_R_obs)
+            fprintf(fout_report, '%s\n', report.inp.filename_R_obs{i});
             if i < length(report.inp.filename_R_obs)
                 fprintf(fout_report, '                                ');
             end

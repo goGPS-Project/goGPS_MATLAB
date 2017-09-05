@@ -103,7 +103,7 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 plot(RES_CODE(constellations.(systems{s}).indexes(i),~outliers_CODE(constellations.(systems{s}).indexes(i),:)),'.b');
             end
             try
-                print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
+                print(f1 , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
             catch ex
                 logger = Logger.getInstance();
                 logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
@@ -166,7 +166,7 @@ for s = 1 : 6 %numel(unique(constellations.systems))
                 plot(find(outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),RES_CODE(constellations.(systems{s}).indexes(i), outliers_CODE(constellations.(systems{s}).indexes(i),:) == 1),'.r');
             end
             try
-                print(f , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
+                print(f1 , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals_with_OUTLIERS']);
             catch ex
                 logger = Logger.getInstance();
                 logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))

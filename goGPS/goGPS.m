@@ -366,17 +366,17 @@ for session = 1 : num_session
             report.opt.cutoff = cutoff;
             report.opt.weights = weights;
             if exist('iniFile','var')
-                report.inp.iniFile = iniFile;
+                report.inp.iniFile = fnp.getRelDirPath(iniFile, state.getHomeDir);
             end
             if goGNSS.isDD(mode)
-                report.inp.filename_M_obs = filename_M_obs;
+                report.inp.filename_M_obs = fnp.getRelDirPath(filename_M_obs, state.getHomeDir);
             end
-            report.inp.filename_R_obs = filename_R_obs;
-            report.inp.filename_nav = filename_nav;
-            report.inp.filename_pco = filename_pco;
-            report.inp.filename_blq = filename_blq;
+            report.inp.filename_R_obs = fnp.getRelDirPath(filename_R_obs, state.getHomeDir);
+            report.inp.filename_nav = fnp.getRelDirPath(filename_nav, state.getHomeDir);
+            report.inp.filename_pco = fnp.getRelDirPath(filename_pco, state.getHomeDir);
+            report.inp.filename_blq = fnp.getRelDirPath(filename_blq, state.getHomeDir);
             if exist('filename_sta','var')
-                report.inp.filename_sta = filename_sta;
+                report.inp.filename_sta = fnp.getRelDirPath(filename_sta, state.getHomeDir);
             end
             
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
