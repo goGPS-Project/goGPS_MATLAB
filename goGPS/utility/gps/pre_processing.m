@@ -679,7 +679,10 @@ else
 
             bad_sats(s,1) = 1;
         end
-
+    end
+    
+    for s = 1 : nSatTot
+        
         %repeat remove short arcs after cycle slip detection
         % remove short arcs
         min_arc = max([state.getMinArc() lagr_order]);
@@ -796,9 +799,9 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     delta_test = delta_doppler;
-    not_zero = find(delta_test ~= 0);
-    not_nan  = find(~isnan(delta_test));
-    avail_doppler = intersect(not_zero, not_nan);
+    not_zero = (delta_test ~= 0);
+    not_nan  = (~isnan(delta_test));
+    avail_doppler = find(not_zero & not_nan);
 
     if (~isempty(delta_test(avail_doppler)))
         outliers = batch_outlier_detection(delta_test(avail_doppler),median(round(interval)));
@@ -820,17 +823,17 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     ph_tmp(1,ph_tmp(1,:)==0) = NaN;
 %     delta_deriv_all = (diff(diff(diff(ph_tmp(1,:))))./interval(1:end-3).^3)';
     delta_deriv_all = diff(diff(diff(ph_tmp(1,:))))';
-    pos1 = find(idx~=length(N_mat));
-    pos2 = find(idx~=length(N_mat)-1);
-    pos3 = find(idx~=length(N_mat)-2);
-    pos = intersect(intersect(pos1,pos2),pos3);
+    pos1 = (idx~=length(N_mat));
+    pos2 = (idx~=length(N_mat)-1);
+    pos3 = (idx~=length(N_mat)-2);
+    pos = pos1 & pos2 & pos3;
     delta_deriv(idx(pos)) = delta_deriv_all(idx(pos));
     delta_deriv(delta_deriv == 0) = NaN;
 
     delta_test = delta_deriv;
-    not_zero = find(delta_test ~= 0);
-    not_nan  = find(~isnan(delta_test));
-    avail_deriv = intersect(not_zero, not_nan);
+    not_zero = (delta_test ~= 0);
+    not_nan  = ~isnan(delta_test);
+    avail_deriv = not_zero & not_nan;
 
     if (~isempty(delta_test(avail_deriv)))
         outliers = batch_outlier_detection(delta_test(avail_deriv),median(round(interval)));
@@ -845,17 +848,17 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %     delta_GF_all = (diff(ph_GF)./interval(1:end-1))';
     delta_GF_all_ref = diff(ph_GF)';
     delta_GF_all = diff(diff(ph_GF))';
-    pos1 = find(idx~=length(N_mat));
-    pos2 = find(idx~=length(N_mat)-1);
-    pos = intersect(pos1,pos2);
+    pos1 = (idx~=length(N_mat));
+    pos2 = (idx~=length(N_mat)-1);
+    pos = pos1 & pos2;
     delta_GF_ref(idx(pos1)) = delta_GF_all_ref(idx(pos1));
     delta_GF(idx(pos)) = delta_GF_all(idx(pos));
     delta_GF(delta_GF == 0) = NaN;
 
     delta_test = delta_GF;
-    not_zero = find(delta_test ~= 0);
-    not_nan  = find(~isnan(delta_test));
-    avail_GF = intersect(not_zero, not_nan);
+    not_zero = (delta_test ~= 0);
+    not_nan  = (~isnan(delta_test));
+    avail_GF = not_zero & not_nan;
 
     if (~isempty(delta_test(avail_GF)))
         outliers = batch_outlier_detection(delta_test(avail_GF),median(round(interval)));
@@ -870,7 +873,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     ph_MW(1,ph_MW(1,:)==0) = NaN;
 %     delta_MW_all = (diff(ph_MW)./interval(1:end-1))';
     delta_MW_all = diff(ph_MW)';
-    pos = find(idx~=length(N_mat));
+    pos = (idx~=length(N_mat));
     delta_MW(idx(pos)) = delta_MW_all(idx(pos));
 
     delta_test = delta_MW;

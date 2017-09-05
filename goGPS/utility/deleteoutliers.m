@@ -1,4 +1,4 @@
-function [b,idx,outliers] = deleteoutliers(a,alpha,rep);
+function [b,idx,outliers] = deleteoutliers(a,alpha,rep)
 % [B, IDX, OUTLIERS] = DELETEOUTLIERS(A, ALPHA, REP)
 %
 % For input vector A, returns a vector B with outliers (at the significance
@@ -74,15 +74,14 @@ outlier = 1;
 while outlier
 	tmp = b(~isnan(b));
 	meanval = mean(tmp);
-	maxval = tmp(find(abs(tmp-mean(tmp))==max(abs(tmp-mean(tmp)))));
+	maxval = tmp((abs(tmp-mean(tmp))==max(abs(tmp-mean(tmp)))));
 	maxval = maxval(1);
 	sdval = std(tmp);
 	tn = abs((maxval-meanval)/sdval);
 	critval = zcritical(alpha,length(tmp));
 	outlier = tn > critval;
 	if outlier
-		tmp = find(a == maxval);
-		b(tmp) = NaN;
+		b(a == maxval) = NaN;
 	end
 end
 if nargout >= 2
