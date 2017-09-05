@@ -379,8 +379,12 @@ classdef IO_Settings < Settings_Interface
                 % DEPRECATE
                 this.input_file_ini_path = fnp.checkPath(settings.getData('input_file_ini_path'));
                 % RECEIVERS
-                this.sss_date_start = GPS_Time(datenum(settings.getData('sss_date_start')));
-                this.sss_date_stop = GPS_Time(datenum(settings.getData('sss_date_stop')));
+                if ~(isempty(settings.getData('sss_date_start')))
+                    this.sss_date_start = GPS_Time(datenum(settings.getData('sss_date_start')));
+                end
+                if ~(isempty(settings.getData('sss_date_stop')))
+                    this.sss_date_stop = GPS_Time(datenum(settings.getData('sss_date_stop')));
+                end
                 this.sss_id_list = settings.getData('sss_id_list');
                 this.sss_id_start = settings.getData('sss_id_start');
                 this.sss_id_stop = settings.getData('sss_id_stop');
