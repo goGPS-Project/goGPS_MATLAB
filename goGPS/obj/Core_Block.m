@@ -432,7 +432,7 @@ classdef Core_Block < handle
                     end
                 end
                     
-                if (size(A,2) < 3 + 2) || (size(A,1) > size(A,2))
+                if (size(A,2) < 3 + 2) || (size(A,1) < size(A,2))
                     % If the system is completely unstable
                     this.logger.addMessage('         [ WW ] system still unstable, try to use it as it is!!!\n                (it might be stabilized by the unified solution)');
                     bad_blocks = [bad_blocks; i]; %#ok<AGROW>
