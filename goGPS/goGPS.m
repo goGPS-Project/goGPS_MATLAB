@@ -4390,7 +4390,10 @@ for session = 1 : num_session
                 fid_extract = fopen(sprintf('%sextraction.txt', file_name_base),'w');
                 
                 if (state.isModeBlock())
-                    fid_extract_hr = fopen(sprintf('%sextraction_hr.txt', file_name_base),'w');
+                    s_rate = state.getSolutionRate();
+                    for s = 1 : numel(s_rate)
+                        fid_extract_hr(s) = fopen(sprintf('%sextraction_hr_at%d.txt', file_name_base, s_rate(s)),'w');
+                    end
                     fid_extract_hr_median = fopen(sprintf('%sextraction_hr_median.txt', file_name_base),'w');
                     fid_extract_float = fopen(sprintf('%sextraction_float.txt', file_name_base),'w');
                     fid_extract_fix = fopen(sprintf('%sextraction_fix.txt', file_name_base),'w');
@@ -4432,22 +4435,29 @@ for session = 1 : num_session
             end
             
             if (state.isModeBlock())
-                pos = go_block.getPosHR()';
-                ko_pos = isnan(sum(pos));
-                pos(:,ko_pos) = [];
-                tmp = (GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR())/86400);
-                date_s = datevec(tmp(~ko_pos));
-                
-                if ~isempty(pos)
-                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                s_rate = state.getSolutionRate();
+                for s = 1 : numel(s_rate)
+                    if (s > 1)
+                        go_block.solveHighRate(s_rate(s));
+                    end
+                    pos = go_block.getPosHR()';
+                    ko_pos = isnan(sum(pos));
+                    pos(:,ko_pos) = [];
+                    tmp = (GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR())/86400);
+                    date_s = datevec(tmp(~ko_pos));
                     
-                    %coordinate transformation (UTM)
-                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :)', pos(2, :)', pos(3, :)');
-                    fprintf(fid_extract_hr, '%c%c%c%c%c%c%c%c  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', ...
-                        [double(repmat(fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), size(pos,2), 1)), ...
-                        date_s(:,1), date_s(:,2), date_s(:,3), date_s(:,4), date_s(:,5), date_s(:,6), ...
-                        pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
+                    if ~isempty(pos)
+                        [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                        
+                        %coordinate transformation (UTM)
+                        [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :)', pos(2, :)', pos(3, :)');
+                        fprintf(fid_extract_hr(s), '%c%c%c%c%c%c%c%c  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', ...
+                            [double(repmat(fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), size(pos,2), 1)), ...
+                            date_s(:,1), date_s(:,2), date_s(:,3), date_s(:,4), date_s(:,5), date_s(:,6), ...
+                            pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
+                    end
                 end
+                    
                 pos = median(go_block.getPosHR(), 'omitnan')';
                 [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
                 

@@ -1623,7 +1623,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
-            this.checkNumericField('s_rate',[0 86400]);
+            this.checkNumericField('s_rate',[this.p_rate 86400]);
 
 
             % INTEGER AMBIGUITY RESOLUTION
