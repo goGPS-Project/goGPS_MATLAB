@@ -85,7 +85,27 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     end
     ddata_ref = repmat(median(ddata_ref, 2, 'omitnan'), 1, n_set);
 
-    ddata_std = perc(serialize(movstd(ddata, 10)), 0.9);
+    if verLessThan('matlab', '9.0.1')
+        %  explicit implementation of movstd
+        d = 5;
+        mov_std = zeros(size(ddata));
+        for t = 1 : length(ddata)
+            if (t<=d)
+                mov_std(t) = std(ddata(1:d));
+            elseif (t>(length(ddata)-d))
+                if (length(ddata) - d - 1 == 0)
+                    mov_std(t) = mov_std(t-1);
+                else
+                    mov_std(t) = std(ddata(end-d-1:end));
+                end
+            else
+                mov_std(t) = std(ddata(t-d:t+d));
+            end
+        end
+        ddata_std = perc(serialize(mov_std), 0.9);
+    else
+        ddata_std = perc(serialize(movstd(ddata, 11)), 0.9);
+    end
     data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata - ddata_ref) > thr(1) * ddata_std);
     ddata(data_out(2 : end, :)) = nan;
     % figure; plot(diff(data)); hold on; plot(ddata, 'k', 'lineWidth', 2);
