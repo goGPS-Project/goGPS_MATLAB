@@ -618,7 +618,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_ionofree = state.getData('flag_ionofree');
                 this.constrain = state.getData('constrain');
                 this.stop_go_stop = state.getData('stop_go_stop');
-                this.s_rate = state.getData('s_rate');
+                this.s_rate = sort(state.getData('s_rate'), 'descend');
 
                 % INTEGER AMBIGUITY RESOLUTION
                 this.flag_iar = state.getData('flag_iar');
@@ -727,7 +727,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_ionofree = state.flag_ionofree;
                 this.constrain = state.constrain;
                 this.stop_go_stop = state.stop_go_stop;
-                this.s_rate = state.s_rate;
+                this.s_rate = sort(state.s_rate, 'descend');
 
                 % INTEGER AMBIGUITY RESOLUTION
                 this.flag_iar = state.flag_iar;

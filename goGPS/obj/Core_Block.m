@@ -432,7 +432,7 @@ classdef Core_Block < handle
                     end
                 end
                     
-                if (size(A,2) < 3 + 2) || (size(A,1) < size(A,2))
+                if (size(A,2) < 3 + 2) || (size(A,1) <= size(A,2))
                     % If the system is completely unstable
                     this.logger.addMessage('         [ WW ] system still unstable, try to use it as it is!!!\n                (it might be stabilized by the unified solution)');
                     bad_blocks = [bad_blocks; i]; %#ok<AGROW>
@@ -768,8 +768,8 @@ classdef Core_Block < handle
                 
                 % Find ids of observations involved in a certain time span (solution rate)
                 
-                s_time_lim = unique([this.time_diff(1) : s_rate : this.time_diff(end) this.time_diff(end)]');
                 time_track = this.time_diff(this.obs_track(:,1));
+                s_time_lim = unique([time_track(1) : s_rate : time_track(end) time_track(end)]');
                 s_time_lim = [s_time_lim(1 : end-1) s_time_lim(2 : end)];
                 block_id_lim = zeros(size(s_time_lim));
                 n_pos_hr = size(s_time_lim, 1);  % new number of positions
@@ -1670,7 +1670,7 @@ classdef Core_Block < handle
                 if isempty(out_pr)
                     out_pr = out_pr_old;
                 end
-                out_ph = abs(v_hat(idx_ph)) > max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat), 0.995));
+                out_ph = abs(v_hat(idx_ph)) >= max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat), 0.995));
                 if isempty(out_ph)
                     out_ph = out_ph_old;
                 end
