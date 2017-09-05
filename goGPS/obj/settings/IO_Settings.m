@@ -267,6 +267,7 @@ classdef IO_Settings < Settings_Interface
         met_dir = IO_Settings.MET_DIR;
         % Location of the meteorological file
         met_name =  IO_Settings.MET_NAME;
+        met_full_name = []; % Full name of the met file generated during runtime from the provided parameters
 
         % Path to stations ocean loading files
         ocean_dir = IO_Settings.OCEAN_DIR;
@@ -385,6 +386,7 @@ classdef IO_Settings < Settings_Interface
                 this.sss_id_stop = settings.getData('sss_id_stop');
                 this.obs_dir = fnp.getFullDirPath(settings.getData('obs_dir'), this.prj_home, pwd);
                 this.obs_name = fnp.checkPath(settings.getData('obs_name'));
+                this.obs_full_name = {};
                 this.obs_type = settings.getData('obs_type');
                 this.atx_dir    = fnp.getFullDirPath(settings.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(settings.getData('atx_name'));
@@ -412,6 +414,7 @@ classdef IO_Settings < Settings_Interface
                 this.crd_name    = fnp.checkPath(settings.getData('crd_name'));
                 this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir'))));
                 this.met_name    = fnp.checkPath(settings.getData('met_name'));
+                this.met_full_name = {};
                 this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir'))));
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
@@ -471,6 +474,7 @@ classdef IO_Settings < Settings_Interface
                 this.sss_id_stop = settings.sss_id_stop;
                 this.obs_dir = settings.obs_dir;
                 this.obs_name = settings.obs_name;
+                this.obs_full_name = {};
                 this.obs_type = settings.obs_type;
                 this.atx_dir     = settings.atx_dir;
                 this.atx_name    = settings.atx_name;
@@ -489,6 +493,7 @@ classdef IO_Settings < Settings_Interface
                 this.crd_name    = settings.crd_name;
                 this.met_dir     = settings.met_dir;
                 this.met_name    = settings.met_name;
+                this.met_full_name = {};
                 this.ocean_dir   = settings.ocean_dir;
                 this.ocean_name  = settings.ocean_name;
                 % REFERENCE
@@ -1088,13 +1093,22 @@ classdef IO_Settings < Settings_Interface
             end
         end
 
-        function out = getMetFile(this)
+        function out = getMetFile(this, id)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()
             if (isempty(this.met_name))
                 out = '';
             else
-                out = this.checkMetPath(strcat(this.met_dir, filesep, this.met_name));
+                if isempty(this.met_full_name)
+                    this.updateMetFileName();
+                end
+                out = this.met_full_name;
+                if iscell(out{1})
+                    out = out{1};
+                end
+                if (nargin == 2)
+                    out = out{id};
+                end
             end
         end
 
@@ -1302,6 +1316,21 @@ classdef IO_Settings < Settings_Interface
             end
         end
 
+        function updateMetFileName(this)
+            % Update the full name of the observations files (replacing special keywords)
+            % SYNTAX: this.updateObsFileName();
+            this.met_full_name = {};
+            fnp = File_Name_Processor();
+            if ~iscell(this.met_name)
+                this.met_name = {this.met_name};
+            end
+            this.met_full_name = {};
+            for i = 1 : numel(this.met_name)
+                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+            end
+            this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
+        end
+
         function updateNavFileName(this)
             % Update the full name of the navigational files (replacing special keywords)
             % SYNTAX: this.updateNavFileName();
@@ -1410,6 +1439,7 @@ classdef IO_Settings < Settings_Interface
                     % import Receivers/SEID names
                     name_receiver = this.ext_ini.getData('Receivers', 'file_name');
                     this.obs_name = {};
+                    this.obs_full_name = {};
                     if ~isempty(name_receiver)
                         if iscell(name_receiver)
                             this.obs_name = name_receiver;
@@ -1521,6 +1551,7 @@ classdef IO_Settings < Settings_Interface
                         [file_dir, name, ext] = fileparts(this.checkMetPath(file_name));
                         this.met_dir = file_dir;
                         this.met_name = strcat(name, ext);
+                        this.met_full_name = {};
                     end
 
                     % import DTM folders

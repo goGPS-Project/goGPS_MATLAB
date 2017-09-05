@@ -107,6 +107,8 @@ global order o1 o2 o3 cutoff weights t nC
 global cs_threshold
 global iono_model tropo_model
 global flag_outlier flag_outlier_OLOO SPP_threshold
+global apriori_ZHD
+
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -663,7 +665,7 @@ for session = 1 : num_session
                         SP3.time    = SP3.time - zero_time;
                         SP3.time_hr = SP3.time_hr - zero_time;
                         SP3.t_sun   = SP3.t_sun - zero_time;
-                        if state.isSA(mode)
+                        if ~isempty(SP3.ERP)
                             SP3.ERP.t   = SP3.ERP.t - zero_time;
                         end
                     end
@@ -1042,7 +1044,7 @@ for session = 1 : num_session
                         SP3.time    = SP3.time - zero_time;
                         SP3.time_hr = SP3.time_hr - zero_time;
                         SP3.t_sun   = SP3.t_sun - zero_time;
-                        if state.isSA(mode)
+                        if ~isempty(SP3.ERP)
                             SP3.ERP.t   = SP3.ERP.t - zero_time;
                         end
                     end
@@ -2506,7 +2508,6 @@ for session = 1 : num_session
                     if state.isSeamlessHR()
                         go_block = Core_Block (numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
                         go_block.prepare (time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
-                        unused_epochs = go_block.getEmptyEpochs();
                         go_block.solve(state.getSolutionRate());
                     else
                         
@@ -3061,7 +3062,7 @@ for session = 1 : num_session
                     goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, gs.getReferencePath(), pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R, constellations);
             end
             
-            if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS_diff (for LS modes)
+            if (state.isModeLS()) %remove unused epochs from time_GPS_diff (for LS modes)
                 time_GPS_diff(unused_epochs) = [];
                 time_GPS(unused_epochs) = [];
                 week_R(unused_epochs) = [];
@@ -3087,7 +3088,7 @@ for session = 1 : num_session
                 SP3.time    = SP3.time + zero_time;
                 SP3.time_hr = SP3.time_hr + zero_time;
                 SP3.t_sun   = SP3.t_sun + zero_time;
-                if state.isSA(mode)
+                if ~isempty(SP3.ERP)
                     SP3.ERP.t   = SP3.ERP.t - zero_time;
                 end
             end
@@ -3280,7 +3281,7 @@ for session = 1 : num_session
                 PWV = zeros(size(estim_tropo));
                 
                 if (state.isTropoEnabled())
-                    md = Meteo_Data(state.getMetFile());
+                    md = Meteo_Data(state.getMetFile(session));
                     date_R(:,1) = four_digit_year(date_R(:,1));
                     
                     if (md.isValid())
@@ -3703,7 +3704,7 @@ for session = 1 : num_session
             %% TROPOSPHERE FILE SAVING
             %----------------------------------------------------------------------------------------------
             
-            if (goGNSS.isPP(mode) && state.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(mode) && flag_tropo && (~isempty(EAST)))
+            if (goGNSS.isPP(mode) && state.isModeSA() && state.isModePh() && state.isModeKM() && flag_tropo && (~isempty(EAST)))
                 %display information
                 fprintf('Writing troposphere file...\n');
                 %file saving

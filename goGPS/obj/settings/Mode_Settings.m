@@ -142,6 +142,15 @@ classdef Mode_Settings < Settings_Interface
             Mode_Settings.MODE_PP_SEID_PPP ...
             Mode_Settings.MODE_PP_BLK_CP_DD_STATIC];
 
+        % Group of modes using Least Squares
+        GMODE_LS = [Mode_Settings.MODE_PP_LS_C_SA ...
+            Mode_Settings.MODE_PP_LS_CP_SA ...
+            Mode_Settings.MODE_PP_LS_CP_VEL ...
+            Mode_Settings.MODE_PP_LS_C_DD ...
+            Mode_Settings.MODE_PP_LS_CP_DD_L ...
+            Mode_Settings.MODE_PP_LS_CP_DD_MR ...
+            Mode_Settings.MODE_PP_LS_C_SA_MR];
+
         % Group of modes using Kalman Filter
         GMODE_KM = [ Mode_Settings.MODE_PP_KF_C_SA ...
             Mode_Settings.MODE_PP_KF_C_DD ...
@@ -390,6 +399,14 @@ classdef Mode_Settings < Settings_Interface
             is_kalman = sum(intersect(mode, Mode_Settings.GMODE_KM));
         end
 
+        function is_ls = isModeLS(this, mode)
+            % return whether or not the mode in use uses Least Squares epoch by epoch
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_ls = sum(intersect(mode, Mode_Settings.GMODE_LS));
+        end
+        
         function is_ppp = isModePPP(this, mode)
             % return whether or not the mode in use uses Kalman Filter
             if nargin == 1
@@ -459,6 +476,11 @@ classdef Mode_Settings < Settings_Interface
         function is_kalman = isKM(mode)
             % return whether or not the given mode in use uses Kalman Filter
             is_kalman = sum(intersect(mode, Mode_Settings.GMODE_KM));
+        end
+        
+        function is_ls = isLS(mode)
+            % return whether or not the given mode in use uses Least Squares epoch bby epoch
+            is_ls = sum(intersect(mode, Mode_Settings.GMODE_LS));
         end
 
         function is_ppp = isPPP(mode)

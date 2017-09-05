@@ -2490,10 +2490,20 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fMET, this.ledOp, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file') == 2
-                    this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
+                if ~iscell(file_name)
+                    this.setGUILedStatus(this.idUI.fMET, this.ledKo, 0);
                 else
-                    this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
+                    n_files = numel(file_name);
+                    status = 0;
+                    for i = 1 : n_files
+                        status = status + (exist(file_name{i}, 'file') == 2);
+                    end
+                    
+                    if status == n_files
+                        this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
+                    else
+                        this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
+                    end
                 end
             end
 
