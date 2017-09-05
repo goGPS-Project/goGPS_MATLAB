@@ -92,8 +92,8 @@ H2 = 0.6078 - 0.0006*p;
 L2 = 0.0847 + 0.0002*p;
 
 %solid Earth tide displacement (degree 2)
-Vsun  = dot(X_sun_u,XR_u);
-Vmoon = dot(X_moon_u,XR_u);
+Vsun  = sum(conj(X_sun_u) .* XR_u);
+Vmoon = sum(conj(X_moon_u) .* XR_u);
 r_sun2  = (GS*R^4)/(GE*X_sun_n^3) *(H2*XR_u*(1.5*Vsun^2  - 0.5) + 3*L2*Vsun *(X_sun_u  - Vsun *XR_u));
 r_moon2 = (GM*R^4)/(GE*X_moon_n^3)*(H2*XR_u*(1.5*Vmoon^2 - 0.5) + 3*L2*Vmoon*(X_moon_u - Vmoon*XR_u));
 r = r_sun2 + r_moon2;

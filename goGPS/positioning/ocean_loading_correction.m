@@ -108,5 +108,6 @@ corrXYZ = XRcorr - XR;
 for s = 1 : size(XS,1)
     LOS  = XR - XS(s,:)';
     LOSu = LOS / norm(LOS);
-    oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+    % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+    oceanloadcorr(s,1) = sum(conj(corrXYZ).*LOSu);
 end

@@ -61,8 +61,8 @@ for s = 1 : size(XS,1)
     Ds = i - k*dot(k,i) - cross(k,j);
 
     %phase wind-up computation
-    psi = dot(k, cross(Ds, Dr));
-    arg = dot(Ds,Dr)/(norm(Ds)*norm(Dr));
+    psi = sum(conj(k) .* cross(Ds, Dr));    
+    arg = sum(conj(Ds) .* Dr) / (norm(Ds) * norm(Dr));
     if (arg < -1)
         arg = -1;
     elseif (arg > 1)

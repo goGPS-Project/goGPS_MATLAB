@@ -57,7 +57,7 @@ v_light = goGNSS.V_LIGHT;
 LOS  = pos_S - pos_R;             %receiver-satellite line-of-sight vector
 LOSu = LOS / norm(LOS);           %receiver-satellite line-of-sight unit vector [= LOS / sqrt(LOS(1)^2 + LOS(2)^2 + LOS(3)^2)]
 vrel = vel_S - vel_R;             %receiver-satellite relative velocity vector
-radial_vel = dot(vrel,LOSu);      %receiver-satellite radial velocity [= vrel(1)*LOSu(1) + vrel(2)*LOSu(2) + vrel(3)*LOSu(3)]
+radial_vel = sum(conj(vrel) .* LOSu);      %receiver-satellite radial velocity [= vrel(1)*LOSu(1) + vrel(2)*LOSu(2) + vrel(3)*LOSu(3)]
 k = find_eph(Eph, sat, time);
 if (~isempty(k))
     af2 = Eph(2,k);
