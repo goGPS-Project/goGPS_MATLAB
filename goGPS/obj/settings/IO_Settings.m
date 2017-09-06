@@ -406,32 +406,32 @@ classdef IO_Settings < Settings_Interface
                 clear tmp tmp_xyz_ant;
                 this.xyz_ev_point = settings.getData('xyz_ev_point');
                 % SATELLITES
-                this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir'))));
+                this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir')), this.prj_home));
                 this.eph_name   = fnp.checkPath(settings.getData('eph_name'));
-                this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir'))));
+                this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir')), this.prj_home));
                 this.clk_name   = fnp.checkPath(settings.getData('clk_name'));
-                this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir'))));
-                this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir'))));
-                this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ems_dir'))));
+                this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir')), this.prj_home));
+                this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir')), this.prj_home));
+                this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ems_dir')), this.prj_home));
                 % STATIONS
-                this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir'))));
+                this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir')), this.prj_home));
                 this.crd_name    = fnp.checkPath(settings.getData('crd_name'));
-                this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir'))));
+                this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir')), this.prj_home));
                 this.met_name    = fnp.checkPath(settings.getData('met_name'));
                 this.met_full_name = {};
-                this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir'))));
+                this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir')), this.prj_home));
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
-                this.erp_dir    = fnp.getFullDirPath(settings.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir'))));
+                this.erp_dir    = fnp.getFullDirPath(settings.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
                 this.erp_name   = fnp.checkPath(settings.getData('erp_name'));
-                this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir'))));
+                this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
-                this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir'))));
+                this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir')), this.prj_home));
                 % UI
-                this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('img_dir'))));
+                this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('img_dir')), this.prj_home));
                 % OUTPUT
-                this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir'))));
+                this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir')), this.prj_home));
                 if ~exist(this.out_dir, 'dir')
                     % fallback of fallback
                     this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home);
