@@ -1791,9 +1791,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
         end
 
-        function is_tropo = isTropoEnabled(this)
+        function is_tropo = isTropoOn(this)
             % Check whether the tropospheric delay estimation is enabled
-            % SYNTAX: is_tropo = this.isTropoEnabled();
+            % SYNTAX: is_tropo = this.isTropoOn();
             is_tropo = this.flag_tropo;
         end
 

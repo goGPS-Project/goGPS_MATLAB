@@ -3280,7 +3280,7 @@ for session = 1 : num_session
                 ZWD = zeros(size(estim_tropo));
                 PWV = zeros(size(estim_tropo));
                 
-                if (state.isTropoEnabled())
+                if (state.isTropoOn())
                     md = Meteo_Data(state.getMetFile(session));
                     date_R(:,1) = four_digit_year(date_R(:,1));
                     
@@ -4413,7 +4413,7 @@ for session = 1 : num_session
             end
             
             
-            if exist('X_KAL','var') && exist('estim_tropo','var')
+            if exist('X_KAL','var') && exist('estim_tropo','var') && (state.isTropoOn())
                 fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
                 tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
                 fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
