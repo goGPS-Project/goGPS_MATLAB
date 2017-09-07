@@ -362,7 +362,6 @@ classdef Core_Block < handle
             col_id  = 3 + 1;
             this.ref_arc = zeros(n_block,1);
             bad_blocks = [];
-            
             for i = 1 : n_block
                 this.logger.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
                 
@@ -375,7 +374,7 @@ classdef Core_Block < handle
                 epoch_offset = obs_track(1,1) - 1;
                 pivot_change = pivot_change - epoch_offset;
                 obs_track(:,1) = obs_track(:,1) - epoch_offset;
-                amb_prn_track = this.amb_prn_track(blk_cols(this.n_pos * 3 + 1 : end, i));
+                amb_prn_track = 4 : size(A,2);
                 
                 [A, y0, b, Q, obs_track, amb_prn_track] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, this.state.getMinArc());
                 
@@ -406,7 +405,7 @@ classdef Core_Block < handle
                     n_clean = this.state.getBlockPostCleaningLoops();
                     
                     % Try to fix missing cycle slips
-                    [x_float, Cxx, y0, Q_tmp, s02, v_hat] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean);
+                    [x_float, Cxx, y0, Q_tmp, s02, v_hat] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean, s02);
                     
                     if this.state.isBlockForceStabilizationOn()
                         % If the system is unstable remove the arcs that are making it so
@@ -444,8 +443,7 @@ classdef Core_Block < handle
                     epoch_offset = obs_track(1,1) - 1;
                     pivot_change = pivot_change - epoch_offset;
                     obs_track(:,1) = obs_track(:,1) - epoch_offset;
-                    amb_prn_track = this.amb_prn_track(blk_cols(this.n_pos * 3 + 1 : end, i));
-                    
+                    amb_prn_track = 4 : size(A,2);
                     [~, ref_arc] = this.getBestRefArc(y0, b, A, Q);
                 end
                 % reassemble the system
@@ -453,23 +451,22 @@ classdef Core_Block < handle
                 row_id_last = row_id + numel(y0) - 1;
                 full_row_id = row_id : row_id_last;
                 
-                col_id_last = col_id + size(A, 2) - 3 - 1;
-                full_col_id = (col_id : col_id_last);
+                full_col_id = find(blk_cols(:, i));
+                full_col_id = full_col_id([1 2 3 amb_prn_track]);
+                
                 
                 % find the columns that are still used
-                this.ref_arc(i) = ref_arc + col_id - 1 - 3;
+                this.ref_arc(i) = full_col_id(ref_arc + 3);
                 this.y0(full_row_id) = y0;
                 this.b(full_row_id) = b;
                 this.A(full_row_id, :) = 0;
-                this.A(full_row_id, [(1 : 3) full_col_id]) = A;
+                this.A(full_row_id, full_col_id) = A;
                 this.Q(full_row_id, :) = 0;
                 this.Q(:, full_row_id) = 0;
                 this.Q(full_row_id,full_row_id) = Q;
                 obs_track(:,1) = obs_track(:,1) + epoch_offset;
                 this.obs_track(full_row_id, :) = obs_track;
-                this.amb_prn_track(full_col_id - 3) = amb_prn_track;
                 row_id = row_id_last + 1;
-                col_id = col_id_last + 1;
             end
 
             % remove unecessary rows (observations removed as outliers)
@@ -480,8 +477,6 @@ classdef Core_Block < handle
             this.Q(:, row_id_last + 1 : end) = [];
             this.obs_track(row_id_last + 1 : end, :) = [];
             
-            this.amb_prn_track(col_id_last + 1 - 3 : end) = [];
-            this.A(:, col_id_last +1 : end) = [];
             [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
             this.col_ok = setdiff(1:size(this.A, 2), this.ref_arc + 3);
             
@@ -502,7 +497,7 @@ classdef Core_Block < handle
             if full_slip_split
             % Refining final solution if it have been computed in blocks
                                 
-                [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean);
+                [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
                 [this.phase_res, this.id_track] = this.computePhRes();
                 
                 % If the system is unstable try to change the reference arc
@@ -513,7 +508,7 @@ classdef Core_Block < handle
                         [this.x_float, this.Cxx, this.s02, this.v_hat, ~] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
                         [this.phase_res, this.id_track] = this.computePhRes();
                         bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
-                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean);
+                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
                         [this.phase_res, this.id_track] = this.computePhRes();
                     end
                 end
@@ -576,7 +571,7 @@ classdef Core_Block < handle
                     while ~isempty(bad_col)
                         [~, ~, blk_cols, ~] = this.getBlockProperties();
                         blk_cols(1 : 3, :) = 0;
-                        unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 3);
+                        unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 4);
                         if ~isempty(unstable_block)
                             this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
                             bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
@@ -596,7 +591,7 @@ classdef Core_Block < handle
                         [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
                         
                         [this.phase_res, this.id_track] = this.computePhRes();
-                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean);
+                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
                         [this.phase_res, this.id_track] = this.computePhRes();
                         
                         amb_var = zeros(size(this.Cxx,1) + numel(this.ref_arc), 1); amb_var(this.col_ok) = diag(this.Cxx);
@@ -612,7 +607,7 @@ classdef Core_Block < handle
         
             % Compute phase residuals
             %[this.phase_res, this.id_track] = this.computePhRes();
-            %[this.x_float, this.Cxx, this.y0, this.Q, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean);
+            %[this.x_float, this.Cxx, this.y0, this.Q, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
             [this.phase_res, this.id_track] = this.computePhRes();
 
             % show residuals
@@ -1043,11 +1038,13 @@ classdef Core_Block < handle
             end
         end
         
-        function pos = getPosHR(this)
+        function [pos, pos_cov] = getPosHR(this)
             if isempty(this.x_hr)
                 pos = this.getFloatPos();
+                pos_cov = this.pos_cov;
             else
                 pos = (repmat(this.pos0(:), 1, this.n_pos_hr) + reshape(this.x_hr(1:this.n_pos_hr * 3), 3, this.n_pos_hr))';
+                pos_cov = this.pos_cov;
             end
         end
         
@@ -1154,7 +1151,7 @@ classdef Core_Block < handle
             b = 1;
             for i = 1 : size(fs_lim, 1)
                 ref_arc(i) = find(sum(A(fs_lim(i,1) : fs_lim(i,2), 3 * n_pos + 1 : end) < 0) > 0, 1, 'last');
-                block_cols(:, b) = block_cols(:, b) | [ true(1, 3 * n_pos) sum(A(fs_lim(i,1) : fs_lim(i,2), 3 * n_pos + 1 : end) < 0) > 0 ]';
+                block_cols(:, b) = block_cols(:, b) | [ true(1, 3 * n_pos) sum(abs(A(fs_lim(i,1) : fs_lim(i,2), 3 * n_pos + 1 : end)) ~= 0) > 0 ]';
                 block_rows(fs_lim(i, 1) : fs_lim(i, 2), b) = true;
                 if ismember(i, id_split)
                     b = b + 1;
@@ -1317,35 +1314,49 @@ classdef Core_Block < handle
             Q = Q_tmp;
         end
         
-        function [x_float, Cxx, y0, Q_tmp, s02, v_hat] = loopCorrector(this, y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean)
+        function [x_float, Cxx, y0, Q_tmp, s02, v_hat] = loopCorrector(this, y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean, s02)
             % Try to correct integer ambiguities (maybe missed cycle slips) on the basis of the residuals
             % SYNTAX: [x_float, y0, Cxx] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean);
+                narginchk(12,12);
                 Q_tmp = Q;
                 c = 1; is_new = true;
                 x_float = [];
                 Cxx = [];
                 while (c <= n_clean) && is_new
                     % Try to correct integer ambiguities (maybe missed cycle slips)
-                    this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d/%d', c , n_clean));
+                    this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
                     win_size = (this.state.getMinArc()/2 + mod(1 + this.state.getMinArc()/2, 2));
-                    [y0, is_new] = this.postCorrectIntAmb(y0, phase_res, id_track, A, amb_prn_track, win_size);
+                    [y0_ck, is_new_ck] = this.postCorrectIntAmb(y0, phase_res, id_track, A, amb_prn_track, win_size);
                     
-                    if is_new
+                    if is_new_ck
                         % Improve solution by iterative increase of bad observations variance
                         %this.logger.addMessage('          - recompute the improved solution');
-                        [~, ~, ~, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
-                        [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
-                        if c < n_clean
-                            [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
+                        [~, ~, ~, v_hat_ck] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                        [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat_ck, obs_track);
+                        % if I'm improving the solution accept the correction
+                        if s02_ck < s02
+                            is_new = true;
+                            y0 = y0_ck;
+                            x_float = x_float_ck;
+                            Cxx = Cxx_ck;
+                            s02 = s02_ck;
+                            v_hat = v_hat_ck;
+                            Q_tmp = Q_tmp_ck;
+                            if c < n_clean
+                                [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
+                            end
+                        else
+                            this.logger.addMessage('          - cycle slips detected but rejected!');
+                            is_new = false;
                         end
                     else
                         this.logger.addMessage('          - no cycle slips have been found!');
+                        is_new = false;
                     end
-                    
                     c = c + 1;
                 end
                 if isempty(Cxx)
-                    [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q_tmp);
+                    [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
                 end
         end
         
@@ -1412,14 +1423,19 @@ classdef Core_Block < handle
 
             if (this.state.isModePh())
                 sat_avail = any(this.sat_ph_track, 2);
-                amb_num = sum(sat_avail);
+                amb_num = 0;
                 amb_prn = find(sat_avail);
-                this.amb_prn_track = amb_prn;
-                amb_idx = 1 : amb_num;
+                this.amb_prn_track = [];
+                amb_id = [];
             end
-            full_slip_split = this.state.getFullSlipSplit();
-            [full_slip, ia] = unique(setdiff(this.empty_epoch(:),1) - (0 : length(setdiff(this.empty_epoch(:),1)) - 1)');
-            full_slip = full_slip(find(diff(ia) > full_slip_split-1));
+            
+            if this.state.getFullSlipSplit()
+                full_slip = this.empty_epoch(:) - (0 : length(this.empty_epoch) - 1)';
+                full_slip(diff([0; full_slip(:)]) > 1);
+            else
+                full_slip = [];
+            end
+                        
             if (this.state.isModeSA())
                 % set the design matrix to estimate the receiver clock
                 this.A(:, 3 + 1) = 1;
@@ -1433,54 +1449,46 @@ classdef Core_Block < handle
                     % matrix to detect re-initialized ambiguities
                     % every time there is an interruption in the satellite observations -> suppose cs
                     amb_track = [int8(zeros(size(this.sat_ph_track,1), 1)) diff(this.sat_ph_track')'];
+                    amb_track(:,1) = this.sat_ph_track(:,1) ~= 0;
                     % Cycle slip at pivot change
                     % pivot_change = (abs(diff([int8(this.pivot_track(1)) int8(this.pivot_track')])) > 0);
                     % amb_track = amb_track ...
                     %     + int8(this.sat_ph_track & repmat(pivot_change,size(this.sat_ph_track,1),1)) ...
                     %     - int8(this.sat_ph_track & repmat([pivot_change(2:end) pivot_change(1)],size(this.sat_ph_track,1),1));
                     for i = 1 : length(full_slip)
-                        amb_track(this.sat_ph_track(:,full_slip(i)) > 0, full_slip(i)) = 1;
-                        amb_track((this.sat_ph_track(:,full_slip(i) - 1) > 0) & (sum(this.sat_ph_track(:,1 : full_slip(i) - 1), 2) > 0), full_slip(i) - 1) = -1;
+                        amb_track(this.sat_ph_track(:,full_slip(i)) ~= 0, full_slip(i)) = 1;
                     end
                     
                     % resize the design matrix to estimate phase ambiguities
-                    this.A = [this.A sparse(this.n_obs_tot, amb_num)];
+                    %this.A = [this.A sparse(this.n_obs_tot, amb_num)];
                     rows = 0;
                     for e = 1 : this.n_epoch
 
                         % check if a new ambiguity column for A is needed
-
+                                                
                         % detect new ambiguities on epoch e
                         amb_prn_new = find(amb_track(:,e) == 1);
                         if (~isempty(amb_prn_new))
-                            [~, amb_idx_new] = intersect(amb_prn, amb_prn_new);
-
-                            % add a new amb column for the same satellite only if it already had estimates previously
-                            old_amb = find(any(amb_track(:,1:e-1) == -1, 2));
-                            [amb_prn_new, idx] = intersect(amb_prn_new, old_amb);
-                            amb_idx_new = amb_idx_new(idx);
-
-                            if (~isempty(amb_prn_new))
-                                amb_idx(amb_idx_new) = max(amb_idx) + (1 : length(amb_prn_new));
-                                amb_num = amb_num + length(amb_prn_new);
-                                this.amb_prn_track = [this.amb_prn_track; amb_prn_new];
-                                this.A = [this.A sparse(this.n_obs_tot, numel(amb_idx_new))];
-                            end
+                            amb_num = amb_num + length(amb_prn_new);
+                            this.amb_prn_track = [this.amb_prn_track; amb_prn_new];
+                            this.A = [this.A sparse(this.n_obs_tot, numel(amb_prn_new))];
                         end
-
+                        
                         % build new columns
                         pivot_prn = this.pivot_track(e);
-                        this.sat_pr_track(pivot_prn, e) = -1;
-                        this.sat_ph_track(pivot_prn, e) = -1;
+                        this.sat_pr_track(pivot_prn, e) = -1 * abs(this.sat_pr_track(pivot_prn, e));
+                        this.sat_ph_track(pivot_prn, e) = -1 * abs(this.sat_ph_track(pivot_prn, e));
 
                         amb_prn_avail = find(this.sat_ph_track(:,e) == 1);
-                        [~, amb_idx_avail] = intersect(amb_prn, amb_prn_avail);
-                        pivot_id = amb_idx(amb_prn == pivot_prn);
-                        %sat_ph_idx = sum(this.sat_pr_track(:,e) == 1) + (1 : sum(this.sat_ph_track(:, e) == 1));
-                        sat_ph_idx = sum(this.sat_pr_track(:,e) == 1) + (1 : sum(this.sat_ph_track(:, e) == 1));
+                        [~, amb_id] = intersect(flipud(this.amb_prn_track), amb_prn_avail);
+                        amb_id = numel(this.amb_prn_track) - amb_id + 1;
+                        
+                        pivot_id = find(this.amb_prn_track == pivot_prn, 1, 'last');
+                        %sat_pr_idx = sum(this.sat_pr_track(:,e) == 1) + (1 : sum(this.sat_ph_track(:, e) == 1));
+                        sat_ph_idx = sum(this.sat_pr_track(:,e) > 0) + (1 : sum(this.sat_ph_track(:, e) > 0))';
                         rows = rows(end) + sat_ph_idx;
-                        this.A(rows + size(this.A,1) * (3 + amb_idx(amb_idx_avail) -1)) = - lambda(amb_prn_avail, 1);
-                        this.A(rows + size(this.A,1) * (3 + pivot_id -1)) = lambda(amb_prn_avail,1);
+                        this.A(rows(:) + size(this.A,1) * (3 + amb_id -1)) = -lambda(amb_prn_avail, 1);
+                        this.A(rows(:) + size(this.A,1) * (3 + pivot_id -1)) = lambda(pivot_prn, 1);
                     end
                     %[this.amb_prn_track, reorder_id] = sort(this.amb_prn_track);
                     %this.A = this.A(:, [(1 : (3))'; (3) + reorder_id]);
@@ -1894,7 +1902,7 @@ classdef Core_Block < handle
             for a = 1 : numel(amb_prn_track)
                 y = phase_res(:, a, 1);
                 id_obs = id_track(~isnan(y),a);
-                lambda_val = abs(A(id_obs, 3 + a));
+                lambda_val = abs(A(id_obs, 3 + a)) * this.state.cs_thr;
                 if (numel(y(~isnan(y))) > 1.5 * win_size) % it's probably a pivot
                     ref = movmedian(round(medfilt_mat(y(~isnan(y)), 3) ./ lambda_val) .* lambda_val, win_size, 'omitnan');
                     % check where the interpolation is not a plane
@@ -2266,9 +2274,10 @@ classdef Core_Block < handle
                 for i = 4 : size(A,2)
                     col_ok = setdiff(1:size(A,2), i);
                     [x, Cxx, s02, v_hat, P, N] = Core_Block.solveLS(y0, b, A, col_ok, Q, P, N);
-                    amb_var = Cxx(4:end,4:end);
-                    amb_var(amb_var < 0) = 1e30;
-                    test(i-3) = sum(diag(amb_var));
+                    %amb_var = Cxx(4:end,4:end);
+                    %amb_var(amb_var < 0) = 1e30;
+                    %test(i-3) = sum(diag(amb_var));
+                    test(i-3) = s02;
                 end
                 [~, ref_arc] = sort(test);
                 ref_arc = ref_arc(1);
