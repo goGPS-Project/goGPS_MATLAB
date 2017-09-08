@@ -4508,7 +4508,9 @@ end
 if is_batch && ~state.isModeSEID()
     fclose(fid_extract);
     if (state.isModeBlock())
-        fclose(fid_extract_hr);
+        for i = 1 : numel(fid_extract_hr)
+            fclose(fid_extract_hr(i));
+        end
         fclose(fid_extract_hr_median);
         fclose(fid_extract_float);
         fclose(fid_extract_fix);
