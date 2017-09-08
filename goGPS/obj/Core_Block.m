@@ -340,8 +340,6 @@ classdef Core_Block < handle
             if nargin == 1
                 full_slip_split = this.state.getFullSlipSplit();
             end
-            flag_outlier = this.state.isOutlierRejectionOn();
-            % flag_outlier = false;
             
             % Let's first clean short observations arcs
             [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
@@ -359,7 +357,6 @@ classdef Core_Block < handle
             this.logger.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
             pivot_change = find(abs(diff(int8(this.pivot_track)))>0);
             row_id  = 1;
-            col_id  = 3 + 1;
             this.ref_arc = zeros(n_block,1);
             bad_blocks = [];
             for i = 1 : n_block
@@ -394,7 +391,7 @@ classdef Core_Block < handle
                     this.logger.addMessage('       - first estimation');
                     
                     % computing a first solution with float ambiguities
-                    [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q);
+                    [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q); %#ok<*ASGLU>
                     
                     this.logger.addMessage('       - improve solution by outlier underweight');
                     % Improve solution by iterative increase of bad observations variance
@@ -413,7 +410,7 @@ classdef Core_Block < handle
                     end
                     
                     if (size(A,2) > 3 + 2)
-                        if (flag_outlier)
+                        if this.state.isOutlierRejectionOn()
                             % Delete bad observations and restore variances
                             this.logger.addMessage('       - reject outliers');
                             [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track] = this.cleanFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9);
@@ -540,7 +537,6 @@ classdef Core_Block < handle
                         [this.x_float, this.Cxx, this.s02, this.v_hat] = fast_least_squares_solver(this.y0, this.b, this.A(:, this.col_ok), this.Q);
                         [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
                         [this.phase_res, this.id_track] = this.computePhRes();
-                        amb_var = zeros(size(this.Cxx,1) + numel(this.ref_arc)); amb_var(this.col_ok) = diag(this.Cxx);
                         bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
                     end
                 end
@@ -614,6 +610,7 @@ classdef Core_Block < handle
             %close all; this.plotPhRes();
 
             % extract estimated position
+            this.logger.newLine();
             this.logger.addMarkedMessage('Float solution computed, rover positions corrections:');
             d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
             pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
@@ -717,6 +714,55 @@ classdef Core_Block < handle
             if (this.state.flag_iar)
                 % Solve Fix -> get a valid estimation of the integer ambiguities
                 [~, ~, this.amb_fix, ~, this.amb_fix_full, ~, this.G] = this.solveFix();
+                                
+                % Correct the observations for the cycle slips and merge the arcs
+                if this.state.isBlockOneArc()
+                    this.logger.addMarkedMessage('Compute the float solution correcting cycle slips\n(use one arc per satellite)');
+                    amb_correction = zeros(size(this.A,2) - 3, 1);
+                    amb_correction(this.col_ok(4:end)-3) = round(this.amb_fix_full);
+                    y0 = this.y0;
+                    [amb_prn_track, ~, id_reorder] = unique(this.amb_prn_track);
+                    n_amb = numel(amb_prn_track);
+                    A = [this.A(:, 1 : 3) sparse(size(this.A, 1), n_amb)];
+
+                    for a = 1 : numel(amb_correction)
+                        y0 = y0 - this.A(:, 3 + a) * amb_correction(a);
+                        A(:, id_reorder(a) + 3) = A(:, id_reorder(a) + 3) + this.A(:, a + 3);
+                    end
+                    
+                    this.y0 = y0;
+                    this.A = A;
+                    this.amb_prn_track = amb_prn_track;
+                    [this.col_ok, this.ref_arc] = this.getBestRefArc(y0, this.b, A, this.Q);
+                    
+                    [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, 10, this.s02);
+                    
+                    % Delete bad observations and restore variances
+                    if this.state.isOutlierRejectionOn()
+                        this.logger.addMessage('       - reject outliers');
+                        Q_tmp = this.Q;
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track] = this.cleanFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track, this.amb_prn_track, 9);
+                        [~, ~, ~, ~, this.y0,  this.b, this.A, ~, Q_tmp, this.obs_track, this.amb_prn_track] = this.remSolitaryObs(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track, round(this.state.getMinArc()/2));
+                        [this.col_ok, this.ref_arc] = this.getBestRefArc(this.y0, this.b, this.A, Q_tmp);
+                        [this.x_float, this.Cxx, this.s02, this.v_hat] = this.solveLS(this.y0, this.b, this.A, this.col_ok, Q_tmp);
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track);
+                    end
+                    this.Q = Q_tmp;
+                    
+                    [this.phase_res, this.id_track] = this.computePhRes( this.v_hat, this.A, this.Q, this.obs_track, 1, size(A,1));
+                    
+                    this.logger.newLine();
+                    this.logger.addMarkedMessage('Second Float solution computed, rover positions corrections:');
+                    d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
+                    pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
+                    this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+                    pos_cov = full(this.Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
+                    this.is_fixed = 0;
+                    this.pos = pos;
+                    this.pos_cov = pos_cov;
+                    [~, ~, this.amb_fix, ~, this.amb_fix_full, ~, this.G] = this.solveFix();
+                end
+                
                 %% HR prediction
                 if nargin == 2 % if s_rate is defined
                     this.solveHighRate(s_rate);
@@ -786,7 +832,7 @@ classdef Core_Block < handle
                 
                 amb_hr_ok = [(1 : 3 * n_pos_hr) (this.col_ok(3 + 1 : end) + 3 * (n_pos_hr - this.n_pos))];
                 % Solve the new system
-                [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(this.y0, this.b, A_hr(:, amb_hr_ok), this.Q); %#ok<ASGLU,PROPLC>
+                [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(this.y0, this.b, A_hr(:, amb_hr_ok), this.Q); %#ok<PROPLC>
                                 
                 % Transformation matrix for the estimation of a unique position (computed as the mean)
                 % T = zeros(size(x_float,1) - (n_pos_hr - this.n_pos) * 3, size(x_float,1));
@@ -891,37 +937,35 @@ classdef Core_Block < handle
     % ==================================================================================================================================================
 
     methods % Public Access
-        function plotPhRes (this, phase_res, id_track, A, amb_prn_track, half_cycle)
+        function plotPhRes (this, phase_res, id_track, A, amb_prn_track)
             if nargin == 1
                 phase_res = this.phase_res;
                 id_track = this.id_track;
                 A = this.A;
                 amb_prn_track = this.amb_prn_track;
             end
-            if (nargin < 6)
-                half_cycle = false;
-            end
-            
 
             x = (1 : size(phase_res,1));
-            h = figure();
+            h = figure(); dockAllFigures(h);
             for a = 1 : numel(amb_prn_track)
-                %h = figure(amb_prn_track(a));
-                h.Name = sprintf('Sat: %d', amb_prn_track(a));
-                h.NumberTitle = 'off';
-                dockAllFigures();
-                y = phase_res(:, a, 1);
-                e = 3*phase_res(:, a, 2);
+                % h = figure(amb_prn_track(a));
+                %h.Name = sprintf('Sat: %d', amb_prn_track(a));
+                %h.NumberTitle = 'off';
+                f = subplot(4,8,amb_prn_track(a));
+                y = phase_res(:, a, 1) * 1e3;
                 plot(x, y,'.-', 'lineWidth', 1); hold on;
                 hline = findobj(h, 'type', 'line');
 
-                patchColor = min(hline(1).Color + 0.3, 1);
-                plot(x, e, x, -e, 'color', patchColor);
-                patch([x(~isnan(e)) fliplr(x(~isnan(e)))], [e(~isnan(e)); flipud(-e(~isnan(e)))], 1, ...
-                    'facecolor',patchColor, ...
-                    'edgecolor','none', ...
-                    'facealpha', 0.1);
-                lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) / (1 + 1 * half_cycle);
+                if (size(phase_res, 3) == 2)
+                    e = 3*phase_res(:, a, 2) * 1e3;
+                    patchColor = min(hline(1).Color + 0.3, 1);
+                    plot(x, e, x, -e, 'color', patchColor);
+                    patch([x(~isnan(e)) fliplr(x(~isnan(e)))], [e(~isnan(e)); flipud(-e(~isnan(e)))], 1, ...
+                        'facecolor',patchColor, ...
+                        'edgecolor','none', ...
+                        'facealpha', 0.1);
+                end
+                lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) * this.state.cs_thr * 1e3;
                 win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
                 if numel(y(~isnan(y))) > win_size
                     ref = movmedian(round(medfilt_mat(y(~isnan(y)), 3) ./ lambda_val) .* lambda_val, win_size, 'omitnan');
@@ -934,7 +978,11 @@ classdef Core_Block < handle
                     y(~isnan(y)) = ref;
                     plot(x, y,':k', 'LineWidth', 1); hold on;
                 end
+                ylim([-80 80]);
+                f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
+                ax(a) = gca; %#ok<AGROW>
             end
+            linkaxes(ax);
         end
         
         function [phase_res, id_track] = computePhRes(this, v_hat, A, Q, obs_track, n_pos, n_tot_epoch)
@@ -1317,47 +1365,47 @@ classdef Core_Block < handle
         function [x_float, Cxx, y0, Q_tmp, s02, v_hat] = loopCorrector(this, y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean, s02)
             % Try to correct integer ambiguities (maybe missed cycle slips) on the basis of the residuals
             % SYNTAX: [x_float, y0, Cxx] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean);
-                narginchk(12,12);
-                Q_tmp = Q;
-                c = 1; is_new = true;
-                x_float = [];
-                Cxx = [];
-                while (c <= n_clean) && is_new
-                    % Try to correct integer ambiguities (maybe missed cycle slips)
-                    this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
-                    win_size = (this.state.getMinArc()/2 + mod(1 + this.state.getMinArc()/2, 2));
-                    [y0_ck, is_new_ck] = this.postCorrectIntAmb(y0, phase_res, id_track, A, amb_prn_track, win_size);
-                    
-                    if is_new_ck
-                        % Improve solution by iterative increase of bad observations variance
-                        %this.logger.addMessage('          - recompute the improved solution');
-                        [~, ~, ~, v_hat_ck] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
-                        [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat_ck, obs_track);
-                        % if I'm improving the solution accept the correction
-                        if s02_ck < s02
-                            is_new = true;
-                            y0 = y0_ck;
-                            x_float = x_float_ck;
-                            Cxx = Cxx_ck;
-                            s02 = s02_ck;
-                            v_hat = v_hat_ck;
-                            Q_tmp = Q_tmp_ck;
-                            if c < n_clean
-                                [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
-                            end
-                        else
-                            this.logger.addMessage('          - cycle slips detected but rejected!');
-                            is_new = false;
+            narginchk(12,12);
+            Q_tmp = Q;
+            c = 1; is_new = true;
+            x_float = [];
+            Cxx = [];
+            while (c <= n_clean) && is_new
+                % Try to correct integer ambiguities (maybe missed cycle slips)
+                this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
+                win_size = (this.state.getMinArc()/2 + mod(1 + this.state.getMinArc()/2, 2));
+                [y0_ck, is_new_ck] = this.postCorrectIntAmb(y0, phase_res, id_track, A, amb_prn_track, win_size);
+                
+                if is_new_ck
+                    % Improve solution by iterative increase of bad observations variance
+                    %this.logger.addMessage('          - recompute the improved solution');
+                    [~, ~, ~, v_hat_ck] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                    [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat_ck, obs_track);
+                    % if I'm improving the solution accept the correction
+                    if s02_ck < s02
+                        is_new = true;
+                        y0 = y0_ck;
+                        x_float = x_float_ck;
+                        Cxx = Cxx_ck;
+                        s02 = s02_ck;
+                        v_hat = v_hat_ck;
+                        Q_tmp = Q_tmp_ck;
+                        if c < n_clean
+                            [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
                         end
                     else
-                        this.logger.addMessage('          - no cycle slips have been found!');
+                        this.logger.addMessage('          - cycle slips detected but rejected!');
                         is_new = false;
                     end
-                    c = c + 1;
+                else
+                    this.logger.addMessage('          - no cycle slips have been found!');
+                    is_new = false;
                 end
-                if isempty(Cxx)
-                    [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
-                end
+                c = c + 1;
+            end
+            if isempty(Cxx)
+                [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+            end
         end
         
         function [id_out, phase_res] = phaseCleaner(this, phase_res, id_track, thr_fix)
@@ -1420,14 +1468,9 @@ classdef Core_Block < handle
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
 
             this.logger.addMarkedMessage('Set up Design Matrix to estimate integer abiguities');
-
-            if (this.state.isModePh())
-                sat_avail = any(this.sat_ph_track, 2);
-                amb_num = 0;
-                amb_prn = find(sat_avail);
-                this.amb_prn_track = [];
-                amb_id = [];
-            end
+            
+            amb_num = 0;
+            this.amb_prn_track = [];
             
             if this.state.getFullSlipSplit()
                 full_slip = this.empty_epoch(:) - (0 : length(this.empty_epoch) - 1)';
@@ -1578,7 +1621,7 @@ classdef Core_Block < handle
                 amb_fix_full([1 : ref_arc - 1, ref_arc + 1 : end],:) = -(amb_fix - repmat(x_float(ref_arc + 3), 1, n_cands));
                 amb_fix_full(ref_arc,:) = repmat(x_float(3 + ref_arc), 1, n_cands);
                 
-                x_new = [repmat(x(1 : 3), 1, n_cands); [amb_fix_full]];
+                x_new = [repmat(x(1 : 3), 1, n_cands); amb_fix_full];
                 y_hat = this.A(:, this.col_ok)  * x_new + repmat(this.b, 1, n_cands);
                 v_hat = repmat(this.y0, 1, n_cands) - y_hat;
                 T = this.Q \ v_hat;
@@ -2020,16 +2063,16 @@ classdef Core_Block < handle
 
                 if (frequencies == 1)
                     [pos_m, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] ...
-                        = init_positioning(time_rx, pr1_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0); %#ok<ASGLU>
+                        = init_positioning(time_rx, pr1_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0);
                     if (sum(sat_pr_M) < min_nsat_LS); return; end
                     [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] ...
-                        = init_positioning(time_rx, pr1_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0); %#ok<ASGLU>
+                        = init_positioning(time_rx, pr1_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0);
                 else
                     [pos_m, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] ...
-                        = init_positioning(time_rx, pr2_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0); %#ok<ASGLU>
+                        = init_positioning(time_rx, pr2_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0);
                     if (sum(sat_pr_M) < min_nsat_LS); return; end
                     [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] ...
-                        = init_positioning(time_rx, pr2_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0); %#ok<ASGLU>
+                        = init_positioning(time_rx, pr2_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0);
                 end
 
                 %keep only satellites that rover and master have in common
@@ -2073,7 +2116,7 @@ classdef Core_Block < handle
                 end
 
                 %actual pivot
-                [null_max_elR, pivot_index] = max(elR(sat_ph)); %#ok<ASGLU>
+                [null_max_elR, pivot_index] = max(elR(sat_ph));
                 pivot = sat_ph(pivot_index);
 
                 %--------------------------------------------------------------------------------------------
@@ -2319,9 +2362,6 @@ classdef Core_Block < handle
                 end
             end
             col_ok = setdiff(1:size(A,2), ref_arc + 3);
-        end
-        
-        function [y0, b, A, col_ok, ref_arc, Q, v_hat, obs_track, amb_prn_track] = rejectBlockOutliers(this, y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track)
         end
         
         function [pos, pos_cov] = applyFix(x_float, Cxx, amb_fix, G)

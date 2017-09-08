@@ -122,8 +122,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         BLOCK_PRE_CLEANING = false;                     % Try to correct cycle slips / discontinuities in the observations and increase spike variance
         BLOCK_POST_CLEANING_LOOPS = 4;                  % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
         BLOCK_SEAMLESS_HR = true;                       % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-        BLOCK_FULL_SLIP_SPLIT = 1;                      % When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system
+        BLOCK_FULL_SLIP_SPLIT = 1;                      % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
         BLOCK_FORCE_STABILIZATION = false;              % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
+        BLOCK_ONE_ARC = true;                           % Compute the solution correcting cycle slips (use one arc per satellite)
 
         % KF
         KF_MODE = 1;                                    % Order of the dynamic model polynomial
@@ -411,10 +412,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         block_post_cleaning_loops = Main_Settings.BLOCK_POST_CLEANING_LOOPS;
         % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
         block_seamless_hr = Main_Settings.BLOCK_SEAMLESS_HR;
-        % When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system
+        % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
         block_full_slip_split = Main_Settings.BLOCK_FULL_SLIP_SPLIT;
         % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
         block_force_stabilization = Main_Settings.BLOCK_FORCE_STABILIZATION;
+        % Compute the solution correcting cycle slips (use one arc per satellite)
+        block_one_arc = Main_Settings.BLOCK_ONE_ARC;
 
         %------------------------------------------------------------------
         % KF
@@ -637,6 +640,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.block_seamless_hr = state.getData('block_seamless_hr');
                 this.block_full_slip_split = state.getData('block_full_slip_split');
                 this.block_force_stabilization = state.getData('block_force_stabilization');
+                this.block_one_arc = state.getData('block_one_arc');
                 
                 % KF
                 this.kf_mode = state.getData('kf_mode');
@@ -746,6 +750,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.block_seamless_hr = state.block_seamless_hr;
                 this.block_full_slip_split = state.block_full_slip_split;
                 this.block_force_stabilization = state.block_force_stabilization;
+                this.block_one_arc = state.block_one_arc;
                 
                 % KF
                 this.kf_mode = state.kf_mode;
@@ -872,7 +877,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Number of post cleaning loops                     %g\n', this.block_post_cleaning_loops)];
             str = [str sprintf(' Seamless high rate processing:                    %d\n', this.block_seamless_hr)];
             str = [str sprintf(' Full slip split:                                  %d\n', this.block_full_slip_split)];
-            str = [str sprintf(' Force covariance stabilization:                   %d\n\n', this.block_force_stabilization)];
+            str = [str sprintf(' Force covariance stabilization:                   %d\n', this.block_force_stabilization)];
+            str = [str sprintf(' Correct CS and unify arcs:                        %d\n\n', this.block_one_arc)];
 
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
             if this.isPP(this.p_mode)
@@ -1091,13 +1097,16 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('block_post_cleaning_loops', this.block_post_cleaning_loops, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)', str_cell);
             str_cell = Ini_Manager.toIniString('block_seamless_hr', this.block_seamless_hr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('When there is an interruption in all the phase observations suppose a cicle slip on all the satellite -> split the LS system', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system', str_cell);
             str_cell = Ini_Manager.toIniStringComment('This could improve the results when processing daily datasets, when processing at high rate with no seamless mode it is best to turn this feature off.', str_cell);
             str_cell = Ini_Manager.toIniString('block_full_slip_split', this.block_full_slip_split, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Try to remove the arcs that are making the covariance matrix of the ambiguities unstable', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Often, the computed positions are good wether or not the covariance matrix is stable', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Under particular conditions forcing the stabilization can remove most or all the arcs making the solution worse', str_cell);
             str_cell = Ini_Manager.toIniString('block_force_stabilization', this.block_force_stabilization, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Compute the solution considering one arc per satellite', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('It uses the fixed solution from LAMBDA to correct cycle slips', str_cell);
+            str_cell = Ini_Manager.toIniString('block_one_arc', this.block_one_arc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % KF
@@ -1643,6 +1652,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('block_seamless_hr');
             this.checkNumericField('block_full_slip_split', [0 1000]);
             this.checkLogicalField('block_force_stabilization');
+            this.checkLogicalField('block_one_arc');
             
             % KF
             if this.isPP(this.p_mode)
@@ -1845,6 +1855,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             flag = this.block_force_stabilization;
         end
 
+        function flag = isBlockOneArc(this)
+            % Get the status of "one arc" approach
+            % SYNTAX: flag = this.isBlockOneArc()
+            flag = this.block_one_arc;
+        end
     end
     % =========================================================================
     %  TEST
