@@ -141,9 +141,9 @@ A0=A;
 y00=y0-b;
 index_obs = 1:length(y00); index_obs = index_obs';
 
-if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
+if (flag_outlier && (nargin >= 12) && flag_residual_thres == 1)
     %remove observations with residuals exceeding thresholds
-    x = (N^-1)*A'*(invQ)*(y0-b);
+    x = N\A'*(invQ)*(y0-b);
     y_hat = A*x + b;
     v_hat = y0 - y_hat;
     index_outlier = find(abs(v_hat) > max_code_residual);
@@ -165,9 +165,9 @@ if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres ==
     end
 end
 
-if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
+if nargin<10 || (n == m) || (nargin < 1)
     %least squares solution
-    x   = (N^-1)*A'*(invQ)*(y0-b);
+    x   = N\A'*(invQ)*(y0-b);
     %estimation of the variance of the observation error
     y_hat = A*x + b;
     v_hat = y0 - y_hat;
@@ -218,7 +218,7 @@ else
             end
         end
     else
-        x = (N^-1)*A'*(invQ)*(y0-b);
+        x = N\A'*(invQ)*(y0-b);
         y_hat = A*x + b;
         v_hat = y0 - y_hat;
     end
@@ -251,7 +251,7 @@ cond_num = N_max_eig / N_min_eig;
 
 %covariance matrix of the estimation error
 if (n > m)
-    Cxx = sigma02_hat(1) * (N^-1);
+    Cxx = sigma02_hat(1) * cholinv(N);
     cov_XR  = Cxx(1:3,1:3);
     var_dtR = Cxx(4,4) / v_light^2;
     if (num_sys > 1)
