@@ -2041,7 +2041,7 @@ classdef Core_Block < handle
 
             % filter satellites with no ephemeris
             if (isempty(sp3))
-                eph_avail = eph(30,:);
+                eph_avail = serialize(eph(30,:) > 0);
             else
                 eph_avail = sp3.avail;
             end
