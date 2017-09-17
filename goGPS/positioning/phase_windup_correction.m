@@ -1,13 +1,14 @@
-function [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup)
+function [phwindup] = phase_windup_correction(time, XR, XS, SP3, p_rate, phwindup)
 
 % SYNTAX:
-%   [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup);
+%   [phwindup] = phase_windup_correction(time, XR, XS, SP3, p_rate, phwindup);
 %
 % INPUT:
-%   time = GPS time
-%   XR   = receiver position  (X,Y,Z)
-%   XS   = satellite position (X,Y,Z)
-%   SP3  = structure containing precise ephemeris data
+%   time     = GPS time
+%   XR       = receiver position  (X,Y,Z)
+%   XS       = satellite position (X,Y,Z)
+%   SP3      = structure containing precise ephemeris data
+%   p_rate   = processing interval [s]
 %   phwindup = phase wind-up (previous value)
 %
 % OUTPUT:
@@ -54,7 +55,7 @@ b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
 
 for s = 1 : size(XS,1)
     %satellite-fixed local unit vectors
-    [i, j, k] = satellite_fixed_frame(time, XS(s,:)', SP3);
+    [i, j, k] = satellite_fixed_frame(time, XS(s,:)', SP3, p_rate);
 
     %receiver and satellites effective dipole vectors
     Dr = a - k*dot(k,a) + cross(k,b);

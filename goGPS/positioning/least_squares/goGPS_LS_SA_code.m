@@ -1,4 +1,4 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, XR0)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, p_rate XR0)
 
 % SYNTAX:
 %   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, frequencies, obs_comb, phase);
@@ -15,12 +15,12 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, 
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
 %   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
+%   p_rate  = processing interval [s]
 %   XR0     = approximated receiver position
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
 %   Standalone code positioning by least squares adjustment.
-
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -122,12 +122,12 @@ if (size(sat,1) >= min_nsat)
 
     if (frequencies(1) == 1)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
         else
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, alpha1(sat).*pr1(sat) - alpha2(sat).*pr2(sat), snr(sat), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat, [], zeros(length(sat),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, alpha1(sat).*pr1(sat) - alpha2(sat).*pr2(sat), snr(sat), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat, [], zeros(length(sat),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
         end
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
     end
 
     if ~isempty(dtR)

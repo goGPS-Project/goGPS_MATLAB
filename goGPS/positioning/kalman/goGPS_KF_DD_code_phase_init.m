@@ -1,11 +1,11 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, p_rate, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, p_rate, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas);
 %
 % INPUT:
 %   XR0 = rover approximate/apriori position (X,Y,Z)
@@ -30,6 +30,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2), L1&L2 (phase=[1 2])
+%   p_rate = processing interval [s]
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_XR  = 0: unknown
@@ -225,13 +226,13 @@ if (length(sat_pr) >= min_nsat_LS)
     sat_pr_old = sat_pr;
 
     if (frequencies(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies, p_rate,      2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies, p_rate,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 1); %#ok<ASGLU>
     end
 
     err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
@@ -256,7 +257,7 @@ if (length(sat_pr) >= min_nsat_LS)
     sat(ismember(sat,sat_removed)) = [];
 
     for i = 1:size(sat_pr)
-        if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && any(Eph(:)))
+        if (nargin > 23 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && any(Eph(:)))
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end

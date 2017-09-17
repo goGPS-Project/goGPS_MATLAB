@@ -49,7 +49,7 @@ global report
 %pwd
 
 % close all windows
-close all
+%close all
 fclose('all');
 
 % clear the command prompt
@@ -1481,7 +1481,7 @@ for session = 1 : num_session
                         
                         sbas_t = find_sbas(sbas, t);
                         
-                        goGPS_LS_SA_code(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, pos_R);
+                        goGPS_LS_SA_code(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, state.getProcessingRate(), obs_comb, pos_R);
                         
                         if (t == 1)
                             fwrite(fid_sat, nSatTot, 'int8');
@@ -1563,7 +1563,7 @@ for session = 1 : num_session
                             
                             sbas_t = find_sbas(sbas, 1);
                             
-                            kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS_diff(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+                            kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS_diff(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1), state.getProcessingRate());
                             
                             if (~kalman_initialized)
                                 time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1620,7 +1620,7 @@ for session = 1 : num_session
                         
                         Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                         
-                        goGPS_KF_SA_code_loop(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+                        goGPS_KF_SA_code_loop(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1), state.getProcessingRate());
                         
                         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
                         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1691,7 +1691,7 @@ for session = 1 : num_session
                         
                         sbas_t = find_sbas(sbas, t);
                         
-                        goGPS_LS_SA_code_phase(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+                        goGPS_LS_SA_code_phase(time_GPS_diff(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1), state.getProcessingRate());
                         
                         if (t == 1)
                             fwrite(fid_sat, nSatTot, 'int8');
@@ -1775,7 +1775,7 @@ for session = 1 : num_session
                             sbas_t = find_sbas(sbas, t);
                             sbas_t1 = find_sbas(sbas, t+time_step);
                             
-                            goGPS_LS_SA_variometric(time_GPS_diff(t), time_GPS_diff(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, frequencies(1), time_step);
+                            goGPS_LS_SA_variometric(time_GPS_diff(t), time_GPS_diff(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, frequencies(1), state.getProcessingRate());
                             Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
                             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                                 Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
@@ -1934,7 +1934,7 @@ for session = 1 : num_session
                             
                             sbas_t = find_sbas(sbas, 1);
                             
-                            kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient);
+                            kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS_diff(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, state.getProcessingRate(), flag_XR, flag_tropo, flag_tropo_gradient);
                             
                             if (~kalman_initialized)
                                 time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1996,7 +1996,7 @@ for session = 1 : num_session
                         
                         sbas_t = find_sbas(sbas, t);
                         
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS_diff(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, state.getProcessingRate(), flag_tropo, flag_tropo_gradient, antenna_PCV, antenna_PCV_S);
                         
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2069,7 +2069,7 @@ for session = 1 : num_session
                         
                         Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                         
-                        goGPS_LS_DD_code(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
+                        goGPS_LS_DD_code(time_GPS_diff(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), state.getProcessingRate());
                         
                         if (t == 1)
                             fwrite(fid_sat, nSatTot, 'int8');
@@ -2168,7 +2168,7 @@ for session = 1 : num_session
                             
                             Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
                             
-                            kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies(1));
+                            kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies(1), state.getProcessingRate());
                             
                             if (~kalman_initialized)
                                 pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -2219,7 +2219,7 @@ for session = 1 : num_session
                         
                         Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                         
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1));
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), state.getProcessingRate());
                         
                         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
                         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -2288,7 +2288,7 @@ for session = 1 : num_session
                         
                         Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                         
-                        goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
+                        goGPS_LS_DD_code_phase(time_GPS_diff(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), state.getProcessingRate(), flag_IAR);
                         
                         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2365,7 +2365,7 @@ for session = 1 : num_session
                         
                         Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                         
-                        goGPS_LS_DD_code_phase_MR(time_GPS_diff(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), flag_IAR);
+                        goGPS_LS_DD_code_phase_MR(time_GPS_diff(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies(1), state.getProcessingRate(), state.getProcessingRate(), flag_IAR);
                         
                         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2443,7 +2443,7 @@ for session = 1 : num_session
                         
                         sbas_t = find_sbas(sbas, t);
                         
-                        goGPS_LS_SA_code_MR(time_GPS_diff(t), squeeze(pr1_R(:,t,:)), squeeze(pr2_R(:,t,:)), squeeze(snr_R(:,t,:)), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1));
+                        goGPS_LS_SA_code_MR(time_GPS_diff(t), squeeze(pr1_R(:,t,:)), squeeze(pr2_R(:,t,:)), squeeze(snr_R(:,t,:)), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1), state.getProcessingRate());
                         
                         if (t == 1)
                             fwrite(fid_sat, nSatTot, 'int8');
@@ -2517,10 +2517,6 @@ for session = 1 : num_session
                         go_block = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, state.getSolutionRate());
                         unused_epochs = [];
                     end
-                    %Fig_Lab.plotENU([], go_block.getENU(), 0);
-                    %Fig_Lab.plotENU([], go_block.getENU(enu_float'), 0, 1);
-                    %Fig_Lab.plotENU([], go_block.getENU(enu_fix'), 0, -1);
-                    %dockAllFigures;
                 case goGNSS.MODE_PP_KF_CP_DD
                     if (mode_vinc == 0)
                         %--------------------------------------------------------------------------------------------------------------------
@@ -2566,7 +2562,7 @@ for session = 1 : num_session
                                     
                                     sbas_t = find_sbas(sbas, 1);
                                     
-                                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,id_init), time_GPS_diff(id_init), pr1_R(:,id_init), pr1_M(:,id_init), ph1_R(:,id_init), ph1_M(:,id_init), dop1_R(:,id_init), dop1_M(:,id_init), pr2_R(:,id_init), pr2_M(:,id_init), ph2_R(:,id_init), ph2_M(:,id_init), dop2_R(:,id_init), dop2_M(:,id_init), snr_R(:,id_init), snr_M(:,id_init), Eph_t, SP3, iono, lambda, frequencies, dtMdot(id_init), flag_IAR, flag_XR, flag_tropo, sbas_t);
+                                    kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,id_init), time_GPS_diff(id_init), pr1_R(:,id_init), pr1_M(:,id_init), ph1_R(:,id_init), ph1_M(:,id_init), dop1_R(:,id_init), dop1_M(:,id_init), pr2_R(:,id_init), pr2_M(:,id_init), ph2_R(:,id_init), ph2_M(:,id_init), dop2_R(:,id_init), dop2_M(:,id_init), snr_R(:,id_init), snr_M(:,id_init), Eph_t, SP3, iono, lambda, frequencies, state.getProcessingRate(), dtMdot(id_init), flag_IAR, flag_XR, flag_tropo, sbas_t);
                                     
                                     if (~kalman_initialized)
                                         pos_M(:,id_init) = []; time_GPS_diff(id_init) = []; time_GPS(id_init) = []; week_R(id_init) = [];
@@ -2645,7 +2641,7 @@ for session = 1 : num_session
                                 
                                 sbas_t = find_sbas(sbas, t);
                                 
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, obs_comb, dtMdot(t), flag_IAR, flag_tropo, antenna_PCV, sbas_t);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, obs_comb, state.getProcessingRate(), dtMdot(t), flag_IAR, flag_tropo, antenna_PCV, sbas_t);
                                 
                                 fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2712,7 +2708,7 @@ for session = 1 : num_session
                                     flag_dyn = 1;
                                     order = fread(fid_dyn,1,'uint8');
                                     
-                                    kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(1), flag_IAR);
+                                    kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, order, frequencies, state.getProcessingRate(), dtMdot(1), flag_IAR);
                                     
                                     if (~kalman_initialized)
                                         pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -2800,7 +2796,7 @@ for session = 1 : num_session
                                 order0 = order;
                                 order = fread(fid_dyn,1,'uint8');
                                 
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, dtMdot(t), flag_IAR, antenna_PCV);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, order, frequencies, state.getProcessingRate(), dtMdot(t), flag_IAR, antenna_PCV);
                                 
                                 if (flag_stopGOstop == 1)
                                     if (order > order0)
@@ -2945,7 +2941,7 @@ for session = 1 : num_session
                                 
                                 Eph_t = rt_find_eph (Eph, time_GPS_diff(1), nSatTot);
                                 
-                                kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(1));
+                                kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS_diff(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, state.getProcessingRate(), ref_loop, dtMdot(1));
                                 
                                 if (~kalman_initialized)
                                     pos_M(:,1) = []; time_GPS_diff(1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -2996,7 +2992,7 @@ for session = 1 : num_session
                             
                             Eph_t = rt_find_eph (Eph, time_GPS_diff(t), nSatTot);
                             
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, ref_loop, dtMdot(t));
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS_diff(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, frequencies, state.getProcessingRate(), ref_loop, dtMdot(t));
                             
                             fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
                             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -3744,7 +3740,7 @@ for session = 1 : num_session
         %----------------------------------------------------------------------------------------------
         
         %if any positioning was done (either post-processing or real-time)
-        if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (exist('is_batch','var') && is_batch == 0) && state.isOutNMEA();
+        if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (exist('is_batch','var') && is_batch == 0) && state.isOutNMEA()
             %display information
             fprintf('Writing NMEA file...\n');
             %file saving
@@ -4364,7 +4360,6 @@ for session = 1 : num_session
         warning on
         
         %evaluate computation time
-        toc
         
         if is_batch
             nSol = size(date_R,1);
@@ -4503,6 +4498,7 @@ for session = 1 : num_session
         end
     end
     logger.newLine();
+    toc
 end
 
 if is_batch && ~state.isModeSEID()
@@ -4521,3 +4517,4 @@ if is_batch && ~state.isModeSEID()
     fclose(fid_extract_POS);
     fclose(fid_extract_OBS);
 end
+

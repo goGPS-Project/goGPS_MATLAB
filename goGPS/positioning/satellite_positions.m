@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda, p_rate)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda, p_rate);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -16,6 +16,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
 %   obs_comb    = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   lambda      = matrix containing GNSS wavelengths for available satellites
+%   p_rate      = processing interval [s]
 %
 % OUTPUT:
 %   XS      = satellite position at transmission time in ECEF(time_rx) (X,Y,Z)
@@ -110,7 +111,7 @@ for i = 1 : nsat
         end
 
         %interpolate SP3 coordinates at transmission time
-        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
+        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i), p_rate);
 
         %relativistic correction term
         dtrel = relativistic_clock_error_correction(time_tx(i,1), Eph, SP3, XS_tx(i,:), VS_tx(i,:));
@@ -136,7 +137,7 @@ for i = 1 : nsat
         end
 
         %second iteration for taking into account the relativistic effect and group delay corrections
-        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
+        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i), p_rate);
 
         %detect satellite constellation
         sys = SP3.sys(sat(i));
@@ -163,6 +164,6 @@ for i = 1 : nsat
 
     if (~isempty(SP3))
         %check eclipse condition
-        eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3, sat(i));
+        eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3, sat(i), p_rate);
     end
 end

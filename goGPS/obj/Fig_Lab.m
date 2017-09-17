@@ -157,33 +157,35 @@ classdef Fig_Lab < handle
                     Fig_Lab.plotError(data_u, enu_var(:,3), color_order(3,:));
                 end
             else
+                t = time.getMatlabTime;
+                t = t(1:numel(data_e));
                 subplot(3,1,1);
-                plot(time.getMatlabTime, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(t, data_e, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_e_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                    plot(t, data_e_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
                 end
                 if ~isempty(enu_var)
-                    Fig_Lab.plotError(time.getMatlabTime, data_e, enu_var(:,1), color_order(1,:));
+                    Fig_Lab.plotError(t, data_e, enu_var(:,1), color_order(1,:));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,2);
-                plot(time.getMatlabTime, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
+                plot(t, data_n, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_n_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                    plot(t, data_n_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
                 end
                 if ~isempty(enu_var)
-                    Fig_Lab.plotError(time.getMatlabTime, data_n, enu_var(:,2), color_order(2,:));
+                    Fig_Lab.plotError(t, data_n, enu_var(:,2), color_order(2,:));
                 end
                 setTimeTicks(4,date_style);
 
                 subplot(3,1,3);
-                plot(time.getMatlabTime, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
+                plot(t, data_u, '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));  hold on;
                 if spline_base > 0
-                    plot(time.getMatlabTime, data_u_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
+                    plot(t, data_u_s, '--', 'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
                 end
                 if ~isempty(enu_var)
-                    Fig_Lab.plotError(time.getMatlabTime, data_u, enu_var(:,3), color_order(3,:));
+                    Fig_Lab.plotError(t, data_u, enu_var(:,3), color_order(3,:));
                 end
                 setTimeTicks(4,date_style);
             end
@@ -301,7 +303,8 @@ classdef Fig_Lab < handle
 
                 if ~isempty(intersect(plot_list, 1))
                     if time.getRate < 3600
-                        spline_base = double(((time.last.getUnixTime - time.first.getUnixTime) / 86400)) * round(86400 / time.getRate() / 24 * 1);
+                        %spline_base = double(((time.last.getUnixTime - time.first.getUnixTime) / 86400)) * round(86400 / time.getRate() / 24 * 1);
+                        spline_base = 0;
                     else
                         spline_base = 0;
                     end

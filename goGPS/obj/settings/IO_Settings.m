@@ -133,7 +133,7 @@ classdef IO_Settings < Settings_Interface
         FLAG_OUT_PDF_CODE_RES = true;      % Flag to export the PDF code residuals
         FLAG_OUT_PDF_PH_RES = true;        % Flag to export the PDF phase residuals
         FLAG_OUT_KML = true;               % Flag to export the KML file
-        FLAG_OUT_NMEA = true;              % Flag to export the NMEA file
+        FLAG_OUT_NMEA = false;             % Flag to export the NMEA file
         
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end

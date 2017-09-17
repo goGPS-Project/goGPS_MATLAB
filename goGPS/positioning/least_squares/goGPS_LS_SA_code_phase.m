@@ -1,4 +1,4 @@
-function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, lambda, phase)
+function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, lambda, phase, p_rate)
 
 % SYNTAX:
 %   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, lambda, phase);
@@ -16,6 +16,7 @@ function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono
 %   sbas     = SBAS corrections
 %   lambda   = wavelength matrix (depending on the enabled constellations)
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
+%   p_rate   = processing interval [s]
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
@@ -131,9 +132,9 @@ if (size(sat,1) >= min_nsat)
     sat_pr_old = sat_pr;
 
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, p_rate, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, p_rate, 0, 0); %#ok<ASGLU>
     end
 
     %apply cutoffs also to phase satellites
@@ -191,7 +192,7 @@ end
 sigma2_XR = diag(cov_XR);
 
 %compute phase wind-up correction
-phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, phwindup(sat,1));
+phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, p_rate, phwindup(sat,1));
 
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of

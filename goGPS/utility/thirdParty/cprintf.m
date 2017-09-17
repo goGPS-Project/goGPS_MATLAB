@@ -222,8 +222,8 @@ function count = cprintf(style,format,varargin)
       count1 = fprintf(2,format,varargin{:});
 
       % Repaint the command window
-      %awtinvoke(cmdWinDoc,'remove',lastPos,1);   % TODO: find out how to remove the extra '_'
-      drawnow;  % this is necessary for the following to work properly (refer to Evgeny Pr in FEX comment 16/1/2011)
+      % awtinvoke(cmdWinDoc,'remove',lastPos,1);   % TODO: find out how to remove the extra '_'
+      drawnow  % this is necessary for the following to work properly (refer to Evgeny Pr in FEX comment 16/1/2011)
       xCmdWndView.repaint;
       %hListeners = cmdWinDoc.getDocumentListeners; for idx=1:numel(hListeners), try hListeners(idx).repaint; catch, end, end
 
@@ -459,6 +459,7 @@ function setElementStyle(docElement,style,specialFlag, majorVersion,minorVersion
   %}
 
   % Correct empty URLs to be un-hyperlinkable (only underlined)
+  %{
   urls = docElement.getAttribute('HtmlLink');
   if ~isempty(urls)
       urlTargets = urls(2);
@@ -473,7 +474,7 @@ function setElementStyle(docElement,style,specialFlag, majorVersion,minorVersion
           end
       end
   end
-
+  %}
   % Bold: (currently unused because we cannot modify this immutable int32 numeric array)
   %{
   try

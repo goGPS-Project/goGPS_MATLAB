@@ -52,6 +52,9 @@ global weights
 global n_sys
 week = 0;
 
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
+
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only\n');
@@ -527,7 +530,7 @@ if (~isempty(data_rover_all))
                 satEph = find(Eph_t(1,:) ~= 0);
                 satAvail = intersect(satObs,satEph)';
                 if (length(satAvail) >= min_nsat_LS)
-                    pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
+                    pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, 1, p_rate, 0, 0);
                 end
                 i = i + 1;
             end

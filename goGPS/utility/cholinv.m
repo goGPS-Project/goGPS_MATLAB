@@ -46,6 +46,6 @@ function invA = cholinv(A)
 % compute cholesky decomposition
 n = size(A,1);
 U    = chol(A);
-invU = U\eye(n);
+invU = U\speye(n);
 %L    = inv(L);
 invA = invU * invU';

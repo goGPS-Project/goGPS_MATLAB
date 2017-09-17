@@ -56,6 +56,9 @@ global nmea_init nmea_update_rate
 global master rover
 global n_sys
 
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
+
 nSatTot = constellations.nEnabledSat;
 
 %------------------------------------------------------
@@ -382,7 +385,7 @@ end
 lambda = goGNSS.getGNSSWavelengths(Eph, [], nSatTot);
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), p_rate, 10, 0, 1, 0, 0);
 
 if (isempty(pos_R))
     fprintf('It was not possible to estimate an approximate position.\n');
@@ -1011,7 +1014,7 @@ while flag
 
         %position update
         if length(satObs) >= min_nsat_LS
-             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
+             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), p_rate, 10, 0, 1, 0, 0);
         end
 
         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));

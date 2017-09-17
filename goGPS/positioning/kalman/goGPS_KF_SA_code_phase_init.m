@@ -1,7 +1,7 @@
-function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient)
+function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, p_rate, flag_XR, flag_tropo, flag_tropo_gradient)
 
 % SYNTAX:
-%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo, flag_tropo_gradient);
+%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, p_rate, flag_XR, flag_tropo, flag_tropo_gradient);
 %
 % INPUT:
 %   pos_R = rover approximate coordinates (X, Y, Z)
@@ -72,6 +72,9 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global n_sys geoid
 global apriori_ZHD apriori_ZWD
+
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
 
 kalman_initialized = 0;
 apriori_ZHD = 0;
@@ -259,12 +262,12 @@ if (length(sat_pr) >= min_nsat_LS)
 
     if (frequencies(1) == 1)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
         else
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
         end
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
     end
 
     if (~isempty(sat_pr))
@@ -322,7 +325,7 @@ end
 if (~isempty(SP3))
     %compute phase wind-up correction
     [~, index_ph]=intersect(sat_pr,sat);
-    phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, phwindup(sat,1));
+    phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, p_rate, phwindup(sat,1));
 end
 
 %ambiguity initialization: initialized value

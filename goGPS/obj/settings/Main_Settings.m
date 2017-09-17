@@ -550,7 +550,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: s_obj = Main_Settings(<ini_settings_file>);
 
             this.initLogger();
-            this.logger.addMarkedMessage('Building settings oject...');
+            this.logger.addMarkedMessage('Building settings object...');
             this.logger.newLine();
             if (nargin == 1)
                 if ~exist(ini_settings_file, 'file')
@@ -1850,10 +1850,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         end
             
         function flag = isBlockForceStabilizationOn(this)
-            % Get the status of outlier rejection
-            % SYNTAX: flag = this.isOutlierRejectionOn()
+            % Get the status of outlier rejection OF UNSTABLE ARCS
+            % SYNTAX: flag = this.isBlockForceStabilizationOn()
             flag = this.block_force_stabilization;
         end
+        
 
         function flag = isBlockOneArc(this)
             % Get the status of "one arc" approach

@@ -58,6 +58,9 @@ global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR
 global PDOP HDOP VDOP
 
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
+
 %total number of satellite slots (depending on the constellations enabled)
 nSatTot = size(pr1_R,1);
 
@@ -117,9 +120,9 @@ if (size(sat_pr,1) >= 4)
     sat_pr_R = (1 : nSatTot)';
     for r = 1 : nRov
         if (phase == 1)
-            [XR(:,r), dtR(r,1), XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr,r), snr_R(sat_pr,r), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
+            [XR(:,r), dtR(r,1), XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr,r), snr_R(sat_pr,r), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, p_rate, 0, 0); %#ok<ASGLU>
         else
-            [XR(:,r), dtR(r,1), XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr,r), snr_R(sat_pr,r), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
+            [XR(:,r), dtR(r,1), XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr,r), snr_R(sat_pr,r), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, p_rate, 0, 0); %#ok<ASGLU>
         end
 
         err_tropo_R(sat_pr_R_tmp,r) = err_tropo_R_tmp;

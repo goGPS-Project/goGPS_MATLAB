@@ -100,24 +100,26 @@ classdef Core_Block < handle
         b   % LS known array
 
         % Results
-        pos0          % a-priori position
-        pos           % estimated position
-        pos_cov       % estimated covariance matrix of the positions
-        is_fixed = 0  % 0 => float 1 => fix 2 => fix_hr
+        pos0            % a-priori position
+        pos             % estimated position
+        pos_cov         % estimated covariance matrix of the positions
+        is_fixed = 0    % 0 => float 1 => fix 2 => fix_hr
 
-        x_float       % estimated parameter s(float solution)
-        x_fix         % estimated parameters (fix solution)
-        amb_fix       % ambiguities as fixed by lambda
-        amb_fix_full  % full set of ambiguities
-        G             % transformation matrix SD -> DD
-        pos_cov_fix   % Covariance matrix of the fixed positions
-        x_hr          % estimated parameters (high_rate)
-        Cxx           % Covariance matrix of the parameters
-        s02   % estimated variance
-        v_hat         % residuals of the obbservarions
+        x_float         % estimated parameter s(float solution)
+        x_fix           % estimated parameters (fix solution)
+        amb_fix         % ambiguities as fixed by lambda
+        amb_fix_full    % full set of ambiguities
+        G               % transformation matrix SD -> DD
+        pos_cov_fix     % Covariance matrix of the fixed positions
+        x_hr            % estimated parameters (high_rate)
+        Cxx             % Covariance matrix of the parameters
+        s02             % estimated variance
+        v_hat           % residuals of the obbservarions
 
-        phase_res     % phase residuals ([n_obs x n_amb x 2]);  first slice value, second slice weight
-        id_track      % id in the design matrix of the observations in phase_res
+        phase_res       % phase residuals ([n_obs x n_amb x 2]);  first slice value, second slice weight
+        id_track        % id in the design matrix of the observations in phase_res
+        
+        cs_factor = 0.5   % fix cs_factor * lambbda jumos
     end
     
     % ==================================================================================================================================================
@@ -131,11 +133,11 @@ classdef Core_Block < handle
             
             this.logger = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
-
+            
             % number of position solutions to be estimated
             this.n_pos = 1;
             this.n_pos_hr = 1;
-
+            
             this.n_epoch = n_epoch;
             this.n_tot_epoch = n_epoch;
             this.time_diff = [];
@@ -145,7 +147,7 @@ classdef Core_Block < handle
             this.sat_pr_track = int8(zeros(n_sat, n_epoch));
             this.sat_ph_track = int8(zeros(n_sat, n_epoch));
             this.pivot_track = uint8(zeros(n_epoch, 1));
-
+            
             % total number of observations (for matrix initialization)
             % (some satellites observations will be discarded -> this is the max size)
             if (this.state.isModePh())
@@ -154,35 +156,31 @@ classdef Core_Block < handle
             else
                 this.n_obs_tot = n_pr_obs;
             end
-
+            
             this.obs_track = NaN(this.n_obs_tot, 3); % epoch; PRN; flag code/phase
             this.empty_epoch = [];
-
+            
             % init LS variables
             this.y0 = NaN(this.n_obs_tot, 1);
             this.b  = NaN(this.n_obs_tot, 1);
-            if (this.state.isModeSA)
-                this.A = spalloc(this.n_obs_tot, this.n_pos * 3 + this.n_obs_tot, round(2.5 * this.n_obs_tot));
-            else
-                this.A = sparse(this.n_obs_tot, this.n_pos * 3);
-            end
-            this.Q  = sparse(this.n_obs_tot, this.n_obs_tot, 10 * this.n_obs_tot);
+            this.A = zeros(this.n_obs_tot, this.n_pos * 3);
+            this.Q  = spalloc(this.n_obs_tot, this.n_obs_tot, 30 * this.n_obs_tot); % considering 30 satellites per epoch as mean
         end
     end
-
+    
     % ==================================================================================================================================================
     %  PROCESSING FUNCTIONS goBlock
     % ==================================================================================================================================================
-
+    
     methods % Public Access
         function prepare (this, ...
-                    time_diff,  ...
-                    pos_r, pos_m,  ...
-                    pr1_r, pr1_m, pr2_r, pr2_m, ...
-                    ph1_r, ph1_m, ph2_r, ph2_m,  ...
-                    snr_r, snr_m,  ...
-                    eph, sp3, iono, lambda, ant_pcv)
-
+                time_diff,  ...
+                pos_r, pos_m,  ...
+                pr1_r, pr1_m, pr2_r, pr2_m, ...
+                ph1_r, ph1_m, ph2_r, ph2_m,  ...
+                snr_r, snr_m,  ...
+                eph, sp3, iono, lambda, ant_pcv)
+            
             % Fill the matrices of the LS system, this is necessary to get a solution
             %
             % SYNTAX:
@@ -213,7 +211,7 @@ classdef Core_Block < handle
             %   state
             %
             % INTERNAL OUTOUT (properties whos values are changed):
-            %   logger, pos, pos0, pos_cov, is_fixed, x_float, x_fix, x_hr, Cxx, s02, v_hat, 
+            %   logger, pos, pos0, pos_cov, is_fixed, x_float, x_fix, x_hr, Cxx, s02, v_hat,
             %   sat_pr_track, sat_ph_track, obs_track
             %   y0, b, A, Q
             %
@@ -224,76 +222,77 @@ classdef Core_Block < handle
             % EXAMPLE:
             %   go_block = Core_Block(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
-
+            
             this.logger.addMarkedMessage('Preparing goBlock system');
-
+            
             this.time_diff = time_diff; % reference time
             this.pos = [];          % estimated parameters
             this.pos0 = pos_r;      % a-priori position
             this.pos_cov = [];      % estimated parameters
             this.is_fixed = 0;      % flag is fixed
-
+            
             this.x_float = [];      % estimated float parameters
             this.x_fix = [];        % estimated parameters (fix solution)
             this.x_hr = [];      % estimated parameters (fix solution + float)
             this.Cxx = [];          % Covariance matrix of the parameters
             this.s02 = [];  % estimated variance
             this.v_hat = [];        % residuals of the obbservarions;
-
+            
             % up to now GPS only is available for goBLock
             frequencies = find(this.state.cc.getGPS().flag_f);
-
+            
             % get wait bar instance
             w_bar = Go_Wait_Bar.getInstance();
-
+            
             % variable name change for readability reasons
             n_sat = this.state.cc.getNumSat();
-
+            
             % init epoch counter
             epoch_track = 0;
             epoch_ok = 1 : length(time_diff);
             this.pivot_track = uint8(zeros(length(time_diff), 1));
-
+            
             % goGPS waiting bar
             w_bar.setBarLen(length(time_diff));
             w_bar.createNewBar('Building the design matrix...');
-
+            
+            p_rate = this.state.getProcessingRate();
             % init loop
             for t = epoch_ok
                 eph_t = rt_find_eph (eph, time_diff(t), n_sat);
-
-                [y0_epo, A_epo, b_epo, Q_epo, this.sat_pr_track(:, t), this.sat_ph_track(:, t), pivot] = this.oneEpochLS (time_diff(t), pos_r, pos_m(:,t), pr1_r(:,t), pr1_m(:,t), pr2_r(:,t), pr2_m(:,t), ph1_r(:,t), ph1_m(:,t), ph2_r(:,t), ph2_m(:,t), snr_r(:,t), snr_m(:,t), eph_t, sp3, iono, lambda, frequencies(1), ant_pcv);
-
+                
+                [y0_epo, A_epo, b_epo, Q_epo, this.sat_pr_track(:, t), this.sat_ph_track(:, t), pivot] = this.oneEpochLS (time_diff(t), pos_r, pos_m(:,t), pr1_r(:,t), pr1_m(:,t), pr2_r(:,t), pr2_m(:,t), ph1_r(:,t), ph1_m(:,t), ph2_r(:,t), ph2_m(:,t), snr_r(:,t), snr_m(:,t), eph_t, sp3, iono, lambda, frequencies(1), p_rate, ant_pcv);
+                
                 if (pivot > 0)
                     n_obs = length(y0_epo);
-
+                    
                     idx = epoch_track + (1 : n_obs)';
-
+                    
                     this.y0( idx) = y0_epo;
                     this.b ( idx) =  b_epo;
-                    this.A ( idx, 1:3) = A_epo;
+                    this.A ( idx, :) = A_epo;
                     this.Q ( idx, idx) = Q_epo;
-
+                    
                     this.obs_track(idx, 3) = 1;
                     this.obs_track(idx, 2) = setdiff(find(this.sat_ph_track(:,t)), pivot);
                     this.obs_track(idx, 1) = t;
-
+                    
                     this.pivot_track(t) = pivot;
-
+                    
                     epoch_track = epoch_track + n_obs;
                 else
                     this.empty_epoch = [this.empty_epoch; t];
                 end
                 w_bar.goTime(t);
             end
-
+            
             % cut the empty epochs
             this.sat_pr_track(:,this.empty_epoch) = [];
             this.sat_ph_track(:,this.empty_epoch) = [];
             this.pivot_track(this.empty_epoch) = [];
-
+            
             this.n_epoch = length(this.pivot_track);
-
+            
             % cut the unused lines
             id_ko = (epoch_track + 1 : size(this.A,1))';
             this.n_obs_tot = epoch_track;
@@ -308,8 +307,8 @@ classdef Core_Block < handle
             % Add to the Design matric the columns relative to the ambbiguities
             this.addAmbiguities (lambda);
         end
-
-        function [pos, pos_cov] = solveFloat (this, full_slip_split)
+        
+        function [pos, pos_cov] = solveFloatOld (this, full_slip_split)
             % Compute a first float solution
             %
             % METHODS CALL REQUIREMENTS:
@@ -334,9 +333,9 @@ classdef Core_Block < handle
             %   go_block = Core_Block(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
             %   go_block.solveFloat()
-
+            
             this.logger.addMarkedMessage('Compute a float solution');
-
+            
             if nargin == 1
                 full_slip_split = this.state.getFullSlipSplit();
             end
@@ -398,36 +397,36 @@ classdef Core_Block < handle
                     [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
                     
                     % Compute phase residuals
-                    [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
+                    [phase_res, id_track] = this.computeDataTrack( v_hat, [], A, obs_track, 1);
                     n_clean = this.state.getBlockPostCleaningLoops();
                     
                     % Try to fix missing cycle slips
-                    [x_float, Cxx, y0, Q_tmp, s02, v_hat] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean, s02);
+                    [x_float, Cxx, s02, v_hat, y0, Q_tmp] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, n_clean);
                     
                     if this.state.isBlockForceStabilizationOn()
                         % If the system is unstable remove the arcs that are making it so
-                        [A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track] = remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
+                        [A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track] = this.remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
                     end
                     
                     if (size(A,2) > 3 + 2)
                         if this.state.isOutlierRejectionOn()
                             % Delete bad observations and restore variances
                             this.logger.addMessage('       - reject outliers');
-                            [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track] = this.cleanFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9);
+                            [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track] = this.cleanObsHiRes(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9, false);
                             %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
                             [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, Q);
                             [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q);
                             [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
                             if this.state.isBlockForceStabilizationOn()
                                 % If the system is unstable remove the arcs that are making it so
-                                [A, ~, ref_arc, y0, b, Q, obs_track, amb_prn_track] = remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
+                                [A, ~, ref_arc, y0, b, Q, obs_track, amb_prn_track] = this.remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
                             end
                         else
                             Q = Q_tmp;
                         end
                     end
                 end
-                    
+                
                 if (size(A,2) < 3 + 2) || (size(A,1) <= size(A,2))
                     % If the system is completely unstable
                     this.logger.addMessage('         [ WW ] system still unstable, try to use it as it is!!!\n                (it might be stabilized by the unified solution)');
@@ -465,7 +464,7 @@ classdef Core_Block < handle
                 this.obs_track(full_row_id, :) = obs_track;
                 row_id = row_id_last + 1;
             end
-
+            
             % remove unecessary rows (observations removed as outliers)
             this.y0(row_id_last + 1 : end) = [];
             this.b(row_id_last + 1 : end) = [];
@@ -486,16 +485,16 @@ classdef Core_Block < handle
             
             this.logger.addMarkedMessage('Compute the final float solution -------------------');
             [this.x_float, this.Cxx, this.s02, this.v_hat] = fast_least_squares_solver(this.y0, this.b, this.A(:, this.col_ok), this.Q);
-
+            
             this.logger.addMessage('       - improve solution by outlier underweight');
             [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
-            [this.phase_res, this.id_track] = this.computePhRes();
+            [this.phase_res, this.id_track] = this.computeDataTrack();
             
             if full_slip_split
-            % Refining final solution if it have been computed in blocks
-                                
-                [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
-                [this.phase_res, this.id_track] = this.computePhRes();
+                % Refining final solution if it have been computed in blocks
+                
+                [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+                [this.phase_res, this.id_track] = this.computeDataTrack();
                 
                 % If the system is unstable try to change the reference arc
                 bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
@@ -503,10 +502,10 @@ classdef Core_Block < handle
                     [this.col_ok, this.ref_arc, bad_blocks] = this.getBestBlockRefArc(this.y0, this.b, this.A, this.Q, this.ref_arc, bad_col - 3, [], blk_cols);
                     if ~isempty(bad_blocks)
                         [this.x_float, this.Cxx, this.s02, this.v_hat, ~] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
-                        [this.phase_res, this.id_track] = this.computePhRes();
+                        [this.phase_res, this.id_track] = this.computeDataTrack();
                         bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
-                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
-                        [this.phase_res, this.id_track] = this.computePhRes();
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+                        [this.phase_res, this.id_track] = this.computeDataTrack();
                     end
                 end
                 
@@ -536,14 +535,14 @@ classdef Core_Block < handle
                         this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
                         [this.x_float, this.Cxx, this.s02, this.v_hat] = fast_least_squares_solver(this.y0, this.b, this.A(:, this.col_ok), this.Q);
                         [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
-                        [this.phase_res, this.id_track] = this.computePhRes();
+                        [this.phase_res, this.id_track] = this.computeDataTrack();
                         bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
                     end
                 end
                 
                 % if flag_outlier
                 %     this.logger.addMessage('       - reject outliers');
-                %     [this.phase_res, this.id_track] = this.computePhRes();
+                %     [this.phase_res, this.id_track] = this.computeDataTrack();
                 %     N_inv = [];
                 %     subset_out = serialize(this.id_track(abs(this.phase_res(:,:,1)) > 0.05));
                 %     [x_k, s2_k, v_hat_k, Cxx_k, N_inv] = ELOBO(this.A(:, this.col_ok), this.Q, this.y0, this.b, N_inv, this.v_hat, this.x_float, this.s02, subset_out);
@@ -555,7 +554,7 @@ classdef Core_Block < handle
                 %     this.Q = this.Q(subset_in, subset_in);
                 %     this.obs_track = this.obs_track(subset_in, :);
                 %     [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, [], this.obs_track);
-                %     [this.phase_res, this.id_track] = this.computePhRes();
+                %     [this.phase_res, this.id_track] = this.computeDataTrack();
                 % end
                 
                 if this.state.isBlockForceStabilizationOn()
@@ -586,9 +585,9 @@ classdef Core_Block < handle
                         [this.x_float, this.Cxx, this.s02, this.v_hat] = fast_least_squares_solver(this.y0, this.b, this.A(:, this.col_ok), this.Q);
                         [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
                         
-                        [this.phase_res, this.id_track] = this.computePhRes();
-                        [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
-                        [this.phase_res, this.id_track] = this.computePhRes();
+                        [this.phase_res, this.id_track] = this.computeDataTrack();
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+                        [this.phase_res, this.id_track] = this.computeDataTrack();
                         
                         amb_var = zeros(size(this.Cxx,1) + numel(this.ref_arc), 1); amb_var(this.col_ok) = diag(this.Cxx);
                         amb_var(amb_var < 0) = 100; % negative variances means bad arcs
@@ -600,15 +599,13 @@ classdef Core_Block < handle
             end
             
             this.Q = Q_tmp;
-        
+            
             % Compute phase residuals
-            %[this.phase_res, this.id_track] = this.computePhRes();
-            %[this.x_float, this.Cxx, this.y0, this.Q, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, n_clean, this.s02);
-            [this.phase_res, this.id_track] = this.computePhRes();
-
+            [this.phase_res, this.id_track] = this.computeDataTrack();
+            
             % show residuals
             %close all; this.plotPhRes();
-
+            
             % extract estimated position
             this.logger.newLine();
             this.logger.addMarkedMessage('Float solution computed, rover positions corrections:');
@@ -621,6 +618,408 @@ classdef Core_Block < handle
             this.pos_cov = pos_cov;
         end
         
+        function [pos, pos_cov] = solveFloat (this, full_slip_split)
+            % Compute a first float solution
+            %
+            % METHODS CALL REQUIREMENTS:
+            %  -> prepare
+            %
+            % SYNTAX:
+            %   [pos, pos_cov] = this.solveFloat(this)
+            %
+            % INTERNAL INPUT:
+            %   A, y0, b, Q, obs_track, amb_num, amb_prn_track, state, logger
+            %
+            % OUTPUT:
+            %   pos     coordinates of the estimated positions
+            %   pos_cov         covariance of the estimated positions
+            %
+            % INTERNAL OUTOUT (properties whos values are changed):
+            %   x_float, Cxx, s02, v_hat, pos, pos_cov, is_fixed
+            %   y0,  b, A, Q
+            %   obs_track, amb_prn_track, n_epoch
+            %
+            % EXAMPLE:
+            %   go_block = Core_Block(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
+            %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
+            %   go_block.solveFloat()
+            
+            this.logger.addMarkedMessage('Compute a float solution');
+            
+            if nargin == 1
+                full_slip_split = this.state.getFullSlipSplit();
+            end
+            
+            % Let's first clean short observations arcs
+            [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
+            
+            % A block is an interval of continuous phase observations
+            [this.col_ok, this.ref_arc, blk_cols, blk_rows] = this.getBlockProperties();
+            
+            % To disable full slip split put full_slip_split = false;
+            if ~full_slip_split
+                blk_cols = true(size(blk_cols, 1), 1);
+                blk_rows = true(size(blk_rows, 1), 1);
+            end
+            n_block = size(blk_cols, 2);
+            
+            this.logger.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
+            pivot_change = find(abs(diff(int8(this.pivot_track)))>0);
+            row_id  = 1;
+            this.ref_arc = zeros(n_block,1);
+            bad_blocks = [];
+            for i = 1 : n_block
+                this.logger.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
+                
+                % Extract a subset of the LS system
+                y0 = this.y0(blk_rows(:, i));
+                b = this.b(blk_rows(:, i));
+                A = this.A(blk_rows(:, i), blk_cols(:, i));
+                Q = this.Q(blk_rows(:, i), blk_rows(:, i));
+                obs_track = this.obs_track(blk_rows(:, i),:);
+                epoch_offset = obs_track(1,1) - 1;
+                pivot_change = pivot_change - epoch_offset;
+                obs_track(:,1) = obs_track(:,1) - epoch_offset;
+                amb_prn_track = 4 : size(A,2);
+                
+                [A, y0, b, Q, obs_track, amb_prn_track] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, this.state.getMinArc());
+                
+                if size(A,1) > size(A,2)
+                    
+                    % Get the arc with higher quality
+                    iQ = cholinv(Q);
+                    [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
+                    
+                    if this.state.isPreCleaningOn()
+                        this.logger.addMessage('       - try to improve observations (risky...check the results!!!)');
+                        % Try to correct cycle slips / discontinuities in the observations and increase spike variance
+                        % WARNING: risky operation, do it with consciousness, check the results against disabled pre-cleaning
+                        %          this feature can be used when the phase residuals show unresolved anbiguities
+                        [y0, Q] = this.preCorrectObsIntAmb(y0, b, A, Q, this.n_pos, obs_track, pivot_change); % Try to correct integer ambiguities slips (maybe missed cycle slips)
+                        iQ = cholinv(Q);
+                    end
+                    
+                    this.logger.addMessage('       - first estimation');
+                    
+                    % computing a first solution with float ambiguities
+                    [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ); %#ok<*ASGLU>
+                    
+                    this.logger.addMessage('       - improve solution by outlier underweight');
+                    [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+                    % Improve solution by iterative increase of bad observations variance
+                    n_clean = this.state.getBlockPostCleaningLoops();
+                    % Try to fix missing cycle slips
+                    [x_float, Cxx, s02, v_hat, y0, Q_tmp, iQ_tmp, phase_res, id_track] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, n_clean);
+                    
+                    if this.state.isBlockForceStabilizationOn()
+                        % If the system is unstable remove the arcs that are making it so
+                        [A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track] = this.remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
+                        %[x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+                        [x_float, Cxx, s02, v_hat, y0, Q_tmp, iQ_tmp, phase_res, id_track] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, n_clean);
+                    end
+                    
+                    if (size(A,2) > 3 + 2)
+                        if this.state.isOutlierRejectionOn()
+                            n_obs_tmp = size(A,1);
+                            % Delete bad observations and restore variances
+                            this.logger.addMessage('       - reject outliers');
+                            [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ] = this.cleanObsHiRes(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9, false);
+                            %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track, iQ] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
+                            [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
+                            [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+                            if this.state.isBlockForceStabilizationOn()
+                                % If the system is unstable remove the arcs that are making it so
+                                [A, ~, ref_arc, y0, b, Q, obs_track, amb_prn_track] = this.remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx);
+                            end
+                            
+                            if size(A,1) < 0.6 * n_obs_tmp
+                                this.logger.addMessage('         [ WW ] too many outliers detected, use the block as it is!');
+                                A = [];
+                            else
+                                % PLOT close all;
+                                [phase_res, id_track] = this.computeDataTrack(v_hat, [], A, obs_track, 1);
+                                % PLOT this.plotDataTrack(phase_res, id_track, A, amb_prn_track);% ylim([-0.5 0.5])
+                                
+                                % Detect new full CS candidates -------------------------------------------
+                                
+                                this.logger.addMessage('       - detect new cycle slip candidates');
+                                sensor = median(movstd(phase_res,3,'omitnan'),2,'omitnan');
+                                detector = find(sensor > min(0.1, 9 * std(sensor,'omitnan')) | isnan(sensor));
+                                
+                                % PLOT figure; plot(sensor); hold on; plot(detector, sensor(detector),'o'); dockAllFigures;
+                                
+                                lim = unique([0; detector; numel(sensor)+1]);
+                                lim = [lim(1 : end - 1) + 1, lim(2 : end) - 1];
+                                lim = lim((lim(:,2) - lim(:,1)) > 5,:);
+                                
+                                this.logger.addMessage(sprintf('            %d candidate found', size(lim, 1) - 1));
+                                
+                                % Strong cleaning based on the check of the residuals derivatives ---------
+                                
+                                this.logger.addMessage('       - stronger reject outliers');
+                                [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ] = this.cleanObsHiResVar(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 0.997);
+                                %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track, iQ] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
+                                [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
+                                [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+                                
+                                [phase_res, id_track] = this.computeDataTrack(v_hat, [], A, obs_track, 1);
+                                % PLOT this.plotDataTrack(phase_res, id_track, A, amb_prn_track);% ylim([-0.5 0.5])
+                                
+                                if full_slip_split && (size(lim, 1) > 1) && (s02 > 0.02)
+                                    
+                                    for l = 1 : size(lim, 1)
+                                        lim(l, 1) = find(obs_track(:,1) >= lim(l, 1), 1, 'first');
+                                        lim(l, 2) = find(obs_track(:,1) <= lim(l, 2), 1, 'last');
+                                    end
+                                    
+                                    % Building a splitted system to compute separate and repair CS ------------
+                                    
+                                    this.logger.addMessage('          - repair cycle slips');
+                                    A_ck = spalloc(size(A, 1), 1000, sum(A(:)~=0));
+                                    row = 0;
+                                    s02_vec = [];
+                                    v_hat3 = [];
+                                    obs_track2 = [];
+                                    obs_in = [];
+                                    col = 3;
+                                    col_ok_ck = [1 2 3];
+                                    amb_prn_track_ck = [];
+                                    for j = 1 : size(lim, 1)
+                                        obs_id = lim(j,1) : lim(j,2);
+                                        row = row(end) + (1 : numel(obs_id));
+                                        arc_id = find(full(sum(abs(A(obs_id, 4 : end)))) > 0);
+                                        col_id = arc_id + 3;
+                                        if ~isempty(col_id)
+                                            col = col(end) + (1 : numel(col_id));
+                                            A_ck(row, col) = A(obs_id, col_id);
+                                            A_ck(row, 1:3) = A(obs_id,1:3);
+                                            amb_prn_track_ck(col-3) = amb_prn_track(col_id - 3);
+                                        end
+                                        obs_in = [obs_in obs_id];
+                                        [col_ok_tmp] = this.getBestRefArc(y0(obs_id), b(obs_id),  A_ck(row, [1 2 3 col]), cholinv(Q(obs_id,obs_id)));
+                                        col_ok_ck = [col_ok_ck (col(end) - numel(col_id) + col_ok_tmp(4:end) -3)];
+                                    end
+                                    A_ck = A_ck(1 : row(end), 1 : col(end));
+                                    
+                                    % remove the unused columns / rows
+                                    A = A(obs_in, :);
+                                    y0 = y0(obs_in);
+                                    b = b(obs_in);
+                                    Q = Q(obs_in, obs_in);
+                                    iQ = cholinv(Q);
+                                    obs_track = obs_track(obs_in, :);
+                                    
+                                    %[x, Cxx, s02, v_hat_ck] = Core_Block.solveLS(y0, b, A_ck, col_ok_ck, iQ);
+                                    [x, Cxx, s02, v_hat_ck, Q_tmp] = this.improveFloatSolution(y0, b, A_ck, col_ok_ck, Q, [], obs_track);
+                                    % [x, Cxx, s02, v_hat_ck, y0, Q_tmp, iQ_tmp, phase_res, id_track] = this.loopCorrector(y0, b, A_ck, col_ok_ck, Q, obs_track, amb_prn_track_ck, 4);
+                                    [phase_res, id_track] = this.computeDataTrack(v_hat_ck, [], A, obs_track, 1);
+                                    % PLOT this.plotDataTrack(phase_res, id_track, A, amb_prn_track);% ylim([-0.5 0.5])
+                                    
+                                    % Repair CS ---------------------------------------------------------------
+                                    
+                                    amb_correction = zeros(size(A_ck,2) - 3, 1);
+                                    amb_correction(col_ok_ck(4 : end) - 3, 1) = round(x(4 : end) / this.cs_factor) * this.cs_factor;
+                                    
+                                    for a = 1 : size(amb_correction, 1)
+                                        y0 = y0 - A_ck(:, a + 3) .* amb_correction(a, 1);
+                                    end
+                                    %[x, Cxx, s02, v_hat_ck, Q_tmp] = this.improveFloatSolution(y0_ck, b, A, col_ok, Q, [], obs_track);
+                                    [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
+                                    [x_float, Cxx, s02, v_hat, y0, Q_tmp, iQ_tmp, phase_res, id_track] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, 4);
+                                    % PLOT this.plotDataTrack(phase_res, id_track, A, amb_prn_track);% ylim([-0.5 0.5])
+                                end
+                            end
+                        end
+                    end
+                end
+                %if (s02 > 0.02) || (size(A,2) < 3 + 2) || (size(A,1) <= size(A,2))
+                if (size(A,2) < 3 + 2) || (size(A,1) <= size(A,2))
+                    % If the system is completely unstable
+                    if size(A,2) < 3
+                        s02 = inf;
+                    end
+                    this.logger.addMessage(sprintf('         [ WW ] system too small, try to use it unprocessed!!!\n                (it might be stabilized by the unified solution)'));
+                    
+                    bad_blocks = [bad_blocks; i]; %#ok<AGROW>
+                    y0 = this.y0(blk_rows(:, i));
+                    b = this.b(blk_rows(:, i));
+                    A = this.A(blk_rows(:, i), blk_cols(:, i));
+                    Q = this.Q(blk_rows(:, i), blk_rows(:, i));
+                    obs_track = this.obs_track(blk_rows(:, i),:);
+                    epoch_offset = obs_track(1,1) - 1;
+                    pivot_change = pivot_change - epoch_offset;
+                    obs_track(:,1) = obs_track(:,1) - epoch_offset;
+                    amb_prn_track = 4 : size(A,2);
+                    [~, ref_arc] = this.getBestRefArc(y0, b, A, Q);
+                else
+                    if (s02 > 0.02)
+                        % If the system is completely unstable
+                        this.logger.addMessage(sprintf('         [ WW ] system unstable (s02 = %.4f), try to use it as it is!!!\n                (it might be stabilized by the unified solution)', s02));
+                    end
+                end
+                
+                % reassemble the system
+                % id on the obj matrix
+                row_id_last = row_id + numel(y0) - 1;
+                full_row_id = row_id : row_id_last;
+                
+                full_col_id = find(blk_cols(:, i));
+                full_col_id = full_col_id([1 2 3 amb_prn_track]);
+                
+                
+                % find the columns that are still used
+                this.ref_arc(i) = full_col_id(ref_arc + 3);
+                this.y0(full_row_id) = y0;
+                this.b(full_row_id) = b;
+                this.A(full_row_id, :) = 0;
+                this.A(full_row_id, full_col_id) = A;
+                this.Q(full_row_id, :) = 0;
+                this.Q(:, full_row_id) = 0;
+                this.Q(full_row_id,full_row_id) = Q;
+                obs_track(:,1) = obs_track(:,1) + epoch_offset;
+                this.obs_track(full_row_id, :) = obs_track;
+                row_id = row_id_last + 1;
+            end
+            
+            % remove unecessary rows (observations removed as outliers)
+            this.y0(row_id_last + 1 : end) = [];
+            this.b(row_id_last + 1 : end) = [];
+            this.A(row_id_last + 1 : end, :) = [];
+            this.Q(row_id_last + 1 : end,:) = [];
+            this.Q(:, row_id_last + 1 : end) = [];
+            this.obs_track(row_id_last + 1 : end, :) = [];
+            
+            [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, rem_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
+            for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(rem_col < this.ref_arc(a) + 3); end
+            this.col_ok = setdiff(1:size(this.A, 2), this.ref_arc + 3);
+            
+            iQ = cholinv(this.Q);
+            if full_slip_split
+                [~, ~, blk_cols, ~] = this.getBlockProperties();
+                if ~isempty(bad_blocks)
+                    [this.col_ok, this.ref_arc] = this.getBestBlockRefArc(this.y0, this.b, this.A, iQ, this.ref_arc, [], bad_blocks, blk_cols);
+                end
+            end
+            
+            this.logger.addMarkedMessage('Compute the final float solution -------------------');
+            this.logger.addMessage('       - improve solution by outlier underweight');
+            %[this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, [], this.obs_track);
+            
+            [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp, iQ_tmp, this.phase_res, this.id_track] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+            
+            % If the system is unstable try to change the reference arc
+            bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
+            if ~isempty(bad_col)
+                [this.col_ok, this.ref_arc, bad_blocks] = this.getBestBlockRefArc(this.y0, this.b, this.A, iQ, this.ref_arc, bad_col - 3, [], blk_cols);
+                if ~isempty(bad_blocks)
+                    [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp, iQ_tmp, this.phase_res, this.id_track] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+                    bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
+                end
+            end
+            
+            if this.state.isBlockForceStabilizationOn()
+                % If the system is still unstable remove the with median high residuals
+                while ~isempty(bad_col)
+                    
+                    while ~isempty(bad_col)
+                        [~, ~, blk_cols, ~] = this.getBlockProperties();
+                        if ~full_slip_split
+                            blk_cols = true(size(blk_cols, 1), 1);
+                            blk_rows = true(size(blk_rows, 1), 1);
+                        end
+                        blk_cols(1 : 3, :) = 0;
+                        unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 3);
+                        if ~isempty(unstable_block)
+                            this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                            bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
+                            this.ref_arc(unstable_block) = [];
+                        end
+                        
+                        for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
+                        this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
+                        
+                        this.logger.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                        [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
+                        [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
+                    end
+                    this.ref_arc = setdiff(this.ref_arc, bad_col - 3);
+                    for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
+                    this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
+                    [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, [], this.obs_track);
+                    [this.phase_res, this.id_track] = this.computeDataTrack(this.v_hat);
+                    bad_col = find(abs(median(this.phase_res(:,:,1),'omitnan')) > 1) + 3;
+                end
+            end
+            
+            if this.state.isBlockForceStabilizationOn()
+                % If the system is unstable remove the arcs that are making it so
+                amb_var = zeros(size(this.Cxx,1) + numel(this.ref_arc), 1); amb_var(this.col_ok) = diag(this.Cxx);
+                amb_var(amb_var < 0) = 100; % negative variances means bad arcs
+                bad_col = find(amb_var(4:end) > 1) + 3;
+                
+                while ~isempty(bad_col)
+                    [~, ~, blk_cols, ~] = this.getBlockProperties();
+                    if ~full_slip_split
+                        blk_cols = true(size(blk_cols, 1), 1);
+                        blk_rows = true(size(blk_rows, 1), 1);
+                    end
+                    blk_cols(1 : 3, :) = 0;
+                    unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 4);
+                    if ~isempty(unstable_block)
+                        this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                        bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
+                        this.ref_arc(unstable_block) = [];
+                    end
+                    
+                    for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
+                    this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
+                    
+                    this.logger.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s\n                                          PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                    [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
+                    [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
+                    this.ref_arc = setdiff(this.ref_arc, bad_col - 3);
+                    for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
+                    this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
+                    
+                    [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp, iQ_tmp, this.phase_res, this.id_track] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
+                    
+                    amb_var = zeros(size(this.Cxx,1) + numel(this.ref_arc), 1); amb_var(this.col_ok) = diag(this.Cxx);
+                    amb_var(amb_var < 0) = 100; % negative variances means bad arcs
+                    bad_col = find(amb_var(4:end) > 1) + 3;
+                end
+            end
+            if ~this.state.isBlockOneArc()
+                this.Q = Q_tmp;
+            end
+            
+            % show residuals
+            % close all; this.plotDataTrack();
+            
+            % if I'm considering non integer cycle slips (half cycle jumps) -> correct them in the data (lambda do not use half cycles)
+            % -> it should be better to change the lambda fixer to deal with half cycles
+            if (this.cs_factor < 1)
+                amb_correction = zeros(size(this.A,2) - 3, 1);
+                amb_correction(this.col_ok(4 : end) - 3, 1) = round(this.x_float(4 : end) / this.cs_factor) * this.cs_factor;
+                y0 = [this.y0];
+                for a = 1 : size(amb_correction, 1)
+                    y0(:) = y0(:) - this.A(:, 3 + a) .* amb_correction(a, 1);
+                end
+                this.y0 = y0;
+                this.x_float(4:end) = this.x_float(4:end) - round(this.x_float(4 : end) / this.cs_factor) * this.cs_factor;
+            end
+            
+            % extract estimated position
+            this.logger.newLine();
+            this.logger.addMarkedMessage('Float solution computed, rover positions corrections:');
+            d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
+            pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
+            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+            pos_cov = full(this.Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
+            this.is_fixed = 0;
+            this.pos = pos;
+            this.pos_cov = pos_cov;
+        end
+
         function [pos, pos_cov, amb_fix, amb_cov, amb_fix_full, ref_arc, G] = solveFix (this)
             % Compute a fixed solution using LAMBDA, and the the internal object properties
             %
@@ -705,7 +1104,7 @@ classdef Core_Block < handle
                 s_rate = this.time_diff(end);
             end
             if nargin < 3
-                full_slip_split = true;
+                full_slip_split = this.state.getFullSlipSplit();
             end
             
             % Compute the best float solution
@@ -717,39 +1116,43 @@ classdef Core_Block < handle
                                 
                 % Correct the observations for the cycle slips and merge the arcs
                 if this.state.isBlockOneArc()
+                    %% BBlock one arc
                     this.logger.addMarkedMessage('Compute the float solution correcting cycle slips\n(use one arc per satellite)');
-                    amb_correction = zeros(size(this.A,2) - 3, 1);
-                    amb_correction(this.col_ok(4:end)-3) = round(this.amb_fix_full);
-                    y0 = this.y0;
+                    amb_correction = zeros(size(this.A, 2) - 3, 2);
+                    amb_correction(this.col_ok(4:end) - 3, 1) = this.amb_fix_full;
+                    %amb_correction(this.col_ok(4:end)-3, 2) = round(this.amb_fix_full / this.cs_factor) * this.cs_factor;
+                    y0 = [this.y0 this.y0];
                     [amb_prn_track, ~, id_reorder] = unique(this.amb_prn_track);
                     n_amb = numel(amb_prn_track);
                     A = [this.A(:, 1 : 3) sparse(size(this.A, 1), n_amb)];
 
-                    for a = 1 : numel(amb_correction)
-                        y0 = y0 - this.A(:, 3 + a) * amb_correction(a);
+                    for a = 1 : size(amb_correction, 1)
+                        y0(:,1) = y0(:,1) - this.A(:, 3 + a) .* amb_correction(a, 1);
+                        %y0(:,2) = y0(:,2) - this.A(:, 3 + a) .* amb_correction(a, 2);
                         A(:, id_reorder(a) + 3) = A(:, id_reorder(a) + 3) + this.A(:, a + 3);
                     end
                     
-                    this.y0 = y0;
+                    this.y0 = y0(:,1);
                     this.A = A;
                     this.amb_prn_track = amb_prn_track;
-                    [this.col_ok, this.ref_arc] = this.getBestRefArc(y0, this.b, A, this.Q);
+                    [this.col_ok, this.ref_arc] = this.getBestRefArc(y0(:,1), this.b, A, cholinv(this.Q));
                     
-                    [this.x_float, this.Cxx, this.y0, Q_tmp, this.s02, this.v_hat] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.phase_res, this.id_track, 10, this.s02);
-                    
+                    [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, [], this.obs_track);
+                    [this.phase_res, this.id_track] = this.computeDataTrack( this.v_hat, [], this.A, this.obs_track, 1);
+                    [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp, iQ_tmp, this.phase_res, this.id_track] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, this.state.getBlockPostCleaningLoops());
+
                     % Delete bad observations and restore variances
                     if this.state.isOutlierRejectionOn()
                         this.logger.addMessage('       - reject outliers');
                         Q_tmp = this.Q;
-                        [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track] = this.cleanFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track, this.amb_prn_track, 9);
-                        [~, ~, ~, ~, this.y0,  this.b, this.A, ~, Q_tmp, this.obs_track, this.amb_prn_track] = this.remSolitaryObs(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track, round(this.state.getMinArc()/2));
-                        [this.col_ok, this.ref_arc] = this.getBestRefArc(this.y0, this.b, this.A, Q_tmp);
-                        [this.x_float, this.Cxx, this.s02, this.v_hat] = this.solveLS(this.y0, this.b, this.A, this.col_ok, Q_tmp);
-                        [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track);
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track] = this.cleanObsHiRes(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track, this.amb_prn_track, 9, false);
+                        %[~, ~, ~, ~, this.y0,  this.b, this.A, ~, Q_tmp, this.obs_track, this.amb_prn_track, iQ] = this.remSolitaryObs(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track, round(this.state.getMinArc()/2));
+                        [this.col_ok, this.ref_arc] = this.getBestRefArc(this.y0, this.b, this.A, cholinv(Q_tmp));
+                        [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, Q_tmp, [], this.obs_track);
                     end
                     this.Q = Q_tmp;
                     
-                    [this.phase_res, this.id_track] = this.computePhRes( this.v_hat, this.A, this.Q, this.obs_track, 1, size(A,1));
+                    [this.phase_res, this.id_track] = this.computeDataTrack(this.v_hat, [], this.A, this.obs_track, 1);
                     
                     this.logger.newLine();
                     this.logger.addMarkedMessage('Second Float solution computed, rover positions corrections:');
@@ -771,7 +1174,7 @@ classdef Core_Block < handle
             pos = this.pos;
         end
                 
-        function [pos, pos_cov, v_hat] = solveHighRate(this, s_rate, use_float)
+        function [pos, pos_cov, v_hat] = solveHighRate(this, s_rate, use_float, reg_factor)
             % Solve Float -> Fix -> try an estimation of positions at a different rate
             %
             % METHODS CALL REQUIREMENTS:
@@ -798,10 +1201,14 @@ classdef Core_Block < handle
             %   [pos, pos_cov] = go_block.solve();
             
             % HR prediction
-            narginchk(2,3);
+            narginchk(2,4);
             if nargin == 2
                 use_float = false;
             end
+            if nargin < 4
+                reg_factor = 1e-3;
+            end
+            
             s_rate = s_rate(1);
             
             if s_rate > 0
@@ -832,8 +1239,20 @@ classdef Core_Block < handle
                 
                 amb_hr_ok = [(1 : 3 * n_pos_hr) (this.col_ok(3 + 1 : end) + 3 * (n_pos_hr - this.n_pos))];
                 % Solve the new system
-                [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(this.y0, this.b, A_hr(:, amb_hr_ok), this.Q); %#ok<PROPLC>
-                                
+                
+                % Regularization matrix
+                if reg_factor > 0
+                    R = 2 * eye(3 * n_pos_hr) - diag(ones(3 * n_pos_hr - 3, 1), 3);
+                    R(1:3,1:3) =  R(1:3,1:3) ./ 2;
+                    R = sparse(R - diag(ones(3 * n_pos_hr - 3, 1), -3));
+                    R = R + 1e-6*speye(3 * n_pos_hr, 3 * n_pos_hr);
+                    R_full = sparse(numel(amb_hr_ok), numel(amb_hr_ok));
+                    R_full(1 : 3 * n_pos_hr, 1 : 3 * n_pos_hr) = reg_factor .* R;
+                    [x_float, Cxx, s02, v_hat] = this.solveRegLS(this.y0, this.b, A_hr, amb_hr_ok, cholinv(this.Q), R_full); %#ok<PROPLC>
+                else
+                    [x_float, Cxx, s02, v_hat] = this.solveLS(this.y0, this.b, A_hr, amb_hr_ok, cholinv(this.Q)); %#ok<PROPLC>                                
+                end
+                
                 % Transformation matrix for the estimation of a unique position (computed as the mean)
                 % T = zeros(size(x_float,1) - (n_pos_hr - this.n_pos) * 3, size(x_float,1));
                 % for i = 1 : n_pos_hr
@@ -944,20 +1363,35 @@ classdef Core_Block < handle
                 A = this.A;
                 amb_prn_track = this.amb_prn_track;
             end
+            this.plotDataTrack (phase_res*1e3, id_track, A, amb_prn_track, true);
+            ylim([-80 80]);
+        end
 
-            x = (1 : size(phase_res,1));
+        function plotDataTrack (this, data_track, id_track, A, amb_prn_track, cs_plot)
+            if (nargin < 6)
+                cs_plot = false;
+            end
+            if nargin == 1
+                data_track = this.phase_res;
+                id_track = this.id_track;
+                A = this.A;
+                amb_prn_track = this.amb_prn_track;
+                cs_plot = true;
+            end
+
+            x = (1 : size(data_track,1));
             h = figure(); dockAllFigures(h);
             for a = 1 : numel(amb_prn_track)
                 % h = figure(amb_prn_track(a));
                 %h.Name = sprintf('Sat: %d', amb_prn_track(a));
                 %h.NumberTitle = 'off';
-                f = subplot(4,8,amb_prn_track(a));
-                y = phase_res(:, a, 1) * 1e3;
+                %f = subplot(4,8,amb_prn_track(a));
+                y = data_track(:, a, 1);
                 plot(x, y,'.-', 'lineWidth', 1); hold on;
                 hline = findobj(h, 'type', 'line');
 
-                if (size(phase_res, 3) == 2)
-                    e = 3*phase_res(:, a, 2) * 1e3;
+                if (size(data_track, 3) == 2)
+                    e = 3 * data_track(:, a, 2);
                     patchColor = min(hline(1).Color + 0.3, 1);
                     plot(x, e, x, -e, 'color', patchColor);
                     patch([x(~isnan(e)) fliplr(x(~isnan(e)))], [e(~isnan(e)); flipud(-e(~isnan(e)))], 1, ...
@@ -965,55 +1399,20 @@ classdef Core_Block < handle
                         'edgecolor','none', ...
                         'facealpha', 0.1);
                 end
-                lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) * this.state.cs_thr * 1e3;
-                win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
-                if numel(y(~isnan(y))) > win_size
-                    ref = movmedian(round(medfilt_mat(y(~isnan(y)), 3) ./ lambda_val) .* lambda_val, win_size, 'omitnan');
-                    % check where the interpolation is not a plane
-                    lim = getOutliers(full(abs(movmedian(diff([ref(1); ref]),3)) > 0));
-                    for i = 1 : size(lim, 1)
-                        ref(lim(i, 1) : lim(i, 2)) = round(median(ref(lim(i, 1) : lim(i, 2))) / lambda_val) * lambda_val;
+                
+                if (cs_plot)
+                    lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) * 1e3 * this.cs_factor;
+                    win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
+                    win_size = round(win_size / 2) + mod(round(win_size / 2) + 1, 2);
+                    if numel(y(~isnan(y))) > win_size
+                        y(~isnan(y)) =  this.getAmbCorrection(y(~isnan(y)) ./ lambda_val, win_size) .* lambda_val;
+                        plot(x, y,':k', 'LineWidth', 1); hold on;
                     end
-                    ref(isnan(ref)) = 0;
-                    y(~isnan(y)) = ref;
-                    plot(x, y,':k', 'LineWidth', 1); hold on;
                 end
-                ylim([-80 80]);
-                f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
+                %f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
                 ax(a) = gca; %#ok<AGROW>
             end
             linkaxes(ax);
-        end
-        
-        function [phase_res, id_track] = computePhRes(this, v_hat, A, Q, obs_track, n_pos, n_tot_epoch)
-            if (nargin == 1)
-                v_hat = this.v_hat;
-                A = this.A;
-                Q = this.Q;
-                obs_track = this.obs_track;
-                n_pos =  this.n_pos;
-                n_tot_epoch = this.n_tot_epoch;
-            end
-            n_amb = size(A, 2) - n_pos * 3;
-                       
-            % EXAMPLE: phase_res = this.computePhRes(A, Q, obs_track, amb_prn_track)
-            phase_res = nan(n_tot_epoch, n_amb, 2);
-            id_track = spalloc(n_tot_epoch, n_amb, round(n_tot_epoch * n_amb * 0.5));
-            for a = 1 : n_amb
-                % non pivot
-                idx = find(A(:, 3 + a) < 0);
-                res = v_hat(idx);
-                phase_res(obs_track(idx, 1), a, 1) = res;
-                id_track(obs_track(idx, 1), a) = idx; %#ok<*SPRIX>
-                phase_res(obs_track(idx, 1), a, 2) = sqrt(Q(idx + size(Q,1) * (idx - 1)));
-                
-                % pivot
-                %idx = find(A(:, 3 + a) > 0);
-                %res = v_hat(idx);
-                %phase_res(obs_track(idx, 1), a, 1) = 0;
-                %id_track(obs_track(idx, 1), a) = idx; %#ok<*SPRIX>
-                %phase_res(obs_track(idx, 1), a, 2) = sqrt(Q(idx + size(Q,1) * (idx - 1)));
-            end
         end
     end
 
@@ -1097,8 +1496,11 @@ classdef Core_Block < handle
         end
         
         function ph_res = getPhaseResiduals(this)
+            if isempty(this.phase_res)
+                [this.phase_res, this.id_track] = this.computeDataTrack();
+            end
             ph_res = nan(this.n_tot_epoch, this.state.cc.getNumSat());
-            for i = 1 : size(this.phase_res,2)
+            for i = 1 : size(this.phase_res, 2)
                 ph_res(~isnan(this.phase_res(:, i, 1)), this.amb_prn_track(i)) = this.phase_res(~isnan(this.phase_res(:, i, 1)), i, 1);
             end
         end
@@ -1220,6 +1622,49 @@ classdef Core_Block < handle
 
     methods (Static) % Public Access
 
+        function [A_s, amb_prn_track] = shrinkA(A, amb_prn_track)
+            [amb_prn_track, ~, id_reorder] = unique(amb_prn_track);
+            n_amb = numel(amb_prn_track);
+            A_s = [A(:, 1 : 3) sparse(size(A, 1), n_amb)];
+            
+            for a = 1 : size(id_reorder, 1)
+                A_s(:, id_reorder(a) + 3) = A_s(:, id_reorder(a) + 3) + A(:, a + 3);
+            end
+        end
+            
+        function ref = getAmbCorrection(data, win_size)
+            ref1 = Core_Block.improveRef(data, movmedian(round(data), win_size, 'omitnan'), win_size);
+            ref2 = Core_Block.improveRef(data, movmedian(round(data+0.5) - 0.5, win_size, 'omitnan'), win_size);
+            ref = iif(sum(abs(data - ref1)) > sum(abs(data - ref2)), ref2, ref1);
+        end
+        
+        function ref = improveRef(data, ref, win_size)
+            margin_win = round(win_size / 2) + mod(round(win_size / 2) + 1, 2);
+
+            % check where the interpolation is not a plane
+            lim = getOutliers(full(abs(movmedian(diff([ref(1); ref]),3)) > 0));
+            for i = 1 : size(lim, 1)
+                idx = lim(i, 1) : lim(i, 2);
+                idx = idx(1 : end - mod(length(idx),2));
+                ref(idx) = median(ref(idx(1 : end)));
+            end
+            
+            % reduce the number of jumps
+            lim = unique([1; find([abs(diff(data)) > 0.5; true])]);
+            %lim(diff(lim) < round(win_size / 2)) = [];
+            lim = unique([1; lim; numel(ref)]);
+            lim = [lim(1:end-1)+1 lim(2:end)];
+            for i = 1 : size(lim, 1)
+                idx = lim(i, 1) : lim(i, 2);
+                if mod(length(idx),2); idx = idx(1 : end - 1); end
+                ref(idx) = median(ref(idx));
+            end
+            ref = movmedian(ref, 2 * win_size -1);
+            
+            ref(1 : margin_win) = median(ref(1 : margin_win));
+            ref(end - margin_win + 1 : end) = median(ref(end - margin_win + 1 : end));
+        end
+        
         function go_block = go (time_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, sp3, iono, lambda, ant_pcv, s_rate)
             % Separate the dataset in single blocks and solve float -> fix
             % go_block = Core_Block.go(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, 3600);
@@ -1292,47 +1737,106 @@ classdef Core_Block < handle
 
     methods (Static) % Public Access
         
-        function [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = solveLS(y0, b, A, col_ok, Q, P, N)
+        function [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = solveLS(y0, b, A, col_ok, iQ, P, N)
             % Solve the LS problem, when P, N are provided it does not compute them
-            % SYNTAX: [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = Core_Block.solveLS(y0, b, A, col_ok, Q, P, N)
+            % SYNTAX: [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = Core_Block.solveLS(y0, b, A, col_ok, cholinv(Q), P, N)
             [n_obs, n_col] = size(A);
+            
+            if nargout < 5
+                A = A(:, col_ok);
+            end
             
             % least-squares solution
             if (nargin < 7) || isempty(P)
-                P = A' / Q;
+                P = A' * iQ;
                 N = P * A;
             end
+            
             if (nargout > 4)
                 P_out = P;
                 N_out = N;
             end
-            if numel(col_ok) < size(P,1)
+            
+            if numel(col_ok) < size(A, 2)
                 P = P(col_ok, :);
                 N = N(col_ok, col_ok);
+                A = A(:, col_ok);
             end
             
-            try
-                N_inv = cholinv(full(N));
-            catch
-                N_inv = N^-1;
+            if numel(y0) > 0
+                try
+                    N_inv = cholinv(N);
+                catch
+                    N_inv = N^-1;
+                end
+                
+                Y = (y0 - b);
+                L = P * Y;
+                x = N_inv * L;
+                
+                % estimation of the variance of the observation error
+                y_hat = A * x + b;
+                v_hat = y0 - y_hat;
+                s02 = (v_hat' * iQ * v_hat) / (n_obs - n_col);
+                
+                % covariance matrix
+                Cxx = s02 * N_inv;
+                
+                if nargout == 7
+                    Cyy = s02 * A * N_inv * A';
+                end
+            else
+                x = []; Cxx = []; s02 = 1e100; v_hat = []; P_out = []; N_out = []; Cyy = [];
+            end
+
+        end
+        
+        function [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = solveRegLS(y0, b, A, col_ok, iQ, R, P, N)
+            % Solve the LS problem, when P, N are provided it does not compute them
+            % SYNTAX: [x, Cxx, s02, v_hat, P_out, N_out, Cyy] = Core_Block.solveLS(y0, b, A, col_ok, cholinv(Q), P, N)
+            [n_obs, n_col] = size(A);
+            
+            if nargout < 5
+                A = A(:, col_ok);
             end
             
+            % least-squares solution
+            if (nargin < 8) || isempty(P)
+                P = A' * iQ;
+                N = P * A;
+            end
+            
+            if (nargout > 4)
+                P_out = P;
+                N_out = N;
+            end
+            
+            if numel(col_ok) < size(A, 2)
+                P = P(col_ok, :);
+                N = N(col_ok, col_ok);
+                A = A(:, col_ok);
+            end
+            
+            N = N + R;
+            % small regularization to make the system more stable
+            reg_f = abs(diag(N)); reg_f = min(reg_f(reg_f>0));
+            N_inv = cholinv((N + 1e-6*reg_f * speye(size(N,1))));
+           
             Y = (y0 - b);
             L = P * Y;
             x = N_inv * L;
             
             % estimation of the variance of the observation error
-            y_hat = A(:, col_ok) * x + b;
+            y_hat = A * x + b;
             v_hat = y0 - y_hat;
-            T = Q \ v_hat;
+            T = iQ * v_hat;
             s02 = (v_hat' * T) / (n_obs - n_col);
                         
             % covariance matrix
             Cxx = s02 * N_inv;
             
             if nargout == 7
-                A = A(:, col_ok)';
-                Cyy = s02 * A' * N_inv * A;
+                Cyy = s02 * A * N_inv * A';
             end
         end
     end
@@ -1341,13 +1845,13 @@ classdef Core_Block < handle
     %  PRIVATE FUNCTIONS called by pubblic calls goBlock
     % ==================================================================================================================================================
 
-    methods (Access = private)
+    methods (Access = public)
         
-        function [A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track] = remUnstableArcs(A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx)
+        function [A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track] = remUnstableArcs(this, A, col_ok, ref_arc, y0, b, Q, obs_track, amb_prn_track, Cxx)
             % If the system is unstable remove the arcs that are making it so
             amb_var = zeros(size(Cxx,1) + numel(ref_arc)); amb_var(col_ok) = diag(Cxx); amb_var(amb_var < 0) = 100;
             % Bad arcs have an high estimation variance
-            bad_col = find((amb_var(4:end) > 10) | (amb_var(4:end) > mean(amb_var(col_ok(4 : end))) + 10 * std(amb_var(col_ok(4 : end))))) + 3;
+            bad_col = find((amb_var(4:end) > 0.5) | (amb_var(4:end) > mean(amb_var(col_ok(4 : end))) + 10 * std(amb_var(col_ok(4 : end))))) + 3;
             Q_tmp = Q;
             while ~isempty(bad_col) && (size(A,2) >= 3 + 2)
                 bad_col = bad_col(1);
@@ -1362,14 +1866,15 @@ classdef Core_Block < handle
             Q = Q_tmp;
         end
         
-        function [x_float, Cxx, y0, Q_tmp, s02, v_hat] = loopCorrector(this, y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean, s02)
+        function [x_float, Cxx, s02, v_hat, y0, Q, iQ, phase_res, id_track] = loopCorrector(this, y0, b, A, col_ok, Q, obs_track, amb_prn_track, n_clean)
             % Try to correct integer ambiguities (maybe missed cycle slips) on the basis of the residuals
-            % SYNTAX: [x_float, y0, Cxx] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, phase_res, id_track, n_clean);
-            narginchk(12,12);
-            Q_tmp = Q;
+            % SYNTAX: [x_float, Cxx, s02, v_hat, y0, Q, iQ, phase_res, id_track] = this.loopCorrector(y0, b, A, col_ok, Q, obs_track, amb_prn_track, n_clean)
+            narginchk(9,9);
+            [x_float, Cxx, s02, v_hat, Q_tmp, iQ] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
+            %[A_s, amb_prn_track] = this.shrinkA(A, amb_prn_track);
+            [phase_res, id_track] = this.computeDataTrack( v_hat, [], A, obs_track, 1);
+            iQ_tmp = iQ;
             c = 1; is_new = true;
-            x_float = [];
-            Cxx = [];
             while (c <= n_clean) && is_new
                 % Try to correct integer ambiguities (maybe missed cycle slips)
                 this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
@@ -1379,10 +1884,9 @@ classdef Core_Block < handle
                 if is_new_ck
                     % Improve solution by iterative increase of bad observations variance
                     %this.logger.addMessage('          - recompute the improved solution');
-                    [~, ~, ~, v_hat_ck] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
-                    [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat_ck, obs_track);
+                    [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck, iQ_tmp_ck] = this.improveFloatSolution(y0_ck, b, A, col_ok, Q, [], obs_track);
                     % if I'm improving the solution accept the correction
-                    if s02_ck < s02
+                    if sum(diag(Cxx_ck(1:3,1:3)).^2) < sum(diag(Cxx(1:3,1:3)).^2)
                         is_new = true;
                         y0 = y0_ck;
                         x_float = x_float_ck;
@@ -1390,9 +1894,8 @@ classdef Core_Block < handle
                         s02 = s02_ck;
                         v_hat = v_hat_ck;
                         Q_tmp = Q_tmp_ck;
-                        if c < n_clean
-                            [phase_res, id_track] = this.computePhRes( v_hat, A, Q, obs_track, 1, size(A,1));
-                        end
+                        iQ_tmp = iQ_tmp_ck;
+                        [phase_res] = this.computeDataTrack(v_hat, id_track);
                     else
                         this.logger.addMessage('          - cycle slips detected but rejected!');
                         is_new = false;
@@ -1403,9 +1906,8 @@ classdef Core_Block < handle
                 end
                 c = c + 1;
             end
-            if isempty(Cxx)
-                [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
-            end
+            Q = Q_tmp;
+            iQ = iQ_tmp;
         end
         
         function [id_out, phase_res] = phaseCleaner(this, phase_res, id_track, thr_fix)
@@ -1498,13 +2000,16 @@ classdef Core_Block < handle
                     % amb_track = amb_track ...
                     %     + int8(this.sat_ph_track & repmat(pivot_change,size(this.sat_ph_track,1),1)) ...
                     %     - int8(this.sat_ph_track & repmat([pivot_change(2:end) pivot_change(1)],size(this.sat_ph_track,1),1));
-                    for i = 1 : length(full_slip)
-                        amb_track(this.sat_ph_track(:,full_slip(i)) ~= 0, full_slip(i)) = 1;
+                    if this.state.getFullSlipSplit()
+                        for i = 1 : length(full_slip)
+                            amb_track(this.sat_ph_track(:,full_slip(i)) ~= 0, full_slip(i)) = 1;
+                        end
                     end
                     
                     % resize the design matrix to estimate phase ambiguities
                     %this.A = [this.A sparse(this.n_obs_tot, amb_num)];
                     rows = 0;
+                    this.A = [this.A spalloc(this.n_obs_tot, 1000, this.n_obs_tot * 2)];
                     for e = 1 : this.n_epoch
 
                         % check if a new ambiguity column for A is needed
@@ -1514,7 +2019,6 @@ classdef Core_Block < handle
                         if (~isempty(amb_prn_new))
                             amb_num = amb_num + length(amb_prn_new);
                             this.amb_prn_track = [this.amb_prn_track; amb_prn_new];
-                            this.A = [this.A sparse(this.n_obs_tot, numel(amb_prn_new))];
                         end
                         
                         % build new columns
@@ -1531,10 +2035,11 @@ classdef Core_Block < handle
                         sat_ph_idx = sum(this.sat_pr_track(:,e) > 0) + (1 : sum(this.sat_ph_track(:, e) > 0))';
                         rows = rows(end) + sat_ph_idx;
                         this.A(rows(:) + size(this.A,1) * (3 + amb_id -1)) = -lambda(amb_prn_avail, 1);
-                        this.A(rows(:) + size(this.A,1) * (3 + pivot_id -1)) = lambda(pivot_prn, 1);
+                        this.A(rows, 3 + pivot_id) = lambda(pivot_prn, 1);
                     end
                     %[this.amb_prn_track, reorder_id] = sort(this.amb_prn_track);
                     %this.A = this.A(:, [(1 : (3))'; (3) + reorder_id]);
+                    this.A = this.A(:, 1 : amb_num + 3 * this.n_pos);
                 end
             end
         end
@@ -1643,17 +2148,18 @@ classdef Core_Block < handle
             end
         end
 
-        function [x_float, Cxx, s02, v_hat, Q] = improveFloatSolution(this, ...
+        function [x_float, Cxx, s02, v_hat, Q, iQ] = improveFloatSolution(this, ...
                     y0, b, A, col_ok, Q, ...
                     v_hat, obs_track, thr)
             % Stabilize solution by increasing bad observations variances
             %
             % SYNTAX:
-            %   [x_float, Cxx, s02, v_hat, Q] = this.improveFloatSolution(this, y0, b, A, col_ok, Q, v_hat, obs_track)
+            %   [x_float, Cxx, s02, v_hat, Q, iQ] = this.improveFloatSolution(this, y0, b, A, col_ok, Q, v_hat, obs_track)
 
             x_float = [];
+            iQ = cholinv(Q);
             if isempty(v_hat)
-                [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q);
+                [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ);
             end
             
             narginchk(7,8);
@@ -1668,13 +2174,14 @@ classdef Core_Block < handle
             n_out_old = 0;
             idx_pr = find(obs_track(:,3) == -1);
             idx_ph = find(obs_track(:,3) == 1);
+            thr_perc = 0.995;
             while (search_for_outlier == 1)
                 % never remove more than 0.5% of data at time
-                out_pr = abs(v_hat(idx_pr)) > max(thr, max(this.state.getMaxCodeErrThr() , perc(abs(v_hat(~out_pr_old)), 0.995)));
+                out_pr = abs(v_hat(idx_pr)) > max(0.5*thr, max(this.state.getMaxCodeErrThr() , perc(abs(v_hat(~out_pr_old)), thr_perc)));
                 if isempty(out_pr)
                     out_pr = out_pr_old;
                 end
-                out_ph = abs(v_hat(idx_ph)) > max(thr, max(this.state.getMaxPhaseErrThr() , perc(abs(v_hat(~out_ph_old)), 0.995)));
+                out_ph = abs(v_hat(idx_ph)) > max(0.5*thr, max(this.state.getMaxPhaseErrThr() , perc(abs(v_hat(~out_ph_old)), thr_perc)));
                 if isempty(out_ph)
                     out_ph = out_ph_old;
                 end
@@ -1686,73 +2193,163 @@ classdef Core_Block < handle
                     out_pr_old = out_pr_old | out_pr;
                     out_ph_old = out_ph_old | out_ph;
                     idx_out = [idx_out_pr idx_out_ph];
-                    Q(idx_out + size(Q,1) * (idx_out - 1)) = min(1e4, max(Q(idx_out + size(Q,1) * (idx_out - 1)) * 1.2, 1.2 * (v_hat(idx_out)).^2)); % Bad observations have now their empirical error
-
-                    [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                    %Q(idx_out + size(Q,1) * (idx_out - 1)) = min(1e4, max(Q(idx_out + size(Q,1) * (idx_out - 1)), (v_hat(idx_out)).^2)); % Bad observations have now their empirical error
+                    Q(idx_out + size(Q,1) * (idx_out - 1)) = min(1e4, (v_hat(idx_out)).^2); % Bad observations have now their empirical error
+                    iQ = cholinv(Q);
+                    [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ);
                 else
                     if isempty(x_float)
-                        [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                        [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ);
                     end
                     search_for_outlier = 0;
                 end
+                thr_perc = thr_perc * 0.95;
             end
         end
 
-        function [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track]  = cleanFloatSolution (this, ...
+        function [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ]  = cleanObsHiRes (this, ...
                     y0, b, A, col_ok, Q, ...
-                    v_hat, obs_track, amb_prn_track, thr)
+                    v_hat, obs_track, amb_prn_track, thr, force_out)
             % Stabilize solution by removing observations eith high residuals
-            % [x_float, Cxx, s02, v_hat, y0, b, A, Q, obs_track, amb_prn_track] = cleanFloatSolution(this, y0, b, A, Q, v_hat, obs_track, amb_prn_track)
-
-            x_float = [];
+            % [x_float, Cxx, s02, v_hat, y0, b, A, Q, obs_track, amb_prn_track] = cleanObsHiRes(this, y0, b, A, Q, v_hat, obs_track, amb_prn_track)
             search_for_outlier = 1;
 
-            if nargin < 9
+            if nargin < 10
                 thr = 3;
             end
+            if nargin < 11
+                force_out = true;
+            end
+            iQ = cholinv(Q);
+            [x_float, Cxx, s02, v_hat] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
+            v_hat_ck = v_hat;
+            A_ck = A;
+            y0_ck = y0;
+            b_ck = b;
+            Q_ck = Q;
+            obs_track_ck = obs_track;
+            amb_prn_track_ck = amb_prn_track;
+            col_ok_ck = col_ok;
 
-            out_ph_old = false(size(v_hat));
-            out_pr_old = false(size(v_hat));
             while (search_for_outlier == 1)
-                idx_pr = find(obs_track(:,3) == -1);
-                idx_ph = find(obs_track(:,3) == 1);
+                idx_pr = find(obs_track_ck(:,3) == -1);
+                idx_ph = find(obs_track_ck(:,3) == 1);
                 % never remove more than 0.5% of data at time
-                out_pr = abs(v_hat(idx_pr)) > max(min(this.state.getMaxCodeErrThr() , thr * sqrt(Q(idx_pr + size(Q,1) * (idx_pr - 1)))), perc(abs(v_hat), 0.995));
-                if isempty(out_pr)
-                    out_pr = out_pr_old;
-                end
-                out_ph = abs(v_hat(idx_ph)) >= max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat), 0.995));
-                if isempty(out_ph)
-                    out_ph = out_ph_old;
-                end
-                idx_out_pr = idx_pr(out_pr);
-                idx_out_ph = idx_ph(out_ph);
-                idx_out = [idx_out_pr idx_out_ph];
-                if (~isempty(idx_out))
-                    y0(idx_out) = [];
-                    A(idx_out,:) = [];
-                    Q(idx_out,:) = [];
-                    Q(:,idx_out) = [];
-                    b(idx_out) = [];
-                    obs_track(idx_out,:) = [];
-                    
-                    n_col = size(A,2);
-                    [A, y0, b, Q, obs_track, amb_prn_track] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, this.state.getMinArc());
+                pr_ok = abs(v_hat_ck(idx_pr)) < max(min(this.state.getMaxCodeErrThr() , thr * sqrt(Q(idx_pr + size(Q,1) * (idx_pr - 1)))), perc(abs(v_hat_ck), 0.995));
+                ph_ok = abs(v_hat_ck(idx_ph)) < max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat_ck), 0.995));
+                idx_pr_ok = idx_pr(pr_ok);
+                idx_ph_ok = idx_ph(ph_ok);
+                idx_ok = [idx_pr_ok idx_ph_ok];
+                if (numel(idx_ok) < numel(y0_ck))
+                    n_col = size(A, 2);
+                    [A_ck, y0_ck, b_ck, Q_ck, obs_track_ck, amb_prn_track_ck] = this.remShortArc(A_ck(idx_ok,:), y0_ck(idx_ok), b_ck(idx_ok), Q_ck(idx_ok, idx_ok), obs_track_ck(idx_ok,:), amb_prn_track_ck, this.state.getMinArc());
                     % If I removed an arc re-estimate the best arc
-                    if size(A,2) < n_col
-                        [col_ok] = this.getBestRefArc(y0, b, A, Q);
+                    iQ_ck = cholinv(Q_ck);
+                    if size(A_ck, 2) < n_col
+                        [col_ok_ck] = this.getBestRefArc(y0_ck, b_ck, A_ck, iQ_ck);
                     end
-                    [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                    if numel(y0_ck) > 0
+                        %[x_float_ck, Cxx_ck, s02_ck, v_hat_ck] = this.solveLS(y0_ck, b_ck, A_ck, col_ok_ck, iQ_ck);
+                        [x_float_ck, Cxx_ck, s02_ck, v_hat_ck] = this.improveFloatSolution(y0_ck, b_ck, A_ck, col_ok_ck, Q_ck, v_hat_ck, obs_track_ck);
+                        % keep the cleaning only if the solution is improving
+                        if force_out || (sum(diag(Cxx_ck(1:3,1:3)).^2) <= sum(diag(Cxx(1:3,1:3)).^2))
+                            x_float = x_float_ck;
+                            Cxx = Cxx_ck;
+                            s02 = s02_ck;
+                            v_hat = v_hat_ck;
+                            A = A_ck;
+                            y0 = y0_ck;
+                            b = b_ck;
+                            Q = Q_ck;
+                            iQ = iQ_ck;
+                            obs_track = obs_track_ck;
+                            amb_prn_track = amb_prn_track_ck;
+                            col_ok = col_ok_ck;
+                        else
+                            search_for_outlier = 0;
+                        end
+                    end
                 else
-                    if isempty(x_float)
-                        [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
-                    end
                     search_for_outlier = 0;
                 end
             end
         end
+        
+        function [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ]  = cleanObsHiResVar (this, ...
+                y0, b, A, col_ok, Q, ...
+                v_hat, obs_track, amb_prn_track, thr)
+            % Stabilize solution by removing observations eith high residuals
+            % [x_float, Cxx, s02, v_hat, y0, b, A, Q, obs_track, amb_prn_track] = cleanObsHiResVar(this, y0, b, A, Q, v_hat, obs_track, amb_prn_track)
+                        
+            if nargin < 10
+                thr = 0.997;
+            end
+            
+            search_for_outlier = 1;
+            iQ = cholinv(Q);
+            [x_float, Cxx, s02, v_hat] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
+            while (search_for_outlier == 1)
+                idx_pr = find(obs_track(:,3) == -1);
+                [phase_res, id_track] = this.computeDataTrack(v_hat, [], A, obs_track, 1);
+                sensor = movstd([zeros(1, size(phase_res, 2)); diff(phase_res)],3,'omitnan');
+                thr_var = min(this.state.getMaxPhaseErrThr() * ones(size(sensor,1),1), min(median(sensor,2, 'omitnan'), this.state.getMaxPhaseErrThr()) + perc(median(sensor,2, 'omitnan'), thr));
+                idx_ph = [];
+                for a = 1 : size(id_track,2)
+                    idx_ph = [idx_ph; id_track(sensor(:, a) < thr_var & ~(id_track(:,a) == 0), a)];
+                end
+                ph_ok = abs(v_hat(idx_ph)) < max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat), 0.995));
+                idx_ok = [idx_pr idx_ph];
+                
+                idx_ph = find(obs_track(:,3) == 1);
+                % never remove more than 0.5% of data at time
+                ph_ok = abs(v_hat(idx_ph)) < max(min(this.state.getMaxPhaseErrThr() , thr * sqrt(Q(idx_ph + size(Q,1) * (idx_ph - 1)))), perc(abs(v_hat), 0.995));
+                idx_ph_ok = idx_ph(ph_ok);
+                
+                idx_ok = intersect(idx_ok, idx_ph_ok);
+                if (numel(idx_ok) < numel(y0))
+                    col_ok_ck = col_ok;
+                    n_col = size(A, 2);
+                    [A_ck, y0_ck, b_ck, Q_ck, obs_track_ck, amb_prn_track_ck] = this.remShortArc(A(idx_ok,:), y0(idx_ok), b(idx_ok), Q(idx_ok, idx_ok), obs_track(idx_ok,:), amb_prn_track, this.state.getMinArc());
+                    % If I removed an arc re-estimate the best arc
+                    iQ_ck = cholinv(Q_ck);
+                    if size(A_ck, 2) < n_col
+                        [col_ok_ck] = this.getBestRefArc(y0_ck, b_ck, A_ck, iQ_ck);
+                        n_col = size(A_ck, 2);
+                        [~, ~, ~, ~, y0_ck,  b_ck, A_ck, ~, Q_ck, obs_track_ck, amb_prn_track_ck, iQ_ck] = this.remSolitaryObs(y0_ck, b_ck, A_ck, col_ok_ck, Q_ck, obs_track_ck, amb_prn_track_ck, round(this.state.getMinArc()));
+                        if size(A_ck, 2) < n_col
+                            [col_ok_ck] = this.getBestRefArc(y0_ck, b_ck, A_ck, iQ_ck);
+                        end
+                    end
 
-        function [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track]  = remSolitaryObs (this, ...
+                    if numel(y0) > 0
+                        %[x_float_ck, Cxx_ck, s02_ck, v_hat_ck] = this.solveLS(y0_ck, b_ck, A_ck, col_ok_ck, iQ_ck);
+                        [x_float_ck, Cxx_ck, s02_ck, v_hat_ck] = this.improveFloatSolution(y0_ck, b_ck, A_ck, col_ok_ck, Q_ck, [], obs_track_ck);
+                        %[x_float_ck, Cxx_ck, s02_ck, v_hat_ck, y0_ck, Q_ck] = this.loopCorrector(y0_ck, b_ck, A_ck, col_ok_ck, Q_ck, obs_track_ck, amb_prn_track_ck, 3);
+                        % keep the cleaning only if the solution is improving
+                        if sum(diag(Cxx_ck(1:3,1:3)).^2) <= sum(diag(Cxx(1:3,1:3)).^2)
+                            x_float = x_float_ck;
+                            Cxx = Cxx_ck;
+                            s02 = s02_ck;
+                            v_hat = v_hat_ck;
+                            A = A_ck;
+                            y0 = y0_ck;
+                            b = b_ck;
+                            Q = Q_ck;
+                            iQ = iQ_ck;
+                            obs_track = obs_track_ck;
+                            amb_prn_track = amb_prn_track_ck;
+                            col_ok = col_ok_ck;
+                        else
+                            search_for_outlier = 0;
+                        end
+                    end
+                else
+                    search_for_outlier = 0;
+                end
+            end
+        end
+        
+        function [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ]  = remSolitaryObs (this, ...
                 y0, b, A, col_ok, Q, ...
                 obs_track, amb_prn_track, min_contiguous_obs)
 
@@ -1789,7 +2386,8 @@ classdef Core_Block < handle
             if size(A, 2) < n_col
                 [col_ok] = this.getBlockProperties(A, obs_track, 1);
             end
-            [x_float, Cxx, s02, v_hat] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+            iQ = cholinv(Q);
+            [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ);
         end
         
 %         function [y0, Q] = preCorrectObsIntAmb(this)
@@ -1829,8 +2427,7 @@ classdef Core_Block < handle
 %                 end
 %             end
 %
-%             [~, ~, ~, v_hat] = fast_least_squares_solver(y0 + this.b, this.b, this.A(:, this.col_ok), this.Q);
-%             [~, ~, ~, v_hat] = this.improveFloatSolution(y0 + this.b, this.b, this.A, this.col_ok, this.Q, v_hat, this.obs_track);
+%             [~, ~, ~, v_hat] = this.improveFloatSolution(y0 + this.b, this.b, this.A, this.col_ok, this.Q, [], this.obs_track);
 %
 %             for a = 1 : n_amb
 %                 idx = find(A(:, 3 + a) < 0);
@@ -1852,7 +2449,7 @@ classdef Core_Block < handle
 %             y0 = y0 + this.b;
 %         end
         
-        function [y0, Q] = preCorrectObsIntAmb(this, y0, b, A, col_ok, Q, n_pos, obs_track, pivot_change)
+        function [y0, Q] = preCorrectObsIntAmb(this, y0, b, A, Q, n_pos, obs_track, pivot_change)
             if nargin == 1
                 y0 = this.y0 - this.b;
                 b = this.b;
@@ -1860,8 +2457,6 @@ classdef Core_Block < handle
                 Q = this.Q;
                 n_pos =  this.n_pos;
                 obs_track = this.obs_track;
-            
-                col_ok = this.col_ok;
                 empty_epoch = this.empty_epoch;
             else
                 empty_epoch = [];
@@ -1899,9 +2494,6 @@ classdef Core_Block < handle
                     y0(idx) = y0(idx) - tmp * lambda_obs;
                 end
             end
-            
-            [~, ~, ~, v_hat] = fast_least_squares_solver(y0 + b, b, A(:, col_ok), Q);
-            [~, ~, ~, ~] = this.improveFloatSolution(y0 + b, b, A, col_ok, Q, v_hat, obs_track);
             
             for a = 1 : n_amb
                 idx = find(A(:, 3 + a) < 0);
@@ -1941,24 +2533,22 @@ classdef Core_Block < handle
             end
             
             is_new = false;
-            % half_win_size = round((win_size + 1) / 2);
+            phase_ref = nan(size(id_track));
             for a = 1 : numel(amb_prn_track)
                 y = phase_res(:, a, 1);
                 id_obs = id_track(~isnan(y),a);
-                lambda_val = abs(A(id_obs, 3 + a)) * this.state.cs_thr;
-                if (numel(y(~isnan(y))) > 1.5 * win_size) % it's probably a pivot
-                    ref = movmedian(round(medfilt_mat(y(~isnan(y)), 3) ./ lambda_val) .* lambda_val, win_size, 'omitnan');
-                    % check where the interpolation is not a plane
-                    lim = getOutliers(full(abs(movmedian(diff([ref(1); ref]),3)) > 0));
-                    for i = 1 : size(lim, 1)
-                        ref(lim(i, 1) : lim(i, 2)) = round(median(ref(lim(i, 1) : lim(i, 2))) / lambda_val) * lambda_val;
-                    end
-                    ref(isnan(ref)) = 0;
-                    %ref(1 : half_win_size) = ref(half_win_size); ref(end - half_win_size + 1 : end) = ref(end - half_win_size + 1); % manage borders;
-                    % If the ref correction provides a reduction of the derivative std -> use it
-                    if ~(full(sum(abs(ref)) == 0)) && (std(diff(y(~isnan(y))-ref)) <= std(diff(y(~isnan(y)))))
-                        is_new = true;
-                        y0(id_obs) = y0(id_obs) - ref;
+                if ~ isempty(id_obs)
+                    lambda_val = abs(A(id_obs, 3 + a)) * this.cs_factor;
+                    if (numel(y(~isnan(y))) > 1.5 * win_size) % it's probably a pivot
+                        ref = this.getAmbCorrection(y(~isnan(y)) ./ lambda_val, win_size) .* lambda_val;
+                        phase_ref(~isnan(y),a) = ref;
+                        % If the ref correction provides a reduction of the derivative std -> use it
+                        %if ~(full(sum(abs(ref)) == 0)) || (std(diff(y(~isnan(y))-ref)) <= std(diff(y(~isnan(y)))))
+                        if ~(full(sum(abs(ref)) == 0))
+                            % figure(999); clf; plot(y(~isnan(y)),'.-'); hold on; plot(ref,'o', 'lineWidth', 2)
+                            is_new = true;
+                            y0(id_obs) = y0(id_obs) - ref;
+                        end
                     end
                 end
             end
@@ -1970,30 +2560,31 @@ classdef Core_Block < handle
                     pr1_r, pr1_m, pr2_r, pr2_m, ...
                     ph1_r, ph1_m, ph2_r, ph2_m, ...
                     snr_r, snr_m, ...
-                    eph, sp3, iono, lambda, frequencies, ant_pcv)
+                    eph, sp3, iono, lambda, frequencies, p_rate, ant_pcv)
 
             % SYNTAX:
             %   prepare_dd_sys(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, sp3, iono, lambda, phase, ant_pcv);
             %
             % INPUT:
             %   time_rx = GPS reception time
-            %   XR0   = ROVER approximate position
-            %   XM    = MASTER position
-            %   pr1_R = ROVER code observations (L1 carrier)
-            %   pr1_M = MASTER code observations (L1 carrier)
-            %   pr2_R = ROVER code observations (L2 carrier)
-            %   pr2_M = MASTER code observations (L2 carrier)
-            %   ph1_R = ROVER phase observations (L1 carrier)
-            %   ph1_M = MASTER phase observations (L1 carrier)
-            %   ph2_R = ROVER phase observations (L2 carrier)
-            %   ph2_M = MASTER phase observations (L2 carrier)
-            %   snr_R = ROVER-SATELLITE signal-to-noise ratio
-            %   snr_M = MASTER-SATELLITE signal-to-noise ratio
-            %   Eph   = satellite ephemeris
-            %   sp3   = structure containing precise ephemeris and clock
-            %   iono  = ionosphere parameters
-            %   lambda = wavelength matrix (depending on the enabled constellations)
-            %   phase  = L1 carrier (phase=1), L2 carrier (phase=2)
+            %   XR0     = ROVER approximate position
+            %   XM      = MASTER position
+            %   pr1_R   = ROVER code observations (L1 carrier)
+            %   pr1_M   = MASTER code observations (L1 carrier)
+            %   pr2_R   = ROVER code observations (L2 carrier)
+            %   pr2_M   = MASTER code observations (L2 carrier)
+            %   ph1_R   = ROVER phase observations (L1 carrier)
+            %   ph1_M   = MASTER phase observations (L1 carrier)
+            %   ph2_R   = ROVER phase observations (L2 carrier)
+            %   ph2_M   = MASTER phase observations (L2 carrier)
+            %   snr_R   = ROVER-SATELLITE signal-to-noise ratio
+            %   snr_M   = MASTER-SATELLITE signal-to-noise ratio
+            %   Eph     = satellite ephemeris
+            %   sp3     = structure containing precise ephemeris and clock
+            %   iono    = ionosphere parameters
+            %   lambda  = wavelength matrix (depending on the enabled constellations)
+            %   frequencies  = L1 carrier (phase=1), L2 carrier (phase=2)
+            %   p_rate = processing rate
             %   ant_pcv = antenna phase center variation
             %
             % DESCRIPTION:
@@ -2063,16 +2654,16 @@ classdef Core_Block < handle
 
                 if (frequencies == 1)
                     [pos_m, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] ...
-                        = init_positioning(time_rx, pr1_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0);
+                        = init_positioning(time_rx, pr1_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies, p_rate,       2, 0, 0, 0);
                     if (sum(sat_pr_M) < min_nsat_LS); return; end
                     [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] ...
-                        = init_positioning(time_rx, pr1_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0);
+                        = init_positioning(time_rx, pr1_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 1, 0, 0);
                 else
                     [pos_m, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] ...
-                        = init_positioning(time_rx, pr2_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0, 0, 0);
+                        = init_positioning(time_rx, pr2_m(sat_pr),   snr_m(sat_pr),   eph, sp3, iono, [],  pos_m, [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies, p_rate,      2, 0, 0, 0);
                     if (sum(sat_pr_M) < min_nsat_LS); return; end
                     [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] ...
-                        = init_positioning(time_rx, pr2_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1, 0, 0);
+                        = init_positioning(time_rx, pr2_r(sat_pr_M), snr_r(sat_pr_M), eph, sp3, iono, [], pos_r, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 1, 0, 0);
                 end
 
                 %keep only satellites that rover and master have in common
@@ -2285,18 +2876,62 @@ classdef Core_Block < handle
         end
 
         function id_track = computeIdTrack(this, A, obs_track, n_pos)
+            % Get a matrix of n_obs x n_arcs with the index of the observations in y0
+            % Where no observations are present it contains zeros
+            % SYNTAX: id_track = this.computeIdTrack(A, obs_track, n_pos)
             if (nargin == 1)
                 A = this.A;
                 obs_track = this.obs_track;
                 n_pos =  this.n_pos;
             end
-            n_amb = size(A, 2) - n_pos * 3;
-            n_tot_epoch = size(A,1);
+            n_arc = size(A, 2) - n_pos * 3;
+            n_tot_epoch = obs_track(end,1);
             
-            id_track = spalloc(n_tot_epoch, n_amb, round(n_tot_epoch * n_amb * 0.5));
-            for a = 1 : n_amb
-                idx = find(A(:, 3 + a) < 0);
+            id_track = spalloc(n_tot_epoch, n_arc, round(n_tot_epoch * 2));
+            for a = 1 : n_arc
+                idx = find(A(:, 3 * n_pos + a) < 0);
                 id_track(obs_track(idx, 1), a) = idx; %#ok<*SPRIX>
+            end
+        end
+        
+        function [data_track, id_track] = computeDataTrack(this, data, id_track, A, obs_track, n_pos)
+            % Get a matrix of n_obs x n_arcs with the values of the observations in data
+            % Where no observations are present for a certain arcs it contains zeros�
+            %
+            % INPUT:
+            %   data       data to be put in the matrix [n_obs x n_set]
+            %   id_track   can be empty and computed automatically contains the id of the obs to fill the matrix
+            %   A          required if id_track is empty, default value from this.
+            %   obs_track  required if id_track is empty, default value from this.
+            %   n_pos          required if id_track is empty, default value from this.
+            %
+            % SYNTAX: 
+            %       [data_track, id_track] = this.computeDataTrack(data, id_track, A, obs_track, n_pos)
+            % EXAMPLE: 
+            %       [data_track, id_track] = this.computeDataTrack(v_hat);
+            %       [data_track, id_track] = this.computeDataTrack(v_hat, id_track);
+            %       [data_track, id_track] = this.computeDataTrack(v_hat, [],  A, obs_track, n_pos);
+            
+            if nargin == 1
+                data = this.v_hat;
+            end
+            if (nargin < 3) || isempty(id_track)
+                if (nargin < 5)
+                    A = this.A;
+                    obs_track = this.obs_track;
+                    n_pos =  this.n_pos;
+                end
+                id_track = this.computeIdTrack(A, obs_track, n_pos);
+            end
+            [n_obs, n_arc] = size(id_track);
+            n_set = size(data,2);
+            
+            data_track = nan(n_obs, n_arc, n_set);
+            for a = 1 : n_arc
+                idx = id_track(:, a) ~= 0;
+                for s = 1 : n_set
+                    data_track(idx, a, s) = data(id_track(idx, a), s); %#ok<*SPRIX>
+                end
             end
         end
         
@@ -2307,16 +2942,16 @@ classdef Core_Block < handle
     % ==================================================================================================================================================
     methods (Static, Access = private)
                     
-        function [col_ok, ref_arc] = getBestRefArc(y0, b, A, Q)
+        function [col_ok, ref_arc] = getBestRefArc(y0, b, A, iQ)
             % compute multiple LS solutions changing the reference arc fort the LS and get the best
-            % SYNTAX: id_min = refineRefArc(y0, b, A, Q)
+            % SYNTAX: id_min = refineRefArc(y0, b, A, iQ)
             amb_num = size(A,2) - 3;
             P = []; N = [];
             if (amb_num > 1)
                 test = zeros(amb_num, 1);
                 for i = 4 : size(A,2)
                     col_ok = setdiff(1:size(A,2), i);
-                    [x, Cxx, s02, v_hat, P, N] = Core_Block.solveLS(y0, b, A, col_ok, Q, P, N);
+                    [x, Cxx, s02, v_hat, P, N] = Core_Block.solveLS(y0, b, A, col_ok, iQ, P, N);
                     %amb_var = Cxx(4:end,4:end);
                     %amb_var(amb_var < 0) = 1e30;
                     %test(i-3) = sum(diag(amb_var));
@@ -2330,13 +2965,14 @@ classdef Core_Block < handle
             col_ok = setdiff(1:size(A,2), ref_arc + 3);
         end
         
-        function [col_ok, ref_arc, bad_blocks] = getBestBlockRefArc(y0, b, A, Q, ref_arc, bad_arc, bad_blocks, blk_cols)
+        function [col_ok, ref_arc, bad_blocks] = getBestBlockRefArc(y0, b, A, iQ, ref_arc, bad_arc, bad_blocks, blk_cols)
             % compute multiple LS solutions changing the reference arc fort the LS and get the best
-            % SYNTAX: [col_ok, ref_arc] = this.getBestBlockRefArc(y0, b, A, Q, ref_arc, bad_arc, blk_cols)
+            % SYNTAX: [col_ok, ref_arc] = this.getBestBlockRefArc(y0, b, A, iQ, ref_arc, bad_arc, blk_cols)
             
             if isempty(bad_blocks)
                 bad_blocks = find(ismember(ref_arc, bad_arc));
             end
+            P = []; N = [];
             for bb = 1 : numel(bad_blocks)
                 bad_block = bad_blocks(bb);
                 if ~isempty(bad_block)
@@ -2348,7 +2984,7 @@ classdef Core_Block < handle
                         block_arc = setdiff(find(blk_cols(4 : end, bad_block)), bad_arc);
                         for i = 1 : numel(block_arc)
                             col_ok = setdiff(1:size(A,2), [ref_arc + 3; block_arc(i) + 3]);
-                            [~, Cxx, ~, ~] = fast_least_squares_solver(y0, b, A(:, col_ok), Q);
+                            [~, Cxx, ~, ~, P, N] = Core_Block.solveLS(y0, b, A, col_ok, iQ, P, N);
                             amb_var = Cxx(4:end,4:end);
                             amb_var(amb_var < 0) = 1e30;
                             test(block_arc(i)) = sum(diag(amb_var));
@@ -2398,18 +3034,18 @@ classdef Core_Block < handle
             end
         end
 
-        function [A, y0, b, Q, obs_track, amb_prn_track, rem_amb] = remShortArc (A, y0, b, Q, obs_track, amb_prn_track, min_arc)
+        function [A, y0, b, Q, obs_track, amb_prn_track, rem_col] = remShortArc (A, y0, b, Q, obs_track, amb_prn_track, min_arc)
             % Remove ambiguity unkowns with arcs shorter than given threshold
-            % SYNTAX: [A, y0, b, Q, obs_track, amb_prn_track, rem_amb] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, min_arc)
+            % SYNTAX: [A, y0, b, Q, obs_track, amb_prn_track, rem_col] = remShortArc (A, y0, b, Q, obs_track, amb_prn_track, min_arc)
             
             amb_num = numel(amb_prn_track);
             pos_num = size(A,2) - amb_num;
-            rem_amb = setdiff(find(sum(A~=0,1) < min_arc), 1 : pos_num);
+            rem_col = setdiff(find(sum(A~=0,1) < min_arc), 1 : pos_num);
             
-            if (~isempty(rem_amb))
+            if (~isempty(rem_col))
                 rem_obs = [];
-                for r = 1 : length(rem_amb)
-                    rem_obs = [rem_obs; find(A(:,rem_amb(r))~=0)]; %#ok<AGROW>
+                for r = 1 : length(rem_col)
+                    rem_obs = [rem_obs; find(A(:,rem_col(r))~=0)]; %#ok<AGROW>
                 end
                 A(rem_obs,:) = [];
                 y0(rem_obs) = [];
@@ -2417,8 +3053,8 @@ classdef Core_Block < handle
                 Q(rem_obs,:) = []; Q(:,rem_obs) = [];
                 obs_track(rem_obs,:) = [];
                 
-                A(:,rem_amb) = [];
-                amb_prn_track(rem_amb - pos_num) = [];
+                A(:,rem_col) = [];
+                amb_prn_track(rem_col - pos_num) = [];
             end
         end
         

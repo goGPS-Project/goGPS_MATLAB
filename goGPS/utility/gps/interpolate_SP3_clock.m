@@ -4,7 +4,7 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %   [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat);
 %
 % INPUT:
-%   time = interpolation timespan (GPS time, continuous since 6-1-1980)
+%   time  = interpolation timespan (GPS time, continuous since 6-1-1980)
 %   SP3   = structure containing precise ephemeris data
 %   sat   = satellite PRN
 %
@@ -59,7 +59,7 @@ interval = SP3.clock_rate;
 %[~, p] = min(abs(SP3_time - time));
 % speed improvement of the above line
 % supposing SP3_time regularly sampled
-p = round((time-SP3_time(1))/interval)+1;
+p = round((time - SP3_time(1)) / interval) + 1;
 
 b = SP3_time(p) - time;
 

@@ -1,13 +1,14 @@
-function [eclipsed] = check_eclipse_condition(time, XS, SP3, sat)
+function [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate)
 
 % SYNTAX:
-%   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat);
+%   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate);
 %
 % INPUT:
-%   time = GPS time
-%   XS   = satellite position (X,Y,Z)
-%   SP3  = structure containing precise ephemeris data
-%   sat  = satellite PRN
+%   time     = GPS time
+%   XS       = satellite position (X,Y,Z)
+%   SP3      = structure containing precise ephemeris data
+%   p_rate   = processing interval [s]
+%   sat      = satellite PRN
 %
 % OUTPUT:
 %   eclipsed = boolean value to define satellite eclipse condition (0: OK, 1: eclipsed)
@@ -51,11 +52,11 @@ eclipsed = 0;
 t_sun = SP3.t_sun;
 X_sun = SP3.X_sun;
 
-% interval = SP3.clock_rate;
-[~, q] = min(abs(t_sun - time));
+%[~, q] = min(abs(t_sun - time));
 % speed improvement of the above line
 % supposing t_sun regularly sampled
-% q = round((time-t_sun(1))/interval)+1; %should be processing interval, not SP3 interval
+q = round((time - t_sun(1)) / p_rate) + 1;
+
 X_sun = X_sun(:,q);
 
 %satellite geocentric position

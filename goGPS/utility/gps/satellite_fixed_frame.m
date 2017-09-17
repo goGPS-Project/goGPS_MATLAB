@@ -1,12 +1,13 @@
-function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
+function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3, p_rate)
 
 % SYNTAX:
-%   [i, j, k] = satellite_fixed_frame(time, X_sat, SP3);
+%   [i, j, k] = satellite_fixed_frame(time, X_sat, SP3, p_rate);
 %
 % INPUT:
-%   time  = GPS time
-%   X_sat = satellite position (X,Y,Z)
-%   SP3   = structure containing precise ephemeris data
+%   time     = GPS time
+%   X_sat    = satellite position (X,Y,Z)
+%   SP3      = structure containing precise ephemeris data
+%   p_rate   = processing interval [s]
 %
 % OUTPUT:
 %   i = unit vector that completes the right-handed system
@@ -50,15 +51,13 @@ function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
 t_sun = SP3.t_sun;
 X_sun = SP3.X_sun;
 
-% interval = SP3.clock_rate;
-
-[~, q] = min(abs(t_sun - time));
+%[~, q] = min(abs(t_sun - time));
 % speed improvement of the above line
 % supposing t_sun regularly sampled
-% q = round((time-t_sun(1))/interval)+1; %should be processing interval, not SP3 interval
+q = round((time - t_sun(1)) / p_rate) + 1;
 
 X_sun = X_sun(:,q);
-e = (X_sun-X_sat)/norm(X_sun-X_sat);
+e = (X_sun - X_sat) / norm(X_sun - X_sat);
 k = -X_sat/norm(X_sat);
 %j = cross(k,e);
 j = [k(2).*e(3)-k(3).*e(2);
@@ -69,7 +68,7 @@ i = [j(2).*k(3)-j(3).*k(2);
      j(3).*k(1)-j(1).*k(3);
      j(1).*k(2)-j(2).*k(1)];
 
-j = j/norm(j);
-i = i/norm(i);
+j = j / norm(j);
+i = i / norm(i);
 
 

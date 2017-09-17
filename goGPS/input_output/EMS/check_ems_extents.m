@@ -1,7 +1,7 @@
-function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, SP3, iono, sbas, lambda, phase)
+function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, SP3, iono, sbas, lambda, phase, p_rate)
 
 % SYNTAX:
-%   [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, SP3, iono, sbas, lambda, phase);
+%   [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, SP3, iono, sbas, lambda, phase, p_rate);
 %
 % INPUT:
 %   time_R = reference vector of GPS time of week
@@ -14,6 +14,7 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph,
 %   sbas   = SBAS corrections
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   phase  = L1 carrier (phase=1), L2 carrier (phase=2)
+%   p_rate = processing interval [s]
 %
 % OUTPUT:
 %   ems_data_available = boolean flag for data availability check
@@ -81,7 +82,7 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)) || ~isempty(SP3))
         satAvail = intersect(satObs,satEph)';
 
         if (length(satAvail) >=4)
-            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), SP3, iono, [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, phase, 0, 0, 0);
+            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), SP3, iono, [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, phase, p_rate, 0, 0, 0);
         end
 
         i = i + 1;

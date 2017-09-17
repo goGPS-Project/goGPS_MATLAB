@@ -29,6 +29,8 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
 
 n_epochs = length(time_M);
 n_sta = size(pr1_R,3)+1;
@@ -76,7 +78,7 @@ for k = 1 : n_sta
     PCV2{k} = NaN(nSatTot,n_epochs);
     azim{k} = NaN(nSatTot,n_epochs);
     elev{k} = NaN(nSatTot,n_epochs);
-
+    
     for t = 1 : n_epochs
 
         Eph_t = rt_find_eph(Eph, time_RM(t,1,k), constellations.nEnabledSat);
@@ -93,7 +95,7 @@ for k = 1 : n_sta
             end
 
             %compute satellite azimuth and elevation
-            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, flag_XR, 0, 0);
+            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, p_rate flag_XR, 0, 0);
 
 %             if ((any(ph1_RM(sat,t,k) == 0) || any(ph2_RM(sat,t,k) == 0) || ...
 %                  any(pr1_RM(sat,t,k) == 0) || any(pr2_RM(sat,t,k) == 0)) && k == target_sta)

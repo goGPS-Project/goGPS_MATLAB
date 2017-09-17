@@ -1,12 +1,12 @@
-function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
-
+function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat, p_rate)
 % SYNTAX:
 %   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat);
 %
 % INPUT:
-%   time = interpolation time (GPS time, continuous since 6-1-1980)
-%   SP3  = structure containing precise ephemeris data
-%   sat = satellite PRN
+%   time       = interpolation time (GPS time, continuous since 6-1-1980)
+%   SP3        = structure containing precise ephemeris data
+%   sat        = satellite PRN
+%   p_rate     = processing interval [s]
 %
 % OUTPUT:
 %   pos_S = interpolated satellite coordinates
@@ -51,12 +51,14 @@ SP3_time  = SP3.time;
 SP3_coord = SP3.coord(:, sat, :);
 antPCO    = SP3.antPCO(:, :, sat)';
 
-
 %number of seconds in a quarter of an hour
 interval = SP3.coord_rate;
 
 %find the SP3 epoch closest to the interpolation time
-[~, p] = min(abs(SP3_time - time));
+%[~, p] = min(abs(SP3_time - time));
+% speed improvement of the above line
+% supposing SP3_time regularly sampled
+p = round((time - SP3_time(1)) / interval) + 1;
 
 b = SP3_time(p) - time;
 
@@ -71,7 +73,7 @@ u = 6 + (- b + (-1:1))/interval;    % using 6 since n = 10;
 X_sat = fastLI(SP3_coord(:,p + (-5:5)), u);
 
 %apply satellite antenna phase center correction
-[i, j, k] = satellite_fixed_frame(time, X_sat(:,2), SP3);
+[i, j, k] = satellite_fixed_frame(time, X_sat(:,2), SP3, p_rate);
 X_sat(:,2) = X_sat(:,2) + [i j k]*antPCO;
 
 pos_S(1,1) = X_sat(1,2);

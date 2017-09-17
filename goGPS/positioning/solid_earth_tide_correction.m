@@ -1,4 +1,4 @@
-function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam)
+function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, p_rate, phiC, lam)
 
 % SYNTAX:
 %   [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam);
@@ -8,6 +8,7 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam)
 %   XR   = receiver position  (X,Y,Z)
 %   XS   = satellite position (X,Y,Z)
 %   SP3  = structure containing precise ephemeris data
+%   p_rate   = processing interval [s]
 %   phiC = receiver geocentric latitude (rad)
 %   lam  = receiver longitude (rad)
 %
@@ -48,7 +49,7 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-if (nargin < 5)
+if (nargin < 6)
     [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
 end
 %north (b) and radial (c) local unit vectors
@@ -59,7 +60,10 @@ c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
 t_sun  = SP3.t_sun;
 X_sun  = SP3.X_sun;
 X_moon = SP3.X_moon;
-[~, q] = min(abs(t_sun - time));
+%[~, q] = min(abs(t_sun - time));
+% speed improvement of the above line
+% supposing t_sun regularly sampled
+q = round((time - t_sun(1)) / p_rate) + 1;
 X_sun  = X_sun(:,q);
 X_moon = X_moon(:,q);
 

@@ -79,6 +79,9 @@ global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
 global n_sys
 
+state = Go_State.getCurrentSettings();
+p_rate = state.getProcessingRate();
+
 if (flag_var_dyn_model) & (~flag_stopGOstop)
     %disable skyplot and signal-to-noise ratio
     flag_skyplot = 0;
@@ -451,7 +454,7 @@ end
 lambda = goGNSS.getGNSSWavelengths(Eph, [], nSatTot);
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), p_rate, 10, 0, 1, 0, 0);
 
 if (isempty(pos_R))
     fprintf('It was not possible to estimate an approximate position.\n');

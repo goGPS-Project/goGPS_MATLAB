@@ -1,4 +1,4 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, p_rate)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies);
@@ -14,6 +14,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(ti
 %   sbas = SBAS corrections
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (frequencies=1), L2 carrier (frequencies=2)
+%   p_rate = processing interval
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -151,9 +152,9 @@ if (size(sat,1) >= min_nsat_LS)
     flag_XR = 1;
 
     if (frequencies == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 1); %#ok<ASGLU>
     end
 
     if ~isempty(dtR)
