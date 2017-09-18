@@ -122,9 +122,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         BLOCK_PRE_CLEANING = false;                     % Try to correct cycle slips / discontinuities in the observations and increase spike variance
         BLOCK_POST_CLEANING_LOOPS = 4;                  % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
         BLOCK_SEAMLESS_HR = true;                       % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-        BLOCK_FULL_SLIP_SPLIT = 1;                      % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
+        BLOCK_FULL_SLIP_SPLIT = 0;                      % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
         BLOCK_FORCE_STABILIZATION = false;              % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
-        BLOCK_ONE_ARC = true;                           % Compute the solution correcting cycle slips (use one arc per satellite)
+        BLOCK_ONE_ARC = false;                          % Compute the solution correcting cycle slips (use one arc per satellite)
 
         % KF
         KF_MODE = 1;                                    % Order of the dynamic model polynomial

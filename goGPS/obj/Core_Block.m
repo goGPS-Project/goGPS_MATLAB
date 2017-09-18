@@ -1368,6 +1368,8 @@ classdef Core_Block < handle
         end
 
         function plotDataTrack (this, data_track, id_track, A, amb_prn_track, cs_plot)
+            single_plot = true;
+            
             if (nargin < 6)
                 cs_plot = false;
             end
@@ -1380,12 +1382,16 @@ classdef Core_Block < handle
             end
 
             x = (1 : size(data_track,1));
-            h = figure(); dockAllFigures(h);
+            if single_plot
+                h = figure(); dockAllFigures(h);
+            end
             for a = 1 : numel(amb_prn_track)
-                % h = figure(amb_prn_track(a));
-                %h.Name = sprintf('Sat: %d', amb_prn_track(a));
-                %h.NumberTitle = 'off';
-                %f = subplot(4,8,amb_prn_track(a));
+                if ~single_plot
+                    h = figure(amb_prn_track(a));
+                    h.Name = sprintf('Sat: %d', amb_prn_track(a));
+                    h.NumberTitle = 'off';
+                    f = subplot(4,8,amb_prn_track(a));
+                end
                 y = data_track(:, a, 1);
                 plot(x, y,'.-', 'lineWidth', 1); hold on;
                 hline = findobj(h, 'type', 'line');
@@ -1409,10 +1415,14 @@ classdef Core_Block < handle
                         plot(x, y,':k', 'LineWidth', 1); hold on;
                     end
                 end
-                %f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
-                ax(a) = gca; %#ok<AGROW>
+                if ~single_plot
+                    f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
+                    ax(a) = gca; %#ok<AGROW>
+                end
             end
-            linkaxes(ax);
+            if ~single_plot
+                linkaxes(ax);
+            end
         end
     end
 
