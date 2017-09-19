@@ -144,6 +144,7 @@ SP3.coord_rate = 900;
 SP3.clock_rate = 900;
 
 k = 0; % current epoch
+new_file = false;
 flag_unavail = 0;
 
 % for each part (SP3 file)
@@ -152,6 +153,9 @@ for p = 1 : numel(filename_SP3)
     %SP3 file
     f_sp3 = fopen(filename_SP3{p},'r');
 
+    if p > 1
+        new_file = true;
+    end
     if (f_sp3 ~= -1)
 
         % Read the entire sp3 file in memory
@@ -190,8 +194,14 @@ for p = 1 : numel(filename_SP3)
 
                 %computation of the GPS time in weeks and seconds of week
                 [w, t] = date2gps([year, month, day, hour, minute, second]);
-
                 %convert GPS time-of-week to continuous time
+                if new_file
+                    new_k = find(SP3.time(1:k-1,1) >= weektow2time(w, t, 'G'), 1, 'first');
+                    if ~isempty(new_k)
+                        k = new_k;
+                    end
+                    new_file = false;
+                end
                 SP3.time(k,1) = weektow2time(w, t, 'G');
                 clear w t;
 
