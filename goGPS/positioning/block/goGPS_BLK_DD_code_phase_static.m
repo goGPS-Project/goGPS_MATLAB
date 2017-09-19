@@ -147,16 +147,16 @@ if (size(sat_pr,1) >= min_nsat_LS)
     sat(ismember(sat,sat_removed)) = [];
 
     % keep only satellites that rover and master have in common both in phase and code
-    [sat_pr, iR, iM] = intersect(sat_pr, sat);
-    XS = XS(iR,:);
-    sys = sys(iR);
+    [sat_pr, i_pr] = intersect(sat_pr, sat);
+    XS = XS(i_pr,:);
+    sys = sys(i_pr);
     if (~isempty(err_tropo_R))
-        err_tropo_R = err_tropo_R(iR);
-        err_iono_R  = err_iono_R (iR);
-        err_tropo_M = err_tropo_M(iM);
-        err_iono_M  = err_iono_M (iM);
+        err_tropo_R = err_tropo_R(i_pr);
+        err_iono_R  = err_iono_R (i_pr);
+        err_tropo_M = err_tropo_M(i_pr);
+        err_iono_M  = err_iono_M (i_pr);
     end
-
+    
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %--------------------------------------------------------------------------------------------
