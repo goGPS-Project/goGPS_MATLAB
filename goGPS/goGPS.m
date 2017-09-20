@@ -260,7 +260,7 @@ for session = 1 : num_session
         end
         if state.isModeDD()
             for r = 1 : num_mst_rec
-                filename_M_obs{r} = mst_rec{r}{session}; %#ok<SAGROW>
+                filename_M_obs{r} = mst_rec{r}{min(session, numel(mst_rec{r}))}; %#ok<SAGROW>
             end
             fr = File_Rinex([filename_R_obs(:) filename_M_obs(:)],100);
         else
