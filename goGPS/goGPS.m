@@ -791,7 +791,7 @@ for session = 1 : num_session
                     end
                     
                     % set ROVER initial coordinates
-                    if (exist('pos_R_crd','var') && any(pos_R_crd))
+                    if any(pos_R_crd)
                         logger.newLine();
                         logger.addMessage('Rover apriori position set from coordinate file:');
                         logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
@@ -817,15 +817,8 @@ for session = 1 : num_session
                     end
                     
                     % set MASTER initial coordinates
-                    if (flag_ms_pos) % master position read from RINEX header
-                        logger.newLine();
-                        logger.addMessage('Master position fixed from RINEX:');
-                        logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
-                        if report.opt.write == 1
-                            report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                        end
-                    else
-                        if (exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd)) % master position read from coordinate file
+                    if (flag_ms_pos)
+                        if any(pos_M_crd) % master position read from coordinate file
                             logger.newLine();
                             logger.addMessage('Master position fixed from coordinate file:');
                             logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1)));
@@ -833,22 +826,22 @@ for session = 1 : num_session
                                 report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file', char(report.obs.filename(end)), pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
                             end
                             pos_M = pos_M_crd;
-                        elseif (exist('pos_M_man','var') && any(pos_M_man)) % master position read from GUI
+                        else % master position read from RINEX header
                             logger.newLine();
-                            logger.addMessage('Master position fixed to user-defined values:');
-                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1)));
+                            logger.addMessage('Master position fixed from RINEX:');
+                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
                             if report.opt.write == 1
-                                report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed to user-defined values', char(report.obs.filename(end)), pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
-                            end
-                            pos_M = pos_M_man;
-                        else % no valid pos_M_man found, so force positiong read from RINEX header
-                            logger.addWarning('MASTER coordinates forced fixed from RINEX');
-                            logger.addMessage(sprintf('                 X = %12.4f m\n                 Y = %12.4f m\n                 Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
-                            if report.opt.write == 1
-                                report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                                report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
                             end
                         end
+                    else % no valid pos_M_man found, so force positiong read from RINEX header
+                        logger.addWarning('MASTER coordinates forced fixed from RINEX');
+                        logger.addMessage(sprintf('                 X = %12.4f m\n                 Y = %12.4f m\n                 Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
+                        if report.opt.write == 1
+                            report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                        end
                     end
+                    
                     logger.newLine();
                     % apply antenna offset over the marker to master coordinates
                     pos_M = local2globalPos(antoff_M, pos_M);
