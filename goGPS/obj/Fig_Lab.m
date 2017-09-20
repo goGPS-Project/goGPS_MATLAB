@@ -98,7 +98,7 @@ classdef Fig_Lab < handle
                 %maximizeFig(gcf);
                 color_order = handle(gca).ColorOrder;
                 if color_type == 1
-                    color_order = (min(1, max(0, 0.3 + (color_order - repmat(mean(color_order, 2),1,3)) * 0.5 + repmat(mean(color_order, 2),1,3))));
+                    color_order = (min(1, max(0, 0.0 + (color_order - repmat(mean(color_order, 2),1,3)) * 1 + repmat(mean(color_order, 2),1,3))));
                 end
                 if color_type == -1
                     color_order = color_order * 0;
