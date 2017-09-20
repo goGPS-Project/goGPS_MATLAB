@@ -278,8 +278,8 @@ for session = 1 : num_session
         logger.addWarning(sprintf('Skipping processing of "%s"', fnp.getRelDirPath(filename_R_obs{1})));
         logger.newLine();
     else
-        cur_date_start = fr.first_epoch.first();
-        cur_date_stop = fr.last_epoch.last();
+        cur_date_start = fr.first_epoch.last();
+        cur_date_stop = fr.last_epoch.first();
         
         % updating the file path of the output -> special key are now supported
         state.updateOutPath(cur_date_start, session);
@@ -483,7 +483,7 @@ for session = 1 : num_session
                         %% LOAD SP3 DATA
                         %----------------------------------------------------------------------------------------------
                         
-                        SP3 = load_SP3(state.getEphFileName(cur_date_start, cur_date_stop), state.getClkFileName(cur_date_start, cur_date_stop), time_GPS, week_R, constellations);
+                        SP3 = load_SP3(state.getEphFileName(cur_date_start, cur_date_stop), state.getClkFileName(cur_date_start, cur_date_stop), time_GPS, week_R, constellations, cur_date_start, cur_date_stop);
                         
                         %store satellite antenna PCO/PCV and satellite type
                         SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
@@ -862,7 +862,7 @@ for session = 1 : num_session
                     
                     if (flag_SP3)
                         %display message
-                        SP3 = load_SP3(state.getEphFileName(cur_date_start, cur_date_stop), state.getClkFileName(cur_date_start, cur_date_stop), time_GPS, week_M, constellations);
+                        SP3 = load_SP3(state.getEphFileName(cur_date_start, cur_date_stop), state.getClkFileName(cur_date_start, cur_date_stop), time_GPS, week_M, constellations, cur_date_start, cur_date_stop);
                         
                         %store satellite antenna PCO/PCV and satellite type
                         SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
