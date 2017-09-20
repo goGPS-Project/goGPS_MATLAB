@@ -1,4 +1,4 @@
-function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations, wait_dlg)
+function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations, date_start, date_stop, wait_dlg)
 
 % SYNTAX:
 %   [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations, wait_dlg);
@@ -55,7 +55,6 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-state = Go_State.getCurrentSettings();
 logger = Logger.getInstance();
 
 logger.addMarkedMessage('Reading SP3s (precise ephemeris) and clocks');
@@ -77,7 +76,7 @@ n = 10;
 % number of seconds in a quarter of an hour
 quarter_sec = 900;
 
-if (nargin > 5)
+if (nargin > 7)
     waitbar(0.5,wait_dlg,'Reading SP3 (precise ephemeris) file...')
 end
 
@@ -265,10 +264,16 @@ for p = 1 : numel(filename_SP3)
             end
         end
         clear sp3_file;
-    else
-        logger.addWarning(sprintf('Missing SP3 file: %s\n', filename_SP3{p}));
-        flag_unavail = 1;
     end
+end
+
+if SP3.time(1) > date_start.getGpsTime()
+    logger.addWarning(sprintf('Some SP3 files for the processing of the beginning of the interval are missing!!!\n'));
+    flag_unavail = 1;
+end
+if SP3.time(end) < date_stop.getGpsTime()
+    logger.addWarning(sprintf('Some SP3 files for the processing of the end of the interval are missing!!!\n'));
+    flag_unavail = 1;
 end
 
 if (~flag_unavail)
@@ -395,7 +400,7 @@ SP3.time(k+1:nEpochs) = [];
 SP3.coord(:,:,k+1:nEpochs) = [];
 SP3.clock(:,k+1:nEpochs) = [];
 
-if (nargin > 5)
+if (nargin > 7)
     waitbar(1,wait_dlg)
 end
 logger.newLine();
