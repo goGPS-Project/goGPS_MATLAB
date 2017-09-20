@@ -4383,7 +4383,6 @@ for session = 1 : num_session
                     for s = 1 : numel(s_rate)
                         fid_extract_hr(s) = fopen(sprintf('%sextraction_hr_at%d.txt', file_name_base, s_rate(s)),'w');
                     end
-                    fid_extract_hr_median = fopen(sprintf('%sextraction_hr_median.txt', file_name_base),'w');
                     fid_extract_float = fopen(sprintf('%sextraction_float.txt', file_name_base),'w');
                     fid_extract_fix = fopen(sprintf('%sextraction_fix.txt', file_name_base),'w');
                 end
@@ -4400,9 +4399,13 @@ for session = 1 : num_session
                 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
             end
             
-            
-            if exist('X_KAL','var') && exist('estim_tropo','var') && (state.isTropoOn())
-                fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
+            % Take the central value of the RINEX as reference time for the solution
+            if (state.isModeBlock())
+                date_R = datevec(GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR(1e100))/86400);
+                id_time = 1;
+            end
+            if exist('estim_tropo','var') && (state.isTropoOn())
+                                
                 tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
                 fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
                 fprintf(fid_extract_ZTD,'\n');
@@ -4411,16 +4414,16 @@ for session = 1 : num_session
                     fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
                     fprintf(fid_extract_ZWD,'\n');
                 end
+            end
+            
+            if exist('X_KAL','var')
+                fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
                 nSol = size(Xhat_t_t_OUT,2);
                 for e = 1 : nSol / (1 + state.isForwardBackwardKF())
                     id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
                     fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-nC-2,id));
                 end
                 delete([filerootOUT '_*.bin']);
-            else
-                %fprintf(fid_extract,'%04d-%03d\n', year4, doy);
-                %fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
-                %fprintf(fid_extract_TRP,'\n');
             end
             
             if (state.isModeBlock())
@@ -4446,14 +4449,7 @@ for session = 1 : num_session
                             pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
                     end
                 end
-                    
-                pos = median(go_block.getPosHR(), 'omitnan')';
-                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
-                
-                %coordinate transformation (UTM)
-                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
-                fprintf(fid_extract_hr_median,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
-                
+                                    
                 pos = go_block.getFloatPos()';
                 [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
                 
@@ -4462,6 +4458,7 @@ for session = 1 : num_session
                 fprintf(fid_extract_float,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
                 
                 pos = go_block.getFixPos()';
+                    
                 [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
                 
                 %coordinate transformation (UTM)
@@ -4500,7 +4497,6 @@ if is_batch && ~state.isModeSEID()
         for i = 1 : numel(fid_extract_hr)
             fclose(fid_extract_hr(i));
         end
-        fclose(fid_extract_hr_median);
         fclose(fid_extract_float);
         fclose(fid_extract_fix);
     end
