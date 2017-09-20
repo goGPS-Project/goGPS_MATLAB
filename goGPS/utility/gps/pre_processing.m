@@ -712,11 +712,14 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
         ph1 = ph1_interp;
         ph2 = ph2_interp;
     end
-        % %flag epochs with 4 or more slipped satellites as "bad"
-        % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
-        % idx_cs_occur = num_cs_occur >= 4;
-        % bad_epochs(epoch(idx_cs_occur)) = 1;
-    end
+    % %flag epochs with 4 or more slipped satellites as "bad"
+    % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
+    % idx_cs_occur = num_cs_occur >= 4;
+    % bad_epochs(epoch(idx_cs_occur)) = 1;
+    
+    ph1 = jmpFix(ph1, lambda(:,1), state);
+    ph2 = jmpFix(ph2, lambda(:,2), state);
+end
 
 
 function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
@@ -1154,4 +1157,48 @@ function [pr] = code_smoother(pr, ph, lambda, order)
     pr = lambda*(ph + N_smar);
     pr(isnan(pr)) = 0;
     ph(isnan(ph)) = 0;
+end
+
+function [ph] = jmpFix(ph, lambda, state)
+    % after a missing data try to fix the jmp in the observations with an N * lambda correction
+    cs_factor = state.cs_thr;
+    ph = ph';
+    for a = 1 : size(ph,2)
+        arc = zero2nan(ph(:,a));
+        x_arc = (1 : numel(arc))';
+        arc_fit = zeros(size(arc));
+        
+        int_factor = zeros(size(arc));
+        int_factor(~isnan(arc)) = lambda(a,1) * cs_factor;
+        arc = arc ./ int_factor;
+        if any(arc)
+            %PLOT:figure;
+            %PLOT:plot(x_arc, arc, 'LineWidth', 1); hold on;
+            lim = getOutliers(~isnan(arc));
+            for l = 1 : size(lim, 1) - 1
+                id = lim(1, 1) : lim(l, 2);
+                id = id(~isnan(arc(id)));
+                id = id((max(1, numel(id) - state.getMinArc+1) : end));
+                
+                p = polyfit(x_arc(id), arc(id), 3);
+                if l < size(lim, 1)
+                    arc_fit1 = polyval(p, x_arc([lim(l, 2) lim(l + 1, 1)]));
+                    
+                    id2 = lim(l + 1, 1) : lim(l + 1, 2);
+                    id2 = id2(1 : min(numel(id), state.getMinArc));
+                    p2 = polyfit(x_arc(id2), arc(id2), 3);
+                    arc_fit2 = polyval(p2, x_arc([lim(l, 2) lim(l + 1, 1)]));
+                    
+                    arc(lim(l + 1, 1) : end) = arc(lim(l + 1, 1) : end) + round(mean(arc_fit1 - arc_fit2));
+                end
+                %PLOT: plot(x_arc, arc);
+            end
+            %PLOT: plot(x_arc, arc, 'LineWidth', 2); hold on;
+        end
+        ph(:,a) = nan2zero(arc) .* int_factor;
+    end
+    ph = ph';
+
+    %PLOT: figure; plot(zero2nan(ph));
+    %PLOT: d_ph = diff(zero2nan([ph(1,:); ph])); figure; plot(d_ph - movmedian(d_ph, 3, 'omitnan'));
 end
