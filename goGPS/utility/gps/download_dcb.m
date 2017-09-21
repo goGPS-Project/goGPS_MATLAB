@@ -109,7 +109,7 @@ m = 0;
 for y = 1 : length(year_orig)
 
     %target directory
-    s = ['/aiub/CODE/', num2str(year_orig(y))];
+    s = ['/CODE/', num2str(year_orig(y))];
 
     cd(ftp_server, '/');
     cd(ftp_server, s);
