@@ -99,6 +99,7 @@
 /data/project/default_PPP/station/MET/*
 !/data/project/default_PPP/station/MET/.gitignore
 !/data/project/default_PPP/station/MET/zimm2350.15m
+!/data/project/default_PPP/station/MET/zimm2360.15m
 !/data/project/default_PPP/station/SNX/
 /data/project/default_PPP/station/SNX/*
 !/data/project/default_PPP/station/SNX/.gitignore

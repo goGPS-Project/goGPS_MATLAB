@@ -267,7 +267,7 @@ classdef IO_Settings < Settings_Interface
         met_dir = IO_Settings.MET_DIR;
         % Location of the meteorological file
         met_name =  IO_Settings.MET_NAME;
-        met_full_name = []; % Full name of the met file generated during runtime from the provided parameters
+        met_full_name; % Full name of the met file generated during runtime from the provided parameters
 
         % Path to stations ocean loading files
         ocean_dir = IO_Settings.OCEAN_DIR;
@@ -1111,7 +1111,12 @@ classdef IO_Settings < Settings_Interface
                     out = out{1};
                 end
                 if (nargin == 2)
-                    out = out{id};
+                    if (id > length(out))
+                        out = '';
+                        this.logger.addWarning(sprintf('The session "%d" is non-existent.', id));
+                    else
+                        out = out{id};
+                    end
                 end
             end
         end
@@ -1332,7 +1337,7 @@ classdef IO_Settings < Settings_Interface
             for i = 1 : numel(this.met_name)
                 this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
             end
-            this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
+            %this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
         end
 
         function updateNavFileName(this)
