@@ -272,7 +272,9 @@ classdef Constellation_Collector < Settings_Interface
             %   ant_mod = getAntennaId(this)
             % SEE ALSO:
             %   sat_antenna_ID
-            ant_mod = mat2cell([this.system' reshape(sprintf('%02d', this.prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
+            prn = this.prn;
+            prn(this.system == 'J') = prn(this.system == 'J') - 192;
+            ant_mod = mat2cell([this.system' reshape(sprintf('%02d', prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
         end
 
     end
