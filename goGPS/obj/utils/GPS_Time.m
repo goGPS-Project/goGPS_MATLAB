@@ -649,16 +649,16 @@ classdef GPS_Time < handle
                     % due to numerical error propagation I can keep only 4 decimal digits
                     this.time_diff = (this.mat_time - this.time_ref) * 86400;
                     this.mat_time = [];
-                case 1 % I'm already in UNIX TIME
+                case 1 % I'm in UNIX TIME
                     this.time_type = 2;
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;
                     this.time_ref = fix(time_d(1));
-                    this.time_diff = ((time_d - this.time_ref) * 86400) + this.unix_time_f;
+                    this.time_diff = round((time_d - this.time_ref) * 86400) + this.unix_time_f;
                     this.unix_time = [];
                     this.unix_time_f = [];
-                case 2 % I'm in REF TIME
+                case 2 % I'm already in REF TIME
                     % do nothing
             end
         end
@@ -849,7 +849,7 @@ classdef GPS_Time < handle
                     % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;
                     time_ref = fix(time_d(1));
-                    time_diff = ((time_d - time_ref) * 86400) + this.unix_time_f;
+                    time_diff = round((time_d - time_ref) * 86400) + this.unix_time_f;
                 case 2 % I'm in REF TIME
                     time_ref = this.time_ref;
                     time_diff = this.time_diff;

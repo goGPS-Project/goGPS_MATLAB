@@ -66,47 +66,35 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     data_out = flag_array & ~remove_short_arcs(~isnan(data)', state.getMinArc())';
     data(data_out) = nan;
 
-    spline_base = 210;
-
     % working on first derivative ----------------
     ddata = diff(data);
-
-    ddata_ref = ddata;
-    for s = 1 : n_set
-       inan = isnan(ddata(:, s));
-       id_ok = find(~inan);
-       if ~isempty(id_ok)
-           %ddata(:, s) = interp1(id_ok, ddata(id_ok, s), (1 : (n_obs - 1))');
-           ddata(:, s) = interp1q(id_ok, ddata(id_ok, s), (1 : (n_obs - 1))');
-           ddata_ref(:,s) = movmedian(ddata(:, s), 11);
-           ddata(inan, s) = nan;
-           ddata_ref(inan,s) = nan;
-       end
-    end
-    ddata_ref = repmat(median(ddata_ref, 2, 'omitnan'), 1, n_set);
-
+   
+    ddata_ref = repmat(median(ddata, 2, 'omitnan'), 1, n_set);
+    ddata_red = ddata - ddata_ref;
     if verLessThan('matlab', '9.0.0')
         %  explicit implementation of movstd
+        
         d = 5;
-        mov_std = zeros(size(ddata));
-        for t = 1 : length(ddata)
+        ddata_tmp = serialize(ddata_red);
+        mov_std = zeros(size(ddata_tmp));
+        for t = 1 : length(ddata_tmp)
             if (t<=d)
-                mov_std(t) = std(ddata(1:d));
-            elseif (t>(length(ddata)-d))
-                if (length(ddata) - d - 1 == 0)
+                mov_std(t) = std(ddata_tmp(1:d));
+            elseif (t>(length(ddata_tmp)-d))
+                if (length(ddata_tmp) - d - 1 == 0)
                     mov_std(t) = mov_std(t-1);
                 else
-                    mov_std(t) = std(ddata(end-d-1:end));
+                    mov_std(t) = std(ddata_tmp(end-d-1:end));
                 end
             else
-                mov_std(t) = std(ddata(t-d:t+d));
+                mov_std(t) = std(ddata_tmp(t-d:t+d));
             end
         end
-        ddata_std = perc(serialize(mov_std), 0.9);
+        ddata_std = perc(serialize(mov_std), 0.95);
     else
-        ddata_std = perc(serialize(movstd(ddata, 11)), 0.9);
+        ddata_std = perc(movstd(serialize(ddata - ddata_ref), 11), 0.95);
     end
-    data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata - ddata_ref) > thr(1) * ddata_std);
+    data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata_red) > thr(1) * ddata_std);
     ddata(data_out(2 : end, :)) = nan;
     % figure; plot(diff(data)); hold on; plot(ddata, 'k', 'lineWidth', 2);
 
