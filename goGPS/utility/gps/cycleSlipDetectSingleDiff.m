@@ -85,7 +85,7 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     end
     ddata_ref = repmat(median(ddata_ref, 2, 'omitnan'), 1, n_set);
 
-    if verLessThan('matlab', '9.0.1')
+    if verLessThan('matlab', '9.0.0')
         %  explicit implementation of movstd
         d = 5;
         mov_std = zeros(size(ddata));
