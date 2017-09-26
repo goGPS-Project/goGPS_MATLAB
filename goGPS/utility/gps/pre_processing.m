@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
+function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
+%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -38,6 +38,8 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
 %   XR  = receiver position
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
+%   el  = elevation of the satellites
+%   az  = azimuth of the satellites
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
 %   bad_epochs  = vector with 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
 %   var_SPP   = [code single point positioning a posteriori sigma, sum of
@@ -152,6 +154,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
 
     err_iono = zeros(nSatTot,nEpochs);
     el = zeros(nSatTot,nEpochs);
+    az = zeros(nSatTot,nEpochs);
     eclipsed = zeros(nSatTot,nEpochs);
     cond_num = zeros(nEpochs,1); %#ok<*NASGU>
     cov_XR = zeros(3,3,nEpochs);
@@ -212,6 +215,8 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
         end
 
         r = 1;
+        %sat_pos = nan(nEpochs,3);
+        %sat_vel = nan(nEpochs,3);
         for i = 1 : nEpochs
 
             %--------------------------------------------------------------------------------------------
@@ -242,12 +247,17 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
             if (length(sat0) >= min_nsat_LS)
                 if (frequencies(1) == 1)
                     if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                     else
-                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        %ids = find(sat == 2);
+                        %if ~isempty(ids)
+                        %    sat_pos(i,:) = sat_pos_tmp(ids, : );
+                        %    sat_vel(i,:) = sat_vel_tmp(ids, : );
+                        %end
                     end
                 else
-                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                 end
 
                 if (~isempty(A) && (nisbs > 1) && (mod(i,mt) == 0))
@@ -279,6 +289,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, va
                     %             end
                     err_iono(sat,i) = err_iono_tmp;
                     el(sat,i) = el_tmp;
+                    az(sat,i) = az_tmp;
                     eclipsed(sat,i) = eclipsed_tmp;
                     %             cond_num(i,1) = cond_num_tmp;
                     %             if (~isempty(var_dtR_tmp))
@@ -1122,7 +1133,7 @@ function [min_std] = detect_minimum_std(time_series)
     if (length(time_series) < 2*d)
         return
     end
-    if verLessThan('matlab', '9.0.1')
+    if verLessThan('matlab', '9.0.0')
         %  explicit implementation of movstd
         mov_std = zeros(size(time_series));
         for t = 1 : length(time_series)

@@ -125,15 +125,16 @@ classdef IO_Settings < Settings_Interface
         RUN_COUNTER = [];     % This parameter store the current run number
 
         % OUT FLAGS
-        FLAG_OUT_POSITION = true;          % Flag to export position files
-        FLAG_OUT_TROPO_PDF = true;         % Flag to export PWV retrival
-        FLAG_OUT_REPORT_PDF = true;        % Flag to export the PDF report
-        FLAG_OUT_SETTINGS = true;          % Flag to export the used    setting file
-        FLAG_OUT_PDF_DT = true;            % Flag to export the PDF of the estimated dt
-        FLAG_OUT_PDF_CODE_RES = true;      % Flag to export the PDF code residuals
-        FLAG_OUT_PDF_PH_RES = true;        % Flag to export the PDF phase residuals
-        FLAG_OUT_KML = true;               % Flag to export the KML file
-        FLAG_OUT_NMEA = false;             % Flag to export the NMEA file
+        FLAG_OUT_POSITION = true;           % Flag to export position files
+        FLAG_OUT_SETTINGS = true;           % Flag to export the used setting file
+        FLAG_OUT_PDF_REPORT = false;        % Flag to export the PDF report
+        FLAG_OUT_PDF_TROPO = false;         % Flag to export PWV retrival
+        FLAG_OUT_PDF_DT = false;            % Flag to export the PDF of the estimated dt
+        FLAG_OUT_PDF_CODE_RES = false;      % Flag to export the PDF code residuals
+        FLAG_OUT_PDF_PH_RES = false;        % Flag to export the PDF phase residuals
+        FLAG_OUT_BLOCK_OBJ = false;         % Flag to export the Core_Block object used for the processing
+        FLAG_OUT_KML = false;               % Flag to export the KML file
+        FLAG_OUT_NMEA = false;              % Flag to export the NMEA file
         
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end
@@ -314,14 +315,15 @@ classdef IO_Settings < Settings_Interface
         run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output
 
         flag_out_position = IO_Settings.FLAG_OUT_POSITION;          % Flag to export position files
-        flag_out_report_pdf = IO_Settings.FLAG_OUT_REPORT_PDF;      % Flag to export the PDF report
         flag_out_settings = IO_Settings.FLAG_OUT_SETTINGS;          % Flag to export the used    setting file
+        flag_out_pdf_report = IO_Settings.FLAG_OUT_PDF_REPORT;      % Flag to export the PDF report
+        flag_out_pdf_tropo = IO_Settings.FLAG_OUT_PDF_TROPO;        % Flag to export PWV retrival
         flag_out_pdf_code_res = IO_Settings.FLAG_OUT_PDF_CODE_RES;  % Flag to export the PDF code residuals
         flag_out_pdf_ph_res = IO_Settings.FLAG_OUT_PDF_PH_RES;      % Flag to export the PDF phase residuals
         flag_out_pdf_dt = IO_Settings.FLAG_OUT_PDF_DT;              % Flag to export the PDF of the estimated dt
-        flag_out_tropo_pdf = IO_Settings.FLAG_OUT_TROPO_PDF;        % Flag to export PWV retrival
+        flag_out_block_obj = IO_Settings.FLAG_OUT_BLOCK_OBJ;        % Flag to export the Core_Block object used for the processing
         flag_out_kml = IO_Settings.FLAG_OUT_KML;                    % Flag to export the KML file
-        flag_out_nmea = IO_Settings.FLAG_OUT_NMEA;                  % Flag to export the KML file
+        flag_out_nmea = IO_Settings.FLAG_OUT_NMEA;                  % Flag to export the NMEA file
 
         %------------------------------------------------------------------
         % EXTERNAL INFO as imported from INPUT FILE INI
@@ -440,12 +442,13 @@ classdef IO_Settings < Settings_Interface
                 this.run_counter = settings.getData('run_counter');
                 this.run_counter_is_set = ~isempty(this.run_counter);
                 this.flag_out_position = settings.getData('flag_out_position');
-                this.flag_out_tropo_pdf = settings.getData('flag_out_tropo_pdf');
-                this.flag_out_report_pdf = settings.getData('flag_out_report_pdf');
                 this.flag_out_settings = settings.getData('flag_out_settings');
+                this.flag_out_pdf_report = settings.getData('flag_out_pdf_report');
+                this.flag_out_pdf_tropo = settings.getData('flag_out_pdf_tropo');
                 this.flag_out_pdf_dt = settings.getData('flag_out_pdf_dt');
                 this.flag_out_pdf_code_res = settings.getData('flag_out_pdf_code_res');
                 this.flag_out_pdf_ph_res = settings.getData('flag_out_pdf_ph_res');
+                this.flag_out_block_obj = settings.getData('flag_out_block_obj');
                 this.flag_out_kml = settings.getData('flag_out_kml');
                 this.flag_out_nmea = settings.getData('flag_out_nmea');
             else
@@ -514,12 +517,13 @@ classdef IO_Settings < Settings_Interface
                 this.run_counter_is_set = ~isempty(this.run_counter);
 
                 this.flag_out_position = settings.flag_out_position;
-                this.flag_out_tropo_pdf = settings.flag_out_tropo_pdf;
-                this.flag_out_report_pdf = settings.flag_out_report_pdf;
                 this.flag_out_settings = settings.flag_out_settings;
+                this.flag_out_pdf_report = settings.flag_out_pdf_report;
+                this.flag_out_pdf_tropo = settings.flag_out_pdf_tropo;
                 this.flag_out_pdf_dt = settings.flag_out_pdf_dt;
                 this.flag_out_pdf_code_res = settings.flag_out_pdf_code_res;
                 this.flag_out_pdf_ph_res = settings.flag_out_pdf_ph_res;
+                this.flag_out_block_obj = settings.flag_out_block_obj;
                 this.flag_out_kml = settings.flag_out_kml;
                 this.flag_out_nmea = settings.flag_out_nmea;
             end
@@ -615,12 +619,13 @@ classdef IO_Settings < Settings_Interface
                 str = [str sprintf(' Run counter has not been previously set \n => it will be set automatically to avoid overwriting of the oputputs\n\n')];
             end
             str = [str sprintf(' Export positions:                                 %d\n', this.flag_out_position)];
-            str = [str sprintf(' Export troposphere:                               %d\n', this.flag_out_tropo_pdf)];
-            str = [str sprintf(' Export PDF report:                                %d\n', this.flag_out_report_pdf)];
             str = [str sprintf(' Export settings:                                  %d\n', this.flag_out_settings)];
+            str = [str sprintf(' Export PDF report:                                %d\n', this.flag_out_pdf_report)];
+            str = [str sprintf(' Export PDF troposphere:                           %d\n', this.flag_out_pdf_tropo)];
             str = [str sprintf(' Export PDF clock dt:                              %d\n', this.flag_out_pdf_dt)];
-            str = [str sprintf(' Export code residuals:                            %d\n', this.flag_out_pdf_code_res)];
-            str = [str sprintf(' Export phase residuals:                           %d\n', this.flag_out_pdf_ph_res)];
+            str = [str sprintf(' Export PDF code residuals:                        %d\n', this.flag_out_pdf_code_res)];
+            str = [str sprintf(' Export PDF phase residuals:                       %d\n', this.flag_out_pdf_ph_res)];
+            str = [str sprintf(' Export goBlock OBJECT:                            %d\n', this.flag_out_block_obj)];
             str = [str sprintf(' Export KML:                                       %d\n', this.flag_out_kml)];
             str = [str sprintf(' Export NMEA:                                      %d\n\n', this.flag_out_nmea)];
         end
@@ -804,18 +809,20 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to export positions results', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_position', this.flag_out_position, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Flag to write the PDF report', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_report_pdf', this.flag_out_report_pdf, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to export the used settings as ini file', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_settings', this.flag_out_settings, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag to write the PDF report', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pdf_report', this.flag_out_pdf_report, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag to export PDF troposphere results (when available)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pdf_tropo', this.flag_out_pdf_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to write the PDF of the code residuals', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_pdf_code_res', this.flag_out_pdf_code_res, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to write the PDF of the phase residuals', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_pdf_ph_res', this.flag_out_pdf_ph_res, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to write the PDF of the estimated dt', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_pdf_dt', this.flag_out_pdf_dt, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Flag to export PDF troposphere results (when available)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_out_tropo_pdf', this.flag_out_tropo_pdf, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag to export the object that coputed the block solution (if computed)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_block_obj', this.flag_out_block_obj, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to export the KML file (when expected)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_out_kml', this.flag_out_kml, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag to export the NMEA file (when expected)', str_cell);
@@ -1219,7 +1226,7 @@ classdef IO_Settings < Settings_Interface
         function flag = isOutReportPDF(this)
             % Get the export status for the PDF report
             % SYNTAX: flag = this.isOutReportPDF()
-            flag = this.flag_out_report_pdf;
+            flag = this.flag_out_pdf_report;
         end
 
         function flag = isOutSettings(this)
@@ -1249,7 +1256,13 @@ classdef IO_Settings < Settings_Interface
         function flag = isOutTropoPDF(this)
             % Get the export status for the Troposphere results
             % SYNTAX: flag = this.isOutTropoPDF()
-            flag = this.flag_out_tropo_pdf;
+            flag = this.flag_out_pdf_tropo;
+        end
+        
+        function flag = isOutBlockObj(this)
+            % Get the export the obbject used for the block solution
+            % SYNTAX: flag = this.isOutBlockObj()
+            flag = this.flag_out_block_obj;
         end
         
         function flag = isOutKML(this)
@@ -1929,12 +1942,13 @@ classdef IO_Settings < Settings_Interface
             end
             
             this.checkLogicalField('flag_out_position');
-            this.checkLogicalField('flag_out_report_pdf');
+            this.checkLogicalField('flag_out_pdf_report');
             this.checkLogicalField('flag_out_settings');
             this.checkLogicalField('flag_out_pdf_code_res');
             this.checkLogicalField('flag_out_pdf_ph_res');
             this.checkLogicalField('flag_out_pdf_dt');
-            this.checkLogicalField('flag_out_tropo_pdf');
+            this.checkLogicalField('flag_out_pdf_tropo');
+            this.checkLogicalField('flag_out_block_obj');
             this.checkLogicalField('flag_out_kml');
             this.checkLogicalField('flag_out_nmea');
 
