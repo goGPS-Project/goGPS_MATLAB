@@ -113,7 +113,7 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
             d2data_s(s) = std(d2data_ok);
         end
     end
-    d2data_ref = median(d2data, 2, 'omitnan');
+    d2data_ref = repmat(median(d2data, 2, 'omitnan'), 1, n_set);
 
     data_out(3:end, :) = data_out(3:end, :) | abs(d2data - d2data_ref) > thr(2) * median(d2data_s(~isnan(d2data_m)));
     data(data_out) = nan;
