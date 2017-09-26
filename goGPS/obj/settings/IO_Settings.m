@@ -83,6 +83,7 @@ classdef IO_Settings < Settings_Interface
         PREFERRED_GLO = {'igs', 'cod', 'esa', 'emx', 'gbm'}
         PREFERRED_MXD = {'gbm'}
         PREFERRED_CLK = {'clk_05s', 'clk_30s', 'clk'}
+        PREFERRED_ERP = {'final', 'rapid', 'ultra'}
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
 
         CUSTOM_ADDR = 'cddis.gsfc.nasa.gov/'
@@ -177,7 +178,8 @@ classdef IO_Settings < Settings_Interface
         preferred_glo = IO_Settings.PREFERRED_GLO;          % order of products to use (the first found is used) for GLONASS-GPS only solutions
         preferred_mxd = IO_Settings.PREFERRED_MXD;          % order of products to use (the first found is used) for MultiConstellation only solutions
         preferred_eph = IO_Settings.PREFERRED_EPH;          % kind of orbits to prefer
-        preferred_clk = IO_Settings.PREFERRED_CLK;          % kind of orbits to prefer
+        preferred_erp = IO_Settings.PREFERRED_ERP;          % kind of erp to prefer
+        preferred_clk = IO_Settings.PREFERRED_CLK;          % kind of clocks to prefer
 
         % Custom entry for a server
 
@@ -370,6 +372,7 @@ classdef IO_Settings < Settings_Interface
                 this.preferred_glo = fnp.checkPath(settings.getData('preferred_glo'));
                 this.preferred_mxd = fnp.checkPath(settings.getData('preferred_mxd'));
                 this.preferred_eph = fnp.checkPath(settings.getData('preferred_eph'));
+                this.preferred_erp = fnp.checkPath(settings.getData('preferred_erp'));
                 this.preferred_clk = fnp.checkPath(settings.getData('preferred_clk'));
                 % Custom entry for a server
                 this.custom_addr = fnp.checkPath(settings.getData('custom_addr'));
@@ -463,6 +466,7 @@ classdef IO_Settings < Settings_Interface
                 this.preferred_glo = settings.preferred_glo;
                 this.preferred_mxd = settings.preferred_mxd;
                 this.preferred_eph = settings.preferred_eph;
+                this.preferred_erp = settings.preferred_erp;
                 this.preferred_clk = settings.preferred_clk;
                 % Custom entry for a server
                 this.custom_addr = settings.custom_addr;
@@ -577,14 +581,15 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Preferred order of GPS/GLONASS products:          %s\n', strCell2Str(this.preferred_glo))];
             str = [str sprintf(' Preferred order of Multiconstellation products:   %s\n', strCell2Str(this.preferred_mxd))];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
+            str = [str sprintf(' Preferred order for erp products:                 %s\n', strCell2Str(this.preferred_erp))];
             str = [str sprintf(' Preferred order for clock products:               %s\n\n', strCell2Str(this.preferred_clk))];
             str = [str sprintf(' Custom server parameters:\n')];
             str = [str sprintf('  address:                                         %s\n', this.custom_addr)];
             str = [str sprintf('  port:                                            %s\n', this.custom_port)];
             str = [str sprintf('  path:                                            %s\n', this.custom_path)];
             str = [str sprintf('  eph name:                                        %s\n', this.custom_name_eph)];
-            str = [str sprintf('  clk name:                                        %s\n\n', this.custom_name_clk)];
-            str = [str sprintf('  erp name:                                        %s\n', this.custom_name_erp)];
+            str = [str sprintf('  clk name:                                        %s\n', this.custom_name_clk)];
+            str = [str sprintf('  erp name:                                        %s\n\n', this.custom_name_erp)];
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
@@ -720,6 +725,9 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type, valid only for source "igs",', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred Earth rotation parameters type, rapid are not always available,', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_ERP)), str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_erp', this.preferred_erp, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Preferred clock types, valid but for "igs" glonass,', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_CLK)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_clk', this.preferred_clk, str_cell);
@@ -964,6 +972,11 @@ classdef IO_Settings < Settings_Interface
             out = this.preferred_eph;
         end
 
+        function out = getNavErpType(this)
+            % Get the order of preference of erp files to search for
+            out = this.preferred_erp;
+        end
+        
         function [addr, port, path, eph_name, clk_name, erp_name] = getCustomArchive(this)
             % Get the custom navigational provider parameters
             addr = this.custom_addr;
@@ -1881,6 +1894,7 @@ classdef IO_Settings < Settings_Interface
             this.checkCellStringField('preferred_glo', false);
             this.checkCellStringField('preferred_mxd', false);
             this.checkCellStringField('preferred_eph', false);
+            this.checkCellStringField('preferred_erp', false);
             this.checkCellStringField('preferred_clk', false);
 
             this.checkStringField('custom_addr', false);
