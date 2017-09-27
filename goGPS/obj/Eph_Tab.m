@@ -459,8 +459,9 @@ classdef Eph_Tab < handle
             this.writeHeader(fid, prec);
             
             for i=1:length(this.time)
-                this.writeEpoch(fid,[this.coord(:,:,i)'/1000 this.clock(:,(i-1)/rate_ratio+1)],i)
+                this.writeEpoch(fid,[this.coord(:,:,i)'/1000 this.clock(:,(i-1)/rate_ratio+1)*1000000],i)
             end
+            fprintf(fid,'EOF\n');
             fclose(fid);
             
             
