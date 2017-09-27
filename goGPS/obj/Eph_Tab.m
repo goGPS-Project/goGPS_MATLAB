@@ -507,7 +507,7 @@ classdef Eph_Tab < handle
             end
             rows{end}=[rows{end} repmat('  0',1,(51-length(rows{end}))/3)];
             pres{end}=[pres{end} repmat('  0',1,(51-length(pres{end}))/3)];
-            fprintf(fid,'+   %2i   %s\n',cc.n_sat,rows{1});
+            fprintf(fid,'+   %2i   %s\n',sum(cc.n_sat),rows{1});
             for i=2:length(rows)
                 fprintf(fid,'+        %s\n',rows{i});
             end
