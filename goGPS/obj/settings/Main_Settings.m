@@ -251,7 +251,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     % However for various reasons I can decide to ignore the "correct"
     % values and redefine them. So the values are also
     % stored here as parameters used for a specific processing
-    properties (SetAccess = private, GetAccess = public)
+    properties (SetAccess = public, GetAccess = public)
 
         %------------------------------------------------------------------
         % RECEIVER DEFAULT PARAMETERS

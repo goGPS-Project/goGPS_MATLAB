@@ -413,6 +413,8 @@ for session = 1 : num_session
                     [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
                         zero_time, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
                         load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
+                    el_r = nan(size(pr1_R));
+                    az_r = nan(size(pr1_R));
                     
                     time_GPS = zero_time + time_GPS_diff;
                     time_R = zero_time + time_R_diff;
@@ -686,7 +688,7 @@ for session = 1 : num_session
                         w_bar.setBarLen(length(time_GPS_diff));
                         w_bar.createNewBar('Pre-processing rover...');
                         
-                        [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                        [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
                         
                         if report.opt.write == 1
                             report.prep.spp_threshold = SPP_threshold;
@@ -756,7 +758,9 @@ for session = 1 : num_session
                     antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
                     codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
                     marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
-                    
+                    el_r = nan(size(pr1_R)); el_m = nan(size(pr1_M));
+                    az_r = nan(size(pr1_R)); az_m = nan(size(pr1_M));
+
                     % read stations coordinates file
                     if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
                         [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
@@ -1102,10 +1106,10 @@ for session = 1 : num_session
                     
                     if (~flag_SEID)
                         flag_XM_prep = 2;
-                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                            [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m(:,:,f), az_m(:,:,f), bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                     else
                         flag_XM_prep = 1;
-                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m(:,:,f), az_m(:,:,f), bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
                     end
                     
                     %-------------------------------------------------------------------------------------------
@@ -2510,6 +2514,11 @@ for session = 1 : num_session
                         go_block = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, state.getSolutionRate());
                         unused_epochs = [];
                     end
+                    
+                    if state.isOutBlockObj()
+                        block_struct = go_block.struct();
+                        save([filerootOUT '_block_obj.mat'], 'block_struct');
+                    end
                 case goGNSS.MODE_PP_KF_CP_DD
                     if (mode_vinc == 0)
                         %--------------------------------------------------------------------------------------------------------------------
@@ -3071,8 +3080,8 @@ for session = 1 : num_session
             if goGNSS.isDD(mode)
                 time_M   = time_M_diff + zero_time;
             end
-            Eph(32,:) = Eph(32,:) + zero_time;
-            Eph(33,:) = Eph(33,:) + zero_time;
+            % Eph(32,:) = Eph(32,:) + zero_time; % not needed
+            % Eph(33,:) = Eph(33,:) + zero_time; % not needed
             if (flag_SP3)
                 SP3.time    = SP3.time + zero_time;
                 SP3.time_hr = SP3.time_hr + zero_time;
@@ -4506,4 +4515,3 @@ if is_batch && ~state.isModeSEID()
     fclose(fid_extract_POS);
     fclose(fid_extract_OBS);
 end
-

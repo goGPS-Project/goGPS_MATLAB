@@ -57,8 +57,8 @@ function y_pred = fastLI(y_obs, x_pred)
     n_obs = size(y_obs,2);
     n_pred = numel(x_pred);
 
-     %y_pred = zeros(size(x_pred));
-     tmp = ones(n_obs, n_pred);
+    %y_pred = zeros(size(x_pred));
+    tmp = ones(n_obs, n_pred);
     for i = 1 : n_pred
         for k = 1 : n_obs
             %y_pred(i) = y_obs * prod((x_pred(i) - subtractor - x_pred(i) * eye(11)) ./ denum, 2);

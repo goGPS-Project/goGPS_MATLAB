@@ -1186,7 +1186,7 @@ classdef goGUIclass < handle
                                    id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
 
             % On Post Proc => Block Solution
-            idG.onPP_Block = [idG.onPostProc];
+            idG.onPP_Block = [idG.onPostProc idG.CS id.cDoppler];
 
             % On Post Proc => Least Squares => Code and Phase Double Differences
             idG.onPP_BLK_CP_DD_STATIC = [idG.onPP_Block id.cPlotProc idG.pAvailableGNSSPhase ...

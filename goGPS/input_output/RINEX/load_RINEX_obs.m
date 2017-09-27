@@ -305,6 +305,7 @@ logger.addMessage('Syncing observations if needed');
 %sync observations
 [time_zero, time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
 sync_obs(time, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
+state.p_rate = interval;
 
 logger.addMessage('Trimming short arcs if needed');
 % remove short arcs
