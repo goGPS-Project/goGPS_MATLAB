@@ -78,7 +78,7 @@ end
 % Broadcast corrections in DD are currently causing problems (offset in UP) => not using them
 if state.isModeSA()
     %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
-    if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
+    if ((iono_model == 2 && ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
         [week, sow] = time2weektow(time(1));
         [date, DOY] = gps2date(week, sow);
         

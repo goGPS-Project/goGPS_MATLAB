@@ -57,9 +57,10 @@ function [corrTime] = check_t(time)
 half_week = 302400;     % seconds
 
 corrTime = time;
-
-if time > half_week
-    corrTime = time - 2*half_week;
-elseif time < -half_week
-    corrTime = time + 2*half_week;
-end
+corrTime(time > half_week) =time(time > half_week) - 2*half_week;
+corrTime(time < - half_week) =time(time < - half_week) + 2*half_week;
+% if time > half_week
+%     corrTime = time - 2*half_week;
+% elseif time < -half_week
+%     corrTime = time + 2*half_week;
+% end

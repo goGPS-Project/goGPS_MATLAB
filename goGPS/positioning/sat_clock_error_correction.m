@@ -68,5 +68,5 @@ else %if GPS/Galileo/QZSS/BeiDou
     end
 
     dt = check_t(time - ref_toc);
-    corr = (af2 * dt + af1) * dt + af0;
+    corr = (af2 * dt + af1).* dt + af0;
 end
