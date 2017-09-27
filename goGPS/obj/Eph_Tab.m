@@ -446,10 +446,10 @@ classdef Eph_Tab < handle
             %   Write the current satellite postions and clocks bias into a sp3
             %   file
             if nargin<3
-                prec=100,
+                prec=100;
             end
             %%% check if clock rate and coord rate are compatible
-            rate_ratio=this.coord_rate/this.clock_rate
+            rate_ratio=this.coord_rate/this.clock_rate;
             if abs(rate_ratio-round(rate_ratio)) > 0.00000001
                 this.logger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
                 return
@@ -474,7 +474,7 @@ classdef Eph_Tab < handle
             end
             prec = num2str(prec);
             time = GPS_Time((this.time(1))/86400+GPS_Time.GPS_ZERO);
-            str_time = time.toString()
+            str_time = time.toString();
             year = str2num(str_time(1:4));
             month = str2num(str_time(6:7));
             day = str2num(str_time(9:10));
