@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, p_rate XR0)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, p_rate, obs_comb, XR0)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, frequencies, obs_comb, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, frequencies,  p_rate, obs_comb, XR0);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -14,8 +14,8 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, 
 %   sbas    = SBAS corrections
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
-%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   p_rate  = processing interval [s]
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   XR0     = approximated receiver position
 %
 % DESCRIPTION:
