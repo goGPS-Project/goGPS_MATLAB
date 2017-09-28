@@ -682,6 +682,7 @@ classdef Core_Block < handle
                 obs_track(:,1) = obs_track(:,1) - epoch_offset;
                 amb_prn_track = 4 : size(A,2);
                 
+
                 [A, y0, b, Q, obs_track, amb_prn_track] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, this.state.getMinArc());
                 
                 if size(A,1) > size(A,2)
@@ -1365,29 +1366,25 @@ classdef Core_Block < handle
     % ==================================================================================================================================================
 
     methods % Public Access
-        function plotPhRes (this, phase_res, id_track, A, amb_prn_track)
+        function plotPhRes (this, phase_res, amb_prn_track)
             if nargin == 1
                 phase_res = this.phase_res;
-                id_track = this.id_track;
-                A = this.A;
                 amb_prn_track = this.amb_prn_track;
             end
-            this.plotDataTrack (phase_res*1e3, id_track, A, amb_prn_track, true);
-            ylim([-80 80]);
+            this.plotDataTrack (phase_res*1e3, amb_prn_track);
+            %ylim([-80 80]);
         end
 
-        function plotDataTrack (this, data_track, id_track, A, amb_prn_track, cs_plot)
+        function plotDataTrack (this, data_track, amb_prn_track)
             single_plot = true;
 
-            if (nargin < 6)
-                cs_plot = false;
-            end
+%             if (nargin < 6)
+%                 cs_plot = false;
+%             end
             if nargin == 1
                 data_track = this.phase_res;
-                id_track = this.id_track;
-                A = this.A;
                 amb_prn_track = this.amb_prn_track;
-                cs_plot = true;
+%                 cs_plot = true;
             end
 
             x = (1 : size(data_track,1));
@@ -1415,15 +1412,15 @@ classdef Core_Block < handle
                         'facealpha', 0.1);
                 end
 
-                if (cs_plot)
-                    lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) * 1e3 * this.cs_factor;
-                    win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
-                    win_size = round(win_size / 2) + mod(round(win_size / 2) + 1, 2);
-                    if numel(y(~isnan(y))) > win_size
-                        y(~isnan(y)) =  this.getAmbCorrection(y(~isnan(y)) ./ lambda_val, win_size) .* lambda_val;
-                        plot(x, y,':k', 'LineWidth', 1); hold on;
-                    end
-                end
+%                 if (cs_plot)
+%                     lambda_val = abs(A(id_track(~isnan(y),a), 3+a)) * 1e3 * this.cs_factor;
+%                     win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
+%                     win_size = round(win_size / 2) + mod(round(win_size / 2) + 1, 2);
+%                     if numel(y(~isnan(y))) > win_size
+%                         y(~isnan(y)) =  this.getAmbCorrection(y(~isnan(y)) ./ lambda_val, win_size) .* lambda_val;
+%                         plot(x, y,':k', 'LineWidth', 1); hold on;
+%                     end
+%                 end
                 if ~single_plot
                     f.Title.String = sprintf('Sat: %d', amb_prn_track(a));
                     ax(a) = gca; %#ok<AGROW>
@@ -1651,17 +1648,51 @@ classdef Core_Block < handle
             end
         end
 
-        function ref = getAmbCorrection(data, win_size)
-            ref1 = Core_Block.improveRef(data, movmedian(round(data), win_size, 'omitnan'), win_size);
-            ref2 = Core_Block.improveRef(data, movmedian(round(data+0.5) - 0.5, win_size, 'omitnan'), win_size);
-            ref = iif(sum(abs(data - ref1)) > sum(abs(data - ref2)), ref2, ref1);
+        function ref = getAmbCorrection(data, res, win_size)
+            %ref1 = Core_Block.improveRef(data, movmedian(round(data), win_size, 'omitnan'), win_size);
+            %ref2 = Core_Block.improveRef(data, movmedian(round(data+0.5) - 0.5, win_size, 'omitnan'), win_size);
+            %ref = iif(sum(abs(data - ref1)) > sum(abs(data - ref2)), ref2, ref1);
+            
+            % reduce jumps on the first derivative
+            ref1 = cumsum(round([0; diff(res)]));
+            ref1 = ref1 + round(mean((res - ref1)));
+            
+            tmp = res - ref1;
+            
+            % reduce jumps on the first derivative (with a distance of "diff_dist" epochs)
+            diff_dist = 2;
+            ref2 = cumsum(round([zeros(diff_dist, 1); tmp(diff_dist + 1 : end) - tmp(1 : end - diff_dist)]) / diff_dist);
+            
+            ref = ref1 + ref2;
+            
+            % Correct if and only if there are jumps in the original data
+            sensor = ~(abs([0; diff(data,2)]) > 0.9 & abs([0; diff(ref,2)]) > 0.5);
+            lim = getOutliers(sensor);
+            lim(:,1) = max(1,lim(:,1) - 1); lim(:,2) = lim(:,2) + 1;
+            for i = 1 : size(lim, 1)
+                idx = lim(i, 1) : lim(i, 2);
+                if mod(length(idx),2); idx = idx(1 : end - 1); end
+                ref(idx) = median(ref(idx));
+            end
+            
+            % test ref on data
+            ref = Core_Block.improveRef(res, ref, win_size);
+            
+            % compute second derivative
+            d2_ref = [0; diff(data - ref,2)];
+            d2_data = [0; diff(data,2)];
+            
+            % choose the solution that minimize the speed of change
+            ref_best = abs(d2_ref) < abs(d2_data);
+            ref = ref(1) + cumsum([0; diff(ref) .* ref_best]);
         end
-
+        
         function ref = improveRef(data, ref, win_size)
             margin_win = round(win_size / 2) + mod(round(win_size / 2) + 1, 2);
 
             % check where the interpolation is not a plane
             lim = getOutliers(full(abs(movmedian(diff([ref(1); ref]),3)) > 0));
+            lim(lim(:,2) - lim(:,1) < 7, :) = [];
             for i = 1 : size(lim, 1)
                 idx = lim(i, 1) : lim(i, 2);
                 idx = idx(1 : end - mod(length(idx),2));
@@ -1669,7 +1700,7 @@ classdef Core_Block < handle
             end
 
             % reduce the number of jumps
-            lim = unique([1; find([abs(diff(data)) > 0.5; true])]);
+            lim = unique([1; find([abs(diff(data)) > 0.4; true])]);
             %lim(diff(lim) < round(win_size / 2)) = [];
             lim = unique([1; lim; numel(ref)]);
             lim = [lim(1:end-1)+1 lim(2:end)];
@@ -2572,7 +2603,7 @@ classdef Core_Block < handle
             %   y0      array with "corrected" integer ambiguities
             %   is_new  flag -> true when y0 has been changed
             if (nargin < 7)
-                win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
+                %%%% NCU: win_size = this.state.getMinArc() + mod(1 + this.state.getMinArc(),2);
             end
 
             is_new = false;
@@ -2582,17 +2613,19 @@ classdef Core_Block < handle
                 id_obs = id_track(~isnan(y),a);
                 if ~ isempty(id_obs)
                     lambda_val = abs(A(id_obs, 3 + a)) * this.cs_factor;
-                    if (numel(y(~isnan(y))) > 1.5 * win_size) % it's probably a pivot
-                        ref = this.getAmbCorrection(y(~isnan(y)) ./ lambda_val, win_size) .* lambda_val;
+                    %if (numel(y(~isnan(y))) > 1.5 * win_size) % it's probably a pivot
+                        ref = this.getAmbCorrection(y0(id_obs) ./ lambda_val, y(~isnan(y)) ./ lambda_val, 1) .* lambda_val;
                         phase_ref(~isnan(y),a) = ref;
                         % If the ref correction provides a reduction of the derivative std -> use it
-                        %if ~(full(sum(abs(ref)) == 0)) || (std(diff(y(~isnan(y))-ref)) <= std(diff(y(~isnan(y)))))
-                        if ~(full(sum(abs(ref)) == 0))
-                            % figure(999); clf; plot(y(~isnan(y)),'.-'); hold on; plot(ref,'o', 'lineWidth', 2)
+                        if ~(full(sum(abs(ref)) == 0)) && (std(diff(y(~isnan(y))-ref)) <= std(diff(y(~isnan(y)))))
+                        %if ~(full(sum(abs(ref)) == 0))
+                            figure(999); clf; plot(y(~isnan(y)),'.-'); hold on; plot(ref,'o', 'lineWidth', 2)
                             is_new = true;
+                            figure(1000); clf; plot(diff(y0(id_obs)),'.-'); hold on;
                             y0(id_obs) = y0(id_obs) - ref;
+                            plot(diff(y0(id_obs)),'.-'); ylim([-1 1]);
                         end
-                    end
+                    %end
                 end
             end
         end
