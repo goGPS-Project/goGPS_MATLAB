@@ -355,8 +355,11 @@ classdef goGUIclass < handle
             this.initIonoModel(this.strIonoModel, 3);
 
             this.strTropoModel{1} = 'no model';
-            this.strTropoModel{2} = 'Saastamoinen model (with standard atmosphere parameters)';
-            this.strTropoModel{3} = 'Saastamoinen model (with Global Pressure Temperature model)';
+            this.strTropoModel{2} = 'Modified Saastamoinen model (with standard atmosphere parameters)';
+            this.strTropoModel{3} = 'Modified Saastamoinen model (with Global Pressure Temperature model)';
+            this.strTropoModel{4} = 'Saastamoinen model (with standard atmosphere parameters)';
+            this.strTropoModel{5} = 'Modified Hopfield model (with standard atmosphere parameters)';
+            this.strTropoModel{6} = 'Hopfield model (with standard atmosphere parameters)';
             this.initTropoModel(this.strTropoModel, 2);
 
         end

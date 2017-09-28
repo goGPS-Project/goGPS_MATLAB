@@ -53,10 +53,16 @@ global tropo_model
 switch tropo_model
     case 0 %no model
         corr = zeros(size(el));
-    case 1 %Saastamoinen model (with standard atmosphere parameters)
+    case 1 %Modified Saastamoinen model (with standard atmosphere parameters)
         corr = saastamoinen_model(lat, lon, h, el);
-    case 2 %Saastamoinen model (with Global Pressure Temperature model)
+    case 2 %Modified Saastamoinen model (with Global Pressure Temperature model)
         corr = saastamoinen_model_GPT(time_rx, lat, lon, h, el);
+    case 3 %Saastamoinen model (with standard atmosphere parameters)
+        corr = TropModel_SAAS(el, h);
+    case 4 %Modified Hopfield model (with standard atmosphere parameters)
+        corr = TropModel_GG(el, h);
+    case 5 %Hopfield model (with standard atmosphere parameters)
+        corr = TropModel_Hopfield(el, h);
 end
 
 % -------------------------------------------------------------------------
