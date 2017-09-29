@@ -497,9 +497,14 @@ classdef Meteo_Data < handle
                     time_data = this.time.getMatlabTime();
                     time_pred = time.getMatlabTime();
                     if (sum(~isnan(data_in)) > 0)
-                        data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
-                        % do not extrapolate further than 20 minutes in time
-                        data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                        if numel(data_in(~isnan(data_in))) == 1
+                            [~, id] = min(time_data(~isnan(data_in)) - time_pred);
+                            data(id) = data_in(~isnan(data_in));
+                        else
+                            data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
+                            % do not extrapolate further than 20 minutes in time
+                            data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                        end
                     end
                 else
                     data = data_in;
@@ -618,8 +623,8 @@ classdef Meteo_Data < handle
                 pr_obs(s, :) = station(id_pr(s)).getPressure(time, amsl);
             end
 
-            id_pr(sum(isnan(pr_obs),2) > 1) = [];
-            pr_obs(sum(isnan(pr_obs),2) > 1, :) = [];
+            id_pr(sum(isnan(pr_obs),2) > 0) = [];
+            pr_obs(sum(isnan(pr_obs),2) > 0, :) = [];
 
             if isempty(id_pr)
                 logger.addWarning('There are no station to get pressure information', 100);
