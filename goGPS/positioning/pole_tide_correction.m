@@ -55,8 +55,13 @@ poletidecorr = zeros(size(XS,1),1);
 
 %interpolate the pole displacements
 if (~isempty(SP3.ERP))
-    m1 = interp1(SP3.ERP.t, SP3.ERP.m1, time, 'linear', 'extrap');
-    m2 = interp1(SP3.ERP.t, SP3.ERP.m2, time, 'linear', 'extrap');
+    if (length(SP3.ERP.t) > 1)
+        m1 = interp1(SP3.ERP.t, SP3.ERP.m1, time, 'linear', 'extrap');
+        m2 = interp1(SP3.ERP.t, SP3.ERP.m2, time, 'linear', 'extrap');
+    else
+        m1 = SP3.ERP.m1;
+        m2 = SP3.ERP.m2;
+    end
     
     deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
     deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;

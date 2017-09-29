@@ -54,6 +54,8 @@ Xpole = [];
 Ypole = [];
 UT1_UTC = [];
 LOD = [];
+Xrt = [];
+Yrt = [];
 for f = 1 : length(filename)
     fid = fopen(filename{f},'rt');
     
@@ -98,6 +100,8 @@ for f = 1 : length(filename)
     Ypole = [Ypole; ERP_data{3}];
     UT1_UTC = [UT1_UTC; ERP_data{4}];
     LOD = [LOD; ERP_data{5}];
+    Xrt = [Xrt; ERP_data{13}];
+    Yrt = [Yrt; ERP_data{14}];
     fclose(fid);
 end
 
@@ -123,6 +127,8 @@ end
 ERP.t = ERP_time;
 ERP.Xpole = Xpole;
 ERP.Ypole = Ypole;
+ERP.Xrt = Xrt;
+ERP.Yrt = Yrt;
 
 %coefficients of the IERS (2010) mean pole model
 t0 = 2000;
