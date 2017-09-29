@@ -152,8 +152,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - iono_model = 3: SBAS grid
         TROPO_MODEL = 1;                                % Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
                                                         % - tropo_model = 0: no model
-                                                        % - tropo_model = 1: Saastamoinen model (with standard atmosphere parameters)
-                                                        % - tropo_model = 2: Saastamoinen model (with Global Pressure Temperature model)
+                                                        % - tropo_model = 1: Modified Saastamoinen model (with standard atmosphere parameters)
+                                                        % - tropo_model = 2: Modified Saastamoinen model (with Global Pressure Temperature model)
+                                                        % - tropo_model = 3: Saastamoinen model (with standard atmosphere parameters)
+                                                        % - tropo_model = 4: Modified Hopfield model (with standard atmosphere parameters)
+                                                        % - tropo_model = 5: Hopfield model (with standard atmosphere parameters)
 
         % DTM
         FLAG_DTM = false;                               % DTM flag (use / do not use)
