@@ -253,7 +253,7 @@ for session = 1 : num_session
             filename_R_obs{r} = ref_rec{r}{session}; %#ok<SAGROW>
         end
         filename_M_obs = trg_rec{1}{session};
-        fr = File_Rinex([filename_R_obs(:) {filename_M_obs}],100);
+        fr = File_Rinex([filename_R_obs(:); {filename_M_obs}],100);
     else
         for r = 1 : num_trg_rec
             filename_R_obs{r} = trg_rec{r}{session}; %#ok<SAGROW>
@@ -262,7 +262,7 @@ for session = 1 : num_session
             for r = 1 : num_mst_rec
                 filename_M_obs{r} = mst_rec{r}{min(session, numel(mst_rec{r}))}; %#ok<SAGROW>
             end
-            fr = File_Rinex([filename_R_obs(:) filename_M_obs(:)],100);
+            fr = File_Rinex([filename_R_obs(:); filename_M_obs(:)],100);
         else
             fr = File_Rinex(filename_R_obs(:),100);
         end
@@ -1055,12 +1055,10 @@ for session = 1 : num_session
                         w_bar.createNewBar('Pre-processing rover...');
                         
                         aprXR = pos_R;
-                        if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
-                            if any(pos_R)
-                                flag_XR = 1;
-                            else
-                                flag_XR = 0;
-                            end
+                        if all(any(pos_R))
+                            flag_XR = 1;
+                        else
+                            flag_XR = 0;
                         end
                         
                         %apply P1C1 DCBs if needed

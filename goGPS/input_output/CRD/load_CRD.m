@@ -82,10 +82,11 @@ end
 
 % rover
 %find the correct marker
-pos_R_crd = zeros(3,size(marker_R,2));
-for m = 1 : size(marker_R,2)
+pos_R_crd = zeros(3,1,size(marker_R,3));
+flag_XR = zeros(size(marker_R,3),1);
+for m = 1 : size(marker_R,3)
     if (iscell(marker_R))
-        target_marker = marker_R{1,m};
+        target_marker = marker_R{1,1,m};
     else
         target_marker = marker_R;
     end
@@ -98,8 +99,9 @@ for m = 1 : size(marker_R,2)
         ZR = coords_Z(marker_idx);
 
         %set rover station position
-        pos_R_crd(:,m) = [XR; YR; ZR];
+        pos_R_crd(:,1,m) = [XR; YR; ZR];
 
-        flag_XR = flags(marker_idx);
+        flag_XR(m) = flags(marker_idx);
     end
 end
+flag_XR = min(flag_XR);

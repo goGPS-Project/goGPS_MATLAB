@@ -61,7 +61,7 @@ ph1_RM = ph1_R; ph1_RM(:,:,n_sta) = ph1_M;
 pr2_RM = pr2_R; pr2_RM(:,:,n_sta) = pr2_M;
 ph2_RM = ph2_R; ph2_RM(:,:,n_sta) = ph2_M;
 snr1_RM = snr1_R; snr1_RM(:,:,n_sta) = snr1_M;
-pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,1);
+pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,:,1);
 
 for k = 1 : n_sta
 
