@@ -3067,1433 +3067,1435 @@ for session = 1 : num_session
             end
         end
         
-        %----------------------------------------------------------------------------------------------
-        %% OUTPUT DATA FILE READING
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time)
-        if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-            
-            %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-            time_GPS = time_GPS_diff + zero_time;
-            time_R   = time_R_diff   + zero_time;
-            if goGNSS.isDD(mode)
-                time_M   = time_M_diff + zero_time;
-            end
-            % Eph(32,:) = Eph(32,:) + zero_time; % not needed
-            % Eph(33,:) = Eph(33,:) + zero_time; % not needed
-            if (flag_SP3)
-                SP3.time    = SP3.time + zero_time;
-                SP3.time_hr = SP3.time_hr + zero_time;
-                SP3.t_sun   = SP3.t_sun + zero_time;
-                if ~isempty(SP3.ERP)
-                    SP3.ERP.t   = SP3.ERP.t - zero_time;
-                end
-            end
-            
-            %---------------------------------
-            
-            %reading of the files with Kalman filter results
-            [Xhat_t_t_OUT, Yhat_t_t_OUT, Cee_OUT, azM, azR, elM, elR, distM, distR, ...
-                conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
-                RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
-                RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-                outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
-            
-            if (state.isModeBlock())
-                [pos_KAL, Xhat_t_t_OUT, conf_sat_OUT, Cee_OUT, pivot_OUT, nsat, fixed_amb] = go_block.getLegacyOutput();
-            end
-            
-            %variable saving for final graphical representations
-            if (~state.isModeBlock())
-                nSol = size(Xhat_t_t_OUT,2);
-                pos_KAL = zeros(3,nSol);
-                pos_REF = zeros(3,nSol);
-                stat_SC = zeros(2,nSol);
-                if (any(fixed_solution))
-                    fixed_amb = fixed_solution;
-                else
-                    fixed_amb = zeros(1,nSol);
-                    succ_rate = zeros(1,nSol);
-                end
-                estim_amb = zeros(nSatTot,nSol);
-                sigma_amb = zeros(nSatTot,nSol);
-                estim_tropo = zeros(nSatTot,nSol);
-                estim_gradN = zeros(nSatTot,nSol);
-                estim_gradE = zeros(nSatTot,nSol);
-                for i = 1 : nSol
-                    if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
-                        pos_KAL(:,i) = [Yhat_t_t_OUT(1,i); Yhat_t_t_OUT(2,i); Yhat_t_t_OUT(3,i)];
-                        estim_amb(:,i) = Xhat_t_t_OUT(o1+1:o1+nSatTot,i);
-                        sigma_amb(:,i) = sqrt(diag(Cee_OUT(o1+1:o1+nSatTot,o1+1:o1+nSatTot,i)));
-                    else
-                        pos_KAL(:,i) = [Xhat_t_t_OUT(1,i); Xhat_t_t_OUT(o1+1,i); Xhat_t_t_OUT(o2+1,i)];
-                        estim_amb(:,i) = Xhat_t_t_OUT(o3+1:o3+nSatTot,i);
-                        sigma_amb(:,i) = sqrt(diag(Cee_OUT(o3+1:o3+nSatTot,o3+1:o3+nSatTot,i)));
-                    end
-                    
-                    if (exist('antoff_R','var'))
-                        pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
-                    end
-                    %if tropospheric delay was estimated in PPP
-                    if (state.isSA(mode) && flag_tropo)
-                        if (~flag_tropo_gradient)
-                            estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
-                        else
-                            estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
-                            estim_gradN = Xhat_t_t_OUT(end-nC-1,:);
-                            estim_gradE = Xhat_t_t_OUT(end-nC  ,:);
-                        end
-                    else
-                        estim_tropo = zeros(nSol, 1);
-                        estim_gradN = zeros(nSol, 1);
-                        estim_gradE = zeros(nSol, 1);
-                    end
-                end
-            else
-                nSol = 1;
-                estim_tropo = zeros(nSol, 1);
-                succ_rate = zeros(1,nSol);
-                
-                if (exist('antoff_R','var'))
-                    pos_KAL(:,1) = local2globalPos(-antoff_R(:,1,1), Xhat_t_t_OUT(:,1));
-                end
-            end
-            
-            
-            switch state.getForwardBackwardKF()
-                case -1
-                    for i = 1 : nSol/2
-                        %if relative positioning (i.e. with master station)
-                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                            pos_REF(:,nSol/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            pos_REF(:,nSol/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                        else
-                            pos_REF(:,i) = pos_KAL(:,1);
-                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
-                        end
-                    end
-                case 1
-                    for i = 1 : nSol/2
-                        %if relative positioning (i.e. with master station)
-                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                            pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                            pos_REF(:,nSol-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                        else
-                            pos_REF(:,i) = pos_KAL(:,1);
-                            pos_REF(:,nSol-i+1) = pos_KAL(:,1);
-                        end
-                    end
-                case 0
-                    for i = 1 : nSol
-                        %if relative positioning (i.e. with master station)
-                        if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                            pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
-                        else
-                            pos_REF(:,i) = pos_KAL(:,1);
-                        end
-                    end
-            end
-            
+        if (~state.isModeSEID())
             %----------------------------------------------------------------------------------------------
-            %% OUTPUT FILE SAVING (TEXT FILE)
+            %% OUTPUT DATA FILE READING
             %----------------------------------------------------------------------------------------------
-            
-            nsat = sum(abs(conf_sat_OUT),1);
             
             %if any positioning was done (either post-processing or real-time)
             if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
-                %display information
-                fprintf('Writing output file...\n');
-                %cartesian coordinates (X,Y,Z)
-                X_KAL = pos_KAL(1,:)';
-                Y_KAL = pos_KAL(2,:)';
-                Z_KAL = pos_KAL(3,:)';
                 
-                if (any(pos_KAL))
-                    %coordinate transformation (geodetic)
-                    [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
-                    phi_KAL = phi_KAL * 180/pi;
-                    lam_KAL = lam_KAL * 180/pi;
-                    
-                    %coordinate transformation (UTM)
-                    [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-                else
-                    phi_KAL = nan(size(pos_KAL,2));
-                    lam_KAL = nan(size(pos_KAL,2));
-                    h_KAL = nan(size(pos_KAL,2));
-                    EAST_UTM = nan(size(pos_KAL,2));
-                    NORTH_UTM = nan(size(pos_KAL,2));
-                    h_UTM = nan(size(pos_KAL,2));
-                    utm_zone = nan(size(pos_KAL,2));
+                %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
+                time_GPS = time_GPS_diff + zero_time;
+                time_R   = time_R_diff   + zero_time;
+                if goGNSS.isDD(mode)
+                    time_M   = time_M_diff + zero_time;
                 end
-                
-                %if relative positioning (i.e. with master station)
-                if goGNSS.isDD(mode) || (mode == goGNSS.MODE_RT_NAV)
-                    X_ENU = global2localPos(pos_KAL, pos_REF);
-                    EAST_KAL  = X_ENU(1,:)';
-                    NORTH_KAL = X_ENU(2,:)';
-                    UP_KAL    = X_ENU(3,:)';
-                    
-                    EAST  = EAST_KAL;
-                    NORTH = NORTH_KAL;
-                else
-                    EAST_KAL  = zeros(size(EAST_UTM));
-                    NORTH_KAL = zeros(size(NORTH_UTM));
-                    UP_KAL    = zeros(size(h_UTM));
-                    
-                    EAST  = EAST_UTM;
-                    NORTH = NORTH_UTM;
-                end
-                
-                %if no Kalman filter is used or if the positioning is constrained
-                if (mode_vinc == 1) || (mode == goGNSS.MODE_PP_LS_C_SA) || (mode == goGNSS.MODE_PP_LS_CP_SA) || (mode == goGNSS.MODE_PP_LS_C_DD) || (mode == goGNSS.MODE_PP_LS_CP_DD_L)
-                    %initialization to -9999 (no data available)
-                    KHDOP(1:nSol) = -9999;
-                end
-                N = [];
-                h_ortho(1:nSol) = -9999;
-                
-                %time formatting
-                [tow] = weektime2tow(week_R(:,1,1), time_GPS);
-                
-                %date formatting
-                date_R = gps2date(week_R(:,1,1), tow);
-                date_R(:,1) = two_digit_year(date_R(:,1));
-                
-                for i = 1 : nSol
-                    if (geoid.ncols ~= 0)
-                        %geoid undulation interpolation
-                        N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
-                        %orthometric height
-                        h_ortho(i) = h_KAL(i) - N;
+                % Eph(32,:) = Eph(32,:) + zero_time; % not needed
+                % Eph(33,:) = Eph(33,:) + zero_time; % not needed
+                if (flag_SP3)
+                    SP3.time    = SP3.time + zero_time;
+                    SP3.time_hr = SP3.time_hr + zero_time;
+                    SP3.t_sun   = SP3.t_sun + zero_time;
+                    if ~isempty(SP3.ERP)
+                        SP3.ERP.t   = SP3.ERP.t - zero_time;
                     end
                 end
                 
-                %-----------------------------------------------------------------------------------------------
-                %% PWV RETRIEVAL
-                %-----------------------------------------------------------------------------------------------
+                %---------------------------------
                 
-                ZHD = zeros(size(estim_tropo));
-                ZWD = zeros(size(estim_tropo));
-                PWV = zeros(size(estim_tropo));
+                %reading of the files with Kalman filter results
+                [Xhat_t_t_OUT, Yhat_t_t_OUT, Cee_OUT, azM, azR, elM, elR, distM, distR, ...
+                    conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
+                    RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
+                    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
+                    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, apriori_ZHD_OUT, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
                 
-                if (state.isTropoOn())
-                    md = Meteo_Data(state.getMetFile(session));
-                    date_R(:,1) = four_digit_year(date_R(:,1));
-                    
-                    if (md.isValid())
-                        P = md.getPressure(GPS_Time(datenum(date_R(:,:))));
-                        ZHD = saast_dry(P, h_ortho, phi_KAL);
-                        ZTD = estim_tropo(:);
-                        ZWD = ZTD - ZHD;
-                        
-                        T = md.getTemperature(GPS_Time(datenum(date_R(:,:))));
-                        degCtoK = 273.15;
-                        
-                        % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                        Tm = (T + degCtoK)*0.72 + 70.2;
-                        
-                        % Askne and Nordius formula (from Bevis et al., 1994)
-                        Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-                        
-                        %Precipitable Water Vapor
-                        PWV = ZWD ./ Q * 1e3;
+                if (state.isModeBlock())
+                    [pos_KAL, Xhat_t_t_OUT, conf_sat_OUT, Cee_OUT, pivot_OUT, nsat, fixed_amb] = go_block.getLegacyOutput();
+                end
+                
+                %variable saving for final graphical representations
+                if (~state.isModeBlock())
+                    nSol = size(Xhat_t_t_OUT,2);
+                    pos_KAL = zeros(3,nSol);
+                    pos_REF = zeros(3,nSol);
+                    stat_SC = zeros(2,nSol);
+                    if (any(fixed_solution))
+                        fixed_amb = fixed_solution;
                     else
-                        ZHD = apriori_ZHD_OUT;
-                        ZTD = estim_tropo(:);
-                        ZWD = ZTD - ZHD;
+                        fixed_amb = zeros(1,nSol);
+                        succ_rate = zeros(1,nSol);
                     end
-                end
-                
-                %file saving
-                if (strcmp(fsep_char,'default'))
-                    head_str = '    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV\n';
-                    row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.5f %16.5f %16.5f\n';
-                else
-                    head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'Num. Sat.',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV\n');
-                    row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f\n');
-                end
-                
-                if state.isOutPosition()
-                    if state.isForwardBackwardKF()
-                        fid_out_f = fopen([filerootOUT '_position_forward.txt'], 'wt');
-                        fprintf(fid_out_f, head_str);
-                        fid_out_b = fopen([filerootOUT '_position_backward.txt'], 'wt');
-                        fprintf(fid_out_b, head_str);
-                        for i = 1 : nSol / 2
-                            %file writing
-                            if (pivot_OUT(i) ~= 0)
-                                if state.getForwardBackwardKF > 0
-                                    fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
-                                    ib = nSol + 1 - i;
-                                else
-                                    ii = nSol/2 + i;
-                                    ib = nSol/2 + 1 - i;
-                                    fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ii), lam_KAL(ii), h_KAL(ii), X_KAL(ii), Y_KAL(ii), Z_KAL(ii), NORTH_UTM(ii), EAST_UTM(ii), h_ortho(ii), utm_zone(ii,:), nsat(ii), HDOP(ii), KHDOP(ii), NORTH_KAL(ii), EAST_KAL(ii), UP_KAL(ii), fixed_amb(ii), succ_rate(ii), estim_tropo(ii), ZWD(ii), PWV(ii));
-                                end
-                                fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ib), lam_KAL(ib), h_KAL(ib), X_KAL(ib), Y_KAL(ib), Z_KAL(ib), NORTH_UTM(ib), EAST_UTM(ib), h_ortho(ib), utm_zone(ib,:), nsat(ib), HDOP(ib), KHDOP(ib), NORTH_KAL(ib), EAST_KAL(ib), UP_KAL(ib), fixed_amb(ib), succ_rate(ib), estim_tropo(ib), ZWD(ib), PWV(ib));
-                            else
-                                fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
-                                fprintf(fid_out_f, '\n');
-                                fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
-                                fprintf(fid_out_b, '\n');
-                            end
-                        end
-                        fclose(fid_out_f);
-                        fclose(fid_out_b);
-                    else
-                        fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-                        fprintf(fid_out, head_str);
-                        for i = 1 : nSol
-                            %file writing
-                            if (pivot_OUT(i) ~= 0 || state.isModeBlock())
-                                if state.isModeBlock()
-                                    fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat, 0, 0, NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb, succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
-                                else
-                                    fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
-                                end
-                            else
-                                fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
-                                fprintf(fid_out, '\n');
-                            end
-                        end
-                        fclose(fid_out);
-                    end
-                    
-                    if ~is_batch
-                        % Save in matlab format all the outputs
-                        if flag_tropo
-                            save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate', 'estim_tropo', 'ZWD', 'PWV');
+                    estim_amb = zeros(nSatTot,nSol);
+                    sigma_amb = zeros(nSatTot,nSol);
+                    estim_tropo = zeros(nSatTot,nSol);
+                    estim_gradN = zeros(nSatTot,nSol);
+                    estim_gradE = zeros(nSatTot,nSol);
+                    for i = 1 : nSol
+                        if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
+                            pos_KAL(:,i) = [Yhat_t_t_OUT(1,i); Yhat_t_t_OUT(2,i); Yhat_t_t_OUT(3,i)];
+                            estim_amb(:,i) = Xhat_t_t_OUT(o1+1:o1+nSatTot,i);
+                            sigma_amb(:,i) = sqrt(diag(Cee_OUT(o1+1:o1+nSatTot,o1+1:o1+nSatTot,i)));
                         else
-                            save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+                            pos_KAL(:,i) = [Xhat_t_t_OUT(1,i); Xhat_t_t_OUT(o1+1,i); Xhat_t_t_OUT(o2+1,i)];
+                            estim_amb(:,i) = Xhat_t_t_OUT(o3+1:o3+nSatTot,i);
+                            sigma_amb(:,i) = sqrt(diag(Cee_OUT(o3+1:o3+nSatTot,o3+1:o3+nSatTot,i)));
+                        end
+                        
+                        if (exist('antoff_R','var'))
+                            pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
+                        end
+                        %if tropospheric delay was estimated in PPP
+                        if (state.isSA(mode) && flag_tropo)
+                            if (~flag_tropo_gradient)
+                                estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
+                            else
+                                estim_tropo = Xhat_t_t_OUT(end-nC-2,:);
+                                estim_gradN = Xhat_t_t_OUT(end-nC-1,:);
+                                estim_gradE = Xhat_t_t_OUT(end-nC  ,:);
+                            end
+                        else
+                            estim_tropo = zeros(nSol, 1);
+                            estim_gradN = zeros(nSol, 1);
+                            estim_gradE = zeros(nSol, 1);
+                        end
+                    end
+                else
+                    nSol = 1;
+                    estim_tropo = zeros(nSol, 1);
+                    succ_rate = zeros(1,nSol);
+                    
+                    if (exist('antoff_R','var'))
+                        pos_KAL(:,1) = local2globalPos(-antoff_R(:,1,1), Xhat_t_t_OUT(:,1));
+                    end
+                end
+                
+                
+                switch state.getForwardBackwardKF()
+                    case -1
+                        for i = 1 : nSol/2
+                            %if relative positioning (i.e. with master station)
+                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                                pos_REF(:,nSol/2-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                                pos_REF(:,nSol/2+i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            else
+                                pos_REF(:,i) = pos_KAL(:,1);
+                                pos_REF(:,nSol-i+1) = pos_KAL(:,1);
+                            end
+                        end
+                    case 1
+                        for i = 1 : nSol/2
+                            %if relative positioning (i.e. with master station)
+                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                                pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                                pos_REF(:,nSol-i+1) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            else
+                                pos_REF(:,i) = pos_KAL(:,1);
+                                pos_REF(:,nSol-i+1) = pos_KAL(:,1);
+                            end
+                        end
+                    case 0
+                        for i = 1 : nSol
+                            %if relative positioning (i.e. with master station)
+                            if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                                pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+                            else
+                                pos_REF(:,i) = pos_KAL(:,1);
+                            end
+                        end
+                end
+                
+                %----------------------------------------------------------------------------------------------
+                %% OUTPUT FILE SAVING (TEXT FILE)
+                %----------------------------------------------------------------------------------------------
+                
+                nsat = sum(abs(conf_sat_OUT),1);
+                
+                %if any positioning was done (either post-processing or real-time)
+                if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+                    %display information
+                    fprintf('Writing output file...\n');
+                    %cartesian coordinates (X,Y,Z)
+                    X_KAL = pos_KAL(1,:)';
+                    Y_KAL = pos_KAL(2,:)';
+                    Z_KAL = pos_KAL(3,:)';
+                    
+                    if (any(pos_KAL))
+                        %coordinate transformation (geodetic)
+                        [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
+                        phi_KAL = phi_KAL * 180/pi;
+                        lam_KAL = lam_KAL * 180/pi;
+                        
+                        %coordinate transformation (UTM)
+                        [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+                    else
+                        phi_KAL = nan(size(pos_KAL,2));
+                        lam_KAL = nan(size(pos_KAL,2));
+                        h_KAL = nan(size(pos_KAL,2));
+                        EAST_UTM = nan(size(pos_KAL,2));
+                        NORTH_UTM = nan(size(pos_KAL,2));
+                        h_UTM = nan(size(pos_KAL,2));
+                        utm_zone = nan(size(pos_KAL,2));
+                    end
+                    
+                    %if relative positioning (i.e. with master station)
+                    if goGNSS.isDD(mode) || (mode == goGNSS.MODE_RT_NAV)
+                        X_ENU = global2localPos(pos_KAL, pos_REF);
+                        EAST_KAL  = X_ENU(1,:)';
+                        NORTH_KAL = X_ENU(2,:)';
+                        UP_KAL    = X_ENU(3,:)';
+                        
+                        EAST  = EAST_KAL;
+                        NORTH = NORTH_KAL;
+                    else
+                        EAST_KAL  = zeros(size(EAST_UTM));
+                        NORTH_KAL = zeros(size(NORTH_UTM));
+                        UP_KAL    = zeros(size(h_UTM));
+                        
+                        EAST  = EAST_UTM;
+                        NORTH = NORTH_UTM;
+                    end
+                    
+                    %if no Kalman filter is used or if the positioning is constrained
+                    if (mode_vinc == 1) || (mode == goGNSS.MODE_PP_LS_C_SA) || (mode == goGNSS.MODE_PP_LS_CP_SA) || (mode == goGNSS.MODE_PP_LS_C_DD) || (mode == goGNSS.MODE_PP_LS_CP_DD_L)
+                        %initialization to -9999 (no data available)
+                        KHDOP(1:nSol) = -9999;
+                    end
+                    N = [];
+                    h_ortho(1:nSol) = -9999;
+                    
+                    %time formatting
+                    [tow] = weektime2tow(week_R(:,1,1), time_GPS);
+                    
+                    %date formatting
+                    date_R = gps2date(week_R(:,1,1), tow);
+                    date_R(:,1) = two_digit_year(date_R(:,1));
+                    
+                    for i = 1 : nSol
+                        if (geoid.ncols ~= 0)
+                            %geoid undulation interpolation
+                            N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+                            %orthometric height
+                            h_ortho(i) = h_KAL(i) - N;
+                        end
+                    end
+                    
+                    %-----------------------------------------------------------------------------------------------
+                    %% PWV RETRIEVAL
+                    %-----------------------------------------------------------------------------------------------
+                    
+                    ZHD = zeros(size(estim_tropo));
+                    ZWD = zeros(size(estim_tropo));
+                    PWV = zeros(size(estim_tropo));
+                    
+                    if (state.isTropoOn())
+                        md = Meteo_Data(state.getMetFile(session));
+                        date_R(:,1) = four_digit_year(date_R(:,1));
+                        
+                        if (md.isValid())
+                            P = md.getPressure(GPS_Time(datenum(date_R(:,:))));
+                            ZHD = saast_dry(P, h_ortho, phi_KAL);
+                            ZTD = estim_tropo(:);
+                            ZWD = ZTD - ZHD;
+                            
+                            T = md.getTemperature(GPS_Time(datenum(date_R(:,:))));
+                            degCtoK = 273.15;
+                            
+                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                            Tm = (T + degCtoK)*0.72 + 70.2;
+                            
+                            % Askne and Nordius formula (from Bevis et al., 1994)
+                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                            
+                            %Precipitable Water Vapor
+                            PWV = ZWD ./ Q * 1e3;
+                        else
+                            ZHD = apriori_ZHD_OUT;
+                            ZTD = estim_tropo(:);
+                            ZWD = ZTD - ZHD;
+                        end
+                    end
+                    
+                    %file saving
+                    if (strcmp(fsep_char,'default'))
+                        head_str = '    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV\n';
+                        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.5f %16.5f %16.5f\n';
+                    else
+                        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'Num. Sat.',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV\n');
+                        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f\n');
+                    end
+                    
+                    if state.isOutPosition()
+                        if state.isForwardBackwardKF()
+                            fid_out_f = fopen([filerootOUT '_position_forward.txt'], 'wt');
+                            fprintf(fid_out_f, head_str);
+                            fid_out_b = fopen([filerootOUT '_position_backward.txt'], 'wt');
+                            fprintf(fid_out_b, head_str);
+                            for i = 1 : nSol / 2
+                                %file writing
+                                if (pivot_OUT(i) ~= 0)
+                                    if state.getForwardBackwardKF > 0
+                                        fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
+                                        ib = nSol + 1 - i;
+                                    else
+                                        ii = nSol/2 + i;
+                                        ib = nSol/2 + 1 - i;
+                                        fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ii), lam_KAL(ii), h_KAL(ii), X_KAL(ii), Y_KAL(ii), Z_KAL(ii), NORTH_UTM(ii), EAST_UTM(ii), h_ortho(ii), utm_zone(ii,:), nsat(ii), HDOP(ii), KHDOP(ii), NORTH_KAL(ii), EAST_KAL(ii), UP_KAL(ii), fixed_amb(ii), succ_rate(ii), estim_tropo(ii), ZWD(ii), PWV(ii));
+                                    end
+                                    fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(ib), lam_KAL(ib), h_KAL(ib), X_KAL(ib), Y_KAL(ib), Z_KAL(ib), NORTH_UTM(ib), EAST_UTM(ib), h_ortho(ib), utm_zone(ib,:), nsat(ib), HDOP(ib), KHDOP(ib), NORTH_KAL(ib), EAST_KAL(ib), UP_KAL(ib), fixed_amb(ib), succ_rate(ib), estim_tropo(ib), ZWD(ib), PWV(ib));
+                                else
+                                    fprintf(fid_out_f, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
+                                    fprintf(fid_out_f, '\n');
+                                    fprintf(fid_out_b, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
+                                    fprintf(fid_out_b, '\n');
+                                end
+                            end
+                            fclose(fid_out_f);
+                            fclose(fid_out_b);
+                        else
+                            fid_out = fopen([filerootOUT '_position.txt'], 'wt');
+                            fprintf(fid_out, head_str);
+                            for i = 1 : nSol
+                                %file writing
+                                if (pivot_OUT(i) ~= 0 || state.isModeBlock())
+                                    if state.isModeBlock()
+                                        fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat, 0, 0, NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb, succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
+                                    else
+                                        fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i), ZWD(i), PWV(i));
+                                    end
+                                else
+                                    fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
+                                    fprintf(fid_out, '\n');
+                                end
+                            end
+                            fclose(fid_out);
+                        end
+                        
+                        if ~is_batch
+                            % Save in matlab format all the outputs
+                            if flag_tropo
+                                save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate', 'estim_tropo', 'ZWD', 'PWV');
+                            else
+                                save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+                            end
                         end
                     end
                 end
-            end
-            
-            %----------------------------------------------------------------------------------------------
-            %% REPORT FILE (PDF)
-            %----------------------------------------------------------------------------------------------
-            
-            %if any positioning was done (either post-processing or real-time)
-            if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
-                %display information
-                fprintf('Writing report file (PDF)...\n');
                 
-                if state.isOutDtPDF()
-                    if (exist('dtR','var'))
-                        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-                        paperSize = get(f,'PaperSize');
-                        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                        plot(dtR.*goGNSS.V_LIGHT,'.r');
-                        grid on;
-                        set(gca,'FontName','Verdana');
-                        set(gca,'FontSize',10);
-                        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                        ylabel('Epoch-by-epoch code-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                        %print PDF
-                        print(f, '-dpdf', [filerootOUT '_dtR']);
-                        close(f)
-                    end
-                end
+                %----------------------------------------------------------------------------------------------
+                %% REPORT FILE (PDF)
+                %----------------------------------------------------------------------------------------------
                 
-                if (mode == goGNSS.MODE_PP_KF_CP_SA)
-                    dtR_KAL = Xhat_t_t_OUT(end-nC+1,:)./goGNSS.V_LIGHT;
+                %if any positioning was done (either post-processing or real-time)
+                if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
+                    %display information
+                    fprintf('Writing report file (PDF)...\n');
                     
                     if state.isOutDtPDF()
-                        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-                        paperSize = get(f,'PaperSize');
-                        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                        plot(dtR_KAL.*goGNSS.V_LIGHT,'.r');
-                        grid on;
-                        set(gca,'FontName','Verdana');
-                        set(gca,'FontSize',10);
-                        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                        ylabel('Kalman-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                        %print PDF
-                        print(f, '-dpdf', [filerootOUT '_dtR_KAL']);
-                        close(f)
-                    end
-                    
-                    if (~isempty(ISBs) && state.isOutReportPDF)
-                        sys = unique(constellations.systems);
-                        for ISB = (nC-1) : -1 : 0
-                            ISB_KAL = Xhat_t_t_OUT(end-ISB,:)./goGNSS.V_LIGHT;
-                            switch sys(end-ISB)
-                                case 'R'
-                                    sys_label = 'GLONASS';
-                                case 'E'
-                                    sys_label = 'Galileo';
-                                case 'C'
-                                    sys_label = 'BeiDou';
-                                case 'J'
-                                    sys_label = 'QZSS';
-                            end
-                            
+                        if (exist('dtR','var'))
                             f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
                             paperSize = get(f,'PaperSize');
                             set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                            plot(ISB_KAL.*goGNSS.V_LIGHT,'.r');
+                            plot(dtR.*goGNSS.V_LIGHT,'.r');
                             grid on;
                             set(gca,'FontName','Verdana');
                             set(gca,'FontSize',10);
                             xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                            ylabel(['Kalman-estimated ' sys_label ' inter-system bias (m)'],'FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                            ylabel('Epoch-by-epoch code-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
                             %print PDF
-                            print(f, '-dpdf', [filerootOUT '_' sys_label '_ISB_KAL']);
+                            print(f, '-dpdf', [filerootOUT '_dtR']);
                             close(f)
                         end
                     end
-                end
-                
-                if (any(estim_tropo) && state.isOutTropoPDF())
-                    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-                    paperSize = get(f,'PaperSize');
-                    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                    plot(estim_tropo,'.r');
-                    grid on;
-                    set(gca,'FontName','Verdana');
-                    set(gca,'FontSize',10);
-                    xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                    ylabel('Zenith Total Delay (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-                    %print PDF
-                    print(f, '-dpdf', [filerootOUT '_tropo']);
-                    close(f)
-                end
-                
-                if goGNSS.isDD(mode && state.isOutDtPDF)
-                    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-                    paperSize = get(f,'PaperSize');
-                    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                    plot(dtM.*goGNSS.V_LIGHT,'.r');
-                    set(gca,'FontName','Verdana');
-                    set(gca,'FontSize',7);
-                    ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-                    %print PDF
-                    print(f, '-dpdf', [filerootOUT '_dtM']);
-                    close(f)
-                end
-                
-                if (~state.isModeBlock())
-                    if (any(RES_PHASE1_FIXED(:)))
-                        RES_PHASE1 = RES_PHASE1_FIXED;
-                        RES_CODE1  = RES_CODE1_FIXED;
-                        RES_PHASE2 = RES_PHASE2_FIXED;
-                        RES_CODE2  = RES_CODE2_FIXED;
-                    else
-                        RES_PHASE1 = RES_PHASE1_FLOAT;
-                        RES_CODE1  = RES_CODE1_FLOAT;
-                        RES_PHASE2 = RES_PHASE2_FLOAT;
-                        RES_CODE2  = RES_CODE2_FLOAT;
-                    end
-                else
-                    RES_PHASE1_FLOAT_MELSA = go_block.getPhaseResiduals()';
-                    RES_PHASE1_FLOAT_MELSA(:, go_block.getEmptyEpochs()) = [];
-                    RES_CODE1_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
-                    RES_PHASE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
-                    RES_CODE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
                     
-                    RES_PHASE1 = RES_PHASE1_FLOAT_MELSA;
-                    RES_CODE1  = RES_CODE1_FLOAT_MELSA;
-                    RES_PHASE2 = RES_PHASE2_FLOAT_MELSA;
-                    RES_CODE2  = RES_CODE2_FLOAT_MELSA;
-                    RES_PHASE1(RES_PHASE1==0) = NaN;
-                    RES_CODE1(RES_CODE1==0) = NaN;
-                    RES_PHASE2(RES_PHASE2==0) = NaN;
-                    RES_CODE2(RES_CODE2==0) = NaN;
-                    outliers_PHASE1 = zeros(size(RES_PHASE1));
-                    outliers_CODE1 = zeros(size(RES_CODE1));
-                    outliers_PHASE2 = zeros(size(RES_PHASE2));
-                    outliers_CODE2 = zeros(size(RES_CODE2));
-                end
-                
-                if state.isOutPhaseResPDF() || state.isOutCodeResPDF()
-                    if (length(frequencies) > 1)
-                        if (~strcmp(obs_comb, 'IONO_FREE'))
-                            plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_L' num2str(frequencies(1))]);
-                            plot_residuals(constellations, RES_PHASE2, RES_CODE2, outliers_PHASE2, outliers_CODE2, [filerootOUT '_L' num2str(frequencies(2))]);
-                        else
-                            plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_IF']);
-                        end
-                    else
-                        plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_L' num2str(frequencies(1))]);
-                    end
-                end
-                
-                if state.isOutReportPDF()
-                    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4','Visible','off');
-                    paperSize = get(f,'PaperSize');
-                    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-                    
-                    %settings
-                    f1 = subplot(7,3,1);
-                    set(f1,'Visible','off');
-                    switch mode
-                        case 1
-                            text(0,1.00,sprintf('Mode: code\n        undifferenced'));
-                            text(0,0.75,sprintf('Kalman filter: no'));
-                        case 2
-                            text(0,1.00,sprintf('Mode: code\n        undifferenced'));
-                            text(0,0.75,sprintf('Kalman filter: yes'));
-                        case 3
-                            text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
-                            text(0,0.75,sprintf('Kalman filter: no'));
-                        case 4
-                            text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
-                            text(0,0.75,sprintf('Kalman filter: yes'));
-                        case 11
-                            text(0,1.00,sprintf('Mode: code\n        double difference'));
-                            text(0,0.75,sprintf('Kalman filter: no'));
-                        case 12
-                            text(0,1.00,sprintf('Mode: code\n        double difference'));
-                            text(0,0.75,sprintf('Kalman filter: yes'));
-                        case 13
-                            text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
-                            text(0,0.75,sprintf('Kalman filter: no'));
-                        case 14
-                            text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
-                            text(0,0.75,sprintf('Kalman filter: yes'));
-                        case 24
-                            text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
-                            text(0,0.75,sprintf('Kalman filter: yes'));
-                    end
-                    if (mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV)
-                        switch order
-                            case 1
-                                text(0,0.50,sprintf('Dynamics: static'));
-                            case 2
-                                text(0,0.50,sprintf('Dynamics: constant\n            velocity'));
-                            case 3
-                                text(0,0.50,sprintf('Dynamics: constant\n            acceleration'));
-                        end
-                    end
-                    text(0,0.25,sprintf('Cutoff: %d deg', cutoff));
-                    switch weights
-                        case 0
-                            text(0,0,sprintf('Weights: no weights'));
-                        case 1
-                            text(0,0,sprintf('Weights: elevation\n           (1/sin(el)^2)'));
-                        case 2
-                            text(0,0,sprintf('Weights: elevation\n           (exp)'));
-                        case 3
-                            text(0,0,sprintf('Weights: SNR'));
-                        case 4
-                            text(0,0,sprintf('Weights: elevation\n           and SNR'));
-                    end
-                    
-                    %trajectory plotting
-                    f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
-                    %if relative positioning (i.e. with master station)
-                    if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-                        EAST_O = EAST_KAL(end); NORTH_O = NORTH_KAL(end);
-                    else
-                        EAST_O = EAST_UTM(1); NORTH_O = NORTH_UTM(1);
-                    end
-                    plot(EAST-EAST_O, NORTH-NORTH_O, '.r');
-                    axis equal
-                    xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
-                    hold on
-                    if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                        %static positioning solution plotting
-                        plot(EAST(end)-EAST_O, NORTH(end)-NORTH_O, '*b');
-                        %        %covariance propagation
-                        %        Cee_ENU = global2localCov(Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t_OUT([1 o1+1 o2+1],end));
+                    if (mode == goGNSS.MODE_PP_KF_CP_SA)
+                        dtR_KAL = Xhat_t_t_OUT(end-nC+1,:)./goGNSS.V_LIGHT;
                         
-                        legend('Positioning (KF)','Final position','Location','SouthOutside');
-                    else
-                        legend('Positioning','Location','SouthOutside');
-                    end
-                    
-                    if (mode == goGNSS.MODE_PP_LS_C_SA || mode == goGNSS.MODE_PP_LS_CP_SA || mode == goGNSS.MODE_PP_LS_CP_DD_L || mode == goGNSS.MODE_PP_LS_C_DD)
-                        EAST_R = mean(EAST);
-                        NORTH_R = mean(NORTH);
-                        h_R = mean(h_KAL);
-                        plot(EAST_R-EAST_O, NORTH_R-NORTH_O, '*b');
-                    end
-                    
-                    %coordinate transformation (UTM)
-                    [EAST_REF, NORTH_REF, h_REF, utm_zone] = cart2plan(pos_REF(1,1), pos_REF(2,1), pos_REF(3,1));
-                    
-                    %plot(EAST_M-EAST_O, NORTH_M-NORTH_O, 'xc', 'LineWidth', 2);
-                    
-                    %statistics
-                    f2 = subplot(7,3,[4 7 10]);
-                    set(f2,'Visible','off');
-                    if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                        text(0,0.95,'----------------');
-                        text(0,0.90,'Final position (UTM)');
-                        text(0,0.83,sprintf('E: %.3f m', EAST_UTM(end)));
-                        text(0,0.78,sprintf('N: %.3f m', NORTH_UTM(end)));
-                        text(0,0.73,sprintf('h(ell.): %.3f m', h_KAL(end)));
-                        %         text(0,0.62,'----------------');
-                        %         text(0,0.57,'Position estimation error');
-                        %         text(0,0.50,sprintf('E: %.4f m', Cee_ENU(1,1)));
-                        %         text(0,0.45,sprintf('N: %.4f m', Cee_ENU(2,2)));
-                        %         text(0,0.40,sprintf('U: %.4f m', Cee_ENU(3,3)));
-                    end
-                    
-                    if (mode == goGNSS.MODE_PP_LS_C_DD || mode == goGNSS.MODE_PP_LS_CP_DD_L)
-                        text(0,0.95,'----------------');
-                        text(0,0.90,'Baseline (mean)');
-                        text(0,0.83,sprintf('E: %.3f m', mean(EAST_KAL)));
-                        text(0,0.78,sprintf('N: %.3f m', mean(NORTH_KAL)));
-                        text(0,0.73,sprintf('h: %.3f m', mean(UP_KAL)));
-                    else
-                        %if relative positioning (i.e. with master station)
-                        if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-                            text(0,0.62,'----------------');
-                            text(0,0.57,'Plot false origin');
-                            text(0,0.52,'(last estimated baseline)');
-                        else
-                            text(0,0.57,'----------------');
-                            text(0,0.52,'Plot false origin (UTM)');
+                        if state.isOutDtPDF()
+                            f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                            paperSize = get(f,'PaperSize');
+                            set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                            plot(dtR_KAL.*goGNSS.V_LIGHT,'.r');
+                            grid on;
+                            set(gca,'FontName','Verdana');
+                            set(gca,'FontSize',10);
+                            xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                            ylabel('Kalman-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                            %print PDF
+                            print(f, '-dpdf', [filerootOUT '_dtR_KAL']);
+                            close(f)
                         end
-                        text(0,0.45,sprintf('E: %.3f m', EAST_O));
-                        text(0,0.40,sprintf('N: %.3f m', NORTH_O));
+                        
+                        if (~isempty(ISBs) && state.isOutReportPDF)
+                            sys = unique(constellations.systems);
+                            for ISB = (nC-1) : -1 : 0
+                                ISB_KAL = Xhat_t_t_OUT(end-ISB,:)./goGNSS.V_LIGHT;
+                                switch sys(end-ISB)
+                                    case 'R'
+                                        sys_label = 'GLONASS';
+                                    case 'E'
+                                        sys_label = 'Galileo';
+                                    case 'C'
+                                        sys_label = 'BeiDou';
+                                    case 'J'
+                                        sys_label = 'QZSS';
+                                end
+                                
+                                f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                                paperSize = get(f,'PaperSize');
+                                set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                                plot(ISB_KAL.*goGNSS.V_LIGHT,'.r');
+                                grid on;
+                                set(gca,'FontName','Verdana');
+                                set(gca,'FontSize',10);
+                                xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                                ylabel(['Kalman-estimated ' sys_label ' inter-system bias (m)'],'FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                                %print PDF
+                                print(f, '-dpdf', [filerootOUT '_' sys_label '_ISB_KAL']);
+                                close(f)
+                            end
+                        end
                     end
                     
-                    %satellite number
-                    f4 = subplot(7,3,[13 14 15]);
-                    plot(nsat); grid on;
-                    title('Number of satellites');
+                    if (any(estim_tropo) && state.isOutTropoPDF())
+                        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                        paperSize = get(f,'PaperSize');
+                        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                        plot(estim_tropo,'.r');
+                        grid on;
+                        set(gca,'FontName','Verdana');
+                        set(gca,'FontSize',10);
+                        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                        ylabel('Zenith Total Delay (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                        %print PDF
+                        print(f, '-dpdf', [filerootOUT '_tropo']);
+                        close(f)
+                    end
+                    
+                    if goGNSS.isDD(mode && state.isOutDtPDF)
+                        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                        paperSize = get(f,'PaperSize');
+                        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                        plot(dtM.*goGNSS.V_LIGHT,'.r');
+                        set(gca,'FontName','Verdana');
+                        set(gca,'FontSize',7);
+                        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
+                        %print PDF
+                        print(f, '-dpdf', [filerootOUT '_dtM']);
+                        close(f)
+                    end
                     
                     if (~state.isModeBlock())
-                        %EAST plot
-                        f5 = subplot(7,3,[16 17 18]);
-                        plot(EAST-EAST_O); grid on
-                        hold on
-                        pos = find(pivot_OUT == 0);
-                        if (~isempty(pos))
-                            plot(pos, EAST(pivot_OUT == 0)-EAST_O,'.y');
-                        end
-                        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                            plot([1, nSol], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
-                            title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
+                        if (any(RES_PHASE1_FIXED(:)))
+                            RES_PHASE1 = RES_PHASE1_FIXED;
+                            RES_CODE1  = RES_CODE1_FIXED;
+                            RES_PHASE2 = RES_PHASE2_FIXED;
+                            RES_CODE2  = RES_CODE2_FIXED;
                         else
-                            title('East coordinates (blue); Not processed / dynamics only (yellow)');
+                            RES_PHASE1 = RES_PHASE1_FLOAT;
+                            RES_CODE1  = RES_CODE1_FLOAT;
+                            RES_PHASE2 = RES_PHASE2_FLOAT;
+                            RES_CODE2  = RES_CODE2_FLOAT;
                         end
-                        
-                        %NORTH plot
-                        f6 = subplot(7,3,[19 20 21]);
-                        plot(NORTH-NORTH_O); grid on
-                        hold on
-                        pos = find(pivot_OUT == 0);
-                        if (~isempty(pos))
-                            plot(pos, NORTH(pivot_OUT == 0)-NORTH_O,'.y');
-                        end
-                        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                            plot([1, nSol], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
-                            title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
-                        else
-                            title('North coordinates (blue); Not processed / dynamics only (yellow)');
-                        end
-                    end
-                    
-                    %print PDF
-                    print(f, '-dpdf', [filerootOUT '_report']);
-                    
-                    %remove figure
-                    close(f)
-                end
-            end
-            
-            %----------------------------------------------------------------------------------------------
-            %% TROPOSPHERE FILE SAVING
-            %----------------------------------------------------------------------------------------------
-            
-            if (goGNSS.isPP(mode) && state.isModeSA() && state.isModePh() && state.isModeKM() && flag_tropo && (~isempty(EAST)))
-                %display information
-                fprintf('Writing troposphere file...\n');
-                %file saving
-                if (strcmp(fsep_char,'default'))
-                    head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
-                    row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
-                    for s = 1 : nSatTot
-                        head_str = [head_str '      STD[m] ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
-                        row_str  = [row_str  '%16.5f']; %#ok<AGROW>
-                    end
-                    head_str = [head_str '\n']; %#ok<AGROW>
-                    row_str  = [row_str  '\n']; %#ok<AGROW>
-                else
-                    head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
-                    row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
-                    for s = 1 : nSatTot
-                        head_str = [head_str,fsep_char,'STD[m] ',constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
-                        row_str  = [row_str, fsep_char,'%16.5f']; %#ok<AGROW>
-                    end
-                    head_str = [head_str '\n']; %#ok<AGROW>
-                    row_str  = [row_str  '\n']; %#ok<AGROW>
-                end
-                fid_tropo = fopen([filerootOUT '_tropo.txt'], 'wt');
-                fprintf(fid_tropo, head_str);
-                for i = 1 : nSol
-                    %file writing
-                    fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), estim_gradN(i)*1e3, estim_gradE(i)*1e3, ZWD(i), PWV(i), STDs(:,i)');
-                end
-                
-                %file closing
-                fclose(fid_tropo);
-            end
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% NMEA FILE SAVING
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time)
-        if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (exist('is_batch','var') && is_batch == 0) && state.isOutNMEA()
-            %display information
-            fprintf('Writing NMEA file...\n');
-            %file saving
-            fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
-            
-            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
-                
-                %active satellites
-                sat = find(abs(conf_sat_OUT(:,i)));
-                %number of active satellites
-                nsat = length(sat);
-                %visible satellites
-                vsat = find(elR(:,i) > 0);
-                
-                %NMEA string generation
-                GGAstring = NMEA_GGA_gen(pos_KAL(:,id), nsat, date_R(i,:), HDOP(id), mode);
-                if (pivot_OUT(id) ~= 0)
-                    RMCstring = NMEA_RMC_gen(pos_KAL(:,id), date_R(i,:));
-                    GSVstring = NMEA_GSV_gen(vsat, elR(vsat,id), azR(vsat,id), snr_R(vsat,i), constellations);
-                    GSAstring = NMEA_GSA_gen(sat, PDOP(id), HDOP(id), VDOP(id), 'M', '3');
-                    if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                        PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(id), KHDOP(id), KVDOP(id), 'S');
-                    end
-                else
-                    GSAstring = NMEA_GSA_gen(sat, PDOP(id), HDOP(id), VDOP(id), 'M', '1');
-                    if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                        PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(id), KHDOP(id), KVDOP(id), 'D');
-                    end
-                end
-                
-                %NMEA file write
-                if (pivot_OUT(id) ~= 0)
-                    fprintf(fid_nmea, [RMCstring '\n']);
-                    fprintf(fid_nmea, [GSVstring '\n']);
-                end
-                fprintf(fid_nmea, [GGAstring '\n']);
-                fprintf(fid_nmea, [GSAstring '\n']);
-                if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
-                    fprintf(fid_nmea, [PGGPKstring '\n']);
-                end
-            end
-            fclose(fid_nmea);
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% GOOGLE EARTH FILE SAVING (KML FILE)
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time)
-        if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && state.isOutKML()
-            %display information
-            fprintf('Writing KML file...\n');
-            %"clampToGround" plots the points attached to the ground
-            %"absolute" uses the height defined in the tag <coordinates>;
-            %N.B. Google Earth uses orthometric heights
-            z_pos = 'clampToGround';
-            %z_pos = 'absolute';
-            %URL to load the icon for the points
-            iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
-            iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
-            iconP = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
-            good_point_colorR = 'fff5005a';
-            bad_point_colorR = 'ff0000ff';
-            dyn_point_colorR = 'ff00ffff';
-            point_colorM = 'ff00ffff';
-            point_colorP = 'ff32cd32';
-            %point size
-            scaleR = 0.2;
-            scaleM = 0.8;
-            scaleP = 0.8;
-            %line color and thickness (rover track)
-            line_colorR = 'fff5005a';
-            line_widthR = 1;
-            %line color and thickness (stop-go-stop direction)
-            line_colorG = 'ff0000ff';
-            line_widthG = 4;
-            %label color
-            label_colorM = point_colorM;
-            label_colorP = point_colorP;
-            %label size
-            label_scaleM = 0.7;
-            label_scaleP = 0.7;
-            %initialization
-            
-            phiM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
-            lamM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
-            hM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
-            
-            %threshold on KHDOP
-            if (o1 == 1)
-                KHDOP_thres = median(KHDOP);
-            else
-                KHDOP_thres = 2;
-            end
-            
-            %if relative positioning (i.e. with master station)
-            if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-                %master station coordinates
-                for i = 1 : nSol / (1 + state.isForwardBackwardKF())
-                    if (sum(abs(pos_M(:,i))) ~= 0)
-                        XM = pos_M(1,i);
-                        YM = pos_M(2,i);
-                        ZM = pos_M(3,i);
-                        
-                        %conversion from cartesian to geodetic coordinates
-                        [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
-                        
-                        %conversion from radians to degrees
-                        lamM(i) = lamM(i)*180/pi;
-                        phiM(i) = phiM(i)*180/pi;
                     else
-                        lamM(i) = 0;
-                        phiM(i) = 0;
-                        hM(i) = 0;
+                        RES_PHASE1_FLOAT_MELSA = go_block.getPhaseResiduals()';
+                        RES_PHASE1_FLOAT_MELSA(:, go_block.getEmptyEpochs()) = [];
+                        RES_CODE1_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
+                        RES_PHASE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
+                        RES_CODE2_FLOAT_MELSA = zeros(size(RES_PHASE1_FLOAT_MELSA));
+                        
+                        RES_PHASE1 = RES_PHASE1_FLOAT_MELSA;
+                        RES_CODE1  = RES_CODE1_FLOAT_MELSA;
+                        RES_PHASE2 = RES_PHASE2_FLOAT_MELSA;
+                        RES_CODE2  = RES_CODE2_FLOAT_MELSA;
+                        RES_PHASE1(RES_PHASE1==0) = NaN;
+                        RES_CODE1(RES_CODE1==0) = NaN;
+                        RES_PHASE2(RES_PHASE2==0) = NaN;
+                        RES_CODE2(RES_CODE2==0) = NaN;
+                        outliers_PHASE1 = zeros(size(RES_PHASE1));
+                        outliers_CODE1 = zeros(size(RES_CODE1));
+                        outliers_PHASE2 = zeros(size(RES_PHASE2));
+                        outliers_CODE2 = zeros(size(RES_CODE2));
                     end
+                    
+                    if state.isOutPhaseResPDF() || state.isOutCodeResPDF()
+                        if (length(frequencies) > 1)
+                            if (~strcmp(obs_comb, 'IONO_FREE'))
+                                plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_L' num2str(frequencies(1))]);
+                                plot_residuals(constellations, RES_PHASE2, RES_CODE2, outliers_PHASE2, outliers_CODE2, [filerootOUT '_L' num2str(frequencies(2))]);
+                            else
+                                plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_IF']);
+                            end
+                        else
+                            plot_residuals(constellations, RES_PHASE1, RES_CODE1, outliers_PHASE1, outliers_CODE1, [filerootOUT '_L' num2str(frequencies(1))]);
+                        end
+                    end
+                    
+                    if state.isOutReportPDF()
+                        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                        paperSize = get(f,'PaperSize');
+                        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                        
+                        %settings
+                        f1 = subplot(7,3,1);
+                        set(f1,'Visible','off');
+                        switch mode
+                            case 1
+                                text(0,1.00,sprintf('Mode: code\n        undifferenced'));
+                                text(0,0.75,sprintf('Kalman filter: no'));
+                            case 2
+                                text(0,1.00,sprintf('Mode: code\n        undifferenced'));
+                                text(0,0.75,sprintf('Kalman filter: yes'));
+                            case 3
+                                text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
+                                text(0,0.75,sprintf('Kalman filter: no'));
+                            case 4
+                                text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
+                                text(0,0.75,sprintf('Kalman filter: yes'));
+                            case 11
+                                text(0,1.00,sprintf('Mode: code\n        double difference'));
+                                text(0,0.75,sprintf('Kalman filter: no'));
+                            case 12
+                                text(0,1.00,sprintf('Mode: code\n        double difference'));
+                                text(0,0.75,sprintf('Kalman filter: yes'));
+                            case 13
+                                text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
+                                text(0,0.75,sprintf('Kalman filter: no'));
+                            case 14
+                                text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
+                                text(0,0.75,sprintf('Kalman filter: yes'));
+                            case 24
+                                text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
+                                text(0,0.75,sprintf('Kalman filter: yes'));
+                        end
+                        if (mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV)
+                            switch order
+                                case 1
+                                    text(0,0.50,sprintf('Dynamics: static'));
+                                case 2
+                                    text(0,0.50,sprintf('Dynamics: constant\n            velocity'));
+                                case 3
+                                    text(0,0.50,sprintf('Dynamics: constant\n            acceleration'));
+                            end
+                        end
+                        text(0,0.25,sprintf('Cutoff: %d deg', cutoff));
+                        switch weights
+                            case 0
+                                text(0,0,sprintf('Weights: no weights'));
+                            case 1
+                                text(0,0,sprintf('Weights: elevation\n           (1/sin(el)^2)'));
+                            case 2
+                                text(0,0,sprintf('Weights: elevation\n           (exp)'));
+                            case 3
+                                text(0,0,sprintf('Weights: SNR'));
+                            case 4
+                                text(0,0,sprintf('Weights: elevation\n           and SNR'));
+                        end
+                        
+                        %trajectory plotting
+                        f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
+                        %if relative positioning (i.e. with master station)
+                        if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+                            EAST_O = EAST_KAL(end); NORTH_O = NORTH_KAL(end);
+                        else
+                            EAST_O = EAST_UTM(1); NORTH_O = NORTH_UTM(1);
+                        end
+                        plot(EAST-EAST_O, NORTH-NORTH_O, '.r');
+                        axis equal
+                        xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
+                        hold on
+                        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                            %static positioning solution plotting
+                            plot(EAST(end)-EAST_O, NORTH(end)-NORTH_O, '*b');
+                            %        %covariance propagation
+                            %        Cee_ENU = global2localCov(Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t_OUT([1 o1+1 o2+1],end));
+                            
+                            legend('Positioning (KF)','Final position','Location','SouthOutside');
+                        else
+                            legend('Positioning','Location','SouthOutside');
+                        end
+                        
+                        if (mode == goGNSS.MODE_PP_LS_C_SA || mode == goGNSS.MODE_PP_LS_CP_SA || mode == goGNSS.MODE_PP_LS_CP_DD_L || mode == goGNSS.MODE_PP_LS_C_DD)
+                            EAST_R = mean(EAST);
+                            NORTH_R = mean(NORTH);
+                            h_R = mean(h_KAL);
+                            plot(EAST_R-EAST_O, NORTH_R-NORTH_O, '*b');
+                        end
+                        
+                        %coordinate transformation (UTM)
+                        [EAST_REF, NORTH_REF, h_REF, utm_zone] = cart2plan(pos_REF(1,1), pos_REF(2,1), pos_REF(3,1));
+                        
+                        %plot(EAST_M-EAST_O, NORTH_M-NORTH_O, 'xc', 'LineWidth', 2);
+                        
+                        %statistics
+                        f2 = subplot(7,3,[4 7 10]);
+                        set(f2,'Visible','off');
+                        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                            text(0,0.95,'----------------');
+                            text(0,0.90,'Final position (UTM)');
+                            text(0,0.83,sprintf('E: %.3f m', EAST_UTM(end)));
+                            text(0,0.78,sprintf('N: %.3f m', NORTH_UTM(end)));
+                            text(0,0.73,sprintf('h(ell.): %.3f m', h_KAL(end)));
+                            %         text(0,0.62,'----------------');
+                            %         text(0,0.57,'Position estimation error');
+                            %         text(0,0.50,sprintf('E: %.4f m', Cee_ENU(1,1)));
+                            %         text(0,0.45,sprintf('N: %.4f m', Cee_ENU(2,2)));
+                            %         text(0,0.40,sprintf('U: %.4f m', Cee_ENU(3,3)));
+                        end
+                        
+                        if (mode == goGNSS.MODE_PP_LS_C_DD || mode == goGNSS.MODE_PP_LS_CP_DD_L)
+                            text(0,0.95,'----------------');
+                            text(0,0.90,'Baseline (mean)');
+                            text(0,0.83,sprintf('E: %.3f m', mean(EAST_KAL)));
+                            text(0,0.78,sprintf('N: %.3f m', mean(NORTH_KAL)));
+                            text(0,0.73,sprintf('h: %.3f m', mean(UP_KAL)));
+                        else
+                            %if relative positioning (i.e. with master station)
+                            if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+                                text(0,0.62,'----------------');
+                                text(0,0.57,'Plot false origin');
+                                text(0,0.52,'(last estimated baseline)');
+                            else
+                                text(0,0.57,'----------------');
+                                text(0,0.52,'Plot false origin (UTM)');
+                            end
+                            text(0,0.45,sprintf('E: %.3f m', EAST_O));
+                            text(0,0.40,sprintf('N: %.3f m', NORTH_O));
+                        end
+                        
+                        %satellite number
+                        f4 = subplot(7,3,[13 14 15]);
+                        plot(nsat); grid on;
+                        title('Number of satellites');
+                        
+                        if (~state.isModeBlock())
+                            %EAST plot
+                            f5 = subplot(7,3,[16 17 18]);
+                            plot(EAST-EAST_O); grid on
+                            hold on
+                            pos = find(pivot_OUT == 0);
+                            if (~isempty(pos))
+                                plot(pos, EAST(pivot_OUT == 0)-EAST_O,'.y');
+                            end
+                            if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                                plot([1, nSol], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
+                                title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
+                            else
+                                title('East coordinates (blue); Not processed / dynamics only (yellow)');
+                            end
+                            
+                            %NORTH plot
+                            f6 = subplot(7,3,[19 20 21]);
+                            plot(NORTH-NORTH_O); grid on
+                            hold on
+                            pos = find(pivot_OUT == 0);
+                            if (~isempty(pos))
+                                plot(pos, NORTH(pivot_OUT == 0)-NORTH_O,'.y');
+                            end
+                            if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                                plot([1, nSol], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
+                                title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
+                            else
+                                title('North coordinates (blue); Not processed / dynamics only (yellow)');
+                            end
+                        end
+                        
+                        %print PDF
+                        print(f, '-dpdf', [filerootOUT '_report']);
+                        
+                        %remove figure
+                        close(f)
+                    end
+                end
+                
+                %----------------------------------------------------------------------------------------------
+                %% TROPOSPHERE FILE SAVING
+                %----------------------------------------------------------------------------------------------
+                
+                if (goGNSS.isPP(mode) && state.isModeSA() && state.isModePh() && state.isModeKM() && flag_tropo && (~isempty(EAST)))
+                    %display information
+                    fprintf('Writing troposphere file...\n');
+                    %file saving
+                    if (strcmp(fsep_char,'default'))
+                        head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
+                        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
+                        for s = 1 : nSatTot
+                            head_str = [head_str '      STD[m] ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            row_str  = [row_str  '%16.5f']; %#ok<AGROW>
+                        end
+                        head_str = [head_str '\n']; %#ok<AGROW>
+                        row_str  = [row_str  '\n']; %#ok<AGROW>
+                    else
+                        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
+                        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
+                        for s = 1 : nSatTot
+                            head_str = [head_str,fsep_char,'STD[m] ',constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            row_str  = [row_str, fsep_char,'%16.5f']; %#ok<AGROW>
+                        end
+                        head_str = [head_str '\n']; %#ok<AGROW>
+                        row_str  = [row_str  '\n']; %#ok<AGROW>
+                    end
+                    fid_tropo = fopen([filerootOUT '_tropo.txt'], 'wt');
+                    fprintf(fid_tropo, head_str);
+                    for i = 1 : nSol
+                        %file writing
+                        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), estim_gradN(i)*1e3, estim_gradE(i)*1e3, ZWD(i), PWV(i), STDs(:,i)');
+                    end
+                    
+                    %file closing
+                    fclose(fid_tropo);
                 end
             end
             
-            pos = find(filerootOUT == '/');
-            if (isempty(pos))
-                pos = find(filerootOUT == '\');
-            end
-            kml_name = checkPath(filerootOUT(pos(end)+1:end));
+            %----------------------------------------------------------------------------------------------
+            %% NMEA FILE SAVING
+            %----------------------------------------------------------------------------------------------
             
-            %file saving (Google Earth KML)
-            fid_kml = fopen([filerootOUT '.kml'], 'wt');
-            fprintf(fid_kml, '<?xml version="1.0" encoding="UTF-8"?>\n');
-            fprintf(fid_kml, '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">\n');
-            fprintf(fid_kml, '<Document>\n');
-            fprintf(fid_kml, '\t<name>%s</name>\n', [kml_name '.kml']);
-            fprintf(fid_kml, '\t<snippet>created by goGPS</snippet>\n');
-            fprintf(fid_kml, '\t\t<Style id="go1">\n');
-            fprintf(fid_kml, '\t\t\t<IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',good_point_colorR);
-            fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
-            fprintf(fid_kml, '\t\t\t\t<Icon>\n');
-            fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
-            fprintf(fid_kml, '\t\t\t\t</Icon>\n');
-            fprintf(fid_kml, '\t\t\t</IconStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            fprintf(fid_kml, '\t\t<Style id="go2">\n');
-            fprintf(fid_kml, '\t\t\t<IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',bad_point_colorR);
-            fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
-            fprintf(fid_kml, '\t\t\t\t<Icon>\n');
-            fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
-            fprintf(fid_kml, '\t\t\t\t</Icon>\n');
-            fprintf(fid_kml, '\t\t\t</IconStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            fprintf(fid_kml, '\t\t<Style id="go3">\n');
-            fprintf(fid_kml, '\t\t\t<IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',dyn_point_colorR);
-            fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
-            fprintf(fid_kml, '\t\t\t\t<Icon>\n');
-            fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
-            fprintf(fid_kml, '\t\t\t\t</Icon>\n');
-            fprintf(fid_kml, '\t\t\t</IconStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            fprintf(fid_kml, '\t\t<Style id="master">\n');
-            fprintf(fid_kml, '\t\t\t<IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorM);
-            fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
-            fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleM);
-            fprintf(fid_kml, '\t\t\t\t<Icon>\n');
-            fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconM);
-            fprintf(fid_kml, '\t\t\t\t</Icon>\n');
-            fprintf(fid_kml, '\t\t\t</IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorM);
-            fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleM);
-            fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            fprintf(fid_kml, '\t\t<Style id="ppos">\n');
-            fprintf(fid_kml, '\t\t\t<IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorP);
-            fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
-            fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleP);
-            fprintf(fid_kml, '\t\t\t\t<Icon>\n');
-            fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconP);
-            fprintf(fid_kml, '\t\t\t\t</Icon>\n');
-            fprintf(fid_kml, '\t\t\t</IconStyle>\n');
-            fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorP);
-            fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleP);
-            fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            fprintf(fid_kml, '\t\t<Style id="goLine1">\n');
-            fprintf(fid_kml, '\t\t\t<LineStyle>\n');
-            fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorR);
-            fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthR);
-            fprintf(fid_kml, '\t\t\t</LineStyle>\n');
-            fprintf(fid_kml, '\t\t</Style>\n');
-            if (flag_stopGOstop && goGNSS.isPP(mode)) %stop-go-stop and post-processing
-                fprintf(fid_kml, '\t\t<Style id="goLine2">\n');
+            %if any positioning was done (either post-processing or real-time)
+            if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (exist('is_batch','var') && is_batch == 0) && state.isOutNMEA()
+                %display information
+                fprintf('Writing NMEA file...\n');
+                %file saving
+                fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
+                
+                for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                    id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
+                    
+                    %active satellites
+                    sat = find(abs(conf_sat_OUT(:,i)));
+                    %number of active satellites
+                    nsat = length(sat);
+                    %visible satellites
+                    vsat = find(elR(:,i) > 0);
+                    
+                    %NMEA string generation
+                    GGAstring = NMEA_GGA_gen(pos_KAL(:,id), nsat, date_R(i,:), HDOP(id), mode);
+                    if (pivot_OUT(id) ~= 0)
+                        RMCstring = NMEA_RMC_gen(pos_KAL(:,id), date_R(i,:));
+                        GSVstring = NMEA_GSV_gen(vsat, elR(vsat,id), azR(vsat,id), snr_R(vsat,i), constellations);
+                        GSAstring = NMEA_GSA_gen(sat, PDOP(id), HDOP(id), VDOP(id), 'M', '3');
+                        if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                            PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(id), KHDOP(id), KVDOP(id), 'S');
+                        end
+                    else
+                        GSAstring = NMEA_GSA_gen(sat, PDOP(id), HDOP(id), VDOP(id), 'M', '1');
+                        if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                            PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(id), KHDOP(id), KVDOP(id), 'D');
+                        end
+                    end
+                    
+                    %NMEA file write
+                    if (pivot_OUT(id) ~= 0)
+                        fprintf(fid_nmea, [RMCstring '\n']);
+                        fprintf(fid_nmea, [GSVstring '\n']);
+                    end
+                    fprintf(fid_nmea, [GGAstring '\n']);
+                    fprintf(fid_nmea, [GSAstring '\n']);
+                    if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
+                        fprintf(fid_nmea, [PGGPKstring '\n']);
+                    end
+                end
+                fclose(fid_nmea);
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            %% GOOGLE EARTH FILE SAVING (KML FILE)
+            %----------------------------------------------------------------------------------------------
+            
+            %if any positioning was done (either post-processing or real-time)
+            if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && state.isOutKML()
+                %display information
+                fprintf('Writing KML file...\n');
+                %"clampToGround" plots the points attached to the ground
+                %"absolute" uses the height defined in the tag <coordinates>;
+                %N.B. Google Earth uses orthometric heights
+                z_pos = 'clampToGround';
+                %z_pos = 'absolute';
+                %URL to load the icon for the points
+                iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+                iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
+                iconP = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
+                good_point_colorR = 'fff5005a';
+                bad_point_colorR = 'ff0000ff';
+                dyn_point_colorR = 'ff00ffff';
+                point_colorM = 'ff00ffff';
+                point_colorP = 'ff32cd32';
+                %point size
+                scaleR = 0.2;
+                scaleM = 0.8;
+                scaleP = 0.8;
+                %line color and thickness (rover track)
+                line_colorR = 'fff5005a';
+                line_widthR = 1;
+                %line color and thickness (stop-go-stop direction)
+                line_colorG = 'ff0000ff';
+                line_widthG = 4;
+                %label color
+                label_colorM = point_colorM;
+                label_colorP = point_colorP;
+                %label size
+                label_scaleM = 0.7;
+                label_scaleP = 0.7;
+                %initialization
+                
+                phiM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
+                lamM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
+                hM = zeros(1, nSol / (1 + state.isForwardBackwardKF()));
+                
+                %threshold on KHDOP
+                if (o1 == 1)
+                    KHDOP_thres = median(KHDOP);
+                else
+                    KHDOP_thres = 2;
+                end
+                
+                %if relative positioning (i.e. with master station)
+                if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+                    %master station coordinates
+                    for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                        if (sum(abs(pos_M(:,i))) ~= 0)
+                            XM = pos_M(1,i);
+                            YM = pos_M(2,i);
+                            ZM = pos_M(3,i);
+                            
+                            %conversion from cartesian to geodetic coordinates
+                            [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
+                            
+                            %conversion from radians to degrees
+                            lamM(i) = lamM(i)*180/pi;
+                            phiM(i) = phiM(i)*180/pi;
+                        else
+                            lamM(i) = 0;
+                            phiM(i) = 0;
+                            hM(i) = 0;
+                        end
+                    end
+                end
+                
+                pos = find(filerootOUT == '/');
+                if (isempty(pos))
+                    pos = find(filerootOUT == '\');
+                end
+                kml_name = checkPath(filerootOUT(pos(end)+1:end));
+                
+                %file saving (Google Earth KML)
+                fid_kml = fopen([filerootOUT '.kml'], 'wt');
+                fprintf(fid_kml, '<?xml version="1.0" encoding="UTF-8"?>\n');
+                fprintf(fid_kml, '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">\n');
+                fprintf(fid_kml, '<Document>\n');
+                fprintf(fid_kml, '\t<name>%s</name>\n', [kml_name '.kml']);
+                fprintf(fid_kml, '\t<snippet>created by goGPS</snippet>\n');
+                fprintf(fid_kml, '\t\t<Style id="go1">\n');
+                fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',good_point_colorR);
+                fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+                fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+                fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+                fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+                fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+                fprintf(fid_kml, '\t\t</Style>\n');
+                fprintf(fid_kml, '\t\t<Style id="go2">\n');
+                fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',bad_point_colorR);
+                fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+                fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+                fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+                fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+                fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+                fprintf(fid_kml, '\t\t</Style>\n');
+                fprintf(fid_kml, '\t\t<Style id="go3">\n');
+                fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',dyn_point_colorR);
+                fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+                fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+                fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+                fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+                fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+                fprintf(fid_kml, '\t\t</Style>\n');
+                fprintf(fid_kml, '\t\t<Style id="master">\n');
+                fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorM);
+                fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+                fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleM);
+                fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+                fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconM);
+                fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+                fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorM);
+                fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleM);
+                fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
+                fprintf(fid_kml, '\t\t</Style>\n');
+                fprintf(fid_kml, '\t\t<Style id="ppos">\n');
+                fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorP);
+                fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+                fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleP);
+                fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+                fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconP);
+                fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+                fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+                fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorP);
+                fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleP);
+                fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
+                fprintf(fid_kml, '\t\t</Style>\n');
+                fprintf(fid_kml, '\t\t<Style id="goLine1">\n');
                 fprintf(fid_kml, '\t\t\t<LineStyle>\n');
-                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorG);
-                fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthG);
+                fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorR);
+                fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthR);
                 fprintf(fid_kml, '\t\t\t</LineStyle>\n');
                 fprintf(fid_kml, '\t\t</Style>\n');
-            end
-            if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV) %relative positioning
-                for i = 1 : length(phiM)
-                    if (lamM(i) ~= 0 || phiM(i) ~= 0 || hM(i) ~= 0)
-                        if (i == 1) || (lamM(i)~=lamM(i-1) || phiM(i)~=phiM(i-1) || hM(i)~=hM(i-1))
-                            fprintf(fid_kml, '\t\t<Placemark>\n');
-                            fprintf(fid_kml, '\t\t\t<name>Master station</name>\n');
-                            fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
-                            fprintf(fid_kml, '\t\t\t<styleUrl>#master</styleUrl>\n');
-                            fprintf(fid_kml, '\t\t\t<Point>\n');
-                            fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
-                            fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),h_ortho(i));
-                            fprintf(fid_kml, '\t\t\t</Point>\n');
-                            fprintf(fid_kml, '\t\t</Placemark>\n');
+                if (flag_stopGOstop && goGNSS.isPP(mode)) %stop-go-stop and post-processing
+                    fprintf(fid_kml, '\t\t<Style id="goLine2">\n');
+                    fprintf(fid_kml, '\t\t\t<LineStyle>\n');
+                    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorG);
+                    fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthG);
+                    fprintf(fid_kml, '\t\t\t</LineStyle>\n');
+                    fprintf(fid_kml, '\t\t</Style>\n');
+                end
+                if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV) %relative positioning
+                    for i = 1 : length(phiM)
+                        if (lamM(i) ~= 0 || phiM(i) ~= 0 || hM(i) ~= 0)
+                            if (i == 1) || (lamM(i)~=lamM(i-1) || phiM(i)~=phiM(i-1) || hM(i)~=hM(i-1))
+                                fprintf(fid_kml, '\t\t<Placemark>\n');
+                                fprintf(fid_kml, '\t\t\t<name>Master station</name>\n');
+                                fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+                                fprintf(fid_kml, '\t\t\t<styleUrl>#master</styleUrl>\n');
+                                fprintf(fid_kml, '\t\t\t<Point>\n');
+                                fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+                                fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),h_ortho(i));
+                                fprintf(fid_kml, '\t\t\t</Point>\n');
+                                fprintf(fid_kml, '\t\t</Placemark>\n');
+                            end
                         end
                     end
                 end
-            end
-            fprintf(fid_kml, '\t\t<Placemark>\n');
-            fprintf(fid_kml, '\t\t<name>Rover track</name>\n');
-            fprintf(fid_kml, '\t\t\t<styleUrl>#goLine1</styleUrl>\n');
-            fprintf(fid_kml, '\t\t\t<LineString>\n');
-            fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
-            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
-                fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(id),phi_KAL(id));
-            end
-            fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
-            fprintf(fid_kml, '\t\t\t</LineString>\n');
-            fprintf(fid_kml, '\t\t</Placemark>\n');
-            if (flag_stopGOstop && flag_var_dyn_model && mode == goGNSS.MODE_PP_KF_CP_DD)
-                
-                [P1Lat, P1Lon] = cart2geod(P1_GLB(1), P1_GLB(2), P1_GLB(3));
-                [P2Lat, P2Lon] = cart2geod(P2_GLB(1), P2_GLB(2), P2_GLB(3));
-                
                 fprintf(fid_kml, '\t\t<Placemark>\n');
-                fprintf(fid_kml, '\t\t<name>Estimated direction</name>\n');
-                fprintf(fid_kml, '\t\t\t<styleUrl>#goLine2</styleUrl>\n');
+                fprintf(fid_kml, '\t\t<name>Rover track</name>\n');
+                fprintf(fid_kml, '\t\t\t<styleUrl>#goLine1</styleUrl>\n');
                 fprintf(fid_kml, '\t\t\t<LineString>\n');
                 fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
-                fprintf(fid_kml, '%.8f,%.8f,0 ',P1Lon*180/pi,P1Lat*180/pi);
-                fprintf(fid_kml, '%.8f,%.8f,0 ',P2Lon*180/pi,P2Lat*180/pi);
+                for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                    id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
+                    fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(id),phi_KAL(id));
+                end
                 fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
                 fprintf(fid_kml, '\t\t\t</LineString>\n');
                 fprintf(fid_kml, '\t\t</Placemark>\n');
-            end
-            fprintf(fid_kml, '\t\t<Folder>\n');
-            fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
-            for i = 1 : nSol / (1 + state.isForwardBackwardKF())
-                id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
-                
-                fprintf(fid_kml, '\t\t<Placemark>\n');
-                if (pivot_OUT(id) == 0)
-                    fprintf(fid_kml, '\t\t\t<styleUrl>#go3</styleUrl>\n');
-                elseif ~(mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC) && (KHDOP(id)>KHDOP_thres)
-                    fprintf(fid_kml, '\t\t\t<styleUrl>#go2</styleUrl>\n');
-                else
-                    fprintf(fid_kml, '\t\t\t<styleUrl>#go1</styleUrl>\n');
-                end
-                fprintf(fid_kml, '\t\t\t<Point>\n');
-                fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
-                fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
-                fprintf(fid_kml, '\t\t\t</Point>\n');
-                fprintf(fid_kml, '\t\t</Placemark>\n');
-            end
-            fprintf(fid_kml, '\t\t</Folder>\n');
-            
-            if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV) || (mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC))
-                if (o1 == 1) && (nSol ~= 0)
-                    %static positioning coordinates
-                    phiP = phi_KAL(end);
-                    lamP = lam_KAL(end);
-                    hP   = h_KAL(end);
+                if (flag_stopGOstop && flag_var_dyn_model && mode == goGNSS.MODE_PP_KF_CP_DD)
+                    
+                    [P1Lat, P1Lon] = cart2geod(P1_GLB(1), P1_GLB(2), P1_GLB(3));
+                    [P2Lat, P2Lon] = cart2geod(P2_GLB(1), P2_GLB(2), P2_GLB(3));
                     
                     fprintf(fid_kml, '\t\t<Placemark>\n');
-                    fprintf(fid_kml, '\t\t\t<name>Static positioning</name>\n');
-                    fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP,lamP,hP);
-                    fprintf(fid_kml, '\t\t\t<styleUrl>#ppos</styleUrl>\n');
+                    fprintf(fid_kml, '\t\t<name>Estimated direction</name>\n');
+                    fprintf(fid_kml, '\t\t\t<styleUrl>#goLine2</styleUrl>\n');
+                    fprintf(fid_kml, '\t\t\t<LineString>\n');
+                    fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
+                    fprintf(fid_kml, '%.8f,%.8f,0 ',P1Lon*180/pi,P1Lat*180/pi);
+                    fprintf(fid_kml, '%.8f,%.8f,0 ',P2Lon*180/pi,P2Lat*180/pi);
+                    fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
+                    fprintf(fid_kml, '\t\t\t</LineString>\n');
+                    fprintf(fid_kml, '\t\t</Placemark>\n');
+                end
+                fprintf(fid_kml, '\t\t<Folder>\n');
+                fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
+                for i = 1 : nSol / (1 + state.isForwardBackwardKF())
+                    id = (state.getForwardBackwardKF() < 0) * (nSol/2) + (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * i) + i;
+                    
+                    fprintf(fid_kml, '\t\t<Placemark>\n');
+                    if (pivot_OUT(id) == 0)
+                        fprintf(fid_kml, '\t\t\t<styleUrl>#go3</styleUrl>\n');
+                    elseif ~(mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC) && (KHDOP(id)>KHDOP_thres)
+                        fprintf(fid_kml, '\t\t\t<styleUrl>#go2</styleUrl>\n');
+                    else
+                        fprintf(fid_kml, '\t\t\t<styleUrl>#go1</styleUrl>\n');
+                    end
                     fprintf(fid_kml, '\t\t\t<Point>\n');
                     fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
-                    fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP,phiP,hP);
+                    fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
                     fprintf(fid_kml, '\t\t\t</Point>\n');
                     fprintf(fid_kml, '\t\t</Placemark>\n');
                 end
-            end
-            fprintf(fid_kml, '</Document>\n</kml>');
-            fclose(fid_kml);
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time, not constrained)
-        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (mode_vinc == 0))
-            
-            %display information
-            fprintf('Writing estimated error covariance files...\n');
-            %covariance propagation
-            Cee_XYZ = Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],:);
-            Cee_ENU = global2localCov(Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t_OUT([1 o1+1 o2+1],:));
-            
-            if (flag_cov == 1 && mode_user == 1)
-                %trajectory plotting
-                figure
-                plot(EAST, NORTH, '.r'); axis equal
-                xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
+                fprintf(fid_kml, '\t\t</Folder>\n');
                 
-                hold on
-                for i = 1 : size(Cee_ENU,3)         % ellipse definition
-                    T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
-                    n = size(x_circle,1);
-                    x_ellipse = zeros(n,2);         % pre-allocation
-                    for j = 1 : n                   % ellipse definition
-                        x_ellipse(j,:) = x_circle(j,:) * T + [EAST(i), NORTH(i)];
-                    end
-                    he = plot(x_ellipse(:,1),x_ellipse(:,2),'b');
-                    if (any(fixed_amb) && fixed_amb(i) == 0)
-                        set(he,'Color',[0.8 0.5 0])
+                if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV) || (mode == goGNSS.MODE_PP_BLK_CP_DD_STATIC))
+                    if (o1 == 1) && (nSol ~= 0)
+                        %static positioning coordinates
+                        phiP = phi_KAL(end);
+                        lamP = lam_KAL(end);
+                        hP   = h_KAL(end);
+                        
+                        fprintf(fid_kml, '\t\t<Placemark>\n');
+                        fprintf(fid_kml, '\t\t\t<name>Static positioning</name>\n');
+                        fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP,lamP,hP);
+                        fprintf(fid_kml, '\t\t\t<styleUrl>#ppos</styleUrl>\n');
+                        fprintf(fid_kml, '\t\t\t<Point>\n');
+                        fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+                        fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP,phiP,hP);
+                        fprintf(fid_kml, '\t\t\t</Point>\n');
+                        fprintf(fid_kml, '\t\t</Placemark>\n');
                     end
                 end
-                hold off
+                fprintf(fid_kml, '</Document>\n</kml>');
+                fclose(fid_kml);
             end
             
-            %file saving (XYZ covariance)
-            fid_cov = fopen([filerootOUT '_cov_XYZ.txt'], 'wt');
-            fprintf(fid_cov, '       XX              XY              XZ              YY              YZ              ZZ\n');
-            for i = 1 : length(phi_KAL)
-                fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_XYZ(1,1,i), Cee_XYZ(1,2,i), ...
-                    Cee_XYZ(1,3,i), Cee_XYZ(2,2,i), Cee_XYZ(2,3,i), Cee_XYZ(3,3,i));
-            end
-            fclose(fid_cov);
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
+            %----------------------------------------------------------------------------------------------
             
-            %file saving (ENU covariance)
-            fid_cov = fopen([filerootOUT '_cov_ENU.txt'], 'wt');
-            fprintf(fid_cov, ' EastEast       EastNorth          EastUp      NorthNorth         NorthUp            UpUp\n');
-            for i = 1 : length(phi_KAL)
-                fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
-                    Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
-            end
-            fclose(fid_cov);
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
-        %----------------------------------------------------------------------------------------------
-        
-        if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1) && ~state.isModeBlock()
-            epochs = (time_GPS-time_GPS(1))/interval;
-            
-            time = GPS_Time(GPS_Time.GPS_ZERO, time_GPS);
-            id = 1 : numel(epochs);
-            switch state.getForwardBackwardKF()
-                case -1
-                    epochs = [flipud(epochs); epochs]; %#ok<AGROW>
-                    id = (numel(epochs)/2 +1) : numel(epochs);
-                case  1
-                    epochs = [epochs; flipud(epochs)]; %#ok<AGROW>
-                    time = GPS_Time(GPS_Time.GPS_ZERO, flipud(time_GPS));
-                    id = (numel(epochs)/2 +1) : numel(epochs);
-            end
-            figure;
-            ax = zeros(3,1);
-            ax(1) = subplot(3,1,1); hold on; grid on
-            ax(2) = subplot(3,1,2); hold on; grid on
-            ax(3) = subplot(3,1,3); hold on; grid on
-            xlabel('epoch')
-            
-            %if relative positioning (i.e. with master station)
-            if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-                subplot(ax(1))
-                plot(epochs, EAST,'.'); title('EAST'); ylabel('[m]')
-                subplot(ax(2))
-                plot(epochs, NORTH,'.'); title('NORTH'); ylabel('[m]')
-                subplot(ax(3))
-                plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
+            %if any positioning was done (either post-processing or real-time, not constrained)
+            if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (mode_vinc == 0))
                 
-                pos = find(fixed_amb == 1);
-                plot(ax(1), epochs(pos), EAST(pos),'xr')
-                plot(ax(2), epochs(pos), NORTH(pos),'xr')
-                plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
+                %display information
+                fprintf('Writing estimated error covariance files...\n');
+                %covariance propagation
+                Cee_XYZ = Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],:);
+                Cee_ENU = global2localCov(Cee_OUT([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t_OUT([1 o1+1 o2+1],:));
                 
-                pos = find(pivot_OUT == 0);
-                plot(ax(1), epochs(pos), EAST(pos),'.y')
-                plot(ax(2), epochs(pos), NORTH(pos),'.y')
-                plot(ax(3), epochs(pos), UP_KAL(pos),'.y')
-                
-                Fig_Lab.plotENU(time,[EAST(id) NORTH(id) UP_KAL(id)]);
-            else
-                subplot(ax(1))
-                plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
-                subplot(ax(2))
-                plot(epochs, NORTH_UTM,'.'); title('NORTH UTM'); ylabel('[m]')
-                subplot(ax(3))
-                plot(epochs, h_KAL,'.'); title('ellipsoidal height'); ylabel('[m]')
-                
-                pos = find(fixed_amb == 1);
-                plot(ax(1), epochs(pos), EAST_UTM(pos),'xr')
-                plot(ax(2), epochs(pos), NORTH_UTM(pos),'xr')
-                plot(ax(3), epochs(pos), h_KAL(pos),'xr')
-                
-                pos = find(pivot_OUT == 0);
-                plot(ax(1), epochs(pos), EAST_UTM(pos),'.y')
-                plot(ax(2), epochs(pos), NORTH_UTM(pos),'.y')
-                plot(ax(3), epochs(pos), h_KAL(pos),'.y')
-                
-                Fig_Lab.plotENU(time,[EAST(id) NORTH(id) h_KAL(id)]);
-            end
-            linkaxes(ax,'x');
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF THE REFERENCE TRAJECTORY
-        %----------------------------------------------------------------------------------------------
-        
-        % %if any positioning was done (either post-processing or real-time, but constrained)
-        % if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && mode_ref == 1)
-        %     [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
-        %
-        %     %reference data plot
-        %     plot(EAST_ref, NORTH_ref, 'm', 'LineWidth', 2)
-        %
-        %     hold off
-        % end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF THE 2D TRAJECTORY
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time, not constrained)
-        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~state.isModeBlock()
-            %2D plot
-            figure
-            plot(EAST, NORTH, '.r');
-            xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF THE 3D TRAJECTORY
-        %----------------------------------------------------------------------------------------------
-        
-        %if any positioning was done (either post-processing or real-time, not constrained)
-        if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~state.isModeBlock()
-            
-            %     %3D plot (XYZ)
-            %     figure
-            %     plot3(X_KAL, Y_KAL, Z_KAL, '.r');
-            %     xlabel('X [m]'); ylabel('Y [m]'); zlabel('Z [m]'); grid on
-            
-            %3D plot (ENU)
-            figure
-            plot3(EAST, NORTH, h_KAL, '.r');
-            xlabel('EAST [m]'); ylabel('NORTH [m]'); zlabel('h [m]'); grid on
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% REPRESENTATION OF RESIDUALS MEAN AND STANDARD DEVIATION
-        %----------------------------------------------------------------------------------------------
-        
-        if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
-            %code
-            
-            switch state.getForwardBackwardKF()
-                case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
-                case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
-                case  0, id = 1 : size(RES_CODE1,2);
-            end
-            
-            if (any(RES_CODE1(:)))
-                RES_CODE1_mean = nan(size(RES_CODE1,1),1);
-                RES_CODE1_stdv = nan(size(RES_CODE1,1),1);
-                for s = 1 : nSatTot
-                    row = RES_CODE1(s,id);
-                    row(outliers_CODE1(s,id) == 1) = [];
-                    row(isnan(row(1,:))) = [];
-                    RES_CODE1_mean(s,1) = mean(row);
-                    RES_CODE1_stdv(s,1) = std(row);
+                if (flag_cov == 1 && mode_user == 1)
+                    %trajectory plotting
+                    figure
+                    plot(EAST, NORTH, '.r'); axis equal
+                    xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
+                    
+                    hold on
+                    for i = 1 : size(Cee_ENU,3)         % ellipse definition
+                        T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
+                        n = size(x_circle,1);
+                        x_ellipse = zeros(n,2);         % pre-allocation
+                        for j = 1 : n                   % ellipse definition
+                            x_ellipse(j,:) = x_circle(j,:) * T + [EAST(i), NORTH(i)];
+                        end
+                        he = plot(x_ellipse(:,1),x_ellipse(:,2),'b');
+                        if (any(fixed_amb) && fixed_amb(i) == 0)
+                            set(he,'Color',[0.8 0.5 0])
+                        end
+                    end
+                    hold off
                 end
-                figure;
-                errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
-                grid on;
-                title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
-                xlabel('Satellite ID');
-                ylabel('[m]');
-            end
-            if (any(RES_CODE2(:)))
-                RES_CODE2_mean = nan(size(RES_CODE2,1),1);
-                RES_CODE2_stdv = nan(size(RES_CODE2,1),1);
-                for s = 1 : nSatTot
-                    row = RES_CODE2(s,id);
-                    row(outliers_CODE2(s,id) == 1) = [];
-                    row(isnan(row(1,:))) = [];
-                    RES_CODE2_mean(s,1) = mean(row);
-                    RES_CODE2_stdv(s,1) = std(row);
+                
+                %file saving (XYZ covariance)
+                fid_cov = fopen([filerootOUT '_cov_XYZ.txt'], 'wt');
+                fprintf(fid_cov, '       XX              XY              XZ              YY              YZ              ZZ\n');
+                for i = 1 : length(phi_KAL)
+                    fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_XYZ(1,1,i), Cee_XYZ(1,2,i), ...
+                        Cee_XYZ(1,3,i), Cee_XYZ(2,2,i), Cee_XYZ(2,3,i), Cee_XYZ(3,3,i));
                 end
-                figure;
-                errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
-                grid on;
-                title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
-                xlabel('Satellite ID');
-                ylabel('[m]');
-            end
-            %phase
-            if (any(RES_PHASE1(:)))
-                RES_PHASE1_mean = nan(size(RES_PHASE1,1),1);
-                RES_PHASE1_stdv = nan(size(RES_PHASE1,1),1);
-                for s = 1 : nSatTot
-                    row = RES_PHASE1(s,id);
-                    row(outliers_PHASE1(s,id) == 1) = [];
-                    row(isnan(row(1,:))) = [];
-                    RES_PHASE1_mean(s,1) = mean(row);
-                    RES_PHASE1_stdv(s,1) = std(row);
+                fclose(fid_cov);
+                
+                %file saving (ENU covariance)
+                fid_cov = fopen([filerootOUT '_cov_ENU.txt'], 'wt');
+                fprintf(fid_cov, ' EastEast       EastNorth          EastUp      NorthNorth         NorthUp            UpUp\n');
+                for i = 1 : length(phi_KAL)
+                    fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
+                        Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
                 end
-                figure;
-                errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
-                grid on;
-                title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
-                xlabel('Satellite ID');
-                ylabel('[m]');
-            end
-            if (any(RES_PHASE2(:)))
-                RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
-                RES_PHASE2_stdv = nan(size(RES_PHASE2,1),1);
-                for s = 1 : nSatTot
-                    row = RES_PHASE2(s,id);
-                    row(outliers_PHASE2(s,id) == 1) = [];
-                    row(isnan(row(1,:))) = [];
-                    RES_PHASE2_mean(s,1) = mean(row);
-                    RES_PHASE2_stdv(s,1) = std(row);
-                end
-                figure;
-                errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
-                grid on;
-                title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
-                xlabel('Satellite ID');
-                ylabel('[m]');
-            end
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% BUILD FILE_NAME_BASE
-        %----------------------------------------------------------------------------------------------
-        if (session == 1)
-            % Composing the name of the batch output
-            [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
-            marker_trg = file_name(1:4);
-            if state.isModeDD() && ~state.isModeSEID()
-                [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
-                marker_mst = [file_name(1:4) '_'];
-            else
-                marker_mst = '';
+                fclose(fid_cov);
             end
             
-            file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), state.getSessionStart());
-            file_name_base = [fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), state.getSessionStop()) filesep];
-            if ~(exist(file_name_base, 'dir') == 7)
-                mkdir(file_name_base);
-            end
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        %% STATISTICS COMPUTATION AND VISUALIZATION
-        %----------------------------------------------------------------------------------------------
-        
-        if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(gs.getReferencePath().path)) && (~isempty(EAST_KAL))
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
+            %----------------------------------------------------------------------------------------------
             
-            switch state.getForwardBackwardKF()
-                case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
-                case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
-                case  0, id = 1 : size(RES_CODE1,2);
-            end
-            
-            %coordinate transformation
-            ref_path = gs.getReferencePath().path;
-            [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
-            
-            ref = [EAST_REF NORTH_REF h_REF];
-            
-            [dist2D, ~] = ref_2d_projection(ref,EAST_UTM(id),NORTH_UTM(id));
-            
-            fprintf('\n');
-            fprintf('-------- STATISTICS ------------');
-            fprintf('\n');
-            fprintf('Mean2D: %7.4f m\n',mean(dist2D));
-            fprintf('Std2D:  %7.4f m\n',std(dist2D,1));
-            fprintf('RMS2D:  %7.4f m\n\n',sqrt(std(dist2D)^2+mean(dist2D)^2));
-            
-            [dist3D,proj] = ref_3d_projection(ref,EAST_UTM,NORTH_UTM,h_KAL);
-            
-            fprintf('Mean3D: %7.4f m\n',mean(dist3D));
-            fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
-            fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
-            fprintf('--------------------------------\n\n');
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        
-        if (exist('time_GPS', 'var') && isempty(time_GPS))
-            fprintf('\n');
-            fprintf('... WARNING: no epochs were available/usable for processing. The result files will be empty.\n');
-            fprintf('\n');
-        end
-        
-        %----------------------------------------------------------------------------------------------
-        % write report
-        report_generator(report);
-        %----------------------------------------------------------------------------------------------
-        
-        if (exist('fout_report','var')), fclose(fout_report); end
-        
-        if (mode_user && ~is_batch)
-            % close all the opened files
-            fclose('all');
-        end
-        
-        %re-enable MATLAB warnings
-        warning on
-        
-        %evaluate computation time
-        
-        if is_batch
-            nSol = size(date_R,1);
-            if (~state.isModeBlock())
+            if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1) && ~state.isModeBlock()
+                epochs = (time_GPS-time_GPS(1))/interval;
+                
+                time = GPS_Time(GPS_Time.GPS_ZERO, time_GPS);
+                id = 1 : numel(epochs);
                 switch state.getForwardBackwardKF()
                     case -1
-                        id_time = nSol;
-                        id_data = nSol*2;
+                        epochs = [flipud(epochs); epochs]; %#ok<AGROW>
+                        id = (numel(epochs)/2 +1) : numel(epochs);
                     case  1
-                        id_time = 1;
-                        id_data = nSol*2;
-                    case  0
-                        id_time = nSol;
-                        id_data = nSol;
+                        epochs = [epochs; flipud(epochs)]; %#ok<AGROW>
+                        time = GPS_Time(GPS_Time.GPS_ZERO, flipud(time_GPS));
+                        id = (numel(epochs)/2 +1) : numel(epochs);
                 end
-            else
-                id_time = nSol;
-                id_data = 1;
+                figure;
+                ax = zeros(3,1);
+                ax(1) = subplot(3,1,1); hold on; grid on
+                ax(2) = subplot(3,1,2); hold on; grid on
+                ax(3) = subplot(3,1,3); hold on; grid on
+                xlabel('epoch')
+                
+                %if relative positioning (i.e. with master station)
+                if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+                    subplot(ax(1))
+                    plot(epochs, EAST,'.'); title('EAST'); ylabel('[m]')
+                    subplot(ax(2))
+                    plot(epochs, NORTH,'.'); title('NORTH'); ylabel('[m]')
+                    subplot(ax(3))
+                    plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
+                    
+                    pos = find(fixed_amb == 1);
+                    plot(ax(1), epochs(pos), EAST(pos),'xr')
+                    plot(ax(2), epochs(pos), NORTH(pos),'xr')
+                    plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
+                    
+                    pos = find(pivot_OUT == 0);
+                    plot(ax(1), epochs(pos), EAST(pos),'.y')
+                    plot(ax(2), epochs(pos), NORTH(pos),'.y')
+                    plot(ax(3), epochs(pos), UP_KAL(pos),'.y')
+                    
+                    Fig_Lab.plotENU(time,[EAST(id) NORTH(id) UP_KAL(id)]);
+                else
+                    subplot(ax(1))
+                    plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
+                    subplot(ax(2))
+                    plot(epochs, NORTH_UTM,'.'); title('NORTH UTM'); ylabel('[m]')
+                    subplot(ax(3))
+                    plot(epochs, h_KAL,'.'); title('ellipsoidal height'); ylabel('[m]')
+                    
+                    pos = find(fixed_amb == 1);
+                    plot(ax(1), epochs(pos), EAST_UTM(pos),'xr')
+                    plot(ax(2), epochs(pos), NORTH_UTM(pos),'xr')
+                    plot(ax(3), epochs(pos), h_KAL(pos),'xr')
+                    
+                    pos = find(pivot_OUT == 0);
+                    plot(ax(1), epochs(pos), EAST_UTM(pos),'.y')
+                    plot(ax(2), epochs(pos), NORTH_UTM(pos),'.y')
+                    plot(ax(3), epochs(pos), h_KAL(pos),'.y')
+                    
+                    Fig_Lab.plotENU(time,[EAST(id) NORTH(id) h_KAL(id)]);
+                end
+                linkaxes(ax,'x');
             end
             
-            tropo_vec_ZTD = nan(1,86400/interval);
-            tropo_vec_ZWD = nan(1,86400/interval);
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF THE REFERENCE TRAJECTORY
+            %----------------------------------------------------------------------------------------------
+            
+            % %if any positioning was done (either post-processing or real-time, but constrained)
+            % if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && mode_ref == 1)
+            %     [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
+            %
+            %     %reference data plot
+            %     plot(EAST_ref, NORTH_ref, 'm', 'LineWidth', 2)
+            %
+            %     hold off
+            % end
+            
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF THE 2D TRAJECTORY
+            %----------------------------------------------------------------------------------------------
+            
+            %if any positioning was done (either post-processing or real-time, not constrained)
+            if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~state.isModeBlock()
+                %2D plot
+                figure
+                plot(EAST, NORTH, '.r');
+                xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF THE 3D TRAJECTORY
+            %----------------------------------------------------------------------------------------------
+            
+            %if any positioning was done (either post-processing or real-time, not constrained)
+            if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1) && ~state.isModeBlock()
+                
+                %     %3D plot (XYZ)
+                %     figure
+                %     plot3(X_KAL, Y_KAL, Z_KAL, '.r');
+                %     xlabel('X [m]'); ylabel('Y [m]'); zlabel('Z [m]'); grid on
+                
+                %3D plot (ENU)
+                figure
+                plot3(EAST, NORTH, h_KAL, '.r');
+                xlabel('EAST [m]'); ylabel('NORTH [m]'); zlabel('h [m]'); grid on
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            %% REPRESENTATION OF RESIDUALS MEAN AND STANDARD DEVIATION
+            %----------------------------------------------------------------------------------------------
+            
+            if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
+                %code
+                
+                switch state.getForwardBackwardKF()
+                    case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
+                    case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
+                    case  0, id = 1 : size(RES_CODE1,2);
+                end
+                
+                if (any(RES_CODE1(:)))
+                    RES_CODE1_mean = nan(size(RES_CODE1,1),1);
+                    RES_CODE1_stdv = nan(size(RES_CODE1,1),1);
+                    for s = 1 : nSatTot
+                        row = RES_CODE1(s,id);
+                        row(outliers_CODE1(s,id) == 1) = [];
+                        row(isnan(row(1,:))) = [];
+                        RES_CODE1_mean(s,1) = mean(row);
+                        RES_CODE1_stdv(s,1) = std(row);
+                    end
+                    figure;
+                    errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
+                    grid on;
+                    title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
+                    xlabel('Satellite ID');
+                    ylabel('[m]');
+                end
+                if (any(RES_CODE2(:)))
+                    RES_CODE2_mean = nan(size(RES_CODE2,1),1);
+                    RES_CODE2_stdv = nan(size(RES_CODE2,1),1);
+                    for s = 1 : nSatTot
+                        row = RES_CODE2(s,id);
+                        row(outliers_CODE2(s,id) == 1) = [];
+                        row(isnan(row(1,:))) = [];
+                        RES_CODE2_mean(s,1) = mean(row);
+                        RES_CODE2_stdv(s,1) = std(row);
+                    end
+                    figure;
+                    errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
+                    grid on;
+                    title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
+                    xlabel('Satellite ID');
+                    ylabel('[m]');
+                end
+                %phase
+                if (any(RES_PHASE1(:)))
+                    RES_PHASE1_mean = nan(size(RES_PHASE1,1),1);
+                    RES_PHASE1_stdv = nan(size(RES_PHASE1,1),1);
+                    for s = 1 : nSatTot
+                        row = RES_PHASE1(s,id);
+                        row(outliers_PHASE1(s,id) == 1) = [];
+                        row(isnan(row(1,:))) = [];
+                        RES_PHASE1_mean(s,1) = mean(row);
+                        RES_PHASE1_stdv(s,1) = std(row);
+                    end
+                    figure;
+                    errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
+                    grid on;
+                    title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
+                    xlabel('Satellite ID');
+                    ylabel('[m]');
+                end
+                if (any(RES_PHASE2(:)))
+                    RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
+                    RES_PHASE2_stdv = nan(size(RES_PHASE2,1),1);
+                    for s = 1 : nSatTot
+                        row = RES_PHASE2(s,id);
+                        row(outliers_PHASE2(s,id) == 1) = [];
+                        row(isnan(row(1,:))) = [];
+                        RES_PHASE2_mean(s,1) = mean(row);
+                        RES_PHASE2_stdv(s,1) = std(row);
+                    end
+                    figure;
+                    errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
+                    grid on;
+                    title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
+                    xlabel('Satellite ID');
+                    ylabel('[m]');
+                end
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            %% BUILD FILE_NAME_BASE
+            %----------------------------------------------------------------------------------------------
             if (session == 1)
-                fid_extract = fopen(sprintf('%sextraction.txt', file_name_base),'w');
+                % Composing the name of the batch output
+                [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
+                marker_trg = file_name(1:4);
+                if state.isModeDD() && ~state.isModeSEID()
+                    [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
+                    marker_mst = [file_name(1:4) '_'];
+                else
+                    marker_mst = '';
+                end
+                
+                file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), state.getSessionStart());
+                file_name_base = [fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), state.getSessionStop()) filesep];
+                if ~(exist(file_name_base, 'dir') == 7)
+                    mkdir(file_name_base);
+                end
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            %% STATISTICS COMPUTATION AND VISUALIZATION
+            %----------------------------------------------------------------------------------------------
+            
+            if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(gs.getReferencePath().path)) && (~isempty(EAST_KAL))
+                
+                switch state.getForwardBackwardKF()
+                    case -1, id = (size(RES_CODE1,2)/2 +1) : size(RES_CODE1,2);
+                    case  1, id = size(RES_CODE1,2) : -1 : (size(RES_CODE1,2)/2 +1);
+                    case  0, id = 1 : size(RES_CODE1,2);
+                end
+                
+                %coordinate transformation
+                ref_path = gs.getReferencePath().path;
+                [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
+                
+                ref = [EAST_REF NORTH_REF h_REF];
+                
+                [dist2D, ~] = ref_2d_projection(ref,EAST_UTM(id),NORTH_UTM(id));
+                
+                fprintf('\n');
+                fprintf('-------- STATISTICS ------------');
+                fprintf('\n');
+                fprintf('Mean2D: %7.4f m\n',mean(dist2D));
+                fprintf('Std2D:  %7.4f m\n',std(dist2D,1));
+                fprintf('RMS2D:  %7.4f m\n\n',sqrt(std(dist2D)^2+mean(dist2D)^2));
+                
+                [dist3D,proj] = ref_3d_projection(ref,EAST_UTM,NORTH_UTM,h_KAL);
+                
+                fprintf('Mean3D: %7.4f m\n',mean(dist3D));
+                fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
+                fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
+                fprintf('--------------------------------\n\n');
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            
+            if (exist('time_GPS', 'var') && isempty(time_GPS))
+                fprintf('\n');
+                fprintf('... WARNING: no epochs were available/usable for processing. The result files will be empty.\n');
+                fprintf('\n');
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            % write report
+            report_generator(report);
+            %----------------------------------------------------------------------------------------------
+            
+            if (exist('fout_report','var')), fclose(fout_report); end
+            
+            if (mode_user && ~is_batch)
+                % close all the opened files
+                fclose('all');
+            end
+            
+            %re-enable MATLAB warnings
+            warning on
+            
+            %evaluate computation time
+            
+            if is_batch
+                nSol = size(date_R,1);
+                if (~state.isModeBlock())
+                    switch state.getForwardBackwardKF()
+                        case -1
+                            id_time = nSol;
+                            id_data = nSol*2;
+                        case  1
+                            id_time = 1;
+                            id_data = nSol*2;
+                        case  0
+                            id_time = nSol;
+                            id_data = nSol;
+                    end
+                else
+                    id_time = nSol;
+                    id_data = 1;
+                end
+                
+                tropo_vec_ZTD = nan(1,86400/interval);
+                tropo_vec_ZWD = nan(1,86400/interval);
+                if (session == 1)
+                    fid_extract = fopen(sprintf('%sextraction.txt', file_name_base),'w');
+                    
+                    if (state.isModeBlock())
+                        s_rate = state.getSolutionRate();
+                        for s = 1 : numel(s_rate)
+                            fid_extract_hr(s) = fopen(sprintf('%sextraction_hr_at%d.txt', file_name_base, s_rate(s)),'w');
+                        end
+                        fid_extract_float = fopen(sprintf('%sextraction_float.txt', file_name_base),'w');
+                        fid_extract_fix = fopen(sprintf('%sextraction_fix.txt', file_name_base),'w');
+                    end
+                    
+                    fid_extract_ZTD = fopen(sprintf('%sZTD.txt', file_name_base),'w');
+                    fid_extract_ZWD = fopen(sprintf('%sZWD.txt', file_name_base),'w');
+                    
+                    fid_extract_POS = fopen(sprintf('%sposition.txt', file_name_base),'w');
+                    fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
+                    fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
+                    
+                    fid_extract_OBS = fopen(sprintf('%squalityOBS.txt', file_name_base),'w');
+                    fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
+                    fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
+                end
+                
+                % Take the central value of the RINEX as reference time for the solution
+                if (state.isModeBlock())
+                    date_R = datevec(GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR(1e100))/86400);
+                    id_time = 1;
+                end
+                if exist('estim_tropo','var') && (state.isTropoOn())
+                    
+                    tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
+                    fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
+                    fprintf(fid_extract_ZTD,'\n');
+                    if (~isempty(ZHD))
+                        tropo_vec_ZWD(1,1:length(estim_tropo)) = estim_tropo-ZHD';
+                        fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
+                        fprintf(fid_extract_ZWD,'\n');
+                    end
+                end
+                
+                if exist('X_KAL','var')
+                    fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
+                    nSol = size(Xhat_t_t_OUT,2);
+                    for e = 1 : nSol / (1 + state.isForwardBackwardKF())
+                        id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
+                        fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-nC-2,id));
+                    end
+                    delete([filerootOUT '_*.bin']);
+                end
                 
                 if (state.isModeBlock())
                     s_rate = state.getSolutionRate();
                     for s = 1 : numel(s_rate)
-                        fid_extract_hr(s) = fopen(sprintf('%sextraction_hr_at%d.txt', file_name_base, s_rate(s)),'w');
-                    end
-                    fid_extract_float = fopen(sprintf('%sextraction_float.txt', file_name_base),'w');
-                    fid_extract_fix = fopen(sprintf('%sextraction_fix.txt', file_name_base),'w');
-                end
-                
-                fid_extract_ZTD = fopen(sprintf('%sZTD.txt', file_name_base),'w');
-                fid_extract_ZWD = fopen(sprintf('%sZWD.txt', file_name_base),'w');
-                
-                fid_extract_POS = fopen(sprintf('%sposition.txt', file_name_base),'w');
-                fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n');
-                fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
-                
-                fid_extract_OBS = fopen(sprintf('%squalityOBS.txt', file_name_base),'w');
-                fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
-                fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
-            end
-            
-            % Take the central value of the RINEX as reference time for the solution
-            if (state.isModeBlock())
-                date_R = datevec(GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR(1e100))/86400);
-                id_time = 1;
-            end
-            if exist('estim_tropo','var') && (state.isTropoOn())
-                                
-                tropo_vec_ZTD(1,1:length(estim_tropo)) = estim_tropo;
-                fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
-                fprintf(fid_extract_ZTD,'\n');
-                if (~isempty(ZHD))
-                    tropo_vec_ZWD(1,1:length(estim_tropo)) = estim_tropo-ZHD';
-                    fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
-                    fprintf(fid_extract_ZWD,'\n');
-                end
-            end
-            
-            if exist('X_KAL','var')
-                fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), X_KAL(id_data), Y_KAL(id_data), Z_KAL(id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_KAL(id_data));
-                nSol = size(Xhat_t_t_OUT,2);
-                for e = 1 : nSol / (1 + state.isForwardBackwardKF())
-                    id = (state.getForwardBackwardKF() > 0) * (nSol + 1 - 2 * e) + (state.getForwardBackwardKF() < 0) * (nSol/2) + e;
-                    fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(id), NORTH_UTM(id), h_KAL(id), Xhat_t_t_OUT(end-nC-2,id));
-                end
-                delete([filerootOUT '_*.bin']);
-            end
-            
-            if (state.isModeBlock())
-                s_rate = state.getSolutionRate();
-                for s = 1 : numel(s_rate)
-                    if (s > 1)
-                        go_block.solveHighRate(s_rate(s));
-                    end
-                    pos = go_block.getPosHR()';
-                    ko_pos = isnan(sum(pos));
-                    pos(:,ko_pos) = [];
-                    tmp = (GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR())/86400);
-                    date_s = datevec(tmp(~ko_pos));
-                    
-                    if ~isempty(pos)
-                        [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                        if (s > 1)
+                            go_block.solveHighRate(s_rate(s));
+                        end
+                        pos = go_block.getPosHR()';
+                        ko_pos = isnan(sum(pos));
+                        pos(:,ko_pos) = [];
+                        tmp = (GPS_Time.GPS_ZERO + (zero_time + go_block.getTimeHR())/86400);
+                        date_s = datevec(tmp(~ko_pos));
                         
-                        %coordinate transformation (UTM)
-                        [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :)', pos(2, :)', pos(3, :)');
-                        fprintf(fid_extract_hr(s), '%c%c%c%c%c%c%c%c  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', ...
-                            [double(repmat(fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), size(pos,2), 1)), ...
-                            date_s(:,1), date_s(:,2), date_s(:,3), date_s(:,4), date_s(:,5), date_s(:,6), ...
-                            pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
+                        if ~isempty(pos)
+                            [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                            
+                            %coordinate transformation (UTM)
+                            [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :)', pos(2, :)', pos(3, :)');
+                            fprintf(fid_extract_hr(s), '%c%c%c%c%c%c%c%c  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', ...
+                                [double(repmat(fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), size(pos,2), 1)), ...
+                                date_s(:,1), date_s(:,2), date_s(:,3), date_s(:,4), date_s(:,5), date_s(:,6), ...
+                                pos(1, :)', pos(2, :)', pos(3, :)', EAST_UTM(:), NORTH_UTM(:), h_BLK(:)]');
+                        end
                     end
-                end
-                                    
-                pos = go_block.getFloatPos()';
-                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
-                
-                %coordinate transformation (UTM)
-                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
-                fprintf(fid_extract_float,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
-                
-                pos = go_block.getFixPos()';
                     
-                [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
-                
-                %coordinate transformation (UTM)
-                [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
-                fprintf(fid_extract_fix,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
-            end
-            
-            % append report information in the database
-            fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
-            if fid_rep_i~=-1
-                line=fgetl(fid_rep_i);
-                while (isempty(strfind(line,'Observations (RAW)              Start time'))) %#ok<STREMP>
-                    line = fgetl(fid_rep_i);
-                end
-                line=fgetl(fid_rep_i);
-                line1=fgetl(fid_rep_i);
-                line1(33:80)='';
-                line2=fgetl(fid_rep_i);
-                if ~isempty(line2)
-                    line2(33:80)='';
+                    pos = go_block.getFloatPos()';
+                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                    
+                    %coordinate transformation (UTM)
+                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
+                    fprintf(fid_extract_float,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
+                    
+                    pos = go_block.getFixPos()';
+                    
+                    [~, ~, h_BLK] = cart2geod(pos(1, :), pos(2, :), pos(3, :));
+                    
+                    %coordinate transformation (UTM)
+                    [EAST_UTM, NORTH_UTM] = cart2plan(pos(1, :), pos(2, :), pos(3, :));
+                    fprintf(fid_extract_fix,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(id_time,1), date_R(id_time,2), date_R(id_time,3), date_R(id_time,4), date_R(id_time,5), date_R(id_time,6), pos(1, id_data), pos(2, id_data), pos(3, id_data), EAST_UTM(id_data), NORTH_UTM(id_data), h_BLK(id_data));
                 end
                 
-                fprintf(fid_extract_OBS,' %s  %s     %s\n',fnp.dateKeyRep('${YY}-${DOY}',cur_date_start), line1, line2);
-                fclose(fid_rep_i);
+                % append report information in the database
+                fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
+                if fid_rep_i~=-1
+                    line=fgetl(fid_rep_i);
+                    while (isempty(strfind(line,'Observations (RAW)              Start time'))) %#ok<STREMP>
+                        line = fgetl(fid_rep_i);
+                    end
+                    line=fgetl(fid_rep_i);
+                    line1=fgetl(fid_rep_i);
+                    line1(33:80)='';
+                    line2=fgetl(fid_rep_i);
+                    if ~isempty(line2)
+                        line2(33:80)='';
+                    end
+                    
+                    fprintf(fid_extract_OBS,' %s  %s     %s\n',fnp.dateKeyRep('${YY}-${DOY}',cur_date_start), line1, line2);
+                    fclose(fid_rep_i);
+                end
+                close all
             end
-            close all
         end
     end
     logger.newLine();

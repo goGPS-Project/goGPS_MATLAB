@@ -61,7 +61,7 @@ ph1_RM = ph1_R; ph1_RM(:,:,n_sta) = ph1_M;
 pr2_RM = pr2_R; pr2_RM(:,:,n_sta) = pr2_M;
 ph2_RM = ph2_R; ph2_RM(:,:,n_sta) = ph2_M;
 snr1_RM = snr1_R; snr1_RM(:,:,n_sta) = snr1_M;
-pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,:,1);
+pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,1,1);
 
 for k = 1 : n_sta
 
@@ -95,7 +95,7 @@ for k = 1 : n_sta
             end
 
             %compute satellite azimuth and elevation
-            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, p_rate flag_XR, 0, 0);
+            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, p_rate, flag_XR, 0, 0);
 
 %             if ((any(ph1_RM(sat,t,k) == 0) || any(ph2_RM(sat,t,k) == 0) || ...
 %                  any(pr1_RM(sat,t,k) == 0) || any(pr2_RM(sat,t,k) == 0)) && k == target_sta)
