@@ -1048,6 +1048,24 @@ for session = 1 : num_session
                     Eph(32,:) = Eph(32,:) - zero_time;
                     Eph(33,:) = Eph(33,:) - zero_time;
                     
+                    logger.addMessage(['Pre-processing master observations (file ' filename_obs{end} ')...']);
+                    w_bar.setBarLen(length(time_GPS));
+                    w_bar.createNewBar('Pre-processing master...');
+                    
+                    %apply P1C1 DCBs if needed
+                    if (flag_SP3 && ~isempty(DCB) && any(codeC1_M(:)))
+                        avail_sat = any(lambda,2);
+                        pr1_M(avail_sat,:) = pr1_M(avail_sat,:) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M(avail_sat,:);
+                    end
+                    
+                    if (~flag_SEID)
+                        flag_XM_prep = 2;
+                            [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    else
+                        flag_XM_prep = 1;
+                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
+                    end
+                    
                     for f = 1 : size(time_R,3)
                         %pre-processing
                         logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
@@ -1067,7 +1085,7 @@ for session = 1 : num_session
                             pr1_R(avail_sat,:,f) = pr1_R(avail_sat,:,f) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(avail_sat,:,f);
                         end
                         
-                        [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
+                        [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
                         
                         if report.opt.write == 1
                             report.prep.spp_threshold = SPP_threshold;
@@ -1089,39 +1107,21 @@ for session = 1 : num_session
                             report.prep.CS_R{f}=status_cs;
                         end
                         
+                        %-------------------------------------------------------------------------------------------
+                        %% CYCLE SLIP / OUTLIERS DETECTION
+                        %-------------------------------------------------------------------------------------------
+                        
+                        [ph1_R(:,:,f), ph1_M] = cycleSlipDetectSingleDiff(ph1_R(:,:,f), ph1_M);
+                        if frequencies > 1
+                            [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M_0);
+                        end
+                        
+                        %[ph1_R(:,:,f), ph1_M] = cycle_slip_detect_single_diff(ph1_R(:,:,f), ph1_M, interval);
+                        %[ph2_R(:,:,f), ph2_M] = cycle_slip_detect_single_diff(ph2_R(:,:,f), ph2_M, interval);
+                        
                         w_bar.close();
                     end
-                    
-                    logger.addMessage(['Pre-processing master observations (file ' filename_obs{end} ')...']);
-                    w_bar.setBarLen(length(time_GPS));
-                    w_bar.createNewBar('Pre-processing master...');
-                    
-                    %apply P1C1 DCBs if needed
-                    if (flag_SP3 && ~isempty(DCB) && any(codeC1_M(:)))
-                        avail_sat = any(lambda,2);
-                        pr1_M(avail_sat,:) = pr1_M(avail_sat,:) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M(avail_sat,:);
-                    end
-                    
-                    if (~flag_SEID)
-                        flag_XM_prep = 2;
-                            [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m(:,:,f), az_m(:,:,f), bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
-                    else
-                        flag_XM_prep = 1;
-                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m(:,:,f), az_m(:,:,f), bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
-                    end
-                    
-                    %-------------------------------------------------------------------------------------------
-                    %% CYCLE SLIP / OUTLIERS DETECTION
-                    %-------------------------------------------------------------------------------------------
-                    
-                    [ph1_R, ph1_M] = cycleSlipDetectSingleDiff(ph1_R, ph1_M);
-                    if frequencies > 1
-                        [ph2_R, ph2_M] = cycleSlipDetectSingleDiff(ph1_R_0, ph1_M_0);
-                    end
-                    
-                    %[ph1_R, ph1_M] = cycle_slip_detect_single_diff(ph1_R, ph1_M, interval);
-                    %[ph2_R, ph2_M] = cycle_slip_detect_single_diff(ph2_R, ph2_M, interval);
-                    
+
                     if report.opt.write == 1
                         report.prep.tot_epoch_M=size(pr1_M,2);
                         report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
