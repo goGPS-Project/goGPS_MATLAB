@@ -352,58 +352,62 @@ classdef Meteo_Data < handle
         function export(this, file_name)
             % Export data to a meteorological RINEX
             % SYNTAX: this.toString(str)
-
+            
             narginchk(1,2);
-            fnp = File_Name_Processor;
-
-            % Find the time span of the observations
-            [yyyy, doy] =  this.time.getDOY;
-            [~, day_start, day_id] = unique(yyyy*1e4+doy);
-
-            if (nargin == 1)
-                state = Go_State.getCurrentSettings();
-                file_name =  this.marker_name;
-                % generate short 4 letters name
-                if numel(file_name) < 4
-                    file_name = sprintf(['%0' num2str(4-numel(file_name)) 'd%s'], 0, file_name);
-                else
-                    file_name = file_name(1:4);
-                end
-                file_name = [state.getMetDir() filesep '${YYYY}_${DOY}' filesep file_name '_${DOY}0.${YY}m'];
-            end
-
-            for d = 1 : numel(day_start)
-                id = day_id == d;
-                cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getId(day_start(d)));
-
-                dir_container = fileparts(cur_file_name);
-                if ~exist(dir_container, 'dir')
-                    mkdir(dir_container);
-                end
-
-                this.logger.addMessage(sprintf('Exporting met data to %s', cur_file_name));
-                try
-                    fid = fopen(cur_file_name, 'w');
-                    str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
-                        'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
-                    if ~isempty(this.marker_name)
-                        str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
+            if this.time.isempty()
+                this.logger.addError(sprintf('Export failed - missing data - %s', this.marker_name));
+            else
+                fnp = File_Name_Processor;
+                
+                % Find the time span of the observations
+                [yyyy, doy] =  this.time.getDOY;
+                [~, day_start, day_id] = unique(yyyy*1e4+doy);
+                
+                if (nargin == 1)
+                    state = Go_State.getCurrentSettings();
+                    file_name =  this.marker_name;
+                    % generate short 4 letters name
+                    if numel(file_name) < 4
+                        file_name = sprintf(['%0' num2str(4-numel(file_name)) 'd%s'], 0, file_name);
+                    else
+                        file_name = file_name(1:4);
                     end
-
-                    line = sprintf('%6d', this.n_type);
-                    for t = 1 : this.n_type
-                        line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
+                    file_name = [state.getMetDir() filesep '${YYYY}_${DOY}' filesep file_name '_${DOY}0.${YY}m'];
+                end
+                
+                for d = 1 : numel(day_start)
+                    id = day_id == d;
+                    cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getId(day_start(d)));
+                    
+                    dir_container = fileparts(cur_file_name);
+                    if ~exist(dir_container, 'dir')
+                        mkdir(dir_container);
                     end
-                    str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
-                    str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.amsl);
-                    str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
-                    fwrite(fid, str);
-                    epochs = this.time.getId(id).toString(' yyyy mm dd HH MM SS ')';
-                    str = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
-                    fwrite(fid, str);
-                    fclose(fid);
-                catch ex
-                    this.logger.addError(sprintf('Export failed - %s', ex.message));
+                    
+                    this.logger.addMessage(sprintf('Exporting met data to %s', cur_file_name));
+                    try
+                        fid = fopen(cur_file_name, 'w');
+                        str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
+                            'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
+                        if ~isempty(this.marker_name)
+                            str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
+                        end
+                        
+                        line = sprintf('%6d', this.n_type);
+                        for t = 1 : this.n_type
+                            line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
+                        end
+                        str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
+                        str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.amsl);
+                        str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
+                        fwrite(fid, str);
+                        epochs = this.time.getId(id).toString(' yyyy mm dd HH MM SS ')';
+                        str = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
+                        fwrite(fid, str);
+                        fclose(fid);
+                    catch ex
+                        this.logger.addError(sprintf('Export failed - %s', ex.message));
+                    end
                 end
             end
         end
