@@ -489,6 +489,12 @@ classdef Eph_Tab < handle
             this.coord(k+1:nEpochs,:,:) = [];
             this.clock(:,k+1:nEpochs) = [];
             
+            %%% compute center of mass position (X_sat - PCO)
+            this.sun_moon_pos;
+            [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
+            temp_antPco=repmat(this.antPCO,length(this.time),1,1);
+            this.coord=this.coord + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
+            clearvars temp_antPco
             if (nargin > 7)
                 waitbar(1,wait_dlg)
             end
@@ -674,7 +680,7 @@ classdef Eph_Tab < handle
             q = round((time - t_sun(1)) / this.coord_rate) + 1;
             un_q=unique(q);
             sx = zeros(size(X_sat)); sy = sx; sz = sx;
-            for idx=un_q
+            for idx = un_q'
                 q_idx=q==idx;
                 x_sun = X_sun(:,idx)';
                 x_sat = X_sat(q_idx,:,:);
@@ -955,7 +961,7 @@ classdef Eph_Tab < handle
             %%% compute center of mass position (X_sat - PCO)
             [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
             temp_antPco=repmat(this.antPCO,length(this.time),1,1);
-            com_coord=this.coord + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
+            com_coord=this.coord - cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
             clearvars temp_antPco
             %%% write to file
             rate_ratio = round(rate_ratio);
