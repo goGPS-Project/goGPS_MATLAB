@@ -101,7 +101,10 @@ while (feof(fidIN) == 0)
 			fprintf(fidOUT,'%s',line);
 			line = fgets(fidIN);
 			%fprintf('%s',line);    % debugging
-		end
+        end
+        if (feof(fidIN) == 1) && ~isempty(line)
+            fprintf(fidOUT,'%s',line);
+        end
 	else                            % if it is a data message
 		line = fgets(fidIN);
 		%fprintf('%s',line);        % debugging
