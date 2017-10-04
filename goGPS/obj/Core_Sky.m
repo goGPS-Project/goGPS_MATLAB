@@ -628,12 +628,12 @@ classdef Core_Sky < handle
             DCB.P1P2.prn   = zeros(this.cc.getNumSat(), 1);
             DCB.P1P2.sys   = zeros(this.cc.getNumSat(), 1);
             
-             %detect starting and ending year/month
+            %detect starting and ending year/month
             start_time=GPS_Time(this.time(1)/86400+GPS_Time.GPS_ZERO);
             [year_start,month_start,~,~,~,~]=start_time.getCalEpoch();
             end_time=GPS_Time(this.time(1)/86400+GPS_Time.GPS_ZERO);
             [end_start,end_start,~,~,~,~]=start_time.getCalEpoch();
-
+            
             %directory containing DCB files
             data_dir = dir(data_dir_dcb);
             
@@ -782,10 +782,10 @@ classdef Core_Sky < handle
             
             function importIono(this,f_name)
                 %%% to be implemeted
-               [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
+                [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
                 if (flag_return)
-                        return
-                  end
+                    return
+                end
             end
             
             function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph)
@@ -989,7 +989,7 @@ classdef Core_Sky < handle
             function [dt_S_SP3] = interpolate_SP3_clock(this,time, sat)
                 
                 % SYNTAX:
-                %   [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat);
+                %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
                 %
                 % INPUT:
                 %   time  = interpolation timespan (GPS time, continuous since 6-1-1980)
@@ -1074,38 +1074,44 @@ classdef Core_Sky < handle
                     end
                 end
             end
-            function [X_sat]=polyInterpolate(this,t)
+            function [X_sat, V_sat]=polyInterpolate(this,t,sat)
                 % SYNTAX:
                 %   [X_sat]=Eph_Tab.polInterpolate(t,sat)
                 %
                 % INPUT:
                 %    t = vector of times where to interpolate
-                %    sat = sat to be interpolated (optional)
+                %    sat = satellite to be interpolated (optional) (TBD
+                %    multiple satellite seletcion)
                 % OUTPUT:
                 %
                 % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
+                n_sat=this.cc.getNumSat;
+                if nargin <3
+                    sat_idx=ones(n_sat,1)>0;
+                else
+                    sat_idx=1:n_sat==sat;
+                end
                 t_fd=t-this.time(6); % time from start of the day
                 nt=length(t_fd);
-                c_idx=round(t_fd/this.coord_rate)+1;%coefficient index
+                c_idx=round(t_fd/this.coord_rate)+1;%coefficient set  index
                 %l_idx=idx-5;
                 %u_id=idx+10;
-                n_sat=this.cc.getNumSat;
+                
                 X_sat=zeros(nt,n_sat,3);
+                V_sat=zeros(nt,n_sat,3);
                 un_idx=unique(c_idx);
                 for idx=un_idx
                     t_idx=c_idx==idx;
                     times=t(t_idx);
                     t_fct=((times-this.time(5+idx))/this.coord_rate)';%time from coefficient time
+                    %%%% compute position
                     eval_vec = [ones(size(t_fct)) t_fct t_fct.^2 t_fct.^3 t_fct.^4 t_fct.^5 t_fct.^6 t_fct.^7 t_fct.^8 t_fct.^9 t_fct.^10];
-                    X_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.pol_coeff(:,:,:,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                    X_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.pol_coeff(:,:,sat_idx,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                    %%% compute velocity
+                    eval_vec = [ones(size(t_fct)) t_fct/2 t_fct.^2/3 t_fct.^3/4 t_fct.^4/5 t_fct.^5/6 t_fct.^6/7 t_fct.^7/8 t_fct.^8/9 t_fct.^9/10];
+                    V_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.pol_coeff(2:end,:,sat_idx,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                    
                 end
-                %{
-            %%% apply pco correction, not requir since coordinates refers
-            already to phase antenna center
-            [sx ,sy, sz] = this.satellite_fixed_frameV(t,X_sat);
-            temp_antPco=repmat(this.antenna_PCO,10001,1,1);
-            X_sat=X_sat + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
-                %}
             end
             function sun_moon_pos(this)
                 
@@ -1179,170 +1185,238 @@ classdef Core_Sky < handle
                 
                 %this.t_sun_rate =
             end
-            function importSP3Struct(this, sp3)
-                this.time = sp3.time;
-                this.coord =sp3.coord;
-                this.clock = sp3.clock,
-                this.prn = sp3.prn;
-                this.sys = sp3.sys;
-                this.time_hr = sp3.time_hr;
-                this.clock_hr = sp3.clock_hr;
-                this.coord_rate = sp3.coord_rate;
-                this.clock_rate = sp3.clock_rate;
-                this.t_sun = sp3.t_sun;
-                this.X_sun = sp3.X_sun;
-                this.X_moon = sp3.X_moon;
-                this.ERP = sp3.ERP;
-                this.antenna_PCO = sp3.antenna_PCO;
+            function [eclipsed] = check_eclipse_condition(times, XS, sat)
                 
-                
-            end
-            function load_antenna_PCV(this, filename_pco)
-                antmod_S = this.cc.getAntennaId();
-                this.antenna_PCV=read_antenna_PCV(filename_pco, antmod_S, this.time(1));
-                this.antenna_PCO= zeros(1,size(this.antenna_PCV,2),3);
-                this.satType = cell(1,size(this.antenna_PCV,2));
-                if isempty(this.avail)
-                    this.avail=zeros(size(this.antenna_PCV,2),1)
-                end
-                for sat = 1 : size(this.antenna_PCV,2)
-                    if (this.antenna_PCV(sat).n_frequency ~= 0)
-                        this.antenna_PCO(:,sat,:) = athis.antenna_PCV(sat).offset(:,:,1);
-                        this.satType{1,sat} = this.antenna_PCV(sat).type;
-                    else
-                        this.avail(sat) = 0;
-                    end
-                end
-            end
-            function writeSP3(this, f_name, prec)
                 % SYNTAX:
-                %   eph_tab.writeSP3(f_name, prec)
+                %   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate);
                 %
                 % INPUT:
-                %   f_name       = file name of the sp3 file to be written
-                %   prec        = precision (cm) of satellite orbit for all
-                %   satellites (default 100)
+                %   times     = GPS times
+                %   XS       = satellite position (X,Y,Z)
+                %   SP3      = structure containing precise ephemeris data
+                %   p_rate   = processing interval [s]
+                %   sat      = satellite PRN
                 %
+                % OUTPUT:
+                %   eclipsed = boolean value to define satellite eclipse condition (0: OK, 1: eclipsed)
                 %
                 % DESCRIPTION:
-                %   Write the current satellite postions and clocks bias into a sp3
-                %   file
-                if nargin<3
-                    prec=100;
-                end
-                %%% check if clock rate and coord rate are compatible
-                rate_ratio=this.coord_rate/this.clock_rate;
-                if abs(rate_ratio-round(rate_ratio)) > 0.00000001
-                    this.logger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
-                    return
-                end
-                %%% check if sun and moon positions ahve been computed
-                if isempty(this.X_sun) || this.X_sun(1,1)==0
-                    this.sun_moon_pos();
-                end
-                %%% compute center of mass position (X_sat - PCO)
-                [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
-                temp_antPco=repmat(this.antenna_PCO,length(this.time),1,1);
-                com_coord=this.coord - cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
-                clearvars temp_antPco
-                %%% write to file
-                rate_ratio = round(rate_ratio);
-                fid=fopen(f_name,'w');
-                this.writeHeader(fid, prec);
+                %   Check if the input satellite is under eclipse condition
                 
-                for i=1:length(this.time)
-                    this.writeEpoch(fid,[squeeze(com_coord(i,:,:)/1000) this.clock(:,(i-1)/rate_ratio+1)*1000000],i); %% convert coord in km and clock in microsecodns
-                end
-                fprintf(fid,'EOF\n');
-                fclose(fid);
+                eclipsed = 0;
                 
+                t_sun = this.t_sun;
+                X_sun = this.X_sun;
+                
+                %[~, q] = min(abs(t_sun - time));
+                % speed improvement of the above line
+                % supposing t_sun regularly sampled
+                q_idx = round((time - t_sun(1)) / this.t_sun_rate) + 1;
+                
+                X_sun = X_sun(:,q);
+                
+                %satellite geocentric position
+                XS_n = norm(XS);
+                XS_u = XS / XS_n;
+                
+                %sun geocentric position
+                X_sun_n = norm(X_sun);
+                X_sun_u = X_sun / X_sun_n;
+                
+                %satellite-sun angle
+                %cosPhi = dot(XS_u, X_sun_u);
+                % speed improvement of the above line
+                cosPhi = sum(conj(XS_u').*X_sun_u);
+                
+                
+                %threshold to detect noon/midnight maneuvers
+                if (~isempty(strfind(this.satType{sat},'BLOCK IIA')))
+                    t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+                elseif (~isempty(strfind(this.satType{sat},'BLOCK IIR')))
+                    t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+                elseif (~isempty(strfind(this.satType{sat},'BLOCK IIF')))
+                    t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+                else
+                    t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
+                end
+                un_idx=unique(c_idx);
+                for idx=un_idx
+                %shadow crossing affects only BLOCK IIA satellites
+                shadowCrossing = cosPhi < 0 && XS_n*sqrt(1 - cosPhi^2) < goGNSS.ELL_A_GPS;
+                if (shadowCrossing && ~isempty(strfind(SP3.satType{sat},'BLOCK IIA')))
+                    eclipsed = 1;
+                end
+                
+                %noon/midnight maneuvers affect all satellites
+                noonMidnightTurn = acos(abs(cosPhi)) < t;
+                if (noonMidnightTurn)
+                    eclipsed = 3;
+                end
+                end
+                function importSP3Struct(this, sp3)
+                    this.time = sp3.time;
+                    this.coord =sp3.coord;
+                    this.clock = sp3.clock,
+                    this.prn = sp3.prn;
+                    this.sys = sp3.sys;
+                    this.time_hr = sp3.time_hr;
+                    this.clock_hr = sp3.clock_hr;
+                    this.coord_rate = sp3.coord_rate;
+                    this.clock_rate = sp3.clock_rate;
+                    this.t_sun = sp3.t_sun;
+                    this.X_sun = sp3.X_sun;
+                    this.X_moon = sp3.X_moon;
+                    this.ERP = sp3.ERP;
+                    this.antenna_PCO = sp3.antenna_PCO;
+                    
+                    
+                end
+                function load_antenna_PCV(this, filename_pco)
+                    antmod_S = this.cc.getAntennaId();
+                    this.antenna_PCV=read_antenna_PCV(filename_pco, antmod_S, this.time(1));
+                    this.antenna_PCO= zeros(1,size(this.antenna_PCV,2),3);
+                    this.satType = cell(1,size(this.antenna_PCV,2));
+                    if isempty(this.avail)
+                        this.avail=zeros(size(this.antenna_PCV,2),1)
+                    end
+                    for sat = 1 : size(this.antenna_PCV,2)
+                        if (this.antenna_PCV(sat).n_frequency ~= 0)
+                            this.antenna_PCO(:,sat,:) = athis.antenna_PCV(sat).offset(:,:,1);
+                            this.satType{1,sat} = this.antenna_PCV(sat).type;
+                        else
+                            this.avail(sat) = 0;
+                        end
+                    end
+                end
+                function writeSP3(this, f_name, prec)
+                    % SYNTAX:
+                    %   eph_tab.writeSP3(f_name, prec)
+                    %
+                    % INPUT:
+                    %   f_name       = file name of the sp3 file to be written
+                    %   prec        = precision (cm) of satellite orbit for all
+                    %   satellites (default 100)
+                    %
+                    %
+                    % DESCRIPTION:
+                    %   Write the current satellite postions and clocks bias into a sp3
+                    %   file
+                    if nargin<3
+                        prec=100;
+                    end
+                    %%% check if clock rate and coord rate are compatible
+                    rate_ratio=this.coord_rate/this.clock_rate;
+                    if abs(rate_ratio-round(rate_ratio)) > 0.00000001
+                        this.logger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
+                        return
+                    end
+                    %%% check if sun and moon positions ahve been computed
+                    if isempty(this.X_sun) || this.X_sun(1,1)==0
+                        this.sun_moon_pos();
+                    end
+                    %%% compute center of mass position (X_sat - PCO)
+                    [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
+                    temp_antPco=repmat(this.antenna_PCO,length(this.time),1,1);
+                    com_coord=this.coord - cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
+                    clearvars temp_antPco
+                    %%% write to file
+                    rate_ratio = round(rate_ratio);
+                    fid=fopen(f_name,'w');
+                    this.writeHeader(fid, prec);
+                    
+                    for i=1:length(this.time)
+                        this.writeEpoch(fid,[squeeze(com_coord(i,:,:)/1000) this.clock(:,(i-1)/rate_ratio+1)*1000000],i); %% convert coord in km and clock in microsecodns
+                    end
+                    fprintf(fid,'EOF\n');
+                    fclose(fid);
+                    
+                    
+                    
+                    
+                end
+                function writeHeader(this, fid, prec)
+                    
+                    if nargin<3
+                        prec=100,
+                    end
+                    prec = num2str(prec);
+                    time = GPS_Time((this.time(1))/86400+GPS_Time.GPS_ZERO);
+                    str_time = time.toString();
+                    year = str2num(str_time(1:4));
+                    month = str2num(str_time(6:7));
+                    day = str2num(str_time(9:10));
+                    hour = str2num(str_time(12:13));
+                    minute = str2num(str_time(15:16));
+                    second = str2num(str_time(18:27));
+                    week = time.getGpsWeek();
+                    sow = time.getGpsTime()-week*7*86400;
+                    mjd = jd2mjd(cal2jd(year,month,day));
+                    d_frac = hour/24+minute/24*60+second/86400;
+                    step = this.coord_rate;
+                    num_epoch = length(this.time);
+                    cc = this.cc;
+                    fprintf(fid,'#cP%4i %2i %2i %2i %2i %11.8f %7i d+D   IGS14 CNV GReD\n',year,month,day,hour,minute,second,num_epoch);
+                    fprintf(fid,'## %4i %15.8f %14.8f %5i %15.13f\n',week,sow,step,mjd,d_frac);
+                    
+                    sats = [];
+                    pre = [];
+                    ids = cc.prn;
+                    for i = 1:length(ids)
+                        sats=[sats, strrep(sprintf('%s%2i', cc.system(i), ids(i)), ' ', '0')];
+                        pre=[pre, prec];
+                    end
+                    n_row=ceil(length(sats)/51);
+                    rows=cell(5,1);
+                    rows(:)={repmat('  0',1,17)};
+                    pres=cell(5,1);
+                    pres(:)={repmat('  0',1,17)};
+                    for i =1:n_row
+                        rows{i}=sats((i-1)*51+1:min(length(sats),i*51));
+                        pres{i}=pre((i-1)*51+1:min(length(pre),i*51));
+                    end
+                    last_row_length=length((i-1)*51+1:length(sats));
+                    rows{n_row}=[rows{n_row} repmat('  0',1,(51-last_row_length)/3)];
+                    pres{n_row}=[pres{n_row} repmat('  0',1,(51-last_row_length)/3)];
+                    
+                    fprintf(fid,'+   %2i   %s\n',sum(cc.n_sat),rows{1});
+                    for i=2:length(rows)
+                        fprintf(fid,'+        %s\n',rows{i});
+                    end
+                    for i=1:length(rows)
+                        fprintf(fid,'++       %s\n',pres{i});
+                    end
+                    fprintf(fid,'%%c M  cc GPS ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc\n');
+                    fprintf(fid,'%%c cc cc ccc ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc\n');
+                    fprintf(fid,'%%f  1.2500000  1.025000000  0.00000000000  0.000000000000000\n');
+                    fprintf(fid,'%%f  0.0000000  0.000000000  0.00000000000  0.000000000000000\n');
+                    fprintf(fid,'%%i    0    0    0    0      0      0      0      0         0\n');
+                    fprintf(fid,'%%i    0    0    0    0      0      0      0      0         0\n');
+                    fprintf(fid,'/* Produced using goGPS                                     \n');
+                    fprintf(fid,'/*                 Non                                      \n');
+                    fprintf(fid,'/*                     Optional                             \n');
+                    fprintf(fid,'/*                              Lines                       \n');
+                end
+                function writeEpoch(this,fid,XYZT,epoch)
+                    t=this.time(epoch);
+                    t=GPS_Time(t/86400+GPS_Time.GPS_ZERO);
+                    cc=this.cc;
+                    str_time=t.toString();
+                    year=str2num(str_time(1:4));
+                    month=str2num(str_time(6:7));
+                    day=str2num(str_time(9:10));
+                    hour=str2num(str_time(12:13));
+                    minute=str2num(str_time(15:16));
+                    second=str2num(str_time(18:27));
+                    fprintf(fid,'*  %4i %2i %2i %2i %2i %11.8f\n',year,month,day,hour,minute,second);
+                    for i=1:size(XYZT,1)
+                        fprintf(fid,'P%s%14.6f%14.6f%14.6f%14.6f\n',strrep(sprintf('%s%2i', cc.system(i), cc.prn(i)), ' ', '0'),XYZT(i,1),XYZT(i,2),XYZT(i,3),XYZT(i,4));
+                    end
+                    
+                end
                 
                 
                 
             end
-            function writeHeader(this, fid, prec)
-                
-                if nargin<3
-                    prec=100,
-                end
-                prec = num2str(prec);
-                time = GPS_Time((this.time(1))/86400+GPS_Time.GPS_ZERO);
-                str_time = time.toString();
-                year = str2num(str_time(1:4));
-                month = str2num(str_time(6:7));
-                day = str2num(str_time(9:10));
-                hour = str2num(str_time(12:13));
-                minute = str2num(str_time(15:16));
-                second = str2num(str_time(18:27));
-                week = time.getGpsWeek();
-                sow = time.getGpsTime()-week*7*86400;
-                mjd = jd2mjd(cal2jd(year,month,day));
-                d_frac = hour/24+minute/24*60+second/86400;
-                step = this.coord_rate;
-                num_epoch = length(this.time);
-                cc = this.cc;
-                fprintf(fid,'#cP%4i %2i %2i %2i %2i %11.8f %7i d+D   IGS14 CNV GReD\n',year,month,day,hour,minute,second,num_epoch);
-                fprintf(fid,'## %4i %15.8f %14.8f %5i %15.13f\n',week,sow,step,mjd,d_frac);
-                
-                sats = [];
-                pre = [];
-                ids = cc.prn;
-                for i = 1:length(ids)
-                    sats=[sats, strrep(sprintf('%s%2i', cc.system(i), ids(i)), ' ', '0')];
-                    pre=[pre, prec];
-                end
-                n_row=ceil(length(sats)/51);
-                rows=cell(5,1);
-                rows(:)={repmat('  0',1,17)};
-                pres=cell(5,1);
-                pres(:)={repmat('  0',1,17)};
-                for i =1:n_row
-                    rows{i}=sats((i-1)*51+1:min(length(sats),i*51));
-                    pres{i}=pre((i-1)*51+1:min(length(pre),i*51));
-                end
-                last_row_length=length((i-1)*51+1:length(sats));
-                rows{n_row}=[rows{n_row} repmat('  0',1,(51-last_row_length)/3)];
-                pres{n_row}=[pres{n_row} repmat('  0',1,(51-last_row_length)/3)];
-                
-                fprintf(fid,'+   %2i   %s\n',sum(cc.n_sat),rows{1});
-                for i=2:length(rows)
-                    fprintf(fid,'+        %s\n',rows{i});
-                end
-                for i=1:length(rows)
-                    fprintf(fid,'++       %s\n',pres{i});
-                end
-                fprintf(fid,'%%c M  cc GPS ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc\n');
-                fprintf(fid,'%%c cc cc ccc ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc\n');
-                fprintf(fid,'%%f  1.2500000  1.025000000  0.00000000000  0.000000000000000\n');
-                fprintf(fid,'%%f  0.0000000  0.000000000  0.00000000000  0.000000000000000\n');
-                fprintf(fid,'%%i    0    0    0    0      0      0      0      0         0\n');
-                fprintf(fid,'%%i    0    0    0    0      0      0      0      0         0\n');
-                fprintf(fid,'/* Produced using goGPS                                     \n');
-                fprintf(fid,'/*                 Non                                      \n');
-                fprintf(fid,'/*                     Optional                             \n');
-                fprintf(fid,'/*                              Lines                       \n');
-            end
-            function writeEpoch(this,fid,XYZT,epoch)
-                t=this.time(epoch);
-                t=GPS_Time(t/86400+GPS_Time.GPS_ZERO);
-                cc=this.cc;
-                str_time=t.toString();
-                year=str2num(str_time(1:4));
-                month=str2num(str_time(6:7));
-                day=str2num(str_time(9:10));
-                hour=str2num(str_time(12:13));
-                minute=str2num(str_time(15:16));
-                second=str2num(str_time(18:27));
-                fprintf(fid,'*  %4i %2i %2i %2i %2i %11.8f\n',year,month,day,hour,minute,second);
-                for i=1:size(XYZT,1)
-                    fprintf(fid,'P%s%14.6f%14.6f%14.6f%14.6f\n',strrep(sprintf('%s%2i', cc.system(i), cc.prn(i)), ' ', '0'),XYZT(i,1),XYZT(i,2),XYZT(i,3),XYZT(i,4));
-                end
-                
-            end
-            
-            
-            
-        end
-        methods (Static)
+            methods (Static)
         end
     end
