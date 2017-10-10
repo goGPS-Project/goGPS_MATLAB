@@ -104,6 +104,10 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %--------------------------------------------------------------------------
 global SPP_threshold flag_outlier
 
+if (islogical(sat0))
+    sat0 = find(sat0);
+end
+
 if (any(lambda(:)))
     %compute inter-frequency factors (for the ionospheric delay)
     ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
