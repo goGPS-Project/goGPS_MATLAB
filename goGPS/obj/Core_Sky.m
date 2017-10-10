@@ -1,4 +1,4 @@
-classdef Eph_Tab < handle
+classdef Core_Sky < handle
     
     
     %--- * --. --- --. .--. ... * ---------------------------------------------
@@ -33,9 +33,9 @@ classdef Eph_Tab < handle
     %--------------------------------------------------------------------------
     
     properties
-        time
-        coord
-        clock
+        time  % Gps Times of tabulated aphemerids
+        coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
+        clock  % cloks of tabulated aphemerids [times x num_sat]
         prn
         sys
         time_hr
@@ -43,34 +43,59 @@ classdef Eph_Tab < handle
         coord_rate = 900;
         clock_rate = 900;
         iono
-        t_sun
-        X_sun
+        t_sun  % time of sun ephemerids
+        X_sun  % coord of sun ephemerids
         t_sun_rate
         X_moon
-        ERP
-        antPCO
+        ERP  % EARH rotation parameters
+        DCB  % differential code biases
+        antenna_PCO   %% satellites antenna phase center offset
+        antenna_PCV  %% satellites antenna phase center variations
         satType
         avail
-        pol_coeff
+        coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
+        clock_pol_coeff %% coefficient of the polynomial interpolation for clocks [11,3,num_sat,num_coeff_sets]
+        cc
         
     end
     properties (Access = private)
-        cc
+        
         logger
+        state
     end
-    methods
-        function this = Eph_Tab(cc)
-            if nargin == 0
-                this.cc = Go_State.getCurrentSettings().getConstellationCollector();
-            else
-                this.cc = cc;
-            end
+    methods (Access = 'private')
+        
+        % Creator
+        function this = Core_Sky()
+            % Core object creator
+            this.state = Go_State.getCurrentSettings();
             this.logger = Logger.getInstance();
-            this.sys = this.cc.system;
-            this.prn = this.cc.prn;
-            this.antPCO =zeros(1,this.cc.getNumSat(),3);
+            this.cc = Go_State.getCurrentSettings().getConstellationCollector();
+            this.antenna_PCO =zeros(1,this.cc.getNumSat(),3);
             
         end
+    end
+    
+    methods (Static)
+        % Concrete implementation.  See Singleton superclass.
+        function this = getInstance()
+            % Get the persistent instance of the class
+            persistent unique_instance_core_sky__
+            
+            if isempty(unique_instance_core_sky__)
+                this = Core_Sky();
+                unique_instance_core_sky__ = this;
+            else
+                this = unique_instance_core_sky__;
+            end
+        end
+    end
+    % =========================================================================
+    %  METHODS
+    % =========================================================================
+    
+    methods % Public Access
+        
         function importEph(this, eph, t_st, t_end, sat, step)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
@@ -131,7 +156,7 @@ classdef Eph_Tab < handle
             this.importEph(eph,t_st,t_end,sat,step);
             
         end
-        function importSp3(this,filename_SP3, filename_CLK,t_st, t_end,step)
+        function importSp3(this,filename_SP3, filename_CLK,t_st, t_end,step,wait_dlg)
             % SYNTAX:
             %   this.importSp3(filename_SP3, filename_CLK, t_st, t_end,step)
             %
@@ -165,7 +190,7 @@ classdef Eph_Tab < handle
             % number of seconds in a quarter of an hour
             quarter_sec = 900;
             
-            if (nargin > 7)
+            if (nargin > 6)
                 waitbar(0.5,wait_dlg,'Reading SP3 (precise ephemeris) file...')
             end
             
@@ -413,26 +438,26 @@ classdef Eph_Tab < handle
                                     
                                     index = -1;
                                     switch (sys_id)
-                                         case {'G', ' '}
-                                        if (this.cc.active_list(1) && PRN <= this.cc.getGPS.N_SAT )
-                                            index = this.cc.getGPS.go_ids;
-                                        end
-                                    case 'R'
-                                        if (this.cc.active_list(2) && PRN <= this.cc.getGLONASS.N_SAT )
-                                            index = this.cc.getGLONASS.go_ids;
-                                        end
-                                    case 'E'
-                                        if (this.cc.active_list(3) && PRN <= this.cc.getGALIELO.N_SAT )
-                                            index = this.cc.getGalileo.go_ids;
-                                        end
-                                    case 'C'
-                                        if (this.cc.active_list(4) && PRN <= this.cc.getBeiDou.N_SAT )
-                                            index = this.cc.getBeiDou.go_ids;
-                                        end
-                                    case 'J'
-                                        if (this.cc.active_list(5) && PRN <= this.cc.getQZSS.N_SAT )
-                                            index = this.cc.getQZSS.go_ids;
-                                        end
+                                        case {'G', ' '}
+                                            if (this.cc.active_list(1) && PRN <= this.cc.getGPS.N_SAT )
+                                                index = this.cc.getGPS.go_ids;
+                                            end
+                                        case 'R'
+                                            if (this.cc.active_list(2) && PRN <= this.cc.getGLONASS.N_SAT )
+                                                index = this.cc.getGLONASS.go_ids;
+                                            end
+                                        case 'E'
+                                            if (this.cc.active_list(3) && PRN <= this.cc.getGALIELO.N_SAT )
+                                                index = this.cc.getGalileo.go_ids;
+                                            end
+                                        case 'C'
+                                            if (this.cc.active_list(4) && PRN <= this.cc.getBeiDou.N_SAT )
+                                                index = this.cc.getBeiDou.go_ids;
+                                            end
+                                        case 'J'
+                                            if (this.cc.active_list(5) && PRN <= this.cc.getQZSS.N_SAT )
+                                                index = this.cc.getQZSS.go_ids;
+                                            end
                                     end
                                     
                                     % If the considered line is referred to an active constellation
@@ -489,165 +514,35 @@ classdef Eph_Tab < handle
             this.coord(k+1:nEpochs,:,:) = [];
             this.clock(:,k+1:nEpochs) = [];
             
-            if (nargin > 7)
+            %%% compute center of mass position (X_sat - PCO)
+            this.sun_moon_pos;
+            [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
+            temp_antPco=repmat(this.antenna_PCO,length(this.time),1,1);
+            this.coord=this.coord + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
+            clearvars temp_antPco
+            if (nargin > 6)
                 waitbar(1,wait_dlg)
             end
             logger.newLine();
             
             
         end
+        function importERP(this, f_name, time)
+            this.ERP = load_ERP(f_name, time);
+        end
+        function importDCB(data_dir_dcb,codeC1_R)
+            %TBD
+        end
+        
+        
         function importIono(this,f_name)
             %%% to be implemeted
-        end
-        
-        function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph)
-            
-            % SYNTAX:
-            %   [XS, VS] = satellite_positions(time_rx, sat, eph);
-            %
-            % INPUT:
-            %   time_rx     = reception time
-            %   sat         = available satellite indexes
-            %   eph         = ephemeris
-            %
-            % OUTPUT:
-            %   XS      = satellite position at time in ECEF(time_rx) (X,Y,Z)
-            %   VS      = satellite velocity at time in ECEF(time_tx) (X,Y,Z)
-            %   dtS     = satellite clock error (vector)
-            %
-            % DESCRIPTION: retun coordinate of center of mass of the
-            % satellite
-            nsat = length(sat);
-            
-            XS = zeros(this.cc.getNumSat(), 3);
-            VS = zeros(this.cc.getNumSat(), 3);
-            
-            
-            dt_s = zeros(this.cc.getNumSat(), 1);
-            t_dist_exced = false;
-            for i = 1 : nsat
-                
-                k = find_eph(eph, sat(i), time);
-                if not(isempty(k))
-                    %compute satellite position and velocity
-                    [XS(sat(i),:), VS(sat(i),:)] = satellite_orbits(time, eph(:,k), sat(i), []);
-                    dt_s(sat(i)) = sat_clock_error_correction(time, eph(:,k));
-                    dt_s(sat(i)) = sat_clock_error_correction(time - dt_s(sat(i)), eph(:,k));
-                    antPCO    = this.antPCO(:,  sat(i),:);
-                    if ~(this.t_sun)
-                        [x, y, z] = this.satellite_fixed_frame(time,XS(sat(i),:)');
-                        XS(sat(i),:) = XS(sat(i),:) + ([x y z]*antPCO')';
-                    end
-                else
-                    t_dist_exced = true;
-                end
-                
+            [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
+            if (flag_return)
+                return
             end
-            %             antPCO    = this.antPCO(:, :, sat);
-            %
-            %             [i, j, k] = this.satellite_fixed_frame(time,XS);
-            %             XS = XS + [i j k]*antPCO';
-            
-            
-            %XS=XS';
         end
-        function [pos_S, vel_S] = interpolate_SP3_coord(this,time, sat) %%% deprecated
-            % SYNTAX:
-            %   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat);
-            %
-            % INPUT:
-            %   time       = interpolation time (GPS time, continuous since 6-1-1980)
-            %   sat        = satellite PRN
-            %   p_rate     = processing interval [s]
-            %
-            % OUTPUT:
-            %   pos_S = interpolated satellite coordinates
-            %   vel_S = satellite velocity
-            %
-            % DESCRIPTION:
-            %   SP3 (precise ephemeris) coordinates 1-second interpolation by Lagrange
-            %   polynomials. Satellite velocity computation. Relativistic correction.
-            SP3_time  = this.time;
-            SP3_coord = squeeze(this.coord(:,sat, :));
-            antPCO    = this.antPCO(:, sat,:);
-            
-            %number of seconds in a quarter of an hour
-            interval = this.coord_rate;
-            
-            %find the SP3 epoch closest to the interpolation time
-            %[~, p] = min(abs(SP3_time - time));
-            % speed improvement of the above line
-            % supposing SP3_time regularly sampled
-            p = round((time - SP3_time(1)) / interval) + 1;
-            
-            b = SP3_time(p) - time;
-            
-            pos_S = zeros(3,1);
-            
-            %Lagrange interpolation
-            %degree of interpolation polynomial (Lagrange)
-            % n = 10;
-            %u = (n/2+1) + (- b + (-1:1))/interval;
-            u = 6 + (- b + (-1:1))/interval;    % using 6 since n = 10;
-            %X_sat = fastLI(SP3_coord(:,p+(-n/2:n/2)), u);
-            X_sat = fastLI(SP3_coord(:,p + (-5:5)), u);
-            
-            %apply satellite antenna phase center correction
-            [i, j, k] = this.satellite_fixed_frame(time,X_sat(:,2));
-            X_sat(:,2) = X_sat(:,2) + [i j k]*squeeze(antPCO);
-            
-            pos_S(1,1) = X_sat(1,2);
-            pos_S(2,1) = X_sat(2,2);
-            pos_S(3,1) = X_sat(3,2);
-            
-            %compute velocity
-            
-            vel_S = (X_sat(:,3) - X_sat(:,1)) / 2;
-        end
-        function [i, j, k] = satellite_fixed_frame(this,time,X_sat)
-            
-            % SYNTAX:
-            %   [i, j, k] = satellite_fixed_frame(time,X_sat);
-            %
-            % INPUT:
-            %   time     = GPS time
-            %   X_sat    = position of satellite [1x3]
-            %
-            % OUTPUT:
-            %   i = unit vector that completes the right-handed system
-            %   j = resulting unit vector of the cross product of k vector with the unit vector from the satellite to Sun
-            %   k = unit vector pointing from the Satellite Mass Centre (MC) to the Earth's centre
-            %
-            % DESCRIPTION:
-            %   Computation of the unit vectors defining the satellite-fixed frame.
-            
-            
-            t_sun = this.t_sun;
-            X_sun = this.X_sun;
-            
-            %[~, q] = min(abs(t_sun - time));
-            % speed improvement of the above line
-            % supposing t_sun regularly sampled
-            q = round((time - t_sun(1)) / this.coord_rate) + 1;
-            X_sun = X_sun(:,q);
-            e = (X_sun - X_sat) / norm(X_sun - X_sat);
-            k = -X_sat/norm(X_sat);
-            %j = cross(k,e);
-            j = [k(2).*e(3)-k(3).*e(2);
-                k(3).*e(1)-k(1).*e(3);
-                k(1).*e(2)-k(2).*e(1)];
-            %i = cross(j,k);
-            i = [j(2).*k(3)-j(3).*k(2);
-                j(3).*k(1)-j(1).*k(3);
-                j(1).*k(2)-j(2).*k(1)];
-            
-            j = j / norm(j);
-            i = i / norm(i);
-            
-            
-        end
-        
-        function [sx ,sy, sz] = satellite_fixed_frameV(this,time,X_sat)
+        function [sx ,sy, sz] = satellite_fixed_frame(this,time,X_sat)
             
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
@@ -674,7 +569,7 @@ classdef Eph_Tab < handle
             q = round((time - t_sun(1)) / this.coord_rate) + 1;
             un_q=unique(q);
             sx = zeros(size(X_sat)); sy = sx; sz = sx;
-            for idx=un_q
+            for idx = un_q'
                 q_idx=q==idx;
                 x_sun = X_sun(:,idx)';
                 x_sat = X_sat(q_idx,:,:);
@@ -701,7 +596,7 @@ classdef Eph_Tab < handle
         function [dt_S_SP3] = interpolate_SP3_clock(this,time, sat)
             
             % SYNTAX:
-            %   [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat);
+            %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
             %
             % INPUT:
             %   time  = interpolation timespan (GPS time, continuous since 6-1-1980)
@@ -759,7 +654,7 @@ classdef Eph_Tab < handle
         end
         function computePolyCoeff(this)
             % SYNTAX:
-            %   this.getPolyCoeff();
+            %   this.computePolyCoeff();
             %
             % INPUT:
             %
@@ -770,59 +665,132 @@ classdef Eph_Tab < handle
             n_coeff=n_pol+1;
             A=zeros(n_coeff,n_coeff);
             A(:,1)=ones(n_coeff,1);
-            x=-5:5;
+            x=[-5:5]*this.coord_rate;
             for i=1:10
                 A(:,i+1)=(x.^i)';
             end
             n_coeff_set= length(this.time)-10;%86400/this.coord_rate+1;
-            %this.pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
-            this.pol_coeff=zeros(n_coeff,3,this.cc.getNumSat,n_coeff_set)
+            %this.coord_pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
+            this.coord_pol_coeff=zeros(n_coeff,3,this.cc.getNumSat,n_coeff_set);
+            this.clock_pol_coeff=zeros(n_coeff,this.cc.getNumSat,n_coeff_set);
             for s=1:this.cc.getNumSat
                 for i=1:n_coeff_set
                     for j=1:3
-                        %this.pol_coeff(s,i,:,j)=A\squeeze(this.coord(j,s,i:i+10));
-                        this.pol_coeff(:,j,s,i)=A\squeeze(this.coord(i:i+10,s,j));
+                        %this.coord_pol_coeff(s,i,:,j)=A\squeeze(this.coord(j,s,i:i+10));
+                        this.coord_pol_coeff(:,j,s,i)=A\squeeze(this.coord(i:i+10,s,j));
                     end
+                    this.clock_pol_coeff(:,s,i)=A\squeeze(this.clock(i:i+10,s));
                 end
             end
         end
-        function [X_sat]=polyInterpolate(this,t)
+        function [X_sat, V_sat]=polyInterpolate(this,t,sat)
             % SYNTAX:
             %   [X_sat]=Eph_Tab.polInterpolate(t,sat)
             %
             % INPUT:
             %    t = vector of times where to interpolate
-            %    sat = sat to be interpolated (optional)
+            %    sat = satellite to be interpolated (optional) (TBD
+            %    multiple satellite seletcion)
             % OUTPUT:
             %
             % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
+            n_sat=this.cc.getNumSat;
+            if nargin <3
+                sat_idx=ones(n_sat,1)>0;
+            else
+                sat_idx=1:n_sat==sat;
+            end
+            n_sat=sum(sat_idx);
             t_fd=t-this.time(6); % time from start of the day
             nt=length(t_fd);
-            c_idx=round(t_fd/this.coord_rate)+1;%coefficient index
+            c_idx=round(t_fd/this.coord_rate)+1;%coefficient set  index
             %l_idx=idx-5;
             %u_id=idx+10;
-            n_sat=this.cc.getNumSat;
+            
             X_sat=zeros(nt,n_sat,3);
+            V_sat=zeros(nt,n_sat,3);
             un_idx=unique(c_idx);
-            for idx=un_idx
+            for idx=un_idx'
                 t_idx=c_idx==idx;
                 times=t(t_idx);
-                t_fct=((times-this.time(5+idx))/this.coord_rate)';%time from coefficient time
-                eval_vec = [ones(size(t_fct)) t_fct t_fct.^2 t_fct.^3 t_fct.^4 t_fct.^5 t_fct.^6 t_fct.^7 t_fct.^8 t_fct.^9 t_fct.^10];
-                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.pol_coeff(:,:,:,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                t_fct=((times-this.time(5+idx)));%time from coefficient time
+                %%%% compute position
+                eval_vec = [ones(size(t_fct)) ...
+                    t_fct ...
+                    t_fct.^2 ...
+                    t_fct.^3  ...
+                    t_fct.^4  ...
+                    t_fct.^5 ...
+                    t_fct.^6  ...
+                    t_fct.^7  ...
+                    t_fct.^8 ...
+                    t_fct.^9  ...
+                    t_fct.^10];
+                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.coord_pol_coeff(:,:,sat_idx,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                %%% compute velocity
+                eval_vec = [ ...
+                    ones(size(t_fct))  ...
+                    2*t_fct  ...
+                    3*t_fct.^2 ...
+                    4*t_fct.^3  ...
+                    5*t_fct.^4  ...
+                    6*t_fct.^5  ...
+                    7*t_fct.^6  ...
+                    8*t_fct.^7 ...
+                    9*t_fct.^8  ...
+                    10*t_fct.^9];
+                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.coord_pol_coeff(2:end,:,sat_idx,idx),10,3*n_sat),sum(t_idx),n_sat,3);
+                
             end
-            %{
-            %%% apply pco correction, not requir since coordinates refers
-            already to phase antenna center
-            [sx ,sy, sz] = this.satellite_fixed_frameV(t,X_sat);
-            temp_antPco=repmat(this.antPCO,10001,1,1);
-            X_sat=X_sat + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
-            %}
         end
-        function sun_moon_pos(this)
+        function [dtS_sat]=clockInterpolate(this,t,sat)
+            % SYNTAX:
+            %   [dtS_sat]=Core_Sky.clockInterpolate(t,sat)
+            %
+            % INPUT:
+            %    t = vector of times where to interpolate
+            %    sat = satellite to be interpolated (optional) (TBD
+            %    multiple satellite seletcion)
+            % OUTPUT:
+            %
+            % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
+            n_sat=this.cc.getNumSat;
+            if nargin <3
+                sat_idx=ones(n_sat,1)>0;
+            else
+                sat_idx=1:n_sat==sat;
+            end
+            n_sat=sum(sat_idx);
+            t_fd=t-this.time(6); % time from start of the day
+            nt=length(t_fd);
+            c_idx=round(t_fd/this.coord_rate)+1;%coefficient set  index
+            %l_idx=idx-5;
+            %u_id=idx+10;
+            
+            dtS_sat=zeros(nt,n_sat);
+            un_idx=unique(c_idx);
+            for idx = un_idx'
+                t_idx=c_idx==idx;
+                times=t(t_idx);
+                t_fct=((times-this.time(5+idx))/this.coord_rate);%time from coefficient time
+                %%%% compute position
+                eval_vec = [ones(size(t_fct)) t_fct t_fct.^2 t_fct.^3 t_fct.^4 t_fct.^5 t_fct.^6 t_fct.^7 t_fct.^8 t_fct.^9 t_fct.^10];
+                dtS_sat(t_idx,:) = reshape(eval_vec*reshape(this.clock_pol_coeff(:,sat_idx,idx),11,sum(sat_idx)),sum(t_idx),n_sat);
+            end
+        end
+        function sun_moon_pos(this,p_time)
+            % SYNTAX:
+            %   this.Eph_Tab.polInterpolate(p_time)
+            %
+            % INPUT:
+            %    p_time = gps time [n_epoch x 1]
+            % OUTPUT:
+            %
+            % DESCRIPTION: Compute sun and moon psitions at the time of
+            % processing
             
             global iephem km ephname inutate psicor epscor ob2000
-            time = GPS_Time((this.time(1))/86400+GPS_Time.GPS_ZERO);
+            %time = GPS_Time((p_time(1))/86400+GPS_Time.GPS_ZERO);
             
             
             sun_id = 11; moon_id = 10; earth_id = 3;
@@ -848,10 +816,11 @@ classdef Eph_Tab < handle
                 fprintf('-------------------------------------------------------------------\n\n')
             end
             
-            sun_ECEF = zeros(3,length(this.time));
-            moon_ECEF = zeros(3,length(this.time));
-            this.t_sun = zeros(1,length(this.time));
-            for e = 1 : length(this.time)
+            sun_ECEF = zeros(3,length(p_time));
+            moon_ECEF = zeros(3,length(p_time));
+            this.t_sun = zeros(1,length(p_time));
+            for e = 1 : length(p_time)
+                time=GPS_Time(p_time(e)/86400+GPS_Time.GPS_Zero);
                 [year , month ,day,hour,min,sec]= time.getCalEpoch();
                 %UTC to TDB
                 jdutc = julian(month, day+hour/24+min/1440+sec/86400, year);
@@ -883,7 +852,6 @@ classdef Eph_Tab < handle
                     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
                     moon_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, moon_ECI);
                 end
-                time.addSeconds(this.coord_rate);
             end
             
             this.X_sun  = sun_ECEF*1e3;
@@ -891,10 +859,78 @@ classdef Eph_Tab < handle
             
             %this.t_sun_rate =
         end
+        function [eclipsed] = check_eclipse_condition(time, XS, sat,p_rate)  %%% TO BE CORRECT
+            
+            % SYNTAX:
+            %   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate);
+            %
+            % INPUT:
+            %   time     = GPS time
+            %   XS       = satellite position (X,Y,Z)
+            %   SP3      = structure containing precise ephemeris data
+            %   p_rate   = processing interval [s]
+            %   sat      = satellite PRN
+            %
+            % OUTPUT:
+            %   eclipsed = boolean value to define satellite eclipse condition (0: OK, 1: eclipsed)
+            %
+            % DESCRIPTION:
+            %   Check if the input satellite is under eclipse condition.
+            
+            eclipsed = 0;
+            
+            t_sun = this.t_sun;
+            X_sun = this.X_sun;
+            
+            %[~, q] = min(abs(t_sun - time));
+            % speed improvement of the above line
+            % supposing t_sun regularly sampled
+            q = round((time - t_sun(1)) /this.sun_rate) + 1;
+            
+            X_sun = X_sun(:,q);
+            
+            %satellite geocentric position
+            XS_n = norm(XS);
+            XS_u = XS / XS_n;
+            
+            %sun geocentric position
+            X_sun_n = norm(X_sun);
+            X_sun_u = X_sun / X_sun_n;
+            
+            %satellite-sun angle
+            %cosPhi = dot(XS_u, X_sun_u);
+            % speed improvement of the above line
+            cosPhi = sum(conj(XS_u').*X_sun_u);
+            
+            
+            %threshold to detect noon/midnight maneuvers
+            if (~isempty(strfind(this.satType{sat},'BLOCK IIA')))
+                t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+            elseif (~isempty(strfind(this.satType{sat},'BLOCK IIR')))
+                t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+            elseif (~isempty(strfind(this.satType{sat},'BLOCK IIF')))
+                t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+            else
+                t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
+            end
+            
+            %shadow crossing affects only BLOCK IIA satellites
+            shadowCrossing = cosPhi < 0 && XS_n*sqrt(1 - cosPhi^2) < goGNSS.ELL_A_GPS;
+            if (shadowCrossing && ~isempty(strfind(SP3.satType{sat},'BLOCK IIA')))
+                eclipsed = 1;
+            end
+            
+            %noon/midnight maneuvers affect all satellites
+            noonMidnightTurn = acos(abs(cosPhi)) < t;
+            if (noonMidnightTurn)
+                eclipsed = 3;
+            end
+            
+        end
         function importSP3Struct(this, sp3)
             this.time = sp3.time;
-            this.coord =sp3.coord;
-            this.clock = sp3.clock,
+            this.coord =permute(sp3.coord,[3 2 1]);
+            this.clock = sp3.clock',
             this.prn = sp3.prn;
             this.sys = sp3.sys;
             this.time_hr = sp3.time_hr;
@@ -902,30 +938,129 @@ classdef Eph_Tab < handle
             this.coord_rate = sp3.coord_rate;
             this.clock_rate = sp3.clock_rate;
             this.t_sun = sp3.t_sun;
-            this.X_sun = sp3.X_sun;
-            this.X_moon = sp3.X_moon;
+            this.X_sun = sp3.X_sun';
+            this.X_moon = sp3.X_moon';
             this.ERP = sp3.ERP;
-            this.antPCO = sp3.antPCO;
+            this.DCB = sp3.DCB;
+            this.antenna_PCO = sp3.antPCO;
             
             
         end
-        function load_antenna_PCO(this, filename_pco)
+        function load_antenna_PCV(this, filename_pco)
             antmod_S = this.cc.getAntennaId();
-            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, this.time(1));
-            this.antPCO = zeros(1,size(antenna_PCV_S,2),3);
-            this.satType = cell(1,size(antenna_PCV_S,2));
+            this.antenna_PCV=read_antenna_PCV(filename_pco, antmod_S, this.time(1));
+            this.antenna_PCO= zeros(1,size(this.antenna_PCV,2),3);
+            this.satType = cell(1,size(this.antenna_PCV,2));
             if isempty(this.avail)
-                this.avail=zeros(size(antenna_PCV_S,2),1)
+                this.avail=zeros(size(this.antenna_PCV,2),1)
             end
-            for sat = 1 : size(antenna_PCV_S,2)
-                if (antenna_PCV_S(sat).n_frequency ~= 0)
-                    this.antPCO(:,sat,:) = antenna_PCV_S(sat).offset(:,:,1);
-                    this.satType{1,sat} = antenna_PCV_S(sat).type;
+            for sat = 1 : size(this.antenna_PCV,2)
+                if (this.antenna_PCV(sat).n_frequency ~= 0)
+                    this.antenna_PCO(:,sat,:) = athis.antenna_PCV(sat).offset(:,:,1);
+                    this.satType{1,sat} = this.antenna_PCV(sat).type;
                 else
                     this.avail(sat) = 0;
                 end
             end
         end
+        function [stidecorr] = solid_earth_tide_correction(this, time, XR, XS, p_rate, phiC, lam)
+            
+            % SYNTAX:
+            %   [stidecorr] = solid_earth_tide_correction(time, XR, XS,p_rate, phiC, lam);
+            %
+            % INPUT:
+            %   time = GPS time
+            %   XR   = receiver position  (X,Y,Z)
+            %   XS   = satellite position (X,Y,Z)
+            %   p_rate   = processing interval [s]
+            %   phiC = receiver geocentric latitude (rad)
+            %   lam  = receiver longitude (rad)
+            %
+            % OUTPUT:
+            %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
+            %
+            % DESCRIPTION:
+            %   Computation of the solid Earth tide displacement terms.
+            
+            
+            if (nargin < 6)
+                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+            end
+            %north (b) and radial (c) local unit vectors
+            b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
+            c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
+            
+            %Sun and Moon position
+            t_sun  = this.t_sun;
+            X_sun  = this.X_sun;
+            X_moon = this.X_moon;
+            %[~, q] = min(abs(t_sun - time));
+            % speed improvement of the above line
+            % supposing t_sun regularly sampled
+            q = round((time - t_sun(1)) / p_rate) + 1;
+            X_sun  = X_sun(q,:);
+            X_moon = X_moon(q,:);
+            
+            %receiver geocentric position
+            XR_n = norm(XR);
+            XR_u = XR / XR_n;
+            
+            %sun geocentric position
+            X_sun_n = norm(X_sun);
+            X_sun_u = X_sun / X_sun_n;
+            
+            %moon geocentric position
+            X_moon_n = norm(X_moon);
+            X_moon_u = X_moon / X_moon_n;
+            
+            %latitude dependence
+            p = (3*sin(phiC)^2-1)/2;
+            
+            %gravitational parameters
+            GE = goGNSS.GM_GAL; %Earth
+            GS = GE*332946.0; %Sun
+            GM = GE*0.01230002; %Moon
+            
+            %Earth equatorial radius
+            R = 6378136.6;
+            
+            %nominal degree 2 Love number
+            H2 = 0.6078 - 0.0006*p;
+            %nominal degree 2 Shida number
+            L2 = 0.0847 + 0.0002*p;
+            
+            %solid Earth tide displacement (degree 2)
+            Vsun  = sum(conj(X_sun_u) .* XR_u);
+            Vmoon = sum(conj(X_moon_u) .* XR_u);
+            r_sun2  = (GS*R^4)/(GE*X_sun_n^3) *(H2*XR_u*(1.5*Vsun^2  - 0.5) + 3*L2*Vsun *(X_sun_u  - Vsun *XR_u));
+            r_moon2 = (GM*R^4)/(GE*X_moon_n^3)*(H2*XR_u*(1.5*Vmoon^2 - 0.5) + 3*L2*Vmoon*(X_moon_u - Vmoon*XR_u));
+            r = r_sun2 + r_moon2;
+            
+            %nominal degree 3 Love number
+            H3 = 0.292;
+            %nominal degree 3 Shida number
+            L3 = 0.015;
+            
+            %solid Earth tide displacement (degree 3)
+            r_sun3  = (GS*R^5)/(GE*X_sun_n^4) *(H3*XR_u*(2.5*Vsun^3  - 1.5*Vsun)  +   L3*(7.5*Vsun^2  - 1.5)*(X_sun_u  - Vsun *XR_u));
+            r_moon3 = (GM*R^5)/(GE*X_moon_n^4)*(H3*XR_u*(2.5*Vmoon^3 - 1.5*Vmoon) +   L3*(7.5*Vmoon^2 - 1.5)*(X_moon_u - Vmoon*XR_u));
+            r = r + r_sun3 + r_moon3;
+            
+            %from "conventional tide free" to "mean tide"
+            radial = (-0.1206 + 0.0001*p)*p;
+            north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
+            r = r + radial*c + north*b;
+            
+            %displacement along the receiver-satellite line-of-sight
+            stidecorr = zeros(size(XS,1),1);
+            for s = 1 : size(XS,1)
+                LOS  = XR - XS(s,:)';
+                LOSu = LOS / norm(LOS);
+                %stidecorr(s,1) = dot(r,LOSu);
+                stidecorr(s,1) = sum(conj(r).*LOSu);
+            end
+        end
+        
         function writeSP3(this, f_name, prec)
             % SYNTAX:
             %   eph_tab.writeSP3(f_name, prec)
@@ -954,8 +1089,8 @@ classdef Eph_Tab < handle
             end
             %%% compute center of mass position (X_sat - PCO)
             [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
-            temp_antPco=repmat(this.antPCO,length(this.time),1,1);
-            com_coord=this.coord + cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
+            temp_antPco=repmat(this.antenna_PCO,length(this.time),1,1);
+            com_coord=this.coord - cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
             clearvars temp_antPco
             %%% write to file
             rate_ratio = round(rate_ratio);
@@ -1051,7 +1186,12 @@ classdef Eph_Tab < handle
             end
             
         end
+        
+        
+        
     end
+    
+    
     methods (Static)
     end
 end

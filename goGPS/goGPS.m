@@ -493,7 +493,7 @@ for session = 1 : num_session
                         for sat = 1 : size(antenna_PCV_S,2)
                             if (antenna_PCV_S(sat).n_frequency ~= 0)
                                 SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
-                                SP3.satType{1,sat} = antenna_PCV_S(sat).type;
+                                SP3.satType{1,sat} = antenna_PCV_S(sat).sat_type;
                             else
                                 SP3.avail(sat) = 0;
                             end
