@@ -7,6 +7,7 @@
 %
 % REFERENCES
 %   CRS parameters, according to each GNSS system CRS definition
+%       ftp://igs.org/pub/data/format/rinex303.pdf
 %   (ICD document in brackets):
 %
 %   *_SBAS --> WGS-84
@@ -51,7 +52,7 @@ classdef SBAS_SS < Satellite_System
 
         % System frequencies as struct [MHz]
         F = struct('L1', 1575.420, ...
-                   'L2', 1227.600)
+                   'L5', 1176.450)
 
         % Array of supported frequencies [MHz]
         F_VEC = struct2array(SBAS_SS.F) * 1e6;
@@ -61,6 +62,10 @@ classdef SBAS_SS < Satellite_System
 
         N_SAT = 0;           % Maximum number of satellite in the constellation
         PRN = (0 : 0)';      % Satellites id numbers as defined in the constellation
+
+        % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
+        CODE_RIN3_AVAIL  = {'C' 'XIQ'}; % last letter of the observation code
+        CODE_RIN3_2FREQ  = '15';        % id for the freq as stored in F_VEC
     end
 
     properties (Constant, Access = 'private')

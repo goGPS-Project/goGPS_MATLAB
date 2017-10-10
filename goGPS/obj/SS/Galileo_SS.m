@@ -77,7 +77,11 @@ classdef Galileo_SS < Satellite_System
 
         N_SAT = 30;       % Maximum number of satellite in the constellation
         PRN = (1 : 30)';  % Satellites id numbers as defined in the constellation
-    end
+
+        % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
+        CODE_RIN3_AVAIL  = {'ZXBCA' 'XIQ' 'XIQ', 'XIQ', 'ZXBCA'}; % last letter of the observation code
+        CODE_RIN3_2FREQ  = '15786';             % id for the freq as stored in F_VEC
+end
 
     properties (Constant, Access = 'private')
         % GPS (WGS84) Ellipsoid semi-major axis [m]

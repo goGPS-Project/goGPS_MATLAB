@@ -21,6 +21,7 @@
 %     - http://www.navipedia.net/index.php/GLONASS_Signal_Plan
 %     - http://www.navipedia.net/index.php/Reference_Frames_in_GNSS
 %     - http://gage6.upc.es/eknot/Professional_Training/PDF/Reference_Systems.pdf
+%     - http://gpsworld.com/wp-content/uploads/2017/08/Almanac-GPSWorld-Aug2017.pdf
 
 
 %--------------------------------------------------------------------------
@@ -57,11 +58,11 @@
 classdef GLONASS_SS < Satellite_System
     properties (Constant, Access = 'private')
         % System frequencies as struct [MHz]
-        f0 = struct('BASE', struct('R1', 1602.000, 'R2', 1246.000, 'R3', 1201.000), ...
-                    'DELTA',struct('R1', 0.5625, 'R2', 0.4375, 'R3', 0.4375), ...
-                    'R1_CHANNELS', -7:1:6, ...
-                    'R2_CHANNELS', -7:1:6, ...
-                    'R3_CHANNELS', -7:1:8);
+        f0 = struct('BASE', struct('G1', 1602.000, 'G2', 1246.000, 'G3', 1201.000), ...
+                    'DELTA',struct('G1', 0.5625, 'G2', 0.4375, 'G3', 0.4375), ...
+                    'G1_CHANNELS', -7:1:6, ...
+                    'G2_CHANNELS', -7:1:6, ...
+                    'G3_CHANNELS', -7:1:8);
 
         % GLONASS (PZ-90.02) Ellipsoid semi-major axis [m]
         ELL_A = 6378136;
@@ -70,7 +71,7 @@ classdef GLONASS_SS < Satellite_System
         % GLONASS (PZ-90.02) Ellipsoid Eccentricity^2
         ELL_E2 = (1 - (1 - GLONASS_SS.ELL_F) ^ 2);
         % GLONASS (PZ-90.02) Ellipsoid Eccentricity
-        ELL_E = sqrt(GLONASS_SS.ELL_E2);
+        ELL_E = sqrt(GLONASS_SS.ELL_E2);        
     end
 
     properties (Constant, Access = 'public')
@@ -81,21 +82,31 @@ classdef GLONASS_SS < Satellite_System
         % System frequencies as struct [MHz]
         F = struct('BASE', GLONASS_SS.f0.BASE, ...
                    'DELTA', GLONASS_SS.f0.DELTA, ...
-                   'R1_CHANNELS', GLONASS_SS.f0.R1_CHANNELS, ...
-                   'R2_CHANNELS', GLONASS_SS.f0.R2_CHANNELS, ...
-                   'R3_CHANNELS', GLONASS_SS.f0.R3_CHANNELS, ...
-                   'R1', GLONASS_SS.f0.R1_CHANNELS' .* GLONASS_SS.f0.DELTA.R1 + GLONASS_SS.f0.BASE.R1, ...
-                   'R2', GLONASS_SS.f0.R2_CHANNELS' .* GLONASS_SS.f0.DELTA.R2 + GLONASS_SS.f0.BASE.R2, ...
-                   'R3', GLONASS_SS.f0.R3_CHANNELS' .* GLONASS_SS.f0.DELTA.R3 + GLONASS_SS.f0.BASE.R3);
+                   'G1_CHANNELS', GLONASS_SS.f0.G1_CHANNELS, ...
+                   'G2_CHANNELS', GLONASS_SS.f0.G2_CHANNELS, ...
+                   'G3_CHANNELS', GLONASS_SS.f0.G3_CHANNELS, ...
+                   'G1', GLONASS_SS.f0.G1_CHANNELS' .* GLONASS_SS.f0.DELTA.G1 + GLONASS_SS.f0.BASE.G1, ...
+                   'G2', GLONASS_SS.f0.G2_CHANNELS' .* GLONASS_SS.f0.DELTA.G2 + GLONASS_SS.f0.BASE.G2, ...
+                   'G3', GLONASS_SS.f0.G3_CHANNELS' .* GLONASS_SS.f0.DELTA.G3 + GLONASS_SS.f0.BASE.G3);
 
         % Array of supported frequencies [MHz]
-        F_VEC = [[GLONASS_SS.F.R1; 0; 0], [GLONASS_SS.F.R2; 0; 0], GLONASS_SS.F.R3] * 1e6;
+        F_VEC = [[GLONASS_SS.F.G1; 0; 0], [GLONASS_SS.F.G2; 0; 0], GLONASS_SS.F.G3] * 1e6;
 
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ GLONASS_SS.F_VEC;
 
         N_SAT = 24;       % Maximum number of satellite in the constellation
         PRN = (1 : 24)';  % Satellites id numbers as defined in the constellation
+
+        % http://gpsworld.com/wp-content/uploads/2017/08/Almanac-GPSWorld-Aug2017.pdf
+        % prn to glonass channel
+        PRN2CH = [1 -4 5 6 1 -4 5 6 -2 -7 0 -1 -2 -7 0 -1 4 -3 3 2 4 -3 3 2];
+        % Same as PRN2IDCH but return the id of the frequency for a certain prn
+        PRN2IDCH = GLONASS_SS.PRN2CH + 8;
+        
+        % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
+        CODE_RIN3_AVAIL  = {'CP' 'CP' 'IQX'}; % last letter of the observation code
+        CODE_RIN3_2FREQ  = '125';             % id for the freq as stored in F_VEC
     end
 
     properties (Constant, Access = 'public')

@@ -1,18 +1,18 @@
-%   CLASS QZSS_SS
+%   CLASS IRNSS_SS
 % =========================================================================
 %
 % DESCRIPTION
-%   container of QZSS Satellite System parameters
+%   container of IRNSS Satellite System parameters
 %
 % REFERENCES
 %   CRS parameters, according to each GNSS system CRS definition
 %   (ICD document in brackets):
 %
-%   *_QZS --> GRS80    (IS-QZSS 1.8E)
-%   Standard: http://qz-vision.jaxa.jp/USE/is-qzss/DOCS/IS-QZSS_18_E.pdf
+%   *_QZS --> GRS80    (IS-IRNSS 1.8E)
+%   Standard: https://www.google.it/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0ahUKEwjF5LXHyOPWAhUJLZoKHenOD4MQFggvMAE&url=https%3A%2F%2Fforum.nasaspaceflight.com%2Findex.php%3Faction%3Ddlattach%3Btopic%3D36710.0%3Battach%3D634319&usg=AOvVaw0sOE3-CqbC2o1p2tjjO8IM
 %
 %   Other useful links
-%     - http://www.navipedia.net/index.php/QZSS_Signal_Plan
+%     - http://www.navipedia.net/index.php/IRNSS_Signal_Plan
 %     - Ellipsoid: http://www.unoosa.org/pdf/icg/2012/template/WGS_84.pdf
 %       note that GM and OMEGAE_DOT are redefined in the standard IS-GPS200H (GPS is not using WGS_84 values)
 %     - http://www.navipedia.net/index.php/Reference_Frames_in_GNSS
@@ -49,58 +49,56 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef QZSS_SS < Satellite_System
+classdef IRNSS_SS < Satellite_System
     properties (Constant, Access = 'public')
-        SYS_EXT_NAME = 'QZSS';    % full name of the constellation
-        SYS_NAME     = 'QZS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
-        SYS_C        = 'J';       % Satellite system (ss) character id
+        SYS_EXT_NAME = 'IRNSS';    % full name of the constellation
+        SYS_NAME     = 'IRN';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
+        SYS_C        = 'I';       % Satellite system (ss) character id
 
         % System frequencies as struct [MHz]
-        F = struct('J1', 1575.420, ...
-                   'J2', 1227.600, ...
-                   'J5', 1176.450, ...
-                   'J6', 1278.750)
-
+        F = struct('L5', 1176.450, ...
+                   'S',  2492.028)
+        
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(QZSS_SS.F) * 1e6;
+        F_VEC = struct2array(IRNSS_SS.F) * 1e6;
 
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ QZSS_SS.F_VEC;
+        L_VEC = 299792458 ./ IRNSS_SS.F_VEC;
 
-        N_SAT = 4;           % Maximum number of satellite in the constellation
-        PRN = (193 : 196)';  % Satellites id numbers as defined in the constellation
-
+        N_SAT = 7;                    % Maximum number of satellite in the constellation
+        PRN = (1 : IRNSS_SS.N_SAT)';  % Satellites id numbers as defined in the constellation
+        
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_AVAIL  = {'XCPDZ' 'XLS', 'XIQ', 'XLS'}; % last letter of the observation code
-        CODE_RIN3_2FREQ  = '1256';                        % id for the freq as stored in F_VEC
+        CODE_RIN3_AVAIL  = {'ABCX', 'ABCX'}; % last letter of the observation code e.g. C5A - C5B - C5C - C5X
+        CODE_RIN3_2FREQ  = '59';             % id for the freq as stored in F_VEC e.g. L5 -> C5A, S -> C9A
     end
 
     properties (Constant, Access = 'private')
-        % QZSS (GRS80) Ellipsoid semi-major axis [m]
+        % IRNSS (GRS80) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
-        % QZSS (GRS80) Ellipsoid flattening
+        % IRNSS (GRS80) Ellipsoid flattening
         ELL_F = 1/298.257222101;
-        % QZSS (GRS80) Ellipsoid Eccentricity^2
-        ELL_E2 = (1 - (1 - QZSS_SS.ELL_F) ^ 2);
-        % QZSS (GRS80) Ellipsoid Eccentricity
-        ELL_E = sqrt(QZSS_SS.ELL_E2);
+        % IRNSS (GRS80) Ellipsoid Eccentricity^2
+        ELL_E2 = (1 - (1 - IRNSS_SS.ELL_F) ^ 2);
+        % IRNSS (GRS80) Ellipsoid Eccentricity
+        ELL_E = sqrt(IRNSS_SS.ELL_E2);
     end
 
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986005e14, ...                  % Gravitational constant * (mass of Earth) [m^3/s^2]
-                                    'OMEGAE_DOT', 7.2921151467e-5, ...      % Angular velocity of the Earth rotation [rad/s]
-                                    'ELL',struct( ...                       % Ellipsoidal parameters QZSS (GRS80)
-                                    'A', QZSS_SS.ELL_A, ...             % Ellipsoid semi-major axis [m]
-                                    'F', QZSS_SS.ELL_F, ...             % Ellipsoid flattening
-                                    'E', QZSS_SS.ELL_E, ...             % Eccentricity
-                                    'E2', QZSS_SS.ELL_E2));             % Eccentricity^2
+                           'OMEGAE_DOT', 7.2921151467e-5, ...      % Angular velocity of the Earth rotation [rad/s]
+                           'ELL',struct( ...                       % Ellipsoidal parameters IRNSS (GRS80)
+                           'A', IRNSS_SS.ELL_A, ...             % Ellipsoid semi-major axis [m]
+                           'F', IRNSS_SS.ELL_F, ...             % Ellipsoid flattening
+                           'E', IRNSS_SS.ELL_E, ...             % Eccentricity
+                           'E2', IRNSS_SS.ELL_E2));             % Eccentricity^2
     end
 
     methods
-        function this = QZSS_SS(offset)
+        function this = IRNSS_SS(offset)
             % Creator
-            % SYNTAX: QZSS_SS(<offset>)
+            % SYNTAX: IRNSS_SS(<offset>)
             if (nargin == 0)
                 offset = 0;
             end
@@ -109,7 +107,7 @@ classdef QZSS_SS < Satellite_System
 
         function copy = getCopy(this)
             % Get a copy of this
-            copy = QZSS_SS(this.getOffset());
+            copy = IRNSS_SS(this.getOffset());
             copy.import(this);
         end
     end
