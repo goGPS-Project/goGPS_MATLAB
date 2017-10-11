@@ -171,7 +171,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.n_sat = [this.n_sat this.irn.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.irn.N_SAT;
                 else
-                    this.qzs.disable();
+                    this.irn.disable();
                 end
                 
                 if active_list(7) % SBAS is active (not yet implemented)
