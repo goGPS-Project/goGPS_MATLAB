@@ -696,14 +696,15 @@ classdef goGUIclass < handle
             i=i+1; id.cGalileo      = i;    id2h(i) = this.goh.cGalileo;
             i=i+1; id.cBeiDou       = i;    id2h(i) = this.goh.cBeiDou;
             i=i+1; id.cQZSS         = i;    id2h(i) = this.goh.cQZSS;
+            i=i+1; id.cIRNSS        = i;    id2h(i) = this.goh.cIRNSS;
             i=i+1; id.cSBAS         = i;    id2h(i) = this.goh.cSBAS;
 
             % Group of ids in the panel pConstellations
-            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cSBAS];
+            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cIRNSS id.cSBAS];
 
             % Constellation of satellites currently supported
-            idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
-            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
+            idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cIRNSS];
+            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cIRNSS];
 
             % Cut-off thr -------------------------------------------------
             i=i+1; id.tCutOff       = i;    id2h(i) = this.goh.text_cut_off;
@@ -1189,7 +1190,7 @@ classdef goGUIclass < handle
                                    id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
 
             % On Post Proc => Block Solution
-            idG.onPP_Block = [idG.onPostProc idG.CS id.cDoppler];
+            idG.onPP_Block = [idG.onPostProc idG.CS id.cDoppler id.cL2];
 
             % On Post Proc => Least Squares => Code and Phase Double Differences
             idG.onPP_BLK_CP_DD_STATIC = [idG.onPP_Block id.cPlotProc idG.pAvailableGNSSPhase ...
@@ -2547,7 +2548,8 @@ classdef goGUIclass < handle
                                  this.isActive(this.idUI.cGLONASS) ...
                                  this.isActive(this.idUI.cGalileo) ...
                                  this.isActive(this.idUI.cBeiDou) ...
-                                 this.isActive(this.idUI.cQZSS)];
+                                 this.isActive(this.idUI.cQZSS) ...
+                                 this.isActive(this.idUI.cIRNSS)];
             if sum(activeGNSS) == 0
                 this.setElVal(this.idUI.cGPS, true, 0);
                 % goOk = 0;
@@ -2797,6 +2799,7 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.cGalileo, state.cc.isGalActive(), 0);
             this.setElVal(this.idUI.cBeiDou, state.cc.isBdsActive(), 0);
             this.setElVal(this.idUI.cQZSS, state.cc.isQzsActive(), 0);
+            this.setElVal(this.idUI.cIRNSS, state.cc.isIrnActive(), 0);
             this.setElVal(this.idUI.cSBAS, state.cc.isSbsActive(), 0);
 
             %   SETTINGS - MASTER STATION
@@ -3011,7 +3014,8 @@ classdef goGUIclass < handle
                 this.setElVal(this.idUI.cGalileo, old_state.activeGNSS(3), 0);
                 this.setElVal(this.idUI.cBeiDou, old_state.activeGNSS(4), 0);
                 this.setElVal(this.idUI.cQZSS, old_state.activeGNSS(5), 0);
-                this.setElVal(this.idUI.cSBAS, old_state.activeGNSS(6), 0);
+                this.setElVal(this.idUI.cIRNSS, old_state.activeGNSS(6), 0);
+                this.setElVal(this.idUI.cSBAS, old_state.activeGNSS(7), 0);
             end
 
             %   SETTINGS - MASTER STATION
@@ -3178,6 +3182,7 @@ classdef goGUIclass < handle
                                        this.isActive(this.idUI.cGalileo) ...
                                        this.isActive(this.idUI.cBeiDou) ...
                                        this.isActive(this.idUI.cQZSS) ...
+                                       this.isActive(this.idUI.cIRNSS) ...
                                        this.isActive(this.idUI.cSBAS) ];
 
             %   SETTINGS - MASTER STATION

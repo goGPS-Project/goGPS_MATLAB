@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 27-Jul-2017 16:16:25
+% Last Modified by GUIDE v2.5 11-Oct-2017 17:01:37
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -2038,8 +2038,6 @@ if length(eventdata.Modifier) == 1
     end
 end
 
-
-
 function out_prefix_str_Callback(hObject, eventdata, handles)
 % hObject    handle to sPrefixGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -2060,3 +2058,12 @@ function out_prefix_str_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in cIRNSS.
+function cIRNSS_Callback(hObject, eventdata, handles)
+% hObject    handle to cIRNSS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cIRNSS

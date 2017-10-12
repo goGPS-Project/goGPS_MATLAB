@@ -59,6 +59,10 @@ classdef Satellite_System < Settings_Interface
         %   .ELL.F      flattening
         %   .ELL.e      eccentricity
         %   .ELL.e2     eccentricity^2
+        
+        % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
+        CODE_RIN3_AVAIL;  % last letter of the observation code e.g. IRNSS: C5A - C5B - C5C - C5X
+        CODE_RIN3_2FREQ;  % id for the freq as stored in F_VEC e.g. IRNSS: L5 -> C5A, S -> C9A
     end
 
     properties (GetAccess = 'public', SetAccess = 'protected')
@@ -123,6 +127,31 @@ classdef Satellite_System < Settings_Interface
             this.go_ids = offset + (1 : this.N_SAT);
         end
 
+        function code = getPrCodes(this, freq_num)
+            % get the list of codes containing pseudo range data
+            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
+            code_rin3_avail(code_rin3_avail == 'N') = []; % remove codeless observations
+            code = char([ones(numel(code_rin3_avail), 1) * 'C' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+        end
+        
+        function code = getPhCodes(this, freq_num)
+            % get the list of codes containing phase data
+            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'L' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+        end
+        
+        function code = getDopCodes(this, freq_num)
+            % get the list of codes containing doppler
+            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'D' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+        end
+        
+        function code = getSnrCodes(this, freq_num)
+            % get the list of codes containing snr data
+            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'S' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+        end
+        
         function offset = getOffset(this)
             % Get offset of the go_ids
             if ~isempty(this.go_ids)
@@ -158,6 +187,9 @@ classdef Satellite_System < Settings_Interface
             % SYNTAX: this.enable(<status>);
             if (nargin == 2)
                 this.flag_enable = logical(status);
+                if isempty(this.flag_enable)
+                    this.flag_enable = false;
+                end
             else
                 this.flag_enable = true;
             end
@@ -186,7 +218,10 @@ classdef Satellite_System < Settings_Interface
                 name = this.getFreqName();
                 tmp = true(numel(name),1);
                 for i = 1 : numel(name)
-                    tmp(i) = logical(settings.getData(sprintf('%s_%s', this.SYS_NAME, char(name{i}))));
+                    tmp_str = logical(settings.getData(sprintf('%s_%s', this.SYS_NAME, char(name{i}))));
+                    if ~isempty(tmp_str)
+                        tmp(i) = tmp_str;
+                    end
                 end
                 this.flag_f = tmp;
             else

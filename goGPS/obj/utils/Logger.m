@@ -175,7 +175,7 @@ classdef Logger < handle
         end
 
         function addError(this, text)
-            % Send a warning through the standard interface
+            % Send an error through the standard interface
             if (this.ERROR_VERBOSITY_LEV <= this.verbosity)
                 this.printError(text);
             end

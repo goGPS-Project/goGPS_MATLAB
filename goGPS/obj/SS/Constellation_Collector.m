@@ -42,16 +42,17 @@
 
 classdef Constellation_Collector < Settings_Interface
     properties (Constant, GetAccess = private)
-        N_SYS_TOT = 6; % Max number of available satellite systems
-        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'SBAS'}; % full name of the constellation
-        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'SBS'}; % 3 characters name of the constellation
+        N_SYS_TOT = 7; % Max number of available satellite systems
+        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'IRNSS', 'SBAS'}; % full name of the constellation
+        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'IRN', 'SBS'}; % 3 characters name of the constellation
         ID_GPS       = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS   = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO   = 3 % Id of Galileo constellation for goGPS internal use
         ID_BEIDOU    = 4 % Id of BeiDou constellation for goGPS internal use
         ID_QZSS      = 5 % Id of QZSS constellation for goGPS internal use
-        ID_SBAS      = 6 % Id of SBAS constellation for goGPS internal use
-        SYS_C        = 'GRECJS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
+        ID_IRNSS     = 6 % Id of IRNSS constellation for goGPS internal use
+        ID_SBAS      = 7 % Id of SBAS constellation for goGPS internal use
+        SYS_C        = 'GRECJIS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
     end
 
     properties (SetAccess = public, GetAccess = public)
@@ -60,6 +61,7 @@ classdef Constellation_Collector < Settings_Interface
         gal = Galileo_SS();  % Galileo parameters
         bds = BeiDou_SS();   % BeiDou parameters
         qzs = QZSS_SS();     % QZSS parameters
+        irn = IRNSS_SS();    % IRNSS parameters
         sbs = SBAS_SS();     % sbs parameters
 
         sys_name     % array of active constellations names (as in the list structure)
@@ -158,7 +160,21 @@ classdef Constellation_Collector < Settings_Interface
                 else
                     this.qzs.disable();
                 end
-                if active_list(6) % SBAS is active (not yet implemented)
+                
+                if active_list(6) % IRNSS is active
+                    this.irn.updateGoIds(this.n_sat_tot);
+                    this.irn.enable();
+                    this.num_id = [this.num_id this.ID_IRNSS];
+                    this.sys_c = [this.sys_c this.irn.SYS_C];
+                    this.system = [this.system char(ones(1, this.irn.N_SAT) * this.irn.SYS_C)];
+                    this.prn = [this.prn; this.irn.PRN];
+                    this.n_sat = [this.n_sat this.irn.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.irn.N_SAT;
+                else
+                    this.irn.disable();
+                end
+                
+                if active_list(7) % SBAS is active (not yet implemented)
                     this.sbs.updateGoIds(this.n_sat_tot);
                     this.sbs.enable();
                     this.num_id = [this.num_id this.ID_SBAS];
@@ -183,12 +199,12 @@ classdef Constellation_Collector < Settings_Interface
     end
 
     methods
-        function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
-            % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]
+        function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag)
+            % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]
             % SYNTAX:
             %   cc = Constellation_Collector('GRECJS'); % use the array of constellation char ids
-            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
-            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
+            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag);
+            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]);
             %
             % INPUT:
             %   single logical array whose elements are:
@@ -197,6 +213,7 @@ classdef Constellation_Collector < Settings_Interface
             %   GAL_flag = boolean flag for enabling/disabling Galileo usage
             %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
             %   QZS_flag = boolean flag for enabling/disabling QZSS usage
+            %   IRN_flag = boolean flag for enabling/disabling IRNSS usage
             %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
             %
             % OUTPUT:
@@ -214,6 +231,7 @@ classdef Constellation_Collector < Settings_Interface
             this.gal = this.gal.getCopy();
             this.bds = this.bds.getCopy();
             this.qzs = this.qzs.getCopy();
+            this.irn = this.irn.getCopy();
             this.sbs = this.sbs.getCopy();
 
             % Manually manage overloading
@@ -223,13 +241,13 @@ classdef Constellation_Collector < Settings_Interface
                 case 1
                     if (ischar(GPS_flag))
                         active_list = false(1,this.N_SYS_TOT);
-                        [~, ids] = intersect('GRECJS',GPS_flag);
+                        [~, ids] = intersect('GRECJIS',GPS_flag);
                         active_list(ids) = true;
                     else
                         active_list = logical(GPS_flag);
                     end
-                case 5,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
-                case 6,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
+                case 6,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, 0]);
+                case 7,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]);
                 otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
             end
 
@@ -242,7 +260,7 @@ classdef Constellation_Collector < Settings_Interface
             else
                 active_list = active_list(1:this.N_SYS_TOT);
             end
-            if active_list(6)
+            if active_list(7)
                 this.logger.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
             end
             this.init(active_list);
@@ -257,7 +275,7 @@ classdef Constellation_Collector < Settings_Interface
         function active_list = getActive(this)
             % get the logical array of satellite actually active, order: GPS GLO GAL BDS QZS SBS -> and update the object if something has changed
             % SYNTAX: active_list = this.getActive();
-            active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.bds.isActive this.qzs.isActive this.sbs.isActive];
+            active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.bds.isActive this.qzs.isActive this.irn.isActive this.sbs.isActive];
 
             % If some constellation have been activated not in the proper way
             if (sum(not(this.active_list(:) & active_list(:))) > 0)
@@ -276,6 +294,44 @@ classdef Constellation_Collector < Settings_Interface
             prn(this.system == 'J') = prn(this.system == 'J') - 192;
             ant_mod = mat2cell([this.system' reshape(sprintf('%02d', prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
         end
+        
+        function lambda = getLegacyLambda(this, eph, sp3)
+            % Get lambda matrix [n_sat x 7], used in a lot of old goGPS functions
+            lambda = zeros(this.n_sat_tot, 7);
+            % Get satellites with orbits
+            if (isempty(sp3))
+                sat_ok = unique(eph(30,:))';
+            else
+                sat_ok = sp3.avail(sp3.avail > 0);
+            end
+            if this.glo.isActive()
+                % Transmission channel for glonass given the prn
+                channel_id = zeros(size(this.glo.go_ids));
+                for i = 1 : numel(this.glo.go_ids)
+                    pos = find(eph(30,:) == this.glo.go_ids(i), 1, 'first');
+                    channel_id(i) = eph(15, pos) + 8; % Add 8 cause the GLONASS channel start from -7
+                end
+            end
+            
+            for s = 1 : numel(this.sys_name)
+                pos = this.(char((this.sys_name{s} + 32))).go_ids();
+                iono_free = this.(char((this.sys_name{s} + 32))).getIonoFree();
+                if this.sys_c(s) == 'R' % if glonass
+                    lambda(pos, 1) = this.(char((this.sys_name{s} + 32))).L_VEC(channel_id,1);
+                    lambda(pos, 2) = this.(char((this.sys_name{s} + 32))).L_VEC(channel_id,2);
+                else
+                    lambda(pos, 1) = this.(char((this.sys_name{s} + 32))).L_VEC(:,1);
+                    lambda(pos, 2) = this.(char((this.sys_name{s} + 32))).L_VEC(:,2);
+                end
+                lambda(pos, 3) = (iono_free.T / (iono_free.T^2 - iono_free.N^2)) * lambda(pos,1);
+                lambda(pos, 4) = iono_free.alpha1;
+                lambda(pos, 5) = iono_free.alpha2;
+                lambda(pos, 6) = iono_free.T;
+                lambda(pos, 7) = iono_free.N;
+            end
+            sat_ko = true(this.n_sat_tot, 1); sat_ko(sat_ok) = false;
+            lambda(sat_ko, :) = 0;
+        end
 
     end
 
@@ -288,7 +344,7 @@ classdef Constellation_Collector < Settings_Interface
             if isa(state, 'Ini_Manager')
                 vl = this.logger.getVerbosityLev();
                 this.logger.setVerbosityLev(0);
-                this.init([0 0 0 0 0 0]);
+                this.init([0 0 0 0 0 0 0]);
             	this.logger.setVerbosityLev(vl);
 
                 this.gps.import(state);
@@ -296,6 +352,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.gal.import(state);
                 this.bds.import(state);
                 this.qzs.import(state);
+                this.irn.import(state);
                 this.sbs.import(state);
                 this.update();
             else
@@ -304,6 +361,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.gal = state.gal.getCopy();
                 this.bds = state.bds.getCopy();
                 this.qzs = state.qzs.getCopy();
+                this.irn = state.qzs.getCopy();
                 this.sbs = state.sbs.getCopy();
                 this.update();
             end
@@ -324,6 +382,7 @@ classdef Constellation_Collector < Settings_Interface
             str = this.gal.toString(str);
             str = this.bds.toString(str);
             str = this.qzs.toString(str);
+            str = this.irn.toString(str);
             str = this.sbs.toString(str);
         end
 
@@ -348,6 +407,7 @@ classdef Constellation_Collector < Settings_Interface
             str_cell = this.gal.export(str_cell);
             str_cell = this.bds.export(str_cell);
             str_cell = this.qzs.export(str_cell);
+            str_cell = this.irn.export(str_cell);
             str_cell = this.sbs.export(str_cell);
 
             % Maybe in a future it will be useful to export and import specific satellites in use
@@ -421,6 +481,18 @@ classdef Constellation_Collector < Settings_Interface
             this.update();
         end
 
+        function activateIRNSS(this)
+            % Activate the use of IRNSS
+            this.qzs.enable();
+            this.update();
+        end
+
+        function deactivateIRNSS(this)
+            % De-activate the use of IRNSS
+            this.irn.disable();
+            this.update();
+        end
+        
         function activateSBAS(this)
             % Activate the use of SBAS
             this.gps.enable();
@@ -463,6 +535,11 @@ classdef Constellation_Collector < Settings_Interface
             isActive = this.qzs.isActive();
         end
 
+        function isActive = isIrnActive(this)
+            % get the activation status for IRNSS
+            isActive = this.irn.isActive();
+        end
+
         function isActive = isSbsActive(this)
             % get the activation status for SBAS
             isActive = this.sbs.isActive();
@@ -487,6 +564,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.gal.setActiveFrequencies(state.activeFreq);
                 this.bds.setActiveFrequencies(state.activeFreq);
                 this.qzs.setActiveFrequencies(state.activeFreq);
+                this.irn.setActiveFrequencies(state.activeFreq);
                 this.sbs.setActiveFrequencies(state.activeFreq);
             end
         end
@@ -533,6 +611,11 @@ classdef Constellation_Collector < Settings_Interface
             gps = handle(this.qzs);
         end
 
+        function gps = getIRNSS(this)
+            % return the IRNSS satellite system object
+            gps = handle(this.irn);
+        end
+        
         function gps = getSBAS(this)
             % return the SBAS satellite system object
             gps = handle(this.sbs);
@@ -549,7 +632,7 @@ classdef Constellation_Collector < Settings_Interface
             % SYNTAX: Constellation_Collector.test()
             c = Constellation_Collector(Constellation_Collector.SYS_C);
             c.testInterfaceRoutines();
-            c = Constellation_Collector([0 1 1 0 0 0]);
+            c = Constellation_Collector([0 1 1 0 0 1 0]);
             c.testInterfaceRoutines();
         end
     end
