@@ -51,6 +51,7 @@ global report
 % close all windows
 %close all
 fclose('all');
+flag_init_out = false;
 
 % clear the command prompt
 %clc
@@ -4385,7 +4386,8 @@ for session = 1 : num_session
                 
                 tropo_vec_ZTD = nan(1,86400/interval);
                 tropo_vec_ZWD = nan(1,86400/interval);
-                if (session == 1)
+                if ~flag_init_out
+                    flag_init_out = true;
                     fid_extract = fopen(sprintf('%sextraction.txt', file_name_base),'w');
                     
                     if (state.isModeBlock())
@@ -4502,7 +4504,7 @@ for session = 1 : num_session
     toc
 end
 
-if is_batch && ~state.isModeSEID()
+if flag_init_out && is_batch && ~state.isModeSEID()
     fclose(fid_extract);
     if (state.isModeBlock())
         for i = 1 : numel(fid_extract_hr)
