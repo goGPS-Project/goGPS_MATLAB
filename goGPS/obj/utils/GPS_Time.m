@@ -862,12 +862,16 @@ classdef GPS_Time < handle
             end
         end
 
-        function [gps_week, gps_sow, gps_dow] = getGpsWeek(this)
+        function [gps_week, gps_sow, gps_dow] = getGpsWeek(this,id)
             % get Reference Time, precision up to the ps precision
             % SYNTAX: [gps_week, gps_sow, gps_dow] = this. getGpsWeek();
             gps_time = this.getCopy();
             gps_time.toGps();
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
+            if nargin == 2
+                unix_time = unix_time(id);
+                unix_time_f = unix_time_f(id);
+            end
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
         end
 
