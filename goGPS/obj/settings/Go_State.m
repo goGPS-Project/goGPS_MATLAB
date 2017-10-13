@@ -226,6 +226,33 @@ classdef Go_State < Settings_Interface
             this.logger.setColorMode(c_mode);
         end
 
+        function initGeoid(this)
+            % load external geoid
+            % SYNTAX: this.initGeoid();
+            try
+                geoid_file = this.cur_settings.getGeoidFile();
+                g = load(geoid_file);
+                fn = fieldnames(g);
+                % geoid grid and parameters
+                this.geoid.grid = g.(fn{1});
+                this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
+                this.geoid.Xll = -180 + this.geoid.cellsize / 2;
+                this.geoid.Yll = -90 + this.geoid.cellsize / 2;
+                this.geoid.ncols = size(this.geoid.grid, 2);
+                this.geoid.nrows = size(this.geoid.grid, 1);
+                clear g
+            catch
+                this.logger.addWarning('Reference geoid not found', 50);
+                % geoid unavailable
+                this.geoid.grid = 0;
+                this.geoid.cellsize = 0;
+                this.geoid.Xll = 0;
+                this.geoid.Yll = 0;
+                this.geoid.ncols = 0;
+                this.geoid.nrows = 0;
+            end
+        end
+
     end
 
     methods (Access = private)
@@ -257,32 +284,6 @@ classdef Go_State < Settings_Interface
             else
                 this.reference.path = [];
                 this.reference.adj_mat = [];
-            end
-        end
-
-        function initGeoid(this)
-            % load external geoid
-            try
-                geoid_file = this.cur_settings.getGeoidFile();
-                g = load(geoid_file);
-                fn = fieldnames(g);
-                % geoid grid and parameters
-                this.geoid.grid = g.(fn{1});
-                this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
-                this.geoid.Xll = -180 + this.geoid.cellsize / 2;
-                this.geoid.Yll = -90 + this.geoid.cellsize / 2;
-                this.geoid.ncols = size(this.geoid.grid, 2);
-                this.geoid.nrows = size(this.geoid.grid, 1);
-                clear g
-            catch
-                this.logger.addWarning('Reference geoid not found', 50);
-                % geoid unavailable
-                this.geoid.grid = 0;
-                this.geoid.cellsize = 0;
-                this.geoid.Xll = 0;
-                this.geoid.Yll = 0;
-                this.geoid.ncols = 0;
-                this.geoid.nrows = 0;
             end
         end
 

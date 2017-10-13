@@ -193,7 +193,10 @@ classdef File_Name_Processor < handle
             if (nargin < 4)
                 empty_fallback = dir_base;
             end
-
+            if isempty(dir_base)
+                dir_base = pwd;
+            end
+            
             dir_path_bk = dir_path;
 
             fnp = File_Name_Processor;
@@ -253,7 +256,7 @@ classdef File_Name_Processor < handle
                 end
             end
             % Fallback if not exist
-            if (nargin == 3)
+            if (nargin >= 3)
                 if ~exist(dir_path, 'file')
                     dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
                 end

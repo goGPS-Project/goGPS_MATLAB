@@ -3,6 +3,11 @@ function N = getOrthometricCorr(phi, lam, geoid)
 % SYNTAX:
 %   N = getOrthometricCorr(phi, lam, geoid);
 %
+% EXAMPLE:
+%   gs = Go_State.getInstance;
+%   gs.initGeoid();
+%   getOrthometricCorr(45.69 ./ 180*pi, 9.03 ./ 180*pi, gs.getRefGeoid())
+%   
 % INPUT:
 %   phi     = geocentric latitude                [rad]
 %   lam     = geocentric longitude               [rad]
@@ -12,7 +17,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %   N       = geoid ondulation
 %
 % DESCRIPTION:
-%   Get the geoid ondulation (hortometric correction)
+%   Get the geoid ondulation (orthometric correction)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
