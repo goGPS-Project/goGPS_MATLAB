@@ -33,7 +33,9 @@ classdef Core_Sky < handle
     %--------------------------------------------------------------------------
     
     properties
-        time  % Gps Times of tabulated aphemerids
+        time_ref  % Gps Times of tabulated aphemerids
+        time_zero_idx_coord % index of zero time in coord
+        time_zero_idx_clk % index of zero time in clk
         coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
         clock  % cloks of tabulated aphemerids [times x num_sat]
         prn
@@ -54,7 +56,7 @@ classdef Core_Sky < handle
         satType
         avail
         coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
-        clock_pol_coeff %% coefficient of the polynomial interpolation for clocks [11,3,num_sat,num_coeff_sets]
+        start_time_idx  %%% index  defininig start of the day (time == 1)
         cc
         
     end
@@ -536,7 +538,6 @@ classdef Core_Sky < handle
         
         
         function importIono(this,f_name)
-            %%% to be implemeted
             [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
             if (flag_return)
                 return
@@ -672,14 +673,11 @@ classdef Core_Sky < handle
             n_coeff_set= length(this.time)-10;%86400/this.coord_rate+1;
             %this.coord_pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
             this.coord_pol_coeff=zeros(n_coeff,3,this.cc.getNumSat,n_coeff_set);
-            this.clock_pol_coeff=zeros(n_coeff,this.cc.getNumSat,n_coeff_set);
             for s=1:this.cc.getNumSat
                 for i=1:n_coeff_set
                     for j=1:3
-                        %this.coord_pol_coeff(s,i,:,j)=A\squeeze(this.coord(j,s,i:i+10));
                         this.coord_pol_coeff(:,j,s,i)=A\squeeze(this.coord(i:i+10,s,j));
                     end
-                    this.clock_pol_coeff(:,s,i)=A\squeeze(this.clock(i:i+10,s));
                 end
             end
         end
@@ -698,22 +696,22 @@ classdef Core_Sky < handle
             if nargin <3
                 sat_idx=ones(n_sat,1)>0;
             else
-                sat_idx=1:n_sat==sat;
+                sat_idx=sat;
             end
-            n_sat=sum(sat_idx);
-            t_fd=t-this.time(6); % time from start of the day
+            n_sat=length(sat_idx);
+            t_fd=t; % time from start of the day
             nt=length(t_fd);
-            c_idx=round(t_fd/this.coord_rate)+1;%coefficient set  index
+            c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             %l_idx=idx-5;
             %u_id=idx+10;
             
             X_sat=zeros(nt,n_sat,3);
             V_sat=zeros(nt,n_sat,3);
             un_idx=unique(c_idx);
-            for idx=un_idx'
+            for idx=un_idx
                 t_idx=c_idx==idx;
                 times=t(t_idx);
-                t_fct=((times-this.time(5+idx)));%time from coefficient time
+                t_fct=((times-this.time(5+idx)))';%time from coefficient time
                 %%%% compute position
                 eval_vec = [ones(size(t_fct)) ...
                     t_fct ...
@@ -758,26 +756,27 @@ classdef Core_Sky < handle
             if nargin <3
                 sat_idx=ones(n_sat,1)>0;
             else
-                sat_idx=1:n_sat==sat;
+                sat_idx=sat;
             end
-            n_sat=sum(sat_idx);
-            t_fd=t-this.time(6); % time from start of the day
+            n_sat=length(sat_idx);
+            t_fd=t; % time from start of the day
             nt=length(t_fd);
-            c_idx=round(t_fd/this.coord_rate)+1;%coefficient set  index
+            c_idx=round(t_fd/this.clock_rate)+this.start_time_idx;%correction index
             %l_idx=idx-5;
             %u_id=idx+10;
             
             dtS_sat=zeros(nt,n_sat);
             un_idx=unique(c_idx);
-            for idx = un_idx'
+            for idx = un_idx
                 t_idx=c_idx==idx;
                 times=t(t_idx);
-                t_fct=((times-this.time(5+idx))/this.coord_rate);%time from coefficient time
+                i_fct=((times-this.time(idx))/this.clock_rate)';%interval from coefficient time
                 %%%% compute position
-                eval_vec = [ones(size(t_fct)) t_fct t_fct.^2 t_fct.^3 t_fct.^4 t_fct.^5 t_fct.^6 t_fct.^7 t_fct.^8 t_fct.^9 t_fct.^10];
-                dtS_sat(t_idx,:) = reshape(eval_vec*reshape(this.clock_pol_coeff(:,sat_idx,idx),11,sum(sat_idx)),sum(t_idx),n_sat);
+                eval_vec = [i_fct 1-i_fct];
+                dtS_sat(t_idx,:) = reshape(eval_vec*reshape(this.clock(idx:idx+1,sat_idx),2,n_sat),sum(t_idx),n_sat);
             end
         end
+
         function sun_moon_pos(this,p_time)
             % SYNTAX:
             %   this.Eph_Tab.polInterpolate(p_time)
@@ -943,6 +942,7 @@ classdef Core_Sky < handle
             this.ERP = sp3.ERP;
             this.DCB = sp3.DCB;
             this.antenna_PCO = sp3.antPCO;
+            this.start_time_idx = find(this.time == 1);
             
             
         end
@@ -987,8 +987,8 @@ classdef Core_Sky < handle
                 [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
             end
             %north (b) and radial (c) local unit vectors
-            b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
-            c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
+            b = [-sin(phiC)*cos(lam) -sin(phiC)*sin(lam) cos(phiC)];
+            c = [+cos(phiC)*cos(lam) +cos(phiC)*sin(lam) sin(phiC)];
             
             %Sun and Moon position
             t_sun  = this.t_sun;
@@ -1054,12 +1054,65 @@ classdef Core_Sky < handle
             %displacement along the receiver-satellite line-of-sight
             stidecorr = zeros(size(XS,1),1);
             for s = 1 : size(XS,1)
-                LOS  = XR - XS(s,:)';
+                LOS  = XR - XS(s,:);
                 LOSu = LOS / norm(LOS);
                 %stidecorr(s,1) = dot(r,LOSu);
                 stidecorr(s,1) = sum(conj(r).*LOSu);
             end
         end
+        function [poletidecorr] = pole_tide_correction(this, time, XR, XS, phiC, lam)
+            
+            % SYNTAX:
+            %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
+            %
+            % INPUT:
+            %   time = GPS time
+            %   XR   = receiver position  (X,Y,Z)
+            %   XS   = satellite position (X,Y,Z)
+            %   phiC = receiver geocentric latitude (rad)
+            %   lam  = receiver longitude (rad)
+            %
+            % OUTPUT:
+            %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
+            %
+            % DESCRIPTION:
+            %   Computation of the pole tide displacement terms.
+            if (nargin < 5)
+                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+            end
+            
+            poletidecorr = zeros(size(XS,1),1);
+            
+            %interpolate the pole displacements
+            if (~isempty(this.ERP))
+                if (length(this.ERP.t) > 1)
+                    m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
+                    m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
+                else
+                    m1 = this.ERP.m1;
+                    m2 = this.ERP.m2;
+                end
+                
+                deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+                deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
+                deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+                
+                corrENU(1,1) = deltaLam; %east
+                corrENU(2,1) = deltaPhi; %north
+                corrENU(3,1) = deltaR;   %up
+                
+                %displacement along the receiver-satellite line-of-sight
+                XRcorr = local2globalPos(corrENU, XR);
+                corrXYZ = XRcorr - XR;
+                for s = 1 : size(XS,1)
+                    LOS  = XR - XS(s,:)';
+                    LOSu = LOS / norm(LOS);
+                    poletidecorr(s,1) = -dot(corrXYZ,LOSu);
+                end
+            end
+            
+        end
+        
         
         function writeSP3(this, f_name, prec)
             % SYNTAX:
@@ -1097,7 +1150,7 @@ classdef Core_Sky < handle
             fid=fopen(f_name,'w');
             this.writeHeader(fid, prec);
             
-            for i=1:length(this.time)
+            for i=1:length(this.coord)
                 this.writeEpoch(fid,[squeeze(com_coord(i,:,:)/1000) this.clock(:,(i-1)/rate_ratio+1)*1000000],i); %% convert coord in km and clock in microsecodns
             end
             fprintf(fid,'EOF\n');
@@ -1113,7 +1166,8 @@ classdef Core_Sky < handle
                 prec=100,
             end
             prec = num2str(prec);
-            time = GPS_Time((this.time(1))/86400+GPS_Time.GPS_ZERO);
+            time=this.time_ref.getCopy();
+            time.addIntSeconds((1-this.time_zero_idx_coord)*900);
             str_time = time.toString();
             year = str2num(str_time(1:4));
             month = str2num(str_time(6:7));
@@ -1170,8 +1224,8 @@ classdef Core_Sky < handle
             fprintf(fid,'/*                              Lines                       \n');
         end
         function writeEpoch(this,fid,XYZT,epoch)
-            t=this.time(epoch);
-            t=GPS_Time(t/86400+GPS_Time.GPS_ZERO);
+            t=this.time_ref.getCopy();
+            t.addIntSeconds((e-this.time_zero_idx_coord)*900);
             cc=this.cc;
             str_time=t.toString();
             year=str2num(str_time(1:4));

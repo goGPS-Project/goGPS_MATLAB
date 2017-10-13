@@ -75,6 +75,19 @@ classdef Receiver < handle
         dop         % matrix containing doppler observations ordered as SFO (Satellite/Frequency, Observation)
 
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
+        
+        rec2sat = struct( ...
+                'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
+                'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
+                'err_iono',    [], ...    % double  [n_epoch x n_sat] iono error
+                'dtS',         [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
+                'rel_clk_corr',[], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
+                'tot',         [], ...    % double  [n_epoch x n_sat] time of travel
+                'az',          [], ...    % double  [n_epoch x n_sat] azimuth
+                'el',          [], ...    % double  [n_epoch x n_sat] elevation
+                'cs',          [], ...    % Core_Sky
+                'XS_tx',       [] ...     % compute Satellite postion a t transmission time
+        )
     end
 
     % ==================================================================================================================================================
@@ -542,4 +555,314 @@ classdef Receiver < handle
             y0(y0 == 0) = []; % remove pivots
         end
     end
+    % ==================================================================================================================================================
+    %  FUNCTIONS TO GET SATELLITE RELATED PARAMETER
+    % ==================================================================================================================================================
+    methods
+       function time_tx = getTimeTx(this,sat)
+            % SYNTAX:
+            %   this.getTimeTx(epoch);
+            %
+            % INPUT:
+            % OUTPUT:
+            %   time_tx = transmission time
+            %   time_tx = 
+            %
+            % DESCRIPTION:
+            %   Get Transmission time
+            if isempty(this.time_tx)
+                this.updateTimetX();
+                %%% TBD compute trasmission time based on current values (only
+                %%% possible whn moving method to parent class)
+            end
+            time_tx = this.time - this.tot
+            
+            
+        end
+        function updateTOT()
+            % SYNTAX:
+            %   this.transmission_time(time_rx, dtR);
+            %
+            % INPUT:
+            %   time_rx   = reception time
+            %   dtR       = receiver clock offset
+            %   range     = observed range
+            %
+            % OUTPUT:
+            % DESCRIPTION:
+            %   Compute the signal transmission time.
+            this.tot = time_rx - (range - this.getErrTropo() - this.getErrIono() ) / goGNSS.V_LIGHT + dtR - this.getDtS(time_rx) - this.getRelClkCorr(time_rx) + this.getGD();
+            
+        end
+        function travel_time = getTOT(this, time_rx)
+            % SYNTAX:
+            %   this.getTraveltime(time_rx)
+            %
+            % INPUT:
+            %   time_rx   = reception time
+            %
+            % OUTPUT:
+            % DESCRIPTION:
+            %   Compute the signal transmission time.
+            travel_time = repmat(time,1,size(this.time_tx,2)) - this.time_tx;
+        end
+        function dtS = getDtS(this, time_rx)
+            % SYNTAX:
+            %   this.getDtS(time_rx)
+            %
+            % INPUT:
+            %   time_rx   = reception time
+            %
+            % OUTPUT:
+            %   dtS     = satellite clock errors
+            % DESCRIPTION:
+            %   Compute the satellite clock error.
+            dtS = zeros(size(this.avail_index));
+            for s = 1 : size(dtS)
+                dtS(this.avail_index(:,s)) = this.cs.clockInterpolate(this.time_rx(this.avail_index(:,s)),s);
+            end
+            
+        end
+        function group_delay = getGd(this,obs_type)
+            %%% !!!! ASSUME P1/P2 RECEIVER
+            group_delay = zeros(size(time_tx))
+            core_sky = Core_Sky.getIstance();
+            switch obs_type
+                case 'L1'
+                    dcb_factor = cc.gps.getIonoFree.alpha2;
+                case 'L2'
+                    dcb_factor = cc.gps.getIonoFree.alpha1;
+                case 'L3'
+                    dcb_factor = 0;
+                otherwise
+                    Logger.getInstance().addWarning(['Unknown observable ' obs_type]);
+                    dcb_factor = 0;
+            end
+            for s = 1:size(group_delay,2)
+                group_delay(this.avail_index(:,s),:) = dcb_factor*core_sky.DCB.P1P2.values(s)
+            end
+        end
+        function [XS_tx_r ,XS_tx] = getXSTxRot(this, time_rx, cc)
+            % SYNTAX:
+            %   [XS_tx_r ,XS_tx] = this.getXSTxRot( time_rx, cc)
+            %
+            % INPUT:
+            % time_rx = receiver time
+            % cc = Constellation Collector
+            % OUTPUT:
+            % XS_tx = satellite position computed at trasmission time
+            % XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured
+            % during time of travel
+            % DESCRIPTION:
+            %   Compute satellite positions at transmission time and rotate them by the earth rotation
+            %   occured during time of travel of the signal
+            [XS_tx] = this.getXSTx();
+            [XS_r] = this.earthRotationCorrection(this, XS_tx, time_rx, cc);
+        end
+        function [XS_tx] = getXSTx(this)
+            % SYNTAX:
+            %   [XS_tx_frame , XS_rx_frame] = this.getXSTx()
+            %
+            % INPUT:
+            %
+            % OUTPUT:
+            % XS_tx = satellite position computed at trasmission time
+            % DESCRIPTION:
+            % Compute satellite positions at trasmission time
+            if isempty(time_tx)
+                %this.updateTimeTx();
+                Logger.getInstance().addError('Trasmission time still not computed')
+                return
+            end
+            
+            XS_tx  = zeros(size(time_tx));
+            for s = 1 : size(XS_tx)
+                %%% compute staeliite position a t trasmission time
+                [XS_tx(index(:,s),:,:), ~] = polyInterpolate(this.time_tx(index(:,s)),s);
+            end
+        end
+        function [XS_r] = earthRotationCorrection(this, XS, time_rx, cc)
+            % SYNTAX:
+            %   [XS_r] = this.earthRotationCorrection(XS, time_rx, cc)
+            %
+            % INPUT:
+            % XS = positions of satellites
+            % time_rx = receiver time
+            % cc = Constellation Collector
+            % OUTPUT:
+            % XS_r = Satellite postions rotated by earth roattion occured
+            % during time of travel
+            % DESCRIPTION:
+            %   Rotate the satellites position by the earth rotation
+            %   occured during time of travel of the signal
+            travel_time = this.getTravelTime( time_rx);
+            XS_r = zeros(size(XS));
+            for s = 1 : size(XS)
+                sys = cc.system(s);
+                switch char(sys)
+                    case 'G'
+                        omegae_dot = cc.gps.ORBITAL_P.OMEGAE_DOT;
+                    case 'R'
+                        omegae_dot = cc.glo.ORBITAL_P.OMEGAE_DOT;
+                    case 'E'
+                        omegae_dot = cc.gal.ORBITAL_P.OMEGAE_DOT;
+                    case 'C'
+                        omegae_dot = cc.bds.ORBITAL_P.OMEGAE_DOT;
+                    case 'J'
+                        omegae_dot = cc.qzs.ORBITAL_P.OMEGAE_DOT;
+                    case 'I'
+                        omegae_dot = cc.irn.ORBITAL_P.OMEGAE_DOT;
+                    otherwise
+                        Logger.getInstance().addWarning('Something went wrong in satellite_positions.m\nUnrecognized Satellite system!\n');
+                        omegae_dot = cc.gps.ORBITAL_P.OMEGAE_DOT;
+                end
+                omega_tau = omegae_dot * travel_time(this.avail_index(s,:),s);
+                R3s  = cat(3,[cos(omega_tau)    sin(omega_tau)],[-sin(omega_tau)    cos(omega_tau)]); %[n_valid_epoch x 2 x 2] matrix with all travel times rotations, Z line is omitted since roattion is along Z
+                XS_r(this.avail_index(s,:),s,1) = sum(R3s(:,1,:) .* XS(this.avail_index(s,:),s,1:2),3); % X
+                XS_r(this.avail_index(s,:),s,2) = sum(R3s(:,2,:) .* XS(this.avail_index(s,:),s,1:2),3); % Y
+                XS_r(this.avail_index(s,:),s,2) = XS(this.avail_index(s,:),s,3); % Z
+            end
+            
+        end
+        function error_tropo = getErrTropo(this, XS)
+            for s = 1 : size(this.available_index)
+                %%% compute lat lon
+                [~, lat, h, lon] = cart2geod(this.XR(:,1), this.XR(:,2), this.XR(:,3));
+                %%% compute az el
+                if size(this.XR,2)>1
+                    [az, el] = this.getAzimuthElevation(this.XR(this.avaliable_index(:,s),:) ,XS(this.avaliable_index(:,s),s,:));
+                else
+                    [az, el] = this.getAzimuthElevation(this.XR, XS(this.avaliable_index(:,s),s,:));
+                end
+                
+                
+                switch this.gs.cur_settings.tropo_model
+                    case 0 %no model
+
+                    case 1 %Saastamoinen with standard atmosphere
+                       [delay] = Atmosphere.saastamoinen_model(lat, lon, h, el);
+
+                    case 2 %Saastamoinen with GPT
+                        [gps_week, gps_sow, gps_dow] = this.time_tx(:,s).getGpsWeek();
+                        delay = Atmosphere.saastamoinen_model_GPT(lat, lon, az, el, gps_sow, this.cs.iono)
+                        
+                end
+            end
+            
+        end
+        function error_iono = getErrIono(this,XS)
+            %%% --> TBD check where is IONO_model flag stored
+            for s = 1 : size(this.available_index)
+                %%% compute lat lon
+                [~, lat, ~, lon] = cart2geod(this.XR(:,1), this.XR(:,2), this.XR(:,3));
+                %%% compute az el
+                if size(this.XR,2)>1
+                    [az, el] = this.getAzimuthElevation(this.XR(this.avaliable_index(:,s),:) ,XS(this.avaliable_index(:,s),s,:));
+                else
+                    [az, el] = this.getAzimuthElevation(this.XR, XS(this.avaliable_index(:,s),s,:));
+                end
+                
+                
+                switchthis.gs.cur_settings.tropo_model
+                    case 0 %no model
+                        corr = zeros(size(el));
+                    case 1 %Geckle and Feen model
+                        %corr = simplified_model(lat, lon, az, el, mjd);
+                    case 2 %Klobuchar model
+                        [week, sow] = time2weektow(zero_time + this.time_tx);
+                        corr = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.cs.iono)
+                        
+                end
+            end
+        end
+        function [az, el] = getAzimuthElevation(this, XS, XR)
+            % SYNTAX:
+            %   [az, el] = this.getAzimuthElevation(XS)
+            %
+            % INPUT:
+            % XS = positions of satellite [n_epoch x 1]
+            % XR = positions of reciever [n_epoch x 1] (optional, non static
+            % case)
+            % OUTPUT:
+            % Az = Azimuths of satellite [n_epoch x 1]
+            % El = Elevations of satellite [n_epoch x 1]
+            % during time of travel
+            % DESCRIPTION:
+            %   Compute Azimuth and elevation of the staellite
+            n_epoch = size(XS,1);
+            if nargin > 2
+                if size(XR,1) ~= n_epoch
+                    this.log.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
+                    return
+                end
+            else
+                XR = repmat(this.XR(1,:),n_epoch,1);
+            end
+            
+            az = zeros(n_epoch,1); el = zeros(n_epoch,1);
+            
+            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
+            XSR = XS - XR; %%% sats orbit with origon in receiver
+            
+            e_unit = [-sin(lam)            cos(lam)           zeros(size(lam))       ]; % East unit vector
+            n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
+            u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
+            
+            e = sum(e_unit .* XSR,2);
+            n = sum(n_unit .* XSR,2);
+            u = sum(u_unit .* XSR,2);
+            
+            hor_dist = sqrt( e.^2 + n.^2);
+            
+            zero_idx = hor_dist < 1.e-20;
+            
+            az(zero_idx) = 0;
+            el(zero_idx) = 90;
+            
+            az(~zero_idx) = atan2d(e(~zero_idx),n(~zero_idx));
+            el(~zero_idx) = atan2d(u(~zero_idx),hor_dist(~zero_idx));
+            
+            
+        end
+        function [dist, corr] = getRelDistance(this, XS, XR)
+            % SYNTAX:
+            %   [corr, distSR_corr] = this.getRelDistance(XS, XR);
+            %
+            % INPUT:
+            % XS = positions of satellite [n_epoch x 1]
+            % XR = positions of reciever [n_epoch x 1] (optional, non static
+            % case)
+            %
+            % OUTPUT:
+            %   corr = relativistic range error correction term (Shapiro delay)
+            %   dist = dist
+            % DESCRIPTION:
+            %   Compute distance from satellite ot reciever considering
+            %   (Shapiro delay) - copied from
+            %   relativistic_range_error_correction.m
+            n_epoch = size(XS,1);
+            if nargin > 2
+                if size(XR,1) ~= n_epoch
+                    this.log.addError('[ getRelDistance ] Number of satellite positions differ from number of receiver positions');
+                    return
+                end
+            else
+                XR = repmat(this.XR(1,:),n_epoch,1);
+            end
+            
+            distR = sqrt(sum(XR.^2 ,2));
+            distS = sqrt(sum(XS.^2 ,2));
+            
+            distSR = sqrt(sum((XS-XR).^2 ,2));
+            
+
+            GM = 3.986005e14;
+            
+            
+            corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+            
+            dist = distSR + corr;
+            
+        end
+        end
 end
