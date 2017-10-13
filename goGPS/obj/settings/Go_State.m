@@ -322,6 +322,10 @@ classdef Go_State < Settings_Interface
     % =========================================================================
     methods
         function varargout = settingsToGo(this, state)
+            % function that simulate the interface returns value
+            % legacy approach, here the object creates various global variables needed for the processing
+            % SYNTAX: varargout = this.settingsToGo(state)
+            
             %initGeoid();
 
             % export settings as they are exported by the GUI
