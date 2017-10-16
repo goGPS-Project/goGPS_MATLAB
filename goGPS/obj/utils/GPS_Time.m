@@ -1091,6 +1091,71 @@ classdef GPS_Time < handle
                     this.time_diff = this.time_diff + n_seconds;
             end
         end
+         function res = lt(gt_1, gt_2)
+            %%% DESCRIPTION: overload of '<' function
+            %%% get temporay copy and set them to unix time
+            time_copy = gt_1.getCopy;
+            time_copy.toUnixTime();
+            time_copy2 = gt_2.getCopy;
+            time_copy2.toUnixTime();
+            
+            res = (time_copy.unix_time < time_copy2.unix_time) & (time_copy.unix_time_f < time_copy2.unix_time_f) ;
+        end
+        
+        function res = gt(gt_1, gt_2)
+            %%% DESCRIPTION: overload of '>' function
+            %%% get temporay copy and set them to unix time
+            time_copy = gt_1.getCopy;
+            time_copy.toUnixTime();
+            time_copy2 = gt_2.getCopy;
+            time_copy2.toUnixTime();
+            
+            res = (time_copy.unix_time > time_copy2.unix_time) & (time_copy.unix_time_f > time_copy2.unix_time_f) ;
+        end
+        function res = eq(gt_1, gt_2)
+            %%% DESCRIPTION: check if two time are equals up to precision
+            %%% get temporay copy and set them to unix time
+            time_copy = gt_1.getCopy;
+            time_copy.toUnixTime();
+            time_copy2 = gt_2.getCopy;
+            time_copy2.toUnixTime();
+            
+            [sec, sec_f] = time_copy -time_copy2;
+            prec = max(gt_1.getPrecision,gt_2.getPrecision);
+            res = abs(sec+sec_f) < prec;
+            
+        end
+        function [sec, sec_f] = minus(gt_1, gt_2)
+            % OUTPUT: 
+            %    sec = difference in seconds
+            %    sec_f = fractional difference in seconds
+            % DESCRIPTION: overload of '-' function
+            % get temporay copy and set them to unix time
+            time_copy = gt_1.getCopy;
+            time_copy.toUnixTime();
+            time_copy2 = gt_2.getCopy;
+            time_copy2.toUnixTime();
+            sec = time_copy.unix_time - time_copy2.unix_time;
+            sec_f =time_copy.unix_time_f - time_copy2.unix_time_f;
+            
+            % make the two values consistent
+            idx_sec = sec > 0;
+            idx_sec_f = sec_f >0;
+            idx_conflict = xor(idx_sec,idx_sec_f);
+            sec(idx_conflict) = sec(idx_conflict) + sign(sec_f(idx_conflict));
+            sec_f(idx_conflict) = sec_f(idx_conflict) - sign(sec_f(idx_conflict));
+        end
+        function prec = getPrecision(this)
+            % get precison of current time
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    prec = eps(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    prec = eps(this.unix_time_f);
+                case 2 % I'm in REF TIME
+                    prec = eps(this.time_diff);
+            end
+        end
     end
 
     % =========================================================================
@@ -1166,6 +1231,7 @@ classdef GPS_Time < handle
             gps_sow  = (deltat - gps_week*7)*86400;
             gps_sow = gps_sow + date_vec(:,4)*3600 + date_vec(:,5)*60 + date_vec(:,6); %GPS seconds of week
         end
+       
     end
 
     % =========================================================================
