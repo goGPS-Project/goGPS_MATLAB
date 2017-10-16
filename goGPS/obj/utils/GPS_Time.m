@@ -1099,7 +1099,7 @@ classdef GPS_Time < handle
             time_copy2 = gt_2.getCopy;
             time_copy2.toUnixTime();
             
-            res = (time_copy.unix_time < time_copy2.unix_time) & (time_copy.unix_time_f < time_copy2.unix_time_f) ;
+            res = (time_copy.unix_time < time_copy2.unix_time) | (time_copy.unix_time == time_copy2.unix_time) & (time_copy.unix_time_f < time_copy2.unix_time_f) ;
         end
         
         function res = gt(gt_1, gt_2)
@@ -1110,7 +1110,7 @@ classdef GPS_Time < handle
             time_copy2 = gt_2.getCopy;
             time_copy2.toUnixTime();
             
-            res = (time_copy.unix_time > time_copy2.unix_time) & (time_copy.unix_time_f > time_copy2.unix_time_f) ;
+            res = (time_copy.unix_time > time_copy2.unix_time) | (time_copy.unix_time == time_copy2.unix_time) & (time_copy.unix_time_f > time_copy2.unix_time_f) ;
         end
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
