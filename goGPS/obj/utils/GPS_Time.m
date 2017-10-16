@@ -902,12 +902,12 @@ classdef GPS_Time < handle
                 % get year month doy hour minute second
                 % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this)
                 str_time=this.toString();
-                year = str2num(str_time(1:4));
-                month = str2num(str_time(6:7));
-                day = str2num(str_time(9:10));
-                hour = str2num(str_time(12:13));
-                minute = str2num(str_time(15:16));
-                second = str2num(str_time(18:27));
+                year = str2num(str_time(:,1:4));
+                month = str2num(str_time(:,6:7));
+                day = str2num(str_time(:,9:10));
+                hour = str2num(str_time(:,12:13));
+                minute = str2num(str_time(:,15:16));
+                second = str2num(str_time(:,18:27));
         end
         function date_string = toString(this, date_format)
             % Convert a date to string format
@@ -1007,6 +1007,19 @@ classdef GPS_Time < handle
                     id_subset = id_subset(id_subset < this.length());
                     new_obj = this.getId(id_subset(end));
                 end
+            end
+        end
+        function gps_time_subset = getSubSet(this, index)
+            % create a copy of the object having only a subset of time_diff
+            gps_time_subset = this.getCopy();
+            switch  this.time_type
+                case 0
+                    gps_time_subset.mat_time = gps_time_subset.mat_time(index);
+                case 1
+                    gps_time_subset.unix_time = gps_time_subset.unix_time(index);
+                    gps_time_subset.unix_time_f = gps_time_subset.unix_time_f(index);
+                case 2
+                    gps_time_subset.unix_time = gps_time_subset.unix_time(index);
             end
         end
     end
