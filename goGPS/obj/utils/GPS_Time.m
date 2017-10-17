@@ -1136,16 +1136,19 @@ classdef GPS_Time < handle
             time_copy.toUnixTime();
             time_copy2 = gt_2.getCopy;
             time_copy2.toUnixTime();
-            sec_i = time_copy.unix_time - time_copy2.unix_time;
+            sec_i = int64(time_copy.unix_time) - int64(time_copy2.unix_time);
             sec_f =time_copy.unix_time_f - time_copy2.unix_time_f;
-            s
+
+            
             % make the two values consistent
             idx_sec = sec_i > 0;
             idx_sec_f = sec_f >0;
             idx_conflict = xor(idx_sec,idx_sec_f);
-            sec_i(idx_conflict) = sec_i(idx_conflict) + sign(sec_f(idx_conflict));
-            sec_f(idx_conflict) = sec_f(idx_conflict) - sign(sec_f(idx_conflict));
-            sec = sec_i + sec_f;
+            if sum(idx_conflict)>0
+                sec_i(idx_conflict) = sec_i(idx_conflict) + sign(sec_f(idx_conflict));
+                sec_f(idx_conflict) = sec_f(idx_conflict) - sign(sec_f(idx_conflict));
+            end
+            sec = double(sec_i) + sec_f;
             
         end
         function prec = getPrecision(this)
