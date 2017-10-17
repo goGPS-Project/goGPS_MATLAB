@@ -34,14 +34,12 @@ classdef Core_Sky < handle
     
     properties
         time_ref  % Gps Times of tabulated aphemerids
-        time_zero_idx_coord % index of zero time in coord
-        time_zero_idx_clk % index of zero time in clk
         coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
         clock  % cloks of tabulated aphemerids [times x num_sat]
         prn
         sys
-        time_hr
-        clock_hr
+        %time_hr
+        %clock_hr
         coord_rate = 900;
         clock_rate = 900;
         iono
@@ -56,7 +54,7 @@ classdef Core_Sky < handle
         satType
         avail
         coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
-        start_time_idx  %%% index  defininig start of the day (time == 1)
+        %start_time_idx  %%% index  defininig start of the day (time == 1)
         cc
         
     end
@@ -97,7 +95,15 @@ classdef Core_Sky < handle
     % =========================================================================
     
     methods % Public Access
-        
+        function clearOrbit(this)
+            this.coord=[];
+            this.clock=[];
+            this.time_ref = [];
+            this.t_sun = [];
+            this.X_sun = [];
+            this.X_moon = [];
+            this.coord_pol_coeff = [];
+        end
         function importEph(this, eph, t_st, t_end, sat, step)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
@@ -158,9 +164,202 @@ classdef Core_Sky < handle
             this.importEph(eph,t_st,t_end,sat,step);
             
         end
-        function importSp3(this,filename_SP3, filename_CLK,t_st, t_end,step,wait_dlg)
+        function addSp3(this,filename_SP3,clock_flag)
             % SYNTAX:
-            %   this.importSp3(filename_SP3, filename_CLK, t_st, t_end,step)
+            %   eph_tab.importEph(eph, t_st, t_end, sat, step)
+            %
+            % INPUT:
+            %   filename_SP3 = name of sp3 file
+            %   clock_flag   = load also clock? (optional, dafault = true)
+            %
+            % DESCRIPTION:
+            % add satellite and clock postiion contained in the sp3 file to
+            % the object if values are contiguos with the ones already in
+            % the object add them, otherwise clear the object and add them
+            % data that are alrady present are going to be overwritten
+            
+            if isempty(this.coord)
+                empty_file = true;
+            else 
+                empty_file = false;
+            end
+            if nargin <3
+                clock_flag = true;
+            end
+            k = 0; % current epoch
+            
+            
+            %SP3 file
+            f_sp3 = fopen(filename_SP3,'r');
+            
+            if (f_sp3 ~= -1)
+                
+                % Read the entire sp3 file in memory
+                sp3_file = textscan(f_sp3,'%s','Delimiter', '\n');
+                if (length(sp3_file) == 1)
+                    sp3_file = sp3_file{1};
+                end
+                sp3_cur_line = 1;
+                fclose(f_sp3);
+                
+                % while there are lines to process
+                while (sp3_cur_line <= length(sp3_file))
+                    
+                    % get the next line
+                    lin = sp3_file{sp3_cur_line};
+                    if (sp3_cur_line == 1)
+                        nEpochs = str2num(lin(33:39));
+                        data   = sscanf(lin(4:31),'%f');
+                        year   = data(1);
+                        month  = data(2);
+                        day    = data(3);
+                        hour   = data(4);
+                        minute = data(5);
+                        second = data(6);
+                        sp3_first_ep = GPS_Time([year month day hour minute second],[],true);
+                        
+                        
+                    elseif (sp3_cur_line == 2)
+                        rate = str2num(lin(25:38));
+                        if this.coord_rate ~= rate;
+                            if empty_file
+                                this.coord_rate = rate;
+                                if clock_flag
+                                    this.clock_rate = rate;
+                                end
+                            else
+                                this.log.addWarning(['Coord rate not match: ' num2str(rate)]);
+                                return
+                            end
+                            
+                        end
+                        % checking overlapping and same correct syncro
+                        sp3_last_ep = sp3_first_ep.getCopy();
+                        sp3_last_ep.addSeconds(rate*nEpochs);
+                        if ~empty_file
+                            idx_first = (sp3_first_ep - this.time_ref)/this.coord_rate;
+                            idx_last = (sp3_last_ep - this.time_ref)/this.coord_rate;
+                            memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); %check whether the extend of sp3 file intersect with the current data
+                            if sum(memb_idx)==0
+                                empty_file = true;
+                                this.clearOrbit(); %<---- if new sp3 does not match the already present data clear the data and put the new ones
+                                %                         elseif sum(memb_idx)==2 %<--- case new data are already in the class, (this leave out the case wether only one epoch more would be added to the current data, extremely unlikely)
+                                %                             return
+                            end
+                        end
+                        %initlaize array size
+                        if empty_file
+                            this.time_ref = sp3_first_ep.getCopy();
+                            this.coord = zeros(nEpochs, this.cc.getNumSat(),3);
+                            if clock_flag
+                                this.clock = zeros(nEpochs, this.cc.getNumSat());
+                            end
+                        else
+                            c_n_sat = size(this.coord,2);
+                            if memb_idx(1) == true & memb_idx(2) == false
+                                n_new_epochs = idx_last - size(this.coord, 1);
+                                this.coord = cat(1,this.coord,zeros(n_new_epochs,c_n_sat,3));
+                                if clock_flag
+                                    this.clock = cat(1,this.clock,zeros(n_new_epochs,c_n_sat));
+                                end
+                            elseif memb_idx(1) == false & memb_idx(2) == true
+                                this.time_ref = sp3_first_ep;
+                                n_new_epochs = -idx_first;
+                                this.coord = cat(1,zeros(n_new_epochs,c_n_sat,3),this.coord);
+                                if clock_flag
+                                    this.clock = cat(1,zeros(n_new_epochs,c_n_sat),this.clock);
+                                end
+                            end
+                        end
+                        
+                    elseif (lin(1) == '*')
+                        
+                        k = k + 1;
+                        
+                        % read the epoch header
+                        % example 1: "*  1994 12 17  0  0  0.00000000"
+                        data   = sscanf(lin(2:31),'%f');
+                        year   = data(1);
+                        month  = data(2);
+                        day    = data(3);
+                        hour   = data(4);
+                        minute = data(5);
+                        second = data(6);
+                        
+                        sp3_ep = GPS_Time([year month day hour minute second],[],true);
+                        c_ep_idx = round((sp3_ep - this.time_ref) / this.coord_rate) +1; %current epoch index
+                        
+                    elseif (strcmp(lin(1),'P'))
+                        %read position and clock
+                        %example 1: "P  1  16258.524750  -3529.015750 -20611.427050    -62.540600"
+                        %example 2: "PG01   8953.350886  12240.218129 -21918.986611 999999.999999"
+                        %example 3: "PG02 -13550.970765 -16758.347434 -15825.576525    274.198680  7  8  8 138"
+                        sys_id = lin(2);
+                        if (strcmp(sys_id,' ') || strcmp(sys_id,'G') || strcmp(sys_id,'R') || ...
+                                strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J'))
+                            
+                            index = -1;
+                            switch (sys_id)
+                                case {'G', ' '}
+                                    if (this.cc.active_list(1))
+                                        index = this.cc.getGPS.go_ids;
+                                    end
+                                case 'R'
+                                    if (this.cc.active_list(2))
+                                        index = this.cc.getGLONASS.go_ids;
+                                    end
+                                case 'E'
+                                    if (this.cc.active_list(3))
+                                        index = this.cc.getGalileo.go_ids;
+                                    end
+                                case 'C'
+                                    if (this.cc.active_list(4))
+                                        index = this.cc.getBeiDou.go_ids;
+                                    end
+                                case 'J'
+                                    if (this.cc.active_list(5))
+                                        index = this.cc.getQZSS.go_ids;
+                                    end
+                            end
+                            
+                            % If the considered line is referred to an active constellation
+                            if (index >= 0)
+                                PRN = sscanf(lin(3:4),'%f');
+                                X   = sscanf(lin(5:18),'%f');
+                                Y   = sscanf(lin(19:32),'%f');
+                                Z   = sscanf(lin(33:46),'%f');
+                                clk = sscanf(lin(47:60),'%f');
+                                
+                                index = index + PRN - 1;
+                                
+                                this.coord(c_ep_idx, index, 1) = X*1e3;
+                                this.coord(c_ep_idx, index, 2) = Y*1e3;
+                                this.coord(c_ep_idx, index, 3) = Z*1e3;
+                                if clock_flag
+                                    this.clock(c_ep_idx, index) = clk/1e6; % NOTE: clk >= 999999 stands for bad or absent clock values
+                                end
+                                %{
+                                this.prn(index) = PRN;
+                                this.sys(index) = sys_id;
+                                
+                                if (this.clock(index,k) < 0.9)
+                                    this.avail(index) = index;
+                                end
+                                %}
+                            end
+                        end
+                    end
+                    sp3_cur_line = sp3_cur_line + 1;
+                end
+            end
+            clear sp3_file;
+        end
+        
+        function addClk(this,filename_clk)
+        end
+        function importSp3(this,filename_SP3, filename_CLK,t_st, t_end)
+            % SYNTAX:
+            %   this.addSp3(filename_SP3, filename_CLK, t_st, t_end,step)
             %
             % INPUT:
             %   filename_SP3 = SP3 file
@@ -175,12 +374,6 @@ classdef Core_Sky < handle
             %         it does not take into account all the other flags and parameters
             %         available according to the SP3c format specified in the document
             %         http://www.ngs.noaa.gov/orbits/sp3c.txt
-            if nargin < 6
-                step = 900;
-            end
-            if nargin < 5
-                sat= this.cc.index;
-            end
             if nargin < 4 || t_end.isempty()
                 t_end = t_st;
             end
@@ -192,9 +385,6 @@ classdef Core_Sky < handle
             % number of seconds in a quarter of an hour
             quarter_sec = 900;
             
-            if (nargin > 6)
-                waitbar(0.5,wait_dlg,'Reading SP3 (precise ephemeris) file...')
-            end
             
             % extract containing folder
             % [data_dir, file_name, file_ext] = fileparts(filename_SP3{1});
@@ -246,8 +436,8 @@ classdef Core_Sky < handle
             end
             
             % init SP3 variables
-            nEpochs  = 96*size(week_dow,1);
-            this.time = zeros(nEpochs,1);
+            nEpochs    = 96*size(week_dow,1);
+            this.time  = zeros(nEpochs,1);
             this.coord = zeros(nEpochs,this.cc.getNumSat(),3);
             this.clock = zeros(this.cc.getNumSat(),nEpochs);
             this.avail = zeros(this.cc.getNumSat(),1);
@@ -776,7 +966,7 @@ classdef Core_Sky < handle
                 dtS_sat(t_idx,:) = reshape(eval_vec*reshape(this.clock(idx:idx+1,sat_idx),2,n_sat),sum(t_idx),n_sat);
             end
         end
-
+        
         function sun_moon_pos(this,p_time)
             % SYNTAX:
             %   this.Eph_Tab.polInterpolate(p_time)
