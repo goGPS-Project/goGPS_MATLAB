@@ -1082,10 +1082,10 @@ classdef GPS_Time < handle
                 case 1 % I'm in UNIX TIME
                     if sign(n_seconds) == 1
                         this.unix_time = this.unix_time + uint32(fix(n_seconds));
-                        this.unix_f = this.unix_time + rem(n_seconds,1);
+                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
                     else
                         this.unix_time = this.unix_time - uint32(fix(-n_seconds));
-                        this.unix_f = this.unix_time - rem(n_seconds,1);
+                        this.unix_time_f = this.unix_time_f - rem(n_seconds,1);
                     end
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
@@ -1120,14 +1120,15 @@ classdef GPS_Time < handle
             time_copy2 = gt_2.getCopy;
             time_copy2.toUnixTime();
             
-            [sec, sec_f] = time_copy -time_copy2;
+            [~, sec, sec_f] = time_copy -time_copy2;
             prec = max(gt_1.getPrecision,gt_2.getPrecision);
             res = abs(sec+sec_f) < prec;
             
         end
-        function [sec, sec_f] = minus(gt_1, gt_2)
+        function [sec, sec_i, sec_f] = minus(gt_1, gt_2)
             % OUTPUT: 
             %    sec = difference in seconds
+            %    sec = unit part
             %    sec_f = fractional difference in seconds
             % DESCRIPTION: overload of '-' function
             % get temporay copy and set them to unix time
@@ -1135,15 +1136,17 @@ classdef GPS_Time < handle
             time_copy.toUnixTime();
             time_copy2 = gt_2.getCopy;
             time_copy2.toUnixTime();
-            sec = time_copy.unix_time - time_copy2.unix_time;
+            sec_i = time_copy.unix_time - time_copy2.unix_time;
             sec_f =time_copy.unix_time_f - time_copy2.unix_time_f;
-            
+            s
             % make the two values consistent
-            idx_sec = sec > 0;
+            idx_sec = sec_i > 0;
             idx_sec_f = sec_f >0;
             idx_conflict = xor(idx_sec,idx_sec_f);
-            sec(idx_conflict) = sec(idx_conflict) + sign(sec_f(idx_conflict));
+            sec_i(idx_conflict) = sec_i(idx_conflict) + sign(sec_f(idx_conflict));
             sec_f(idx_conflict) = sec_f(idx_conflict) - sign(sec_f(idx_conflict));
+            sec = sec_i + sec_f;
+            
         end
         function prec = getPrecision(this)
             % get precison of current time
