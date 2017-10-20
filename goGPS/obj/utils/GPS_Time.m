@@ -189,6 +189,13 @@ classdef GPS_Time < handle
             this.unix_time = unix_time; %#ok<PROPLC>
             this.unix_time_f = fraction_of_second;
         end
+        
+        function this = GPS_Time_Week_Dow(this, week, dow)
+            % Private constructor - simulate polymorphism - GPS_Time_Week_Dow(week, dow)
+            this.unix_time = uint32((this.GPS_ZERO - this.UNIX_ZERO)*86400 + week*86400*7 + dow*86400);
+            this.unix_time_f = zeros(size(this.unix_time));
+            this.time_type = 1;
+        end
 
         function this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(time_matlab_reference, time_difference, is_gps)
@@ -349,6 +356,8 @@ classdef GPS_Time < handle
                             this.GPS_Time_unix(arg1, arg2, arg3);
                         case 2 % GPS_Time.REF_TIME
                             this.GPS_Time_ref(arg1, arg2, arg3);
+                        case 3 % GPS_Time_Week_Dow (to unix time) 
+                            this.GPS_Time_Week_Dow(arg1, arg2);
                         otherwise
                             this.logger.addError('Unrecognized time format!!!');
                     end
@@ -1093,34 +1102,25 @@ classdef GPS_Time < handle
         end
          function res = lt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<' function
-            %%% get temporay copy and set them to unix time
-            time_copy = gt_1.getCopy;
-            time_copy.toUnixTime();
-            time_copy2 = gt_2.getCopy;
-            time_copy2.toUnixTime();
+            %%% get unix time
+            [unix_time1, unix_time_f1] = gt_1.getUnixTime();
+            [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
-            res = (time_copy.unix_time < time_copy2.unix_time) | (time_copy.unix_time == time_copy2.unix_time) & (time_copy.unix_time_f < time_copy2.unix_time_f) ;
+            res = (unix_time1 <= unix_time2)  & (unix_time_f1 < unix_time_f2) ;
         end
         
         function res = gt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '>' function
-            %%% get temporay copy and set them to unix time
-            time_copy = gt_1.getCopy;
-            time_copy.toUnixTime();
-            time_copy2 = gt_2.getCopy;
-            time_copy2.toUnixTime();
+            %%% get unix time
+            [unix_time1, unix_time_f1] = gt_1.getUnixTime();
+            [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
-            res = (time_copy.unix_time > time_copy2.unix_time) | (time_copy.unix_time == time_copy2.unix_time) & (time_copy.unix_time_f > time_copy2.unix_time_f) ;
+            res = (unix_time1 >= unix_time2)  & (unix_time_f1 > unix_time_f2) ;
         end
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
-            %%% get temporay copy and set them to unix time
-            time_copy = gt_1.getCopy;
-            time_copy.toUnixTime();
-            time_copy2 = gt_2.getCopy;
-            time_copy2.toUnixTime();
             
-            [~, sec, sec_f] = time_copy -time_copy2;
+            [~, sec, sec_f] = gt_1 -gt_2;
             prec = max(gt_1.getPrecision,gt_2.getPrecision);
             res = abs(sec+sec_f) < prec;
             
@@ -1131,13 +1131,11 @@ classdef GPS_Time < handle
             %    sec = unit part
             %    sec_f = fractional difference in seconds
             % DESCRIPTION: overload of '-' function
-            % get temporay copy and set them to unix time
-            time_copy = gt_1.getCopy;
-            time_copy.toUnixTime();
-            time_copy2 = gt_2.getCopy;
-            time_copy2.toUnixTime();
-            sec_i = int64(time_copy.unix_time) - int64(time_copy2.unix_time);
-            sec_f =time_copy.unix_time_f - time_copy2.unix_time_f;
+            %%% get unix time
+            [unix_time1, unix_time_f1] = gt_1.getUnixTime();
+            [unix_time2, unix_time_f2] = gt_2.getUnixTime();
+            sec_i = int64(unix_time1) - int64(unix_time2);
+            sec_f =unix_time_f1 - unix_time_f2;
 
             
             % make the two values consistent
