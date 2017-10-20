@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
+function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
+%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -26,7 +26,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 %           = 1: approximate coordinates available
 %           = 0: no apriori coordinates available
 %   sbas = SBAS corrections
-%   constellations = struct with multi-constellation settings
+%   cc = struct with multi-constellation settings
 %   flag_full_prepro = do  a full preprocessing
 %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
@@ -111,7 +111,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
         nisbs = length(unique(Eph(31,Eph(31,:)~=0)));
     end
     if (any(strfind(char(Eph(31,Eph(31,:)~=0)),'R')) || (~isempty(SP3) && any(strfind(char(SP3.sys(SP3.sys~=0))','R'))))
-        if (constellations.GLONASS.enabled)
+        if (cc.glo.isActive())
             if (nisbs == 1)
                 nisbs = nisbs + 14; %if only GLONASS is present, just add IFBs
             else
@@ -357,7 +357,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
             %remove unavailable epochs from the unknowns (receiver clock)
             avail_index = any(A_all,1);
             avail_IFBs = [];
-            if (constellations.GLONASS.enabled)
+            if (cc.glo.isActive())
                 %check if one of the GLONASS IFBs was removed from the unknowns
                 avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
             end

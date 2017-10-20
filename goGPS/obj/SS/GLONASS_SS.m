@@ -71,7 +71,7 @@ classdef GLONASS_SS < Satellite_System
         % GLONASS (PZ-90.02) Ellipsoid Eccentricity^2
         ELL_E2 = (1 - (1 - GLONASS_SS.ELL_F) ^ 2);
         % GLONASS (PZ-90.02) Ellipsoid Eccentricity
-        ELL_E = sqrt(GLONASS_SS.ELL_E2);        
+        ELL_E = sqrt(GLONASS_SS.ELL_E2);
     end
 
     properties (Constant, Access = 'public')

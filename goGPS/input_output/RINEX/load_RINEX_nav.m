@@ -139,6 +139,7 @@ end
         Eph_E = []; iono_E = zeros(8,1);
         Eph_C = []; iono_C = zeros(8,1);
         Eph_J = []; iono_J = zeros(8,1);
+        Eph_I = []; iono_I = zeros(8,1);
 
         if (strcmpi(filename(end),'p'))
             flag_mixed = 1;
@@ -206,9 +207,21 @@ end
                 cc.deactivateQZSS();
             end
         end
-
+        
+        if (cc.getIRNSS().isActive() && ~only_iono)
+            if (exist([filename(1:end-1) 'i'],'file'))
+                %parse RINEX navigation file (IRNSS)
+                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
+                [Eph_I, iono_I] = RINEX_get_nav([filename(1:end-1) 'i'], cc);
+                if(~only_iono), logger.addStatusOk(); end
+            elseif (~flag_mixed)
+                logger.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
+                cc.deactivateIRNSS();
+            end
+        end
+        
         if (~only_iono)
-            Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J];
+            Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J Eph_I];
         end
 
         if (any(iono_G))
@@ -221,6 +234,8 @@ end
             iono = iono_C;
         elseif (any(iono_J))
             iono = iono_J;
+        elseif (any(iono_I))
+            iono = iono_I;
         else
             iono = zeros(8,1);
             logger.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');

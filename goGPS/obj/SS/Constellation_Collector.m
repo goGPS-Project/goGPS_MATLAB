@@ -41,18 +41,18 @@
 %--------------------------------------------------------------------------
 
 classdef Constellation_Collector < Settings_Interface
-    properties (Constant, GetAccess = private)
+    properties (Constant, GetAccess = public)
         N_SYS_TOT = 7; % Max number of available satellite systems
         SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'IRNSS', 'SBAS'}; % full name of the constellation
         SYS_NAME     = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'IRN', 'SBS'}; % 3 characters name of the constellation
         ID_GPS       = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS   = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO   = 3 % Id of Galileo constellation for goGPS internal use
-        ID_BEIDOU    = 4 % Id of BeiDou constellation for goGPS internal use
-        ID_QZSS      = 5 % Id of QZSS constellation for goGPS internal use
+        ID_QZSS      = 4 % Id of QZSS constellation for goGPS internal use
+        ID_BEIDOU    = 5 % Id of BeiDou constellation for goGPS internal use
         ID_IRNSS     = 6 % Id of IRNSS constellation for goGPS internal use
         ID_SBAS      = 7 % Id of SBAS constellation for goGPS internal use
-        SYS_C        = 'GRECJIS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
+        SYS_C        = 'GREJCIS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
     end
 
     properties (SetAccess = public, GetAccess = public)
@@ -71,6 +71,7 @@ classdef Constellation_Collector < Settings_Interface
         n_sys        % number of active constellations
         n_sat        % uint8 array of satellite used per active constellation
         n_sat_tot    % uint8 total teoretical number of satellite available for processing
+        n_obs_tot    % uint16 total number of observables
 
         index        % incremental index of the active satellite system
         prn          % relative id number in the satellite system
@@ -100,6 +101,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.prn = [];
                 this.n_sat = [];
                 this.n_sat_tot = 0;
+                this.n_obs_tot = 0;
                 if active_list(1) % GPS is active
                     this.gps.updateGoIds(this.n_sat_tot);
                     this.gps.enable();
@@ -109,6 +111,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.gps.PRN];
                     this.n_sat = [this.n_sat this.gps.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.gps.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.gps.N_SAT * sum(this.gps.flag_f);
                 else
                     this.gps.disable();
                 end
@@ -121,6 +124,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.glo.PRN];
                     this.n_sat = [this.n_sat this.glo.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.glo.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.glo.N_SAT * sum(this.glo.flag_f);
                 else
                     this.glo.disable();
                 end
@@ -133,22 +137,11 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.gal.PRN];
                     this.n_sat = [this.n_sat this.gal.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.gal.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.gal.N_SAT * sum(this.gal.flag_f);
                 else
                     this.gal.disable();
                 end
-                if active_list(4) % BeiDou is active
-                    this.bds.updateGoIds(this.n_sat_tot);
-                    this.bds.enable();
-                    this.num_id = [this.num_id this.ID_BEIDOU];
-                    this.sys_c = [this.sys_c this.bds.SYS_C];
-                    this.system = [this.system char(ones(1, this.bds.N_SAT) * this.bds.SYS_C)];
-                    this.prn = [this.prn; this.bds.PRN];
-                    this.n_sat = [this.n_sat this.bds.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.bds.N_SAT;
-                else
-                    this.bds.disable();
-                end
-                if active_list(5) % QZSS is active
+                if active_list(4) % QZSS is active
                     this.qzs.updateGoIds(this.n_sat_tot);
                     this.qzs.enable();
                     this.num_id = [this.num_id this.ID_QZSS];
@@ -157,10 +150,23 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.qzs.PRN];
                     this.n_sat = [this.n_sat this.qzs.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.qzs.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.qzs.N_SAT * sum(this.qzs.flag_f);
                 else
                     this.qzs.disable();
                 end
-                
+                if active_list(5) % BeiDou is active
+                    this.bds.updateGoIds(this.n_sat_tot);
+                    this.bds.enable();
+                    this.num_id = [this.num_id this.ID_BEIDOU];
+                    this.sys_c = [this.sys_c this.bds.SYS_C];
+                    this.system = [this.system char(ones(1, this.bds.N_SAT) * this.bds.SYS_C)];
+                    this.prn = [this.prn; this.bds.PRN];
+                    this.n_sat = [this.n_sat this.bds.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.bds.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.bds.N_SAT * sum(this.bds.flag_f);
+                else
+                    this.bds.disable();
+                end
                 if active_list(6) % IRNSS is active
                     this.irn.updateGoIds(this.n_sat_tot);
                     this.irn.enable();
@@ -170,6 +176,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.irn.PRN];
                     this.n_sat = [this.n_sat this.irn.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.irn.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.irn.N_SAT * sum(this.irn.flag_f);
                 else
                     this.irn.disable();
                 end
@@ -183,6 +190,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.sbs.PRN];
                     this.n_sat = [this.n_sat this.sbs.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.sbs.N_SAT;
+                    this.n_obs_tot = this.n_obs_tot + this.sbs.N_SAT * sum(this.sbs.flag_f);
                 else
                     this.sbs.disable();
                 end
@@ -199,20 +207,20 @@ classdef Constellation_Collector < Settings_Interface
     end
 
     methods
-        function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag)
-            % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]
+        function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag)
+            % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag]
             % SYNTAX:
             %   cc = Constellation_Collector('GRECJS'); % use the array of constellation char ids
-            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag);
-            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]);
+            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag);
+            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag]);
             %
             % INPUT:
             %   single logical array whose elements are:
             %   GPS_flag = boolean flag for enabling/disabling GPS usage
             %   GLO_flag = boolean flag for enabling/disabling GLONASS usage
             %   GAL_flag = boolean flag for enabling/disabling Galileo usage
-            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
             %   QZS_flag = boolean flag for enabling/disabling QZSS usage
+            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
             %   IRN_flag = boolean flag for enabling/disabling IRNSS usage
             %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
             %
@@ -229,8 +237,8 @@ classdef Constellation_Collector < Settings_Interface
             this.gps = this.gps.getCopy();
             this.glo = this.glo.getCopy();
             this.gal = this.gal.getCopy();
-            this.bds = this.bds.getCopy();
             this.qzs = this.qzs.getCopy();
+            this.bds = this.bds.getCopy();
             this.irn = this.irn.getCopy();
             this.sbs = this.sbs.getCopy();
 
@@ -241,13 +249,13 @@ classdef Constellation_Collector < Settings_Interface
                 case 1
                     if (ischar(GPS_flag))
                         active_list = false(1,this.N_SYS_TOT);
-                        [~, ids] = intersect('GRECJIS',GPS_flag);
+                        [~, ids] = intersect('GREJCIS',GPS_flag);
                         active_list(ids) = true;
                     else
                         active_list = logical(GPS_flag);
                     end
-                case 6,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, 0]);
-                case 7,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, IRN_flag, SBS_flag]);
+                case 6,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, 0]);
+                case 7,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag]);
                 otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
             end
 
@@ -273,9 +281,9 @@ classdef Constellation_Collector < Settings_Interface
         end
 
         function active_list = getActive(this)
-            % get the logical array of satellite actually active, order: GPS GLO GAL BDS QZS SBS -> and update the object if something has changed
+            % get the logical array of satellite actually active, order: GPS GLO GAL QZS BDS SBS -> and update the object if something has changed
             % SYNTAX: active_list = this.getActive();
-            active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.bds.isActive this.qzs.isActive this.irn.isActive this.sbs.isActive];
+            active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.qzs.isActive this.bds.isActive this.irn.isActive this.sbs.isActive];
 
             % If some constellation have been activated not in the proper way
             if (sum(not(this.active_list(:) & active_list(:))) > 0)
@@ -350,8 +358,8 @@ classdef Constellation_Collector < Settings_Interface
                 this.gps.import(state);
                 this.glo.import(state);
                 this.gal.import(state);
-                this.bds.import(state);
                 this.qzs.import(state);
+                this.bds.import(state);
                 this.irn.import(state);
                 this.sbs.import(state);
                 this.update();
@@ -359,8 +367,8 @@ classdef Constellation_Collector < Settings_Interface
                 this.gps = state.gps.getCopy();
                 this.glo = state.glo.getCopy();
                 this.gal = state.gal.getCopy();
-                this.bds = state.bds.getCopy();
                 this.qzs = state.qzs.getCopy();
+                this.bds = state.bds.getCopy();
                 this.irn = state.qzs.getCopy();
                 this.sbs = state.sbs.getCopy();
                 this.update();
@@ -380,8 +388,8 @@ classdef Constellation_Collector < Settings_Interface
             str = this.gps.toString(str);
             str = this.glo.toString(str);
             str = this.gal.toString(str);
-            str = this.bds.toString(str);
             str = this.qzs.toString(str);
+            str = this.bds.toString(str);
             str = this.irn.toString(str);
             str = this.sbs.toString(str);
         end
@@ -397,16 +405,16 @@ classdef Constellation_Collector < Settings_Interface
             %str_cell = Ini_Manager.toIniStringComment(' - "G" GPS', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(' - "R" GLONASS', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(' - "E" Galileo', str_cell);
-            %str_cell = Ini_Manager.toIniStringComment(' - "C" BeiDou', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(' - "J" QZSS', str_cell);
+            %str_cell = Ini_Manager.toIniStringComment(' - "C" BeiDou', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(' - "S" SBAS (not yet available)', str_cell);
             %str_cell = Ini_Manager.toIniString('active_constellation_ch', this.sys_c, str_cell);
 
             str_cell = this.gps.export(str_cell);
             str_cell = this.glo.export(str_cell);
             str_cell = this.gal.export(str_cell);
-            str_cell = this.bds.export(str_cell);
             str_cell = this.qzs.export(str_cell);
+            str_cell = this.bds.export(str_cell);
             str_cell = this.irn.export(str_cell);
             str_cell = this.sbs.export(str_cell);
 
@@ -562,8 +570,8 @@ classdef Constellation_Collector < Settings_Interface
                 this.gps.setActiveFrequencies(state.activeFreq);
                 this.glo.setActiveFrequencies(state.activeFreq);
                 this.gal.setActiveFrequencies(state.activeFreq);
-                this.bds.setActiveFrequencies(state.activeFreq);
                 this.qzs.setActiveFrequencies(state.activeFreq);
+                this.bds.setActiveFrequencies(state.activeFreq);
                 this.irn.setActiveFrequencies(state.activeFreq);
                 this.sbs.setActiveFrequencies(state.activeFreq);
             end
@@ -578,6 +586,12 @@ classdef Constellation_Collector < Settings_Interface
             % return the total number of enabled satellites
             % SYNTAX: n_sat = this.getNumSat();
             n_sat = this.n_sat_tot;
+        end
+        
+        function n_sat = getMaxObsSat(this)
+            % return the total maximum number of observables
+            % SYNTAX: n_sat = this.getObsSat();
+            n_sat = this.n_obs_tot;
         end
 
         function n_sys = getNumSys(this)

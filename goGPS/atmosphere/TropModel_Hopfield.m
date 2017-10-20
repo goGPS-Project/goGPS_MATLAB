@@ -24,7 +24,7 @@
 %Other Considerations:
 %*******For four(4) inputs,default Relative Humidity of 50% is used        *
 %*******For three(3)inputs,the function checks the number of columns in    *
-%       Temperature and if the number of columns are three(3),then all 
+%       Temperature and if the number of columns are three(3),then all
 %       meteolorogical parameters are available or provided.In that case,  *  
 %       Temperature(Temp) will be in column 1, Pressure in column 2 &      *
 %       RelHumidity in column 3. i.e.[Temperature  Pressure  RelHumidity]. *
@@ -36,8 +36,8 @@
 %       function assumes elevation angle and height respectively as inputs * 
 %       where: satEL = ReceiverPos i.e. satellite elevation (satEL)        *
 %                 ht = SatPos i.e. Ellipsoidal Height,...                  *
-%       
-%       otherwise, entry will be seen as Receiver & satellite positions   
+%
+%       otherwise, entry will be seen as Receiver & satellite positions
 %*******For only one(1) put, error message is given and the program        *
 %       Terminates / stop working given empty matrices([]) or zeros as     * 
 %       outputs                                                            *
@@ -93,22 +93,22 @@ function [tropTOTAL,tropDRY,tropWET]=TropModel_Hopfield(ReceiverPos,SatPos,...
 
 switch nargin
     
-    case {5,4,3,2} %When all inputs are provided        
+    case {5,4,3,2} %When all inputs are provided
         
         if (any(nargin==[5,4,3,2]))
             
-          if nargin ==5 
-            %Assignments  
+          if nargin ==5
+            %Assignments
             Rpos=ReceiverPos;%Receiver position(XYZ/LAT LONG h)
-            Satpos=SatPos;%Satellite position in XYZ   
+            Satpos=SatPos;%Satellite position in XYZ
             T=Temperature;%Atmospheric Temperature in Degree Celcius
             P=Pressure;%Atmospheric Pressure in millibars(mbar)/Hecto pascal(hpa)
-            RH=RelHumidity;%Relative Humidity(%) 
+            RH=RelHumidity;%Relative Humidity(%)
             
           elseif   nargin ==4
                 %Assignments
                 Rpos=ReceiverPos;%Receiver position(XYZ/LAT LONG h)
-                Satpos=SatPos;%Satellite position in XYZ 
+                Satpos=SatPos;%Satellite position in XYZ
                 T=Temperature;%Atmospheric Temperature in Degree Celcius
                 P=Pressure;%Atmospheric Pressure in millibars(mbar)/Hecto pascal(hpa)
                 RH=[];%Assign empty matrix([]) to Relative Humidity
@@ -124,27 +124,27 @@ switch nargin
                 switch Tcol
                     case 1 %if num of col is 1
                         T=Temperature;%Atmospheric Temperature in Degree Celcius
-                        P=[];%Assign empty matrix([]) to Atmospheric Pressure 
+                        P=[];%Assign empty matrix([]) to Atmospheric Pressure
                         RH=[];%Assign empty matrix([]) to Relative Humidity
                     case 2 %if num of col is 2
                         T=Temperature(:,1);%Assign 1st Column of Temperature
                                             %Temperature in Degree Celcius
                         P=Temperature(:,2);%Assign 2nd Column of Temperature
-                                           %        to Atmospheric Pressure 
+                                           %        to Atmospheric Pressure
                         RH=[];%Assign empty matrix([]) to Relative Humidity
                     case 3 %if num of col is 3
                         T=Temperature(:,1);%Assign 1st Column of Temperature
                                             %Temperature in Degree Celcius
                         P=Temperature(:,2);%Assign 2nd Column of Temperature
-                                           %        to Atmospheric Pressure 
+                                           %        to Atmospheric Pressure
                         RH=Temperature(:,3);%Assign 3rd Column of Temperature
                                             %to Relative Humidity
-                end %switch Tcol                    
+                end %switch Tcol
                 
           elseif nargin==2
                 %Assignments
                 T=[];%Assign empty matrix([]) to Temperature in Degree Celcius
-                P=[];%Assign empty matrix([]) to Atmospheric Pressure 
+                P=[];%Assign empty matrix([]) to Atmospheric Pressure
                 RH=[];%Assign empty matrix([]) to Relative Humidity
               
               %CHECK IF SATELLITE ELEVATION ANGLE & HEIGHT OF RECEIVER ARE
@@ -153,149 +153,149 @@ switch nargin
               t1=roundmod(ReceiverPos,1e3);
               t2=roundmod(SatPos,1e3);
                if size(ReceiverPos,2)==1 && size(SatPos,2)==1
-                  if (all(t1(:,1))==0 && all(t2(:,1))==0)  
+                  if (all(t1(:,1))==0 && all(t2(:,1))==0)
                      satEL_deg=ReceiverPos;%Assigning Rpos satEL(Satellite Elevation)
                      h=SatPos;%Assigning SatPos to ht(Elipsoidal Height)
-                  elseif (all(t1(:,1))==0 && all(t2(:,1))~=0) 
+                  elseif (all(t1(:,1))==0 && all(t2(:,1))~=0)
                         satEL_deg=ReceiverPos;%Assigning Rpos satEL(Satellite Elevation)
                         h=SatPos;%Assigning SatPos to ht(Elipsoidal Height)
                   elseif (all(t1(:,1))~=0 && all(t2(:,1))==0)
                         satEL_deg=SatPos;%Assigning SatPos satEL(Satellite Elevation)
-                        h=ReceiverPos;%Assigning ReceiverPos to ht(Elipsoidal Height)       
+                        h=ReceiverPos;%Assigning ReceiverPos to ht(Elipsoidal Height)
                   end %if (all(t1(:,1))==0 & all(t2(:,1))==0)
                   
                elseif size(ReceiverPos,2)==3 && size(SatPos,2)==1
                      satEL_deg=SatPos;%Assigning SatPos satEL(Satellite Elevation)
-                     Rpos=ReceiverPos;%Receiver position(XYZ/LAT LONG h)               
+                     Rpos=ReceiverPos;%Receiver position(XYZ/LAT LONG h)
                else
                    Rpos=ReceiverPos;%Receiver position(XYZ/LAT LONG h)
                    Satpos=SatPos;%Satellite position in XYZ
                    
-               end %if size(ReceiverPos,2)==1 && size(SatPos,2)==1              
+               end %if size(ReceiverPos,2)==1 && size(SatPos,2)==1
           end %if nargin ==5
         end %if (any(nargin==[5,4,3,2]))
         
       %*******IF USER INPUTs are Coordinates,.....
-      if exist('Rpos','var')         
+      if exist('Rpos','var')
         %CHECK RECEIVER POSITION TYPE(XYZ/LAT LONG h)
         [Rrow,Rcol]=size(Rpos);%Get number of rows & columns of Rpos
          %***ROUND TO THE NEAREST THOUSAND
           t3=roundmod(ReceiverPos,1e3);
           
           if (Rcol>7 & Rrow==3)
-             X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-             Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
+             X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+             Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
              Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
              
           elseif (Rcol==7 &(Rrow < 3 | Rrow > 3))
-                lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS 
-                lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS 
-                h=Rpos(:,end);%Assigning end (7th) column to heights 
+                lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS
+                lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS
+                h=Rpos(:,end);%Assigning end (7th) column to heights
                 
           elseif (Rcol==7 & Rrow==3)
                 if all(t3(:,1:6))==0 %if columns 1-6 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS 
-                  lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS 
-                  h=Rpos(:,end);%Assigning end (7th) column to  heights 
+                  lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS
+                  lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS
+                  h=Rpos(:,end);%Assigning end (7th) column to  heights
                   
                 elseif (all(t3(:,1:end))~=0 | all(t3(:,1:6))~=0 | ...
                                                         any(t3(:,1:6))~=0)
-                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates 
+                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                       
                 end %if all(t3(:,1:6))==0
                                      
           elseif (Rcol==6 && (Rrow < 3 | Rrow > 3))
-                lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS 
-                lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS 
+                lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS
+                lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS
                  h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                           
-          elseif (Rcol==6 & Rrow==3) 
+          elseif (Rcol==6 & Rrow==3)
                 if all(t3(:,1:6))==0 %if columns 1-6 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS 
-                  lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS 
+                  lat=Rpos(:,1:3);%Assigning columns 1-3 to Latitude in DMS
+                  lon=Rpos(:,4:6);%Assigning columns 4-6 to Longitude in DMS
                    h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                   
-                elseif (all(t3(:,1:end))~=0 | any(t3(:,1:end))~=0)                                 
-                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates        
+                elseif (all(t3(:,1:end))~=0 | any(t3(:,1:end))~=0)
+                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                 end %if all(t3(:,1:6))==0
                 
           elseif (Rcol==5 && (Rrow < 3 | Rrow > 3))
-                lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM 
-                lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM 
+                lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM
+                lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM
                  h=Rpos(:,end);%Assigning end (5th) column to  heights
                  
-          elseif  (Rcol==5 & Rrow==3) 
+          elseif  (Rcol==5 & Rrow==3)
                 if all(t3(:,1:4))==0 %if columns 1-4 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM 
-                  lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM 
+                  lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM
+                  lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM
                    h=Rpos(:,end);%Assigning end (5th) column to  heights
                   
                 elseif (all(t3(:,1:end))~=0 | all(t3(:,1:4))~=0 | ...
-                                                        any(t3(:,1:4))~=0)                                 
-                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates         
+                                                        any(t3(:,1:4))~=0)
+                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                 end %if all(t3(:,1:4))==0
                 
           elseif (Rcol==4 & (Rrow < 3 | Rrow > 3))
-                lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM 
-                lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM 
+                lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM
+                lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM
                  h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                  
-          elseif (Rcol==4 & Rrow==3) 
+          elseif (Rcol==4 & Rrow==3)
                 if all(t3(:,1:4))==0 %if columns 1-4 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM 
-                  lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM 
+                  lat=Rpos(:,1:2);%Assigning columns 1-2 to Latitude in DM
+                  lon=Rpos(:,3:4);%Assigning columns 3-4 to Longitude in DM
                    h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                   
                 elseif (all(t3(:,1:end))~=0 | all(t3(:,1:4))~=0 | ...
-                                                        any(t3(:,1:4))~=0)                                 
-                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates         
+                                                        any(t3(:,1:4))~=0)
+                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                 end %if all(t3(:,1:4))==0
                 
-          elseif  Rcol==3 
+          elseif  Rcol==3
               
                 if all(t3(:,1:2))==0 %if columns 1-2 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D 
-                  lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D 
+                  lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D
+                  lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D
                    h=Rpos(:,end);%Assigning end (3rd) column to  heights
                   
                 elseif (all(t3(:,1:end))~=0 | all(t3(:,1:2))~=0 | ...
                                                         any(t3(:,1:2))~=0)
-                      if (Rrow > 3 | Rrow < 3 )                            
-                        X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates 
-                        Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates 
+                      if (Rrow > 3 | Rrow < 3 )
+                        X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates
+                        Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates
                         Z=Rpos(:,3);%Assigning 3rd column to row ECEF(Z) Coordinates
                         
                       elseif (Rrow == 3 )
                             if (all(Rpos(:,1)>0) & all(Rpos(:,2)<0) &...
                                                           all(Rpos(:,3)>0))
-                              X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates 
-                              Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates 
-                              Z=Rpos(:,3);%Assigning 3rd column to row ECEF(Z) Coordinates 
+                              X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates
+                              Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates
+                              Z=Rpos(:,3);%Assigning 3rd column to row ECEF(Z) Coordinates
                               
                             elseif (all(Rpos(1,:)>0) & all(Rpos(2,:)<0) &...
                                                           all(Rpos(3,:)>0))
-                                  X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                                  Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                                  Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates 
+                                  X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                                  Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                                  Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                                   
                             elseif  (all(Rpos(1,:)>0) & any(Rpos(2,:)<0) &...
                                                           all(Rpos(3,:)>0))
-                                  X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                                  Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                                  Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates 
+                                  X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                                  Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                                  Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                      
                             elseif (all(Rpos(:,:)>0))
                                 %IDENTIFYING DATA ARRANGEMENT IN Rpos if
@@ -311,8 +311,8 @@ switch nargin
                                         | strcmp(num2str(rmcol_2(2)),num2str(rmcol_2(3)))...
                                         | strcmp(num2str(rmcol_2(1)),num2str(rmcol_2(3))))
                                     
-                                   X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                                   Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
+                                   X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                                   Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
                                    Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                                    
                                 elseif (all(abs(mean(rmcol_2)- rmcol_2)==0) |...
@@ -320,70 +320,70 @@ switch nargin
                                                 rmcol_2(2)==rmcol_2(3) |... 
                                                 rmcol_2(1)==rmcol_2(3)))
                                             
-                                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
+                                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
                                       Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                                       
                                 elseif (~strcmp(num2str(rmrow_2(1)),num2str(rmrow_2(2)))...
                                         | ~strcmp(num2str(rmrow_2(2)),num2str(rmrow_2(3)))...
                                         | ~strcmp(num2str(rmrow_2(1)),num2str(rmrow_2(3))))
                                     
-                                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates                                                                     
+                                      X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                                      Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                                      Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
 
-                                else                                 
-                                    X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates 
-                                    Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates 
+                                else
+                                    X=Rpos(:,1);%Assigning 1st column to ECEF(X) Coordinates
+                                    Y=Rpos(:,2);%Assigning 2nd column to ECEF(Y) Coordinates
                                     Z=Rpos(:,3);%Assigning 3rd column to row ECEF(Z) Coordinates
                                     
                                 end %if (strcmp(num2str(rmcol_2(1)),...
                  
-                            end %if (all(Rpos(:,1)>0) || all(Rpos(:,2)<0)       
+                            end %if (all(Rpos(:,1)>0) || all(Rpos(:,2)<0)
 
                       end %if (Rrow > 3 || Rrow < 3 )
                              
                 end %if all(t3(:,1:4))==0
                 
           elseif  (Rcol==2 &(Rrow < 3 | Rrow > 3))
-                lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D 
-                lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D 
+                lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D
+                lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D
                  h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                  
-          elseif   (Rcol==2 & Rrow ==3) 
+          elseif   (Rcol==2 & Rrow ==3)
                 if all(t3(:,1:2))==0 %if columns 1-2 rounded to zeros(0's)
                                      %then inputs are latitude & longitude
-                  lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D 
-                  lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D 
-                   h=zeros(size(Rpos,1),1);%Assigning zeros to  heights     
+                  lat=Rpos(:,1);%Assigning columns 1 to Latitude in dec.D
+                  lon=Rpos(:,2);%Assigning columns 2 to Longitude in dec.D
+                   h=zeros(size(Rpos,1),1);%Assigning zeros to  heights
                 else
-                    X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                    Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
-                    Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates      
+                    X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                    Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
+                    Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                 end %if all(t3(:,1:2))==0
                 
           elseif ((Rcol==1 & Rrow ==3) & all(t3(:,1))~=0)
-                X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates 
-                Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates 
+                X=Rpos(1,:)';%Assigning 1st row to ECEF(X) Coordinates
+                Y=Rpos(2,:)';%Assigning 2nd row to ECEF(Y) Coordinates
                 Z=Rpos(3,:)';%Assigning 3rd to row ECEF(Z) Coordinates
                 
           end %if (Rcol>7 && Rrow==3)
             
-      end %if exist('Rpos','var') 
+      end %if exist('Rpos','var')
       
-        %*******CONVERT Lat,Long,h IF ANY TO XYZ   
+        %*******CONVERT Lat,Long,h IF ANY TO XYZ
         if exist('lat','var') || exist('lon','var')%Check if lat/lon exist
-          %******CONVERT LAT,LONG h TO XYZ  
-          [X,Y,Z] = geo2xyz(lat,lon,h); 
+          %******CONVERT LAT,LONG h TO XYZ
+          [X,Y,Z] = geo2xyz(lat,lon,h);
           
         elseif (exist('X','var')|| exist('Y','var') || exist('Z','var'))
-              %**CONVERT USER POSITION(XYZ) TO lat,long,h 
+              %**CONVERT USER POSITION(XYZ) TO lat,long,h
               [latRAD,longRAD,h] = xyz2LLH(X,Y,Z); %#ok<*ASGLU>
                   
         end %exist('lat','var') || exist('lon','var')
           
-        if ~exist('satEL_deg','var')%If Satellite Elevation is not given,then 
-                                %Compute Satellite Elevation with the given  
+        if ~exist('satEL_deg','var')%If Satellite Elevation is not given,then
+                                %Compute Satellite Elevation with the given
                                 %Receiver & Satellite positions
          %COMPUTE SATELLITE ELEVATION(<) & AZIMUTH
          %Call the function "satAzEl"
@@ -394,12 +394,12 @@ switch nargin
                                                                
     otherwise
              %ISSUE ERROR MESSAGE INPUT IS ONE
-              beep%Give a beep sound 
+              beep%Give a beep sound
               errmsg{1}=sprintf('Insuficient Data Input / Wrong Data Input format .');
               errmsg{2}='';
               errmsg{3}='Please Check file / Data format & Try Again.';
-              errordlg(errmsg,'Coordinate(s) Input Error','modal')   
-              return                          
+              errordlg(errmsg,'Coordinate(s) Input Error','modal')
+              return
 end %switch nargin
 
 %************TROPOHERIC DELAY MODELING/CORRECTION USING HOPFIELD MODEL
@@ -408,7 +408,7 @@ ZHD=zeros(size(satEL_deg,1),size(satEL_deg,2));%Assign zeros of nxm to SHD
 [ZTD,ZWD]=deal(ZHD);%copy the contents of SHD to all the requested outputs
                                                   
 zhd=zeros(size(satEL_deg,1),1);%Assign zeros of nx1 to ZHD
-[ztd,zwd,MFh,MFw]=deal(zhd);%copy the contents of ZHD to all the requested outputs 
+[ztd,zwd,MFh,MFw]=deal(zhd);%copy the contents of ZHD to all the requested outputs
                                                 
 %GET METEOROLOGICAL PARAMETERS
 if all(isempty([T P RH]))
@@ -427,7 +427,7 @@ elseif (~isempty(T) && all(isempty([P RH])))
       Ps = 1013.25;%pressure [mbar] @ SEALEVEL
 	  RHs = 50.0;%Relative Humidity(RH)[%] @ SEALEVEL
 
-      %***COMPUTE PRESSURE & RH 
+      %***COMPUTE PRESSURE & RH
        P = Ps .* (1-0.0000226.*h).^5.225; %pressure [mbar] @ altitude(h)
 	  RH = RHs * exp(-0.0006396.*h); %Relative Humidity(%)@ altitude(h)
      
@@ -435,7 +435,7 @@ elseif (all(~isempty([T P])) && ~isempty(RH))
       T=T+273.16; %Convert temperture degree Celcius(C) to kelvin(K)
       RHs = 50.0;%Relative Humidity(RH)[%] @ SEALEVEL
       
-      %***COMPUTE PRESSURE & RH 
+      %***COMPUTE PRESSURE & RH
 	  RH = RHs * exp(-0.0006396.*h); %Relative Humidity(%)@ altitude(h)
     
 end %if all(isempty([T P RH]))
@@ -444,18 +444,18 @@ end %if all(isempty([T P RH]))
 e = 0.01 * RH .* exp(-37.2465 + 0.213166.*T - 0.000256908.*T.^2);
 
 %COMPUTE DRY & WET TROPO REFRACTIVE INDICEs @ MSL
-try 
+try
     %***USING SMITH & WEINTRAUB REFRACTIVITY MODEL (1953)
     k1=77.6 ;%Refractivity constant(K/mbar or K/hpa)
     k3=3.73e5;%Refractivity constant(K^2/mbar or K^2/hpa)
-    N_dry0 = k1 .* (P ./ T) ; %Dry refractivity along signal path @ MSL      
-    N_wet0 = k3 .* (e ./ T.^2);%Wet refractivity along signal path @ MSL 
+    N_dry0 = k1 .* (P ./ T) ; %Dry refractivity along signal path @ MSL
+    N_wet0 = k3 .* (e ./ T.^2);%Wet refractivity along signal path @ MSL
 catch
     %***USING ESSEN & FROOME REFRACTIVITY MODEL
     k1=77.64; %Refractivity constant(K/mbar or K/hpa)
     k2 = -12.96; %Refractivity constant(K/mbar or K/hpa)
     k3=3.718e5;%Refractivity constant(K^2/mbar or K^2/hpa)
-    N_dry0 = k1 .*( P ./ T);  %Dry refractivity along signal path @ MSL      
+    N_dry0 = k1 .*( P ./ T);  %Dry refractivity along signal path @ MSL
     N_wet0 = k2.*(e./ T)+k3.*( e ./ T.^2);%Wet refractivity along signal path @ MSL
 end %try
 
@@ -478,11 +478,11 @@ for i=1:ncol %Loop over the Number of Receiver positions
 for j=1:nrow %Loop over the Number of Satellite Elevations
   
 %**************COMPUTE MAPPING FUNCTIONs(MFh & MFw)
-%1.CONVERT ELEVATION ANGLEs TO RADIAN 
+%1.CONVERT ELEVATION ANGLEs TO RADIAN
 %First, Check if the elevation is less than 0, set it to .1 deg
 %REMARKs:
 %       Valid elevations are between -pi/2 and pi/2. Elevations below .1...
-%       will have the a delay mapped to .1 degree.No mapping below zero 
+%       will have the a delay mapped to .1 degree.No mapping below zero
 %       degree elevation is modeled.
 						
 EL_zero = find(satEL_deg(j,i) < .0017);
@@ -522,7 +522,7 @@ tropDRY=ZHD;%Assigning ZHD to tropDRY(dry Tropospheric delay)
 tropWET= ZWD;%Assigning ZWD to tropWET(wet Tropospheric  delay)
 tropTOTAL=ZTD;%Assigning ZTD to tropTOTAL(total Tropospheric delay)
 
-%%%%%%%%%%%%%%%%%%%%%%%%END OF TropModel_Hopfield.m %%%%%%%%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%END OF TropModel_Hopfield.m %%%%%%%%%%%%%%%%%%%%%%%
 
 %1.******SUBROUTINE TO CONVERT XYZ COORDs TO GEOGRAPHIC COORDs
 function [X,Y,Z] = geo2xyz(latitude,longitude,height,RefEllipsoid)
@@ -530,7 +530,7 @@ function [X,Y,Z] = geo2xyz(latitude,longitude,height,RefEllipsoid)
 % *************************************************************************
 % *************************************************************************
 %DESCRIPTION:                                                              *
-%           geo2xyz  calculate Cartesian coordinates(XYZ) given geodetic 
+%           geo2xyz  calculate Cartesian coordinates(XYZ) given geodetic
 %           coordinates Latitude(degree/dms,Longitude(degree/dms,and ...   * 
 %           height(m)above reference ellipsoid(RefEllipsoid) given by the  * 
 %                                                                     user.* 
@@ -566,10 +566,10 @@ function [X,Y,Z] = geo2xyz(latitude,longitude,height,RefEllipsoid)
 %**************************************************************************
 
 %****FORMAT DATA INPUT
-switch nargin 
+switch nargin
     
-    case 1 
-         RefEllipsoid='WGS84'; 
+    case 1
+         RefEllipsoid='WGS84';
          lat=latitude;%Assigning latitude to lat
          
          %***GET THE NUMBER OF COLUMNS IN lat
@@ -579,23 +579,23 @@ switch nargin
            latDeg  = dms2degrees(lat(:,1:3));%Latitude in DMS to decimal degrees
            longDeg = dms2degrees(lat(:,4:6));%Longitude in DMS to decimal degrees
            h       = lat(:,7);%Ellipsoidal heights in the 7TH Column
-         elseif  clat==6   
+         elseif  clat==6
                latDeg  = dms2degrees(lat(:,1:3));%Latitude in DMS to decimal degrees
                longDeg = dms2degrees(lat(:,4:6));%Longitude in DMS to decimal degrees
-               h       = zeros(size(latDeg,1),1);%%Assigning zeros to Ellipsoidal height(h) 
-         elseif  clat==5    
+               h       = zeros(size(latDeg,1),1);%%Assigning zeros to Ellipsoidal height(h)
+         elseif  clat==5
                latDeg  = dm2degrees(lat(:,1:2));%Latitude in DM to decimal degrees
                longDeg = dm2degrees(lat(:,3:4));%Longitude in DM to decimal degrees
                h       = lat(:,5);%Ellipsoidal heights in the 5TH Column
-         elseif  clat==4  
+         elseif  clat==4
                latDeg  = dm2degrees(lat(:,1:2));%Latitude in DM to decimal degrees
                longDeg = dm2degrees(lat(:,3:4));%Longitude in DM to decimal degrees
-               h       = zeros(size(latDeg,1),1);%%Assigning zeros to Ellipsoidal height(h)    
-         elseif  clat==3   
+               h       = zeros(size(latDeg,1),1);%%Assigning zeros to Ellipsoidal height(h)
+         elseif  clat==3
                latDeg  = lat(:,1);%Latitude in decimal degrees in the 1ST Column
                longDeg = lat(:,2);%Longitude in decimal degrees in the 2ND Column
                h       = lat(:,3);%Ellipsoidal heights in the 3RD Column
-         elseif  clat==2  
+         elseif  clat==2
                latDeg  = lat(:,1);%Latitude in decimal degrees in the 1ST Column
                longDeg = lat(:,2);%Longitude in decimal degrees in the 2ND Column
                h       = zeros(size(latDeg,1),1);%%Assigning zeros to Ellipsoidal height(h)
@@ -605,31 +605,31 @@ switch nargin
          lat  = latitude;%Assigning latitude to latDeg
          long = longitude;%Assigning longitude to lonitude
          
-         %%***GET THE NUMBER OF COLUMNS IN lat & long 
+         %%***GET THE NUMBER OF COLUMNS IN lat & long
          clat = size(lat,2);%No. of columns of latDeg matrix
          clong= size(long,2);%No. of columns of longDeg matrix
          
-         if clat==3 %if No. of columns is 2 then data is in DMS   
+         if clat==3 %if No. of columns is 2 then data is in DMS
            latDeg=dms2degrees(lat);%Latitude in DMS to decimal degrees
-         elseif   clat==2 %if No. of columns is 2 then data is in DM    
+         elseif   clat==2 %if No. of columns is 2 then data is in DM
                latDeg=dm2degrees(lat);%Latitude in DM to decimal degrees
          else   %if No. of columns is 1 then data is in decimal degrees
-             latDeg=lat;   
-         end     %if clat==3  
+             latDeg=lat;
+         end     %if clat==3
     
-           if clong==3 %if No. of columns is 2 then data is in DMS  
+           if clong==3 %if No. of columns is 2 then data is in DMS
              longDeg=dms2degrees(long);%Latitude in DMS to decimal degrees
     
-           elseif   clong==2 %if No. of columns is 2 then data is in DM   
+           elseif   clong==2 %if No. of columns is 2 then data is in DM
                  longDeg=dm2degrees(long);%Latitude in DM to decimal degrees
 
-           else   %if No. of columns is 1 then data is in decimal degrees 
-               longDeg=long;   
-           end   %if clong==3 
+           else   %if No. of columns is 1 then data is in decimal degrees
+               longDeg=long;
+           end   %if clong==3
            
            if (any(nargin==[4,3,2]))
             
-          if nargin ==4 
+          if nargin ==4
             h = height;%Assigning height to h
           elseif nargin ==3
                 RefEllipsoid='WGS84';
@@ -643,22 +643,22 @@ switch nargin
            end %if (any(nargin==[4,3,2]))
            
            %CHECK IF SIZE OF h CONFORMS WITH SIZE OF lat/long
-           if (size(h,1)==1 && (size(lat,1) && size(long,1))>1)         
-            if h==0       
-              h=repmat(h,size(lat,1),1);%Replicating height to conform with 
-                                        %              size of lat or long   
+           if (size(h,1)==1 && (size(lat,1) && size(long,1))>1)
+            if h==0
+              h=repmat(h,size(lat,1),1);%Replicating height to conform with
+                                        %              size of lat or long
             else
-                h=[h;repmat(zeros(size(lat,1)-1,1),1)];%Replicating height to 
-                                                      %conform with size of 
-                                                      %         lat or long     
+                h=[h;repmat(zeros(size(lat,1)-1,1),1)];%Replicating height to
+                                                      %conform with size of
+                                                      %         lat or long
             end %if h==0
             
            elseif (size(h,1)>1 && (size(lat,1) && size(long,1))>1)
                
                  if size(h,1)<size(lat,1)
-                   h=[h;repmat(zeros(size(lat,1)-size(h,1),1),1)];%Replicating height  
-                                                                 %to conform  
-                                                                 %with size of 
+                   h=[h;repmat(zeros(size(lat,1)-size(h,1),1),1)];%Replicating height
+                                                                 %to conform
+                                                                 %with size of
                                                                  %lat or long
                  end %if size(h,1)<size(lat,1)
                                                                                                                                                          
@@ -669,32 +669,32 @@ end   % switch nargin
 %ISSUE ERROR MESSAGE IF SIZE OF lat & long ARE UNEQUAL
 
 if size(lat,1)>size(long,1) %Check sizes
-   beep%Give a beep sound 
+   beep%Give a beep sound
    errmsg{1}=sprintf('Size of Latitude Coordinates  >  Size of Longitude Coordinates   %d > %d .',size(lat,1),size(long,1));
    errmsg{2}='';
    errmsg{3}='Please ensure that size of Latitude & Longitude Coordinates are the same .';
-   errordlg(errmsg,'Coordinate(s) Input Error','modal')   
-   return 
+   errordlg(errmsg,'Coordinate(s) Input Error','modal')
+   return
    
-elseif size(lat,1)<size(long,1) %Check sizes 
-      beep%Give a beep sound 
+elseif size(lat,1)<size(long,1) %Check sizes
+      beep%Give a beep sound
       errmsg{1}=sprintf('Size of Latitude Coordinates  <  Size of Longitude Coordinates  %d > %d .',size(lat,1),size(long,1));
       errmsg{2}='';
       errmsg{3}='Please ensure that size of Latitude & Longitude Coordinates are the same .';
-      errordlg(errmsg,'Coordinate(s) Input Error','modal')   
-      return 
+      errordlg(errmsg,'Coordinate(s) Input Error','modal')
+      return
       
 end %if size(lat,1)>size(long,1) %Check sizes
 
-%******CALCULATION 
-%            
+%******CALCULATION
+%
 %INITIALIZE OUTPUT
 X=zeros(size(latDeg,1),1);
 Y=deal(X);
 Z=deal(X);
 
 %****GET ELLIPSOID PARAMETERS
-%      
+%
 [a,finv] = Ellipsoidpara(RefEllipsoid);
 
 f=1/finv;%flattening
@@ -704,14 +704,14 @@ e2 = (2.*f)-((f).^2);% first eccentricity
 
 for i=1:size(latDeg,1)
     
-%***CONVERT LatDeg & LongDeg to Radians 
+%***CONVERT LatDeg & LongDeg to Radians
 latRad=deg2rad(latDeg(i));%converting latitude values in degrees to radian
 longRad=deg2rad(longDeg(i));%converting longitude values in degrees to radian
 
 %***COMPUTE RADIUS OF PRIME VERTICAL(N)
 N = a./sqrt(1-(e2.*(sin(latRad)).^2));%prime vertical radius
 
-%***COMPUTE DISTANCE FROM Z-AXIS(P) 
+%***COMPUTE DISTANCE FROM Z-AXIS(P)
 P = (N + h(i)).*cos(latRad);
 
 %COMPUTE XYZ COORDINATES
@@ -722,7 +722,7 @@ Y(i,1) = roundmod(P.*sin(longRad),1e-3); %cartesian Y coordinates in meters
 fprintf('\n X =%12.3f\n Y =%12.3f\n Z =%12.3f\n',X(i),Y(i),Z(i));
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%END OF geo2xyz.m %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
+%%%%%%%%%%%%%%%%%%%%%%%%END OF geo2xyz.m %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
 %2.******SUBROUTINE TO CONVERT XYZ COORDs TO GEOGRAPHIC COORDs
 function [latRAD,longRAD,h,latDEC,longDEC] = xyz2LLH(X,Y,Z,RefEllipsoid)
@@ -738,7 +738,7 @@ function [latRAD,longRAD,h,latDEC,longDEC] = xyz2LLH(X,Y,Z,RefEllipsoid)
 %2.      Y  > vectors of Cartesian(ECEF) Coordinates  (m)                  +
 %3.      Z                                                                 + 
 %4.      RefEllipsoid-Reference Ellipsoid in single quote(eg:'WGS84','GRS80+
-%                                                                ','Pz-90')  
+%                                                                ','Pz-90')
 % =========================================================================+
 %OUTPUT:                                                                   +
 %1.    latRAD  --> latitude in radians                                     +
@@ -751,81 +751,81 @@ function [latRAD,longRAD,h,latDEC,longDEC] = xyz2LLH(X,Y,Z,RefEllipsoid)
 %1         B.Hofmann-Wellenhof, H.Lichtenegger and J.Collins: GPS Theory   +
 %          and practice. 2001. Fifth revised edition. Springer,Wien,...    +
 %                                                       New York.p.280-282 +
-%2         GILBERT STRANG AND KAI BORRE: Linear Algebra,Geodesy,and GPS    
+%2         GILBERT STRANG AND KAI BORRE: Linear Algebra,Geodesy,and GPS
 % =========================================================================+
-%  Written by OSAH SAMUEL, Msc Geomatic Engineering ,2016                                 
-%       Email: osahsamuel@yahoo.ca                                                       
-%         Tel:+233 (0)246137410/+233 (0)509438484                                         
+%  Written by OSAH SAMUEL, Msc Geomatic Engineering ,2016
+%       Email: osahsamuel@yahoo.ca
+%         Tel:+233 (0)246137410/+233 (0)509438484
 %==========================================================================+
 %**************************************************************************+
 %**************************************************************************+
 %****FORMAT DATA INPUT
 
-switch nargin      
+switch nargin
     case 1
           RefEllipsoid='WGS84';
-          XYZ=X  ;       
+          XYZ=X  ;
          [nrow,ncol]=size(XYZ);
 
          if (ncol==3 && (nrow>ncol || nrow<ncol ))
            X=XYZ(:,1);
            Y=XYZ(:,2);
-           Z=XYZ(:,3) ;   
-         elseif  ((nrow==3) && (ncol>nrow || ncol<nrow ))    
+           Z=XYZ(:,3) ;
+         elseif  ((nrow==3) && (ncol>nrow || ncol<nrow ))
                X=(XYZ(1,:))';
                Y=(XYZ(2,:))';
-               Z=(XYZ(3,:))'; 
-         elseif  ((nrow==3) && (ncol==3 ))   
+               Z=(XYZ(3,:))';
+         elseif  ((nrow==3) && (ncol==3 ))
               %***Round X to 2 digit numbers
               X_vpa=vpa(roundmod(XYZ,5),1e2);%Variable precision arithmetic(vpa).
               Xm=mean(X_vpa);%Mean
-              if (find(X_vpa(:,1)-Xm(1)==0)| find(X_vpa(:,2)-Xm(2)==0)| find(X_vpa(:,3)-Xm(3)==0))   
+              if (find(X_vpa(:,1)-Xm(1)==0)| find(X_vpa(:,2)-Xm(2)==0)| find(X_vpa(:,3)-Xm(3)==0))
                 X=XYZ(:,1);
                 Y=XYZ(:,2);
                 Z=XYZ(:,3);
-              elseif (find(X_vpa(:,1)-Xm(1)~=0)| find(X_vpa(:,2)-Xm(2)~=0)| find(X_vpa(:,3)-Xm(3)~=0))    
+              elseif (find(X_vpa(:,1)-Xm(1)~=0)| find(X_vpa(:,2)-Xm(2)~=0)| find(X_vpa(:,3)-Xm(3)~=0))
                     X=(XYZ(1,:))';
                     Y=(XYZ(2,:))';
-                    Z=(XYZ(3,:))';  
-              end             
-         end 
+                    Z=(XYZ(3,:))';
+              end
+         end
  case 2
-RefEllipsoid=Y;     
+RefEllipsoid=Y;
 
 %***FORMAT DATA
- XYZ=X  ;       
+ XYZ=X  ;
 [nrow,ncol]=size(XYZ);
 if (ncol==3 && (nrow>ncol || nrow<ncol ))
 X=XYZ(:,1);
 Y=XYZ(:,2);
-Z=XYZ(:,3) ;   
-elseif ((nrow==3) && (ncol>nrow || ncol<nrow ))     
+Z=XYZ(:,3) ;
+elseif ((nrow==3) && (ncol>nrow || ncol<nrow ))
 X=(XYZ(1,:))';
 Y=(XYZ(2,:))';
-Z=(XYZ(3,:))';      
-elseif ((nrow==3) && (ncol==3 ))   
+Z=(XYZ(3,:))';
+elseif ((nrow==3) && (ncol==3 ))
     
 %***Round X to 2 digit numbers
 X_vpa=vpa(roundmod(XYZ,5),1e2);%Variable precision arithmetic(vpa).
 Xm=mean(X_vpa);%Mean
-if (find(X_vpa(:,1)-Xm(1)==0)| find(X_vpa(:,2)-Xm(2)==0)| find(X_vpa(:,3)-Xm(3)==0))   
+if (find(X_vpa(:,1)-Xm(1)==0)| find(X_vpa(:,2)-Xm(2)==0)| find(X_vpa(:,3)-Xm(3)==0))
 X=XYZ(:,1);
 Y=XYZ(:,2);
 Z=XYZ(:,3);
-elseif (find(X_vpa(:,1)-Xm(1)~=0)| find(X_vpa(:,2)-Xm(2)~=0)| find(X_vpa(:,3)-Xm(3)~=0))    
+elseif (find(X_vpa(:,1)-Xm(1)~=0)| find(X_vpa(:,2)-Xm(2)~=0)| find(X_vpa(:,3)-Xm(3)~=0))
 X=(XYZ(1,:))';
 Y=(XYZ(2,:))';
-Z=(XYZ(3,:))';  
-end         
+Z=(XYZ(3,:))';
+end
 end
  case 3
      
-RefEllipsoid='WGS84'; 
+RefEllipsoid='WGS84';
  
-end   
+end
         
-%******CALCULATION 
-%            
+%******CALCULATION
+%
 %INITIALIZE OUTPUT
 latRAD=zeros(size(X,1),1);
 longRAD=deal(latRAD);
@@ -834,7 +834,7 @@ longDEC=deal(latRAD);
 h=deal(latRAD);
 
 %****GET ELLIPSOID PARAMETERS
-%      
+%
 [a,finv] = Ellipsoidpara(RefEllipsoid);
 
 f=1/finv;% flattening
@@ -843,7 +843,7 @@ e2=(2*f)-f.^2; %eccentrcity squared
 se2=e2./(1-e2) ; % second eccentricity squared
 
 for i=1:size(X,1)
-%***COMPUTE DISTANCE IN XY PLANE FROM GEOCENTER 
+%***COMPUTE DISTANCE IN XY PLANE FROM GEOCENTER
 p=sqrt((X(i)).^2+(Y(i)).^2);
  
 try
@@ -873,7 +873,7 @@ latDEC(i,1) = rad2deg(latRAD(i,1));
 longDEC(i,1)= rad2deg(longRAD(i,1));
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%END OF xyz2LLH.m %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%END OF xyz2LLH.m %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
 
 function [a,finv,RefEllipsoid] = Ellipsoidpara(RefEllipsoid)
@@ -904,85 +904,85 @@ if ischar(RefEllipsoid)
   refE=RefEllipsoid;%Refernce Ellipsoid
 
  %***GPS REFERENCE FRAME
-if (strcmpi(refE,'WGS84')|| (strcmpi(refE,'WGS1984')||strcmpi(refE,'GPS')))    
+if (strcmpi(refE,'WGS84')|| (strcmpi(refE,'WGS1984')||strcmpi(refE,'GPS')))
 RefEllipsoid='WGS84';
 a=6378137.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.257223563;%inverse flattening on the WGS 84 ellipsoid
 
-elseif (strcmpi(refE,'WGS72')|| strcmpi(refE,'WGS1972') )     
+elseif (strcmpi(refE,'WGS72')|| strcmpi(refE,'WGS1972') )
 RefEllipsoid='WGS72';
 a=6378135.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.26;%inverse flattening on the WGS 84 ellipsoid
 
 %***Geodetic Reference System 1980
-elseif (strcmpi(refE,'GRS80')|| strcmpi(refE,'GRS1980') )     
-RefEllipsoid='GRS80'; 
+elseif (strcmpi(refE,'GRS80')|| strcmpi(refE,'GRS1980') )
+RefEllipsoid='GRS80';
 a=6378137.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.257222101;%inverse flattening on the WGS 84 ellipsoid
 
 %Geodetic Reference System 1967
 elseif (strcmpi(refE,'GRS67') || strcmpi(refE,'GRS1967'))
-RefEllipsoid='GRS67';     
+RefEllipsoid='GRS67';
 a=6378160.0;%radius of major axis
 finv=298.247167427;%inverse flattening
  
 %GLONASS REFERENC FRAME
-elseif (strcmpi(refE,'Pz-90')||(strcmpi(refE,'Pz-90.02')||strcmpi(refE,'GLONASS')))     
-RefEllipsoid='Pz-90'; 
+elseif (strcmpi(refE,'Pz-90')||(strcmpi(refE,'Pz-90.02')||strcmpi(refE,'GLONASS')))
+RefEllipsoid='Pz-90';
 a=6378136.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.257839303;%inverse flattening on the WGS 84 ellipsoid
 
 %***BEIDOU REFERENC FRAME
-elseif (strcmpi(refE,'CGCS2000')|| strcmpi(refE,'BEIDOU') )     
-RefEllipsoid='CGCS2000'; 
+elseif (strcmpi(refE,'CGCS2000')|| strcmpi(refE,'BEIDOU') )
+RefEllipsoid='CGCS2000';
 a=6378137.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.257222101;%inverse flattening on the WGS 84 ellipsoid
 
 %***GHANA
 %OLD
-elseif (strcmpi(refE,'WAROFFICE') || strcmpi(refE,'WO')) 
-RefEllipsoid='WAROFFICE';    
+elseif (strcmpi(refE,'WAROFFICE') || strcmpi(refE,'WO'))
+RefEllipsoid='WAROFFICE';
 a=6378299.996;%radius of major axis
 finv=296;%inverse flattening
 
 elseif (strcmpi(refE,'ACCRADATUM') || strcmpi(refE,'AD'))
-RefEllipsoid='WAROFFICE';  
+RefEllipsoid='WAROFFICE';
 a=6378299.996;%radius of major axis
 finv=296;%inverse flattening
 
 elseif (strcmpi(refE,'LEIGONDATUM') || strcmpi(refE,'LD'))
-RefEllipsoid='Clarke1880';  
+RefEllipsoid='Clarke1880';
 a=20926202 ;%radius of major axis
 finv=293.465;%inverse flattening
 
-%NEW DATUM(Ghana Geodetic Datum)    
+%NEW DATUM(Ghana Geodetic Datum)
 elseif (strcmpi(refE,'GGD') || strcmpi(refE,'Ghana Geodetic Datum'))
 RefEllipsoid='GRS80'; %Geodetic Reference System 1980
 a=6378137.0;%radius of major axis on the WGS 84 ellipsoid
 finv=298.257222101;%inverse flattening on the WGS 84 ellipsoid
     
 elseif (strcmpi(refE,'Clarke1866') || strcmpi(refE,'Clarke66'))
-RefEllipsoid='Clarke66';      
+RefEllipsoid='Clarke66';
 a=6378206.4;%radius of major axis
-finv=294.9786982; %inverse flattening  
+finv=294.9786982; %inverse flattening
 
 elseif (strcmpi(refE,'Clarke1880') || strcmpi(refE,'Clarke80'))
-RefEllipsoid='Clarke80';      
+RefEllipsoid='Clarke80';
 a=6378249.145;%radius of major axis
-finv=293.465;%inverse flattening    
+finv=293.465;%inverse flattening
 
 elseif (strcmpi(refE,'Airy1830') || strcmpi(refE,'Airy30'))
-RefEllipsoid='Airy30';    
+RefEllipsoid='Airy30';
 a=6377563.396;%radius of major axis
 finv=299.3249646;%inverse flattening
 
 elseif (strcmpi(refE,'Everest30') || strcmpi(refE,'Everest1830'))
-RefEllipsoid='Everest30';    
+RefEllipsoid='Everest30';
 a=6377276.0;%radius of major axis
 finv=300.8;%inverse flattening
   
 elseif (strcmpi(refE,'Bessel41') || strcmpi(refE,'Bessel1841'))
-RefEllipsoid='Bessel41';     
+RefEllipsoid='Bessel41';
 a=6377397.0;%radius of major axis
 finv=299.15;%inverse flattening
 end
@@ -990,8 +990,8 @@ end
 else
 RefEllipsoid='WGS84';
 a=6378137.0;%radius of major axis on the WGS 84 ellipsoid
-finv=298.257223563;%inverse flattening on the WGS 84 ellipsoid    
-end   
+finv=298.257223563;%inverse flattening on the WGS 84 ellipsoid
+end
 %%%%%%%%%%%%%%%%%%%%%%%%END OF Elipsoidpara.m %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %4.******SUBROUTINE TO COMPUTE SATELLITE AZIMUTH & ELEVATION ANGLE
@@ -1083,16 +1083,16 @@ end
 
 %INITIALIZING OUTPUT VARIABLEs
 satAZ_rad=zeros(size(SatXYZ,2),size(UserXYZ,2));%Assign zeros of nxm to satAZ_rad
-[satEL_rad,satAZ_deg,satEL_deg,Range]=deal(satAZ_rad);%copy the contents of satAZ_rad  
+[satEL_rad,satAZ_deg,satEL_deg,Range]=deal(satAZ_rad);%copy the contents of satAZ_rad
                                                   %to all the requested outputs
 Az_rad=zeros(size(SatXYZ,2),1);%Assign zeros of nx1 to Az_rad
-[El_rad,Az_deg,El_deg,hdist,range]=deal(Az_rad);%copy the contents of Az_rad  
+[El_rad,Az_deg,El_deg,hdist,range]=deal(Az_rad);%copy the contents of Az_rad
                                                 %to all the requested outputs
 for j=1:size(UserXYZ,2)%LOOP THROUGH ALL USER POSITIONs
     
 for i=1:size(SatXYZ,2)%LOOP THROUGH ALL SATELLITE POSITIONs
 
-%**CONVERT USER POSITION(XYZ) TO latitude and longitude 
+%**CONVERT USER POSITION(XYZ) TO latitude and longitude
 [lat,long] = xyz2LLH(UserXYZ(:,j),RefEllipsoid);
 
 %FINDING Baseline differences
@@ -1102,24 +1102,24 @@ try
 
 %*****COMPUTING Rotation matrix
 %REMARKS:
-%      R is direction cosine matrix to transform position vector components 
+%      R is direction cosine matrix to transform position vector components
 %      from geocentric equatorial frame into the topocentric horizon frame.
 
 try
 R = [-sin(long)  -sin(lat)*cos(long)  cos(lat)*cos(long);
       cos(long)  -sin(lat)*sin(long)  cos(lat)*sin(long);
        0              cos(lat)            sin(lat)     ];
- %**COMPUTE UNIT VECTORS   
-  vENU = R'*dxyz; 
+ %**COMPUTE UNIT VECTORS
+  vENU = R'*dxyz;
    
 catch
    
- R = [   -sin(long)                        cos(long)         0     ;  
-              -sin(lat)*cos(long)  -sin(lat)*sin(long)  cos(lat);               
-              cos(lat)*cos(long)   cos(lat)*sin(long)  sin(lat)]; 
+ R = [   -sin(long)                        cos(long)         0     ;
+              -sin(lat)*cos(long)  -sin(lat)*sin(long)  cos(lat);
+              cos(lat)*cos(long)   cos(lat)*sin(long)  sin(lat)];
           
-%**COMPUTE UNIT VECTORS            
-vENU = R*dxyz ;         
+%**COMPUTE UNIT VECTORS
+vENU = R*dxyz ;
         
 end
 
@@ -1128,14 +1128,14 @@ E = vENU(1);% 'East'-coordinate relative to local origin (meters)
 N = vENU(2);% 'North'-coordinate relative to local origin (meters)
 U = vENU(3);% Up-coordinate relative to local origin (meters)
 
-%***COMPUTING AZIMUTH(Az) AND ELEVATION ANGLE(El)FROM NEU 
+%***COMPUTING AZIMUTH(Az) AND ELEVATION ANGLE(El)FROM NEU
 hdist(i,1) = sqrt(E.^2+N.^2);%Horizontal Distance
 if hdist(i,1) < 1.e-20
    Az_rad(i,1) = 0; % Radians
    El_rad(i,1) = pi/2;% Radians
 else
     
- %***COMPUTE AZIMUTH(Az);   
+ %***COMPUTE AZIMUTH(Az);
 try
    Az_rad(i,1) = atan2(E,N);% Radians
 catch
@@ -1143,7 +1143,7 @@ catch
 end
 if Az_rad(i,1) < 0
    Az_rad(i,1) = Az_rad(i,1)+ 2*pi;% Radians
-end  
+end
 %****COMPUTE ELEVATION ANGLE(El)
 try
    El_rad(i,1) = atan2(U,hdist(i,1));% Radians
@@ -1170,15 +1170,15 @@ dz = Dxyz(3);
 try
 %*****COMPUTING Rotation matrix
 %REMARKS:
-%       R is direction cosine matrix to transform position vector components 
+%       R is direction cosine matrix to transform position vector components
 %       from geocentric equatorial frame into the topocentric horizon frame.    
 
-R = [ -sin(long)                        cos(long)         0     ;  
-      -sin(lat)*cos(long)  -sin(lat)*sin(long)  cos(lat);               
-      cos(lat)*cos(long)   cos(lat)*sin(long)  sin(lat)]; 
+R = [ -sin(long)                        cos(long)         0     ;
+      -sin(lat)*cos(long)  -sin(lat)*sin(long)  cos(lat);
+      cos(lat)*cos(long)   cos(lat)*sin(long)  sin(lat)];
 
-%**COMPUTE UNIT VECTORS  
-vENU = R*Dxyz;  
+%**COMPUTE UNIT VECTORS
+vENU = R*Dxyz;
 
 %***EXTRACTING INDIVIDUAL LOCAL COORDINATES
 E = vENU(1);% 'East'-coordinate relative to local origin (meters)
@@ -1193,14 +1193,14 @@ U = cos(lat).*(dx.*cos(long)+dy.*sin(long)) + dz.*sin(lat);
                
 end
 
-%***COMPUTING AZIMUTH(Az) AND ELEVATION ANGLE(El)FROM NEU 
+%***COMPUTING AZIMUTH(Az) AND ELEVATION ANGLE(El)FROM NEU
         
 %****COMPUTE ELEVATION ANGLE(El)
 %ElRAD=asin(U/norm(vENU));% Radians
 try
 	El_rad(i,1)= (pi / 2 - acos(U));% Radians
     
-catch 
+catch
    LE = sqrt(E.^2+N.^2);
    El_rad(i,1) =(pi/2) - atan2(LE,U);% Radians
 end
@@ -1216,8 +1216,8 @@ end
 if (Az_rad(i,1) < 0);
 Az_rad(i,1) = Az_rad(i,1) + 2 * pi;
 end
-Az_deg(i,1) = rad2deg(Az_rad(i,1));	% degrees 
-end    
+Az_deg(i,1) = rad2deg(Az_rad(i,1));	% degrees
+end
 
 %***COMPUTE RANGE
 range(i,1) = sqrt(dxyz(1)^2+dxyz(2)^2+dxyz(3)^2);

@@ -64,7 +64,6 @@ classdef Core_Sky < handle
         state
     end
     methods (Access = 'private')
-        
         % Creator
         function this = Core_Sky()
             % Core object creator
@@ -164,7 +163,7 @@ classdef Core_Sky < handle
             this.importEph(eph,t_st,t_end,sat,step);
             
         end
-        function addSp3(this,filename_SP3,clock_flag)
+        function importSp3(this,filename_SP3, filename_CLK, t_st, t_end, step, wait_dlg)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
             %
@@ -180,7 +179,7 @@ classdef Core_Sky < handle
             
             if isempty(this.coord)
                 empty_file = true;
-            else 
+            else
                 empty_file = false;
             end
             if nargin <3

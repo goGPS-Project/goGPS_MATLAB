@@ -2,7 +2,7 @@ function fileRep(base_dir, expression, replace)
 % SYNTAX:
 %    fileRep( base_dir, expression, replace)
 % EXAMPLE:
-%    fileRep('.','reg expression', 'replace phrase');
+%    fileRep('.','expression', 'replace phrase');
 %
 % DESCRIPTION:
 %    Replace an exprassion in all the '.m' files under base_dir - it requires a unix system

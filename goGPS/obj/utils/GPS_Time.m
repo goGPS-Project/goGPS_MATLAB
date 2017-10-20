@@ -907,6 +907,7 @@ classdef GPS_Time < handle
             [year, ~] = datevec(utc_time.mat_time);
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
+        
         function [year, month, day, hour, minute, second] = getCalEpoch(this)
                 % get year month doy hour minute second
                 % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this)
@@ -918,6 +919,7 @@ classdef GPS_Time < handle
                 minute = str2num(str_time(:,15:16));
                 second = str2num(str_time(:,18:27));
         end
+        
         function date_string = toString(this, date_format)
             % Convert a date to string format
             if this.isempty()
@@ -961,8 +963,10 @@ classdef GPS_Time < handle
             end
         end
 
-        function new_obj = getId(this,id)
+        function new_obj = getEpoch(this, id)
             % Overloading of the operator index ()
+            % get a copy of the obj containing only the selected epoch id of time
+            % SYNTAX this.getEpoch(id)
 
             if islogical(id)
                 max_id = find(id == true, 1, 'last');
@@ -995,12 +999,12 @@ classdef GPS_Time < handle
         function new_obj = first(this, id_subset)
             % Get first element stored in GPS_Time
             if (nargin == 1)
-                new_obj = this.getId(1);
+                new_obj = this.getEpoch(1);
             else
                 if islogical(id_subset)
-                    new_obj = this.getId(find(id_subset, 1, 'first'));
+                    new_obj = this.getEpoch(find(id_subset, 1, 'first'));
                 else
-                    new_obj = this.getId(id_subset(1));
+                    new_obj = this.getEpoch(id_subset(1));
                 end
             end
         end
@@ -1008,13 +1012,13 @@ classdef GPS_Time < handle
         function new_obj = last(this, id_subset)
             % Get last element stored in GPS_Time
             if (nargin == 1)
-                new_obj = this.getId(this.length());
+                new_obj = this.getEpoch(this.length());
             else
                 if islogical(id_subset)
-                    new_obj = this.getId(find(id_subset(1 : this.length()), 1, 'last'));
+                    new_obj = this.getEpoch(find(id_subset(1 : this.length()), 1, 'last'));
                 else
                     id_subset = id_subset(id_subset < this.length());
-                    new_obj = this.getId(id_subset(end));
+                    new_obj = this.getEpoch(id_subset(end));
                 end
             end
         end
