@@ -898,6 +898,7 @@ classdef GPS_Time < handle
             [year, ~] = datevec(utc_time.mat_time);
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
+        
         function [year, month, day, hour, minute, second] = getCalEpoch(this)
                 % get year month doy hour minute second
                 % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this)
@@ -909,6 +910,7 @@ classdef GPS_Time < handle
                 minute = str2num(str_time(:,15:16));
                 second = str2num(str_time(:,18:27));
         end
+        
         function date_string = toString(this, date_format)
             % Convert a date to string format
             if this.isempty()

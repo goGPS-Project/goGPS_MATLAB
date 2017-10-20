@@ -1479,7 +1479,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 file_path = this.cur_ini;
             end
             [dir_path, ~, ~] = fileparts(file_path);
-            if not(exist(dir_path, 'dir'))
+            if ~isempty(dir_path) && ~exist(dir_path, 'dir')
                 mkdir(dir_path);
             end
             this.check(); % check before saving

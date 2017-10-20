@@ -99,11 +99,12 @@ classdef FTP_Downloader < handle
                 this.local_dir = local_dir;
             end
 
-            %open the connection with the server
+            % Open the connection with the server
             if (this.checkNet)
                 try
-                this.ftp_server = ftp(strcat(this.addr, ':', this.port));
+                    this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                 catch
+                    this.ftp_server = [];
                 end
             end
         end

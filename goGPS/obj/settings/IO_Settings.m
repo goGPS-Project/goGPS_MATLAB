@@ -42,8 +42,14 @@
 
 classdef IO_Settings < Settings_Interface
 
-    % Default values for each field - useful to restore corrupted field
     properties (Constant, Access = 'protected')
+        % id to string of out modes
+        DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
+        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];
+    end
+    
+    % Default values for each field - useful to restore corrupted field
+    properties (Constant, Access = 'public')
 
         % PROJECT
         PRJ_NAME = 'Defauld DD';  % Name of the project
@@ -140,12 +146,6 @@ classdef IO_Settings < Settings_Interface
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end
 
-    properties (Constant, Access = 'protected')
-        % id to string of out modes
-        DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
-        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];
-    end
-
     properties (Constant, Access = 'public')
         % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
         LAST_SETTINGS = 'last_settings.ini';
@@ -157,7 +157,7 @@ classdef IO_Settings < Settings_Interface
         cur_ini = IO_Settings.CUR_INI;
     end
 
-    properties (SetAccess = protected, GetAccess = public)
+    properties (SetAccess = public, GetAccess = public)
         %------------------------------------------------------------------
         % PROJECT
         %------------------------------------------------------------------

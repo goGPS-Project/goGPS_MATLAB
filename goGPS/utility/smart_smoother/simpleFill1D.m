@@ -43,7 +43,7 @@ function [data] = simpleFill1D(data, flags)
 %     if nargin == 2
 %         half_win = 6;
 %     end
-%     
+%
 %     lim = getOutliers(flags);
 %     for j = 1 : size(lim, 1)
 %         dt_lhs = data(max(1, lim(j, 1) - half_win) : lim(j, 1) - 1);

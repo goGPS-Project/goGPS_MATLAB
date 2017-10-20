@@ -83,10 +83,10 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods % Public Access
-        function [pr1, ph1, pr2, ph2, XR, dt_r, dt_r_dot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(this, time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, n_sat, wbh, flag_XR, sbas, flag_full_prepro, order)
+        function [pr1, ph1, pr2, ph2, flag_jumps_ph, XR, dt_r, dt_r_dot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(this, time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, n_sat, wbh, flag_XR, sbas, flag_full_prepro, order)
             
             % SYNTAX:
-            %   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, flag_full_prepro, order);
+            %   [pr1, ph1, pr2, ph2, flag_jumps_ph, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, flag_full_prepro, order);
             %
             % INPUT:
             %   time_ref = GPS reference time
@@ -96,6 +96,7 @@ classdef Core_Pre_Processing < handle
             %   ph1 = phase observation (L1 carrier)
             %   pr2 = code observation (L2 carrier)
             %   ph2 = phase observation (L2 carrier)
+            % . flag_jumps_ph = status of dt correction on the phase observations
             %   dop1 = Doppler observation (L1 carrier)
             %   dop2 = Doppler observation (L2 carrier)
             %   snr1 = signal-to-noise ratio
@@ -667,7 +668,8 @@ classdef Core_Pre_Processing < handle
                             %                     ph1_interp(s,index) = ph1(s,index) - corr;
                             %                 else
                             %                    ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
-                            ph1_interp(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'pchip');
+                            %ph1_interp(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'pchip');
+                            ph1_interp(s,index) = ph1(s,index);
                             %                 end
                             
                             if (exist('cs_found', 'var') && cs_found)
@@ -689,7 +691,7 @@ classdef Core_Pre_Processing < handle
                         ph2(s,index_x) = 0;
                         
                             
-                            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
+                            [ph2(s,:), cs_found, cs_correction_i] = this.detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
                             
                             if ~isempty(cs_correction_i)
                                 cs_correction_i(:,1) = s;
@@ -708,7 +710,8 @@ classdef Core_Pre_Processing < handle
                             %                     ph2_interp(s,index) = ph2(s,index) - corr;
                             %                 else
                             %                    ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
-                            ph2_interp(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'pchip');
+                            %ph2_interp(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'pchip');
+                            ph2_interp(s,index) = ph2(s,index);
                             %                 end
                             
                             if (exist('cs_found', 'var') && cs_found)
@@ -757,8 +760,10 @@ classdef Core_Pre_Processing < handle
             % idx_cs_occur = num_cs_occur >= 4;
             % bad_epochs(epoch(idx_cs_occur)) = 1;
             
-            ph1 = this.jmpFix(ph1, lambda(:,1));
-            ph2 = this.jmpFix(ph2, lambda(:,2));
+            %ph1 = this.jmpFix(ph1, lambda(:,1));
+            %ph2 = this.jmpFix(ph2, lambda(:,2));
+            
+            flag_jumps_ph = [flag_jumps_ph1 flag_jumps_ph2];
         end
                 
         function [ph] = jmpFix(this, ph, lambda)

@@ -197,6 +197,7 @@ num_session = numel(trg_rec{1});
 mst_rec = state.getMasterPath();
 num_mst_rec = numel(mst_rec);
 
+% get short name for File_Name_Processor
 fnp = File_Name_Processor();
 
 if num_session > 1
@@ -514,8 +515,7 @@ for session = 1 : num_session
                         %% LOAD ERP DATA (EARTH ROTATION/ORIENTATION PARAMETERS)
                         %----------------------------------------------------------------------------------------------
                         
-                        ERP = load_ERP(state.erp_full_name, time_GPS);
-                        SP3.ERP = ERP;
+                        SP3.ERP = load_ERP(state.erp_full_name, time_GPS);
                         
                         %----------------------------------------------------------------------------------------------
                         %% LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
