@@ -704,16 +704,17 @@ classdef Core_Sky < handle
             
             %extract the SP3 clocks
             if (b>0)
-                SP3_c = [this.clock(p-1,sat) this.clock(p,sat)];
+                SP3_c = cat(3, this.clock(p-1,sat), this.clock(p,sat));
                 u = 1 - b/interval;
             else
-                SP3_c = [this.clock(p,sat) this.clock(p+1,sat)];
+                SP3_c = cat(3, this.clock(p,sat), this.clock(p+1,sat));
                 u = -b/interval;
             end
             
-            dt_S  = NaN*ones(size(SP3_c,1),1);
-            idx=(sum(SP3_c~=0,2) == 2 .* ~any(SP3_c >= 0.999,2))>0;
-            dt_S(idx)=(1-u)'.*SP3_c(idx,1) + u'.*SP3_c(idx,2);
+            dt_S  = NaN*ones(size(SP3_c,1),size(SP3_c,2));
+            idx=(sum(SP3_c~=0,3) == 2 .* ~any(SP3_c >= 0.999,3))>0;
+            dt_S=repmat((1-u)',1,size(SP3_c,2)).*SP3_c(:,:,1) + repmat((u)',1,size(SP3_c,2)).*SP3_c(:,:,2);
+            dt_S(not(idx))=NaN;
             
             %             dt_S_SP3=NaN;
             %             if (sum(SP3_c~=0) == 2 && ~any(SP3_c >= 0.999))
@@ -819,6 +820,10 @@ classdef Core_Sky < handle
                     10*t_fct.^9];
                 V_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.coord_pol_coeff(2:end,:,sat_idx,idx),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
                 
+            end
+            if size(X_sat,2)==1
+                X_sat = squeeze(X_sat);
+                V_sat = squeeze(V_sat);
             end
         end
         
