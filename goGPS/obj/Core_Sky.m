@@ -869,6 +869,10 @@ classdef Core_Sky < handle
             if size(X_sat,2)==1
                 X_sat = squeeze(X_sat);
                 V_sat = squeeze(V_sat);
+                if size(X_sat,2) ==1
+                    X_sat = X_sat';
+                    V_sat = V_sat';
+                end
             end
         end
         
