@@ -144,7 +144,7 @@ classdef GPS_Time < handle
         function this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_unix(uint32(unix_time), fraction_of_second, is_gps)
             this.time_type = 1;
-            this.unix_time = unix_time;
+            this.unix_time = uint32(unix_time);
             this.unix_time_f = fraction_of_second;
             if (nargin == 4)
                 if isempty(is_gps)
@@ -908,16 +908,19 @@ classdef GPS_Time < handle
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
         
-        function [year, month, day, hour, minute, second] = getCalEpoch(this)
+        function [year, month, day, hour, minute, second] = getCalEpoch(this,idx)
             % get year month doy hour minute second
-            % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this)
+            % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this,idx)
+            if nargin == 1
+                idx = ones(this.length(),1) > 0;
+            end
             str_time=this.toString();
-            year = str2num(str_time(:,1:4));
-            month = str2num(str_time(:,6:7));
-            day = str2num(str_time(:,9:10));
-            hour = str2num(str_time(:,12:13));
-            minute = str2num(str_time(:,15:16));
-            second = str2num(str_time(:,18:27));
+            year = str2num(str_time(idx,1:4));
+            month = str2num(str_time(idx,6:7));
+            day = str2num(str_time(idx,9:10));
+            hour = str2num(str_time(idx,12:13));
+            minute = str2num(str_time(idx,15:16));
+            second = str2num(str_time(idx,18:27));
         end
         
         function date_string = toString(this, date_format)

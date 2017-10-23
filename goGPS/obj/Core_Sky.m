@@ -36,6 +36,7 @@ classdef Core_Sky < handle
         time_ref_coord  % Gps Times of tabulated aphemerids
         time_ref_clock
         coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
+        coord_type % 0: Center of Mass 1: Antenna Phase Center
         clock  % cloks of tabulated aphemerids [times x num_sat]
         prn
         sys
@@ -57,11 +58,10 @@ classdef Core_Sky < handle
         coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
         %start_time_idx  %%% index  defininig start of the day (time == 1)
         cc
-        
     end
     properties (Access = private)
         
-        logger
+        log
         state
     end
     methods (Access = 'private')
@@ -69,7 +69,7 @@ classdef Core_Sky < handle
         function this = Core_Sky()
             % Core object creator
             this.state = Go_State.getCurrentSettings();
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
             this.cc = Go_State.getCurrentSettings().getConstellationCollector();
             this.antenna_PCO =zeros(1,this.cc.getNumSat(),3);
             
@@ -104,6 +104,9 @@ classdef Core_Sky < handle
             this.X_sun = [];
             this.X_moon = [];
             this.coord_pol_coeff = [];
+            this.t_sun = [];
+            this.X_sun = [];
+            this.X_moon = [];
         end
         function clearCoord(this)
             this.coord=[];
@@ -114,6 +117,11 @@ classdef Core_Sky < handle
             this.clock=[];
             this.time_ref_coord = [];
         end
+        function clearSunMoon(this)
+            this.t_sun = [];
+            this.X_sun = [];
+            this.X_moon = [];
+        end
         function orb_time = getCoordTime(this)
             % DESCRIPTION:
             % return the time of coordinates in GPS_Time (unix time)
@@ -121,7 +129,7 @@ classdef Core_Sky < handle
             orb_time.toUnixTime();
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
             
-            dt = [this.coord_rate : this.coord_rate : size(this.coord,1)*this.coord_rate]';
+            dt = [this.coord_rate : this.coord_rate : (size(this.coord,1)-1)*this.coord_rate]';
             
             
             u_t = r_u_t + uint32(fix(dt));
@@ -148,7 +156,7 @@ classdef Core_Sky < handle
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
             
             
-            dt = [this.clock_rate : this.clock_rate : size(this.clock,1)*this.clock_rate]';
+            dt = [this.clock_rate : this.clock_rate : (size(this.clock,1)-1)*this.clock_rate]';
             
             
             u_t = r_u_t + uint32(fix(dt));
@@ -193,7 +201,10 @@ classdef Core_Sky < handle
                 t_end = t_st;
             end
             times = t_st.getGpsTime -5*step : step : t_end.getGpsTime+5*step; %%% compute 5 step before and after the day to use for polynomila interpolation
-            this.time=times;
+            this.time_ref_coord = t_st.getCopy();
+            this.time_ref_coord.toUnixTime();
+            this.time_ref_coord.addSeconds(-5*step);
+            this.time_ref_clock = this.time_ref_coord.getCopy();
             
             sat = intersect(sat,unique(eph(30,:))); %% keep only satellite also present in eph
             i = 0;
@@ -207,7 +218,7 @@ classdef Core_Sky < handle
                 t_dist_exced = t_dist_exced || t_d_e;
             end
             if t_dist_exced
-                this.logger.addError(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids ',t_st.toString(0),t_end.toString(0)))
+                this.log.addError(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids ',t_st.toString(0),t_end.toString(0)))
             end
         end
         function importBrdc(this,f_name, t_st, t_end, sat, step)
@@ -403,7 +414,7 @@ classdef Core_Sky < handle
                                 Z   = sscanf(lin(33:46),'%f');
                                 clk = sscanf(lin(47:60),'%f');
                                 
-                                index = index + PRN - 1;
+                                index = index(1) + PRN - 1;
                                 
                                 this.coord(c_ep_idx, index, 1) = X*1e3;
                                 this.coord(c_ep_idx, index, 2) = Y*1e3;
@@ -426,6 +437,8 @@ classdef Core_Sky < handle
                     end
                     sp3_cur_line = sp3_cur_line + 1;
                 end
+            else
+                this.log.addWarning([ filename_SP3 ' not found.']);
             end
             clear sp3_file;
         end
@@ -449,7 +462,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
                 [~, fn, fn_ext] = fileparts(filename_clk);
-                this.logger.addMessage(sprintf('         Using as clock file: %s%s', fn, fn_ext));
+                this.log.addMessage(sprintf('         Using as clock file: %s%s', fn, fn_ext));
                 % read the entire clk file in memory
                 clk_file = textscan(f_clk,'%s','Delimiter', '\n');
                 if (length(clk_file) == 1)
@@ -468,7 +481,7 @@ classdef Core_Sky < handle
                 % while there are lines to process
                 if this.clock_rate ~= file_clk_rate
                     % different clock rate old file are being deleted
-                    this.logger.addWarning(['Clock rate (' num2str(this.clock_rate) ') differ from the in in the file (' num2str(file_clk_rate) '), old clock data will be deleted'])
+                    this.log.addWarning(['Clock rate (' num2str(this.clock_rate) ') differ from the in in the file (' num2str(file_clk_rate) '), old clock data will be deleted'])
                     this.clock_rate = file_clk_rate;
                     this.clearClock();
                     empty_clk = true;
@@ -620,38 +633,33 @@ classdef Core_Sky < handle
                 return
             end
         end
-        function [sx ,sy, sz] = satellite_fixed_frame(this,time,X_sat)
+        function [sx ,sy, sz] = getSatFixFrame(this,time)
             
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
             %
             % INPUT:
-            %   time     = GPS time [nx1]
-            %   X_sat    = postition of satellite [nx3]
+            %   time     = GPS_Time [nx1]
+            %   X_sat    = postition of satellite [n_epoch x n-sat x 3]
             % OUTPUT:
-            %   sx = unit vector that completes the right-handed system
-            %   sy = resulting unit vector of the cross product of k vector with the unit vector from the satellite to Sun
-            %   sz = unit vector pointing from the Satellite Mass Centre (MC) to the Earth's centre
+            %   sx = unit vector that completes the right-handed system [n_epoch x n_sat x 3]
+            %   sy = resulting unit vector of the cross product of k vector with the unit vector from the satellite to Sun [n_epoch x n_sat x 3]
+            %   sz = unit vector pointing from the Satellite Mass Centre (MC) to the Earth's centre [n_epoch x n_sat x 3]
             %
             % DESCRIPTION:
             %   Computation of the unit vectors defining the satellite-fixed frame.
             
             
-            t_sun = this.t_sun;
-            X_sun = this.X_sun;
-            n_sat=size(X_sat,2);
+            t_sun = time;
+            X_sun = this.getSunMoonPos(t_sun, true);
             
-            %[~, q] = min(abs(t_sun - time));
-            % speed improvement of the above line
-            % supposing t_sun regularly sampled
-            q = round((time - t_sun(1)) / this.coord_rate) + 1;
-            un_q=unique(q);
+            X_sat = this.coordInterpolate(time);
+            n_sat = size(X_sat,2);
             sx = zeros(size(X_sat)); sy = sx; sz = sx;
-            for idx = un_q'
-                q_idx=q==idx;
-                x_sun = X_sun(:,idx)';
-                x_sat = X_sat(q_idx,:,:);
-                e = permute(repmat(x_sun,sum(q_idx),1,n_sat),[1 3 2]) - x_sat() ;
+            for idx = 1 : t_sun.length()
+                x_sun = X_sun(idx,:);
+                x_sat = X_sat(idx,:,:);
+                e = permute(repmat(x_sun,1,1,n_sat),[1 3 2]) - x_sat() ;
                 e = e./repmat(normAlngDir(e,3),1,1,3);
                 k = -x_sat./repmat(normAlngDir(x_sat,3),1,1,3);
                 j=cross(k,e);
@@ -662,15 +670,49 @@ classdef Core_Sky < handle
                 %                 i = [j(2).*k(3)-j(3).*k(2);
                 %                     j(3).*k(1)-j(1).*k(3);
                 %                     j(1).*k(2)-j(2).*k(1)];
-                sx(q_idx,:,:) = k;
-                sy(q_idx,:,:) = j ./ repmat(normAlngDir(j,3),1,1,3);
-                sz(q_idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
+                sx(idx,:,:) = k;
+                sy(idx,:,:) = j ./ repmat(normAlngDir(j,3),1,1,3);
+                sz(idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
             end
             function nrm=normAlngDir(A,d)
                 nrm=sqrt(sum(A.^2,d));
             end
         end
-        
+        function toCOM(this)
+            %DESCRIPTION : convert coord to center of mass
+            if this.coord_type == 0
+                return %already ceneter of amss
+            end
+            this.coord = this.getCOM();
+            this.coord_type = 0;
+        end
+        function coord = getCOM(this)
+            if this.coord_type == 0
+                coord = this.coord; %already ceneter of amss
+            else
+                [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
+                coord = this.coord - cat(3, sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sx , 3) ...
+                    , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sy , 3) ...
+                    , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sz , 3));
+            end
+        end
+        function toAPC(this)
+            %DESCRIPTION : convert coord to center of antenna phase center
+            if this.coord_type == 1
+                return %already antennna phase center
+            end
+            this.coord = this.getAPC();
+            this.coord_type = 1;
+        end
+        function coord = getAPC(this)
+            if this.coord_type == 1
+                coord = this.coord; %already antennna phase center
+            end
+            [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
+            coord = this.coord + cat(3, sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sx , 3) ...
+                                           , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sy , 3) ...
+                                           , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sz , 3));
+        end
         function [dt_S] = clockInterpolate(this,time, sat)
             
             % SYNTAX:
@@ -780,7 +822,10 @@ classdef Core_Sky < handle
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
+            
             c_idx(c_idx<1) = 1; 
+            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10; 
+            
             c_times = this.getCoordTime();
             %l_idx=idx-5;
             %u_id=idx+10;
@@ -827,20 +872,26 @@ classdef Core_Sky < handle
             end
         end
         
-        function sun_moon_pos(this,p_time)
+        function [sun_ECEF , moon_ECEF] = getSunMoonPos(this,time,no_moon)
             % SYNTAX:
-            %   this.Eph_Tab.polInterpolate(p_time)
+            %   this.getSunMoonPos(p_time)
             %
             % INPUT:
-            %    p_time = gps time [n_epoch x 1]
+            %    time = Gps_Time [n_epoch x 1]
+            %    no_moon = do not compute moon (Boolena deafult false)
             % OUTPUT:
-            %
-            % DESCRIPTION: Compute sun and moon psitions at the time of
-            % processing
+            % sun_ECEF  : sun  coordinate Earth Centered Earth Fixed [n_epoch x 3]
+            % moon_ECEF : moon coordinate Earth Centered Earth Fixed [n_epoch x 3]
+            % DESCRIPTION: Compute sun and moon psitions at the time
+            % desidered time
             
             global iephem km ephname inutate psicor epscor ob2000
             %time = GPS_Time((p_time(1))/86400+GPS_Time.GPS_ZERO);
-            
+            if nargin < 2
+                moon = true;
+            else
+                moon = not(no_moon);
+            end
             
             sun_id = 11; moon_id = 10; earth_id = 3;
             
@@ -865,16 +916,14 @@ classdef Core_Sky < handle
                 fprintf('-------------------------------------------------------------------\n\n')
             end
             
-            sun_ECEF = zeros(3,length(p_time));
-            moon_ECEF = zeros(3,length(p_time));
-            this.t_sun = zeros(1,length(p_time));
-            for e = 1 : length(p_time)
-                time=GPS_Time(p_time(e)/86400+GPS_Time.GPS_Zero);
-                [year , month ,day,hour,min,sec]= time.getCalEpoch();
+            sun_ECEF = zeros(time.length(), 3);
+            moon_ECEF = zeros(time.length(), 3);
+            for e = 1 : time.length()
+                [year , month ,day,hour,min,sec]= time.getCalEpoch(e);
                 %UTC to TDB
                 jdutc = julian(month, day+hour/24+min/1440+sec/86400, year);
                 jdtdb = utc2tdb(jdutc);
-                this.t_sun(e) = time.getGpsTime();%(datenum( year,month, day) - GPS_Time.GPS_ZERO)*86400;
+                %this.t_sun(e) = time.getGpsTime();%(datenum( year,month, day) - GPS_Time.GPS_ZERO)*86400;
                 %precise celestial pole (disabled)
                 [psicor, epscor] = celpol(jdtdb, 1, 0.0d0, 0.0d0);
                 
@@ -887,9 +936,9 @@ classdef Core_Sky < handle
                 deltat = getdt;
                 jdut1 = jdutc - deltat;
                 tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-                sun_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, sun_ECI);
+                sun_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, sun_ECI)*1e3;
                 
-                if (nargout > 1)
+                if moon
                     %compute the Moon position (ICRS coordinates)
                     rrd = jplephem(jdtdb, moon_id, earth_id);
                     moon_ECI = rrd(1:3);
@@ -899,12 +948,9 @@ classdef Core_Sky < handle
                     deltat = getdt;
                     jdut1 = jdutc - deltat;
                     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-                    moon_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, moon_ECI);
+                    moon_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, moon_ECI)*1e3;
                 end
             end
-            
-            this.X_sun  = sun_ECEF*1e3;
-            this.X_moon = moon_ECEF*1e3;
             
             %this.t_sun_rate =
         end
@@ -998,15 +1044,15 @@ classdef Core_Sky < handle
         end
         function load_antenna_PCV(this, filename_pco)
             antmod_S = this.cc.getAntennaId();
-            this.antenna_PCV=read_antenna_PCV(filename_pco, antmod_S, this.time(1));
-            this.antenna_PCO= zeros(1,size(this.antenna_PCV,2),3);
+            this.antenna_PCV = read_antenna_PCV(filename_pco, antmod_S, this.time_ref_coord.getMatlabTime());
+            this.antenna_PCO = zeros(1,this.cc.getNumSat(),3);
             this.satType = cell(1,size(this.antenna_PCV,2));
             if isempty(this.avail)
-                this.avail=zeros(size(this.antenna_PCV,2),1)
+                this.avail = zeros(size(this.antenna_PCV,2),1)
             end
             for sat = 1 : size(this.antenna_PCV,2)
                 if (this.antenna_PCV(sat).n_frequency ~= 0)
-                    this.antenna_PCO(:,sat,:) = athis.antenna_PCV(sat).offset(:,:,1);
+                    this.antenna_PCO(:,sat,:) = this.antenna_PCV(sat).offset(:,:,1);
                     this.satType{1,sat} = this.antenna_PCV(sat).type;
                 else
                     this.avail(sat) = 0;
@@ -1183,7 +1229,7 @@ classdef Core_Sky < handle
             %%% check if clock rate and coord rate are compatible
             rate_ratio=this.coord_rate/this.clock_rate;
             if abs(rate_ratio-round(rate_ratio)) > 0.00000001
-                this.logger.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
+                this.log.addWarning(sprintf('Incompatible coord rate (%s) and clock rate (%s) , sp3 not produced',this.coord_rate,this.clock_rate))
                 return
             end
             %%% check if sun and moon positions ahve been computed
