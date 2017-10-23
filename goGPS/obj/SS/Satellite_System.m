@@ -61,8 +61,8 @@ classdef Satellite_System < Settings_Interface
         %   .ELL.e2     eccentricity^2
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_AVAIL;  % last letter of the observation code e.g. IRNSS: C5A - C5B - C5C - C5X
-        CODE_RIN3_2FREQ;  % id for the freq as stored in F_VEC e.g. IRNSS: L5 -> C5A, S -> C9A
+        CODE_RIN3_ATTRIB;  % last letter of the observation code e.g. IRNSS: C5A - C5B - C5C - C5X
+        CODE_RIN3_2BAND;  % id for the freq as stored in F_VEC e.g. IRNSS: L5 -> C5A, S -> C9A
     end
 
     properties (GetAccess = 'public', SetAccess = 'protected')
@@ -129,27 +129,27 @@ classdef Satellite_System < Settings_Interface
 
         function code = getPrCodes(this, freq_num)
             % get the list of codes containing pseudo range data
-            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
+            code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
             code_rin3_avail(code_rin3_avail == 'N') = []; % remove codeless observations
-            code = char([ones(numel(code_rin3_avail), 1) * 'C' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+            code = char([ones(numel(code_rin3_avail), 1) * 'C' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function code = getPhCodes(this, freq_num)
             % get the list of codes containing phase data
-            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
-            code = char([ones(numel(code_rin3_avail), 1) * 'L' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+            code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'L' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function code = getDopCodes(this, freq_num)
             % get the list of codes containing doppler
-            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
-            code = char([ones(numel(code_rin3_avail), 1) * 'D' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+            code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'D' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function code = getSnrCodes(this, freq_num)
             % get the list of codes containing snr data
-            code_rin3_avail = this.CODE_RIN3_AVAIL{freq_num};
-            code = char([ones(numel(code_rin3_avail), 1) * 'S' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2FREQ(freq_num) code_rin3_avail']);
+            code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
+            code = char([ones(numel(code_rin3_avail), 1) * 'S' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function offset = getOffset(this)

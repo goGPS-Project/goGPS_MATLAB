@@ -105,8 +105,8 @@ classdef GLONASS_SS < Satellite_System
         PRN2IDCH = GLONASS_SS.PRN2CH + 8;
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_AVAIL  = {'CP' 'CP' 'IQX'}; % last letter of the observation code
-        CODE_RIN3_2FREQ  = '125';             % id for the freq as stored in F_VEC
+        CODE_RIN3_ATTRIB  = {'CP' 'CP' 'IQX'}; % last letter of the observation code
+        CODE_RIN3_2BAND  = '123';             % id for the freq as stored in F_VEC
     end
 
     properties (Constant, Access = 'public')

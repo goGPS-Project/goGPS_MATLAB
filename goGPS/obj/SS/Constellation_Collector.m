@@ -43,8 +43,8 @@
 classdef Constellation_Collector < Settings_Interface
     properties (Constant, GetAccess = public)
         N_SYS_TOT = 7; % Max number of available satellite systems
-        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'IRNSS', 'SBAS'}; % full name of the constellation
-        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'IRN', 'SBS'}; % 3 characters name of the constellation
+        SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'QZSS', 'BeiDou', 'IRNSS', 'SBAS'}; % full name of the constellation
+        SYS_NAME     = {'GPS', 'GLO', 'GAL', 'QZS', 'BDS', 'IRN', 'SBS'}; % 3 characters name of the constellation
         ID_GPS       = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS   = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO   = 3 % Id of Galileo constellation for goGPS internal use

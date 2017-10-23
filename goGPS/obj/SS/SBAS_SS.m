@@ -64,8 +64,8 @@ classdef SBAS_SS < Satellite_System
         PRN = (0 : 0)';      % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_AVAIL  = {'C' 'XIQ'}; % last letter of the observation code
-        CODE_RIN3_2FREQ  = '15';        % id for the freq as stored in F_VEC
+        CODE_RIN3_ATTRIB  = {'C' 'XIQ'}; % last letter of the observation code
+        CODE_RIN3_2BAND  = '15';        % id for the freq as stored in F_VEC
     end
 
     properties (Constant, Access = 'private')
