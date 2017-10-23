@@ -1045,6 +1045,11 @@ classdef GPS_Time < handle
     % =========================================================================
     
     methods
+        function setGPS(this, is_gps)
+            % Set the memorization type
+            this.is_gps = is_gps;
+        end
+
         function setDateFormat(this, date_format)
             % Change the default value for "date format"
             this.date_format = date_format;
