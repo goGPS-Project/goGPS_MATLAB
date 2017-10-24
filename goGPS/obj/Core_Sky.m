@@ -1327,7 +1327,7 @@ classdef Core_Sky < handle
             %   Write the current satellite postions and clocks bias into a sp3
             %   file
             if nargin<3
-                prec=100;
+                prec=99;
             end
             %%% check if clock rate and coord rate are compatible
             rate_ratio=this.coord_rate/this.clock_rate;
@@ -1340,21 +1340,24 @@ classdef Core_Sky < handle
                 this.sun_moon_pos();
             end
             %%% compute center of mass position (X_sat - PCO)
-            [sx ,sy, sz] = this.satellite_fixed_frameV(this.time,this.coord);
-            temp_antPco=repmat(this.antenna_PCO,length(this.time),1,1);
-            com_coord=this.coord - cat(3,sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3) , sum(temp_antPco.*sx,3));
-            clearvars temp_antPco
+            switch_back = false;
+            if this.coord_type == 1
+                this.toCOM();
+                switch_back = true;
+            end
             %%% write to file
             rate_ratio = round(rate_ratio);
             fid=fopen(f_name,'w');
             this.writeHeader(fid, prec);
             
             for i=1:length(this.coord)
-                this.writeEpoch(fid,[squeeze(com_coord(i,:,:)/1000) this.clock(:,(i-1)/rate_ratio+1)*1000000],i); %% convert coord in km and clock in microsecodns
+                this.writeEpoch(fid,[squeeze(this.coord(i,:,:)/1000) this.clock((i-1)/rate_ratio+1,:)'*1000000],i); %% convert coord in km and clock in microsecodns
             end
             fprintf(fid,'EOF\n');
             fclose(fid);
-            
+            if switch_back
+                this.toAPC();
+            end
             
             
             
@@ -1362,11 +1365,11 @@ classdef Core_Sky < handle
         function writeHeader(this, fid, prec)
             
             if nargin<3
-                prec=100,
+                %%% unknown precision
+                prec=99;
             end
-            prec = num2str(prec);
+            %prec = num2str(prec);
             time=this.time_ref_coord.getCopy();
-            time.addIntSeconds((1-this.time_zero_idx_coord)*900);
             str_time = time.toString();
             year = str2num(str_time(1:4));
             month = str2num(str_time(6:7));
@@ -1379,7 +1382,7 @@ classdef Core_Sky < handle
             mjd = jd2mjd(cal2jd(year,month,day));
             d_frac = hour/24+minute/24*60+second/86400;
             step = this.coord_rate;
-            num_epoch = length(this.time);
+            num_epoch = length(this.time_ref_coord);
             cc = this.cc;
             fprintf(fid,'#cP%4i %2i %2i %2i %2i %11.8f %7i d+D   IGS14 CNV GReD\n',year,month,day,hour,minute,second,num_epoch);
             fprintf(fid,'## %4i %15.8f %14.8f %5i %15.13f\n',week,sow,step,mjd,d_frac);
@@ -1389,7 +1392,7 @@ classdef Core_Sky < handle
             ids = cc.prn;
             for i = 1:length(ids)
                 sats=[sats, strrep(sprintf('%s%2i', cc.system(i), ids(i)), ' ', '0')];
-                pre=[pre, prec];
+                pre=[pre, sprintf('%3i', prec)];
             end
             n_row=ceil(length(sats)/51);
             rows=cell(5,1);
@@ -1424,7 +1427,7 @@ classdef Core_Sky < handle
         end
         function writeEpoch(this,fid,XYZT,epoch)
             t=this.time_ref_coord.getCopy();
-            t.addIntSeconds((e)*900);
+            t.addIntSeconds((epoch)*900);
             cc=this.cc;
             str_time=t.toString();
             year=str2num(str_time(1:4));
