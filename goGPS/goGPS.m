@@ -90,12 +90,13 @@ else
 end
 
 % Init output interfaces (singletons)
-w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS');
-if mode_user == 1
-    w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
-else
+w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', 0);  % 0 means text, 1 means GUI, 5 both
+
+%if mode_user == 1
+%    w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
+%else
     w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
-end
+%end
 
 % Kalman filter cannot be initialized when goGPS starts
 kalman_initialized = false;
