@@ -1132,8 +1132,8 @@ classdef IO_Settings < Settings_Interface
                 end
                 if (nargin == 2)
                     if (id > length(out))
-                        out = '';
-                        this.logger.addWarning(sprintf('The session "%d" is non-existent.', id));
+                        out = out{end};
+                        this.logger.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
                     else
                         out = out{id};
                     end
