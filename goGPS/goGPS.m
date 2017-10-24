@@ -3714,7 +3714,7 @@ for session = 1 : num_session
                 %----------------------------------------------------------------------------------------------
                 %% TROPOSPHERE FILE SAVING
                 %----------------------------------------------------------------------------------------------
-                
+                az_el=reshape(serialize([az_r(:) el_r(:)]'),size(az_r,1)*2,size(az_r,2));
                 if (goGNSS.isPP(mode) && state.isModeSA() && state.isModePh() && state.isModeKM() && flag_tropo && (~isempty(EAST)))
                     %display information
                     fprintf('Writing troposphere file...\n');
@@ -3722,6 +3722,10 @@ for session = 1 : num_session
                     if (strcmp(fsep_char,'default'))
                         head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
                         row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
+                        for s = 1 : nSatTot
+                            head_str = [head_str '           az[°]         el[°]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
+                        end
                         for s = 1 : nSatTot
                             head_str = [head_str '      STD[m] ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f']; %#ok<AGROW>
@@ -3731,6 +3735,10 @@ for session = 1 : num_session
                     else
                         head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
                         row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
+                        for s = 1 : nSatTot
+                            head_str = [head_str,fsep_char,'az[°]',fsep_char,'el[°]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
+                        end
                         for s = 1 : nSatTot
                             head_str = [head_str,fsep_char,'STD[m] ',constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str, fsep_char,'%16.5f']; %#ok<AGROW>
@@ -3742,7 +3750,7 @@ for session = 1 : num_session
                     fprintf(fid_tropo, head_str);
                     for i = 1 : nSol
                         %file writing
-                        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), estim_gradN(i)*1e3, estim_gradE(i)*1e3, ZWD(i), PWV(i), STDs(:,i)');
+                        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), estim_gradN(i)*1e3, estim_gradE(i)*1e3, ZWD(i), PWV(i), az_el(:,i)', STDs(:,i)');
                     end
                     
                     %file closing
