@@ -228,6 +228,38 @@ if is_batch
     fsep_char = 'default';
 end
 
+% New implementation of goGPS
+goGPS_new = false; % set to true to test the new goGPS implementation (VERY VERY PRELIMINAR))
+if goGPS_new
+    %% NEW goGPS
+    state.showTextMode();
+    
+    sky = Core_Sky.getInstance();
+        
+    for s = 1 : num_trg_rec
+        %-------------------------------------------------------------------------------------------
+        % SESSION START
+        %-------------------------------------------------------------------------------------------
+        
+        fprintf('\n--------------------------------------------------------------------------\n');
+        logger.addMessage(sprintf('Starting session %d of %d', s, num_session));
+        fprintf('--------------------------------------------------------------------------\n');
+        
+        clear trg;
+        for t = 1 : num_trg_rec
+            logger.addMessage(sprintf('Working on target %d of %d', t, num_trg_rec));
+            fprintf('--------------------------------------------------------------------------\n\n');
+            
+            [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
+                zero_time, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
+                load_RINEX_obs(trg_rec{t}{s}, cc, state.getProcessingRate);
+             
+            trg(t) = Receiver(cc);
+            trg(t).legacyImport(time_GPS_diff, pos_R, 0, 0, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, snr2_R, dop1_R, dop2_R);
+        end
+    end
+else
+
 for session = 1 : num_session
     %-------------------------------------------------------------------------------------------
     %% SESSION START
@@ -3724,7 +3756,7 @@ for session = 1 : num_session
                         head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
                         row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
                         for s = 1 : nSatTot
-                            head_str = [head_str '           az[°]         el[°]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            head_str = [head_str '           az[ï¿½]         el[ï¿½]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
                         end
                         for s = 1 : nSatTot
@@ -3737,7 +3769,7 @@ for session = 1 : num_session
                         head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
                         row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
                         for s = 1 : nSatTot
-                            head_str = [head_str,fsep_char,'az[°]',fsep_char,'el[°]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            head_str = [head_str,fsep_char,'az[ï¿½]',fsep_char,'el[ï¿½]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
                         end
                         for s = 1 : nSatTot
