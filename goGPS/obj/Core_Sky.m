@@ -57,11 +57,11 @@ classdef Core_Sky < handle
         DCB  % differential code biases
         antenna_PCO   %% satellites antenna phase center offset
         antenna_PCV  %% satellites antenna phase center variations
-        satType
+        %satType
         avail
         coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
         %start_time_idx  %%% index  defininig start of the day (time == 1)
-        cc
+        cc % constellation collector
     end
     properties (Access = private)
         
@@ -659,7 +659,7 @@ classdef Core_Sky < handle
             
             
             t_sun = time;
-            X_sun = this.computeSunMoonPos(t_sun, true);
+            X_sun = this.sunMoonInterpolate(t_sun, true);
             
             X_sat = this.coordInterpolate(time);
             n_sat = size(X_sat,2);
@@ -910,18 +910,28 @@ classdef Core_Sky < handle
                 end
             end
         end
-        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this,t);
+        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this,t,no_moon);
             % SYNTAX:
             %   [X_sat]=Eph_Tab.sunInterpolate(t,sat)
             %
             % INPUT:
             %    time = vector of times where to interpolate
+            %    no_mmon = do not compute moon postion (default false)
             % OUTPUT:
             %
             % DESCRIPTION: interpolate sun and moon positions
+            if isempty(this.X_moon) | isempty(this.X_sun)
+                this.tabulateSunMoonPos();
+            end
             
             if isempty(this.sun_pol_coeff)
                 this.computeSMPolyCoeff();
+            end
+            
+            if nargin < 3
+                moon = true;
+            else
+                moon = not(no_moon);
             end
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             
@@ -935,7 +945,9 @@ classdef Core_Sky < handle
             %u_id=idx+10;
             nt = t.length();
             sun_ECEF=zeros(nt,3);
+            if moon
             moon_ECEF=zeros(nt,3);
+            end
             un_idx=unique(c_idx)';
             for idx=un_idx
                 t_idx=c_idx==idx;
@@ -955,7 +967,9 @@ classdef Core_Sky < handle
                     t_fct.^9 ...
                     t_fct.^10];
                 sun_ECEF(t_idx,:) = eval_vec*reshape(this.sun_pol_coeff(:,:,idx),11,3);
+                if moon
                 moon_ECEF(t_idx,:) = eval_vec*reshape(this.moon_pol_coeff(:,:,idx),11,3);
+                end
             end
         end
         function [sun_ECEF , moon_ECEF] = computeSunMoonPos(this,time,no_moon)
@@ -1054,7 +1068,7 @@ classdef Core_Sky < handle
             [this.X_sun , this.X_moon] = this.computeSunMoonPos(this.getCoordTime());
             this.computeSMPolyCoeff();
         end
-        function [eclipsed] = check_eclipse_condition(time, XS, sat,p_rate)  %%% TO BE CORRECT
+        function [eclipsed] = check_eclipse_condition(this, time, XS, sat)  %%% TO BE CORRECT
             
             % SYNTAX:
             %   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate);
@@ -1062,64 +1076,53 @@ classdef Core_Sky < handle
             % INPUT:
             %   time     = GPS time
             %   XS       = satellite position (X,Y,Z)
-            %   SP3      = structure containing precise ephemeris data
-            %   p_rate   = processing interval [s]
-            %   sat      = satellite PRN
-            %
+            %   sat      = staellite goIds
             % OUTPUT:
             %   eclipsed = boolean value to define satellite eclipse condition (0: OK, 1: eclipsed)
             %
             % DESCRIPTION:
             %   Check if the input satellite is under eclipse condition.
             
-            eclipsed = 0;
+            eclipsed = zeros(time.length(),1) > 1;
             
-            t_sun = this.t_sun;
-            X_sun = this.X_sun;
-            
-            %[~, q] = min(abs(t_sun - time));
-            % speed improvement of the above line
-            % supposing t_sun regularly sampled
-            q = round((time - t_sun(1)) /this.sun_rate) + 1;
-            
-            X_sun = X_sun(:,q);
+            X_sun = this.sunMoonInterpolate(time,true);
             
             %satellite geocentric position
-            XS_n = norm(XS);
-            XS_u = XS / XS_n;
+            XS_n = sqrt(sum(XS.^2,2));
+            XS_u = XS ./ repmat(XS_n,1,3);
             
             %sun geocentric position
-            X_sun_n = norm(X_sun);
-            X_sun_u = X_sun / X_sun_n;
+            X_sun_n = sqrt(sum(X_sun.^2,2));
+            X_sun_u = X_sun ./ repmat(X_sun_n,1,3);
             
             %satellite-sun angle
             %cosPhi = dot(XS_u, X_sun_u);
             % speed improvement of the above line
-            cosPhi = sum(conj(XS_u').*X_sun_u);
+            cosPhi = sum(XS_u.*X_sun_u,2);
             
             
             %threshold to detect noon/midnight maneuvers
-            if (~isempty(strfind(this.satType{sat},'BLOCK IIA')))
-                t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
-            elseif (~isempty(strfind(this.satType{sat},'BLOCK IIR')))
-                t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-            elseif (~isempty(strfind(this.satType{sat},'BLOCK IIF')))
-                t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
-            else
+            if sat > 32 
                 t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
+            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA')))
+                t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+               
+            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIR')))
+                t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIF')))
+                t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
             end
             
-            %shadow crossing affects only BLOCK IIA satellites
-            shadowCrossing = cosPhi < 0 && XS_n*sqrt(1 - cosPhi^2) < goGNSS.ELL_A_GPS;
-            if (shadowCrossing && ~isempty(strfind(SP3.satType{sat},'BLOCK IIA')))
-                eclipsed = 1;
+            if (sat <= 32 & ~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA'))) 
+                 %shadow crossing affects only BLOCK IIA satellites
+                shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < goGNSS.ELL_A_GPS;
+                eclipsed(shadowCrossing) = 1;
             end
-            
             %noon/midnight maneuvers affect all satellites
             noonMidnightTurn = acos(abs(cosPhi)) < t;
-            if (noonMidnightTurn)
-                eclipsed = 3;
-            end
+            eclipsed(noonMidnightTurn) = 3;
+
+
             
         end
         function importSP3Struct(this, sp3)
@@ -1146,14 +1149,14 @@ classdef Core_Sky < handle
             antmod_S = this.cc.getAntennaId();
             this.antenna_PCV = read_antenna_PCV(filename_pco, antmod_S, this.time_ref_coord.getMatlabTime());
             this.antenna_PCO = zeros(1,this.cc.getNumSat(),3);
-            this.satType = cell(1,size(this.antenna_PCV,2));
+            %this.satType = cell(1,size(this.antenna_PCV,2));
             if isempty(this.avail)
                 this.avail = zeros(size(this.antenna_PCV,2),1)
             end
             for sat = 1 : size(this.antenna_PCV,2)
                 if (this.antenna_PCV(sat).n_frequency ~= 0)
                     this.antenna_PCO(:,sat,:) = this.antenna_PCV(sat).offset(:,:,1);
-                    this.satType{1,sat} = this.antenna_PCV(sat).type;
+                    %this.satType{1,sat} = this.antenna_PCV(sat).sat_type;
                 else
                     this.avail(sat) = 0;
                 end

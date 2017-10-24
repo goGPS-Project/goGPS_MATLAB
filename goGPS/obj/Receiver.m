@@ -1369,7 +1369,7 @@ classdef Receiver < handle
                 %%% compute staeliite position a t trasmission time
                 time_tx = this.time.subset(idx);
                 time_tx.time_diff = time_tx.time_diff - this.rec2sat.tot(idx,s)
-                [XS_tx(idx,:,:), ~] = this.rec2sat.cs.polyInterpolate(time_tx);
+                [XS_tx(idx,:,:), ~] = this.rec2sat.cs.coordInterpolate(time_tx);
             end
         end
         function [XS_r] = earthRotationCorrection(this, XS)
