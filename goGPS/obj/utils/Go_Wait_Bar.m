@@ -102,7 +102,7 @@ classdef Go_Wait_Bar < handle
         function getNewBar(this, title)
             % Build a new graphic bar
             if (this.type == 1) ||  (this.type == 5)
-                if verLessThan('matlab', 'R2015a')
+                if verLessThan('matlab', '8.5') % matlab 2015a
                     try
                         delete(this.h);
                         this.h = waitbar(0, this.msg, 'Visible', 'off');
@@ -207,7 +207,7 @@ classdef Go_Wait_Bar < handle
                 if (nargin >= 2)
                     this.msg = msg;
                     if (this.type == 1) ||  (this.type == 5)
-                        if verLessThan('matlab', 'R2015a')
+                        if verLessThan('matlab', '8.5') % matlab 2015a
                             try
                                 this.setMsg(msg);
                             catch
@@ -405,7 +405,7 @@ classdef Go_Wait_Bar < handle
         function setOutputType(this, type)
             % Set output type: 0 means text, 1 means GUI, 5 both
             this.type = type;
-            if verLessThan('matlab', 'R2015a')
+            if verLessThan('matlab', '8.5') % matlab 2015a
                 try
                     delete (this.h)
                 catch
@@ -422,7 +422,7 @@ classdef Go_Wait_Bar < handle
         function setTitle(this, msg)
             % Change the title of the waitbar
             this.title = msg;
-            if verLessThan('matlab', 'R2015a')
+            if verLessThan('matlab', '8.5') % matlab 2015a
                 try
                     this.h.Name = msg;
                 catch
