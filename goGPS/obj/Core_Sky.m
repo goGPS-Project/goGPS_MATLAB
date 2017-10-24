@@ -45,10 +45,14 @@ classdef Core_Sky < handle
         coord_rate = 900;
         clock_rate = 900;
         iono
+        
         t_sun  % time of sun ephemerids
-        X_sun  % coord of sun ephemerids
+        X_sun  % coord of tabulated sun positions ECEF
+        X_moon % coord of tabulated moon positions ECEF
         t_sun_rate
-        X_moon
+        sun_pol_coeff % coeff for polynoimial interpolation of tabulated sun positions
+        moon_pol_coeff % coeff for polynoimial interpolation of tabulated moon positions
+        
         ERP  % EARH rotation parameters
         DCB  % differential code biases
         antenna_PCO   %% satellites antenna phase center offset
@@ -107,6 +111,8 @@ classdef Core_Sky < handle
             this.t_sun = [];
             this.X_sun = [];
             this.X_moon = [];
+            this.sun_pol_coeff = [];
+            this.moon_pol_coeff = [];
         end
         function clearCoord(this)
             this.coord=[];
@@ -121,6 +127,8 @@ classdef Core_Sky < handle
             this.t_sun = [];
             this.X_sun = [];
             this.X_moon = [];
+            this.sun_pol_coeff = [];
+            this.moon_pol_coeff = [];
         end
         function orb_time = getCoordTime(this)
             % DESCRIPTION:
@@ -651,7 +659,7 @@ classdef Core_Sky < handle
             
             
             t_sun = time;
-            X_sun = this.getSunMoonPos(t_sun, true);
+            X_sun = this.computeSunMoonPos(t_sun, true);
             
             X_sat = this.coordInterpolate(time);
             n_sat = size(X_sat,2);
@@ -768,9 +776,9 @@ classdef Core_Sky < handle
             %                 %pause
             %             end
         end
-        function computePolyCoeff(this)
+        function computeSatPolyCoeff(this)
             % SYNTAX:
-            %   this.computePolyCoeff();
+            %   this.computeSatPolyCoeff();
             %
             % INPUT:
             %
@@ -796,17 +804,44 @@ classdef Core_Sky < handle
                 end
             end
         end
+        function computeSMPolyCoeff(this)
+            % SYNTAX:
+            %   this.computeSatPolyCoeff();
+            %
+            % INPUT:
+            %
+            % OUTPUT:
+            %
+            % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
+            n_pol=10;
+            n_coeff=n_pol+1;
+            A=zeros(n_coeff,n_coeff);
+            A(:,1)=ones(n_coeff,1);
+            x=[-5:5]; % *this.coord_rat
+            for i=1:10
+                A(:,i+1)=(x.^i)';
+            end
+            n_coeff_set= size(this.X_sun,1)-10;%86400/this.coord_rate+1;
+            %this.coord_pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
+            this.sun_pol_coeff=zeros(n_coeff,3,n_coeff_set);
+            this.moon_pol_coeff=zeros(n_coeff,3,n_coeff_set);
+                for i=1:n_coeff_set
+                    for j=1:3
+                        this.sun_pol_coeff(:,j,i)=A\squeeze(this.X_sun(i:i+10,j));
+                        this.moon_pol_coeff(:,j,i)=A\squeeze(this.X_moon(i:i+10,j));
+                    end
+                end
+        end
         function [X_sat, V_sat]=coordInterpolate(this,t,sat)
             % SYNTAX:
             %   [X_sat]=Eph_Tab.polInterpolate(t,sat)
             %
             % INPUT:
             %    t = vector of times where to interpolate
-            %    sat = satellite to be interpolated (optional) (TBD
-            %    multiple satellite seletcion)
+            %    sat = satellite to be interpolated (optional) 
             % OUTPUT:
             %
-            % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
+            % DESCRIPTION: interpolate coordinates of staellites
             n_sat=this.cc.getNumSat;
             if nargin <3
                 sat_idx=ones(n_sat,1)>0;
@@ -815,10 +850,10 @@ classdef Core_Sky < handle
             end
             
             if isempty(this.coord_pol_coeff)
-                this.computePolyCoeff();
+                this.computeSatPolyCoeff();
             end
             n_sat=length(sat_idx);
-            nt=length(t);
+            nt=t.length();
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
@@ -875,10 +910,57 @@ classdef Core_Sky < handle
                 end
             end
         end
-        
-        function [sun_ECEF , moon_ECEF] = getSunMoonPos(this,time,no_moon)
+        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this,t);
             % SYNTAX:
-            %   this.getSunMoonPos(p_time)
+            %   [X_sat]=Eph_Tab.sunInterpolate(t,sat)
+            %
+            % INPUT:
+            %    time = vector of times where to interpolate
+            % OUTPUT:
+            %
+            % DESCRIPTION: interpolate sun and moon positions
+            
+            if isempty(this.sun_pol_coeff)
+                this.computeSMPolyCoeff();
+            end
+            %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
+            
+            c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
+            
+            c_idx(c_idx<1) = 1; 
+            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10; 
+            
+            c_times = this.getCoordTime();
+            %l_idx=idx-5;
+            %u_id=idx+10;
+            nt = t.length();
+            sun_ECEF=zeros(nt,3);
+            moon_ECEF=zeros(nt,3);
+            un_idx=unique(c_idx)';
+            for idx=un_idx
+                t_idx=c_idx==idx;
+                times=t.getSubSet(t_idx);
+                %t_fct=((times-this.time(5+idx)))';%time from coefficient time
+                t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
+                %%%% compute position
+                eval_vec = [ones(size(t_fct)) ...
+                    t_fct ...
+                    t_fct.^2 ...
+                    t_fct.^3 ...
+                    t_fct.^4 ...
+                    t_fct.^5 ...
+                    t_fct.^6 ...
+                    t_fct.^7 ...
+                    t_fct.^8 ...
+                    t_fct.^9 ...
+                    t_fct.^10];
+                sun_ECEF(t_idx,:) = eval_vec*reshape(this.sun_pol_coeff(:,:,idx),11,3);
+                moon_ECEF(t_idx,:) = eval_vec*reshape(this.moon_pol_coeff(:,:,idx),11,3);
+            end
+        end
+        function [sun_ECEF , moon_ECEF] = computeSunMoonPos(this,time,no_moon)
+            % SYNTAX:
+            %   this.computeSunMoonPos(p_time)
             %
             % INPUT:
             %    time = Gps_Time [n_epoch x 1]
@@ -891,7 +973,7 @@ classdef Core_Sky < handle
             
             global iephem km ephname inutate psicor epscor ob2000
             %time = GPS_Time((p_time(1))/86400+GPS_Time.GPS_ZERO);
-            if nargin < 2
+            if nargin < 3
                 moon = true;
             else
                 moon = not(no_moon);
@@ -957,6 +1039,20 @@ classdef Core_Sky < handle
             end
             
             %this.t_sun_rate =
+        end
+        function tabulateSunMoonPos(this)
+            % SYNTAX:
+            %   this.computeSunMoonPos(p_time)
+            %
+            % INPUT:
+            %    p_time = Gps_Time [n_epoch x 1]
+            % OUTPUT:
+            % DESCRIPTION: Compute sun and moon positions at coordinates time and
+            % store them in the object (Overwrite previous data)
+            
+            %his.t_sun = p_time;
+            [this.X_sun , this.X_moon] = this.computeSunMoonPos(this.getCoordTime());
+            this.computeSMPolyCoeff();
         end
         function [eclipsed] = check_eclipse_condition(time, XS, sat,p_rate)  %%% TO BE CORRECT
             
