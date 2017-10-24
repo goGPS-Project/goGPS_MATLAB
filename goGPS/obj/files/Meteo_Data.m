@@ -326,7 +326,7 @@ classdef Meteo_Data < handle
             % Cut empty epochs
             invalid_epoch = sum(isnan(this.data),2) == numel(this.type);
             ok = ok & ~invalid_epoch;
-            this.time = obs_time.getId(ok);
+            this.time = obs_time.getEpoch(ok);
             this.data(invalid_epoch, :) = [];
 
             % Cut empty data types
@@ -377,7 +377,7 @@ classdef Meteo_Data < handle
                 
                 for d = 1 : numel(day_start)
                     id = day_id == d;
-                    cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getId(day_start(d)));
+                    cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getEpoch(day_start(d)));
                     
                     dir_container = fileparts(cur_file_name);
                     if ~exist(dir_container, 'dir')
@@ -401,7 +401,7 @@ classdef Meteo_Data < handle
                         str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.amsl);
                         str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
                         fwrite(fid, str);
-                        epochs = this.time.getId(id).toString(' yyyy mm dd HH MM SS ')';
+                        epochs = this.time.getEpoch(id).toString(' yyyy mm dd HH MM SS ')';
                         str = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
                         fwrite(fid, str);
                         fclose(fid);

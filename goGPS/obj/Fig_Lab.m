@@ -123,9 +123,9 @@ classdef Fig_Lab < handle
                     data_u_s = splinerMat(1:numel(data_e), data_u(:), spline_base,0);
 
                 else
-                    [~, ~, ~, data_e_s] = splinerMat(time.getId(~isnan(data_e)).getGpsTime(), data_e(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
-                    [~, ~, ~, data_n_s] = splinerMat(time.getId(~isnan(data_n)).getGpsTime(), data_n(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
-                    [~, ~, ~, data_u_s] = splinerMat(time.getId(~isnan(data_u)).getGpsTime(), data_u(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
+                    [~, ~, ~, data_e_s] = splinerMat(time.getEpoch(~isnan(data_e)).getGpsTime(), data_e(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
+                    [~, ~, ~, data_n_s] = splinerMat(time.getEpoch(~isnan(data_n)).getGpsTime(), data_n(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
+                    [~, ~, ~, data_u_s] = splinerMat(time.getEpoch(~isnan(data_u)).getGpsTime(), data_u(~isnan(data_e)), spline_base * time.getRate(),0, time.getGpsTime());
                 end
             end
 
