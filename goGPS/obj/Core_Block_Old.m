@@ -2619,9 +2619,9 @@ classdef Core_Block_Old < handle
                         % If the ref correction provides a reduction of the derivative std -> use it
                         if ~(full(sum(abs(ref)) == 0)) && (std(diff(y(~isnan(y))-ref)) <= std(diff(y(~isnan(y)))))
                         %if ~(full(sum(abs(ref)) == 0))
-                            figure(999); clf; plot(y(~isnan(y)),'.-'); hold on; plot(ref,'o', 'lineWidth', 2)
+                            %figure(999); clf; plot(y(~isnan(y)),'.-'); hold on; plot(ref,'o', 'lineWidth', 2)
                             is_new = true;
-                            figure(1000); clf; plot(diff(y0(id_obs)),'.-'); hold on;
+                            %figure(1000); clf; plot(diff(y0(id_obs)),'.-'); hold on;
                             y0(id_obs) = y0(id_obs) - ref;
                             plot(diff(y0(id_obs)),'.-'); ylim([-1 1]);
                         end
