@@ -190,13 +190,13 @@ end
 %-------------------------------------------------------------------------------------------
 
 % Starting batch!!!
-ref_rec = state.getReferencePath();
-num_ref_rec = numel(ref_rec);
-trg_rec = state.getTargetPath();
-num_trg_rec = numel(trg_rec);
-num_session = numel(trg_rec{1});
-mst_rec = state.getMasterPath();
-num_mst_rec = numel(mst_rec);
+f_ref_rec = state.getReferencePath();
+num_ref_rec = numel(f_ref_rec);
+f_trg_rec = state.getTargetPath();
+num_trg_rec = numel(f_trg_rec);
+num_session = numel(f_trg_rec{1});
+f_mst_rec = state.getMasterPath();
+num_mst_rec = numel(f_mst_rec);
 
 % get short name for File_Name_Processor
 fnp = File_Name_Processor();
@@ -250,12 +250,8 @@ if goGPS_new
             logger.addMessage(sprintf('Working on target %d of %d', t, num_trg_rec));
             fprintf('--------------------------------------------------------------------------\n\n');
             
-            [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-                zero_time, time_GPS_diff, time_R_diff, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
-                load_RINEX_obs(trg_rec{t}{s}, cc, state.getProcessingRate);
-             
             trg(t) = Receiver(cc);
-            trg(t).legacyImport(time_GPS_diff, pos_R, 0, 0, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, snr2_R, dop1_R, dop2_R);
+            trg(t).loadRinex(f_trg_rec{t}{s});
         end
     end
 else
@@ -285,17 +281,17 @@ for session = 1 : num_session
     % necessary to assign as M the target and as R the reference receivers
     if state.isModeSEID()
         for r = 1 : num_ref_rec
-            filename_R_obs{r} = ref_rec{r}{session}; %#ok<SAGROW>
+            filename_R_obs{r} = f_ref_rec{r}{session}; %#ok<SAGROW>
         end
-        filename_M_obs = trg_rec{1}{session};
+        filename_M_obs = f_trg_rec{1}{session};
         fr = File_Rinex([filename_R_obs(:); {filename_M_obs}],100);
     else
         for r = 1 : num_trg_rec
-            filename_R_obs{r} = trg_rec{r}{session}; %#ok<SAGROW>
+            filename_R_obs{r} = f_trg_rec{r}{session}; %#ok<SAGROW>
         end
         if state.isModeDD()
             for r = 1 : num_mst_rec
-                filename_M_obs{r} = mst_rec{r}{min(session, numel(mst_rec{r}))}; %#ok<SAGROW>
+                filename_M_obs{r} = f_mst_rec{r}{min(session, numel(f_mst_rec{r}))}; %#ok<SAGROW>
             end
             fr = File_Rinex([filename_R_obs(:); filename_M_obs(:)],100);
         else
@@ -4341,10 +4337,10 @@ for session = 1 : num_session
             %----------------------------------------------------------------------------------------------
             if (session == 1)
                 % Composing the name of the batch output
-                [dir_name, file_name, ext] = fileparts(trg_rec{1}{1});
+                [dir_name, file_name, ext] = fileparts(f_trg_rec{1}{1});
                 marker_trg = file_name(1:4);
                 if state.isModeDD() && ~state.isModeSEID()
-                    [dir_name, file_name, ext] = fileparts(mst_rec{1}{1});
+                    [dir_name, file_name, ext] = fileparts(f_mst_rec{1}{1});
                     marker_mst = [file_name(1:4) '_'];
                 else
                     marker_mst = '';
@@ -4570,4 +4566,5 @@ if flag_init_out && is_batch && ~state.isModeSEID()
     fclose(fid_extract_ZWD);
     fclose(fid_extract_POS);
     fclose(fid_extract_OBS);
+end
 end

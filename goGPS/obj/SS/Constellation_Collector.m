@@ -429,6 +429,16 @@ classdef Constellation_Collector < Settings_Interface
     %  STATUS MODIFIER
     % =========================================================================
     methods (Access = 'public')
+        function setActive(this, active_list)
+            this.gps.enable(active_list(1));
+            this.glo.enable(active_list(2));
+            this.gal.enable(active_list(3));
+            this.qzs.enable(active_list(4));
+            this.bds.enable(active_list(5));
+            this.irn.enable(active_list(6));
+            this.sbs.enable(active_list(7));
+        end
+        
         function activateGPS(this)
             % Activate the use of GPS
             this.gps.enable();
