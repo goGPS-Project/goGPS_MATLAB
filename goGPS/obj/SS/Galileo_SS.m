@@ -79,7 +79,7 @@ classdef Galileo_SS < Satellite_System
         PRN = (1 : 30)';  % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'ZXBCA' 'XIQ' 'XIQ', 'XIQ', 'ZXBCA'}; % last letter of the observation code
+        CODE_RIN3_ATTRIB  = {'ZXACB' 'XIQ' 'XIQ', 'XIQ', 'ZXACB'}; % last letter of the observation code Assumption: Public regualted service (PRS ) better than Pilot (C) better than data (A)
         CODE_RIN3_2BAND  = '15786';             % id for the freq as stored in F_VEC
 end
 
