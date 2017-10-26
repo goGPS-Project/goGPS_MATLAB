@@ -644,6 +644,25 @@ classdef Constellation_Collector < Settings_Interface
             % return the SBAS satellite system object
             gps = handle(this.sbs);
         end
+        function sys = getSys(this, sys)
+            % return the system based on is identified char
+            switch sys
+                    case 'G'
+                        sys = this.getGPS();
+                    case 'R'
+                        sys = this.getGLONASS();
+                    case 'E'
+                        sys = this.getGalileo();
+                    case 'C'
+                        sys = this.getBeiDou();
+                    case 'J'
+                        sys = this.getQZSS();
+                    case 'I'
+                        sys = this.getIRNSS();
+                    case 'S'
+                        sys = this.getSBAS();
+            end
+        end
     end
 
     % =========================================================================

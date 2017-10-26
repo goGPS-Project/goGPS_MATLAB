@@ -37,14 +37,14 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 classdef Receiver < handle
-
+    
     properties (SetAccess = private, GetAccess = private)
         cc = Constellation_Collector('GRECJ'); % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         logger                                 % handle to logger
     end
-          
+    
     properties (SetAccess = public, GetAccess = public)
         file           % file rinex object
         rin_type       % rinex version format
@@ -53,7 +53,7 @@ classdef Receiver < handle
         ant_type       % antenna type
         ant_delta_h    % antenna height from the ground [m]
         ant_delta_en   % antenna east/north offset from the ground [m]
-
+        
         name           % marker name
         type           % marker type
         rin_obs_code   % list of types per constellation
@@ -68,10 +68,10 @@ classdef Receiver < handle
         n_ope = [];    % number of observations per epoch
         
         dt = 0;        % clock offset of the receiver
-                
+        
         time = [];     % internal time ref of the stored epochs
         rate;          % observations rate;
-                
+        
         active_ids     % rows of active satellites
         wl             % wave-lenght of each row of row_id
         f_id           % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
@@ -79,29 +79,29 @@ classdef Receiver < handle
         prn            % pseudo-range number of the satellite
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
-                
+        
         obs_validity   % validity of the row (does it contains usable values?)
         
         obs_code       % obs code for each line of the data matrix obs
-        obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...        
-
+        obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
+        
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         
         rec2sat = struct( ...
-                'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
-                'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
-                'err_iono',    [], ...    % double  [n_epoch x n_sat] iono error
-                'dtS',         [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
-                'rel_clk_corr',[], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
-                'tot',         [], ...    % double  [n_epoch x n_sat] time of travel
-                'az',          [], ...    % double  [n_epoch x n_sat] azimuth
-                'el',          [], ...    % double  [n_epoch x n_sat] elevation
-                'cs',          [], ...    % Core_Sky
-                'XS_tx',       [] ...     % compute Satellite postion a t transmission time
-        )
-    
+            'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
+            'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
+            'err_iono',    [], ...    % double  [n_epoch x n_sat] iono error
+            'dtS',         [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
+            'rel_clk_corr',[], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
+            'tot',         [], ...    % double  [n_epoch x n_sat] time of travel
+            'az',          [], ...    % double  [n_epoch x n_sat] azimuth
+            'el',          [], ...    % double  [n_epoch x n_sat] elevation
+            'cs',          [], ...    % Core_Sky
+            'XS_tx',       [] ...     % compute Satellite postion a t transmission time
+            )
+        
     end
-
+    
     % ==================================================================================================================================================
     %  SETTER
     % ==================================================================================================================================================
@@ -113,7 +113,7 @@ classdef Receiver < handle
             this.logger = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
             if nargin == 1
-                        this.cc = cc;
+                this.cc = cc;
             else
                 this.cc = this.state.cc;
             end
@@ -135,7 +135,7 @@ classdef Receiver < handle
             this.f_id = [];
             this.system = [];
             
-            this.obs = [];            
+            this.obs = [];
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         end
         function initR2S(this)
@@ -161,13 +161,13 @@ classdef Receiver < handle
             % get list of all the observations rows stored into the object
             % SYNTAX: [full_ids] = getFullIdList(this)
             full_ids = [serialize(struct2array(this.row_id.gps)); ...
-                        serialize(struct2array(this.row_id.glo)); ...
-                        serialize(struct2array(this.row_id.gal)); ...
-                        serialize(struct2array(this.row_id.bds)); ...
-                        serialize(struct2array(this.row_id.qzs)); ...
-                        serialize(struct2array(this.row_id.sbs))];
+                serialize(struct2array(this.row_id.glo)); ...
+                serialize(struct2array(this.row_id.gal)); ...
+                serialize(struct2array(this.row_id.bds)); ...
+                serialize(struct2array(this.row_id.qzs)); ...
+                serialize(struct2array(this.row_id.sbs))];
             full_ids = full_ids(~isnan(full_ids));
-        end        
+        end
         
         function remObs(this, id_obs)
             % remove observations with a certain id
@@ -188,7 +188,7 @@ classdef Receiver < handle
                 d_dt = cpp.diffAndPred(this.dt);
                 [d_dt] = simpleFill1D(d_dt, abs(d_dt) > 1e-4);
                 dt = cumsum(d_dt);
-
+                
                 dt_corr = repmat(dt' * Go_State.V_LIGHT, size(this.ph, 1), 1);
                 
                 this.pr = this.pr - dt_corr;
@@ -204,7 +204,7 @@ classdef Receiver < handle
                 d_dt = cpp.diffAndPred(this.dt);
                 [d_dt] = simpleFill1D(d_dt, abs(d_dt) > 1e-4);
                 dt = cumsum(d_dt);
-
+                
                 dt_corr = repmat(dt * Go_State.V_LIGHT, 1, this.n_sat, this.n_freq);
                 
                 this.pr = this.pr + dt_corr;
@@ -215,7 +215,7 @@ classdef Receiver < handle
         
         function parseRinHead(this, txt, lim, eoh)
             % Parse the header of the Observation Rinex file
-            % SYNTAX: 
+            % SYNTAX:
             %    this.parseRinHead(txt, nl)
             % INPUT:
             %    txt    raw txt of the RINEX
@@ -287,7 +287,7 @@ classdef Receiver < handle
             else
                 throw(MException('VerifyInput:InvalidObservationFile', 'This observation RINEX does not contain observations'));
             end
-                        
+            
             % parsing ------------------------------------------------------------------------------------------------------------------------------------------
             
             % retriving the kind of header information is contained on each line
@@ -304,7 +304,7 @@ classdef Receiver < handle
             end
             
             % reading parameters -------------------------------------------------------------------------------------------------------------------------------
-                        
+            
             % 1) 'RINEX VERSION / TYPE'
             % already parsed
             % 2) 'PGM / RUN BY / DATE'
@@ -323,19 +323,19 @@ classdef Receiver < handle
             % 6) 'ANT # / TYPE'
             fln = find(line2head == 6, 1, 'first'); % get field line
             if isempty(fln)
-                this.ant = '';                
-                this.ant_type = '';                
+                this.ant = '';
+                this.ant_type = '';
             else
                 this.ant = strtrim(txt(lim(fln, 1) + (0:20)));
                 this.ant_type = strtrim(txt(lim(fln, 1) + (21:40)));
-            end            
+            end
             % 7) 'APPROX POSITION XYZ'
             fln = find(line2head == 7, 1, 'first'); % get field line
             if isempty(fln)
                 this.xyz = [0 0 0];
             else
                 tmp = sscanf(txt(lim(fln, 1) + (0:41)),'%f')';                                               % read value
-                this.xyz = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 3), [0 0 0], tmp);          % check value integrity                
+                this.xyz = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 3), [0 0 0], tmp);          % check value integrity
             end
             % 8) 'ANTENNA: DELTA H/E/N'
             fln = find(line2head == 8, 1, 'first'); % get field line
@@ -348,8 +348,8 @@ classdef Receiver < handle
                 tmp = sscanf(txt(lim(fln, 1) + (14:41)),'%f')';                                               % read value
                 this.ant_delta_en = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 2), [0 0], tmp);    % check value integrity
             end
-            % 9) 'TIME OF FIRST OBS'            
-            % ignoring it's already in this.file.first_epoch, but the code to read it is the following           
+            % 9) 'TIME OF FIRST OBS'
+            % ignoring it's already in this.file.first_epoch, but the code to read it is the following
             %fln = find(line2head == 9, 1, 'first'); % get field line
             %tmp = sscanf(txt(lim(fln, 1) + (0:42)),'%f')';
             %first_epoch = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 6), this.file.first_epoch, GPS_Time(tmp));    % check value integrity
@@ -363,9 +363,9 @@ classdef Receiver < handle
             else
                 tmp = sscanf(txt(lim(fln, 1) + (0:9)),'%f')';                                  % read value
                 this.rate = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 1), 0, tmp);  % check value integrity
-            end            
+            end
             % 12) TIME OF LAST OBS
-            % ignoring it's already in this.file.last_epoch, but the code to read it is the following           
+            % ignoring it's already in this.file.last_epoch, but the code to read it is the following
             % fln = find(line2head == 12, 1, 'first'); % get field line
             % tmp = sscanf(txt(lim(fln, 1) + (0:42)),'%f')';
             % last_epoch = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 6), this.file.first_epoch, GPS_Time(tmp));    % check value integrity
@@ -428,7 +428,7 @@ classdef Receiver < handle
                             this.rin_obs_code.(sys) = [this.rin_obs_code.(sys) sscanf(txt(lim(fln(l + l_offset), 1) + (6:59)),'%s')];
                             l_offset = l_offset + 1;
                         end
-                        l = l + l_offset;                    
+                        l = l + l_offset;
                     end
                 end
             end
@@ -438,7 +438,7 @@ classdef Receiver < handle
                 this.ph_shift = struct('g', zeros(numel(this.rin_obs_code.g) / 3, 1));
             else
                 this.ph_shift = struct('g',[],'r',[],'e',[],'j',[],'c',[],'i',[],'s',[]);
-                for l = 1 : numel(fln)                  
+                for l = 1 : numel(fln)
                     sys = char(txt(lim(fln(l), 1)) + 32);
                     rin_obs_code = txt(lim(fln(l), 1) + (2:4));
                     obs_id = (strfind(this.rin_obs_code.(sys), rin_obs_code) - 1) / 3 + 1;
@@ -475,7 +475,7 @@ classdef Receiver < handle
             % ignoring
             % 32) SYS / PCVS APPLIED
             % ignoring
-            % 33) SYS / SCALE FACTOR            
+            % 33) SYS / SCALE FACTOR
             % ignoring
             
         end
@@ -486,13 +486,13 @@ classdef Receiver < handle
             t_ok = 'CLDS'; % type
             
             rin_obs_col = struct('g', zeros(4, numel(this.cc.gps.F_VEC)), ...
-                                      'r', zeros(4, size(this.cc.glo.F_VEC,2)), ...
-                                      'e', zeros(4, numel(this.cc.gal.F_VEC)), ...
-                                      'j', zeros(4, numel(this.cc.qzs.F_VEC)), ...
-                                      'c', zeros(4, numel(this.cc.bds.F_VEC)), ...
-                                      'i', zeros(4, numel(this.cc.irn.F_VEC)), ...
-                                      's', zeros(4, numel(this.cc.sbs.F_VEC)));
-
+                'r', zeros(4, size(this.cc.glo.F_VEC,2)), ...
+                'e', zeros(4, numel(this.cc.gal.F_VEC)), ...
+                'j', zeros(4, numel(this.cc.qzs.F_VEC)), ...
+                'c', zeros(4, numel(this.cc.bds.F_VEC)), ...
+                'i', zeros(4, numel(this.cc.irn.F_VEC)), ...
+                's', zeros(4, numel(this.cc.sbs.F_VEC)));
+            
             if this.rin_type >= 3
                 
                 for c = 1 : numel(this.cc.SYS_C)
@@ -524,13 +524,13 @@ classdef Receiver < handle
             end
             
             this.n_max_obs = sum(rin_obs_col.g(:) > 0) * this.cc.gps.N_SAT + ...
-                             sum(rin_obs_col.r(:) > 0) * this.cc.glo.N_SAT + ...
-                             sum(rin_obs_col.e(:) > 0) * this.cc.gal.N_SAT + ...
-                             sum(rin_obs_col.j(:) > 0) * this.cc.qzs.N_SAT + ...
-                             sum(rin_obs_col.c(:) > 0) * this.cc.bds.N_SAT + ...
-                             sum(rin_obs_col.i(:) > 0) * this.cc.irn.N_SAT + ...
-                             sum(rin_obs_col.s(:) > 0) * this.cc.sbs.N_SAT;
-                         
+                sum(rin_obs_col.r(:) > 0) * this.cc.glo.N_SAT + ...
+                sum(rin_obs_col.e(:) > 0) * this.cc.gal.N_SAT + ...
+                sum(rin_obs_col.j(:) > 0) * this.cc.qzs.N_SAT + ...
+                sum(rin_obs_col.c(:) > 0) * this.cc.bds.N_SAT + ...
+                sum(rin_obs_col.i(:) > 0) * this.cc.irn.N_SAT + ...
+                sum(rin_obs_col.s(:) > 0) * this.cc.sbs.N_SAT;
+            
         end
         
         function parseRin2Data(this, txt, lim, eoh)
@@ -668,7 +668,7 @@ classdef Receiver < handle
             this.ss_id = this.ss_id';
             this.n_freq = numel(unique(this.f_id));            
         end
-
+        
         function parseRin3Data(this, txt, lim, eoh)
             % find all the observation lines
             t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
@@ -825,14 +825,14 @@ classdef Receiver < handle
             %
             % DESCRIPTION:
             %   Parses RINEX observation files.
-
+            
             t0 = tic;
             
             this.logger.addMarkedMessage('Reading observations...');
             this.logger.newLine();
-                        
+            
             processing_interval = 0;
-                                    
+            
             %variable initialization
             this.file =  File_Rinex(file_name, 9);
             
@@ -850,7 +850,7 @@ classdef Receiver < handle
                 end
                 lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
                 lim = [lim lim(:,2) - lim(:,1)];
-
+                
                 % importing header informations
                 eoh = this.file.eoh;
                 this.parseRinHead(txt, lim, eoh);
@@ -963,6 +963,95 @@ classdef Receiver < handle
             ph = this.ph(id,:);
             wl = this.wl(id);
         end
+        function [obs, idx] = getObs(this, flag, system)
+            % get observation and index corresponfing to the flag
+            % SYNTAX this.getObsIdx(flag, <system>)
+            if nargin > 2
+                idx = this.getObsIdx(flag, system);
+            else
+                idx = this.getObsIdx(flag);
+            end
+            obs = this.obs(idx,:);
+        end
+        function [obs, idx] = getPrefObs(this, flag, system)
+            % get observation and index corresponfing to the flag
+            % SYNTAX this.getObsIdx(flag, <system>)
+            idx = this.getPrefObsIdx(flag, system);
+            obs = this.obs(idx,:);
+        end
+        function [idx] = getObsIdx(this, flag, system)
+            % get observation index corresponfing to the flag
+            % SYNTAX this.getObsIdx(flag, <system>)
+            idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
+            if nargin > 2
+                idx = idx & [this.system == system]';
+            end
+            idx = idx .* [1:length(idx)]';
+            idx(idx==0)=[];
+        end
+        function [idx] = getPrefObsIdx(this, flag, system)
+            % get observation index corresponfing to the flag using best
+            % channel according to the feinition in GPS_SS, GLONASS_SS
+            % SYNTAX this.getObsIdx(flag, <system>)
+            if length(flag)==3
+                idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
+                idx = idx & [this.system == system]';
+                %this.legger.addWarning(['Unnecessary Call obs_type already determined, use getObsIdx instead'])
+            elseif length(flag) ==2
+                flags = zeros(size(this.obs_code,1),3);
+                sys_idx = [this.system == system]';
+                sys = this.cc.getSys(system);
+                band = find(sys.CODE_RIN3_2BAND == flag(2));
+                if isempty(band)
+                    this.logger.addError('Obs not found');
+                end 
+                preferences = sys.CODE_RIN3_ATTRIB{band};
+                sys_obs_code = this.obs_code(sys_idx,:);
+                sz =size(sys_obs_code,1);
+                complete_flag = [];
+                for i = 1:length(preferences)
+                    if sum(sys_obs_code == repmat([flag preferences(i)],sz,1))>0
+                        complete_flag = [flag preferences(i)];
+                    end
+                end
+                if isempty(complete_flag)
+                    this.logger.addError('Obs not found');
+                end
+                flags = repmat(complete_flag,size(this.obs_code,1),1);  
+                idx = sum(this.obs_code == flags,2) == 3;
+            else
+                this.legger.addError(['Invalide length of obs code(' num3str(length(flag)) 'can not determine preferred observation'])
+            end
+            if nargin > 2
+                
+            end
+            idx = idx .* [1:length(idx)]';
+            idx(idx==0)=[];
+        end
+        function [obs] = getIonoFree(this, flag1, flag2, system)
+            % get Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
+                rec.logger.addWarning('Can produce IONO free combination for the selcted observation')
+                return
+            end
+            if flag1(1)~=flag2(1)
+                rec.logger.addWarning('Incompatible observation type')
+                return
+            end
+                [obs1, idx1] = this.getPrefObs(flag1, system);
+                [obs2, idx2] = this.getPrefObs(flag2, system);
+            % put zeros to NaN 
+            obs1(obs1 == 0) = NaN;
+            obs2(obs2 == 0) = NaN;
+            
+            
+            %gte wavelenghts
+            inv_wl1 = repmat(1./this.wl(idx1),1,size(obs1,2));
+            inv_wl2 = repmat(1./this.wl(idx2),1,size(obs2,2));
+            obs = ((inv_wl1).^2 .* obs1 - (inv_wl2).^2 .* obs2)./ ( (inv_wl1).^2 - (inv_wl2).^2 );
+            obs(isnan(obs)) = 0;
+        end
     end
     
     % ==================================================================================================================================================
@@ -1007,10 +1096,10 @@ classdef Receiver < handle
             % remove all the observations that are not present for both phase and pseudo-range between two receivers
             if (rec1.n_freq == 2) && (rec2.n_freq == 2)
                 sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.pr(:,:,2)) & ~isnan(rec1.ph(:,:,1)) & ~isnan(rec1.ph(:,:,2)) & ...
-                      ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.pr(:,:,2)) & ~isnan(rec2.ph(:,:,1)) & ~isnan(rec2.ph(:,:,2));
+                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.pr(:,:,2)) & ~isnan(rec2.ph(:,:,1)) & ~isnan(rec2.ph(:,:,2));
             else
                 sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.ph(:,:,1)) & ...
-                      ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.ph(:,:,1));
+                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.ph(:,:,1));
             end
             rec1.pr(~sat) = nan;
             rec1.ph(~sat) = nan;
@@ -1056,21 +1145,21 @@ classdef Receiver < handle
     %  FUNCTIONS TO GET SATELLITE RELATED PARAMETER
     % ==================================================================================================================================================
     methods
-       function time_tx = getTimeTx(this,sat)
+        function time_tx = getTimeTx(this,sat)
             % SYNTAX:
             %   this.getTimeTx(epoch);
             %
             % INPUT:
             % OUTPUT:
             %   time_tx = transmission time
-            %   time_tx = 
+            %   time_tx =
             %
             % DESCRIPTION:
             %   Get Transmission time
             if isempty(this.rec2sat.tot)
                 this.updateTOT();
             end
-            time_tx = this.time - this.tot(this.rec2sat.avail_index)
+            time_tx = this.time - this.tot(this.rec2sat.avail_index);
             
             
         end
@@ -1138,11 +1227,11 @@ classdef Receiver < handle
                     Logger.getInstance().addWarning(['Unknown observable ' obs_type]);
                     dcb_factor = 0;
             end
-
             for s = 1:size(group_delay,2)
                 group_delay(this.avail_index(:,s),:) = dcb_factor*core_sky.DCB.P1P2.values(s)
             end
         end
+        
         function [XS_tx_r ,XS_tx] = getXSTxRot(this, time_rx, cc)
             % SYNTAX:
             %   [XS_tx_r ,XS_tx] = this.getXSTxRot( time_rx, cc)
@@ -1244,10 +1333,10 @@ classdef Receiver < handle
                 idx = this.available_index(:,s);
                 switch this.gs.cur_settings.tropo_model
                     case 0 %no model
-
+                        
                     case 1 %Saastamoinen with standard atmosphere
-                       error_tropo(idx,s) = Atmosphere.saastamoinen_model(lat, lon, h, el);
-
+                        error_tropo(idx,s) = Atmosphere.saastamoinen_model(lat, lon, h, el);
+                        
                     case 2 %Saastamoinen with GPT
                         for e = 1 : size(this.rec2sat.avail_index,1)
                             [gps_week, gps_sow, gps_dow] = this.time.getGpsWeek(e);
@@ -1363,7 +1452,7 @@ classdef Receiver < handle
             
             distSR = sqrt(sum((XS-XR).^2 ,2));
             
-
+            
             GM = 3.986005e14;
             
             
@@ -1372,5 +1461,5 @@ classdef Receiver < handle
             dist = distSR + corr;
             
         end
-        end
+    end
 end
