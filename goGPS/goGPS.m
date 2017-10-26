@@ -462,7 +462,7 @@ for session = 1 : num_session
                     end
                     
                     %read stations coordinates file
-                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
+                    if (~exist('pos_R_crd','var') || ~any(squeeze(pos_R_crd)))
                         [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, []);
                     end
                     
