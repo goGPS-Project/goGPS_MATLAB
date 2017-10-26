@@ -447,11 +447,13 @@ classdef Go_Wait_Bar < handle
             if (nargin < 2)
                 shf = 120;
             end
-            pos = this.h.Position;
-            if (pos(2) > shf + pos(4))
-                pos(2) = pos(2) - shf;
+            if (~isempty(this.h))
+                pos = this.h.Position;
+                if (pos(2) > shf + pos(4))
+                    pos(2) = pos(2) - shf;
+                end
+                this.h.Position = pos;
             end
-            this.h.Position = pos;
         end
 
         % Close the window
