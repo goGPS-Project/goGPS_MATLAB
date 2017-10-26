@@ -69,7 +69,7 @@ classdef IRNSS_SS < Satellite_System
         PRN = (1 : IRNSS_SS.N_SAT)';  % Satellites id numbers as defined in the constellation
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'ABCX', 'ABCX'}; % last letter of the observation code e.g. C5A - C5B - C5C - C5X
+        CODE_RIN3_ATTRIB  = {'XCBA', 'XCBA'}; % last letter of the observation code e.g. C5A - C5B - C5C - C5X
         CODE_RIN3_2BAND  = '59';             % id for the freq as stored in F_VEC e.g. L5 -> C5A, S -> C9A
     end
 
