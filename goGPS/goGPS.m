@@ -157,13 +157,6 @@ state.showTextMode();
 gs.initProcessing(); % Set up / download observations and navigational files
 
 cc = state.getConstellationCollector();
-active_sys = cc.getActive();
-[constellations] = goGNSS.initConstellation(active_sys(1), active_sys(2), active_sys(3), active_sys(4), active_sys(5), active_sys(6));
-
-nSatTot = cc.getNumSat();
-
-%number of enabled constellations
-n_sys = sum(cc.getActive);
 
 % start evaluating computation time
 tic;
@@ -255,6 +248,14 @@ if goGPS_new
         end
     end
 else
+
+active_sys = cc.getActive();
+[constellations] = goGNSS.initConstellation(active_sys(1), active_sys(2), active_sys(3), active_sys(4), active_sys(5), active_sys(6));
+
+nSatTot = cc.getNumSat();
+
+%number of enabled constellations
+n_sys = sum(cc.getActive);
 
 for session = 1 : num_session
     %-------------------------------------------------------------------------------------------
