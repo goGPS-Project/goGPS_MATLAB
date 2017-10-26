@@ -57,10 +57,8 @@ classdef Receiver < handle
         name           % marker name
         type           % marker type
         rin_obs_code   % list of types per constellation
-        rin_obs_col    % struct matrix containing the colum of an observation .constellation [4(CLDS) x n_freq]
         ph_shift       %
         
-        code_C1        % boolean variable to notify if the C1 code is used instead of P1
         xyz;           % approximate position of the receiver (XYZ geocentric)
         
         n_sat = 0;     % number of satellites
@@ -358,7 +356,7 @@ classdef Receiver < handle
             %first_epoch.setGPS(~strcmp(txt(lim(fln, 1) + (48:50)),'GLO'));
             % 10) 'MARKER NUMBER'
             % ignoring
-            % 11) INTERVAL
+            % 11) 
             fln = find(line2head == 11, 1, 'first'); % get field line
             if isempty(fln)
                 this.rate = 0; % If it's zero it'll be necessary to compute it
@@ -474,14 +472,14 @@ classdef Receiver < handle
             % 33) SYS / SCALE FACTOR            
             % ignoring
             
-            this.chooseDataTypes();
         end
         
         function chooseDataTypes(this)
             % get the right attribute column to be used for a certain type/band couple
+            % LEGACY????
             t_ok = 'CLDS'; % type
             
-            this.rin_obs_col = struct('g', zeros(4, numel(this.cc.gps.F_VEC)), ...
+            rin_obs_col = struct('g', zeros(4, numel(this.cc.gps.F_VEC)), ...
                                       'r', zeros(4, size(this.cc.glo.F_VEC,2)), ...
                                       'e', zeros(4, numel(this.cc.gal.F_VEC)), ...
                                       'j', zeros(4, numel(this.cc.qzs.F_VEC)), ...
@@ -507,7 +505,7 @@ classdef Receiver < handle
                                     % find the preferred observation among the available ones
                                     [a, id] = intersect(code(obs, 3), a_ok{b}); a = a(id);
                                     % save the id of the column in the rin_obs_col struct matrix
-                                    this.rin_obs_col.(sys_c)(t, b) = find(obs & code(:,3) == a(1));
+                                    rin_obs_col.(sys_c)(t, b) = find(obs & code(:,3) == a(1));
                                 end
                             end
                         end
@@ -519,14 +517,146 @@ classdef Receiver < handle
                 % to be done
             end
             
-            this.n_max_obs = sum(this.rin_obs_col.g(:) > 0) * this.cc.gps.N_SAT + ...
-                             sum(this.rin_obs_col.r(:) > 0) * this.cc.glo.N_SAT + ...
-                             sum(this.rin_obs_col.e(:) > 0) * this.cc.gal.N_SAT + ...
-                             sum(this.rin_obs_col.j(:) > 0) * this.cc.qzs.N_SAT + ...
-                             sum(this.rin_obs_col.c(:) > 0) * this.cc.bds.N_SAT + ...
-                             sum(this.rin_obs_col.i(:) > 0) * this.cc.irn.N_SAT + ...
-                             sum(this.rin_obs_col.s(:) > 0) * this.cc.sbs.N_SAT;
+            this.n_max_obs = sum(rin_obs_col.g(:) > 0) * this.cc.gps.N_SAT + ...
+                             sum(rin_obs_col.r(:) > 0) * this.cc.glo.N_SAT + ...
+                             sum(rin_obs_col.e(:) > 0) * this.cc.gal.N_SAT + ...
+                             sum(rin_obs_col.j(:) > 0) * this.cc.qzs.N_SAT + ...
+                             sum(rin_obs_col.c(:) > 0) * this.cc.bds.N_SAT + ...
+                             sum(rin_obs_col.i(:) > 0) * this.cc.irn.N_SAT + ...
+                             sum(rin_obs_col.s(:) > 0) * this.cc.sbs.N_SAT;
                          
+        end
+        
+        function parseRin2Data(this, txt, lim, eoh)
+            
+        end
+
+        function parseRin3Data(this, txt, lim, eoh)
+            % find all the observation lines
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            this.n_epo = numel(t_line);
+            % extract all the epoch lines
+            string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, this.n_epo, 1))';
+            % convert the times into a 6 col time
+            date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
+            % import it as a GPS_Time obj
+            this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
+            this.rate = this.time.getRate();
+            this.n_epo = numel(t_line);
+            
+            % get number of observations per epoch
+            this.n_ope = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, this.n_epo, 1))', '%d');
+            d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            
+            all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
+            
+            % find the data present into the file
+            gps_line = d_line(txt(lim(d_line,1)) == 'G');
+            glo_line = d_line(txt(lim(d_line,1)) == 'R');
+            gal_line = d_line(txt(lim(d_line,1)) == 'E');
+            qzs_line = d_line(txt(lim(d_line,1)) == 'J');
+            bds_line = d_line(txt(lim(d_line,1)) == 'C');
+            irn_line = d_line(txt(lim(d_line,1)) == 'I');
+            sbs_line = d_line(txt(lim(d_line,1)) == 'S');
+            % Activate only the constellation that are present in the receiver
+            %this.cc.setActive([isempty(gps_line) isempty(glo_line) isempty(gal_line) isempty(qzs_line) isempty(bds_line) isempty(irn_line) isempty(sbs_line)]);
+            
+            gps_prn = unique(sscanf(txt(repmat(lim(gps_line,1), 1, 2) + repmat(1 : 2, numel(gps_line), 1))', '%2d'));
+            glo_prn = unique(sscanf(txt(repmat(lim(glo_line,1), 1, 2) + repmat(1 : 2, numel(glo_line), 1))', '%2d'));
+            gal_prn = unique(sscanf(txt(repmat(lim(gal_line,1), 1, 2) + repmat(1 : 2, numel(gal_line), 1))', '%2d'));
+            qzs_prn = unique(sscanf(txt(repmat(lim(qzs_line,1), 1, 2) + repmat(1 : 2, numel(qzs_line), 1))', '%2d'));
+            bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
+            irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
+            sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
+            prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
+            
+            % update the maximum number of rows to store
+            this.n_max_obs = numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
+                numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+            
+            clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
+            
+            % order of storage
+            % sat_system / obs_code / satellite
+            sys_c = char(this.cc.sys_c + 32);
+            n_ss = numel(sys_c); % number of satellite system
+            
+            % init datasets
+            obs = zeros(this.n_max_obs, this.n_epo);
+            
+            this.obs_code = [];
+            this.prn = [];
+            this.system = [];
+            this.f_id = [];
+            this.wl = [];
+            this.n_sat = 0;
+            for  s = 1 : n_ss
+                sys = sys_c(s);
+                n_sat = numel(prn.(sys)); % number of satellite system
+                this.n_sat = this.n_sat + n_sat;
+                n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
+                % transform in n_code x 3
+                obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                % replicate obs_code for n_sat
+                obs_code = serialize(repmat(obs_code, 1, n_sat)');
+                obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
+                
+                this.obs_code = [this.obs_code; obs_code];
+                prn_ss = repmat(prn.(sys)', n_code, 1);
+                this.prn = [this.prn; prn_ss];
+                this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
+                
+                f_id = obs_code(:,2);
+                ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
+                [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
+                
+                ismember(this.system, this.cc.SYS_C);
+                this.f_id = [this.f_id; f_id];
+                
+                if s == 2
+                    wl = ss.L_VEC((f_id-1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                    wl(prn_ss > ss.N_SAT) = NaN;
+                else
+                    wl = ss.L_VEC(f_id)';
+                end
+                this.wl = [this.wl; wl];
+            end
+            
+            this.w_bar.createNewBar(' Parsing epochs...');
+            this.w_bar.setBarLen(this.n_epo);
+            
+            mask = repmat('         0.00000',1 ,40);
+            data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+            for e = 1 : this.n_epo % for each epoch
+                sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_ope(e),1),1,3) + repmat(0:2, this.n_ope(e), 1));
+                prn = sscanf(serialize(sat(:,2:3)'), '%02d');
+                for s = 1 : size(sat, 1)
+                    % line to fill with the current observation line
+                    obs_line = find((this.prn == prn(s)) & this.system' == sat(s, 1));
+                    line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
+                    ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                    % try with sscanf
+                    line = line(data_pos(1 : numel(line)));
+                    data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                    obs(obs_line(1:size(data,1)), e) = data;
+                    % alternative approach with textscan
+                    %data = textscan(line, '%14.3f%1d%1d');
+                    %obs(obs_line(1:numel(data{1})), e) = data{1};
+                end
+                this.w_bar.go(e);
+            end
+            this.logger.newLine();
+            this.obs = obs;
+            
+            % Compute the other useful status array of the receiver object
+            [~, this.s_id] = ismember(this.system, this.cc.SYS_C);
+            this.s_id = this.s_id';
+            this.n_freq = numel(unique(this.f_id));
         end
         
         function loadRinex(this, file_name)
@@ -589,123 +719,7 @@ classdef Receiver < handle
                 
                 % considering rinex 3
                 if (this.rin_type >= 3)
-                    % find all the observation lines
-                    t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
-                    this.n_epo = numel(t_line);
-                    % extract all the epoch lines
-                    string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, this.n_epo, 1))';
-                    % convert the times into a 6 col time
-                    date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
-                    % import it as a GPS_Time obj
-                    this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-                    this.rate = this.time.getRate();
-                    this.n_epo = numel(t_line);
-                    
-                    % get number of observations per epoch
-                    this.n_ope = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, this.n_epo, 1))', '%d');
-                    d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
-                    
-                    all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
-
-                    % find the data present into the file
-                    gps_line = d_line(txt(lim(d_line,1)) == 'G');
-                    glo_line = d_line(txt(lim(d_line,1)) == 'R');
-                    gal_line = d_line(txt(lim(d_line,1)) == 'E');
-                    qzs_line = d_line(txt(lim(d_line,1)) == 'J');
-                    bds_line = d_line(txt(lim(d_line,1)) == 'C');
-                    irn_line = d_line(txt(lim(d_line,1)) == 'I');
-                    sbs_line = d_line(txt(lim(d_line,1)) == 'S');
-                    % Activate only the constellation that are present in the receiver
-                    %this.cc.setActive([isempty(gps_line) isempty(glo_line) isempty(gal_line) isempty(qzs_line) isempty(bds_line) isempty(irn_line) isempty(sbs_line)]);
-                                        
-                    gps_prn = unique(sscanf(txt(repmat(lim(gps_line,1), 1, 2) + repmat(1 : 2, numel(gps_line), 1))', '%2d'));
-                    glo_prn = unique(sscanf(txt(repmat(lim(glo_line,1), 1, 2) + repmat(1 : 2, numel(glo_line), 1))', '%2d'));
-                    gal_prn = unique(sscanf(txt(repmat(lim(gal_line,1), 1, 2) + repmat(1 : 2, numel(gal_line), 1))', '%2d'));
-                    qzs_prn = unique(sscanf(txt(repmat(lim(qzs_line,1), 1, 2) + repmat(1 : 2, numel(qzs_line), 1))', '%2d'));
-                    bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
-                    irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
-                    sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
-                    prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
-                    
-                    % update the maximum number of rows to store
-                    this.n_max_obs = numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                                     numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                                     numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                                     numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                                     numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                                     numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                                     numel(prn.s) * numel(this.rin_obs_code.s) / 3;
-                                        
-                    clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
-                    
-                    % order of storage
-                    % sat_system / obs_code / satellite
-                    sys_c = char(this.cc.sys_c + 32);
-                    n_ss = numel(sys_c); % number of satellite system                    
-                    
-                    % init datasets
-                    this.obs = zeros(this.n_max_obs, this.n_epo);
-                    
-                    this.obs_code = [];
-                    this.prn = [];
-                    this.system = [];
-                    this.f_id = [];
-                    this.wl = [];
-                    this.n_sat = 0;
-                    for  s = 1 : n_ss
-                        sys = sys_c(s);
-                        n_sat = numel(prn.(sys)); % number of satellite system
-                        this.n_sat = this.n_sat + n_sat;
-                        n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
-                        % transform in n_code x 3
-                        obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
-                        % replicate obs_code for n_sat
-                        obs_code = serialize(repmat(obs_code, 1, n_sat)');
-                        obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                        
-                        this.obs_code = [this.obs_code; obs_code];
-                        prn_ss = repmat(prn.(sys)', n_code, 1);
-                        this.prn = [this.prn; prn_ss];
-                        this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))]; 
-                        
-                        f_id = obs_code(:,2);                        
-                        ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
-                        [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
-                        
-                        ismember(this.system, this.cc.SYS_C);
-                        this.f_id = [this.f_id; f_id];
-                        
-                        if s == 2
-                            wl = ss.L_VEC((f_id-1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
-                            wl(prn_ss > ss.N_SAT) = NaN;
-                        else
-                            wl = ss.L_VEC(f_id)';
-                        end
-                        this.wl = [this.wl; wl];
-                    end
-                    
-                    this.w_bar.createNewBar(' Parsing epochs...');
-                    this.w_bar.setBarLen(this.n_epo);
-                    mask = repmat([false(1,13) true(1,3)],1 ,40);
-                    for e = 1 : this.n_epo % for each epoch
-                        sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_ope(e),1),1,3) + repmat(0:2, this.n_ope(e), 1));
-                        prn = sscanf(serialize(sat(:,2:3)'), '%02d');
-                        for s = 1 : size(sat, 1)
-                            % line to fill with the current observation line
-                            obs_line = find((this.system' == sat(s, 1) & (this.prn == prn(s))));
-                            line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s,2));
-                            line(line == 32 & mask(1:numel(line))) = '0'; % fill empty fields -> otherwise textscan ignore the empty fields
-                            data = textscan(line, '%14.3f%1d%1d');
-                            this.obs(obs_line(1:numel(data{1})), e) = data{1};
-                        end
-                        this.w_bar.go(e);
-                    end
-                    this.logger.newLine();
-                    
-                    % Compute the other useful status array of the receiver object                                
-                    [~, this.s_id] = ismember(this.system, this.cc.SYS_C);
-                    this.s_id = this.s_id';
-                    this.n_freq = numel(unique(this.f_id));                    
+                    this.parseRin3Data(txt, lim, eoh);
                 end
                 
                 this.logger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
