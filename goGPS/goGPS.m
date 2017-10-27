@@ -3753,7 +3753,8 @@ for session = 1 : num_session
                         head_str = '    Date          GPS time         GPS week          GPS tow           ZHD[m]           ZTD[m]          TGN[mm]          TGE[mm]           ZWD[m]          PWV[mm]';
                         row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.5f %16.5f %16.5f %16.5f %16.5f %16.5f';
                         for s = 1 : nSatTot
-                            head_str = [head_str '           az[�]         el[�]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            head_str = [head_str '     ' constellations.systems(s) num2str(constellations.PRN(s),'%02d') '-az[deg]' ]; %#ok<AGROW>
+                            head_str = [head_str '      ' constellations.systems(s) num2str(constellations.PRN(s),'%02d') '-el[deg]' ]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
                         end
                         for s = 1 : nSatTot
