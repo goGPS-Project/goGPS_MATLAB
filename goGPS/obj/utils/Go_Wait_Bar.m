@@ -447,12 +447,24 @@ classdef Go_Wait_Bar < handle
             if (nargin < 2)
                 shf = 120;
             end
-            if (~isempty(this.h))
-                pos = this.h.Position;
-                if (pos(2) > shf + pos(4))
-                    pos(2) = pos(2) - shf;
+            if verLessThan('matlab', '8.5') % matlab 2015a
+                try
+                    pos = this.h.Position;
+                    if (pos(2) > shf + pos(4))
+                        pos(2) = pos(2) - shf;
+                    end
+                    this.h.Position = pos;
+                catch
+                    %handle is not valid, or empty
                 end
-                this.h.Position = pos;
+            else
+                if ~isempty(this.h) && (isvalid(this.h))
+                    pos = this.h.Position;
+                    if (pos(2) > shf + pos(4))
+                        pos(2) = pos(2) - shf;
+                    end
+                    this.h.Position = pos;
+                end
             end
         end
 
