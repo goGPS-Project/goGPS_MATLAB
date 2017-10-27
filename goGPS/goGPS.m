@@ -229,7 +229,7 @@ if goGPS_new
     
     sky = Core_Sky.getInstance();
         
-    for s = 1 : num_trg_rec
+    for s = 1 : num_session        
         %-------------------------------------------------------------------------------------------
         % SESSION START
         %-------------------------------------------------------------------------------------------
@@ -237,7 +237,13 @@ if goGPS_new
         fprintf('\n--------------------------------------------------------------------------\n');
         logger.addMessage(sprintf('Starting session %d of %d', s, num_session));
         fprintf('--------------------------------------------------------------------------\n');
-        
+
+        % e.g. init sky
+        %fr = File_Rinex(f_trg_rec{1}{s},100);        
+        %cur_date_start = fr.first_epoch.last();
+        %cur_date_stop = fr.last_epoch.first();
+        %sky.initSession(state, cur_date_start, cur_date_stop);
+
         clear trg;
         for t = 1 : num_trg_rec
             logger.addMessage(sprintf('Working on target %d of %d', t, num_trg_rec));
@@ -246,6 +252,9 @@ if goGPS_new
             trg(t) = Receiver(cc);
             trg(t).loadRinex(f_trg_rec{t}{s});
         end
+        
+        
+        
     end
 else
 

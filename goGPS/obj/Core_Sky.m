@@ -838,7 +838,7 @@ classdef Core_Sky < handle
             %
             % INPUT:
             %    t = vector of times where to interpolate
-            %    sat = satellite to be interpolated (optional) 
+            %    sat = satellite to be interpolated (optional)
             % OUTPUT:
             %
             % DESCRIPTION: interpolate coordinates of staellites
@@ -858,8 +858,8 @@ classdef Core_Sky < handle
             
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
             
-            c_idx(c_idx<1) = 1; 
-            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10; 
+            c_idx(c_idx<1) = 1;
+            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
             
             c_times = this.getCoordTime();
             %l_idx=idx-5;
@@ -937,8 +937,8 @@ classdef Core_Sky < handle
             
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
             
-            c_idx(c_idx<1) = 1; 
-            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10; 
+            c_idx(c_idx<1) = 1;
+            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
             
             c_times = this.getCoordTime();
             %l_idx=idx-5;
@@ -1102,7 +1102,7 @@ classdef Core_Sky < handle
             
             
             %threshold to detect noon/midnight maneuvers
-            if sat > 32 
+            if sat > 32
                 t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
             elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA')))
                 t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
@@ -1113,7 +1113,7 @@ classdef Core_Sky < handle
                 t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
             end
             
-            if (sat <= 32 & ~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA'))) 
+            if (sat <= 32 & ~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA')))
                  %shadow crossing affects only BLOCK IIA satellites
                 shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < goGNSS.ELL_A_GPS;
                 eclipsed(shadowCrossing) = 1;
