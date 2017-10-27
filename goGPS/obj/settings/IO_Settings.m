@@ -84,7 +84,7 @@ classdef IO_Settings < Settings_Interface
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
-        PREFERRED_ARCHIVE = {'cddis', 'igscb', 'custom'}
+        PREFERRED_ARCHIVE = {'cddis', 'custom'}
         PREFERRED_GPS = {'igs', 'cod', 'jpl', 'esa', 'emx', 'gbm'}
         PREFERRED_GLO = {'igs', 'cod', 'esa', 'emx', 'gbm'}
         PREFERRED_MXD = {'gbm'}
