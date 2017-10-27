@@ -276,7 +276,7 @@ classdef Receiver < handle
             if dataset{2} == 'O'
                 if (this.rin_type < 3)
                     if (dataset{4} ~= 'G')
-                        % GPS only RINEX2 - mixed or glonass -> actually not working 
+                        % GPS only RINEX2 - mixed or glonass -> actually not working
                         %throw(MException('VerifyInput:InvalidObservationFile', 'RINEX2 is supported for GPS only dataset, please use a RINEX3 file '));
                     else
                         % GPS only RINEX2 -> ok
@@ -417,7 +417,6 @@ classdef Receiver < handle
                 fln = find(line2head == 19); % get field lines
                 this.rin_obs_code = struct('g',[],'r',[],'e',[],'j',[],'c',[],'i',[],'s',[]);
                 if ~isempty(fln)
-                    
                     l = 1;
                     while l <= numel(fln)
                         sys = char(txt(lim(fln(l), 1))+32);
@@ -430,6 +429,10 @@ classdef Receiver < handle
                         end
                         l = l + l_offset;
                     end
+                end
+                if ~isempty(strfind(this.rin_obs_code.c, '1'))
+                    this.rin_obs_code.c(this.rin_obs_code.c == '1') = '2';
+                    this.logger.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
                 end
             end
             % 20) SYS / PHASE SHIFT
@@ -535,7 +538,7 @@ classdef Receiver < handle
         
         function parseRin2Data(this, txt, lim, eoh)
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')']);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
             this.n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, this.n_epo, 1))';
@@ -620,7 +623,7 @@ classdef Receiver < handle
                 if s == 2
                     wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                     wl(prn_ss > ss.N_SAT) = NaN;
-                    wl(f_id == 0) = NaN;         
+                    wl(f_id == 0) = NaN;
                 else
                     wl = ss.L_VEC(max(1, f_id))';
                     wl(f_id == 0) = NaN;
@@ -636,6 +639,7 @@ classdef Receiver < handle
             
             mask = repmat('         0.00000',1 ,40);
             data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+            id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
             for e = 1 : this.n_epo % for each epoch
                 n_sat = this.n_ope(e);
                 sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_ope(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_ope(e) / 12), 1))')';
@@ -646,9 +650,15 @@ classdef Receiver < handle
                     % line to fill with the current observation line
                     obs_line = (this.prn == prn_e(s)) & this.system' == sat(s, 1);
                     line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
-                    line = txt(lim(line_start, 1) + (0 : (16 * n_ops) + n_lps - 2));
+                    line = mask(1 : n_ops * 16);
+                    for i = 0 : n_lps - 1
+                        try
+                            line(id_line(1:lim(line_start + i, 3) + 1,i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2));
+                        catch
+                            % empty last lines
+                        end
+                    end
                     % remove return characters
-                    line(81:81:end) = [];
                     ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                     % try with sscanf
                     line = line(data_pos(1 : numel(line)));
@@ -666,7 +676,7 @@ classdef Receiver < handle
             % Compute the other useful status array of the receiver object
             [~, this.ss_id] = ismember(this.system, this.cc.SYS_C);
             this.ss_id = this.ss_id';
-            this.n_freq = numel(unique(this.f_id));            
+            this.n_freq = numel(unique(this.f_id));
         end
         
         function parseRin3Data(this, txt, lim, eoh)
@@ -757,10 +767,16 @@ classdef Receiver < handle
                 this.f_id = [this.f_id; f_id];
                 
                 if s == 2
-                    wl = ss.L_VEC((f_id-1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                    wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                     wl(prn_ss > ss.N_SAT) = NaN;
+                    wl(f_id == 0) = NaN;
                 else
-                    wl = ss.L_VEC(f_id)';
+                    wl = ss.L_VEC(max(1, f_id))';
+                    wl(f_id == 0) = NaN;
+                end
+                if sum(f_id == 0)
+                    [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
+                    this.logger.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
                 end
                 this.wl = [this.wl; wl];
             end
@@ -850,6 +866,9 @@ classdef Receiver < handle
                 end
                 lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
                 lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
                 
                 % importing header informations
                 eoh = this.file.eoh;
@@ -1004,7 +1023,7 @@ classdef Receiver < handle
                 band = find(sys.CODE_RIN3_2BAND == flag(2));
                 if isempty(band)
                     this.logger.addError('Obs not found');
-                end 
+                end
                 preferences = sys.CODE_RIN3_ATTRIB{band};
                 sys_obs_code = this.obs_code(sys_idx,:);
                 sz =size(sys_obs_code,1);
@@ -1017,7 +1036,7 @@ classdef Receiver < handle
                 if isempty(complete_flag)
                     this.logger.addError('Obs not found');
                 end
-                flags = repmat(complete_flag,size(this.obs_code,1),1);  
+                flags = repmat(complete_flag,size(this.obs_code,1),1);
                 idx = sum(this.obs_code == flags,2) == 3;
             else
                 this.legger.addError(['Invalide length of obs code(' num3str(length(flag)) 'can not determine preferred observation'])
@@ -1041,7 +1060,7 @@ classdef Receiver < handle
             end
                 [obs1, idx1] = this.getPrefObs(flag1, system);
                 [obs2, idx2] = this.getPrefObs(flag2, system);
-            % put zeros to NaN 
+            % put zeros to NaN
             obs1(obs1 == 0) = NaN;
             obs2(obs2 == 0) = NaN;
             
