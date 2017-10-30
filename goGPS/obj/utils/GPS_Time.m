@@ -1142,7 +1142,7 @@ classdef GPS_Time < handle
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
-            res = (unix_time1 <= unix_time2)  & (unix_time_f1 < unix_time_f2) ;
+            res = (unix_time1 < unix_time2) | ((unix_time1 == unix_time2)  & (unix_time_f1 < unix_time_f2)) ;
         end
         
         function res = gt(gt_1, gt_2)
@@ -1151,7 +1151,7 @@ classdef GPS_Time < handle
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
-            res = (unix_time1 >= unix_time2)  & (unix_time_f1 > unix_time_f2) ;
+            res = (unix_time1 > unix_time2) |( (unix_time1 == unix_time2) & (unix_time_f1 > unix_time_f2) );
         end
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
