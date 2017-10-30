@@ -154,6 +154,7 @@ classdef File_Wizard < handle
             this.conjureNavFiles(date_start, date_stop);
             this.conjureErpFiles(date_start, date_stop);
             this.conjureDCBFiles(date_start, date_stop);
+            this.conjureCRXFiles(date_start, date_stop);
         end
 
         function [first_epoch, last_epoch] = conjureObsFile(this)
@@ -184,6 +185,20 @@ classdef File_Wizard < handle
             [file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
         end
         function conjureCRXFiles(this, date_start, date_stop)
+            % SYNTAX:
+            %   this.conjureCRXFiles(gps_week, gps_time);
+            %
+            % INPUT:
+            %   date_start = starting GPS_Time
+            %   date_stop = ending GPS_Time
+            %
+            % OUTPUT:
+            %
+            % DESCRIPTION:
+            %   Download of .CRX files from the AIUB FTP server.
+            gps_weeks = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+            gps_times = [date_start.getGpsTime; date_stop.getGpsTime ];
+            [file_crx] = download_crx(gps_weeks, gps_times);
         end
         function conjureErpFiles(this, date_start, date_stop)
             % prepare the Earth Rotation Parameters files needed for processing
