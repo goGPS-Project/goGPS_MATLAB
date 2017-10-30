@@ -1490,7 +1490,7 @@ classdef goGUIclass < handle
             % load Last Settings
             this.importSettings();
 
-            this.w_bar.goMsg('Completing syncing phase...');
+            this.w_bar.goMsg('Almost ready...');
             this.w_bar.titleUpdate('Finishing');
 
             % Read interface status as get from file
