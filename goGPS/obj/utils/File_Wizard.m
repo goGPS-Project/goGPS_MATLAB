@@ -180,9 +180,128 @@ classdef File_Wizard < handle
             %
             % DESCRIPTION:
             %   Download of .DCB files from the AIUB FTP server.
-            gps_weeks = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
-            gps_times = [date_start.getGpsTime; date_stop.getGpsTime ];
-            [file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
+            gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+            gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
+            %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
+            
+            % Pointer to the global settings:
+            state = Go_State.getCurrentSettings();
+            
+            file_dcb = {};
+            compressed = 0;
+            
+            %AIUB FTP server IP address
+            % aiub_ip = '130.92.9.78'; % ftp.unibe.ch
+            aiub_ip = 'ftp.unibe.ch';
+            
+            %download directory
+            down_dir = state.dcb_dir;
+            
+            %convert GPS time to time-of-week
+            gps_tow = weektime2tow(gps_week, gps_time);
+            
+            % starting time
+            date_f = gps2date(gps_week(1), gps_tow(1));
+            
+            % ending time
+            date_l = gps2date(gps_week(end), gps_tow(end));
+            
+            % Check / create output folder
+            if not(exist(down_dir, 'dir'))
+                mkdir(down_dir);
+            end
+            
+            fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
+            
+            year_orig  = date_f(1) : 1 : date_l(1);
+            if (length(year_orig) < 1)
+                %fprintf('ERROR: Data range not valid.\n')
+                return
+            elseif (length(year_orig) == 1)
+                month = date_f(2) : 1 : date_l(2);
+                year = year_orig;
+            else
+                month = date_f(2) : 1 : 12;
+                year  = date_f(1).*ones(size(month));
+                for y = 2 : length(year_orig)-1
+                    month = [month 1 : 1 : 12];
+                    year = [year (year+y-1).*ones(1,12)];
+                end
+                month = [month 1 : 1 : date_l(2)];
+                year  = [year date_l(1).*ones(1,date_l(2))];
+            end
+            
+            %connect to the DCB server
+            try
+                ftp_server = ftp(aiub_ip);
+            catch
+                fprintf(' connection failed.\n');
+                return
+            end
+            
+            fprintf('\n');
+            
+            m = 0;
+            
+            for y = 1 : length(year_orig)
+                
+                %target directory
+                s = ['/CODE/', num2str(year_orig(y))];
+                
+                cd(ftp_server, '/');
+                cd(ftp_server, s);
+                
+                while(m <= length(month)-1)
+                    
+                    m = m + 1;
+                    
+                    ff = {'P1C1','P1P2'};
+                    
+                    for p = 1 : length(ff)
+                        %target file
+                        s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
+                        if not(exist([down_dir '/' s2(1:end-2)]) == 2)
+                            try
+                                mget(ftp_server,s2,down_dir);
+                                if (isunix())
+                                    system(['uncompress -f ' down_dir '/' s2]);
+                                else
+                                    try
+                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                        delete([down_dir '/' s2]);
+                                        s2 = s2(1:end-2);
+                                    catch
+                                        fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                                        compressed = 1;
+                                    end
+                                end
+                                fprintf(['Downloaded DCB file: ' s2 '\n']);
+                            catch
+                                cd(ftp_server, '..');
+                                s1 = [ff{p} '.DCB'];
+                                mget(ftp_server,s1,down_dir);
+                                cd(ftp_server, num2str(year_orig(y)));
+                                s2 = [s2(1:end-2) '_TMP'];
+                                movefile([down_dir '/' s1], [down_dir '/' s2]);
+                                fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
+                            end
+                        else
+                            fprintf([s2(1:end-2) ' already present\n']);
+                        end
+                        %cell array with the paths to the downloaded files
+                        entry = {[down_dir, '/', s2]};
+                        file_dcb = [file_dcb; entry]; %#ok<AGROW>
+                    end
+                    
+                    if (month(m) == 12)
+                        break
+                    end
+                end
+            end
+            
+            close(ftp_server);
+            
+            fprintf('Download complete.\n')
         end
         function conjureCRXFiles(this, date_start, date_stop)
             % SYNTAX:
@@ -196,9 +315,76 @@ classdef File_Wizard < handle
             %
             % DESCRIPTION:
             %   Download of .CRX files from the AIUB FTP server.
-            gps_weeks = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
-            gps_times = [date_start.getGpsTime; date_stop.getGpsTime ];
-            [file_crx] = download_crx(gps_weeks, gps_times);
+            gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+            gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
+            %[file_crx] = download_crx(gps_weeks, gps_times);
+            
+            % Pointer to the global settings:
+            state = Go_State.getCurrentSettings();
+            
+            %AIUB FTP server IP address
+            % aiub_ip = '130.92.9.78'; % ftp.unibe.ch
+            aiub_ip = 'ftp.unibe.ch';
+            
+            %download directory
+            down_dir = state.crx_dir;
+            
+            %convert GPS time to time-of-week
+            gps_tow = weektime2tow(gps_week, gps_time);
+            
+            % starting time
+            date_f = gps2date(gps_week(1), gps_tow(1));
+            
+            % ending time
+            date_l = gps2date(gps_week(end), gps_tow(end));
+            
+            % Check / create output folder
+            if not(exist(down_dir, 'dir'))
+                mkdir(down_dir);
+            end
+            
+            fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
+            
+            year  = date_f(1) : 1 : date_l(1);
+            file_crx = cell(length(year),1);
+            
+            %connect to the CRX server
+            try
+                ftp_server = ftp(aiub_ip);
+            catch
+                fprintf(' connection failed.\n');
+                return
+            end
+            
+            fprintf('\n');
+            
+            for y = 1 : length(year)
+                
+                %target directory
+                s = '/aiub/BSWUSER52/GEN';
+                
+                cd(ftp_server, '/');
+                cd(ftp_server, s);
+                
+                %target file
+                s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
+                if not(exist([down_dir, '/', s2]) == 2)
+                    mget(ftp_server,s2,down_dir);
+                else
+                     fprintf([s2 ' already present\n']);
+                end
+                    
+                
+                %cell array with the paths to the downloaded files
+                file_crx{y} = [down_dir, '/', s2];
+                
+                fprintf(['Downloaded CRX file: ' s2 '\n']);
+            end
+            
+            close(ftp_server);
+            
+            fprintf('Download complete.\n')
+
         end
         function conjureErpFiles(this, date_start, date_stop)
             % prepare the Earth Rotation Parameters files needed for processing
