@@ -368,11 +368,9 @@ classdef File_Wizard < handle
                 
                 %target file
                 s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
-                if not(exist([down_dir, '/', s2]) == 2)
+                %if not(exist([down_dir, '/', s2]) == 2)
                     mget(ftp_server,s2,down_dir);
-                else
-                     fprintf([s2 ' already present\n']);
-                end
+
                     
                 
                 %cell array with the paths to the downloaded files

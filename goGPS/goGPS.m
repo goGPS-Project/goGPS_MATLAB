@@ -239,10 +239,10 @@ if goGPS_new
         fprintf('--------------------------------------------------------------------------\n');
 
         % e.g. init sky
-        %fr = File_Rinex(f_trg_rec{1}{s},100);        
-        %cur_date_start = fr.first_epoch.last();
-        %cur_date_stop = fr.last_epoch.first();
-        %sky.initSession(state, cur_date_start, cur_date_stop);
+        fr = File_Rinex(f_trg_rec{1}{s},100);        
+        cur_date_start = fr.first_epoch.last();
+        cur_date_stop = fr.last_epoch.first();
+        sky.initSession(cur_date_start, cur_date_stop);
 
         clear trg;
         for t = 1 : num_trg_rec

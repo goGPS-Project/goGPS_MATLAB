@@ -97,6 +97,49 @@ classdef Core_Sky < handle
     % =========================================================================
     
     methods % Public Access
+        function init(this)
+            state = Go_State.getCurrentSettings();
+            %%% might serve some scope
+        end
+        function initSession(this, start_date, stop_time)
+            state = Go_State.getCurrentSettings();
+
+            %%% load Epehemerids
+            eph_f_name = state.getEphFileName(start_date, stop_time);
+            clock_f_name = state.getClkFileName(start_date, stop_time);
+            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
+            this.clearOrbit();
+            if strfind(eph_f_name{1},'.sp3') % assuming all files have the same endings
+                for i = 1:length(eph_f_name)        
+                    this.addSp3(eph_f_name{i},clock_in_eph);
+                    this.coord_type = 0; %center of mass
+                end
+            else %% if not sp3 assume is a rinex navigational file
+                this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
+            end
+                    this.coord_type = 1; %Antenna phase center 
+            if not(clock_in_eph)
+                for i = 1:length(clock_f_name)
+                    [~,~,ext] = fileparts(clock_f_name{i});
+                    str = strsplit(ext,'_');
+                    clk_rate = str2num(str{2}(1:end-1));
+                    this.addClk(clock_f_name{i},clk_rate);
+                end
+            end
+            %%% compute pol for ephemerids
+            this.computeSatPolyCoeff();
+            this.computeSMPolyCoeff();
+            %%% load PCV
+            this.load_antenna_PCV(state.getAtxFile);
+            % pass to antenna phase center if necessary
+            if this.coord_type == 0
+                this.toAPC();
+            end
+            %%% load ERP
+            this.importERP(state.getErpFileName(start_date, stop_time),start_date);
+            %%% load DCB
+            % TBD
+        end
         function clearOrbit(this, gps_date)
             if nargin > 1
                 this.clearCoord(gps_date);
@@ -147,7 +190,7 @@ classdef Core_Sky < handle
                 end
             else
             this.clock=[];
-            this.time_ref_coord = [];
+            this.time_ref_clock = [];
             end
         end
         function clearSunMoon(this, gps_date)
@@ -220,7 +263,7 @@ classdef Core_Sky < handle
             orb_time.appendUnixTime(u_t , u_t_f);
 
         end
-        function importEph(this, eph, t_st, t_end, sat, step)
+        function importEph(this, eph, t_st, t_end, step, clock)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
             %
@@ -237,11 +280,13 @@ classdef Core_Sky < handle
             %
             % DESCRIPTION:
             
-            if nargin < 6
+            if nargin < 5
                 step = 900;
             end
             this.coord_rate = step;
+            if clock
             this.clock_rate = step;
+            end
             if nargin < 4 || t_end.isempty()
                 t_end = t_st;
             end
@@ -249,9 +294,11 @@ classdef Core_Sky < handle
             this.time_ref_coord = t_st.getCopy();
             this.time_ref_coord.toUnixTime();
             this.time_ref_coord.addSeconds(-5*step);
+            if clock
             this.time_ref_clock = this.time_ref_coord.getCopy();
+            end
             
-            sat = intersect(sat,unique(eph(30,:))); %% keep only satellite also present in eph
+            sat = unique(eph(30,:)); %% keep only satellite also present in eph
             i = 0;
             
             this.coord = zeros(length(times), this.cc.getNumSat,3 );
@@ -259,30 +306,82 @@ classdef Core_Sky < handle
             t_dist_exced=false;
             for t = times
                 i=i+1;
-                [this.coord(i,:,:), ~, this.clock(:,i), t_d_e]=this.satellitePositions(t, sat, eph); %%%% consider loss of precision problem
+                [this.coord(i,:,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat, eph); %%%% loss of precision problem should be less tha 1 mm 
+                if clock
+                    this.clock(:,i) = clock_temp;
+                end
                 t_dist_exced = t_dist_exced || t_d_e;
             end
             if t_dist_exced
-                this.log.addError(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids ',t_st.toString(0),t_end.toString(0)))
+                this.log.addWarning(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids \nPositions might be inaccurate\n ',t_st.toString(0),t_end.toString(0)))
             end
         end
-        function importBrdc(this,f_name, t_st, t_end, sat, step)
+        function importBrdcs(this,f_names, t_st, t_end, clock, step)
             if nargin < 6
                 step = 900;
             end
             if nargin < 5
-                sat= this.cc.index;
+                clock = true
             end
+                sat= this.cc.index;
             if nargin < 4 || t_end.isempty()
                 t_end = t_st;
             end
-            [eph, this.iono, flag_return] = load_RINEX_nav(f_name,this.cc,0,0);
-            if isempty(eph)
-                
+            if not(iscell(f_names))
+                f_names = {f_names};
             end
-            this.importEph(eph,t_st,t_end,sat,step);
+            eph = [];
+            for i=1:length(f_names)
+                [eph_temp, this.iono, flag_return] = load_RINEX_nav(f_names{i},this.cc,0,0);
+                eph = [eph eph_temp];
+            end
+           
+            if not(isempty(eph))
+                 this.importEph(eph, t_st, t_end, step, clock);
+            end
             
         end
+         function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph) 
+             
+            % SYNTAX: 
+            %   [XS, VS] = satellite_positions(time_rx, sat, eph); 
+            % 
+            % INPUT: 
+            %   time_rx     = reception time 
+            %   sat         = available satellite indexes 
+            %   eph         = ephemeris 
+            % 
+            % OUTPUT: 
+            %   XS      = satellite position at time in ECEF(time_rx) (X,Y,Z) 
+            %   VS      = satellite velocity at time in ECEF(time_tx) (X,Y,Z) 
+            %   dtS     = satellite clock error (vector) 
+            % 
+            % DESCRIPTION: 
+            nsat = length(sat); 
+             
+            XS = zeros(this.cc.getNumSat(), 3); 
+            VS = zeros(this.cc.getNumSat(), 3); 
+             
+             
+            dt_s = zeros(this.cc.getNumSat(), 1); 
+            t_dist_exced = false; 
+            for i = 1 : nsat 
+                 
+                k = find_eph(eph, sat(i), time); 
+                if not(isempty(k)) 
+                    %compute satellite position and velocity 
+                    [XS(sat(i),:), VS(sat(i),:)] = satellite_orbits(time, eph(:,k), sat(i), []); 
+                    dt_s(sat(i)) = sat_clock_error_correction(time, eph(:,k)); 
+                    dt_s(sat(i)) = sat_clock_error_correction(time - dt_s(sat(i)), eph(:,k)); 
+                else 
+                    t_dist_exced = true; 
+                end 
+                 
+            end 
+             
+             
+            %XS=XS'; 
+        end 
         function addSp3(this, filename_SP3, clock_flag)
             % SYNTAX:
             %   this.addSp3(filename_SP3, clock_flag)
@@ -526,7 +625,7 @@ classdef Core_Sky < handle
                 % while there are lines to process
                 if this.clock_rate ~= file_clk_rate
                     % different clock rate old file are being deleted
-                    this.log.addWarning(['Clock rate (' num2str(this.clock_rate) ') differ from the in in the file (' num2str(file_clk_rate) '), old clock data will be deleted'])
+                    %this.log.addWarning(['Clock rate (' num2str(this.clock_rate) ') differ from the in in the file (' num2str(file_clk_rate) '), old clock data will be deleted'])
                     this.clock_rate = file_clk_rate;
                     this.clearClock();
                     empty_clk = true;
@@ -572,7 +671,7 @@ classdef Core_Sky < handle
                         gps_dow  = sscanf(lin([23]),'%f');
                         file_first_ep = GPS_Time(gps_week, gps_dow,[],3);
                         if empty_clk
-                            this.time_ref_clock = file_first_ep
+                            this.time_ref_clock = file_first_ep;
                             [ref_week, ref_sow] =this.time_ref_clock.getGpsWeek();
                             
                             this.clock = zeros(86400 / this.clock_rate,this.cc.getNumSat());
@@ -651,7 +750,7 @@ classdef Core_Sky < handle
                                 % computation of the GPS time in weeks and seconds of week
                                 [c_week, c_sow] = date2gps([year, month, day, hour, minute, second]);
                                 
-                                c_ep_idx = round(((c_week - ref_week)/(86400*7)+c_sow-ref_sow) / this.clock_rate) +1;
+                                c_ep_idx = round(((c_week - ref_week)*(86400*7)+c_sow-ref_sow) / this.clock_rate) +1;
                                 this.clock(c_ep_idx , index) = data(8);
                             end
                         end
@@ -665,9 +764,9 @@ classdef Core_Sky < handle
             end
         end
         function importERP(this, f_name, time)
-            this.ERP = load_ERP(f_name, time);
+            this.ERP = load_ERP(f_name, time.getGpsTime());
         end
-        function importDCB(data_dir_dcb,codeC1_R)
+        function importDCB(this, filenames)
             %this.DCB = 
         end
         
