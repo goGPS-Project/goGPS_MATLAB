@@ -46,10 +46,8 @@ classdef Core_Sky < handle
         clock_rate = 900;
         iono
         
-        t_sun  % time of sun ephemerids
-        X_sun  % coord of tabulated sun positions ECEF
-        X_moon % coord of tabulated moon positions ECEF
-        t_sun_rate
+        X_sun  % coord of tabulated sun positions ECEF at the same time of coord
+        X_moon % coord of tabulated moon positions ECEF at the same time of coord
         sun_pol_coeff % coeff for polynoimial interpolation of tabulated sun positions
         moon_pol_coeff % coeff for polynoimial interpolation of tabulated moon positions
         
@@ -99,32 +97,71 @@ classdef Core_Sky < handle
     % =========================================================================
     
     methods % Public Access
-        function clearOrbit(this)
+        function clearOrbit(this, gps_date)
+            if nargin > 1
+                this.clearCoord(gps_date);
+                this.clearClock(gps_date);
+            else
+            this.clearCoord();
+            this.clearClock();
+            this.clearSunMoon();
+            end
+        end
+        function clearCoord(this, gps_date)
+            % DESCRIPTION: clear coord data , if date is provided clear
+            % only data before that date
+            if nargin > 1
+                if this.time_ref_coord < gps_date
+                    n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
+                    this.coord(1:n_ep,:,:)=[];
+                    this.time_ref_coord.addSeconds(n_ep*this.coord_rate);
+                    this.coord_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    
+                    % deleate also sun e moon data
+                    if not(isempty(this.X_sun))
+                        this.X_sun(1:n_ep,:)=[];
+                    end
+                    if not(isempty(this.X_moon))
+                    this.X_moon(1:n_ep,:)=[];
+                    end
+                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    
+                end
+            else
             this.coord=[];
+            this.time_ref_coord = [];
+            this.coord_pol_coeff = [];
+            end
+        end
+        function clearClock(this, gps_date)
+            % DESCRIPTION: clear clock data , if date is provided clear
+            % only data before that date
+            if nargin > 1
+                if this.time_ref_clock < gps_date
+                    n_ep = floor((gps_date - this.time_ref_clock)/this.clock_rate);
+                    this.clock(1:n_ep,:)=[];
+                    this.time_ref_clock.addSeconds(n_ep*this.clock_rate);
+                   
+                    
+                end
+            else
             this.clock=[];
             this.time_ref_coord = [];
-            this.time_ref_clock = [];
-            this.t_sun = [];
-            this.X_sun = [];
-            this.X_moon = [];
-            this.coord_pol_coeff = [];
-            this.t_sun = [];
-            this.X_sun = [];
-            this.X_moon = [];
-            this.sun_pol_coeff = [];
-            this.moon_pol_coeff = [];
+            end
         end
-        function clearCoord(this)
-            this.coord=[];
-            this.time_ref_coord = [];
-            this.coord_pol_coeff = [];
-        end
-        function clearClock(this)
-            this.clock=[];
-            this.time_ref_coord = [];
-        end
-        function clearSunMoon(this)
-            this.t_sun = [];
+        function clearSunMoon(this, gps_date)
+            % DESCRIPTION: clear sun and moon data , if date is provided clear
+            % only data before that date
+            if nargin > 1
+                if this.time_ref_coord > gps_date
+                    n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
+                    this.X_sun(1:n_ep,:)=[];
+                    this.X_moon(1:n_ep,:)=[];
+                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                end
+            end
             this.X_sun = [];
             this.X_moon = [];
             this.sun_pol_coeff = [];
@@ -631,7 +668,7 @@ classdef Core_Sky < handle
             this.ERP = load_ERP(f_name, time);
         end
         function importDCB(data_dir_dcb,codeC1_R)
-            %TBD
+            %this.DCB = 
         end
         
         
