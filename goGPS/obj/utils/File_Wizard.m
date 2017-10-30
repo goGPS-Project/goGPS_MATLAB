@@ -153,6 +153,7 @@ classdef File_Wizard < handle
             this.state.updateErpFileName();
             this.conjureNavFiles(date_start, date_stop);
             this.conjureErpFiles(date_start, date_stop);
+            this.conjureDCBFiles(date_start, date_stop);
         end
 
         function [first_epoch, last_epoch] = conjureObsFile(this)
@@ -165,7 +166,25 @@ classdef File_Wizard < handle
             first_epoch = fh.first_epoch.first;
             last_epoch = fh.last_epoch.last;
         end
-
+        function conjureDCBFiles(this, date_start, date_stop)
+            
+            % SYNTAX:
+            %   this.conjureDCBFiles(gps_week, gps_time);
+            %
+            % INPUT:
+            %   date_start = starting GPS_Time
+            %   date_stop = ending GPS_Time
+            %
+            % OUTPUT:
+            %
+            % DESCRIPTION:
+            %   Download of .DCB files from the AIUB FTP server.
+            gps_weeks = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+            gps_times = [date_start.getGpsTime; date_stop.getGpsTime ];
+            [file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
+        end
+        function conjureCRXFiles(this, date_start, date_stop)
+        end
         function conjureErpFiles(this, date_start, date_stop)
             % prepare the Earth Rotation Parameters files needed for processing
             erp_ok = this.state.checkErpFiles();
