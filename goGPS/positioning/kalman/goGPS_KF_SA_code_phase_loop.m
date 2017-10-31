@@ -357,7 +357,7 @@ if (nsat >= min_nsat)
     end
 
     %apply receiver antenna PCO/PCV corrections
-    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0)
+    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0 && nsat > 0)
         index_rover = 1;
         PCO1 = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 1);
         PCV1 = PCV_correction(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
