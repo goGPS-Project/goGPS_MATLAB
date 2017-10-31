@@ -177,10 +177,10 @@ classdef Receiver < handle
                 'XS_tx',       [] ...     % compute Satellite postion a t transmission time
                 );
             
-            this.rec2sat.avail_index  = false(sum(cc.n_sat), 1);
-            this.rec2sat.avail_index(this.go_ids) = true;
-            this.cc.cs                = Core_Sky.getInstance();
-            this.rec2sat.tot          = NaN(this.getNumEpochs, this.getNumPseudoRanges);
+            %this.rec2sat.avail_index  = false(sum(this.cc.n_sat), 1);
+            %this.rec2sat.avail_index(this.go_ids) = true;
+            this.rec2sat.cs                   = Core_Sky.getInstance();
+            this.rec2sat.tot          = NaN(this.getNumEpochs, this.cc.getNumSat);
             %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
@@ -407,7 +407,7 @@ classdef Receiver < handle
             type_found = false;
             while ~type_found && l < eoh
                 l = l + 1;
-                if strcmp(txt((lim(l,1) + 60) : lim(l,2)), h_std{1})
+                if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
                     type_found = true;
                     dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');
                 end
