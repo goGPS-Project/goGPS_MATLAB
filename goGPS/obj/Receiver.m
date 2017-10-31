@@ -878,6 +878,8 @@ classdef Receiver < handle
             inv_wl1 = repmat(1./this.wl(idx1),1,size(obs1,2));
             inv_wl2 = repmat(1./this.wl(idx2),1,size(obs2,2));
             obs = ((inv_wl1).^2 .* obs1 - (inv_wl2).^2 .* obs2)./ ( (inv_wl1).^2 - (inv_wl2).^2 );
+            
+            % ste NaN to 0
             obs(isnan(obs)) = 0;
         end
     end
