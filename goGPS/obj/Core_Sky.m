@@ -517,6 +517,7 @@ classdef Core_Sky < handle
                 this.log.addWarning([ filename_SP3 ' not found.']);
             end
             clear sp3_file;
+            this.coord = zero2nan(this.coord);
         end
         
         function addClk(this,filename_clk)
