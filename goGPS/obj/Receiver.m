@@ -269,7 +269,7 @@ classdef Receiver < handle
             this.ss_id = this.ss_id';
             this.n_freq = numel(unique(this.f_id));
             
-            this.go_id = this.prn + this.cc.n_sat(this.ss_id);
+            this.go_id = this.prn + reshape(this.cc.n_sat(this.ss_id),length(this.prn),1); %%% some time second vector is a colum some time is a line reshape added to uniform
             this.n_sat = numel(unique(this.go_id));
             
             % Compute number of satellite per epoch
@@ -306,6 +306,7 @@ classdef Receiver < handle
             % SYNTAX:   this.remObs(id_obs)
             
             this.obs(id_obs,:) = [];            
+            
             this.active_ids(id_obs) = [];
             this.wl(id_obs) = [];
             this.f_id(id_obs) = [];
@@ -316,6 +317,9 @@ classdef Receiver < handle
             this.obs_validity(id_obs) = [];
             
             this.obs_code(id_obs, :) = [];
+            if length(id_obs) == length(this.wl) %case constellation collector contains lees constellation than rinex (try and error fix)
+                
+            end
             
             this.rec2sat.avail_index  = false(sum(this.cc.n_sat), 1);
             this.rec2sat.avail_index(this.go_id) = true;
