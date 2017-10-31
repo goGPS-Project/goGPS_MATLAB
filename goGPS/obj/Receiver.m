@@ -305,20 +305,20 @@ classdef Receiver < handle
             % remove observations with a certain id
             % SYNTAX:   this.remObs(id_obs)
             
-            this.obs(id_obs,:) = [];            
+            this.obs(id_obs,:) = [];
             
             this.active_ids(id_obs) = [];
-            this.wl(id_obs) = [];
-            this.f_id(id_obs) = [];
-            this.ss_id(id_obs) = [];
-            this.prn(id_obs) = [];
-            this.go_id(id_obs) = [];
-            this.system(id_obs) = [];
             this.obs_validity(id_obs) = [];
-            
-            this.obs_code(id_obs, :) = [];
             if length(id_obs) == length(this.wl) %case constellation collector contains lees constellation than rinex (try and error fix)
+                this.wl(id_obs) = [];
+                this.f_id(id_obs) = [];
+                this.ss_id(id_obs) = [];
+                this.prn(id_obs) = [];
+                this.go_id(id_obs) = [];
+                this.system(id_obs) = [];
                 
+                
+                this.obs_code(id_obs, :) = [];
             end
             
             this.rec2sat.avail_index  = false(sum(this.cc.n_sat), 1);
@@ -1415,7 +1415,7 @@ classdef Receiver < handle
                     line = mask(1 : n_ops * 16);
                     for i = 0 : n_lps - 1
                         try
-                            line(id_line(1:lim(line_start + i, 3) + 1,i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2));
+                            line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
                         catch
                             % empty last lines
                         end
@@ -1549,12 +1549,14 @@ classdef Receiver < handle
                 for s = 1 : size(sat, 1)
                     % line to fill with the current observation line
                     obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
-                    line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
-                    ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                    % try with sscanf
-                    line = line(data_pos(1 : numel(line)));
-                    data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                    obs(obs_line(1:size(data,1)), e) = data;
+                    if ~isempty(obs_line)
+                        line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
+                        ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                        % try with sscanf
+                        line = line(data_pos(1 : numel(line)));
+                        data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                        obs(obs_line(1:size(data,1)), e) = data;
+                    end
                     % alternative approach with textscan
                     %data = textscan(line, '%14.3f%1d%1d');
                     %obs(obs_line(1:numel(data{1})), e) = data{1};
