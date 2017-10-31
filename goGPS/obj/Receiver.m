@@ -259,7 +259,7 @@ classdef Receiver < handle
             this.active_ids = true(this.getNumObservables, 1);
             
             % remove empty observables
-            rec.remObs(~rec.obs_validity)
+            this.remObs(~this.obs_validity)
         end
         
         function updateStatus(this)
@@ -269,7 +269,7 @@ classdef Receiver < handle
             this.ss_id = this.ss_id';
             this.n_freq = numel(unique(this.f_id));
             
-            this.go_id = this.prn + this.cc.n_sat(this.ss_id)';
+            this.go_id = this.prn + this.cc.n_sat(this.ss_id);
             this.n_sat = numel(unique(this.go_id));
             
             % Compute number of satellite per epoch
@@ -1398,6 +1398,7 @@ classdef Receiver < handle
             for e = 1 : n_epo % for each epoch
                 n_sat = this.n_spe(e);
                 sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                sat = sat(~isspace(sat));
                 sat = sat(1:n_sat * 3);
                 sat = reshape(sat, 3, n_sat)';
                 prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
