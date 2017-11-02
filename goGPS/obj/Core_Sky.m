@@ -52,7 +52,23 @@ classdef Core_Sky < handle
         moon_pol_coeff % coeff for polynoimial interpolation of tabulated moon positions
         
         ERP  % EARH rotation parameters
-        DCB  % differential code biases
+        group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... %% GPS codes
+                               'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ... %GLONASS code
+                               'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; ... %GALIELEO codes
+                               'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ... %BeiDou codes
+                               'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... %% QZSS codes
+                               'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ... %% IRNSS codes
+                               'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS   
+                               ]; % ALL Rinex 3 code observations flags
+        group_delays = zeros(32,77); % group delay of code measurements referenced to their constellation reference:
+                                     %    GPS -> Iono free linear combination C1P C2P
+                                     %    GLONASS -> Iono free linear combination C1P C2P
+                                     %    Galileo -> Iono free linear combination
+                                     %    BedDou -> B3 signal
+                                     %    QZS -> Iono free linear combination
+                                     %    IRNSS -> Iono free linear combination
+                                     %    SABS -> Iono free linear combination
+        group_delays_times % 77x1 GPS_Time
         antenna_PCO   %% satellites antenna phase center offset
         antenna_PCV  %% satellites antenna phase center variations
         %satType
@@ -138,7 +154,7 @@ classdef Core_Sky < handle
             %%% load ERP
             this.importERP(state.getErpFileName(start_date, stop_time),start_date);
             %%% load DCB
-            % TBD
+            this.importCODEDCB();
         end
         function clearOrbit(this, gps_date)
             if nargin > 1
@@ -631,11 +647,42 @@ classdef Core_Sky < handle
         function importERP(this, f_name, time)
             this.ERP = load_ERP(f_name, time.getGpsTime());
         end
-        function importDCB(this, filenames)
-            %this.DCB =
+        function importCODEDCB(this)
+            [DCB] = load_dcb(this.state.DCB_DIR, double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
+            %%% assume that CODE DCB contains only GPS and GLONASS
+            %GPS C1W - C2W
+            idx_w1 =  this.getGroupDelayIdx('GC1W');
+            idx_w2 =  this.getGroupDelayIdx('GC2W');
+            p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'G');
+            iono_free = this.cc.getGPS.getIonoFree();
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2;
+            % GPS C1W - C1C
+            idx_w1 =  this.getGroupDelayIdx('GC1C');
+            idx_w2 =  this.getGroupDelayIdx('GC2D');
+            p1c1 = DCB.P1P2.value(DCB.P1C1.sys == 'G');
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2 + p1c1;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2 + p1c1; %semi codeless tracking
+            %GLONASS C1P - C2P
+            idx_w1 =  this.getGroupDelayIdx('RC1P');
+            idx_w2 =  this.getGroupDelayIdx('RC2P');
+            p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'R');
+            iono_free = this.cc.getGLONASS.getIonoFree();
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = iono_free.alpha2 *p1p2;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = iono_free.alpha1 *p1p2;
+            
+            
+            
         end
-        
-        
+        function importSinexDCB(this, filename)
+            %DESCRIPTION: import DCB in sinex format 
+            % TBD
+        end
+        function idx = getGroupDelayIdx(this,flag)
+            %DESCRIPTION: get the index of the gorup delay for the given
+            %flag
+            idx = find(sum(this.group_delays_flags == repmat(flag,size(this.group_delays_flags,1),1),2)==4);
+        end
         function importIono(this,f_name)
             [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
             if (flag_return)
