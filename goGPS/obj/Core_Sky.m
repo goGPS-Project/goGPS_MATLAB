@@ -60,7 +60,7 @@ classdef Core_Sky < handle
                                'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ... %% IRNSS codes
                                'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS   
                                ]; % ALL Rinex 3 code observations flags
-        group_delays = zeros(32,77); % group delay of code measurements referenced to their constellation reference:
+        group_delays = zeros(32,77); % group delay of code measurements (meters) referenced to their constellation reference:
                                      %    GPS -> Iono free linear combination C1P C2P
                                      %    GLONASS -> Iono free linear combination C1P C2P
                                      %    Galileo -> Iono free linear combination
@@ -355,6 +355,36 @@ classdef Core_Sky < handle
             if not(isempty(eph))
                 this.importEph(eph, t_st, t_end, step, clock);
             end
+            %%% add TGD delay parameter
+            for const = unique(eph(31,:))
+                eph_const = eph(:,eph(31,:)==const);
+                for s = unique(eph_const(1,:))
+                    eph_sat = eph_const(:, eph_const(1,:) == s);
+                    GD = eph_sat(28,1); % TGD change only every 3 months
+                end
+                switch char(const) 
+                    case 'G'
+                            idx_c1w = this.getGroupDelayIdx('GC1W');
+                            idx_c2w = this.getGroupDelayIdx('GC2W');
+                            this.group_delays(s,idx_c1w) = -GD * goGNSS.V_LIGHT;
+                            f = this.cc.getGPS().F_VEC; % frequencies 
+                            this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                    case 'R'
+                            idx_c1p = this.getGroupDelayIdx('RC1P');
+                            idx_c2p = this.getGroupDelayIdx('RC2P');
+                            this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
+                            f = this.cc.getGLONASS().F_VEC; % frequencies 
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                    case 'E'
+                            idx_c1p = this.getGroupDelayIdx('EC1B');
+                            idx_c2p = this.getGroupDelayIdx('EC5I');
+                            this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
+                            f = this.cc.getGalileo().F_VEC; % frequencies 
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                            
+                end
+            end
+                
             
         end
         function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph)
@@ -655,21 +685,21 @@ classdef Core_Sky < handle
             idx_w2 =  this.getGroupDelayIdx('GC2W');
             p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'G');
             iono_free = this.cc.getGPS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT;
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
             p1c1 = DCB.P1P2.value(DCB.P1C1.sys == 'G');
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2 + p1c1;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2 + p1c1; %semi codeless tracking
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
             p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'R');
             iono_free = this.cc.getGLONASS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = iono_free.alpha2 *p1p2;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = iono_free.alpha1 *p1p2;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT;
             
             
             
