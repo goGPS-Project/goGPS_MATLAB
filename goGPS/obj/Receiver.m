@@ -84,6 +84,8 @@ classdef Receiver < handle
         
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         
+        group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
+        
         rec2sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
             'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
@@ -915,6 +917,45 @@ classdef Receiver < handle
                 end
             end
         end
+        function applyGroupDelay(this)
+            % DESCRIPTION. apply group delay corrections for code and pahse
+            % measurement when a value if provided froma an external source
+            % (Navigational file  or DCB file)
+            for i = 1:size(this.rec2sat.cs.group_delays,2)
+                if this.rec2sat.cs.group_delays(i) ~= 0
+                    
+                idx = this.getObsIdx(this.rec2sat.cs.group_delays_flags(i,2:4),this.rec2sat.cs.group_delays_flags(i,1));
+                if ~isempty(idx)
+                    for s = 1 : size(this.rec2sat.cs.group_delays,1)
+                        sat_idx = find(this.prn(idx)== s)
+                        sat_idx = idx(sat_idx);
+                    this.obs(sat_idx,not(this.obs(idx,:)==0)) = this.obs(sat_idx,not(this.obs(idx,:)==0)) + this.rec2sat.cs.group_delays(s,i);
+                    end
+                end
+                end
+            end
+            group_delay_status = 1; %applied
+            
+        end
+        function removeGroupDelay(this)
+            % remove gorup delay correction from the observations
+            for i = 1:size(this.rec2sat.cs.group_delays,2)
+                if this.rec2sat.cs.group_delays(i) ~= 0
+                    
+                idx = this.getObsIdx(this.rec2sat.cs.group_delays_flags(i,2:4),this.rec2sat.cs.group_delays_flags(i,1));
+                if ~isempty(idx)
+                    for s = 1 : size(this.rec2sat.cs.group_delays,1)
+                        sat_idx = find(this.prn(idx)== s)
+                        sat_idx = idx(sat_idx);
+                    this.obs(sat_idx,not(this.obs(idx,:)==0)) = this.obs(sat_idx,not(this.obs(idx,:)==0)) - this.rec2sat.cs.group_delays(s,i);
+                    end
+                end
+                end
+            end
+            group_delay_status = 0; %applied
+        end
+        
+        
     end
     
     % ==================================================================================================================================================
@@ -1033,35 +1074,7 @@ classdef Receiver < handle
             end
             
         end
-        function group_delay = getGD(this,obs_type)
-            % SYNTAX:
-            %   this.getDtS(time_rx)
-            %
-            % INPUT:
-            %  obs_type = frequency or frequency combination,possible values : L1 L2 L3
-            %
-            % OUTPUT:
-            %   group_delay = goup delay
-            % DESCRIPTION:
-            %   Compute the Grup delay from DCB
-            %%% !!!! ASSUME P1/P2 RECEIVER
-            %%%% QZSS IRNSS ??? -> To Be investigated
-            group_delay = zeros(size(this.rec2sat.avail_index))
-            switch obs_type
-                case 'L1'
-                    dcb_factor = cc.gps.getIonoFree.alpha2;
-                case 'L2'
-                    dcb_factor = cc.gps.getIonoFree.alpha1;
-                case 'L3'
-                    dcb_factor = 0;
-                otherwise
-                    Logger.getInstance().addWarning(['Unknown observable ' obs_type]);
-                    dcb_factor = 0;
-            end
-            for s = 1:size(group_delay,2)
-                group_delay(this.avail_index(:,s),:) = dcb_factor*core_sky.DCB.P1P2.values(s)
-            end
-        end
+        
         
         function [XS_tx_r ,XS_tx] = getXSTxRot(this, time_rx, cc)
             % SYNTAX:
