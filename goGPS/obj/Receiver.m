@@ -247,10 +247,44 @@ classdef Receiver < handle
                 if (this.rin_type < 3)
                     % considering rinex 2
                     this.parseRin2Data(txt, lim, eoh);
+
+                    
                 else
                     % considering rinex 3
                     this.parseRin3Data(txt, lim, eoh);
                 end
+                % guess rinex3 flag for incomplete flag (probably
+                % comning from rinex2)
+                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag
+                % C2D)
+                % receiver not supporter (in rinex 2) convert them
+                % using cc2noncc converter
+                % https://github.com/ianmartin/cc2noncc (not tested)
+                % GPS C1 -> C1C
+                idx = this.getObsIdx('C1 ','G');
+                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                % GPS C2 -> C2C
+                idx = this.getObsIdx('C2 ','G');
+                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GPS P1 -> C1W 
+                idx = this.getObsIdx('P1 ','G');
+                this.obs_code(idx,:) = repmat('C1W',length(idx),1);
+                % GPS P2 -> C2W 
+                idx = this.getObsIdx('P2 ','G');
+                this.obs_code(idx,:) = repmat('C1W',length(idx),1);
+                % GLONASS C1 -> C1C
+                idx = this.getObsIdx('C1 ','R');
+                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                % GLONASS C2 -> C2C
+                idx = this.getObsIdx('C2 ','R');
+                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GLONASS P1 -> C1P
+                idx = this.getObsIdx('P1 ','R');
+                this.obs_code(idx,:) = repmat('C1P',length(idx),1);
+                % GLONASS P2 -> C2P
+                idx = this.getObsIdx('P2 ','R');
+                this.obs_code(idx,:) = repmat('C2P',length(idx),1);
+                % other flags to be investiagated
                 
                 this.logger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
                 this.logger.newLine();
