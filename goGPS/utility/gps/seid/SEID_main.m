@@ -130,19 +130,10 @@ for k = 1 : n_sta
             P2{k}(sat,t) = pr2_RM(sat,t,k);
         end
     end
-
-    for PRN = 1 : nSatTot
-
-        if (k == target_sta)
-            index = find(P1{k}(PRN,:) ~= 0);
-            P1{k}(PRN,index) = P1{k}(PRN,index) - goGNSS.V_LIGHT*dtM(index)';
-        end
-        zero_idx = find(P1{k}(PRN,:) == 0);
-        P1{k}(PRN,zero_idx) = NaN; %#ok<*FNDSB>
-
-        zero_idx = find(P2{k}(PRN,:) == 0);
-        P2{k}(PRN,zero_idx) = NaN;
-    end
+    
+    % zero obbservations are non valid -> convert them to nan
+    P1{k} = zero2nan(P1{k});
+    P2{k} = zero2nan(P2{k});
 end
 
 %compute diff_L4
