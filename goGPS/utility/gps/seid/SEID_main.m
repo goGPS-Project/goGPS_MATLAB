@@ -170,8 +170,6 @@ for PRN = 1 : nSatTot
 %
 %     %compute fix ~P2 (remove large outliers)
 %     fix_til_P2(PRN,:) = fix_jump(til_P2,PRN,0.6*10e7);
-
-    fix_til_P2(PRN,:) = fix_til_P2(PRN,:) + goGNSS.V_LIGHT*dtM';
 end
 
 %write new RINEX file
