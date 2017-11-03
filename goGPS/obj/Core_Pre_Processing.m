@@ -976,10 +976,21 @@ classdef Core_Pre_Processing < handle
             pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
             % if adding the desync will improve the std it means that the receiver does not compensate for it
             [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
-            if flag; logger.addMessage('Correcting phase for time desync', 100); end
+            if flag
+                time_desync_ph = time_desync;
+                logger.addMessage('Correcting phase for time desync', 100); 
+            else
+                time_desync_ph = 0;
+            end
+            
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
-            if flag; logger.addMessage('Correcting pseudo-ranges for time desync', 100); end
-            clear phr_ds;
+            if flag
+                time_desync_pr = time_desync;
+                logger.addMessage('Correcting pseudo-ranges for time desync', 100); 
+            else
+                time_desync_pr = 0;                
+            end
+            clear pr_ds ph_ds;
             [ph, dt_ph] = Core_Pre_Processing.remClockJump(ph);
             %figure(1); plot(diff(zero2nan(ph)),'.k');
 
@@ -1003,8 +1014,8 @@ classdef Core_Pre_Processing < handle
                 dt_pr = dt;
             end
             
-            dt_pr = dt_pr + time_desync;
-            dt_ph = dt_ph + time_desync;
+            dt_ph = dt_ph + time_desync_ph;
+            dt_pr = dt_pr + time_desync_pr;
             %figure(2); plot(diff(zero2nan(pr)),'.k');
         end
         

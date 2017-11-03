@@ -165,6 +165,9 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
     % correct nominal time desynchronization and jumps ---------------------------------------------------
     
+    % nominal time desynchronization (e.g. with some low-cost receivers)
+    time_desync = time_ref - time; % computed here, used in init_positioning
+    
     ph1_bk = ph1;
     ph2_bk = ph2;
     pr1_bk = pr1;
@@ -519,9 +522,6 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
         %available epochs
         index_e = find(time ~= 0);
-
-        %nominal time desynchronization (e.g. with some low-cost receivers)
-        time_desync = time_ref - time;
 
         %reference time "correction"
         time_ref(index_e) = time(index_e) + dtR(index_e) + dt_ph(index_e); %time_desync(index_e);
