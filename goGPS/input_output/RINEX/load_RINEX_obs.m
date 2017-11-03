@@ -315,6 +315,7 @@ for f = 1 : nFiles
     pr2(:,:,f) = remove_short_arcs(pr2(:,:,f), min_arc);
     ph1(:,:,f) = remove_short_arcs(ph1(:,:,f), min_arc);
     ph2(:,:,f) = remove_short_arcs(ph2(:,:,f), min_arc);
+    codeC1(:,:,f) = remove_short_arcs(codeC1(:,:,f), min_arc);
 end
 
 % Find when all the dataset have at least one good observations in common

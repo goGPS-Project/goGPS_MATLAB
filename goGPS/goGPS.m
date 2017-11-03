@@ -984,6 +984,7 @@ for session = 1 : num_session
                     %exclude for which lambda could not be computed
                     delsat = ~any(lambda,2);
                     pr1_R(delsat,:,:) = 0;
+                    codeC1_R(delsat,:) = 0;
                     pr2_R(delsat,:,:) = 0;
                     ph1_R(delsat,:,:) = 0;
                     ph2_R(delsat,:,:) = 0;
@@ -991,6 +992,7 @@ for session = 1 : num_session
                     dop2_R(delsat,:,:) = 0;
                     snr_R(delsat,:,:) = 0; %#ok<SAGROW>
                     pr1_M(delsat,:) = 0;
+                    codeC1_M(delsat,:) = 0;
                     pr2_M(delsat,:) = 0;
                     ph1_M(delsat,:) = 0;
                     ph2_M(delsat,:) = 0;
