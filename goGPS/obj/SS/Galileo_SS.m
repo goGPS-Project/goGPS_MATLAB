@@ -81,7 +81,7 @@ classdef Galileo_SS < Satellite_System
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'ZXACB' 'XQI' 'XQI', 'XQI', 'ZXACB'}; % last letter of the observation code Assumption: Public regualted service (PRS ) better than Pilot (C) better than data (A), pilot channel seems to be the quadra pahse one
         CODE_RIN3_2BAND  = '15786';             % id for the freq as stored in F_VEC
-        IONO_FREE_PREF  = ['15';'18','17','16','56','76','86'];  % to be evaluated which combination is really better
+        IONO_FREE_PREF  = ['15';'18';'17';'16';'56';'76';'86'];  % to be evaluated which combination is really better
 end
 
     properties (Constant, Access = 'private')

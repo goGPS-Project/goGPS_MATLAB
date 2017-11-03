@@ -70,7 +70,7 @@ classdef BeiDou_SS < Satellite_System
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'XIQ' 'XIQ', 'XIQ'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '276';                % id for the freq as stored in F_VEC
-        IONO_FREE_PREF  = ['27';'26','67'];  % to be evaluated which combination is really better
+        IONO_FREE_PREF  = ['27';'26';'67'];  % to be evaluated which combination is really better
     end
 
     properties (Constant, Access = 'private')
