@@ -167,7 +167,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     % correct nominal time desynchronization and jumps ---------------------------------------------------
     
     % nominal time desynchronization (e.g. with some low-cost receivers)
-    time_desync = time_ref - time; % computed here, used in init_positioning
+    time_desync = round((time_ref - time) * 1e7) / 1e7; % computed here, used in init_positioning
     
     ph1_bk = ph1;
     ph2_bk = ph2;
@@ -267,7 +267,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
             if (length(sat0) >= min_nsat_LS)
                 if (frequencies(1) == 1)
                     if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time_ref(i) - dt_pr(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                     else
                         [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                         %ids = find(sat == 2);
@@ -521,13 +521,14 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         % 2. "receiver-satellite dynamics correction" by using Doppler if available,
         %     otherwise by interpolating observations on the time tag corrected by dtR
 
-        %available epochs
+        % available epochs
         index_e = find(time ~= 0);
 
-        %reference time "correction"
-        time_ref(index_e) = time(index_e) + dtR(index_e) + dt_ph(index_e); %time_desync(index_e);
+        % time "correction"
+        % not sure here if it should be time(index_e) or time(index_e) + time_desync (i.e. time_ref)
+        time(index_e) = time(index_e) - dt_pr(index_e) - dtR(index_e);
 
-        %variables to store interpolated observations
+        % variables to store interpolated observations
         pr1_interp = zeros(size(pr1));
         ph1_interp = zeros(size(ph1));
         pr2_interp = zeros(size(pr2));
