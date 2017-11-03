@@ -92,7 +92,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
     logger = Logger.getInstance();
 
     p_rate = state.getProcessingRate();
-    v_light = goGNSS.V_LIGHT;
+    v_light = Go_State.V_LIGHT;
 
     %iono-free coefficients
     alpha1 = lambda(:,4);
@@ -163,18 +163,34 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
     status_obs = NaN(nSatTot,nEpochs);
     status_cs=[];
 
+    % correct nominal time desynchronization and jumps ---------------------------------------------------
+    
+    ph1_bk = ph1;
+    ph2_bk = ph2;
+    pr1_bk = pr1;
+    pr2_bk = pr2;
+    ph = zero2nan(bsxfun(@times, [ph1_bk; ph2_bk], [lambda(:, 1); lambda(:,2)])');
+    pr = zero2nan([pr1_bk; pr2_bk]');
+    [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
+    ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+    ph1 = ph(:,1:size(ph1,1))';
+    ph2 = ph(:,(size(ph2,1)+1):end)';
+    pr1 = nan2zero(pr(:,1:size(pr1,1))');
+    pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
+
+    % ----------------------------------------------------------------------------------------------------
+        
+    % [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
+    % [pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
+    % time = time_ref;
+
     % remove short arcs
     min_arc = max([state.getMinArc() lagr_order]);
-    %logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+    % logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
     pr1 = remove_short_arcs(pr1, min_arc);
     pr2 = remove_short_arcs(pr2, min_arc);
     ph1 = remove_short_arcs(ph1, min_arc);
     ph2 = remove_short_arcs(ph2, min_arc);
-
-    %correct nominal time desynchronization
-    % [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
-    % [pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
-    % time = time_ref;
 
     if not(flag_full_prepro)
         XR = repmat(XR0, 1, length(dtR));
@@ -247,9 +263,9 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
             if (length(sat0) >= min_nsat_LS)
                 if (frequencies(1) == 1)
                     if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                     else
-                        [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                        [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                         %ids = find(sat == 2);
                         %if ~isempty(ids)
                         %    sat_pos(i,:) = sat_pos_tmp(ids, : );
@@ -257,7 +273,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
                         %end
                     end
                 else
-                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                 end
 
                 if (~isempty(A) && (nisbs > 1) && (mod(i,mt) == 0))
@@ -399,7 +415,8 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
         %check if there is any discontinuity in the clock drift
         clock_thresh = 1e-5;
-        disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
+        dtRdot = zero2nan(dtRdot);
+        disc = find(abs(dtRdot-mean(dtRdot(~isnan(dtRdot)))) > clock_thresh);
 
         %remove discontinuities from the clock drift
         for i = 1 : length(disc)
@@ -478,7 +495,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
                 break
             end
         end
-
+        
         %----------------------------------------------------------------------------------------------
         % GEOMETRY FREE OBSERVABLES
         %----------------------------------------------------------------------------------------------
@@ -507,7 +524,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
         time_desync = time_ref - time;
 
         %reference time "correction"
-        time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
+        time_ref(index_e) = time(index_e) + dtR(index_e) + dt_ph(index_e); %time_desync(index_e);
 
         %variables to store interpolated observations
         pr1_interp = zeros(size(pr1));
@@ -530,9 +547,9 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
                 if (length(index) > lagr_order)
 
-                    if (flag_jumps_ph1)
+                    %if (flag_jumps_ph1)
                         pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-                    end
+                    %end
 
     %                 if (any(dop1(s,index)))
     %                     corr = lambda(s,1).*dop1(s,index).*(time_desync(index) + dtR(index))';
@@ -555,9 +572,9 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
                 if (length(index) > lagr_order)
 
-                    if (flag_jumps_ph2)
+                    %if (flag_jumps_ph2)
                         pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-                    end
+                    %end
 
     %                 if (any(dop2(s,index)))
     %                     corr = lambda(s,2).*dop2(s,index).*(time_desync(index) + dtR(index))';
@@ -579,12 +596,12 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
                 if (length(index) > lagr_order)
 
-                    if (flag_jumps_ph1)
+                    %if (flag_jumps_ph1)
                         ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
                         if (flag_doppler_cs && any(dop1(s,index)))
                             dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
                         end
-                    end
+                    %end
                 end
             end
 
@@ -597,12 +614,12 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 
                 if (length(index) > lagr_order)
 
-                    if (flag_jumps_ph2)
+                    %if (flag_jumps_ph2)
                         ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
                         if (flag_doppler_cs && any(dop2(s,index)))
                             dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
                         end
-                    end
+                    %end
                 end
             end
 

@@ -936,6 +936,78 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
+        function [ph, dt] = remClockJump(ph)
+            % remove a jumps of the clock from phr
+            % this peace of code is very very criptic, but it seems to work
+            % review this whenever possible
+            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
+            ddt = cumsum(cumsum(nan2zero(d3dt)));
+            pos_jmp = abs(ddt-medfilt_mat(ddt,3)) > 1e3;
+            if sum(pos_jmp) > 0
+                dt = cumsum(ddt - simpleFill1D(ddt, pos_jmp));
+                pos_jmp = find(pos_jmp);
+                dt = detrend(dt);
+                ph = bsxfun(@minus, zero2nan(ph), dt);
+            else
+                dt = zeros(size(ddt));
+            end
+            
+            d3dt = median(Core_Pre_Processing.diffAndPred(ph,3), 2, 'omitnan');
+            dt_hf = cumsum(cumsum(cumsum(nan2zero(d3dt))));
+            dt_hf = dt_hf - splinerMat([], medfilt_mat(dt_hf, 5), 5);
+            ph = nan2zero(bsxfun(@minus, zero2nan(ph), dt_hf));
+            dt = (dt + dt_hf) / 299792458;
+            
+            %dt = dt / 299792458;
+        end
+
+        function [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+            %   Correction of jumps in code and phase due to dtR and time de-sync
+            % SYNTAX:
+            %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+
+            logger = Logger.getInstance();
+            
+            time_desync  = round((time_ref - time) * 1e7) / 1e7;
+            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
+            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
+            
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            % if adding the desync will improve the std it means that the receiver does not compensate for it
+            [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
+            if flag; logger.addMessage('Correcting phase for time desync', 100); end
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag; logger.addMessage('Correcting pseudo-ranges for time desync', 100); end
+            clear phr_ds;
+            [ph, dt_ph] = Core_Pre_Processing.remClockJump(ph);
+            %figure(1); plot(diff(zero2nan(ph)),'.k');
+
+            % correct the pseudo-ranges
+            pr_ds = bsxfun(@minus, pr, dt_ph .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                dt = dt_ph;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+            else
+                dt = zeros(size(dt_ph));
+            end
+            
+            % in some receivers the pseudo-range is not continuous while the phase are ok
+            [pr_ds, dt_pr] = Core_Pre_Processing.remClockJump(pr);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                dt_pr = dt_pr + dt;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+            else
+                dt_pr = dt;
+            end
+            
+            dt_pr = dt_pr + time_desync;
+            dt_ph = dt_ph + time_desync;
+            %figure(2); plot(diff(zero2nan(pr)),'.k');
+        end
+        
         function [obs_out] = remShortArcs(obs_in, min_len)
             % Removal of observation arcs shorter than given threshold.
             % SYNTAX:
@@ -1006,6 +1078,17 @@ classdef Core_Pre_Processing < handle
     %  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = private)
+        function [data, flag] = testDesyncCorrection(data, data_corrected)
+            % if the correction effectively removes jumps -> apply the correction
+            % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
+            dd = diff(zero2nan(data),2);
+            ddc = diff(zero2nan(data_corrected),2);
+            flag = std(serialize(dd(~(isnan(dd))))) > std(serialize(ddc(~(isnan(ddc)))));
+            if flag
+                data = data_corrected;
+            end
+        end
+
         function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
             
             global cutoff cs_threshold_preprocessing
