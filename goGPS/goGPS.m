@@ -1163,8 +1163,8 @@ for session = 1 : num_session
                         %-------------------------------------------------------------------------------------------
                         
                         [ph1_R(:,:,f), ph1_M] = cycleSlipDetectSingleDiff(ph1_R(:,:,f), ph1_M);
-                        if frequencies > 1
-                            [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M_0);
+                        if numel(frequencies) > 1
+                            [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M);
                         end
                         
                         %[ph1_R(:,:,f), ph1_M] = cycle_slip_detect_single_diff(ph1_R(:,:,f), ph1_M, interval);
