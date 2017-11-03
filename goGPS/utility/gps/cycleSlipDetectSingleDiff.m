@@ -69,11 +69,11 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     % working on first derivative ----------------
     ddata = diff(data);
    
-    ddata_ref = cumsum(nan2zero(median(Core_Pre_Processing.diffAndPred(ddata), 2, 'omitnan')));
-    ddata_red = bsxfun(@minus, ddata, ddata_ref-splinerMat([], ddata_ref, min(66, numel(ddata_ref))));
+%    ddata_ref = cumsum(nan2zero(median(Core_Pre_Processing.diffAndPred(ddata), 2, 'omitnan')));
+%    ddata_red = bsxfun(@minus, ddata, ddata_ref-splinerMat([], ddata_ref, min(66, numel(ddata_ref))));
 %     if verLessThan('matlab', '9.0.0')
 %         %  explicit implementation of movstd
-%         
+%
 %         d = 5;
 %         ddata_tmp = serialize(ddata_red);
 %         mov_std = zeros(size(ddata_tmp));
@@ -94,10 +94,10 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
 %     else
 %         ddata_std = perc(movstd(serialize(ddata - ddata_ref), 11), 0.95);
 %     end
-    ddata_std = 200;
-    data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata_red) > thr(1) * ddata_std);
-    ddata(data_out(2 : end, :)) = nan;
-    % figure; plot(diff(data)); hold on; plot(ddata, 'k', 'lineWidth', 2);
+%    ddata_std = 200;
+%    data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata_red) > thr(1) * ddata_std);
+%    ddata(data_out(2 : end, :)) = nan;
+%    % figure; plot(diff(data)); hold on; plot(ddata, 'k', 'lineWidth', 2);
 
     % working on second derivative ---------------
     d2data = diff(ddata);
