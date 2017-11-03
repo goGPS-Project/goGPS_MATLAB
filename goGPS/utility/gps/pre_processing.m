@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order)
+function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order);
+%   [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, cc, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -31,6 +31,7 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
 %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
 % OUTPUT:
+%   time = GPS nominal time (as read from RINEX file) and then corrected to the reference time during the pre-processing
 %   pr1 = processed code observation (L1 carrier)
 %   ph1 = processed phase observation (L1 carrier)
 %   pr2 = processed code observation (L2 carrier)
@@ -747,6 +748,12 @@ function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var
     
     ph1 = jmpFix(ph1, lambda(:,1), state);
     ph2 = jmpFix(ph2, lambda(:,2), state);
+    
+    % At this point the data is syncronized to the reference time, and corrected for dtR and de-sync
+    % resetting time, dtR, dtRdot
+    time = time_ref;
+    dtR = dtR * 0;
+    dtRdot = dtRdot * 0;    
 end
 
 
