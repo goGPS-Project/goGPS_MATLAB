@@ -65,58 +65,25 @@ function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     flag_array = ~isnan(data);
     data_out = flag_array & ~remove_short_arcs(~isnan(data)', state.getMinArc())';
     data(data_out) = nan;
-
-    % working on first derivative ----------------
-    ddata = diff(data);
-   
-%    ddata_ref = cumsum(nan2zero(median(Core_Pre_Processing.diffAndPred(ddata), 2, 'omitnan')));
-%    ddata_red = bsxfun(@minus, ddata, ddata_ref-splinerMat([], ddata_ref, min(66, numel(ddata_ref))));
-%     if verLessThan('matlab', '9.0.0')
-%         %  explicit implementation of movstd
-%
-%         d = 5;
-%         ddata_tmp = serialize(ddata_red);
-%         mov_std = zeros(size(ddata_tmp));
-%         for t = 1 : length(ddata_tmp)
-%             if (t<=d)
-%                 mov_std(t) = std(ddata_tmp(1:d));
-%             elseif (t>(length(ddata_tmp)-d))
-%                 if (length(ddata_tmp) - d - 1 == 0)
-%                     mov_std(t) = mov_std(t-1);
-%                 else
-%                     mov_std(t) = std(ddata_tmp(end-d-1:end));
-%                 end
-%             else
-%                 mov_std(t) = std(ddata_tmp(t-d:t+d));
-%             end
-%         end
-%         ddata_std = perc(serialize(mov_std), 0.95);
-%     else
-%         ddata_std = perc(movstd(serialize(ddata - ddata_ref), 11), 0.95);
-%     end
-%    ddata_std = 200;
-%    data_out(2 : end, :) = data_out(2 : end, :) | (abs(ddata_red) > thr(1) * ddata_std);
-%    ddata(data_out(2 : end, :)) = nan;
-%    % figure; plot(diff(data)); hold on; plot(ddata, 'k', 'lineWidth', 2);
-
-    % working on second derivative ---------------
-    d2data = diff(ddata);
+  
+    % working on third derivative ---------------
+    d3data = diff(data, 3);
 
     % data mean / std
-    d2data_m = nan(n_set, 1);
-    d2data_s = nan(n_set, 1);
+    d3data_m = nan(n_set, 1);
+    d3data_s = nan(n_set, 1);
 
     % get the biggest outliers
     for s = 1 : n_set
-        d2data_ok = d2data(~isnan(d2data(:, s)),s);
+        d2data_ok = d3data(~isnan(d3data(:, s)),s);
         if ~isempty(d2data_ok)
-            d2data_m(s) = mean(d2data_ok);
-            d2data_s(s) = std(d2data_ok);
+            d3data_m(s) = mean(d2data_ok);
+            d3data_s(s) = std(d2data_ok);
         end
     end
-    d2data_ref = repmat(median(d2data, 2, 'omitnan'), 1, n_set);
+    d3data_ref = repmat(median(d3data, 2, 'omitnan'), 1, n_set);
 
-    data_out(3:end, :) = data_out(3:end, :) | abs(d2data - d2data_ref) > thr(2) * median(d2data_s(~isnan(d2data_m)));
+    data_out(4:end, :) = data_out(4:end, :) | abs(d3data - d3data_ref) > thr(2) * median(d3data_s(~isnan(d3data_m)));
     data(data_out) = nan;
 
     data = data';
