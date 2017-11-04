@@ -33,7 +33,7 @@ state = Go_State.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 n_epochs = length(time_M);
-n_sta = size(pr1_R,3)+1;
+n_sta = size(pr1_R, 3) + 1;
 
 target_sta = n_sta;
 phase = 1;
@@ -52,10 +52,7 @@ PCV2 = cell(n_sta,1);
 azim = cell(n_sta,1);
 elev = cell(n_sta,1);
 
-time_R = time_R - zero_time;
-time_M = time_M - zero_time;
-
-time_RM = time_R; time_RM(:,:,n_sta) = time_M;
+time_RM_diff = time_R_diff; time_RM_diff(:,:,n_sta) = time_M_diff;
 pr1_RM = pr1_R; pr1_RM(:,:,n_sta) = pr1_M;
 ph1_RM = ph1_R; ph1_RM(:,:,n_sta) = ph1_M;
 pr2_RM = pr2_R; pr2_RM(:,:,n_sta) = pr2_M;
@@ -68,20 +65,20 @@ for k = 1 : n_sta
     name{k} = cell2mat(marker_RM(:,:,k));
     antenna{k} = cell2mat(antmod_RM(:,:,k));
     time{k} = datenum(date_M);
-    L1{k}   = NaN(nSatTot,n_epochs);
-    L2{k}   = NaN(nSatTot,n_epochs);
-    P1{k}   = NaN(nSatTot,n_epochs);
-    P2{k}   = NaN(nSatTot,n_epochs);
-    PCO1{k} = NaN(nSatTot,n_epochs);
-    PCO2{k} = NaN(nSatTot,n_epochs);
-    PCV1{k} = NaN(nSatTot,n_epochs);
-    PCV2{k} = NaN(nSatTot,n_epochs);
-    azim{k} = NaN(nSatTot,n_epochs);
-    elev{k} = NaN(nSatTot,n_epochs);
+    L1{k}   = NaN(nSatTot, n_epochs);
+    L2{k}   = NaN(nSatTot, n_epochs);
+    P1{k}   = NaN(nSatTot, n_epochs);
+    P2{k}   = NaN(nSatTot, n_epochs);
+    PCO1{k} = NaN(nSatTot, n_epochs);
+    PCO2{k} = NaN(nSatTot, n_epochs);
+    PCV1{k} = NaN(nSatTot, n_epochs);
+    PCV2{k} = NaN(nSatTot, n_epochs);
+    azim{k} = NaN(nSatTot, n_epochs);
+    elev{k} = NaN(nSatTot, n_epochs);
     
     for t = 1 : n_epochs
 
-        Eph_t = rt_find_eph(Eph, time_RM(t,1,k), constellations.nEnabledSat);
+        Eph_t = rt_find_eph(Eph, time_RM_diff(t,1,k), constellations.nEnabledSat);
 
         %available satellites
         sat0 = find(pr1_RM(:,t,k) ~= 0);
@@ -95,7 +92,7 @@ for k = 1 : n_sta
             end
 
             %compute satellite azimuth and elevation
-            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, p_rate, flag_XR, 0, 0);
+            [~, ~, XS, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM_diff(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, p_rate, flag_XR, 0, 0);
 
 %             if ((any(ph1_RM(sat,t,k) == 0) || any(ph2_RM(sat,t,k) == 0) || ...
 %                  any(pr1_RM(sat,t,k) == 0) || any(pr2_RM(sat,t,k) == 0)) && k == target_sta)
@@ -124,10 +121,10 @@ for k = 1 : n_sta
                 end
             end
 
-            L1{k}(sat,t) = ph1_RM(sat,t,k);
-            L2{k}(sat,t) = ph2_RM(sat,t,k);
-            P1{k}(sat,t) = pr1_RM(sat,t,k);
-            P2{k}(sat,t) = pr2_RM(sat,t,k);
+            L1{k}(sat,t) = zero2nan(ph1_RM(sat,t,k));
+            L2{k}(sat,t) = zero2nan(ph2_RM(sat,t,k));
+            P1{k}(sat,t) = zero2nan(pr1_RM(sat,t,k));
+            P2{k}(sat,t) = zero2nan(pr2_RM(sat,t,k));
         end
     end
     
@@ -156,8 +153,8 @@ for PRN = 1 : nSatTot
     %interpolate P4 and compute ~P4
     [satel(PRN).til_P4] = planefit_satspec_diff_obs(P4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 0);
 
-    %select only the epochs where all stations observations are available
-    idx_diff_L4 = all(~isnan(squeeze(diff_L4(PRN,:,:))) .* (squeeze(diff_L4(PRN,:,:)) ~= 0),2);
+    %select only the epochs where all the reference stations observations are available
+    idx_diff_L4 = all(~isnan(squeeze(diff_L4(PRN,:,1 : end - 1))) .* (squeeze(diff_L4(PRN,:,1 : end - 1)) ~= 0),2);
 
     %compute ~L2
     fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
@@ -192,7 +189,7 @@ end
 
 write_RINEX_obs(temporaryfile_path, '', antenna_PCV(target_sta).name, cell2mat(marker_M), ...
                  pr1_M(:,1:end-1), P2_new, ph1_M(:,1:end-1), L2_new, dop1_M(:,1:end-1), dop2_M(:,1:end-1), ...
-                 snr1_M(:,1:end-1), snr2_M(:,1:end-1), time_M(1:end-1,1), date_M(1:end-1,:), ...
+                 snr1_M(:,1:end-1), snr2_M(:,1:end-1), time_M_diff(1:end-1,1), date_M(1:end-1,:), ...
                  pos_M(:,1), new_interval, codeC1_M);
 
 undersamplingRINEX(temporaryfile_path, outputfile_path, 0, new_interval, interval);

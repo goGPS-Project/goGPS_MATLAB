@@ -31,9 +31,9 @@ function [diff_L4, diff_P4, commontime, stations_idx, L1_series, L2_series, L4_s
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-
-lambda1 = 0.190293672798365;
-lambda2 = 0.244210213424568;
+cc = Go_State.getCurrentSettings().getConstellationCollector();
+lambda1 = cc.gps.L_VEC(1);
+lambda2 = cc.gps.L_VEC(2);
 
 %compute dL4
 n_sta = length(name_series);
@@ -56,18 +56,8 @@ diff_P4 = zeros(32, length(commontime) - 1, n_sta);
 %compute L4 = L1 - L2, dL4, P4 = P1 - P2, dP4
 for sta = 1 : n_sta
     [~, ~, stations_idx(sta,:)] = intersect(commontime, time_series{sta});
-
-    for PRN = 1 : 32
-        L4_series(PRN,:,sta)=L1_series{sta}(PRN,stations_idx(sta,:))*lambda1 - L2_series{sta}(PRN,stations_idx(sta,:))*lambda2;
-        P4_series(PRN,:,sta)=P2_series{sta}(PRN,stations_idx(sta,:))         - P1_series{sta}(PRN,stations_idx(sta,:));
-
-        idx_zeros = L4_series(PRN,:,sta) == 0;
-        L4_series(PRN,idx_zeros,sta) = NaN;
-
-        idx_zeros = P4_series(PRN,:,sta) == 0;
-        P4_series(PRN,idx_zeros,sta) = NaN;
-
-        diff_L4(PRN,:,sta)=diff(L4_series(PRN,:,sta));
-        diff_P4(PRN,:,sta)=diff(P4_series(PRN,:,sta));
-    end
+    L4_series(:,:,sta) = L1_series{sta} * lambda1 - L2_series{sta} * lambda2;
+    P4_series(:,:,sta) = P2_series{sta}           - P1_series{sta};
+    diff_L4(:,:,sta) = diff(L4_series(:,:,sta)')';
+    diff_P4(:,:,sta) = diff(P4_series(:,:,sta)')';
 end
