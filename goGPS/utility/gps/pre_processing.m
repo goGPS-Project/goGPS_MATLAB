@@ -164,6 +164,9 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     status_obs = NaN(nSatTot,nEpochs);
     status_cs=[];
 
+    %----------------------------------------------------------------------------------------------
+    % RECEIVER CLOCK DRIFT DISCONTINUITIES
+    %----------------------------------------------------------------------------------------------
     % correct nominal time desynchronization and jumps ---------------------------------------------------
     
     % nominal time desynchronization (e.g. with some low-cost receivers)
@@ -235,8 +238,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         end
 
         r = 1;
-        %sat_pos = nan(nEpochs,3);
-        %sat_vel = nan(nEpochs,3);
         for i = 1 : nEpochs
 
             %--------------------------------------------------------------------------------------------
@@ -345,7 +346,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
                 waitbar_handle.goTime(i);
             end
         end
-
+        
         %-------------------------------------------------------------------------------------------------------------
         % RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
         %-------------------------------------------------------------------------------------------------------------
@@ -412,7 +413,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
             ISBs(avail_ISBs) = x(end-(nisbs-2-sum(~avail_IFBs)):end)/v_light;
         end
-
+        
         %----------------------------------------------------------------------------------------------
         % RECEIVER CLOCK DRIFT DISCONTINUITIES
         %----------------------------------------------------------------------------------------------
@@ -447,64 +448,94 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         % (some receivers have inconsistent observations, e.g. code with clock
         %  jumps, phase without)
 
-        %jump detection threshold
-        j_thres = (clock_thresh*10)*v_light;
+%         %jump detection threshold
+%         j_thres = (clock_thresh*10)*v_light;
+% 
+%         %flags
+%         flag_jumps_pr1 = 0;
+%         flag_jumps_pr2 = 0;
+%         flag_jumps_ph1 = 0;
+%         flag_jumps_ph2 = 0;
+% 
+%         for i = 1 : length(disc)
+% 
+%             for s = 1 : nSatTot
+% 
+%                 %check code on L1
+%                 if (pr1(s,disc(i):disc(i)+1) ~= 0)
+%                     if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
+%                         flag_jumps_pr1 = 1;
+%                     end
+%                 end
+% 
+%                 %check code on L2
+%                 if (pr2(s,disc(i):disc(i)+1) ~= 0)
+%                     if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
+%                         flag_jumps_pr2 = 1;
+%                     end
+%                 end
+% 
+%                 %check phase on L1
+%                 if (ph1(s,disc(i):disc(i)+1) ~= 0)
+%                     if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
+%                         flag_jumps_ph1 = 1;
+%                     end
+%                 end
+% 
+%                 %check phase on L2
+%                 if (ph2(s,disc(i):disc(i)+1) ~= 0)
+%                     if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
+%                         flag_jumps_ph2 = 1;
+%                     end
+%                 end
+% 
+%                 %no need to go through all satellites
+%                 if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+%                     break
+%                 end
+%             end
+% 
+%             %no need to go through all discontinuities
+%             if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+%                 break
+%             end
+%         end
 
-        %flags
-        flag_jumps_pr1 = 0;
-        flag_jumps_pr2 = 0;
-        flag_jumps_ph1 = 0;
-        flag_jumps_ph2 = 0;
+        %-------------------------------------------------------------------------------------------------------------
+        % OBSERVATION CORRECTION FOR CLOCK ERROR (v_light * dt)
+        %-------------------------------------------------------------------------------------------------------------
+        
+        ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
+        ph = bsxfun(@minus, ph, v_light * dtR);
+        % estimate high frequency clock residuals
+        [ph, dt] = Core_Pre_Processing.remClockJump(ph);
+        dtR = dtR + dt;
+        
+        % apply new dtR to pseudo-ranges
+        pr = zero2nan([pr1; pr2]');
+        pr = bsxfun(@minus, pr, v_light * dtR);
 
-        for i = 1 : length(disc)
-
-            for s = 1 : nSatTot
-
-                %check code on L1
-                if (pr1(s,disc(i):disc(i)+1) ~= 0)
-                    if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
-                        flag_jumps_pr1 = 1;
-                    end
-                end
-
-                %check code on L2
-                if (pr2(s,disc(i):disc(i)+1) ~= 0)
-                    if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
-                        flag_jumps_pr2 = 1;
-                    end
-                end
-
-                %check phase on L1
-                if (ph1(s,disc(i):disc(i)+1) ~= 0)
-                    if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
-                        flag_jumps_ph1 = 1;
-                    end
-                end
-
-                %check phase on L2
-                if (ph2(s,disc(i):disc(i)+1) ~= 0)
-                    if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
-                        flag_jumps_ph2 = 1;
-                    end
-                end
-
-                %no need to go through all satellites
-                if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
-                    break
-                end
-            end
-
-            %no need to go through all discontinuities
-            if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
-                break
-            end
-        end
+        ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+        ph1 = zero2nan(ph(:,1:size(ph1,1))');
+        ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
+        pr1 = (pr(:,1:size(pr1,1))');
+        pr2 = (pr(:,(size(pr2,1)+1):end)');
         
         %----------------------------------------------------------------------------------------------
         % GEOMETRY FREE OBSERVABLES
         %----------------------------------------------------------------------------------------------
 
         ph_GF = compute_geometry_free(ph1, ph2, lambda, err_iono);
+        
+        %----------------------------------------------------------------------------------------------
+        % SEARCH AND REJECT OUTLIERS ON THE GF
+        %----------------------------------------------------------------------------------------------
+        
+        dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
+        flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
+        ph1(flag) = NaN;
+        ph2(flag) = NaN;
+        ph_GF(flag) = NaN;
 
         %----------------------------------------------------------------------------------------------
         % WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
@@ -512,8 +543,15 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
         ph_MW = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, lambda);
 
+        ph1 = nan2zero(ph1);
+        ph2 = nan2zero(ph2);
+        pr1 = nan2zero(pr1);
+        pr2 = nan2zero(pr2);
+        ph_GF = nan2zero(ph_GF);
+        ph_MW = nan2zero(ph_MW);
+        
         %----------------------------------------------------------------------------------------------
-        % OBSERVATION CORRECTION FOR CLOCK ERROR
+        % OBSERVATION CORRECTION FOR CLOCK ERROR (time-shift)
         %----------------------------------------------------------------------------------------------
 
         %two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
@@ -549,10 +587,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
                 if (length(index) > lagr_order)
 
-                    %if (flag_jumps_ph1)
-                        pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-                    %end
-
     %                 if (any(dop1(s,index)))
     %                     corr = lambda(s,1).*dop1(s,index).*(time_desync(index) + dtR(index))';
     %                     pr1_interp(s,index) = pr1(s,index) - corr;
@@ -573,10 +607,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
                 pr2(s,index_x) = 0;
 
                 if (length(index) > lagr_order)
-
-                    %if (flag_jumps_ph2)
-                        pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-                    %end
 
     %                 if (any(dop2(s,index)))
     %                     corr = lambda(s,2).*dop2(s,index).*(time_desync(index) + dtR(index))';
@@ -599,7 +629,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
                 if (length(index) > lagr_order)
 
                     %if (flag_jumps_ph1)
-                        ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
                         if (flag_doppler_cs && any(dop1(s,index)))
                             dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
                         end
@@ -617,7 +646,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
                 if (length(index) > lagr_order)
 
                     %if (flag_jumps_ph2)
-                        ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
                         if (flag_doppler_cs && any(dop2(s,index)))
                             dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
                         end
@@ -753,8 +781,9 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     % At this point the data is syncronized to the reference time, and corrected for dtR and de-sync
     % resetting time, dtR, dtRdot
     time = time_ref;
-    dtR = dtR * 0;
-    dtRdot = dtRdot * 0;    
+    % for debug reason the dtR is not reset 
+    dtR = dtR + dt_ph;
+    %dtRdot = dtRdot * 0;    
 end
 
 

@@ -942,7 +942,9 @@ classdef Core_Pre_Processing < handle
             % review this whenever possible
             d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
             ddt = cumsum(cumsum(nan2zero(d3dt)));
-            pos_jmp = abs(ddt-medfilt_mat(ddt,3)) > 1e3;
+            % check if there is any discontinuity in the clock drift
+            clock_thresh = 1e3;
+            pos_jmp = abs(ddt-medfilt_mat(ddt,3)) > clock_thresh;
             if sum(pos_jmp) > 0
                 dt = cumsum(ddt - simpleFill1D(ddt, pos_jmp));
                 pos_jmp = find(pos_jmp);
