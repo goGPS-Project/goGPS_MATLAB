@@ -1166,9 +1166,11 @@ for session = 1 : num_session
                         
                         [ph1_R(:,:,f), ph1_M] = cycleSlipDetectSingleDiff(ph1_R(:,:,f), ph1_M);
                         if numel(frequencies) > 1
-                            [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M);
+                            if ~state.isModeSEID()
+                                % In seid mode ph2_M should be empty
+                                [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M);
+                            end
                         end
-                        
                         %[ph1_R(:,:,f), ph1_M] = cycle_slip_detect_single_diff(ph1_R(:,:,f), ph1_M, interval);
                         %[ph2_R(:,:,f), ph2_M] = cycle_slip_detect_single_diff(ph2_R(:,:,f), ph2_M, interval);
                         
