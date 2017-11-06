@@ -775,6 +775,12 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         pr2 = pr2_interp;
         ph1 = ph1_interp;
         ph2 = ph2_interp;
+
+        % flag by high deviation of the 4th derivate
+        sensor = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4), median(Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4), 'omitnan')));
+        flag = sensor > 15;
+        ph1(flag(:,1:size(ph1,1))') = NaN;
+        ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
     end
     % %flag epochs with 4 or more slipped satellites as "bad"
     % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
