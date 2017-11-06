@@ -940,24 +940,25 @@ classdef Core_Pre_Processing < handle
             % remove a jumps of the clock from phr
             % this peace of code is very very criptic, but it seems to work
             % review this whenever possible
+            ph = zero2nan(ph);
             d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
             ddt = cumsum(cumsum(nan2zero(d3dt)));
             % check if there is any discontinuity in the clock drift
             clock_thresh = 1e3;
             pos_jmp = abs(ddt-medfilt_mat(ddt,3)) > clock_thresh;
             if sum(pos_jmp) > 0
-                dt = cumsum(ddt - simpleFill1D(ddt, pos_jmp));
-                pos_jmp = find(pos_jmp);
-                dt = detrend(dt);
-                ph = bsxfun(@minus, zero2nan(ph), dt);
+                ddt = ddt - simpleFill1D(ddt, pos_jmp);
+                dt = detrend(cumsum(ddt));
+                ph_bk = ph;
+                ph = bsxfun(@minus, ph, dt);
             else
                 dt = zeros(size(ddt));
             end
             
             d3dt = median(Core_Pre_Processing.diffAndPred(ph,3), 2, 'omitnan');
-            dt_hf = cumsum(cumsum(cumsum(nan2zero(d3dt))));
-            dt_hf = dt_hf - splinerMat([], medfilt_mat(dt_hf, 5), 5);
-            ph = nan2zero(bsxfun(@minus, zero2nan(ph), dt_hf));
+            dt_hf = cumsum(cumsum(cumsum(nan2zero(d3dt))));            
+            dt_hf = dt_hf-splinerMat([], medfilt_mat(dt_hf, 5), 5);
+            ph = nan2zero(bsxfun(@minus, ph, dt_hf));
             dt = (dt + dt_hf) / 299792458;
             
             %dt = dt / 299792458;
