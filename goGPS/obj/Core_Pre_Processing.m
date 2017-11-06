@@ -955,17 +955,19 @@ classdef Core_Pre_Processing < handle
                 dt = zeros(size(ddt));
             end
             
-            d3dt = median(Core_Pre_Processing.diffAndPred(ph,3), 2, 'omitnan');
-            dt_hf = cumsum(cumsum(cumsum(nan2zero(d3dt))));            
+            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
+            dt_hf = (cumsum(cumsum(cumsum(nan2zero(d3dt)))));
+            
+            % Filter low frequencies:
             x = (1 : numel(dt_hf))';            
-            ws = 5; % window size to remove low frequencies
-            % interp to limit border effects
-            xi = (1 - (ws+2) : numel(dt_hf) + (ws+2))';
-            dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap'); 
-            dt_lf = conv(dt_lf,ones(11,1)./11,'same'); 
-            %  filter out low frequencies
-            dt_hf = dt_hf - dt_lf(ws + 3 : end - ws - 2);            
-            ph = nan2zero(bsxfun(@minus, ph, dt_hf));
+            ws = 5;
+            margin = 2 * round(ws/2);
+            xi = (1 - margin : numel(dt_hf) + margin)';
+            dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap');
+            dt_lf = splinerMat([],medfilt_mat(dt_lf, 5), 5);
+            dt_hf = dt_hf - dt_lf(margin + 1 : end - margin);
+            
+            ph = nan2zero(bsxfun(@minus, zero2nan(ph), dt_hf));
             dt = (dt + dt_hf) / 299792458;
             
             %dt = dt / 299792458;

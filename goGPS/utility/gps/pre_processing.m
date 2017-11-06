@@ -104,6 +104,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
     %receiver clock error
     dtR = zeros(nEpochs,1);
+    XR = nan(3, nEpochs);
 
     %inter-system biases
     if (~isempty(SP3))
@@ -522,8 +523,9 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         pr2 = (pr(:,(size(pr2,1)+1):end)');
         
         % flag by high deviation of the 4th derivate
-        sensor = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(zero2nan(ph), 4), median(Core_Pre_Processing.diffAndPred(zero2nan(ph), 4), 'omitnan')));
-        flag = sensor > 25;
+        sensor = Core_Pre_Processing.diffAndPred(zero2nan(ph), 4);
+        sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
+        flag = sensor > 20;
         ph1(flag(:,1:size(ph1,1))') = NaN;
         ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
 
@@ -746,16 +748,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
             end
         end
 
-        for s = 1 : nSatTot
-
-            %repeat remove short arcs after cycle slip detection
-            % remove short arcs
-            min_arc = max([state.getMinArc() lagr_order]);
-            pr1_interp(s,:) = remove_short_arcs(pr1_interp(s,:), min_arc);
-            pr2_interp(s,:) = remove_short_arcs(pr2_interp(s,:), min_arc);
-            ph1_interp(s,:) = remove_short_arcs(ph1_interp(s,:), min_arc);
-            ph2_interp(s,:) = remove_short_arcs(ph2_interp(s,:), min_arc);
-
+    %    for s = 1 : nSatTot
     %         if (freq1_required)
     %             if (any(ph1(s,:)))
     %                 [pr1(s,:)] = code_smoother(pr1(s,:), ph1(s,:), lambda(s,1), lagr_order);
@@ -770,17 +763,29 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     %                 pr2(s,:) = 0;
     %             end
     %         end
-        end
+    %    end
         pr1 = pr1_interp;
         pr2 = pr2_interp;
         ph1 = ph1_interp;
         ph2 = ph2_interp;
 
         % flag by high deviation of the 4th derivate
-        sensor = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4), median(Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4), 'omitnan')));
-        flag = sensor > 15;
-        ph1(flag(:,1:size(ph1,1))') = NaN;
-        ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
+        sensor = Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4);        
+        sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
+        flag = sensor > 3;
+        ph1(flag(:,1:size(ph1,1))') = 0;
+        ph2(flag(:,(size(ph2,1)+1):end)') = 0;
+        
+        for s = 1 : nSatTot
+
+            %repeat remove short arcs after cycle slip detection
+            % remove short arcs
+            min_arc = max([state.getMinArc() lagr_order]);
+            pr1(s,:) = remove_short_arcs(pr1(s,:), min_arc);
+            pr2(s,:) = remove_short_arcs(pr2(s,:), min_arc);
+            ph1(s,:) = remove_short_arcs(ph1(s,:), min_arc);
+            ph2(s,:) = remove_short_arcs(ph2(s,:), min_arc);
+        end        
     end
     % %flag epochs with 4 or more slipped satellites as "bad"
     % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
@@ -1262,7 +1267,7 @@ function [ph] = jmpFix(ph, lambda, state)
                     arc_fit1 = polyval(p, x_arc([lim(l, 2) lim(l + 1, 1)]));
                     
                     id2 = lim(l + 1, 1) : lim(l + 1, 2);
-                    id2 = id2(1 : min(numel(id), state.getMinArc));
+                    id2 = id2(1 : min(numel(id2), state.getMinArc));
                     p2 = polyfit(x_arc(id2), arc(id2), 3);
                     arc_fit2 = polyval(p2, x_arc([lim(l, 2) lim(l + 1, 1)]));
                     
