@@ -729,6 +729,9 @@ for session = 1 : num_session
                         w_bar.createNewBar('Pre-processing rover...');
                         
                         [time_R_diff(:,1,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
+                        % the time is now changed
+                        time_r(f) = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_R_diff(:,:,f)); %#ok<SAGROW>
+                        date_R(:,:,f) = datevec(time_r(f).getMatlabTime);
                         
                         if report.opt.write == 1
                             report.prep.spp_threshold = SPP_threshold;
@@ -1108,10 +1111,16 @@ for session = 1 : num_session
                             [pr1_M, ph1_M, pr2_M, ph2_M, flag_dt_corr_m, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pp.execute(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, flag_full_prepro, order);
                         else
                             [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
+                            % the time ref is now changed
+                            time_m = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_M_diff);
+                            date_M = datevec(time_m.getMatlabTime);
                         end
                     else
                         flag_XM_prep = 1;
                         [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
+                        % the time ref is now changed
+                        time_m = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_M_diff);
+                        date_M = datevec(time_m.getMatlabTime);
                      end
                     
                     flag_dt_corr_m = false(2, size(time_R,3));
@@ -1138,6 +1147,9 @@ for session = 1 : num_session
                             [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), flag_dt_corr_r(:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pp.execute(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, flag_full_prepro, order);
                         else
                             [time_R_diff(:,1,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
+                            % the time is now changed
+                            time_r(f) = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_R_diff(:,:,f)); %#ok<SAGROW>
+                            date_R(:,:,f) = datevec(time_r(f).getMatlabTime);                            
                         end
                         
                         if report.opt.write == 1
