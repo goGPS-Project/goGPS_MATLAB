@@ -957,7 +957,14 @@ classdef Core_Pre_Processing < handle
             
             d3dt = median(Core_Pre_Processing.diffAndPred(ph,3), 2, 'omitnan');
             dt_hf = cumsum(cumsum(cumsum(nan2zero(d3dt))));            
-            dt_hf = dt_hf-splinerMat([], medfilt_mat(dt_hf, 5), 5);
+            x = (1 : numel(dt_hf))';            
+            ws = 5; % window size to remove low frequencies
+            % interp to limit border effects
+            xi = (1 - (ws+2) : numel(dt_hf) + (ws+2))';
+            dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap'); 
+            dt_lf = conv(dt_lf,ones(11,1)./11,'same'); 
+            %  filter out low frequencies
+            dt_hf = dt_hf - dt_lf(ws + 3 : end - ws - 2);            
             ph = nan2zero(bsxfun(@minus, ph, dt_hf));
             dt = (dt + dt_hf) / 299792458;
             
