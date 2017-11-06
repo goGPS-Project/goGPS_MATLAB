@@ -521,6 +521,12 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         pr1 = (pr(:,1:size(pr1,1))');
         pr2 = (pr(:,(size(pr2,1)+1):end)');
         
+        % flag by high deviation of the 4th derivate
+        sensor = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(zero2nan(ph), 4), median(Core_Pre_Processing.diffAndPred(zero2nan(ph), 4), 'omitnan')));
+        flag = sensor > 25;
+        ph1(flag(:,1:size(ph1,1))') = NaN;
+        ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
+
         %----------------------------------------------------------------------------------------------
         % GEOMETRY FREE OBSERVABLES
         %----------------------------------------------------------------------------------------------
@@ -536,7 +542,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         ph1(flag) = NaN;
         ph2(flag) = NaN;
         ph_GF(flag) = NaN;
-
+        
         %----------------------------------------------------------------------------------------------
         % WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
         %----------------------------------------------------------------------------------------------
