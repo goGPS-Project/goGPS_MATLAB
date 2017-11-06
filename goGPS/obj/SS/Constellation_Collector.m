@@ -663,6 +663,14 @@ classdef Constellation_Collector < Settings_Interface
                         sys = this.getSBAS();
             end
         end
+        function index = getIndex(this,sys,prn)
+            % get progressive index for giveng system and prns
+            index = zeros(size(prn));
+            for i = 1:length(prn)
+                p = prn(i);
+                index(i) = find(this.system == sys & [this.prn == p]');
+            end
+        end
     end
 
     % =========================================================================

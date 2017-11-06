@@ -38,8 +38,8 @@ classdef Core_Sky < handle
         coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
         coord_type % 0: Center of Mass 1: Antenna Phase Center
         clock  % cloks of tabulated aphemerids [times x num_sat]
-        prn
-        sys
+%         prn
+%         sys 
         %time_hr
         %clock_hr
         coord_rate = 900;
@@ -313,23 +313,25 @@ classdef Core_Sky < handle
             if clock
                 this.time_ref_clock = this.time_ref_coord.getCopy();
             end
-            
-            sat = unique(eph(30,:)); %% keep only satellite also present in eph
-            i = 0;
-            
             this.coord = zeros(length(times), this.cc.getNumSat,3 );
-            this.clock = zeros (this.cc.getNumSat, length(times));
+            this.clock = zeros ( length(times),this.cc.getNumSat);
+            systems = unique(eph(31,:));
+            for sys = systems
+            sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
+            i = 0;
+            prg_idx = this.cc.getIndex(sys,sat); % get progressive index of given satellites
             t_dist_exced=false;
             for t = times
                 i=i+1;
-                [this.coord(i,:,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat, eph); %%%% loss of precision problem should be less tha 1 mm
+                [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat,eph(:,eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
                 if clock
-                    this.clock(:,i) = clock_temp;
+                    this.clock(i,prg_idx) = clock_temp';
                 end
                 t_dist_exced = t_dist_exced || t_d_e;
             end
             if t_dist_exced
                 this.log.addWarning(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids \nPositions might be inaccurate\n ',t_st.toString(0),t_end.toString(0)))
+            end
             end
         end
         function importBrdcs(this,f_names, t_st, t_end, clock, step)
@@ -405,20 +407,20 @@ classdef Core_Sky < handle
             % DESCRIPTION:
             nsat = length(sat);
             
-            XS = zeros(this.cc.getNumSat(), 3);
-            VS = zeros(this.cc.getNumSat(), 3);
+            XS = zeros(nsat, 3);
+            VS = zeros(nsat, 3);
             
             
-            dt_s = zeros(this.cc.getNumSat(), 1);
+            dt_s = zeros(nsat, 1);
             t_dist_exced = false;
             for i = 1 : nsat
                 
                 k = find_eph(eph, sat(i), time);
                 if not(isempty(k))
                     %compute satellite position and velocity
-                    [XS(sat(i),:), VS(sat(i),:)] = satellite_orbits(time, eph(:,k), sat(i), []);
-                    dt_s(sat(i)) = sat_clock_error_correction(time, eph(:,k));
-                    dt_s(sat(i)) = sat_clock_error_correction(time - dt_s(sat(i)), eph(:,k));
+                    [XS(i,:), VS(i,:)] = satellite_orbits(time, eph(:,k), sat(i), []);
+                    dt_s(i) = sat_clock_error_correction(time, eph(:,k));
+                    dt_s(i) = sat_clock_error_correction(time - dt_s(i), eph(:,k));
                 else
                     t_dist_exced = true;
                 end
@@ -1203,26 +1205,28 @@ classdef Core_Sky < handle
             
             
         end
-        function importSP3Struct(this, sp3)
-            this.time = sp3.time;
-            this.coord =permute(sp3.coord,[3 2 1]);
-            this.clock = sp3.clock',
-            this.prn = sp3.prn;
-            this.sys = sp3.sys;
-            this.time_hr = sp3.time_hr;
-            this.clock_hr = sp3.clock_hr;
-            this.coord_rate = sp3.coord_rate;
-            this.clock_rate = sp3.clock_rate;
-            this.t_sun = sp3.t_sun;
-            this.X_sun = sp3.X_sun';
-            this.X_moon = sp3.X_moon';
-            this.ERP = sp3.ERP;
-            this.DCB = sp3.DCB;
-            this.antenna_PCO = sp3.antPCO;
-            this.start_time_idx = find(this.time == 1);
-            
-            
-        end
+%         function importSP3Struct(this, sp3) % to be reimplemented
+%         matching right sysy and prn
+%             % 
+%             this.time = sp3.time;
+%             this.coord =permute(sp3.coord,[3 2 1]);
+%             this.clock = sp3.clock',
+%              this.prn = sp3.prn; 
+%             this.sys = sp3.sys; 
+%             this.time_hr = sp3.time_hr;
+%             this.clock_hr = sp3.clock_hr;
+%             this.coord_rate = sp3.coord_rate;
+%             this.clock_rate = sp3.clock_rate;
+%             this.t_sun = sp3.t_sun;
+%             this.X_sun = sp3.X_sun';
+%             this.X_moon = sp3.X_moon';
+%             this.ERP = sp3.ERP;
+%             this.DCB = sp3.DCB;
+%             this.antenna_PCO = sp3.antPCO;
+%             this.start_time_idx = find(this.time == 1);
+%             
+%             
+%         end
         function load_antenna_PCV(this, filename_pco)
             antmod_S = this.cc.getAntennaId();
             this.antenna_PCV = read_antenna_PCV(filename_pco, antmod_S, this.time_ref_coord.getMatlabTime());
