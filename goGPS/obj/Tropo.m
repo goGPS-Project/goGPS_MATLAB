@@ -41,12 +41,11 @@ classdef Tropo < handle
         
         tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
         tge      % tropospheric gradient east          double   [n_epoch x n_sat]
-        
-        slant_td % slant tropospheric delay            double   [n_epoch x n_sat]
-        
-        sat = struct('el', [], ... % elevetion         double   [n_epoch x n_sat]
-                     'az', [], ... % azimuth           double   [n_epoch x n_sat]
-                     'id', []);    % id (e.g. G01)     char     [n_sat, 3] 
+
+        sat = struct('id', [], ...    % id (e.g. G01)               char     [n_sat, 3]
+                     'el', [], ...    % elevetion                   double   [n_epoch x n_sat]
+                     'az', [], ...    % azimuth                     double   [n_epoch x n_sat]                     
+                     'slant_td', []); % slant tropospheric delay    double   [n_epoch x n_sat]
     end
     
     properties (Access = private)
@@ -55,10 +54,17 @@ classdef Tropo < handle
     
     methods
         % Creator
-        function this = Tropo()
+        function this = Tropo(file_name)
             % Core object creator
             this.log = Logger.getInstance();
             this.reset();
+            if iscell(file_name)
+                for f = 1 : length(file_name)
+                    this.appendTropo(file_name{f});
+                end
+            else
+                this.appendTropo(file_name);
+            end
         end
         
         
@@ -78,10 +84,10 @@ classdef Tropo < handle
             
             this.tgn = [];
             this.tge = [];
-            this.slant_td = [];
-            this.sat = struct('el', [], ...
+            this.sat = struct('id', [], ...
+                              'el', [], ...
                               'az', [], ...
-                              'id', []);
+                              'slant_td', []);
         end
         
         function importTropo(this, file)
@@ -155,10 +161,10 @@ classdef Tropo < handle
             %  extract all STD values if present
             slant_start = regexp(txt(lim(1,1) : lim(1,2)),'STD') - 6;
             num_sat = numel(slant_start);
-            this.slant_td = [this.slant_td; zeros(n_epo, num_sat)];
+            this.sat.slant_td = [this.sat.slant_td; zeros(n_epo, num_sat)];
             for s = 1 : numel(slant_start)
                 tmp = txt(bsxfun(@plus, repmat(slant_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1) - 1))';
-                this.slant_td((end - n_epo + 1) : end, s) = sscanf(tmp, '%f');
+                this.sat.slant_td((end - n_epo + 1) : end, s) = sscanf(tmp, '%f');
             end
             
             % extract all azimuth and elevation lines in a matrix with 2 layers -
