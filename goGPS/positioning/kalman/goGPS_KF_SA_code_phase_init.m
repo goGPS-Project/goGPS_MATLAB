@@ -487,9 +487,9 @@ Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 if (flag_tropo)
-    Cee(o3+nN+1,o3+nN+1) = sigmaq0_tropo;
+    Cee(o3+nN+1,o3+nN+1) = (sigmaq0_tropo / 3600) * interval;
     if (flag_tropo_gradient)
-        Cee(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = sigmaq0_tropo_gradient * eye(nT-1);
+        Cee(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = (sigmaq0_tropo_gradient / 3600 * interval) * eye(nT-1);
     end
 end
 Cee(o3+nN+nT+1,o3+nN+nT+1) = goGNSS.V_LIGHT^2*var_dtR;

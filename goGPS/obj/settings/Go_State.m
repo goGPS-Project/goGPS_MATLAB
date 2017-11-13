@@ -466,10 +466,10 @@ classdef Go_State < Settings_Interface
             sigmaq0_N = 1000;
 
             sigmaq_dtm = state.std_dtm ^ 2;
-            sigmaq0_tropo = 1e-2;               % <-- to be changed in the future
-            sigmaq0_tropo_gradient = 1;         % <-- to be changed in the future
-            sigmaq_tropo = 2.0834e-07;          %(0.005/sqrt(120))^2 % <-- to be changed in the future
-            sigmaq_tropo_gradient = 8.3334e-09; %(0.001/sqrt(120))^2 % <-- to be changed in the future
+            sigmaq0_tropo = state.sigma0_tropo ^ 2;
+            sigmaq0_tropo_gradient = state.sigma0_tropo_gradient ^ 2;
+            sigmaq_tropo = state.std_tropo ^ 2;               %(0.005/sqrt(120))^2
+            sigmaq_tropo_gradient = state.std_tropo_gradient ^ 2;    %(0.001/sqrt(120))^2
             sigmaq0_rclock = 2e-17;             % <-- to be changed in the future
             sigmaq_rclock = 1e3;                % <-- to be changed in the future
 
