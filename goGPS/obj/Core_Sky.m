@@ -667,7 +667,7 @@ classdef Core_Sky < handle
                             end
                         end
                         c_ep_idx = round((sat_time - this.time_ref_clock) / this.clock_rate) +1; % epoch index
-                        this.clock(c_ep_idx,i) =  cell2mat(textscan(txt(repmat(lim(sat_line,1),1,20) + repmat(41:60, n_ep_sat, 1))','%f'));
+                        this.clock(c_ep_idx,i) =  cell2mat(textscan(txt(repmat(lim(sat_line,1),1,21) + repmat(40:60, n_ep_sat, 1))','%f'));
                         
                         
                     end
@@ -942,6 +942,9 @@ classdef Core_Sky < handle
             c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
             
             c_times = this.getCoordTime();
+            % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop) 
+            t = t - this.time_ref_coord;
+            c_times = c_times - this.time_ref_coord;
             %l_idx=idx-5;
             %u_id=idx+10;
             
@@ -950,9 +953,11 @@ classdef Core_Sky < handle
             un_idx=unique(c_idx)';
             for idx=un_idx
                 t_idx=c_idx==idx;
-                times=t.getSubSet(t_idx);
+                times= t(t_idx);
+                %times=t.getSubSet(t_idx);
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
-                t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
+                %t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
+                t_fct =  (times -  c_times(idx+5))/this.coord_rate;
                 %%%% compute position
                 eval_vec = [ones(size(t_fct)) ...
                     t_fct ...
@@ -1021,6 +1026,8 @@ classdef Core_Sky < handle
             c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
             
             c_times = this.getCoordTime();
+            
+            
             %l_idx=idx-5;
             %u_id=idx+10;
             nt = t.length();
@@ -1028,12 +1035,17 @@ classdef Core_Sky < handle
             if moon
                 moon_ECEF=zeros(nt,3);
             end
+            
+             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop) 
+            t = t - this.time_ref_coord;
+            c_times = c_times - this.time_ref_coord;
+            
             un_idx=unique(c_idx)';
             for idx=un_idx
                 t_idx=c_idx==idx;
-                times=t.getSubSet(t_idx);
+                times=t(t_idx);
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
-                t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
+                t_fct =  (times -  c_times(idx+5))/this.coord_rate; %
                 %%%% compute position
                 eval_vec = [ones(size(t_fct)) ...
                     t_fct ...
@@ -1244,155 +1256,8 @@ classdef Core_Sky < handle
                 end
             end
         end
-        function [stidecorr] = solid_earth_tide_correction(this, time, XR, XS, p_rate, phiC, lam)
-            
-            % SYNTAX:
-            %   [stidecorr] = solid_earth_tide_correction(time, XR, XS,p_rate, phiC, lam);
-            %
-            % INPUT:
-            %   time = GPS time
-            %   XR   = receiver position  (X,Y,Z)
-            %   XS   = satellite position (X,Y,Z)
-            %   p_rate   = processing interval [s]
-            %   phiC = receiver geocentric latitude (rad)
-            %   lam  = receiver longitude (rad)
-            %
-            % OUTPUT:
-            %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
-            %
-            % DESCRIPTION:
-            %   Computation of the solid Earth tide displacement terms.
-            
-            
-            if (nargin < 6)
-                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
-            end
-            %north (b) and radial (c) local unit vectors
-            b = [-sin(phiC)*cos(lam) -sin(phiC)*sin(lam) cos(phiC)];
-            c = [+cos(phiC)*cos(lam) +cos(phiC)*sin(lam) sin(phiC)];
-            
-            %Sun and Moon position
-            t_sun  = this.t_sun;
-            X_sun  = this.X_sun;
-            X_moon = this.X_moon;
-            %[~, q] = min(abs(t_sun - time));
-            % speed improvement of the above line
-            % supposing t_sun regularly sampled
-            q = round((time - t_sun(1)) / p_rate) + 1;
-            X_sun  = X_sun(q,:);
-            X_moon = X_moon(q,:);
-            
-            %receiver geocentric position
-            XR_n = norm(XR);
-            XR_u = XR / XR_n;
-            
-            %sun geocentric position
-            X_sun_n = norm(X_sun);
-            X_sun_u = X_sun / X_sun_n;
-            
-            %moon geocentric position
-            X_moon_n = norm(X_moon);
-            X_moon_u = X_moon / X_moon_n;
-            
-            %latitude dependence
-            p = (3*sin(phiC)^2-1)/2;
-            
-            %gravitational parameters
-            GE = goGNSS.GM_GAL; %Earth
-            GS = GE*332946.0; %Sun
-            GM = GE*0.01230002; %Moon
-            
-            %Earth equatorial radius
-            R = 6378136.6;
-            
-            %nominal degree 2 Love number
-            H2 = 0.6078 - 0.0006*p;
-            %nominal degree 2 Shida number
-            L2 = 0.0847 + 0.0002*p;
-            
-            %solid Earth tide displacement (degree 2)
-            Vsun  = sum(conj(X_sun_u) .* XR_u);
-            Vmoon = sum(conj(X_moon_u) .* XR_u);
-            r_sun2  = (GS*R^4)/(GE*X_sun_n^3) *(H2*XR_u*(1.5*Vsun^2  - 0.5) + 3*L2*Vsun *(X_sun_u  - Vsun *XR_u));
-            r_moon2 = (GM*R^4)/(GE*X_moon_n^3)*(H2*XR_u*(1.5*Vmoon^2 - 0.5) + 3*L2*Vmoon*(X_moon_u - Vmoon*XR_u));
-            r = r_sun2 + r_moon2;
-            
-            %nominal degree 3 Love number
-            H3 = 0.292;
-            %nominal degree 3 Shida number
-            L3 = 0.015;
-            
-            %solid Earth tide displacement (degree 3)
-            r_sun3  = (GS*R^5)/(GE*X_sun_n^4) *(H3*XR_u*(2.5*Vsun^3  - 1.5*Vsun)  +   L3*(7.5*Vsun^2  - 1.5)*(X_sun_u  - Vsun *XR_u));
-            r_moon3 = (GM*R^5)/(GE*X_moon_n^4)*(H3*XR_u*(2.5*Vmoon^3 - 1.5*Vmoon) +   L3*(7.5*Vmoon^2 - 1.5)*(X_moon_u - Vmoon*XR_u));
-            r = r + r_sun3 + r_moon3;
-            
-            %from "conventional tide free" to "mean tide"
-            radial = (-0.1206 + 0.0001*p)*p;
-            north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
-            r = r + radial*c + north*b;
-            
-            %displacement along the receiver-satellite line-of-sight
-            stidecorr = zeros(size(XS,1),1);
-            for s = 1 : size(XS,1)
-                LOS  = XR - XS(s,:);
-                LOSu = LOS / norm(LOS);
-                %stidecorr(s,1) = dot(r,LOSu);
-                stidecorr(s,1) = sum(conj(r).*LOSu);
-            end
-        end
-        function [poletidecorr] = pole_tide_correction(this, time, XR, XS, phiC, lam)
-            
-            % SYNTAX:
-            %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
-            %
-            % INPUT:
-            %   time = GPS time
-            %   XR   = receiver position  (X,Y,Z)
-            %   XS   = satellite position (X,Y,Z)
-            %   phiC = receiver geocentric latitude (rad)
-            %   lam  = receiver longitude (rad)
-            %
-            % OUTPUT:
-            %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
-            %
-            % DESCRIPTION:
-            %   Computation of the pole tide displacement terms.
-            if (nargin < 5)
-                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
-            end
-            
-            poletidecorr = zeros(size(XS,1),1);
-            
-            %interpolate the pole displacements
-            if (~isempty(this.ERP))
-                if (length(this.ERP.t) > 1)
-                    m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
-                    m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
-                else
-                    m1 = this.ERP.m1;
-                    m2 = this.ERP.m2;
-                end
-                
-                deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
-                deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                
-                corrENU(1,1) = deltaLam; %east
-                corrENU(2,1) = deltaPhi; %north
-                corrENU(3,1) = deltaR;   %up
-                
-                %displacement along the receiver-satellite line-of-sight
-                XRcorr = local2globalPos(corrENU, XR);
-                corrXYZ = XRcorr - XR;
-                for s = 1 : size(XS,1)
-                    LOS  = XR - XS(s,:)';
-                    LOSu = LOS / norm(LOS);
-                    poletidecorr(s,1) = -dot(corrXYZ,LOSu);
-                end
-            end
-            
-        end
+
+        
         
         
         function writeSP3(this, f_name, prec)

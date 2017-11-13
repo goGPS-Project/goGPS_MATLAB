@@ -122,7 +122,8 @@ classdef Atmosphere < handle
                 e = 0.01 * H .* exp(-37.2465 + 0.213166*T - 0.000256908*T.^2);
                 
                 %tropospheric delay
-                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el)).^2)) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e);
+                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ max(0.01,(tan(el)).^2))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0
+                
             else
                 delay = zeros(size(el));
             end
@@ -151,7 +152,7 @@ classdef Atmosphere < handle
             
             delay = zeros(size(el));
             
-            [week, sow] = time2weektow(time_rx + zero_time);
+            [week, sow] = time2weektow(time_rx);
             date = gps2date(week, sow);
             [~, mjd] = date2jd(date);
             

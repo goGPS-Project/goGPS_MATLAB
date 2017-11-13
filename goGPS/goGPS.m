@@ -251,6 +251,7 @@ if goGPS_new
             
             trg(t) = Receiver(cc);
             trg(t).loadRinex(f_trg_rec{t}{s});
+            trg(t).static = state.kf_mode == 0;
         end
         
         

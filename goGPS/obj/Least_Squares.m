@@ -44,14 +44,14 @@ classdef Least_Squares < handle
         % Input
         A       % design matrix                          [ n_obs x n_par ]
         b       % array of known term                    [ n_obs x 1]
-        y0      % observation array                      [ n_obs x 1] 
+        y0      % observation array                      [ n_obs x 1]
         Q       % Cofactor matrix array                  [ n_obs x n_obs]
-                
+        
         % Output
         x       % estimated parameters                   [n_par x 1]
         res     % array of the residuals                 [n_obs x 1]
         s02     % (sigma0)^2                             [1 x 1]
-        Cxx     % Covariance matrix of the parameters    [n_par x n_par]        
+        Cxx     % Covariance matrix of the parameters    [n_par x n_par]
         % Cyy   % Covariance matrix of the observations  [n_obs x n_obs] rarely estimated / not stored;
         
         % pre computed values
@@ -59,11 +59,13 @@ classdef Least_Squares < handle
         P       % A' / iQ                                [ n_par x n_obs]
         N       % Normal matrix                          [ n_par x n_par]
         iN      % inverse of the Normal Matrix           [ n_par x n_par]
+       
     end
     
     properties (GetAccess = private)
-        updated % flag to sync when the output parameters have been computed / the input change
-                % [x res s02 Cxx iQ P/N iN]
+         updated % flag to sync when the output parameters have been computed / the input change
+        
+        % [x res s02 Cxx iQ P/N iN]
     end
     
     methods
@@ -94,12 +96,16 @@ classdef Least_Squares < handle
             end
         end
         
-        function [x, res, s02, Cxx] = solve(this)
+        function [x, res, s02, Cxx] = solve(this, column)
             % Solve a LS problem
             % SYNTAX: [x, res, s02, Cxx, Cyy] = this.solve
             y0 = this.y0;
             b = this.b;
-            A = this.A;
+            if nargin > 1
+                A = this.A(:,column);
+            else
+                A = this.A;
+            end
             Q = this.Q;
             
             
@@ -114,6 +120,7 @@ classdef Least_Squares < handle
                 if ~this.updated(1)
                     this.x = this.N \ this.P * (y0 - b);
                     this.updated(1) = true;
+                    x = this.x;
                 else
                     x = this.x;
                 end
@@ -135,7 +142,7 @@ classdef Least_Squares < handle
                     x = this.x;
                 end
             end
-            
+            if nargout > 1
             % estimation of the variance of the observation error
             if ~this.updated(2)
                 y_hat = A * x + b;
@@ -145,11 +152,12 @@ classdef Least_Squares < handle
             else
                 res = this.res;
             end
+            end
             
             if nargout > 2
                 if ~this.updated(3)
                     [n, m] = size(A);
-                    s02 = (res' * Q \ res) / (n - m);
+                    s02 = (res' * (Q \ res)) / (n - m);
                     this.s02 = s02;
                     this.updated(3) = true;
                 else
@@ -163,15 +171,19 @@ classdef Least_Squares < handle
                         this.updated(4) = true;
                     else
                         Cxx = this.Cxx;
+                    end
                 end
             end
+            
+            function getCyy(this)
+                % Get correlation matrix of the observations
+                Cyy = s02 * A * iN * A';
+            end
         end
-        
-        function getCyy(this)
-            % Get correlation matrix of the observations
-            Cyy = s02 * A * iN * A';
+        function clearUpdated(this)
+            % DESCRIPTION: set upadted to flase
+            this.updated = false(size(this.updated));
         end
-        
         
     end
     
@@ -198,7 +210,7 @@ classdef Least_Squares < handle
         function [x, res, s02, Cxx, Cyy] = solver(y0, b, A, Q)
             % Solve a LS problem
             % SYNTAX: [x, res, s02, Cxx, Cyy] = solver(y0, b, A, Q)
-
+            
             % least-squares solution
             P = A' / Q;
             N = P * A;
@@ -238,24 +250,24 @@ classdef Least_Squares < handle
         function [x] = solverOut1(y0, b, A, Q)
             % Solve a LS problem Optimized for one output
             % SYNTAX: [x] = solverOut1(y0, b, A, Q)
-
+            
             % least-squares solution
             P = A' / Q;
             N = P * A;
             
             x = (P * A) \ P * (y0 - b);
         end
-
+        
         function [x, res] = solverOut2(y0, b, A, Q)
             % Solve a LS problem Optimized for 2 outputs
             % SYNTAX: [x, res] = solverOut2(y0, b, A, Q)
-
+            
             % least-squares solution
             P = A' / Q;
             N = P * A;
             
             x = N \ P * (y0 - b);
-
+            
             % estimation of the variance of the observation error
             y_hat = A * x + b;
             res = y0 - y_hat;
@@ -264,7 +276,7 @@ classdef Least_Squares < handle
         function [x, res, s02] = solverOut3(y0, b, A, Q)
             % Solve a LS problem Optimized for 3 outputs
             % SYNTAX: [x, res, s02] = solverOut2(y0, b, A, Q)
-
+            
             [n, m] = size(A);
             
             % least-squares solution
@@ -272,7 +284,7 @@ classdef Least_Squares < handle
             N = P * A;
             
             x = N \ P * (y0 - b);
-
+            
             % estimation of the variance of the observation error
             y_hat = A * x + b;
             res = y0 - y_hat;
