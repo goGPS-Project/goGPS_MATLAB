@@ -110,14 +110,14 @@ classdef Core_Sky < handle
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
             this.clearOrbit();
             if strfind(eph_f_name{1},'.sp3') % assuming all files have the same endings
-                for i = 1:length(eph_f_name)        
+                for i = 1:length(eph_f_name)
                     this.addSp3(eph_f_name{i},clock_in_eph);
                     this.coord_type = 0; %center of mass
                 end
             else %% if not sp3 assume is a rinex navigational file
                 this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
             end
-                    this.coord_type = 1; %Antenna phase center 
+                    this.coord_type = 1; %Antenna phase center
             if not(clock_in_eph)
                 for i = 1:length(clock_f_name)
                     [~,~,ext] = fileparts(clock_f_name{i});
@@ -158,7 +158,7 @@ classdef Core_Sky < handle
                     n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
                     this.coord(1:n_ep,:,:)=[];
                     this.time_ref_coord.addSeconds(n_ep*this.coord_rate);
-                    this.coord_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    this.coord_pol_coeff = []; %!!! the coefficient have to been recomputed
                     
                     % deleate also sun e moon data
                     if not(isempty(this.X_sun))
@@ -167,8 +167,8 @@ classdef Core_Sky < handle
                     if not(isempty(this.X_moon))
                     this.X_moon(1:n_ep,:)=[];
                     end
-                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed 
-                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed
+                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed
                     
                 end
             else
@@ -201,8 +201,8 @@ classdef Core_Sky < handle
                     n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
                     this.X_sun(1:n_ep,:)=[];
                     this.X_moon(1:n_ep,:)=[];
-                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed 
-                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed 
+                    this.sun_pol_coeff = []; %!!! the coefficient have to been recomputed
+                    this.moon_pol_coeff = []; %!!! the coefficient have to been recomputed
                 end
             end
             this.X_sun = [];
@@ -306,7 +306,7 @@ classdef Core_Sky < handle
             t_dist_exced=false;
             for t = times
                 i=i+1;
-                [this.coord(i,:,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat, eph); %%%% loss of precision problem should be less tha 1 mm 
+                [this.coord(i,:,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat, eph); %%%% loss of precision problem should be less tha 1 mm
                 if clock
                     this.clock(:,i) = clock_temp;
                 end
@@ -341,47 +341,47 @@ classdef Core_Sky < handle
             end
             
         end
-         function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph) 
+         function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph)
              
             % SYNTAX: 
-            %   [XS, VS] = satellite_positions(time_rx, sat, eph); 
-            % 
+            %   [XS, VS] = satellite_positions(time_rx, sat, eph);
+            %
             % INPUT: 
-            %   time_rx     = reception time 
-            %   sat         = available satellite indexes 
-            %   eph         = ephemeris 
-            % 
+            %   time_rx     = reception time
+            %   sat         = available satellite indexes
+            %   eph         = ephemeris
+            %
             % OUTPUT: 
-            %   XS      = satellite position at time in ECEF(time_rx) (X,Y,Z) 
-            %   VS      = satellite velocity at time in ECEF(time_tx) (X,Y,Z) 
-            %   dtS     = satellite clock error (vector) 
-            % 
+            %   XS      = satellite position at time in ECEF(time_rx) (X,Y,Z)
+            %   VS      = satellite velocity at time in ECEF(time_tx) (X,Y,Z)
+            %   dtS     = satellite clock error (vector)
+            %
             % DESCRIPTION: 
-            nsat = length(sat); 
+            nsat = length(sat);
              
-            XS = zeros(this.cc.getNumSat(), 3); 
-            VS = zeros(this.cc.getNumSat(), 3); 
+            XS = zeros(this.cc.getNumSat(), 3);
+            VS = zeros(this.cc.getNumSat(), 3);
              
              
-            dt_s = zeros(this.cc.getNumSat(), 1); 
-            t_dist_exced = false; 
-            for i = 1 : nsat 
+            dt_s = zeros(this.cc.getNumSat(), 1);
+            t_dist_exced = false;
+            for i = 1 : nsat
                  
-                k = find_eph(eph, sat(i), time); 
-                if not(isempty(k)) 
-                    %compute satellite position and velocity 
-                    [XS(sat(i),:), VS(sat(i),:)] = satellite_orbits(time, eph(:,k), sat(i), []); 
-                    dt_s(sat(i)) = sat_clock_error_correction(time, eph(:,k)); 
-                    dt_s(sat(i)) = sat_clock_error_correction(time - dt_s(sat(i)), eph(:,k)); 
-                else 
-                    t_dist_exced = true; 
-                end 
+                k = find_eph(eph, sat(i), time);
+                if not(isempty(k))
+                    %compute satellite position and velocity
+                    [XS(sat(i),:), VS(sat(i),:)] = satellite_orbits(time, eph(:,k), sat(i), []);
+                    dt_s(sat(i)) = sat_clock_error_correction(time, eph(:,k));
+                    dt_s(sat(i)) = sat_clock_error_correction(time - dt_s(sat(i)), eph(:,k));
+                else
+                    t_dist_exced = true;
+                end
                  
-            end 
+            end
              
              
-            %XS=XS'; 
-        end 
+            %XS=XS';
+        end
         function addSp3(this, filename_SP3, clock_flag)
             % SYNTAX:
             %   this.addSp3(filename_SP3, clock_flag)
@@ -656,7 +656,7 @@ classdef Core_Sky < handle
                     % import it as a GPS_Time obj
                     sat_time = GPS_Time(date, [], true);
                     
-                    % initilize matrix  
+                    % initilize matrix
                     if isempty(clk_rate)
                         clk_rate = mean(diff(sat_time.getGpsTime()));
                         if not(empty_clk) & clk_rate ~= this.clock_rate
