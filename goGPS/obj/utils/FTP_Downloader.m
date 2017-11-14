@@ -180,6 +180,9 @@ classdef FTP_Downloader < handle
 
                         % get the exact remote path / file name
                         full_path = strcat(this.remote_dir, this.file_name{i});
+                        if iscell(full_path)
+                            full_path = full_path{1};
+                        end
                         if (full_path(1) ~= '/')
                             full_path = strcat('/', full_path);
                         end

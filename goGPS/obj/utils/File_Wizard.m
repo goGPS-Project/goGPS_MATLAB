@@ -481,6 +481,7 @@ classdef File_Wizard < handle
 
                 % Just in case I need it, import custom server
                 [addr, port, path, nav_name, clk_name, ~] = this.state.getCustomArchive();
+                path = fnp.dateKeyRepBatch(path, date_start, date_stop);
                 this.ftpd_custom = FTP_Downloader(addr, port, path);
                 clear addr port path;
 
