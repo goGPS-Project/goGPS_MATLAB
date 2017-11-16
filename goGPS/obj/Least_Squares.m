@@ -118,7 +118,7 @@ classdef Least_Squares < handle
             
             if nargout < 4
                 if ~this.updated(1)
-                    this.x = this.N \ this.P * (y0 - b);
+                    this.x = this.N \ (this.P * (y0 - b));
                     this.updated(1) = true;
                     x = this.x;
                 else
