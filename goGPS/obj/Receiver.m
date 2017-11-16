@@ -1443,31 +1443,46 @@ classdef Receiver < handle
                         c_sys = this.cc.system(i);
                         c_prn = this.cc.prn(i);
                         idx_sat = sys == c_sys & prn == c_prn;
+                        idx_sat_i = find(idx_sat);
                         if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
                             c_obs = obs(idx_sat,:);
+                            
                             c_obs_idx = c_obs > 0;
-                            % CORRECT THE OBSERVATIONS
-                            % iono corr
-                            if ~iono_free
-                                err_iono = repmat(this.rec2sat.err_iono',size(c_obs,1),1); % c_obs = bsxfun(@minus, c_obs, err_iono);
-                                c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_iono(c_obs_idx);
-                            end
-                            % tropo corr
-                            err_tropo = repmat(this.rec2sat.err_tropo(:,i)',size(c_obs,1),1);
-                            c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_tropo(c_obs_idx);
-                            % solid earth corrections
-                            solid_earth_corr = repmat(this.rec2sat.solid_earth_corr(:,i)',size(c_obs,1),1);
-                            c_obs(c_obs_idx) = c_obs(c_obs_idx) - solid_earth_corr(c_obs_idx);
                             c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
                             idx_obs = c_l_obs > 0;
+                           
+                            
                             n_obs_sat = sum(sum(c_obs>0));
+                            %update time of flight times
                             this.updateAvailIndex(c_l_obs,i); 
                             this.updateTOT(c_l_obs,i); % update time of travel
-                            
-                            XS = this.getXSTxRot(i); %get satellite positions at transimssion time including earth rotation during the travel time
-                            XR = repmat(this.xyz,sum(c_l_obs>0),1);
-                            XS = XS - XR;
-                            dist = sqrt(sum(XS.^2,2));
+                            %----- OLD WAY --------------------
+%                             
+%                             % CORRECT THE OBSERVATIONS
+%                             % iono corr
+%                             if ~iono_free
+%                                 err_iono = repmat(this.rec2sat.err_iono',size(c_obs,1),1); % c_obs = bsxfun(@minus, c_obs, err_iono);
+%                                 c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_iono(c_obs_idx);
+%                             end
+%                             % tropo corr
+%                             err_tropo = repmat(this.rec2sat.err_tropo(:,i)',size(c_obs,1),1);
+%                             c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_tropo(c_obs_idx);
+%                             % solid earth corrections
+%                             solid_earth_corr = repmat(this.rec2sat.solid_earth_corr(:,i)',size(c_obs,1),1);
+%                             c_obs(c_obs_idx) = c_obs(c_obs_idx) - solid_earth_corr(c_obs_idx);
+%                             
+%                             
+%                             XS = this.getXSTxRot(i); %get satellite positions at transimssion time including earth rotation during the travel time
+%                             XR = repmat(this.xyz,sum(c_l_obs>0),1);
+%                             XS = XS - XR;
+%                             dist = sqrt(sum(XS.^2,2));
+                            %--------------------------------------------------------
+                            freq = flag(idx_sat_i(1), 7);
+                            if freq == ' ';
+                                freq = flag(idx_sat_i(1), 2);
+                            end
+                            [dist, XS] = this.getSyntObs(freq,i); %%% consider multiple combinations on the same satellite, not handdled yet
+                            dist(dist==0) = [];
                             XS_norm = rowNormalize(XS);
                             
                             
