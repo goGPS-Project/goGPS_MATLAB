@@ -1537,7 +1537,7 @@ classdef Receiver < handle
             %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency) 
             n_epochs = size(this.obs, 2);
             n_sat = this.cc.getNumSat();
-            if isint(obs_type)
+            if isnumeric(obs_type)
                 obs_type = num2str(obs_type);
             end
             if nargin < 3
