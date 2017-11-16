@@ -1530,15 +1530,20 @@ classdef Receiver < handle
             else
             end
         end
-        function [range, XS_loc] = getSyntObs(this, sat)
+        function [range, XS_loc] = getSyntObs(this,  obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
             % current postion
+            % INPUT: 
+            %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency) 
             n_epochs = size(this.obs, 2);
             n_sat = this.cc.getNumSat();
-            if nargin < 2
+            if isint(obs_type)
+                obs_type = num2str(obs_type);
+            end
+            if nargin < 3
                 range = zeros(n_sat, n_epochs);
                 for sat = 1 : n_sat
-                    range(sat, :) = this.getSyntObs(sat);
+                    range(sat, :) = this.getSyntObs(obs_type, sat);
                 end
                 XS = [];
             else
@@ -1553,7 +1558,18 @@ classdef Receiver < handle
                 end
                 XS_loc = XS_loc - XR;
                 range = sqrt(sum(XS_loc.^2,2));
-                range = range + this.rec2sat.err_tropo(:,sat) + this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
+                sys = this.cc.system(sat);
+                switch obs_type
+                    case 'I'
+                            iono_factor = 0;
+                    case '1'
+                            iono_factor = 1;
+                    otherwise
+                            iono_factors = this.cc.getSys(sys).getIonoFactor([1 str2num(obs_type)]);
+                            iono_factor = iono_factors.alpha2 / iono_factors.aplha1;
+                            
+                end
+                range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
                 XS_loc(isnan(range),:) = [];
                 range = nan2zero(range)';
                 
