@@ -1530,6 +1530,37 @@ classdef Receiver < handle
             else
             end
         end
+        function [range, XS_loc] = getSyntObs(this, sat)
+            % DESCRIPTION: get the estimate of one measurmenet based on the
+            % current postion
+            n_epochs = size(this.obs, 2);
+            n_sat = this.cc.getNumSat();
+            if nargin < 2
+                range = zeros(n_sat, n_epochs);
+                for sat = 1 : n_sat
+                    range(sat, :) = this.getSyntObs(sat);
+                end
+                XS = [];
+            else
+                sat_idx = this.rec2sat.avail_index(:, sat);
+                XS = this.getXSTxRot(sat);
+                XS_loc = nan(n_epochs, 3);
+                XS_loc(sat_idx,:) = XS;
+                if size(this.xyz,1) == 1
+                    XR = repmat(this.xyz, n_epochs, 1);
+                else
+                    XR = this.xyz;
+                end
+                XS_loc = XS_loc - XR;
+                range = sqrt(sum(XS_loc.^2,2));
+                range = range + this.rec2sat.err_tropo(:,sat) + this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
+                XS_loc(isnan(range),:) = [];
+                range = nan2zero(range)';
+                
+                
+            end
+            
+        end
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn);
@@ -1728,7 +1759,6 @@ classdef Receiver < handle
             % XS_tx = satellite position computed at trasmission time
             % DESCRIPTION:
             % Compute satellite positions at trasmission time
-            idx = this.rec2sat.avail_index > 0;
             time_tx = this.getTimeTx(sat);
             [XS_tx, ~] = this.rec2sat.cs.coordInterpolate(time_tx,sat);
             
