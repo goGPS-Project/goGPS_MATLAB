@@ -121,7 +121,7 @@ classdef Core_Sky < handle
             state = Go_State.getCurrentSettings();
             
             %%% load Epehemerids
-            eph_f_name = state.getEphFileName(start_date, stop_time);
+            eph_f_name   = state.getEphFileName(start_date, stop_time);
             clock_f_name = state.getClkFileName(start_date, stop_time);
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
             this.clearOrbit();
@@ -138,7 +138,6 @@ classdef Core_Sky < handle
                 for i = 1:length(clock_f_name)
                     [~,~,ext] = fileparts(clock_f_name{i});
                     str = strsplit(ext,'_');
-                    clk_rate = str2num(str{2}(1:end-1));
                     this.addClk(clock_f_name{i});
                 end
             end
@@ -319,7 +318,7 @@ classdef Core_Sky < handle
             for sys = systems
             sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
             i = 0;
-            prg_idx = this.cc.getIndex(sys,sat); % get progressive index of given satellites
+            prg_idx = sat;%this.cc.getIndex(sys,sat); % get progressive index of given satellites
             t_dist_exced=false;
             for t = times
                 i=i+1;
@@ -363,7 +362,7 @@ classdef Core_Sky < handle
                 for s = unique(eph_const(1,:))
                     eph_sat = eph_const(:, eph_const(1,:) == s);
                     GD = eph_sat(28,1); % TGD change only every 3 months
-                end
+                
                 switch char(const) 
                     case 'G'
                             idx_c1w = this.getGroupDelayIdx('GC1W');
@@ -384,6 +383,7 @@ classdef Core_Sky < handle
                             f = this.cc.getGalileo().F_VEC; % frequencies 
                             this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
                             
+                end
                 end
             end
                 
@@ -415,7 +415,7 @@ classdef Core_Sky < handle
             t_dist_exced = false;
             for i = 1 : nsat
                 
-                k = find_eph(eph, sat(i), time);
+                k = find_eph(eph, sat(i), time, 86400);
                 if not(isempty(k))
                     %compute satellite position and velocity
                     [XS(i,:), VS(i,:)] = satellite_orbits(time, eph(:,k), sat(i), []);
@@ -556,7 +556,10 @@ classdef Core_Sky < handle
                         c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
                         this.coord(c_ep_idx,i,:) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,41) + repmat(5:45, length(sat_line), 1))','%f %f %f'))*1e3;
                         if clock_flag
-                            this.clock(c_ep_idx,i) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,13) + repmat(47:59, length(sat_line), 1))','%f'))/10e6;
+                            text = [txt(repmat(lim(sat_line,1),1,14) + repmat(46:59, length(sat_line), 1))];
+                            clock = cell2mat(textscan(text','%f'))/1e6;
+                            clock(clock > 0.99) = nan;
+                            this.clock(c_ep_idx,i) = clock;
                         end
                     else
                     end
@@ -567,7 +570,29 @@ classdef Core_Sky < handle
             clear sp3_file;
             this.coord = zero2nan(this.coord);
         end
-        
+        function fillClockGaps(this);
+            %DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
+            for i = 1 : size(this.clock,2)
+                if not(sum(this.clock(:,i),1) == 0)
+                    empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
+                    n_ep = size(this.clock,1);
+                    if sum(empty_clk_idx) < n_ep & sum(empty_clk_idx) > 0
+                        this.clock(empty_clk_idx,i) = nan;
+                        for hole = find(empty_clk_idx)'
+                            [idx_bf  ] = max([1 : hole]'   .* (this.clock([1 : hole] ,i) ./this.clock([1 : hole] ,i) ));
+                            [idx_aft ] = min([hole : n_ep]'.* (this.clock([hole : n_ep] ,i) ./this.clock([hole : n_ep] ,i)));
+                            if isnan(idx_bf)
+                               this.clock(hole,i) =  this.clock(idx_aft,i);
+                            elseif isnan(idx_aft)
+                               this.clock(hole,i) =  this.clock(idx_bf,i);
+                               else
+                            this.clock(hole,i) = ((idx_aft - hole) * this.clock(idx_bf,i) + (hole - idx_bf) * this.clock(idx_aft,i)) / (idx_aft - idx_bf);
+                        end
+                        end
+                    end
+                end
+            end
+        end
         function addClk(this,filename_clk)
             % SYNTAX:
             %   eph_tab.addClk(filename_clk)
@@ -687,21 +712,21 @@ classdef Core_Sky < handle
             idx_w2 =  this.getGroupDelayIdx('GC2W');
             p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'G');
             iono_free = this.cc.getGPS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT*1e-9;
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
             p1c1 = DCB.P1P2.value(DCB.P1C1.sys == 'G');
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT; %semi codeless tracking
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
             p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'R');
             iono_free = this.cc.getGLONASS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
             
             
             
@@ -828,8 +853,9 @@ classdef Core_Sky < handle
             %[~, p] = min(abs(SP3_time - time));
             % speed improvement of the above line
             % supposing SP3_time regularly sampled
-            p = (round((time - this.time_ref_clock) / interval) + 1)';
             times = this.getClockTime();
+            p = max(0,min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
+            
             b =  (times.getSubSet(p)- time)';
             
             %extract the SP3 clocks
@@ -922,7 +948,7 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: interpolate coordinates of staellites
-            n_sat=this.cc.getNumSat;
+            n_sat = this.cc.getNumSat;
             if nargin <3
                 sat_idx=ones(n_sat,1)>0;
             else
@@ -948,11 +974,11 @@ classdef Core_Sky < handle
             %l_idx=idx-5;
             %u_id=idx+10;
             
-            X_sat=zeros(nt,n_sat,3);
-            V_sat=zeros(nt,n_sat,3);
-            un_idx=unique(c_idx)';
-            for idx=un_idx
-                t_idx=c_idx==idx;
+            X_sat = zeros(nt,n_sat,3);
+            V_sat = zeros(nt,n_sat,3);
+            un_idx = unique(c_idx)';
+            for idx = un_idx
+                t_idx = c_idx == idx;
                 times= t(t_idx);
                 %times=t.getSubSet(t_idx);
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
