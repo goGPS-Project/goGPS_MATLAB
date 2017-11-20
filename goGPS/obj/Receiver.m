@@ -60,7 +60,9 @@ classdef Receiver < handle
         ph_shift       %
         
         xyz;           % approximate position of the receiver (XYZ geocentric)
-        dtR;           % reference clock error of the receiver [n_epochs x 1]
+        dtR;           % reference clock error of the receiver [n_epochs x num_obs_code]
+        dtR_obs_code   % clock error for each obs code {num_obs_code}
+        rid            % receiver interobservation biases
         
         static         % static or dynamic receiver 1: static 0: dynamic
         
@@ -338,17 +340,17 @@ classdef Receiver < handle
             
             this.active_ids(id_obs) = [];
             this.obs_validity(id_obs) = [];
-            if length(id_obs) == length(this.wl) %case constellation collector contains lees constellation than rinex (try and error fix)
-                this.wl(id_obs) = [];
-                this.f_id(id_obs) = [];
-                this.ss_id(id_obs) = [];
-                this.prn(id_obs) = [];
-                this.go_id(id_obs) = [];
-                this.system(id_obs) = [];
-                
-                
-                this.obs_code(id_obs, :) = [];
-            end
+            
+            this.wl(id_obs) = [];
+            this.f_id(id_obs) = [];
+            this.ss_id(id_obs) = [];
+            this.prn(id_obs) = [];
+            this.go_id(id_obs) = [];
+            this.system(id_obs) = [];
+            
+            
+            this.obs_code(id_obs, :) = [];
+
             
         end
         
@@ -1183,13 +1185,13 @@ classdef Receiver < handle
                             for c = 1:length(track_prior)
                                 if sum(to_fill_epoch) > 0
                                     [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
-                                    obs_tmp(obs_tmp==0) = nan;
+                                    %obs_tmp(obs_tmp==0) = nan;
                                     if ~isempty(obs_tmp)
-                                        first_freq = [first_freq; nan(1,n_epoch)];
-                                        first_freq(to_fill_epoch) = obs_tmp(to_fill_epoch);
+                                        first_freq = [first_freq; zeros(1,n_epoch)];
+                                        first_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
                                         ff_idx(to_fill_epoch) = size(first_freq,1);
                                         f_obs_code = [f_obs_code; this.obs_code(idx_tmp,:)];
-                                        to_fill_epoch = to_fill_epoch & (isnan(obs_tmp));
+                                        to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
                                     end
                                 end
                             end
@@ -1204,7 +1206,7 @@ classdef Receiver < handle
                             for c = 1:length(track_prior)
                                 if sum(to_fill_epoch) > 0
                                     [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
-                                    obs_tmp = zero2nan(obs_tmp);
+                                    %obs_tmp = zero2nan(obs_tmp);
                                     
                                     % check if obs has been used already as first frequency
                                     if ~isempty(obs_tmp)
@@ -1216,21 +1218,27 @@ classdef Receiver < handle
                                         end
                                         
                                        if sum(obs_tmp(to_fill_epoch)>0)>0 % if there is some new observation
-                                            second_freq = [second_freq; nan(1,n_epoch)];
+                                            second_freq = [second_freq; zeros(1,n_epoch)];
                                             second_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
                                             sf_idx(to_fill_epoch) = size(second_freq,1);
                                             s_obs_code = [s_obs_code; this.obs_code(idx_tmp,:)];
-                                            to_fill_epoch = to_fill_epoch & (isnan(obs_tmp));
+                                            to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
                                         end
                                     end
                                 end
                             end
                         end
+                        first_freq  = zero2nan(first_freq);
+                        second_freq = zero2nan(second_freq);
                         % combine the two frequencies
                         for k = 1 : size(f_obs_code,1)
                             for y = 1 : size(s_obs_code,1)
                                 inv_wl1 = 1/this.wl(this.getObsIdx(f_obs_code(k,:),this.cc.system(i),this.cc.prn(i)));
                                 inv_wl2 = 1/this.wl(this.getObsIdx(s_obs_code(y,:),this.cc.system(i),this.cc.prn(i)));
+%                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
+%                                     keyboard
+%                                 end
+                                    
                                 obs_tmp = ((inv_wl1).^2 .* first_freq(k,:) - (inv_wl2).^2 .* second_freq(y,:))./ ( (inv_wl1).^2 - (inv_wl2).^2 );
                                 obs_tmp(isnan(obs_tmp)) = 0;
                                 if sum(obs_tmp>0)>0
@@ -1268,6 +1276,25 @@ classdef Receiver < handle
                     
                 end
             end
+            %%% Remove obs for which coordinates of satellite are non
+            %%% available
+            for o = 1:length(prn)
+                s = this.cc.getIndex(sys(o),prn(o));
+                o_idx_l = obs(o,:)>0;
+                times = this.time.getSubSet(o_idx_l);
+                times.addSeconds(-obs(o,o_idx_l)'/Go_State.V_LIGHT); % add roucg time of flight
+                xs = this.rec2sat.cs.coordInterpolate(times,s);
+                to_remove = isnan(xs(:,1));
+                o_idx = find(o_idx_l);
+                to_remove = o_idx(to_remove);
+                obs(o,to_remove) = 0;
+                if sum(obs(o,:)) == 0 % if line has no more observation
+                    obs(o,:) = [];
+                    prn(o) = [];
+                    sys(o) = [];
+                    flag(o,:) = [];
+                end
+            end
         end
         function initPositioning(this)
             % SYNTAX:
@@ -1291,13 +1318,14 @@ classdef Receiver < handle
             [obs, prn, sys, flag] = this.getBestCodeObs;
 %             [obs, prn, flag] = this.getIonoFree('C1','C2','G',1);
 %             sys = char('G' * ones(size(prn)));
-            this.dtR = zeros(this.time.length,length(unique(cellstr([sys flag]))));
+            
             iono_free = flag(1,1) == 'I';
             %                [obs, idx] = this.getObs('C1');
             %                prn = this.prn(idx);
             %                flag = this.obs_code(idx,:);
             %               sys = this.system(idx)';
             approx_pos_unknown = true;
+            opt.rid_ep = false; %do not estimate channel dipendent error at each epoch
             
             if  approx_pos_unknown
                 this.xyz = [0 0 0];
@@ -1369,7 +1397,7 @@ classdef Receiver < handle
                 this.updateErrIono();
             end
             % update solid earth corrections
-            this.updateSolidTideCorr();
+            this.updateSolidEarthCorr();
             % final estimation
             cut_off = 10;
             opt.max_it = 1;
@@ -1396,11 +1424,18 @@ classdef Receiver < handle
             if ~isfield(opt,'no_pos')
                 opt.no_pos = false;
             end
+            if ~isfield(opt,'rid_ep')
+                opt.rid_ep  = false;
+            end
             n_epochs         = this.time.length;
             n_valid_epochs   = sum(sum(obs,1)>0);
             
             code_bias_flag   = cellstr([sys flag]);
             u_code_bias_flag = unique(code_bias_flag);
+            % initialize dtr
+            
+            
+            
             n_obs_ch         = zeros(size(u_code_bias_flag));
             n_ep_ch          = zeros(size(u_code_bias_flag));
             ch_idx_ep        = zeros(length(u_code_bias_flag),n_epochs);
@@ -1419,6 +1454,18 @@ classdef Receiver < handle
             ch_idx_ep = ch_idx_ep(b,:);
            
             
+            if opt.rid_ep
+                this.dtR = zeros(this.time.length,length(u_code_bias_flag));
+                this.dtR_obs_code = u_code_bias_flag;
+            else
+                this.dtR = zeros(this.time.length,1);
+                this.rid = zeros(1, length(u_code_bias_flag)-1);
+                this.dtR_obs_code = u_code_bias_flag;
+                
+                
+            end
+            
+            
             n_tot_obs = sum(sum(obs>0));
             
             % initialize LS solver
@@ -1432,7 +1479,11 @@ classdef Receiver < handle
             
             if this.static == 1
                 %ls_solver.A =sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); %version with reference clock
-                ls_solver.A = sparse(n_tot_obs,3+sum(n_ep_ch(1:end)))
+                if opt.rid_ep
+                    ls_solver.A = sparse(n_tot_obs,3+sum(n_ep_ch(1:end)));
+                else
+                    ls_solver.A = sparse(n_tot_obs,3+n_valid_epochs+length(u_code_bias_flag)-1);
+                end
                 n_it = 0;
                 while max(abs(x(1:3))) > opt.coord_corr &   n_it < opt.max_it
                     n_it = n_it + 1;
@@ -1449,7 +1500,7 @@ classdef Receiver < handle
                             
                             c_obs_idx = c_obs > 0;
                             c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
-                            idx_obs = c_l_obs > 0;
+                            idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
                            
                             
                             n_obs_sat = sum(sum(c_obs>0));
@@ -1483,12 +1534,18 @@ classdef Receiver < handle
                             end
                             [dist, XS] = this.getSyntObs(freq,i); %%% consider multiple combinations on the same satellite, not handdled yet
                             dist(dist==0) = [];
-                            XS_norm = rowNormalize(XS);
+                           
+
+                             XS_norm = rowNormalize(XS);
                             
                             
                             for j = 1 : size(c_obs,1) % for observation of the satellite
-                                idx_ep = c_obs(j,:) > 0;
-                                idx_tmp2 = idx_ep(idx_obs);
+                                idx_ep = c_obs(j,:) > 0; % epoch with observation from the channel
+                                idx_tmp2 = idx_ep(idx_obs); 
+                               
+                                
+                                
+                                
                                 n_obs = sum(idx_ep);
                                 ls_solver.y0(oc:(oc+n_obs-1)) = c_obs(j,idx_ep);
                                 ls_solver.b(oc:(oc+n_obs-1))  = dist(idx_tmp2);
@@ -1500,7 +1557,7 @@ classdef Receiver < handle
                                 % clocks
                                 % PLEASE COMMENT MORE
                                 if sum(idx_sat) > 1 % case more observation on one satellite
-                                    idx_tmp4 = find(idx);
+                                    idx_tmp4 = find(idx_sat);
                                     idx_tmp4 = idx_tmp4(j);
                                     flag_tmp = code_bias_flag{idx_tmp4};
                                 else
@@ -1509,15 +1566,18 @@ classdef Receiver < handle
                                 % find the channel of the observations 
                                 channel = find(sum(cell2mat(u_code_bias_flag) == repmat(flag_tmp,length(u_code_bias_flag),1),2) == length(flag_tmp), 1, 'first');
                                 idx_ep_2 = idx_ep(sum(obs,1)>0);
-                                if channel ~= 0 % if is not the reference channel for which the clock is estimated add a bias
+                                if opt.rid_ep
                                     %idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) ,3+n_valid_epochs+sum(n_ep_ch(2:channel-1))+find(idx_ep_2(ch_idx_ep(channel,:) > 0)));
                                     idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) , 3+sum(n_ep_ch(1:channel-1))+find(idx_ep_2(ch_idx_ep(channel,:) > 0)));
                                     ls_solver.A(idx_tmp3) = 1;
+
+                                else
+                                     idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) ,3+find(idx_ep_2));
+                                     ls_solver.A(idx_tmp3)  = 1; % reference clock
+                                     if channel ~= 1
+                                         ls_solver.A(oc:(oc+n_obs-1),3+n_valid_epochs+channel -1 )  = 1; % channel dipendent code bias
+                                     end
                                 end
-                                %else
-%                                     idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) ,3+find(idx_ep_2));
-%                                     ls_solver.A(idx_tmp3)  = 1; % reference clock
-                                %end
                                 oc = oc + n_obs;
                                 
                                 
@@ -1535,11 +1595,17 @@ classdef Receiver < handle
                          [x, res] = ls_solver.solve();
                     end
                     this.xyz = this.xyz + x(1:3)';
-                    %this.dtR(sum(obs,1) > 0,1,1) = x((1 : n_valid_epochs) + 3) / Go_State.V_LIGHT;
+                    %
+                    if opt.rid_ep
                     for i = 1:length(u_code_bias_flag)
                         %this.dtR(ch_idx_ep(i,:) > 0,i) = x((( n_valid_epochs + sum(n_ep_ch(2:i-1))) : (n_valid_epochs + sum(n_ep_ch(2:i)) -1 ) ) + 3) / Go_State.V_LIGHT;
                         this.dtR(ch_idx_ep(i,:) > 0,i) = x(((sum(n_ep_ch(1:i-1))) : (sum(n_ep_ch(1:i)) -1 ) ) + 4) / Go_State.V_LIGHT;
                     end
+                    else
+                        this.dtR(sum(obs,1) > 0,1,1) = x((1 : n_valid_epochs) + 3) / Go_State.V_LIGHT;
+                        this.rid = x((n_valid_epochs + 4) : end) / Go_State.V_LIGHT;
+                    end
+                    
                 end
                 keyboard
             else
@@ -1560,7 +1626,7 @@ classdef Receiver < handle
                 for sat = 1 : n_sat
                     range(sat, :) = this.getSyntObs(obs_type, sat);
                 end
-                XS = [];
+                XS_loc = [];
             else
                 sat_idx = this.rec2sat.avail_index(:, sat);
                 XS = this.getXSTxRot(sat);
@@ -1585,7 +1651,9 @@ classdef Receiver < handle
                             
                 end
                 range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
+                
                 XS_loc(isnan(range),:) = [];
+                %range = range';
                 range = nan2zero(range)';
                 
                 
@@ -1945,25 +2013,37 @@ classdef Receiver < handle
                 end
             end
         end
-        function updateSolidTideCorr(this, sat)
-            
-            % SYNTAX:
-            %   [stidecorr] = this.getSolidTideCorr();
-            %
-            % INPUT:
-            %
-            % OUTPUT:
-            %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
-            %
-            % DESCRIPTION:
-            %   Computation of the solid Earth tide displacement terms.
+        function updateSolidEarthCorr(this, sat)
+            %DESCRIPTION: upadte the correction related to solid earth
+            % solid tides, ocean loading, pole tides.
             if isempty(this.rec2sat.solid_earth_corr)
                 this.rec2sat.solid_earth_corr = zeros(size(this.rec2sat.avail_index));
             end
             if nargin < 2
                 
                 for s = 1 : size(this.rec2sat.avail_index,2)
-                    this.updateSolidTideCorr(s);
+                    this.updateSolidEarthCorr(s);
+                end
+            else
+                this.rec2sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
+            end
+        end
+        function solid_earth_corr = computeSolidTideCorr(this, sat)
+            
+            % SYNTAX:
+            %   [stidecorr] = this.getSolidTideCorr();
+            %
+            % INPUT:
+            % 
+            % OUTPUT:
+            %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
+            %
+            % DESCRIPTION:
+            %   Computation of the solid Earth tide displacement terms.
+            if nargin < 2
+                solid_earth_corr = zeros(size(this.rec2sat.avail_index));
+                for s = 1 : size(this.rec2sat.avail_index,2)
+                    solid_earth_corr(:,s) = this.updateSolidTideCorr(s);
                 end
             else
                 XR = this.xyz();
@@ -2034,10 +2114,11 @@ classdef Receiver < handle
                 
                 LOS  = XR - XS;
                 LOSu = rowNormalize(LOS);
-                this.rec2sat.solid_earth_corr(this.rec2sat.avail_index(:,sat),sat) = sum(conj(r).*LOSu,2);
+                solid_earth_corr = zeros(size(idx_sat));
+                solid_earth_corr(idx_sat) = sum(conj(r).*LOSu,2);
             end
         end
-        function [oceanloadcorr] = computeOceanLoading()
+        function [ocean_load_dcorr] = computeOceanLoading()
             
             % SYNTAX:
             %   [oceanloadcorr] = ocean_loading_correction(time, XR, XS);
@@ -2053,7 +2134,7 @@ classdef Receiver < handle
             %ocean loading displacements matrix, station-dependent (see http://holt.oso.chalmers.se/loading/)
             global ol_disp zero_time
             
-            oceanloadcorr = zeros(size(XS,1),1);
+            ocean_load_dcorr = zeros(size(XS,1),1);
             if (isempty(ol_disp))
                 return
             end
@@ -2114,7 +2195,7 @@ classdef Receiver < handle
                 LOS  = XR - XS(s,:)';
                 LOSu = LOS / norm(LOS);
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                oceanloadcorr(s,1) = sum(conj(corrXYZ).*LOSu);
+                ocean_load_dcorr(s,1) = sum(conj(corrXYZ).*LOSu);
             end
         end
             function [poletidecorr] = getPoleTideCorr(this, time, XR, XS, phiC, lam)
@@ -2444,13 +2525,13 @@ classdef Receiver < handle
                 prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
                 
                 % update the maximum number of rows to store
-                n_obs = numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                    numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                    numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                    numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                    numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                    numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                    numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+                n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
+                    this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                    this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                    this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                    this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                    this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                    this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
