@@ -63,6 +63,10 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     end
     
     inan = isnan(y);
+    if (size(y,2) == 2)
+        inan = inan(:,1) | inan(:,2);
+    end
+    
     x(inan) = [];
     y(inan) = [];
     
