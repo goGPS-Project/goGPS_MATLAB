@@ -49,7 +49,7 @@ global report
 %pwd
 
 % close all windows
-%close all
+% close all
 fclose('all');
 flag_init_out = false;
 
@@ -194,6 +194,7 @@ num_mst_rec = numel(f_mst_rec);
 % get short name for File_Name_Processor
 fnp = File_Name_Processor();
 
+initial_mode = state.getMode();
 if num_session > 1
     is_batch = true;
     w_bar.setOutputType(0);
@@ -496,7 +497,7 @@ for session = 1 : num_session
                             report.obs.antoff_R(i,:) = antoff_R(:,:,i);
                             
                             % set ROVER initial coordinates
-                            if (exist('pos_R_crd','var') && any(pos_R_crd))
+                            if (exist('pos_R_crd','var') && any(pos_R_crd(:)))
                                 logger.newLine();
                                 logger.addMessage('Rover apriori position set from coordinate file:');
                                 logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
@@ -625,7 +626,7 @@ for session = 1 : num_session
                     var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
                     var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
                     
-                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
+                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd(:)))
                         if any(pos_R)
                             flag_XR = 1;
                         else
@@ -805,7 +806,7 @@ for session = 1 : num_session
                     az_r = nan(size(pr1_R)); az_m = nan(size(pr1_M));
 
                     % read stations coordinates file
-                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
+                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd(:)) || ~exist('pos_M_crd','var') || ~any(pos_M_crd(:)))
                         [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
                     end
                     
@@ -1486,11 +1487,13 @@ for session = 1 : num_session
             
             if (state.isModeSEID())
                 SEID_main;
+                
                 if (mode == goGNSS.MODE_PP_SEID_PPP)
                     mode = goGNSS.MODE_PP_KF_CP_SA; % Switching from SEID PPP to PPP
                     state.setMode(mode); % Switching from SEID PPP to PPP
                     read_files = true; % In case of SEID processing the read operation must be repeated twice
                     flag_SEID = false;
+                    clear pos_R_crd;
                 end
             end
         end
@@ -4573,6 +4576,9 @@ for session = 1 : num_session
     end
     logger.newLine();
     toc
+    
+    state.setMode(initial_mode);
+    mode = initial_mode;
 end
 
 if flag_init_out && is_batch && ~state.isModeSEID()
