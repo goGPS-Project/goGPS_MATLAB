@@ -86,12 +86,16 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-
     global cutoff snr_threshold n_sys flag_doppler_cs
 
     state = Go_State.getCurrentSettings();
     logger = Logger.getInstance();
 
+    % Check doppler validity, if dop1 == dop2 [ !! ]
+    if any(dop1(:)) && any(dop2(:)) && ~any(serialize(nan2zero(zero2nan(dop1)-zero2nan(dop2))))
+        dop1 = dop1 * 0;
+        dop2 = dop2 * 0;
+    end
     p_rate = state.getProcessingRate();
     v_light = Go_State.V_LIGHT;
 
@@ -179,12 +183,28 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     pr2_bk = pr2;
     ph = zero2nan(bsxfun(@times, [ph1_bk; ph2_bk], [lambda(:, 1); lambda(:,2)])');
     pr = zero2nan([pr1_bk; pr2_bk]');
+    %figure(1); plot(diff(zero2nan(ph),4));
+    %figure(2); plot(diff(zero2nan(pr),4))
     [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
+    
+    %flag_ph = false(size(ph));
+    %flag_pr = false(size(pr));    
+    [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    %[ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    %[pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+
+    % flag by high deviation of the 4th derivate    
     ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
     ph1 = ph(:,1:size(ph1,1))';
     ph2 = ph(:,(size(ph2,1)+1):end)';
+    
+    % flag by high deviation of the 4th derivate
     pr1 = nan2zero(pr(:,1:size(pr1,1))');
     pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
+    
+    %figure(3); plot(diff(zero2nan(ph),4));
+    %figure(4); plot(diff(zero2nan(pr),4))
 
     % ----------------------------------------------------------------------------------------------------
         
@@ -451,51 +471,51 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
 %         %jump detection threshold
 %         j_thres = (clock_thresh*10)*v_light;
-% 
+%
 %         %flags
 %         flag_jumps_pr1 = 0;
 %         flag_jumps_pr2 = 0;
 %         flag_jumps_ph1 = 0;
 %         flag_jumps_ph2 = 0;
-% 
+%
 %         for i = 1 : length(disc)
-% 
+%
 %             for s = 1 : nSatTot
-% 
+%
 %                 %check code on L1
 %                 if (pr1(s,disc(i):disc(i)+1) ~= 0)
 %                     if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
 %                         flag_jumps_pr1 = 1;
 %                     end
 %                 end
-% 
+%
 %                 %check code on L2
 %                 if (pr2(s,disc(i):disc(i)+1) ~= 0)
 %                     if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
 %                         flag_jumps_pr2 = 1;
 %                     end
 %                 end
-% 
+%
 %                 %check phase on L1
 %                 if (ph1(s,disc(i):disc(i)+1) ~= 0)
 %                     if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
 %                         flag_jumps_ph1 = 1;
 %                     end
 %                 end
-% 
+%
 %                 %check phase on L2
 %                 if (ph2(s,disc(i):disc(i)+1) ~= 0)
 %                     if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
 %                         flag_jumps_ph2 = 1;
 %                     end
 %                 end
-% 
+%
 %                 %no need to go through all satellites
 %                 if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
 %                     break
 %                 end
 %             end
-% 
+%
 %             %no need to go through all discontinuities
 %             if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
 %                 break
@@ -507,21 +527,18 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         %-------------------------------------------------------------------------------------------------------------
         
         ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
+        % Filter dtR
+        lim = getOutliers(dtR ~= 0);
+        dtR = simpleFill1D(zero2nan(dtR), dtR == 0, 'spline');
+        for i = 1 : size(lim, 1)
+            dtR(lim(i,1) : lim(i,2)) = splinerMat([], dtR(lim(i,1) : lim(i,2)), 3);
+        end
         ph = bsxfun(@minus, ph, v_light * dtR);
-        % estimate high frequency clock residuals
-        [ph, dt] = Core_Pre_Processing.remClockJump(ph);
-        dtR = dtR + dt;
         
         % apply new dtR to pseudo-ranges
         pr = zero2nan([pr1; pr2]');
         pr = bsxfun(@minus, pr, v_light * dtR);
 
-        ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
-        ph1 = zero2nan(ph(:,1:size(ph1,1))');
-        ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
-        pr1 = (pr(:,1:size(pr1,1))');
-        pr2 = (pr(:,(size(pr2,1)+1):end)');
-        
         % flag by high deviation of the 4th derivate
         sensor = Core_Pre_Processing.diffAndPred(zero2nan(ph), 4);
         sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
@@ -529,6 +546,12 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         ph1(flag(:,1:size(ph1,1))') = NaN;
         ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
 
+        ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+        ph1 = zero2nan(ph(:,1:size(ph1,1))');
+        ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
+        pr1 = (pr(:,1:size(pr1,1))');
+        pr2 = (pr(:,(size(pr2,1)+1):end)');
+        
         %----------------------------------------------------------------------------------------------
         % GEOMETRY FREE OBSERVABLES
         %----------------------------------------------------------------------------------------------
@@ -540,10 +563,11 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         %----------------------------------------------------------------------------------------------
         
         dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
-        flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
+        flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);        
         ph1(flag) = NaN;
         ph2(flag) = NaN;
         ph_GF(flag) = NaN;
+        flag_ph = [flag' flag'] & flag_ph;
         
         %----------------------------------------------------------------------------------------------
         % WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
@@ -572,7 +596,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
         % time "correction"
         % not sure here if it should be time(index_e) or time(index_e) + time_desync (i.e. time_ref)
-        time(index_e) = time(index_e) - dt_pr(index_e) - dtR(index_e);
+        time(index_e) = time(index_e) - dt_ph(index_e) - dtR(index_e);
 
         % variables to store interpolated observations
         pr1_interp = zeros(size(pr1));
@@ -764,20 +788,33 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     %             end
     %         end
     %    end
-        pr1 = pr1_interp;
-        pr2 = pr2_interp;
-        ph1 = ph1_interp;
-        ph2 = ph2_interp;
 
         % flag by high deviation of the 4th derivate
-        sensor = Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4);        
+        ph = zero2nan(bsxfun(@times, [ph1_interp; ph2_interp], [lambda(:, 1); lambda(:,2)])');
+        pr = zero2nan([pr1_interp; pr2_interp]');
+        sensor = Core_Pre_Processing.diffAndPred(ph, 4);
         sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
         flag = sensor > 3;
-        ph1(flag(:,1:size(ph1,1))') = 0;
-        ph2(flag(:,(size(ph2,1)+1):end)') = 0;
+        flag_ph = flag | flag_ph;
         
+        [ph, flag] = Core_Pre_Processing.flagRawObsD4(ph, [], [], 6);
+        flag_ph = flag | flag_ph;
+        [pr, flag] = Core_Pre_Processing.flagRawObsD4(pr, [], [], 6);
+        flag_pr = flag | flag_pr;
+        % flagging borders could decrease the performance of the final solution
+        % skipping
+        %[ph, flag] = Core_Pre_Processing.flagBorders(ph, 20);
+        %flag_ph = flag | flag_ph;
+        %[pr, flag] = Core_Pre_Processing.flagBorders(pr, 20);
+        %flag_pr = flag | flag_pr;
+        
+        ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+        ph1 = (ph(:,1:size(ph1,1))');
+        ph2 = (ph(:,(size(ph2,1)+1):end)');
+        pr1 = nan2zero(pr(:,1:size(pr1,1))');
+        pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
+                
         for s = 1 : nSatTot
-
             %repeat remove short arcs after cycle slip detection
             % remove short arcs
             min_arc = max([state.getMinArc() lagr_order]);
@@ -785,7 +822,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
             pr2(s,:) = remove_short_arcs(pr2(s,:), min_arc);
             ph1(s,:) = remove_short_arcs(ph1(s,:), min_arc);
             ph2(s,:) = remove_short_arcs(ph2(s,:), min_arc);
-        end        
+        end
     end
     % %flag epochs with 4 or more slipped satellites as "bad"
     % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
@@ -794,13 +831,14 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     
     ph1 = jmpFix(ph1, lambda(:,1), state);
     ph2 = jmpFix(ph2, lambda(:,2), state);
+    %%% DEBBUG data = ph1'; figure; subplot(2,2,1); plot(zero2nan(data)); subplot(2,2,2); plot(diff(zero2nan(data),1));subplot(2,2,3); plot(diff(zero2nan(data),2));subplot(2,2,4); plot(bsxfun(@minus,diff(zero2nan(data),4),median(diff(zero2nan(data),4),2,'omitnan'))); subplot(2,2,1); title('data'); subplot(2,2,2); title('first derivative'); subplot(2,2,3); title('second derivative'); subplot(2,2,4); title('forth derivative (reduced)');
     
     % At this point the data is syncronized to the reference time, and corrected for dtR and de-sync
     % resetting time, dtR, dtRdot
     time = time_ref;
-    % for debug reason the dtR is not reset 
+    % for debug reason the dtR is not reset
     dtR = dtR + dt_ph;
-    %dtRdot = dtRdot * 0;    
+    %dtRdot = dtRdot * 0;
 end
 
 
@@ -1263,7 +1301,7 @@ function [ph] = jmpFix(ph, lambda, state)
                 id = id((max(1, numel(id) - state.getMinArc+1) : end));
                 
                 p = polyfit(x_arc(id), arc(id), 3);
-                if l < size(lim, 1)
+                if l < size(lim, 1) && (lim(l+1, 1) - lim(l, 2)) < 100
                     arc_fit1 = polyval(p, x_arc([lim(l, 2) lim(l + 1, 1)]));
                     
                     id2 = lim(l + 1, 1) : lim(l + 1, 2);

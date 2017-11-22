@@ -228,12 +228,12 @@ classdef Core_Pre_Processing < handle
             ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
             
             % flag by high deviation of the 4th derivate
-            ph = this.flagOnStd(ph, 6);
+            ph = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
             ph1 = ph(:,1:size(ph1,1))';
             ph2 = ph(:,(size(ph2,1)+1):end)';
             
             % flag by high deviation of the 4th derivate
-            pr = this.flagOnStd(pr, 6);
+            pr = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
             pr1 = nan2zero(pr(:,1:size(pr1,1))');
             pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
             
@@ -560,7 +560,7 @@ classdef Core_Pre_Processing < handle
                 ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
                 ph = bsxfun(@minus, ph, v_light * dt_r);
                 % estimate high frequency clock residuals
-                [ph, dt] = Core_Pre_Processing.remClockJump(ph);
+                [ph, dt] = Core_Pre_Processing.computeAndRemoveDt(ph);
                 dt_r = dt_r + dt;
                 
                 % apply new dtR to pseudo-ranges
@@ -1010,36 +1010,120 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function data = flagOnStd(data, thr_factor, thr_min, max_outlier_perc, win_size)
+        function [data, flagged_out] = flagRawObs(data, time_set, time_ref, thr_factor, thr_min, win_size)
             % Flag the data above max(thr_min, thr_factor) * mean(movstd))
-            % If the percentage of 
-            % SYNTAX: data = flagOnStd(data, thr_factor, <thr_min = 0 >, <max_outlier_perc = 100>, <win_size = 5>)
-            if nargin < 3
+            % SYNTAX: data = flagRawObs(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
+            if nargin < 5
                 thr_min = 0;
             end
-            if nargin < 4
-                max_outlier_perc = 100;
+            if nargin < 6
                 win_size = 5;
             end
+                        
+            flag = 1;
+            i = 0;            
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            if ~isempty(time_set)
+                data_interp = zeros(size(data));
+                for s = 1 : size(data,2)
+                    tmp = nan2zero(data(:,s));
+                    if any(tmp)
+                        id_interp = (conv(tmp ~= 0, ones(9,1), 'same') > 0);
+                        data_interp(id_interp,s) = interp1(time_set, zero2nan(data(:,s)), time_ref(id_interp), 'spline', 'extrap');
+                    end
+                end
+            else
+                data_interp = data;
+            end
+
+            % loop for outliers rejection
+            flagged_out = false(size(data));
+            while (sum(flag(:)) > 0) && (i < 5)
+                sensor = zero2nan(data_interp);
+                sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                i = i + 1;
+                % expand the set of observations to allow flogging at the border of the valid intervals
+                sensor = movstd(sensor, win_size, 'omitnan');
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                data(flag) = NaN;
+                data_interp(flag) = NaN;
+                flagged_out  = flagged_out | flag;
+            end
+        end
+        
+        function [data, flagged_out] = flagRawObsD4(data, time_set, time_ref, thr_factor, thr_min, win_size)
+            % Flag the data above max(thr_min, thr_factor) * mean(movstd))
+            % SYNTAX: data = flagRawObsD4(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
             if nargin < 5
+                thr_min = 0;
+            end
+            if nargin < 6
                 win_size = 5;
+            end
+                        
+            flag = 1;
+            i = 0;            
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            if ~isempty(time_set)
+                data_interp = zeros(size(data));
+                for s = 1 : size(data,2)
+                    tmp = nan2zero(data(:,s));
+                    if any(tmp)
+                        %id_interp = (conv(tmp ~= 0, ones(9,1), 'same') > 0); % interp with borders
+                        id_interp = tmp ~= 0;
+                        data_interp(id_interp,s) = interp1(time_set, zero2nan(data(:,s)), time_ref(id_interp), 'spline', 'extrap');
+                    end
+                end
+            else
+                data_interp = data;
+            end
+
+            % loop for outliers rejection
+            flagged_out = false(size(data));
+            while (sum(flag(:)) > 0) && (i < 5)
+                sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+                sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                i = i + 1;
+                % expand the set of observations to allow flogging at the border of the valid intervals
+                sensor = movstd(sensor, win_size, 'omitnan');                
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                data(flag) = NaN;
+                data_interp(flag) = NaN;
+                flagged_out  = flagged_out | flag;
+            end
+        end
+        
+        function [data, flagged_out] = flagBorders(data, win_size)
+            % Flag the data above max(thr_min, thr_factor) * mean(movstd))
+            % SYNTAX: [data, flagged_out] = flagBorders(data, win_size)
+            if nargin < 2
+                win_size = 20;
             end
             
-            flag = 1;
-            i = 0;
-            while (sum(flag(:)) > 0) && (i < 5)
-                i = i + 1;
-                sensor = Core_Pre_Processing.diffAndPred(zero2nan(data), 4);
-                sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
-                sensor = movstd(sensor, win_size, 'omitnan');
-                flag = sensor > max(thr_min, thr_factor * mean(serialize(sensor), 'omitnan'));                
-                flag10 = sensor > max(thr_min, 10 * thr_factor * mean(serialize(sensor), 'omitnan'));                
-                % Check whether or not the numbber of outliers is over the acceptable max_outlier_perc value
-                % if all the data are outliers maybe they are not really outliers
-                too_many_outliers = conv((sum(flag,2) ./ sum(~isnan(sensor),2)) < (max_outlier_perc/100), ones(3,1), 'same');
-                flag = flag10 | (bsxfun(@minus, flag, ~too_many_outliers) > 0);
-                data(flag) = NaN;
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            time_set = 1 : size(data,1);
+            id_interp = flagExpand(~isnan(data), 5) & isnan(data);
+            data_interp = data;
+            for s = 1 : size(data,2)
+                tmp = data(~isnan(data(:,s)),s);
+                if numel(tmp) > 5
+                    data_interp(id_interp(:,s),s) = interp1(time_set(~isnan(data(:,s))), tmp, time_set(id_interp(:,s)), 'spline', 'extrap');
+                end
             end
+            
+            % loop for outliers rejection
+            sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+            % expand the set of observations to allow flogging at the border of the valid intervals
+            sensor(isnan(data)) = 0;
+            sensor = maxfilt_mat(movstd(sensor, ceil(win_size/2), 'omitnan'),5);
+            sensor(isnan(data)) = 0;
+            std_max = sensor; std_max(flagExpand(sensor == 0, win_size)) = 0;
+            sensor_max = maxfilt_mat(max(std_max, [], 2), ceil(win_size/2));
+            sensor_max = simpleFill1D(sensor_max, sensor_max == 0);
+            % remove possible outliers over thr and small arcs < 5 epochs
+            flagged_out = ~Core_Pre_Processing.remShortArcs(~(sensor > sensor_max | isnan(data))', 5)' & ~isnan(data);
+            data(flagged_out) = NaN;
         end
     end
     
@@ -1048,43 +1132,124 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function [ph, dt] = remClockJump(ph)
+        function [ph, dt] = remDtJumps(ph, time_ref, time)
             % remove a jumps of the clock from phr
             % this peace of code is very very criptic, but it seems to work
             % review this whenever possible
             ph = zero2nan(ph);
             d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
             ddt = cumsum(cumsum(nan2zero(d3dt)));
+            ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
             % check if there is any discontinuity in the clock drift
             clock_thresh = 1e3;
-            pos_jmp = abs(ddt-medfilt_mat(ddt,3)) > clock_thresh;
+            pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
             if sum(pos_jmp) > 0
                 ddt = ddt - simpleFill1D(ddt, pos_jmp);
                 dt = detrend(cumsum(ddt));
-                ph_bk = ph;
+                ph_bk = ph;                
                 ph = bsxfun(@minus, ph, dt);
+                d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
+                d4dt(abs(d4dt) < clock_thresh) = 0;
+                dt = detrend(dt - cumsum(nan2zero([0; d4dt; zeros(3,1)])));
+                ph = bsxfun(@minus, ph_bk, dt);
             else
                 dt = zeros(size(ddt));
             end
-            
-            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
-            dt_hf = (cumsum(cumsum(cumsum(nan2zero(d3dt)))));
-            
+            dt = dt / 299792458;            
+        end
+        
+        function [ph_out, dt] = remDtHF(ph)
+            % [ !! ] EXPERIMENTAL FUNCTION 
+            % Remove high frequency from phases estimated by the 4th derivative
+            % WARNING: this code works bbut it has a lot of border effects, especially if the dataset it's not continuous
+            %
+            % SYNTAX:
+            %   [ph_out, dt] = remDtHF(ph)
+            d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),4), 2, 'omitnan');
+                        
             % Filter low frequencies:
-            x = (1 : numel(dt_hf))';
-            ws = 5;
-            margin = 2 * round(ws/2);
-            xi = (1 - margin : numel(dt_hf) + margin)';
-            dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap');
-            dt_lf = splinerMat([],medfilt_mat(dt_lf, 5), 5);
-            dt_hf = dt_hf - dt_lf(margin + 1 : end - margin);
-            
-            ph = nan2zero(bsxfun(@minus, zero2nan(ph), dt_hf));
-            dt = (dt + dt_hf) / 299792458;
-            
-            %dt = dt / 299792458;
+%             dt_hf = cumsum(cumsum(cumsum(cumsum(nan2zero(d4dt)))));
+%             x = (1 : numel(dt_hf))';
+%             ws = 5;
+%             margin = 2 * round(ws/2);
+%             xi = (1 - margin : numel(dt_hf) + margin)';
+%             dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap');
+%             dt_lf = splinerMat([],medfilt_mat(dt_lf, 5), 5);
+%             dt_hf = dt_hf - dt_lf(margin + 1 : end - margin);
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(d4dt), 313, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 177, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 143, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 107, 0.01, 101));             
+            ph_out = nan2zero(bsxfun(@minus, zero2nan(ph), dt));
+            dt = dt / 299792458;
         end
 
+        function [pr, ph, dt_pr, dt_ph] = correctTimeDesyncHF(time_ref, time, pr, ph)
+            %   Correction of jumps in code and phase due to dtR and time de-sync
+            % SYNTAX:
+            %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+
+            logger = Logger.getInstance();
+            
+            time_desync  = round((time_ref - time) * 1e7) / 1e7;
+            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
+            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
+            
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            % if adding the desync will improve the std it means that the receiver does not compensate for it
+            [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
+            if flag
+                time_desync_ph = time_desync;
+                logger.addMessage('Correcting phase for time desync', 100);
+            else
+                time_desync_ph = 0;
+            end
+            
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                time_desync_pr = time_desync;
+                logger.addMessage('Correcting pseudo-ranges for time desync', 100);
+            else
+                time_desync_pr = 0;
+            end
+            clear pr_ds ph_ds;
+            [ph, dt_ph_jumps] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
+            [ph, dt] = Core_Pre_Processing.remDtHF(ph);
+            dt_ph = dt_ph_jumps + dt;
+            %figure(1); plot(diff(zero2nan(ph)),'.k');
+
+            % correct the pseudo-ranges for HF
+            pr_lf = bsxfun(@minus, pr, dt .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_lf);
+            if flag
+                dt_pr = dt_ph;
+                logger.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
+            else
+                dt_pr = zeros(size(dt_ph));
+            end            
+
+            % correct the pseudo-ranges for jumps
+            pr_dj = bsxfun(@minus, pr, dt_ph_jumps .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+            if flag
+                dt_pr = dt_pr + dt_ph_jumps;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+            end
+            
+            % in some receivers the pseudo-range is not continuous while the phase are ok
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                dt_pr = dt_pr_jumps + dt_pr;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+            end
+            
+            dt_ph = dt_ph + time_desync_ph;
+            dt_pr = dt_pr + time_desync_pr;
+            %figure(2); plot(diff(zero2nan(pr)),'.k');
+        end
+        
         function [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX:
@@ -1115,27 +1280,25 @@ classdef Core_Pre_Processing < handle
                 time_desync_pr = 0;
             end
             clear pr_ds ph_ds;
-            [ph, dt_ph] = Core_Pre_Processing.remClockJump(ph);
+            [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
             %figure(1); plot(diff(zero2nan(ph)),'.k');
 
-            % correct the pseudo-ranges
-            pr_ds = bsxfun(@minus, pr, dt_ph .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            % correct the pseudo-ranges for jumps
+            pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
             if flag
-                dt = dt_ph;
+                dt_pr = dt_ph;
                 logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
             else
-                dt = zeros(size(dt_ph));
+                dt_pr = zeros(size(dt_ph));
             end
             
             % in some receivers the pseudo-range is not continuous while the phase are ok
-            [pr_ds, dt_pr] = Core_Pre_Processing.remClockJump(pr);
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
-                dt_pr = dt_pr + dt;
+                dt_pr = dt_pr + dt_pr_jumps;
                 logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
-            else
-                dt_pr = dt;
             end
             
             dt_ph = dt_ph + time_desync_ph;
@@ -1617,6 +1780,105 @@ classdef Core_Pre_Processing < handle
                 end
             end
         end
+        
+        function [data_out] = highPass(data, spline_base, cut_off, filt_border)
+            % Compute an high pass filter on a dataset
+            % Additionally apply a spline interpolation before thee fft transformation
+            %
+            % SYNTAX:
+            %   [filtered_data] = highPass(data, spline_base, cut_off, filt_border);
+            %
+            % INPUT:
+            %   data            dataset to filter
+            %   spline_base     spline_base for spline filtering (if 0 do not do it)
+            %   cut_off         cut-off frequency for the filter
+            %   filt_border     filter dimension (larger -> smoother)
+            %
+            % OUTPUT:
+            %   filtered_data   data reduced by splines and spectral filter
+            
+            if nargin < 4
+                filt_border = 1e100;
+            end
+            
+            spline_base = min(round(numel(data)/2), spline_base);
+            
+            %%% DEBUG figure(133); clf; plot(data); hold on;
+            
+            % if the number of data is even interpolate one observation
+            is_even = false;
+            if (cut_off > 0) && (mod(numel(data),2) == 0) % is even
+                is_even = true;
+                x = (1 : numel(data))';
+                data = [interp1(x(~isnan(data)), data(~isnan(data)), 0, 'pchip', 'extrap'); data];
+            end
+            data = data - (0 : numel(data)-1)' * (median(data(max(1,length(data)-4):end)) - median(data(1:min(5,length(data))))) / numel(data);
+            
+            n_obs = length(data);
+            
+            % filter low frequencies with splines to limit border effects:
+            if (spline_base > 0)
+                x = (1 : n_obs)';
+                ws = 5;
+                margin = 2 * round(ws/2);
+                xi = (1 - margin : n_obs + margin)';
+                
+                dt_lf = [median(data(1:min(5,length(data)))) * ones(margin,1); data(~isnan(data)); ones(margin,1) * median(data(max(1,length(data)-4):end))];
+                %%% DEBUG figure(133); plot(xi - 1, dt_lf);
+                dt_lf = splinerMat([],medfilt_mat(dt_lf, ws), spline_base);
+                
+                data = data - dt_lf(margin + 1 : end - margin);
+            end
+            %%% DEBUG figure(133); plot(data((1 + is_even) : end));
+            
+            if (cut_off > 0)
+                % replicate signal to limit the border effects
+                data = [flipud(data); data; flipud(data)];
+                
+                %%% DEBUG figure(110); clf; plot(zero2nan(data));
+                
+                % Take fft
+                fftx = fftshift(fft(data));
+                
+                % Calculate the number of unique points (find the zero frequency - mean of the signal)
+                f0_id = ceil((length(data) + 1) / 2);
+                
+                % This is an evenly spaced frequency vector with f0_id points.
+                f = (0:f0_id-1) ./ length(data);
+                
+                % FFT is symmetric, throw away second half
+                fftx_half = fftx(f0_id : end);
+                
+                % design the filter
+                w = zeros(size(fftx_half));
+                f_cut = cut_off;
+                id_cut = find(f > f_cut, 1, 'first');
+                filt_border = min(2*id_cut - 1, filt_border);
+                w(1 : (id_cut - ((filt_border - 1) / 2))) = 0;
+                w((id_cut + ((filt_border - 1) / 2)) : end) = 1;
+                w((id_cut - ((filt_border - 1) / 2)) : (id_cut + ((filt_border - 1) / 2))) = 1 - (1 ./ (1+exp(-10:20/(filt_border-1):10)))'; % use a sigmoid filter for the design
+                
+                % compute power spectra - for debug
+                %%% DEBUG psd = abs(fftx_half)/length(data)*sqrt(length(data)); % Take the magnitude of fft of x and scale the fft so that it is not a function of the length of x
+                %%% DEBUG figure(125); clf; loglog(f, psd)
+                
+                % apply the filter
+                fftx_half = fftx_half .* w;
+                
+                % compute power spectra of the filtered data - for debug
+                %%% DEBUG psd_f = abs(fftx_half) / length(data) * sqrt(length(data)); % Take the magnitude of fft of x and scale the fft so that it is not a function of the length of x
+                
+                fftx = ifftshift([flipud(conj(fftx_half)); fftx_half(2:end)]);
+                
+                %%% DEBUG figure(125); hold on; loglog(f, psd_f)
+                data_out = real(ifft(fftx));
+                data_out = data_out(n_obs + ((1 + is_even) : n_obs));
+                %%% DEBUG figure(133); plot(data_out); title('data');
+            else
+                data_out = data;
+            end
+        end
+
         
         function [min_std] = detect_minimum_std(time_series)
             min_std = 1e30;
