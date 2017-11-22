@@ -58,12 +58,24 @@ classdef Tropo < handle
             % Core object creator
             this.log = Logger.getInstance();
             this.reset();
-            if iscell(file_name)
-                for f = 1 : length(file_name)
-                    this.appendTropo(file_name{f});
+            if nargin == 1
+                if iscell(file_name)
+                    for f = 1 : length(file_name)
+                        this.log.addMessage(sprintf('Importing %s', file_name{f}));
+                        if exist(file_name{f}, 'file')
+                            this.appendTropo(file_name{f});
+                        else
+                            this.log.addMessage(sprintf('Error loading the last file, the file does not exists'));
+                        end
+                    end
+                else
+                    this.log.addMessage(sprintf('Importing %s', file_name));
+                    if exist(file_name, 'file')
+                        this.appendTropo(file_name);
+                    else
+                        this.log.addMessage(sprintf('Error loading the file, it does not exists'));
+                    end
                 end
-            else
-                this.appendTropo(file_name);
             end
         end
         
@@ -185,5 +197,32 @@ classdef Tropo < handle
     
     
     methods (Static)
+        function tropo = loadBatch(file_name, run_start, run_stop)
+            % Load all the tropo files of a session
+            %
+            % SYNTAX:  
+            %   tropo = Tropo.loadBatch(file_name, run_start, run_stop)
+            % 
+            % INPUT:
+            %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
+            %   run_start     number of the first run to load
+            %   run_stop      number of the last run to load
+            %
+            % OUTPUT:
+            %   tropo         troposphere object containing all the data loaded from the files
+            %
+            GPS_RUN = '${RUN}';
+            file_name_list = {};
+            r = 0;
+            for run = run_start : run_stop
+                r = r + 1;
+                file_name_list{r} = strrep(file_name, GPS_RUN, sprintf('%03d', run));
+            end
+            if numel(file_name_list) > 0
+                tropo = Tropo(file_name_list);
+            else
+                tropo = Tropo();
+            end
+        end
     end
 end
