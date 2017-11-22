@@ -1,4 +1,4 @@
-function [data] = simpleFill1D(data, flags)
+function [data] = simpleFill1D(data, flags, method)
 % SYNTAX:
 %    [data_filled] = simpleFill1D(data, flags)
 %
@@ -50,13 +50,16 @@ function [data] = simpleFill1D(data, flags)
 %         dt_rhs = data(lim(j, 2) + 1 : min(numel(data), lim(j, 2) + half_win));
 %         data(lim(j,1):lim(j,2)) = interp1([ lim(j, 1) - numel(dt_lhs) : lim(j, 1) - 1,  lim(j, 2) + 1 : lim(j, 2) + numel(dt_rhs)], [dt_lhs; dt_rhs], lim(j,1) : lim(j,2), 'pchip','extrap');
 %     end
-
+    narginchk(2,3);
+    if nargin == 2
+        method = 'pchip';
+    end
     t = 1 : size(data, 1);
     for r = 1 : size(data, 2)
         if any(~isnan(data(:, r))) && any(~isnan(flags(:, r)))
             jmp = find(flags(:, r));
             flags(:, r) = flags(:, r) | isnan(data(:, r));
-            data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, 'pchip','extrap');
+            data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
         end
     end
 end
