@@ -37,56 +37,65 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function filtered_data = maxfilt_mat(data, filter_size)
+function filtered_data_out = maxfilt_mat(data_in, filter_size)
     % compute a moving window median to filter the data in input
-    data = data(:);
-    inan = isnan(data);
-    id_ok = find(~inan);
-    data = interp1q(id_ok, data(id_ok), (1 : length(data))');
-    filtered_data = zeros(size(data));
-    filter_size = filter_size + mod(filter_size+1,2); % filter size must be odd
-    half_size = (filter_size-1) / 2;
-
-    if (filter_size <= length(data))
-
-        % Solution with increasing window at the left border
-        win = data(1);
-        filtered_data(1) = data(1);
-        for i = 2 : half_size + 1
-            win = inSortedData(win, data(i * 2 - 1));
-            win = inSortedData(win, data((i-1) * 2));
-            filtered_data(i) = win(end);
+    
+    filtered_data_out = data_in;
+    for c = 1 : size(data_in, 2)
+        data = data_in(:, c);
+        inan = isnan(data);
+        if sum(~inan(:)) > 0
+            id_ok = find(~inan);
+            data = interp1q(id_ok, data(id_ok), (1 : length(data))');
+            data(isnan(data)) = -inf;
+            filtered_data = zeros(size(data));
+            filter_size = filter_size + mod(filter_size+1,2); % filter size must be odd
+            half_size = (filter_size-1) / 2;
+            
+            if (filter_size <= length(data))
+                
+                % Solution with increasing window at the left border
+                win = data(1);
+                filtered_data(1) = data(1);
+                for i = 2 : half_size + 1
+                    win = inSortedData(win, data(i * 2 - 1));
+                    win = inSortedData(win, data((i-1) * 2));
+                    filtered_data(i) = win(end);
+                end
+                
+                % Solution with constant median in the borders
+                %         % init the win with the first "part" of the dataset sorted
+                %         win = sort(data_in(1 : filter_size));
+                %         % get the median value
+                %         m = win(half_size + 1);
+                %         % first half window values will be equal to the median of the first window
+                %         filtered_data(1:half_size + 1) = m;
+                
+                for i = (half_size + 2) : (length(data) - half_size)
+                    % fprintf('Center: %d  In: %f(%2d)  Out %f(%2d)\n', i, data_in(i+half_size), i+half_size, data_in(i-half_size-1), i-half_size-1);
+                    win = inOutSortedData(win, data(i + half_size), data(i - half_size - 1));
+                    filtered_data(i) = win(end);
+                end
+                
+                % Solution with decreasing window at the right border
+                for i = length(data) - half_size + 1 : length(data) -1
+                    win = outSortedData(win, data(-length(data) + 2 * (i - 1)));
+                    win = outSortedData(win, data(-length(data) + 2 * i - 1));
+                    filtered_data(i) = win(end);
+                end
+                filtered_data(end) = data(end);
+                filtered_data(inan) = nan;
+                % Solution with constant median in the borders
+                %         % get the median value
+                %         m = win(half_size + 1);
+                %         % last half window values will be equal to the median of the first window
+                %         filtered_data(length(data_in) - half_size : end) = m;
+            else
+                error('The data to be filtered is shorter than the median window dimension')
+            end
+            filtered_data_out(:, c) = filtered_data;
         end
-
-        % Solution with constant median in the borders
-%         % init the win with the first "part" of the dataset sorted
-%         win = sort(data_in(1 : filter_size));
-%         % get the median value
-%         m = win(half_size + 1);
-%         % first half window values will be equal to the median of the first window
-%         filtered_data(1:half_size + 1) = m;
-
-        for i = (half_size + 2) : (length(data) - half_size)
-            % fprintf('Center: %d  In: %f(%2d)  Out %f(%2d)\n', i, data_in(i+half_size), i+half_size, data_in(i-half_size-1), i-half_size-1);
-            win = inOutSortedData(win, data(i + half_size), data(i - half_size - 1));
-            filtered_data(i) = win(end);
-        end
-
-        % Solution with decreasing window at the right border
-        for i = length(data) - half_size + 1 : length(data) -1
-            win = outSortedData(win, data(-length(data) + 2 * (i - 1)));
-            win = outSortedData(win, data(-length(data) + 2 * i - 1));
-            filtered_data(i) = win(end);
-        end
-        filtered_data(end) = data(end);
-        filtered_data(inan) = nan;
-        % Solution with constant median in the borders
-%         % get the median value
-%         m = win(half_size + 1);
-%         % last half window values will be equal to the median of the first window
-%         filtered_data(length(data_in) - half_size : end) = m;
-    else
-        error('The data to be filtered is shorter than the median window dimension')
+        filtered_data_out(isnan(data_in)) = nan;
     end
 end
 
