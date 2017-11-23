@@ -1336,12 +1336,12 @@ classdef Receiver < handle
             
             if  approx_pos_unknown
                 this.xyz = [0 0 0];
-                if sum(sum(obs,1)) > 1000
+                if sum(sum(obs,1)) > 100
                     % sub sample observations
                     sub_sample = true;
-                    idx_ss = 1:100;%(1: round(size(obs,2) / 200):size(obs,2));
+                    idx_ss = 1:100;%(1: round(size(obs,2) / 100):size(obs,2));
                     idx_ss_l = false(1, size(obs,2));
-                    idx_ss_l(1:1000) = true;
+                    idx_ss_l(idx_ss) = true;
                     
                     obs_ss = zeros(size(obs));
                     obs_ss(:,idx_ss_l) = obs(:,idx_ss_l);
@@ -1440,6 +1440,7 @@ classdef Receiver < handle
             
             code_bias_flag   = cellstr([sys flag]);
             u_code_bias_flag = unique(code_bias_flag);
+            
             % initialize dtr
             
             
@@ -1459,6 +1460,20 @@ classdef Receiver < handle
             u_code_bias_flag = u_code_bias_flag(b);
             n_ep_ch = n_ep_ch(b,:);
             ch_idx_ep = ch_idx_ep(b,:);
+            
+            % compute a column with an integer that indicate whice
+            % code_bias to estimate for each obs
+            code_bias_ord = zeros(size(code_bias_flag,1),1);
+            for i = 1 :length(u_code_bias_flag)
+                ch_idx_sat = sum([sys flag] == repmat( sprintf('%-8s',u_code_bias_flag{i}),length(sys),1),2) == 8;
+                code_bias_ord(ch_idx_sat) = i;
+            end
+            
+            %get the satellite index for all obs
+            sat_ids = zeros(size(prn));
+            for s = 1:length(sat_ids)
+                sat_ids(s) = this.cc.getIndex(sys(s),prn(s));
+            end
            
             
             if opt.rid_ep
@@ -1485,21 +1500,17 @@ classdef Receiver < handle
             
             iono_free = true; %to be removed
             
-            if this.static == 1
+            
                 %ls_solver.A =sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); %version with reference clock
-                if opt.rid_ep
-                    n_par = 3+sum(n_ep_ch(1:end));
-                    ls_solver.A = spalloc(n_tot_obs,n_par,round(n_par*0.1));
-                else
-                    n_par = 3+n_valid_epochs+length(u_code_bias_flag)-1;
-                    ls_solver.A = spalloc(n_tot_obs,n_par,round(n_par*0.1));
-                end
+                
                 n_it = 0;
                 while max(abs(x(1:3))) > opt.coord_corr &   n_it < opt.max_it
                     n_it = n_it + 1;
                     ls_solver.clearUpdated();
                     % fill the a matrix
-                    oc = 1; % obervation counter
+                    oc = 1; % obervation counter+
+                    XS_norm = zeros(this.cc.getNumSat(), 3, n_epochs);
+                    dist = zeros(n_epochs, this.cc.getNumSat());
                     for i = 1 : this.cc.getNumSat();
                         c_sys = this.cc.system(i);
                         c_prn = this.cc.prn(i);
@@ -1542,69 +1553,93 @@ classdef Receiver < handle
                             if freq == ' ';
                                 freq = flag(idx_sat_i(1), 2);
                             end
-                            [dist, XS] = this.getSyntObs(freq,i); %%% consider multiple combinations on the same satellite, not handdled yet
-                            dist(dist==0) = [];
+                            [dist(:,i), XS] = this.getSyntObs(freq,i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
+                            %dist(dist==0) = [];
                            
 
-                             XS_norm = rowNormalize(XS);
+                            XS_norm(i,:,idx_obs) = rowNormalize(XS)';
                             
-                            
-                            for j = 1 : size(c_obs,1) % for observation of the satellite
-                                idx_ep = c_obs(j,:) > 0; % epoch with observation from the channel
-                                idx_tmp2 = idx_ep(idx_obs); 
-                               
-                                
-                                
-                                
-                                n_obs = sum(idx_ep);
-                                ls_solver.y0(oc:(oc+n_obs-1)) = c_obs(j,idx_ep);
-                                ls_solver.b(oc:(oc+n_obs-1))  = dist(idx_tmp2);
-                                ls_solver.y0_epoch(oc:(oc+n_obs-1)) = find(idx_ep);
-                                if ~opt.no_pos 
-                                   ls_solver.A(oc:(oc+n_obs-1),1:3)  = - XS_norm(idx_tmp2,:);
-                                end
-                                
-                                
-                                % clocks
-                                % PLEASE COMMENT MORE
-                                if sum(idx_sat) > 1 % case more observation on one satellite
-                                    idx_tmp4 = find(idx_sat);
-                                    idx_tmp4 = idx_tmp4(j);
-                                    flag_tmp = code_bias_flag{idx_tmp4};
-                                else
-                                    flag_tmp = code_bias_flag{idx_sat};
-                                end
-                                % find the channel of the observations 
-                                channel = find(sum(cell2mat(u_code_bias_flag) == repmat(flag_tmp,length(u_code_bias_flag),1),2) == length(flag_tmp), 1, 'first');
-                                idx_ep_2 = idx_ep(sum(obs,1)>0);
-                                if opt.rid_ep
-                                    %idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) ,3+n_valid_epochs+sum(n_ep_ch(2:channel-1))+find(idx_ep_2(ch_idx_ep(channel,:) > 0)));
-                                    idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) , 3+sum(n_ep_ch(1:channel-1))+find(idx_ep_2(ch_idx_ep(channel,:) > 0)));
-                                    ls_solver.A(idx_tmp3) = 1;
-
-                                else
-                                     idx_tmp3 = sub2ind(size(ls_solver.A),oc:(oc+n_obs-1) ,3+find(idx_ep_2));
-                                     ls_solver.A(idx_tmp3)  = 1; % reference clock
-                                     if channel ~= 1
-                                         ls_solver.A(oc:(oc+n_obs-1),3+n_valid_epochs+channel -1 )  = 1; % channel dipendent code bias
-                                     end
-                                end
-                                oc = oc + n_obs;
-                                
-                                
-                                
-                            end
-                            
-                            
+                                                      
                             
                         end
                     end
                     %ls_solver.sortSystemByEpoch();
+                    if this.static == 1
+                        % preallocate normal matrix and 
+                        if opt.rid_ep
+                            n_par = 3+sum(n_ep_ch(1:end));
+                            N = spalloc(n_par,n_par,3*n_valid_epochs+n_valid_epochs*length(u_code_bias_flag));
+                            
+                        else
+                            n_par = 3+n_valid_epochs+length(u_code_bias_flag)-1;
+                            %N = spalloc(n_par,n_par,(3+length(u_code_bias_flag))*n_valid_epochs*2);
+                            
+                            num_dcb = length(u_code_bias_flag) -1;
+                            num_cp = 3+num_dcb; %num constant parmater
+                            N_cp = zeros(num_cp);
+                            N_col = zeros(n_valid_epochs,num_cp);%N coord and dcb
+                            N_diag = zeros(n_valid_epochs,1); %N clocks
+                        end
+                        B = zeros(n_par,1);                      
+                    end
+                    
+                    cur_val_ep = 0; 
+                    for e = 1 : n_epochs 
+                        obs_ep_idx_l = obs(:,e) >0; %logical index
+                        
+                        if sum(obs_ep_idx_l) > 0
+                            cur_val_ep = cur_val_ep +1;
+                            
+                            obs_ep_idx = obs_ep_idx_l.*[1:1:length(obs_ep_idx_l)]'; %numerical index
+                            obs_ep_idx(obs_ep_idx==0)=[];
+                            
+                            num_obs_ep = length(obs_ep_idx);
+                            ch_obs = code_bias_ord(obs_ep_idx);
+                            u_dcb = unique(ch_obs);
+                            u_dcb(u_dcb == 1) = []; % remove refernce clock
+                            n_dcb = length(u_dcb);
+                            A_dcb = zeros(num_obs_ep, n_dcb);
+                            for i = 1:length(u_dcb)
+                                A_dcb(ch_obs==u_dcb(i),i) = 1;
+                            end
+                            % construc design matrix and (y0-b) for the current epoch
+                            A_ep = [-XS_norm(sat_ids(obs_ep_idx), : , e) A_dcb ones(num_obs_ep, 1) ];
+                            y_ep = obs(obs_ep_idx_l, e) - dist(e, sat_ids(obs_ep_idx))';
+                            % construct nomr matrix and A'*y for the
+                            % current epoch
+                            N_ep = A_ep'*A_ep;                    
+                            B_ep = A_ep' * y_ep;
+                            % fill the N and B matrix
+                            param_idx_c = [1 2 3 3+u_dcb'-1]; % non time dependent param
+                            param_idx = [param_idx_c 3+num_dcb+cur_val_ep ];
+                            B(param_idx) = B(param_idx) + B_ep;
+                            N_diag(cur_val_ep) = N_diag(cur_val_ep) + N_ep(end,end); % sum clock N
+                            n_tr_param = length(param_idx_c);
+                            for p = 1:n_tr_param
+                                N_cp(param_idx_c(p),param_idx_c) = N_cp(param_idx_c(p),param_idx_c) + N_ep(p,param_idx_c);
+                            end
+                            N_col(cur_val_ep,param_idx_c) = N_ep(n_tr_param+1,1:n_tr_param);  
+                        end
+                    end
+                    
                     if opt.no_pos 
-                         [x, res] = ls_solver.solve([4:size(ls_solver.A,2)]);
+                         %[x, res] = ls_solver.solve([4:size(ls_solver.A,2)]);
+                         num_param = num_dcb + n_valid_epochs;
+                        N = spdiags([zeros(num_dcb,1); N_diag], 0, num_param, num_param);
+                        N(1:num_dcb, 1:num_dcb) = N_cp(4:end, 4:end);
+                        N((num_dcb+1):num_param, 1:num_dcb) = N_col(:, 4:end);
+                        N(1:num_dcb, (num_dcb+1):num_param) = N_col(:, 4:end)';
+                        B = B(4:end);
+                        x = N\B;
                          x = [zeros(3,1) ; x];
                     else
-                         [x, res] = ls_solver.solve();
+                        num_param = num_cp + n_valid_epochs;
+                        N = spdiags([zeros(num_cp,1); N_diag], 0, num_param, num_param);
+                        N(1:num_cp, 1:num_cp) = N_cp;
+                        N((num_cp+1):num_param, 1:num_cp) = N_col;
+                        N(1:num_cp, (num_cp+1):num_param) = N_col';
+                        x = N\B;
+                         %[x, res] = ls_solver.solve();
                     end
                     this.xyz = this.xyz + x(1:3)';
                     %
@@ -1614,14 +1649,11 @@ classdef Receiver < handle
                         this.dtR(ch_idx_ep(i,:) > 0,i) = x(((sum(n_ep_ch(1:i-1))) : (sum(n_ep_ch(1:i)) -1 ) ) + 4) / Go_State.V_LIGHT;
                     end
                     else
-                        this.dtR(sum(obs,1) > 0,1,1) = x((1 : n_valid_epochs) + 3) / Go_State.V_LIGHT;
-                        this.rid = x((n_valid_epochs + 4) : end) / Go_State.V_LIGHT;
+                        this.dtR(sum(obs,1) > 0,1,1) = x((4+num_dcb):end) / Go_State.V_LIGHT;
+                        this.rid = x(4: (3+num_dcb)) / Go_State.V_LIGHT;
                     end
                     
                 end
-                %keyboard
-            else
-            end
         end
         function [range, XS_loc] = getSyntObs(this,  obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
