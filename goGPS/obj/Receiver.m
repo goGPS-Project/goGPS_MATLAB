@@ -621,15 +621,18 @@ classdef Receiver < handle
             else
                 this.ph_shift = struct('g',[],'r',[],'e',[],'j',[],'c',[],'i',[],'s',[]);
                 for l = 1 : numel(fln)
-                    sys = char(txt(lim(fln(l), 1)) + 32);
-                    rin_obs_code = txt(lim(fln(l), 1) + (2:4));
-                    obs_id = (strfind(this.rin_obs_code.(sys), rin_obs_code) - 1) / 3 + 1;
-                    if isempty(this.ph_shift.(sys))
-                        this.ph_shift.(sys) = zeros(numel(this.rin_obs_code.(sys)) / 3, 1);
-                    end
-                    shift = sscanf(txt(lim(fln(l), 1) + (6:14)),'%f');
-                    if ~isempty(shift)
-                        this.ph_shift.(sys)(obs_id) = shift;
+                    if txt(lim(fln(l), 1)) ~= ' ' % ignoring phase shif only on subset of satellites
+                        sys = char(txt(lim(fln(l), 1)) + 32);
+                        
+                        rin_obs_code = txt(lim(fln(l), 1) + (2:4));
+                        obs_id = (strfind(this.rin_obs_code.(sys), rin_obs_code) - 1) / 3 + 1;
+                        if isempty(this.ph_shift.(sys))
+                            this.ph_shift.(sys) = zeros(numel(this.rin_obs_code.(sys)) / 3, 1);
+                        end
+                        shift = sscanf(txt(lim(fln(l), 1) + (6:14)),'%f');
+                        if ~isempty(shift)
+                            this.ph_shift.(sys)(obs_id) = shift;
+                        end
                     end
                 end
             end
@@ -1114,7 +1117,11 @@ classdef Receiver < handle
                     obs_idx_l = this.obs(o,:) > 0;
                     obs_idx = find(obs_idx_l);
                     dts_idx = obs_idx_l(ep_idx);
-                    this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
+                    if this.obs_code(o,1) == 'C'
+                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
+                    else
+                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
+                    end
                     dts_range_2 = dts_range(dts_idx);
                     nan_idx = obs_idx(find(isnan(dts_range_2)));
                     this.obs(o, nan_idx) = 0; 
@@ -1179,7 +1186,7 @@ classdef Receiver < handle
                         to_fill_epoch = iono_free;
                         first_freq = [];
                         f_obs_code = [];
-                        ff_idx = zeros(n_epoch);
+                        ff_idx = zeros(n_epoch,1);
                         for f = 1 :length(freq_list)
                             track_prior = track_list{f};
                             for c = 1:length(track_prior)
@@ -1200,7 +1207,7 @@ classdef Receiver < handle
                         to_fill_epoch = iono_free;
                         second_freq = [];
                         s_obs_code = [];
-                        sf_idx = zeros(n_epoch);
+                        sf_idx = zeros(n_epoch,1);
                         for f = 1 :length(freq_list)
                             track_prior = track_list{f};
                             for c = 1:length(track_prior)
@@ -1403,6 +1410,7 @@ classdef Receiver < handle
             opt.max_it = 1;
             opt.coord_corr = 0.1;
             opt.no_pos = true;
+            
             this.codePositionig(obs, prn, sys, flag, opt); % get a first estimation of receiver clock offset to get correct orbit
             opt.no_pos = false;
             this.codePositionig(obs, prn, sys, flag, opt);
@@ -1447,8 +1455,7 @@ classdef Receiver < handle
             end
             % sort the channel variables depending on the number of
             % observables
-            n_obs_ch_s = sort(n_obs_ch,'descend');
-            [a b] = ismember(n_obs_ch,n_obs_ch_s);
+            [n_obs_ch_s, b] = sort(n_obs_ch,'descend');
             u_code_bias_flag = u_code_bias_flag(b);
             n_ep_ch = n_ep_ch(b,:);
             ch_idx_ep = ch_idx_ep(b,:);
@@ -1469,9 +1476,10 @@ classdef Receiver < handle
             n_tot_obs = sum(sum(obs>0));
             
             % initialize LS solver
-            ls_solver = Least_Squares();
+            ls_solver = Least_Squares_Manipulator();
             ls_solver.y0 = zeros(n_tot_obs,1);
             ls_solver.b = zeros(n_tot_obs,1);
+            ls_solver.y0_epoch = zeros(n_tot_obs,1);
             ls_solver.Q = speye(n_tot_obs);
             x = [999 999 999];
             
@@ -1480,9 +1488,11 @@ classdef Receiver < handle
             if this.static == 1
                 %ls_solver.A =sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); %version with reference clock
                 if opt.rid_ep
-                    ls_solver.A = sparse(n_tot_obs,3+sum(n_ep_ch(1:end)));
+                    n_par = 3+sum(n_ep_ch(1:end));
+                    ls_solver.A = spalloc(n_tot_obs,n_par,round(n_par*0.1));
                 else
-                    ls_solver.A = sparse(n_tot_obs,3+n_valid_epochs+length(u_code_bias_flag)-1);
+                    n_par = 3+n_valid_epochs+length(u_code_bias_flag)-1;
+                    ls_solver.A = spalloc(n_tot_obs,n_par,round(n_par*0.1));
                 end
                 n_it = 0;
                 while max(abs(x(1:3))) > opt.coord_corr &   n_it < opt.max_it
@@ -1549,6 +1559,7 @@ classdef Receiver < handle
                                 n_obs = sum(idx_ep);
                                 ls_solver.y0(oc:(oc+n_obs-1)) = c_obs(j,idx_ep);
                                 ls_solver.b(oc:(oc+n_obs-1))  = dist(idx_tmp2);
+                                ls_solver.y0_epoch(oc:(oc+n_obs-1)) = find(idx_ep);
                                 if ~opt.no_pos 
                                    ls_solver.A(oc:(oc+n_obs-1),1:3)  = - XS_norm(idx_tmp2,:);
                                 end
@@ -1588,6 +1599,7 @@ classdef Receiver < handle
                             
                         end
                     end
+                    %ls_solver.sortSystemByEpoch();
                     if opt.no_pos 
                          [x, res] = ls_solver.solve([4:size(ls_solver.A,2)]);
                          x = [zeros(3,1) ; x];
@@ -1607,7 +1619,7 @@ classdef Receiver < handle
                     end
                     
                 end
-                keyboard
+                %keyboard
             else
             end
         end

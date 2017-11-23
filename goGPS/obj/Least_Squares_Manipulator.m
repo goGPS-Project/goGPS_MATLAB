@@ -41,6 +41,29 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-classdef Least_Square_Manipulator < Least_Square
+classdef Least_Squares_Manipulator < Least_Squares
+    properties
+        y0_epoch; % [n_obs x 1] epoch of the observation
+    end
+    methods
+        function this = Least_Square_Manipulator()
+        end
+        function sortSystemByEpoch(this)
+            [ep_sort, idx] = sort(this.y0_epoch);
+            this.A  = this.A(idx, :);
+            this.y0 = this.y0(idx);
+            this.b  = this.b(idx);
+            this.Q = this.Q(idx, :);
+            this.Q = this.Q(:, idx);
+            if not(isempty(this.res))
+                this.res = this.res(idx);
+            end
+            this.y0_epoch = ep_sort;
+        end
+        function splitParamEpochwise(this, col, rate)
+            
+        end
+        
+    end
     
 end
