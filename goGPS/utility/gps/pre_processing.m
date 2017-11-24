@@ -563,7 +563,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         %----------------------------------------------------------------------------------------------
         
         dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
-        flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);        
+        flag = abs(dGF)' > 10 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);        
         ph1(flag) = NaN;
         ph2(flag) = NaN;
         ph_GF(flag) = NaN;
