@@ -143,8 +143,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         STD_K_VEL_MOD = 0.1                             % Std of 3D modulus variation [m] / [m/s] / [m/s^2]
 
         % ATMOSPHERE
-        SIGMA0_TROPO = 0.1;                             % Std of a priori tropospheric delay
-        STD_TROPO = 4.5644e-4;                          % Std of tropospheric delay
+        SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
+        SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
+        
+        STD_TROPO = 0.04;                               % Std of tropospheric delay [m/h]
+        STD_TROPO_GRADIENT = 0.01;                      % Std of tropospheric gradient [m/h]
         IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 0: no model
                                                         % - iono_model = 1: Geckle and Feen model
@@ -154,7 +157,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                                         % - tropo_model = 0: no model
                                                         % - tropo_model = 1: Modified Saastamoinen model (with standard atmosphere parameters)
                                                         % - tropo_model = 2: Modified Saastamoinen model (with Global Pressure Temperature model)
-                                                        % - tropo_model = 3: Saastamoinen model (with standard atmosphere parameters)
+                                                            % - tropo_model = 3: Saastamoinen model (with standard atmosphere parameters)
                                                         % - tropo_model = 4: Modified Hopfield model (with standard atmosphere parameters)
                                                         % - tropo_model = 5: Hopfield model (with standard atmosphere parameters)
 
@@ -442,7 +445,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         % RECEIVER POSITION / MOTION
         %------------------------------------------------------------------
-
+        
         % Std of initial state [m]
         sigma0_k_pos = Main_Settings.SIGMA0_K_POS;
         % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
@@ -456,8 +459,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
         % Std of a priori tropospheric delay
         sigma0_tropo = Main_Settings.SIGMA0_TROPO;
-        % Std of tropospheric delay
+        sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
+        % Std of tropospheric delay [m / h]
         std_tropo = Main_Settings.STD_TROPO;
+        std_tropo_gradient = Main_Settings.STD_TROPO;
 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
         iono_model = Main_Settings.IONO_MODEL;
@@ -658,7 +663,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % ATMOSPHERE
                 this.sigma0_tropo  = state.getData('sigma0_tropo');
+                this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
+                this.std_tropo_gradient   = state.getData('std_tropo_gradient');
 
                 this.iono_model = state.getData('iono_model');
                 this.tropo_model = state.getData('tropo_model');
@@ -767,7 +774,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % ATMOSPHERE
                 this.sigma0_tropo = state.sigma0_tropo;
+                this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
+                this.std_tropo_gradient = state.std_tropo_gradient;
                 this.iono_model = state.iono_model;
                 this.tropo_model = state.tropo_model;
 
@@ -892,8 +901,6 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
-            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
-            str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
 
             switch this.flag_kf_fb
                 case 0, str = [str sprintf(' Kalman forward processing\n')];
@@ -903,6 +910,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Kalman seamless processing:                       %d\n\n', this.flag_seamless_proc)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
+            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
+            str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
+            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
+            str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
             str = [str sprintf(' Tropospheric model %s\n\n', this.TROPO_SMODE{this.tropo_model+1})];
 
@@ -1131,11 +1142,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('std_k_ENU', struct2array(this.std_k_ENU), str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of 3D modulus variation [m] / [m/s] / [m/s^2]', str_cell);
             str_cell = Ini_Manager.toIniString('std_k_vel_mod', this.std_k_vel_mod, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of a priori tropospheric delay', str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
             % KF Forward backward mode
             str_cell = Ini_Manager.toIniStringComment('Use forward - backward mode for Kalman filter processing (-1 / 0 / 1)', str_cell);
             str_cell = Ini_Manager.toIniStringComment(' -1 Backward -> Forward', str_cell);
@@ -1149,6 +1157,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.3f)', this.STD_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('iono_model', this.iono_model, str_cell);
             for i = 1 : numel(this.IONO_SMODE)
@@ -1684,8 +1700,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('std_k_vel_mod',[0 1e9]);
 
             % ATMOSPHERE
-            this.checkNumericField('sigma0_tropo',[1e-6 10]);
-            this.checkNumericField('std_tropo',[1e-6 1]);
+            this.checkNumericField('sigma0_tropo',[1e-11 10]);
+            this.checkNumericField('std_tropo',[1e-12 1]);
+            this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
+            this.checkNumericField('std_tropo_gradient',[1e-12 1]);
             this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
             this.checkNumericField('tropo_model',[0 numel(this.TROPO_SMODE)-1]);
 

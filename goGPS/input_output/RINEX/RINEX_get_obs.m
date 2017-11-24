@@ -70,9 +70,10 @@ if (~isempty(sat_types)) %RINEX v2.xx
     sat_types_id(sat_types == 'G') = first_id_sys(1);
     sat_types_id(sat_types == 'R') = first_id_sys(2);
     sat_types_id(sat_types == 'E') = first_id_sys(3);
-    sat_types_id(sat_types == 'C') = first_id_sys(4);
-    sat_types_id(sat_types == 'J') = first_id_sys(5);
-    sat_types_id(sat_types == 'S') = first_id_sys(6);
+    sat_types_id(sat_types == 'J') = first_id_sys(4);
+    sat_types_id(sat_types == 'C') = first_id_sys(5);
+    sat_types_id(sat_types == 'I') = first_id_sys(6);
+    sat_types_id(sat_types == 'S') = first_id_sys(7);
 
     %observation types
     nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
@@ -214,21 +215,27 @@ else %RINEX v3.xx
                 else
                     continue
                 end
-            case 'C'
-                if active_sys(4)
+            case 'J'
+                if active_sys(5)
                     index = first_id_sys(4) + satId - 1;
                 else
                     continue
                 end
-            case 'J'
-                if active_sys(5)
+            case 'C'
+                if active_sys(4)
                     index = first_id_sys(5) + satId - 1;
+                else
+                    continue
+                end
+            case 'I'
+                if active_sys(6)
+                    index = first_id_sys(6) + satId - 1;
                 else
                     continue
                 end
             case 'S'
                 if active_sys(6)
-                    index = first_id_sys(6) + satId - 1;
+                    index = first_id_sys(7) + satId - 1;
                 else
                     continue
                 end

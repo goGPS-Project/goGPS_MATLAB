@@ -49,7 +49,7 @@ global report
 %pwd
 
 % close all windows
-%close all
+% close all
 fclose('all');
 flag_init_out = false;
 
@@ -194,6 +194,7 @@ num_mst_rec = numel(f_mst_rec);
 % get short name for File_Name_Processor
 fnp = File_Name_Processor();
 
+initial_mode = state.getMode();
 if num_session > 1
     is_batch = true;
     w_bar.setOutputType(0);
@@ -229,7 +230,7 @@ if goGPS_new
     
     sky = Core_Sky.getInstance();
         
-    for s = 1 : num_session        
+    for s = 1 : num_session
         %-------------------------------------------------------------------------------------------
         % SESSION START
         %-------------------------------------------------------------------------------------------
@@ -239,7 +240,7 @@ if goGPS_new
         fprintf('--------------------------------------------------------------------------\n');
 
         % e.g. init sky
-        fr = File_Rinex(f_trg_rec{1}{s},100);        
+        fr = File_Rinex(f_trg_rec{1}{s},100);
         cur_date_start = fr.first_epoch.last();
         cur_date_stop = fr.last_epoch.first();
         sky.initSession(cur_date_start, cur_date_stop);
@@ -473,7 +474,7 @@ for session = 1 : num_session
                     end
                     
                     %read stations coordinates file
-                    if (~exist('pos_R_crd','var') || ~any(squeeze(pos_R_crd)))
+                    if (~exist('pos_R_crd','var') || ~any(serialize(pos_R_crd)))
                         [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, []);
                     end
                     
@@ -497,7 +498,7 @@ for session = 1 : num_session
                             report.obs.antoff_R(i,:) = antoff_R(:,:,i);
                             
                             % set ROVER initial coordinates
-                            if (exist('pos_R_crd','var') && any(pos_R_crd))
+                            if (exist('pos_R_crd','var') && any(pos_R_crd(:)))
                                 logger.newLine();
                                 logger.addMessage('Rover apriori position set from coordinate file:');
                                 logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
@@ -626,7 +627,7 @@ for session = 1 : num_session
                     var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
                     var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
                     
-                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
+                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd(:)))
                         if any(pos_R)
                             flag_XR = 1;
                         else
@@ -729,7 +730,10 @@ for session = 1 : num_session
                         w_bar.setBarLen(length(time_GPS_diff));
                         w_bar.createNewBar('Pre-processing rover...');
                         
-                        [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
+                        [time_R_diff(:,1,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
+                        % the time is now changed
+                        time_r(f) = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_R_diff(:,:,f)); %#ok<SAGROW>
+                        date_R(:,:,f) = datevec(time_r(f).getMatlabTime);
                         
                         if report.opt.write == 1
                             report.prep.spp_threshold = SPP_threshold;
@@ -803,7 +807,7 @@ for session = 1 : num_session
                     az_r = nan(size(pr1_R)); az_m = nan(size(pr1_M));
 
                     % read stations coordinates file
-                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
+                    if (~exist('pos_R_crd','var') || ~any(pos_R_crd(:)) || ~exist('pos_M_crd','var') || ~any(pos_M_crd(:)))
                         [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
                     end
                     
@@ -985,6 +989,7 @@ for session = 1 : num_session
                     %exclude for which lambda could not be computed
                     delsat = ~any(lambda,2);
                     pr1_R(delsat,:,:) = 0;
+                    codeC1_R(delsat,:) = 0;
                     pr2_R(delsat,:,:) = 0;
                     ph1_R(delsat,:,:) = 0;
                     ph2_R(delsat,:,:) = 0;
@@ -992,6 +997,7 @@ for session = 1 : num_session
                     dop2_R(delsat,:,:) = 0;
                     snr_R(delsat,:,:) = 0; %#ok<SAGROW>
                     pr1_M(delsat,:) = 0;
+                    codeC1_M(delsat,:) = 0;
                     pr2_M(delsat,:) = 0;
                     ph1_M(delsat,:) = 0;
                     ph2_M(delsat,:) = 0;
@@ -1099,21 +1105,22 @@ for session = 1 : num_session
                         pr1_M(avail_sat,:) = pr1_M(avail_sat,:) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M(avail_sat,:);
                     end
                     
-                    flag_dt_corr_m = [false; false];
                      if (~flag_SEID)
                         flag_XM_prep = 2;
                         if state.isModeBlock()
                             pp = Core_Pre_Processing(state, Eph, SP3);
-                            [pr1_M, ph1_M, pr2_M, ph2_M, flag_dt_corr_m, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pp.execute(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, flag_full_prepro, order);
+                            [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pp.execute(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, flag_full_prepro, order);
                         else
-                            [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
+                            [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
                         end
                     else
                         flag_XM_prep = 1;
-                        [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
+                        [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, 'NONE', nSatTot, w_bar, flag_XM_prep, sbas, cc, flag_full_prepro, order);
                      end
+                     % the time ref is now changed
+                     time_m = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_M_diff);
+                     date_M = datevec(time_m.getMatlabTime);
                     
-                    flag_dt_corr_m = false(2, size(time_R,3));
                     for f = 1 : size(time_R,3)
                         %pre-processing
                         logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
@@ -1134,10 +1141,13 @@ for session = 1 : num_session
                         end
                         
                         if state.isModeBlock()
-                            [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), flag_dt_corr_r(:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pp.execute(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, flag_full_prepro, order);
+                            [time_R_diff(:,1,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pp.execute(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, flag_full_prepro, order);
                         else
-                            [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
+                            [time_R_diff(:,1,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), el_r(:,:,f), az_r(:,:,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS_diff, time_R_diff(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, cc, flag_full_prepro, order);
                         end
+                        % the time is now changed
+                        time_r(f) = GPS_Time(zero_time/86400 + GPS_Time.GPS_ZERO, time_R_diff(:,:,f)); %#ok<SAGROW>
+                        date_R(:,:,f) = datevec(time_r(f).getMatlabTime);
                         
                         if report.opt.write == 1
                             report.prep.spp_threshold = SPP_threshold;
@@ -1164,10 +1174,12 @@ for session = 1 : num_session
                         %-------------------------------------------------------------------------------------------
                         
                         [ph1_R(:,:,f), ph1_M] = cycleSlipDetectSingleDiff(ph1_R(:,:,f), ph1_M);
-                        if frequencies > 1
-                            [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M_0);
+                        if numel(frequencies) > 1
+                            if ~state.isModeSEID()
+                                % In seid mode ph2_M should be empty
+                                [ph2_R(:,:,f), ph2_M] = cycleSlipDetectSingleDiff(ph2_R(:,:,f), ph2_M);
+                            end
                         end
-                        
                         %[ph1_R(:,:,f), ph1_M] = cycle_slip_detect_single_diff(ph1_R(:,:,f), ph1_M, interval);
                         %[ph2_R(:,:,f), ph2_M] = cycle_slip_detect_single_diff(ph2_R(:,:,f), ph2_M, interval);
                         
@@ -1466,8 +1478,9 @@ for session = 1 : num_session
             
             %update variance of tropospheric delay
             global sigmaq_tropo sigmaq_tropo_gradient %#ok<TLEV>
-            sigmaq_tropo = (0.001/sqrt(3600/interval))^2;
-            sigmaq_tropo_gradient = (0.0002/sqrt(3600/interval))^2;
+            % these values are set in Go_State.settingsToGo
+            %sigmaq_tropo = (0.001/sqrt(3600/interval))^2;
+            %sigmaq_tropo_gradient = (0.0002/sqrt(3600/interval))^2;
             
             %----------------------------------------------------------------------------------------------
             %% END OF SEID (Satellite-specific Epoch-differenced Ionospheric Delay)
@@ -1475,11 +1488,13 @@ for session = 1 : num_session
             
             if (state.isModeSEID())
                 SEID_main;
+                
                 if (mode == goGNSS.MODE_PP_SEID_PPP)
                     mode = goGNSS.MODE_PP_KF_CP_SA; % Switching from SEID PPP to PPP
                     state.setMode(mode); % Switching from SEID PPP to PPP
                     read_files = true; % In case of SEID processing the read operation must be repeated twice
                     flag_SEID = false;
+                    clear pos_R_crd;
                 end
             end
         end
@@ -4562,6 +4577,9 @@ for session = 1 : num_session
     end
     logger.newLine();
     toc
+    
+    state.setMode(initial_mode);
+    mode = initial_mode;
 end
 
 if flag_init_out && is_batch && ~state.isModeSEID()

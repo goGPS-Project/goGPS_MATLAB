@@ -83,10 +83,10 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods % Public Access
-        function [pr1, ph1, pr2, ph2, flag_jumps_ph, XR, dt_r, dt_r_dot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(this, time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, n_sat, wbh, flag_XR, sbas, flag_full_prepro, order)
+        function [time, pr1, ph1, pr2, ph2, XR, dt_r, dt_r_dot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(this, time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, n_sat, wbh, flag_XR, sbas, flag_full_prepro, order)
             
             % SYNTAX:
-            %   [pr1, ph1, pr2, ph2, flag_jumps_ph, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, flag_full_prepro, order);
+            %   [pr1, ph1, pr2, ph2, flag_jumps_ph, XR, dtR, dtRdot, el, az, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = execute(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, iono, lambda, frequencies, obs_comb, n_sat, waitbar_handle, flag_XR, sbas, flag_full_prepro, order);
             %
             % INPUT:
             %   time_ref = GPS reference time
@@ -114,6 +114,7 @@ classdef Core_Pre_Processing < handle
             %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
             
             % OUTPUT:
+            %   time = GPS nominal time (as read from RINEX file) and then corrected to the reference time during the pre-processing
             %   pr1 = processed code observation (L1 carrier)
             %   ph1 = processed phase observation (L1 carrier)
             %   pr2 = processed code observation (L2 carrier)
@@ -196,7 +197,7 @@ classdef Core_Pre_Processing < handle
             %     flag_XR = 1;
             % end
             
-            err_iono = zeros(n_sat,n_epochs);
+            err_iono = zeros(n_sat, n_epochs);
             el = zeros(n_sat,n_epochs);
             az = zeros(n_sat,n_epochs);
             eclipsed = zeros(n_sat,n_epochs);
@@ -207,19 +208,48 @@ classdef Core_Pre_Processing < handle
             status_obs = NaN(n_sat,n_epochs);
             status_cs=[];
             
-            % remove short arcs
-            min_arc = this.state.getMinArc();
+            %----------------------------------------------------------------------------------------------
+            % RECEIVER CLOCK DRIFT DISCONTINUITIES
+            %----------------------------------------------------------------------------------------------
+            % correct nominal time desynchronization and jumps ---------------------------------------------------
             
+            % nominal time desynchronization (e.g. with some low-cost receivers)
+            time_desync = round((time_ref - time) * 1e7) / 1e7; % computed here, used in init_positioning
+            
+            ph1_bk = ph1;
+            ph2_bk = ph2;
+            pr1_bk = pr1;
+            pr2_bk = pr2;
+            ph = zero2nan(bsxfun(@times, [ph1_bk; ph2_bk], [lambda(:, 1); lambda(:,2)])');
+            pr = zero2nan([pr1_bk; pr2_bk]');
+            figure(1); plot(diff(zero2nan(ph),4));
+            figure(2); plot(diff(zero2nan(pr),4))
+            [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
+            ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+            
+            % flag by high deviation of the 4th derivate
+            ph = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
+            ph1 = ph(:,1:size(ph1,1))';
+            ph2 = ph(:,(size(ph2,1)+1):end)';
+            
+            % flag by high deviation of the 4th derivate
+            pr = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
+            pr1 = nan2zero(pr(:,1:size(pr1,1))');
+            pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
+            
+            figure(3); plot(diff(zero2nan(ph),4));
+            figure(4); plot(diff(zero2nan(pr),4))
+
+            % ----------------------------------------------------------------------------------------------------
+            
+            % remove short arcs
+            lagr_order = 10;
+            min_arc = max([this.state.getMinArc() lagr_order]);
             % logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
-            pr1 = this.remShortArcs(pr1, min_arc);
-            pr2 = this.remShortArcs(pr2, min_arc);
-            ph1 = this.remShortArcs(ph1, min_arc);
-            ph2 = this.remShortArcs(ph2, min_arc);
-                        
-            % correct nominal time desynchronization
-            % [pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
-            % [pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
-            % time = time_ref;
+            pr1 = remove_short_arcs(pr1, min_arc);
+            pr2 = remove_short_arcs(pr2, min_arc);
+            ph1 = remove_short_arcs(ph1, min_arc);
+            ph2 = remove_short_arcs(ph2, min_arc);
             
             if not(flag_full_prepro)
                 XR = repmat(XR0, 1, length(dt_r));
@@ -234,7 +264,7 @@ classdef Core_Pre_Processing < handle
                 interval = median(diff(time)); %seconds
                 mt = ceil(interval/3);
                 nEpochs_reduced = floor(length(time)/mt);
-                
+
                 %number of position solutions to be estimated
                 if (order == 1)
                     npos = 1;
@@ -260,8 +290,6 @@ classdef Core_Pre_Processing < handle
                 end
                 
                 r = 1;
-                %sat_pos = nan(nEpochs,3);
-                %sat_vel = nan(nEpochs,3);
                 for i = 1 : n_epochs
                     
                     %--------------------------------------------------------------------------------------------
@@ -292,9 +320,9 @@ classdef Core_Pre_Processing < handle
                     if (length(sat0) >= min_nsat_LS)
                         if (frequencies(1) == 1)
                             if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), eph_t, this.sp3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time_ref(i) - dt_pr(i), pr1(sat0,i), snr1(sat0,i), eph_t, this.sp3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                             else
-                                [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), eph_t, this.sp3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                                [XR_tmp, dtR_tmp, sat_pos_tmp, ~, ~, sat_vel_tmp, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), eph_t, this.sp3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                                 %ids = find(sat == 2);
                                 %if ~isempty(ids)
                                 %    sat_pos(i,:) = sat_pos_tmp(ids, : );
@@ -302,7 +330,7 @@ classdef Core_Pre_Processing < handle
                                 %end
                             end
                         else
-                            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), eph_t, this.sp3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, az_tmp, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i) - dt_pr(i), pr2(sat0,i), snr1(sat0,i), eph_t, this.sp3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, p_rate, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
                         end
                         
                         if (~isempty(A) && (nisbs > 1) && (mod(i,mt) == 0))
@@ -402,7 +430,7 @@ classdef Core_Pre_Processing < handle
                     %remove unavailable epochs from the unknowns (receiver clock)
                     avail_index = any(A_all,1);
                     avail_IFBs = [];
-                    if (constellations.GLONASS.enabled)
+                    if (cc.glo.isActive())
                         %check if one of the GLONASS IFBs was removed from the unknowns
                         avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
                     end
@@ -444,7 +472,8 @@ classdef Core_Pre_Processing < handle
                 
                 %check if there is any discontinuity in the clock drift
                 clock_thresh = 1e-5;
-                disc = find(abs(dt_r_dot-mean(dt_r_dot)) > clock_thresh);
+                dt_r_dot = zero2nan(dt_r_dot);
+                disc = find(abs(dt_r_dot-mean(dt_r_dot(~isnan(dt_r_dot)))) > clock_thresh);
                 
                 %remove discontinuities from the clock drift
                 for i = 1 : length(disc)
@@ -471,59 +500,79 @@ classdef Core_Pre_Processing < handle
                 % (some receivers have inconsistent observations, e.g. code with clock
                 %  jumps, phase without)
                 
-                %jump detection threshold
-                j_thres = (clock_thresh*10)*v_light;
+                %         %jump detection threshold
+                %         j_thres = (clock_thresh*10)*v_light;
+                %
+                %         %flags
+                %         flag_jumps_pr1 = 0;
+                %         flag_jumps_pr2 = 0;
+                %         flag_jumps_ph1 = 0;
+                %         flag_jumps_ph2 = 0;
+                %
+                %         for i = 1 : length(disc)
+                %
+                %             for s = 1 : n_sat
+                %
+                %                 %check code on L1
+                %                 if (pr1(s,disc(i):disc(i)+1) ~= 0)
+                %                     if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
+                %                         flag_jumps_pr1 = 1;
+                %                     end
+                %                 end
+                %
+                %                 %check code on L2
+                %                 if (pr2(s,disc(i):disc(i)+1) ~= 0)
+                %                     if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
+                %                         flag_jumps_pr2 = 1;
+                %                     end
+                %                 end
+                %
+                %                 %check phase on L1
+                %                 if (ph1(s,disc(i):disc(i)+1) ~= 0)
+                %                     if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
+                %                         flag_jumps_ph1 = 1;
+                %                     end
+                %                 end
+                %
+                %                 %check phase on L2
+                %                 if (ph2(s,disc(i):disc(i)+1) ~= 0)
+                %                     if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
+                %                         flag_jumps_ph2 = 1;
+                %                     end
+                %                 end
+                %
+                %                 %no need to go through all satellites
+                %                 if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+                %                     break
+                %                 end
+                %             end
+                %
+                %             %no need to go through all discontinuities
+                %             if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+                %                 break
+                %             end
+                %         end
                 
-                %flags
-                flag_jumps_pr1 = 0;
-                flag_jumps_pr2 = 0;
-                flag_jumps_ph1 = 0;
-                flag_jumps_ph2 = 0;
+                %-------------------------------------------------------------------------------------------------------------
+                % OBSERVATION CORRECTION FOR CLOCK ERROR (v_light * dt)
+                %-------------------------------------------------------------------------------------------------------------
                 
-                for i = 1 : length(disc)
-                    
-                    for s = 1 : n_sat
-                        
-                        %check code on L1
-                        if (pr1(s,disc(i):disc(i)+1) ~= 0)
-                            if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
-                                flag_jumps_pr1 = 1;
-                            end
-                        end
-                        
-                        %check code on L2
-                        if (pr2(s,disc(i):disc(i)+1) ~= 0)
-                            if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
-                                flag_jumps_pr2 = 1;
-                            end
-                        end
-                        
-                        %check phase on L1
-                        if (ph1(s,disc(i):disc(i)+1) ~= 0)
-                            if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
-                                flag_jumps_ph1 = 1;
-                            end
-                        end
-                        
-                        %check phase on L2
-                        if (ph2(s,disc(i):disc(i)+1) ~= 0)
-                            if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
-                                flag_jumps_ph2 = 1;
-                            end
-                        end
-                        
-                        %no need to go through all satellites
-                        if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
-                            break
-                        end
-                    end
-                    
-                    %no need to go through all discontinuities
-                    if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
-                        break
-                    end
-                end
+                ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
+                ph = bsxfun(@minus, ph, v_light * dt_r);
+                % estimate high frequency clock residuals
+                [ph, dt] = Core_Pre_Processing.computeAndRemoveDt(ph);
+                dt_r = dt_r + dt;
                 
+                % apply new dtR to pseudo-ranges
+                pr = zero2nan([pr1; pr2]');
+                pr = bsxfun(@minus, pr, v_light * dt_r);
+                
+                ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+                ph1 = zero2nan(ph(:,1:size(ph1,1))');
+                ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
+                pr1 = (pr(:,1:size(pr1,1))');
+                pr2 = (pr(:,(size(pr2,1)+1):end)');
+                                
                 %----------------------------------------------------------------------------------------------
                 % GEOMETRY FREE OBSERVABLES
                 %----------------------------------------------------------------------------------------------
@@ -531,13 +580,30 @@ classdef Core_Pre_Processing < handle
                 ph_GF = compute_geometry_free(ph1, ph2, lambda, err_iono);
                 
                 %----------------------------------------------------------------------------------------------
+                % SEARCH AND REJECT OUTLIERS ON THE GF
+                %----------------------------------------------------------------------------------------------
+                
+                dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
+                flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
+                ph1(flag) = NaN;
+                ph2(flag) = NaN;
+                ph_GF(flag) = NaN;
+                
+                %----------------------------------------------------------------------------------------------
                 % WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
                 %----------------------------------------------------------------------------------------------
                 
                 ph_MW = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, lambda);
                 
+                ph1 = nan2zero(ph1);
+                ph2 = nan2zero(ph2);
+                pr1 = nan2zero(pr1);
+                pr2 = nan2zero(pr2);
+                ph_GF = nan2zero(ph_GF);
+                ph_MW = nan2zero(ph_MW);
+                
                 %----------------------------------------------------------------------------------------------
-                % OBSERVATION CORRECTION FOR CLOCK ERROR
+                % OBSERVATION CORRECTION FOR CLOCK ERROR (time-shift)
                 %----------------------------------------------------------------------------------------------
                 
                 %two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
@@ -545,16 +611,14 @@ classdef Core_Pre_Processing < handle
                 % 2. "receiver-satellite dynamics correction" by using Doppler if available,
                 %     otherwise by interpolating observations on the time tag corrected by dtR
                 
-                %available epochs
+                % available epochs
                 index_e = find(time ~= 0);
                 
-                %nominal time desynchronization (e.g. with some low-cost receivers)
-                time_desync = time_ref - time;
+                % time "correction"
+                % not sure here if it should be time(index_e) or time(index_e) + time_desync (i.e. time_ref)
+                time(index_e) = time(index_e) - dt_pr(index_e) - dt_r(index_e);
                 
-                %reference time "correction"
-                time_ref(index_e) = time(index_e) + dt_r(index_e) + time_desync(index_e);
-                
-                %variables to store interpolated observations
+                % variables to store interpolated observations
                 pr1_interp = zeros(size(pr1));
                 ph1_interp = zeros(size(ph1));
                 pr2_interp = zeros(size(pr2));
@@ -573,18 +637,17 @@ classdef Core_Pre_Processing < handle
                         index_x = setdiff(index_s, index_e);
                         pr1(s,index_x) = 0;
                         
+                        if (length(index) > lagr_order)
                             
-                            if (flag_jumps_ph1)
-                                pr1(s,index) = pr1(s,index) - v_light*dt_r(index)';
-                            end
-                            
-                            %                     if (any(dop1(s,index)))
-                            %                         corr = lambda(s,1).*dop1(s,index).*(time_desync(index) + dtR(index))';
-                            %                         pr1_interp(s,index) = pr1(s,index) - corr;
-                            %                     else
-                            %                         pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
-                            pr1_interp(s,index) = interp1(time(index), pr1(s,index), time_ref(index),'pchip');
-                            %                     end
+                            %                 if (any(dop1(s,index)))
+                            %                     corr = lambda(s,1).*dop1(s,index).*(time_desync(index) + dtR(index))';
+                            %                     pr1_interp(s,index) = pr1(s,index) - corr;
+                            %                 else
+                            pr1_interp(s,index) = interp1(time(index), pr1(s,index), time_ref(index), 'pchip');
+                            %                 end
+                        else
+                            bad_sats(s,1) = 1;
+                        end
                     end
                     
                     if (any(pr2(s,:)) && freq2_required)
@@ -595,18 +658,17 @@ classdef Core_Pre_Processing < handle
                         index_x = setdiff(index_s, index_e);
                         pr2(s,index_x) = 0;
                         
-                            
-                            if (flag_jumps_ph2)
-                                pr2(s,index) = pr2(s,index) - v_light*dt_r(index)';
-                            end
+                        if (length(index) > lagr_order)
                             
                             %                 if (any(dop2(s,index)))
                             %                     corr = lambda(s,2).*dop2(s,index).*(time_desync(index) + dtR(index))';
                             %                     pr2_interp(s,index) = pr2(s,index) - corr;
                             %                 else
-                            %                    pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
-                            pr2_interp(s,index) = interp1(time(index), pr2(s,index), time_ref(index), 'pchip');
+                            pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
                             %                 end
+                        else
+                            bad_sats(s,1) = 1;
+                        end
                     end
                     
                     if (any(ph1(s,:)) && freq1_required)
@@ -616,13 +678,14 @@ classdef Core_Pre_Processing < handle
                         index_x = setdiff(index_s, index_e);
                         ph1(s,index_x) = 0;
                         
+                        if (length(index) > lagr_order)
                             
-                            if (flag_jumps_ph1)
-                                ph1(s,index) = ph1(s,index) - v_light*dt_r(index)'/lambda(s,1);
-                                if (flag_doppler_cs && any(dop1(s,index)))
-                                    dop1(s,index) = dop1(s,index) + v_light*dt_r_dot(index)'/lambda(s,1);
-                                end
+                            %if (flag_jumps_ph1)
+                            if (flag_doppler_cs && any(dop1(s,index)))
+                                dop1(s,index) = dop1(s,index) + v_light*dt_r_dot(index)'/lambda(s,1);
                             end
+                            %end
+                        end
                     end
                     
                     if (any(ph2(s,:)) && freq2_required)
@@ -631,13 +694,15 @@ classdef Core_Pre_Processing < handle
                         
                         index_x = setdiff(index_s, index_e);
                         ph2(s,index_x) = 0;
-                                                    
-                            if (flag_jumps_ph2)
-                                ph2(s,index) = ph2(s,index) - v_light*dt_r(index)'/lambda(s,2);
-                                if (flag_doppler_cs && any(dop2(s,index)))
-                                    dop2(s,index) = dop2(s,index) + v_light*dt_r_dot(index)'/lambda(s,2);
-                                end
+                        
+                        if (length(index) > lagr_order)
+                            
+                            %if (flag_jumps_ph2)
+                            if (flag_doppler_cs && any(dop2(s,index)))
+                                dop2(s,index) = dop2(s,index) + v_light*dt_r_dot(index)'/lambda(s,2);
                             end
+                            %end
+                        end
                     end
                     
                     if (any(ph1(s,:)) && freq1_required)
@@ -648,6 +713,7 @@ classdef Core_Pre_Processing < handle
                         index_x = setdiff(index_s, index_e);
                         ph1(s,index_x) = 0;
                         
+                        if (length(index) > lagr_order)
                             
                             [ph1(s,:), cs_found, cs_correction_i] = this.detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1), lambda(s,2));
                             
@@ -667,15 +733,15 @@ classdef Core_Pre_Processing < handle
                             %                     corr = dop1(s,index).*(time_desync(index) + dtR(index))';
                             %                     ph1_interp(s,index) = ph1(s,index) - corr;
                             %                 else
-                            %                    ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
-                            %ph1_interp(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'pchip');
-                            ph1_interp(s,index) = ph1(s,index);
+                            ph1_interp(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'pchip');
                             %                 end
                             
                             if (exist('cs_found', 'var') && cs_found)
                                 fprintf('Pre-processing: %d cycle-slip(s) detected on L1 for satellite %02d\n', cs_found, s);
                             end
-                        
+                        else
+                            bad_sats(s,1) = 1;
+                        end
                         
                     elseif (any(pr1(s,:)) && freq1_required)
                         
@@ -690,6 +756,7 @@ classdef Core_Pre_Processing < handle
                         index_x = setdiff(index_s, index_e);
                         ph2(s,index_x) = 0;
                         
+                        if (length(index) > lagr_order)
                             
                             [ph2(s,:), cs_found, cs_correction_i] = this.detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
                             
@@ -709,15 +776,15 @@ classdef Core_Pre_Processing < handle
                             %                     corr = dop2(s,index).*(time_desync(index) + dtR(index))';
                             %                     ph2_interp(s,index) = ph2(s,index) - corr;
                             %                 else
-                            %                    ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
-                            %ph2_interp(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'pchip');
-                            ph2_interp(s,index) = ph2(s,index);
+                            ph2_interp(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'pchip');
                             %                 end
                             
                             if (exist('cs_found', 'var') && cs_found)
                                 fprintf('Pre-processing: %d cycle-slip(s) detected on L2 for satellite %02d\n', cs_found, s);
                             end
-                        
+                        else
+                            bad_sats(s,1) = 1;
+                        end
                         
                     elseif (any(pr2(s,:)) && freq2_required)
                         
@@ -725,45 +792,59 @@ classdef Core_Pre_Processing < handle
                     end
                 end
                 
-                for s = 1 : n_sat
-                    
-                    %repeat remove short arcs after cycle slip detection
-                    % remove short arcs
-                    min_arc = this.state.getMinArc();
-                    pr1_interp(s,:) = remove_short_arcs(pr1_interp(s,:), min_arc);
-                    pr2_interp(s,:) = remove_short_arcs(pr2_interp(s,:), min_arc);
-                    ph1_interp(s,:) = remove_short_arcs(ph1_interp(s,:), min_arc);
-                    ph2_interp(s,:) = remove_short_arcs(ph2_interp(s,:), min_arc);
-                    
-                    %         if (freq1_required)
-                    %             if (any(ph1(s,:)))
-                    %                 [pr1(s,:)] = code_smoother(pr1(s,:), ph1(s,:), lambda(s,1), lagr_order);
-                    %             else
-                    %                 pr1(s,:) = 0;
-                    %             end
-                    %         end
-                    %         if (freq2_required)
-                    %             if (any(ph2(s,:)))
-                    %                 [pr2(s,:)] = code_smoother(pr2(s,:), ph2(s,:), lambda(s,2), lagr_order);
-                    %             else
-                    %                 pr2(s,:) = 0;
-                    %             end
-                    %         end
-                end
+                %    for s = 1 : n_sat
+                %         if (freq1_required)
+                %             if (any(ph1(s,:)))
+                %                 [pr1(s,:)] = code_smoother(pr1(s,:), ph1(s,:), lambda(s,1), lagr_order);
+                %             else
+                %                 pr1(s,:) = 0;
+                %             end
+                %         end
+                %         if (freq2_required)
+                %             if (any(ph2(s,:)))
+                %                 [pr2(s,:)] = code_smoother(pr2(s,:), ph2(s,:), lambda(s,2), lagr_order);
+                %             else
+                %                 pr2(s,:) = 0;
+                %             end
+                %         end
+                %    end
                 pr1 = pr1_interp;
                 pr2 = pr2_interp;
                 ph1 = ph1_interp;
                 ph2 = ph2_interp;
+                
+                % flag by high deviation of the 4th derivate
+                sensor = Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4);
+                sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
+                flag = sensor > 3;
+                ph1(flag(:,1:size(ph1,1))') = 0;
+                ph2(flag(:,(size(ph2,1)+1):end)') = 0;
+                
+                for s = 1 : n_sat
+                    
+                    %repeat remove short arcs after cycle slip detection
+                    % remove short arcs
+                    min_arc = max([this.state.getMinArc() lagr_order]);
+                    pr1(s,:) = remove_short_arcs(pr1(s,:), min_arc);
+                    pr2(s,:) = remove_short_arcs(pr2(s,:), min_arc);
+                    ph1(s,:) = remove_short_arcs(ph1(s,:), min_arc);
+                    ph2(s,:) = remove_short_arcs(ph2(s,:), min_arc);
+                end
             end
             % %flag epochs with 4 or more slipped satellites as "bad"
             % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
             % idx_cs_occur = num_cs_occur >= 4;
             % bad_epochs(epoch(idx_cs_occur)) = 1;
             
-            %ph1 = this.jmpFix(ph1, lambda(:,1));
-            %ph2 = this.jmpFix(ph2, lambda(:,2));
-            
-            flag_jumps_ph = [flag_jumps_ph1 flag_jumps_ph2];
+            ph1 = this.jmpFix(ph1, lambda(:,1));
+            ph2 = this.jmpFix(ph2, lambda(:,2));
+                       
+            % At this point the data is syncronized to the reference time, and corrected for dtR and de-sync
+            % resetting time, dtR, dtRdot
+            time = time_ref;
+            % for debug reason the dtR is not reset
+            dt_r = dt_r + dt_ph;
+            %dtRdot = dtRdot * 0;
         end
                 
         function [ph] = jmpFix(this, ph, lambda)
@@ -929,6 +1010,121 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
+        function [data, flagged_out] = flagRawObs(data, time_set, time_ref, thr_factor, thr_min, win_size)
+            % Flag the data above max(thr_min, thr_factor) * mean(movstd))
+            % SYNTAX: data = flagRawObs(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
+            if nargin < 5
+                thr_min = 0;
+            end
+            if nargin < 6
+                win_size = 5;
+            end
+                        
+            flag = 1;
+            i = 0;            
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            if ~isempty(time_set)
+                data_interp = zeros(size(data));
+                for s = 1 : size(data,2)
+                    tmp = nan2zero(data(:,s));
+                    if any(tmp)
+                        id_interp = (conv(tmp ~= 0, ones(9,1), 'same') > 0);
+                        data_interp(id_interp,s) = interp1(time_set, zero2nan(data(:,s)), time_ref(id_interp), 'spline', 'extrap');
+                    end
+                end
+            else
+                data_interp = data;
+            end
+
+            % loop for outliers rejection
+            flagged_out = false(size(data));
+            while (sum(flag(:)) > 0) && (i < 5)
+                sensor = zero2nan(data_interp);
+                sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                i = i + 1;
+                % expand the set of observations to allow flogging at the border of the valid intervals
+                sensor = movstd(sensor, win_size, 'omitnan');
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                data(flag) = NaN;
+                data_interp(flag) = NaN;
+                flagged_out  = flagged_out | flag;
+            end
+        end
+        
+        function [data, flagged_out] = flagRawObsD4(data, time_set, time_ref, thr_factor, thr_min, win_size)
+            % Flag the data above max(thr_min, thr_factor) * mean(movstd))
+            % SYNTAX: data = flagRawObsD4(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
+            if nargin < 5
+                thr_min = 0;
+            end
+            if nargin < 6
+                win_size = 5;
+            end
+                        
+            flag = 1;
+            i = 0;            
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            if ~isempty(time_set)
+                data_interp = zeros(size(data));
+                for s = 1 : size(data,2)
+                    tmp = nan2zero(data(:,s));
+                    if any(tmp)
+                        %id_interp = (conv(tmp ~= 0, ones(9,1), 'same') > 0); % interp with borders
+                        id_interp = tmp ~= 0;
+                        data_interp(id_interp,s) = interp1(time_set, zero2nan(data(:,s)), time_ref(id_interp), 'spline', 'extrap');
+                    end
+                end
+            else
+                data_interp = data;
+            end
+
+            % loop for outliers rejection
+            flagged_out = false(size(data));
+            while (sum(flag(:)) > 0) && (i < 5)
+                sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+                sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+                i = i + 1;
+                % expand the set of observations to allow flogging at the border of the valid intervals
+                sensor = movstd(sensor, win_size, 'omitnan');                
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                data(flag) = NaN;
+                data_interp(flag) = NaN;
+                flagged_out  = flagged_out | flag;
+            end
+        end
+        
+        function [data, flagged_out] = flagBorders(data, win_size)
+            % Flag the data above max(thr_min, thr_factor) * mean(movstd))
+            % SYNTAX: [data, flagged_out] = flagBorders(data, win_size)
+            if nargin < 2
+                win_size = 20;
+            end
+            
+            % Interpolate to reference time to find outliers in the 4th derivative 
+            time_set = 1 : size(data,1);
+            id_interp = flagExpand(~isnan(data), 5) & isnan(data);
+            data_interp = data;
+            for s = 1 : size(data,2)
+                tmp = data(~isnan(data(:,s)),s);
+                if numel(tmp) > 5
+                    data_interp(id_interp(:,s),s) = interp1(time_set(~isnan(data(:,s))), tmp, time_set(id_interp(:,s)), 'spline', 'extrap');
+                end
+            end
+            
+            % loop for outliers rejection
+            sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+            sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
+            % expand the set of observations to allow flogging at the border of the valid intervals
+            sensor(isnan(data)) = 0;
+            sensor = maxfilt_mat(movstd(sensor, ceil(win_size/2), 'omitnan'),5);
+            sensor(isnan(data)) = 0;
+            std_max = sensor; std_max(flagExpand(sensor == 0, win_size)) = 0;
+            sensor_max = maxfilt_mat(max(std_max, [], 2), ceil(win_size/2));
+            sensor_max = simpleFill1D(sensor_max, sensor_max == 0);
+            % remove possible outliers over thr and small arcs < 5 epochs
+            flagged_out = ~Core_Pre_Processing.remShortArcs(~(sensor > sensor_max | isnan(data))', 5)' & ~isnan(data);
+            data(flagged_out) = NaN;
+        end
     end
     
     % ==================================================================================================================================================
@@ -936,6 +1132,180 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
+        function [ph, dt] = remDtJumps(ph, time_ref, time)
+            % remove a jumps of the clock from phr
+            % this peace of code is very very criptic, but it seems to work
+            % review this whenever possible
+            ph = zero2nan(ph);
+            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
+            ddt = cumsum(cumsum(nan2zero(d3dt)));
+            ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
+            % check if there is any discontinuity in the clock drift
+            clock_thresh = 1e3;
+            pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
+            if sum(pos_jmp) > 0
+                ddt = ddt - simpleFill1D(ddt, pos_jmp);
+                dt = detrend(cumsum(ddt));
+                ph_bk = ph;                
+                ph = bsxfun(@minus, ph, dt);
+                d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
+                d4dt(abs(d4dt) < clock_thresh) = 0;
+                dt = detrend(dt - cumsum(nan2zero([0; d4dt; zeros(3,1)])));
+                ph = bsxfun(@minus, ph_bk, dt);
+            else
+                dt = zeros(size(ddt));
+            end
+            dt = dt / 299792458;            
+        end
+        
+        function [ph_out, dt] = remDtHF(ph)
+            % [ !! ] EXPERIMENTAL FUNCTION 
+            % Remove high frequency from phases estimated by the 4th derivative
+            % WARNING: this code works bbut it has a lot of border effects, especially if the dataset it's not continuous
+            %
+            % SYNTAX:
+            %   [ph_out, dt] = remDtHF(ph)
+            d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),4), 2, 'omitnan');
+                        
+            % Filter low frequencies:
+%             dt_hf = cumsum(cumsum(cumsum(cumsum(nan2zero(d4dt)))));
+%             x = (1 : numel(dt_hf))';
+%             ws = 5;
+%             margin = 2 * round(ws/2);
+%             xi = (1 - margin : numel(dt_hf) + margin)';
+%             dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap');
+%             dt_lf = splinerMat([],medfilt_mat(dt_lf, 5), 5);
+%             dt_hf = dt_hf - dt_lf(margin + 1 : end - margin);
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(d4dt), 313, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 177, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 143, 0.01, 101)); 
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 107, 0.01, 101));             
+            ph_out = nan2zero(bsxfun(@minus, zero2nan(ph), dt));
+            dt = dt / 299792458;
+        end
+
+        function [pr, ph, dt_pr, dt_ph] = correctTimeDesyncHF(time_ref, time, pr, ph)
+            %   Correction of jumps in code and phase due to dtR and time de-sync
+            % SYNTAX:
+            %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+
+            logger = Logger.getInstance();
+            
+            time_desync  = round((time_ref - time) * 1e7) / 1e7;
+            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
+            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
+            
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            % if adding the desync will improve the std it means that the receiver does not compensate for it
+            [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
+            if flag
+                time_desync_ph = time_desync;
+                logger.addMessage('Correcting phase for time desync', 100);
+            else
+                time_desync_ph = 0;
+            end
+            
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                time_desync_pr = time_desync;
+                logger.addMessage('Correcting pseudo-ranges for time desync', 100);
+            else
+                time_desync_pr = 0;
+            end
+            clear pr_ds ph_ds;
+            [ph, dt_ph_jumps] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
+            [ph, dt] = Core_Pre_Processing.remDtHF(ph);
+            dt_ph = dt_ph_jumps + dt;
+            %figure(1); plot(diff(zero2nan(ph)),'.k');
+
+            % correct the pseudo-ranges for HF
+            pr_lf = bsxfun(@minus, pr, dt .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_lf);
+            if flag
+                dt_pr = dt_ph;
+                logger.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
+            else
+                dt_pr = zeros(size(dt_ph));
+            end            
+
+            % correct the pseudo-ranges for jumps
+            pr_dj = bsxfun(@minus, pr, dt_ph_jumps .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+            if flag
+                dt_pr = dt_pr + dt_ph_jumps;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+            end
+            
+            % in some receivers the pseudo-range is not continuous while the phase are ok
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                dt_pr = dt_pr_jumps + dt_pr;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+            end
+            
+            dt_ph = dt_ph + time_desync_ph;
+            dt_pr = dt_pr + time_desync_pr;
+            %figure(2); plot(diff(zero2nan(pr)),'.k');
+        end
+        
+        function [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+            %   Correction of jumps in code and phase due to dtR and time de-sync
+            % SYNTAX:
+            %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
+
+            logger = Logger.getInstance();
+            
+            time_desync  = round((time_ref - time) * 1e7) / 1e7;
+            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
+            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
+            
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            % if adding the desync will improve the std it means that the receiver does not compensate for it
+            [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
+            if flag
+                time_desync_ph = time_desync;
+                logger.addMessage('Correcting phase for time desync', 100);
+            else
+                time_desync_ph = 0;
+            end
+            
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                time_desync_pr = time_desync;
+                logger.addMessage('Correcting pseudo-ranges for time desync', 100);
+            else
+                time_desync_pr = 0;
+            end
+            clear pr_ds ph_ds;
+            [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
+            %figure(1); plot(diff(zero2nan(ph)),'.k');
+
+            % correct the pseudo-ranges for jumps
+            pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+            if flag
+                dt_pr = dt_ph;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+            else
+                dt_pr = zeros(size(dt_ph));
+            end
+            
+            % in some receivers the pseudo-range is not continuous while the phase are ok
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
+            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
+            if flag
+                dt_pr = dt_pr + dt_pr_jumps;
+                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+            end
+            
+            dt_ph = dt_ph + time_desync_ph;
+            dt_pr = dt_pr + time_desync_pr;
+            %figure(2); plot(diff(zero2nan(pr)),'.k');
+        end
+        
         function [obs_out] = remShortArcs(obs_in, min_len)
             % Removal of observation arcs shorter than given threshold.
             % SYNTAX:
@@ -1006,6 +1376,17 @@ classdef Core_Pre_Processing < handle
     %  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = private)
+        function [data, flag] = testDesyncCorrection(data, data_corrected)
+            % if the correction effectively removes jumps -> apply the correction
+            % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
+            dd = diff(zero2nan(data),2);
+            ddc = diff(zero2nan(data_corrected),2);
+            flag = std(serialize(dd(~(isnan(dd))))) > std(serialize(ddc(~(isnan(ddc)))));
+            if flag
+                data = data_corrected;
+            end
+        end
+
         function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
             
             global cutoff cs_threshold_preprocessing
@@ -1399,6 +1780,105 @@ classdef Core_Pre_Processing < handle
                 end
             end
         end
+        
+        function [data_out] = highPass(data, spline_base, cut_off, filt_border)
+            % Compute an high pass filter on a dataset
+            % Additionally apply a spline interpolation before thee fft transformation
+            %
+            % SYNTAX:
+            %   [filtered_data] = highPass(data, spline_base, cut_off, filt_border);
+            %
+            % INPUT:
+            %   data            dataset to filter
+            %   spline_base     spline_base for spline filtering (if 0 do not do it)
+            %   cut_off         cut-off frequency for the filter
+            %   filt_border     filter dimension (larger -> smoother)
+            %
+            % OUTPUT:
+            %   filtered_data   data reduced by splines and spectral filter
+            
+            if nargin < 4
+                filt_border = 1e100;
+            end
+            
+            spline_base = min(round(numel(data)/2), spline_base);
+            
+            %%% DEBUG figure(133); clf; plot(data); hold on;
+            
+            % if the number of data is even interpolate one observation
+            is_even = false;
+            if (cut_off > 0) && (mod(numel(data),2) == 0) % is even
+                is_even = true;
+                x = (1 : numel(data))';
+                data = [interp1(x(~isnan(data)), data(~isnan(data)), 0, 'pchip', 'extrap'); data];
+            end
+            data = data - (0 : numel(data)-1)' * (median(data(max(1,length(data)-4):end)) - median(data(1:min(5,length(data))))) / numel(data);
+            
+            n_obs = length(data);
+            
+            % filter low frequencies with splines to limit border effects:
+            if (spline_base > 0)
+                x = (1 : n_obs)';
+                ws = 5;
+                margin = 2 * round(ws/2);
+                xi = (1 - margin : n_obs + margin)';
+                
+                dt_lf = [median(data(1:min(5,length(data)))) * ones(margin,1); data(~isnan(data)); ones(margin,1) * median(data(max(1,length(data)-4):end))];
+                %%% DEBUG figure(133); plot(xi - 1, dt_lf);
+                dt_lf = splinerMat([],medfilt_mat(dt_lf, ws), spline_base);
+                
+                data = data - dt_lf(margin + 1 : end - margin);
+            end
+            %%% DEBUG figure(133); plot(data((1 + is_even) : end));
+            
+            if (cut_off > 0)
+                % replicate signal to limit the border effects
+                data = [flipud(data); data; flipud(data)];
+                
+                %%% DEBUG figure(110); clf; plot(zero2nan(data));
+                
+                % Take fft
+                fftx = fftshift(fft(data));
+                
+                % Calculate the number of unique points (find the zero frequency - mean of the signal)
+                f0_id = ceil((length(data) + 1) / 2);
+                
+                % This is an evenly spaced frequency vector with f0_id points.
+                f = (0:f0_id-1) ./ length(data);
+                
+                % FFT is symmetric, throw away second half
+                fftx_half = fftx(f0_id : end);
+                
+                % design the filter
+                w = zeros(size(fftx_half));
+                f_cut = cut_off;
+                id_cut = find(f > f_cut, 1, 'first');
+                filt_border = min(2*id_cut - 1, filt_border);
+                w(1 : (id_cut - ((filt_border - 1) / 2))) = 0;
+                w((id_cut + ((filt_border - 1) / 2)) : end) = 1;
+                w((id_cut - ((filt_border - 1) / 2)) : (id_cut + ((filt_border - 1) / 2))) = 1 - (1 ./ (1+exp(-10:20/(filt_border-1):10)))'; % use a sigmoid filter for the design
+                
+                % compute power spectra - for debug
+                %%% DEBUG psd = abs(fftx_half)/length(data)*sqrt(length(data)); % Take the magnitude of fft of x and scale the fft so that it is not a function of the length of x
+                %%% DEBUG figure(125); clf; loglog(f, psd)
+                
+                % apply the filter
+                fftx_half = fftx_half .* w;
+                
+                % compute power spectra of the filtered data - for debug
+                %%% DEBUG psd_f = abs(fftx_half) / length(data) * sqrt(length(data)); % Take the magnitude of fft of x and scale the fft so that it is not a function of the length of x
+                
+                fftx = ifftshift([flipud(conj(fftx_half)); fftx_half(2:end)]);
+                
+                %%% DEBUG figure(125); hold on; loglog(f, psd_f)
+                data_out = real(ifft(fftx));
+                data_out = data_out(n_obs + ((1 + is_even) : n_obs));
+                %%% DEBUG figure(133); plot(data_out); title('data');
+            else
+                data_out = data;
+            end
+        end
+
         
         function [min_std] = detect_minimum_std(time_series)
             min_std = 1e30;

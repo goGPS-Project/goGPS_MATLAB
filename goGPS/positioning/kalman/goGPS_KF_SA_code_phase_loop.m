@@ -71,7 +71,7 @@ global sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_tropo sigmaq_tropo_gradient sigmaq_r
 global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN nT nC
 global tile_header tile_georef dtm_dir
-global h_antenna zero_time
+global h_antenna zero_time interval
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM phwindup
@@ -137,16 +137,16 @@ if (o1 > 1)
     Cvv(o2,o2) = sigmaq_vN;
     Cvv(o3,o3) = sigmaq_vU;
 
-    %propagate error standard deviation from position to velocity/acceleration
+    % propagate error standard deviation from position to velocity/acceleration
     %Cvv = Cvv/interval^(o1-1);
 
     %propagate diagonal local cov matrix to global cov matrix
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
 if (flag_tropo)
-    Cvv(o3+nN+1,o3+nN+1) = sigmaq_tropo;
+    Cvv(o3+nN+1,o3+nN+1) = sigmaq_tropo / (3600 / interval) ^ 2;
     if (flag_tropo_gradient)
-        Cvv(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = sigmaq_tropo_gradient*eye(nT-1);
+        Cvv(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = (sigmaq_tropo_gradient / (3600 / interval) ^ 2) * eye(nT-1);
     end
 end
 Cvv(o3+nN+nT+1,o3+nN+nT+1) = sigmaq_rclock;
@@ -984,7 +984,7 @@ if (nsat >= min_nsat)
 
     K = T*Cee*T' + Cvv;
 
-    G = K*H' * (H*K*H' + Cnn)^(-1);
+    G = K*H' / (H*K*H' + Cnn);
 
     Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
 

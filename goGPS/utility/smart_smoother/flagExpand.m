@@ -1,13 +1,13 @@
-function [data] = simpleFill1D(data, flags, method)
 % SYNTAX:
-%    [data_filled] = simpleFill1D(data, flags)
+%    flag = flagExpand(flag, expand_size)
 %
 % DESCRIPTION:
-%    fill flagged data with a simple interpolation using MATLAB
-%    interp1 'pchip', 'extrap'
+%    expand the flag array
+%    if flag is a matrix this flagging expansion will work column by column
 %
-% NOTE: data can be a matrix, the operation is executed column bby column
-%
+% INPUT:
+%   flag          [n_obs x n_arrays]
+%   expand_size   n_epochs with flags to activate at the border of a flagged interval
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -40,26 +40,10 @@ function [data] = simpleFill1D(data, flags, method)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-%     if nargin == 2
-%         half_win = 6;
-%     end
-%
-%     lim = getOutliers(flags);
-%     for j = 1 : size(lim, 1)
-%         dt_lhs = data(max(1, lim(j, 1) - half_win) : lim(j, 1) - 1);
-%         dt_rhs = data(lim(j, 2) + 1 : min(numel(data), lim(j, 2) + half_win));
-%         data(lim(j,1):lim(j,2)) = interp1([ lim(j, 1) - numel(dt_lhs) : lim(j, 1) - 1,  lim(j, 2) + 1 : lim(j, 2) + numel(dt_rhs)], [dt_lhs; dt_rhs], lim(j,1) : lim(j,2), 'pchip','extrap');
-%     end
-    narginchk(2,3);
-    if nargin == 2
-        method = 'pchip';
-    end
-    t = 1 : size(data, 1);
-    for r = 1 : size(data, 2)
-        if any(~isnan(data(:, r))) && any(~isnan(flags(:, r)))
-            jmp = find(flags(:, r));
-            flags(:, r) = flags(:, r) | isnan(data(:, r));
-            data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
-        end
+function flag = flagExpand(flag, expand_size)
+    % compute a moving window median to filter the data in input
+    
+    for c = 1 : size(flag, 2)
+        flag(:, c) = conv(flag(:, c), ones(2 * expand_size + 1, 1)', 'same') > 0;
     end
 end
