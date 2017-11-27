@@ -122,11 +122,12 @@ marker = cell(1,1,nFiles);
 idGPS = cc.getGPS().getFirstId();
 idGLONASS = cc.getGLONASS().getFirstId();
 idGalileo = cc.getGalileo().getFirstId();
-idBeiDou = cc.getBeiDou().getFirstId();
 idQZSS = cc.getQZSS().getFirstId();
+idBeiDou = cc.getBeiDou().getFirstId();
+idIRNSS = cc.getIRNSS().getFirstId();
 idSBAS = cc.getSBAS().getFirstId();
 % to speed-up get obs in MATLAB I need to precompute these values
-first_id_sys = [idGPS idGLONASS idGalileo idBeiDou idQZSS idSBAS];
+first_id_sys = [idGPS idGLONASS idGalileo idBeiDou idQZSS idIRNSS idSBAS];
 active_sys = cc.getActive();
 
 max_k = 0;
