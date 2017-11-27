@@ -7,6 +7,7 @@
 /data/antenna/ATX/*
 !/data/antenna/ATX/.gitignore
 !/data/antenna/ATX/I08.ATX
+!/data/antenna/ATX/I14.ATX
 
 !/data/satellite
 /data/satellite/*
@@ -88,6 +89,7 @@
 /data/project/default_PPP/antenna/ATX/*
 !/data/project/default_PPP/antenna/ATX/.gitignore
 !/data/project/default_PPP/antenna/ATX/I08.ATX
+!/data/project/default_PPP/antenna/ATX/I14.ATX
 !/data/project/default_PPP/station
 /data/project/default_PPP/station/*
 !/data/project/default_PPP/station/.gitignore
