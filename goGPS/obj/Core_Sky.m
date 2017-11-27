@@ -692,9 +692,9 @@ classdef Core_Sky < handle
                             end
                         end
                         c_ep_idx = round((sat_time - this.time_ref_clock) / this.clock_rate) +1; % epoch index
-                        this.clock(c_ep_idx,i) =  cell2mat(textscan(txt(repmat(lim(sat_line,1),1,21) + repmat(40:60, n_ep_sat, 1))','%f'));
                         
                         
+                        this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
                     end
                 end
                 this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
