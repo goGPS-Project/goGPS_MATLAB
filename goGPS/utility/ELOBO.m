@@ -68,8 +68,8 @@ function [x_k, s02_k, v_k, Cxx_k, N_inv] = ELOBO(A, Q, y0, b, N_inv, v, x, s02, 
     Ck = Ak * Bk;
     Kk = Qk - Ck;
     if n_obs-n_col-length(subset) < 1
-        logger = Logger.getInstance();
-        logger.addWarning(sprintf('Cluster cannot be checked. Redudancy = %d', n_obs - n_col - length(subset)));
+        log = Logger.getInstance();
+        log.addWarning(sprintf('Cluster cannot be checked. Redudancy = %d', n_obs - n_col - length(subset)));
     else
         BKk_inv = Bk / Kk;
         x_k = x - BKk_inv * vk;

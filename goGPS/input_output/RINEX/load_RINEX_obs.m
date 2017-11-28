@@ -72,11 +72,11 @@ t0 = tic;
 
 global report
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 state = Go_State.getCurrentSettings();
 
-logger.addMarkedMessage('Reading observations... ');
-logger.newLine();
+log.addMarkedMessage('Reading observations... ');
+log.newLine();
 
 % Check the input arguments
 if (nargin < 4)
@@ -138,7 +138,7 @@ for f = 1 : nFiles
         current_file = filename;
     end
 
-    logger.addMessage(sprintf('Opening file %s', current_file));
+    log.addMessage(sprintf('Opening file %s', current_file));
     File_Rinex(current_file,9);
 
 
@@ -149,7 +149,7 @@ for f = 1 : nFiles
     cur_line = 0;
     fclose(fid);
 
-    logger.addMessage('Start parsing (this operation could last several seconds)');
+    log.addMessage('Start parsing (this operation could last several seconds)');
 
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg, ['RINEX file ' current_file ': parsing header...'])
@@ -285,8 +285,8 @@ for f = 1 : nFiles
         end
     end
 
-    logger.addMessage('RINEX parsing completed');
-    logger.newLine();
+    log.addMessage('RINEX parsing completed');
+    log.newLine();
 end
 
 % trim output (it have been pre-allocated bigger)
@@ -301,14 +301,14 @@ snr2 = snr2(:,(1 : max_k),:);
 date = date((1 : max_k),:,:);
 codeC1 = codeC1(:,(1 : max_k),:);
 
-logger.addMessage('Syncing observations if needed');
+log.addMessage('Syncing observations if needed');
 
 %sync observations
 [time_zero, time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
 sync_obs(time, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
 state.p_rate = interval;
 
-logger.addMessage('Trimming short arcs if needed');
+log.addMessage('Trimming short arcs if needed');
 % remove short arcs
 min_arc = state.getMinArc();
 for f = 1 : nFiles
@@ -389,5 +389,5 @@ if (~isempty(report) && report.opt.write == 1)
     end
 end
 
-logger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
-logger.newLine();
+log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
+log.newLine();

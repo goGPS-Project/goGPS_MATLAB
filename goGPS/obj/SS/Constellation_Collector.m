@@ -199,7 +199,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.n_sys = numel(this.num_id);
                 this.sys_name = this.SYS_NAME(this.num_id);
             else
-                this.logger.addError('No satellite system selected -> Enabling GPS');
+                this.log.addError('No satellite system selected -> Enabling GPS');
                 ss = false(this.N_SYS_TOT,1); ss(1) = true;
                 this.init(ss);
             end
@@ -269,7 +269,7 @@ classdef Constellation_Collector < Settings_Interface
                 active_list = active_list(1:this.N_SYS_TOT);
             end
             if active_list(7)
-                this.logger.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
+                this.log.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
             end
             this.init(active_list);
         end
@@ -350,10 +350,10 @@ classdef Constellation_Collector < Settings_Interface
         function import(this, state)
             % This function import processing settings from another setting object or ini file
             if isa(state, 'Ini_Manager')
-                vl = this.logger.getVerbosityLev();
-                this.logger.setVerbosityLev(0);
+                vl = this.log.getVerbosityLev();
+                this.log.setVerbosityLev(0);
                 this.init([0 0 0 0 0 0 0]);
-            	this.logger.setVerbosityLev(vl);
+            	this.log.setVerbosityLev(vl);
 
                 this.gps.import(state);
                 this.glo.import(state);

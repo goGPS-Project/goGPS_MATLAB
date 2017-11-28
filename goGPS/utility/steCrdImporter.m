@@ -54,12 +54,12 @@ function [time, xyz, enu, std_enu, std_3d] = steCrdImporter (file_name)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    logger = Logger.getInstance();
+    log = Logger.getInstance();
 
     fid = fopen(file_name,'r');
 
     if (fid < 0)
-        logger.addError(['Failed to open ', file_name]);
+        log.addError(['Failed to open ', file_name]);
         time = [];
         xyz = [];
         enu = [];
@@ -67,7 +67,7 @@ function [time, xyz, enu, std_enu, std_3d] = steCrdImporter (file_name)
         std_3d = [];
     else
         txt = fread(fid,'*char')';
-        logger.addMessage(['Reading ', file_name]);
+        log.addMessage(['Reading ', file_name]);
         fclose(fid);
 
         data = textscan(txt(392:end)',' %4d-%1d %4d-%03d %4d-%2d-%2d %1s %2d:%2d:%2d %2d:%2d:%2d %4s %6s %15f %15f %15f %15f %15f %15f %1s %8f %8f %8f %8f ');

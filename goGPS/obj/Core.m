@@ -50,14 +50,14 @@ classdef Core < handle
     end
 
     properties % Public Access
-        logger;
+        log;
         state;
     end
 
     methods (Static)
         function this = Core()
             % Core object creator
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
         end
 
@@ -77,8 +77,8 @@ classdef Core < handle
 
 
         function showTextHeader()
-            this.logger = Logger.getInstance();
-            if this.logger.getColorMode()
+            this.log = Logger.getInstance();
+            if this.log.getColorMode()
                 cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n\n');
             else

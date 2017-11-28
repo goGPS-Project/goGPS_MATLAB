@@ -22,7 +22,7 @@
 %       double = 10.4
 %
 % REQUIRES:
-%   logger:     Logger Class
+%   log:     Logger Class
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 
@@ -64,7 +64,7 @@ classdef Ini_Manager < handle
     end
 
     properties (GetAccess = 'private', SetAccess = 'private')
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
         raw_data = {};                 % Cell array containing the file, each cell is a line
     end
 
@@ -232,7 +232,7 @@ classdef Ini_Manager < handle
                 this.raw_data = {};
             end
             if ~exist(this.getFileName(),'file')
-                this.logger.addError(sprintf('INI reading of file "%s" failed', this.getFileName()))
+                this.log.addError(sprintf('INI reading of file "%s" failed', this.getFileName()))
                 status = false;
             else
                 this.fid = fopen(this.getFileName(), this.getRW());
@@ -244,13 +244,13 @@ classdef Ini_Manager < handle
                     this.read_status = true;
                     this.raw_data = this.raw_data{1};
 
-                    this.logger.addStatusOk('The INI file has been parsed correctly.', 15);
+                    this.log.addStatusOk('The INI file has been parsed correctly.', 15);
 
                     this.cleanRaw();      % Strip comments and spaces
                     this.parseData();     % Parse file
                     this.raw_data = {};   % clean RAW temp data
                 else
-                    this.logger.addError(['INI file read failed:' ferror(this.fid)]);
+                    this.log.addError(['INI file read failed:' ferror(this.fid)]);
                     this.setReadStatus(false);
                     this.raw_data = {};
                 end
@@ -262,7 +262,7 @@ classdef Ini_Manager < handle
             % Force reading of the File
             errStatus = false;
             if isempty(this.getFileName())
-                this.logger.addError(sprintf('INI writing  of file "%s" failed', this.getFileName()));
+                this.log.addError(sprintf('INI writing  of file "%s" failed', this.getFileName()));
                 errStatus = true;
             else
                 if (this.fid ~= -1)   % If file access is ok
@@ -277,12 +277,12 @@ classdef Ini_Manager < handle
                         fclose(this.fid);
                     catch ex
                         errStatus = true;
-                        this.logger.addError(['INI file cannot be written (' this.file_name '): ' ex.message]);
+                        this.log.addError(['INI file cannot be written (' this.file_name '): ' ex.message]);
                     end
 
-                    this.logger.addStatusOk('The INI file has been writted correctly', 10);
+                    this.log.addStatusOk('The INI file has been writted correctly', 10);
                 else
-                    this.logger.addError(['INI file write failed:' ferror(this.fid)]);
+                    this.log.addError(['INI file write failed:' ferror(this.fid)]);
                 end
             end
         end
@@ -480,7 +480,7 @@ classdef Ini_Manager < handle
                     end
                 end
                 if ~found
-                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                     data = [];
                 end
             else
@@ -504,7 +504,7 @@ classdef Ini_Manager < handle
                     end
                 end
                 if ~found
-                    this.logger.addWarning(['Key "' key '" not found in section "' section '" while reading: "' this.file_name '"'], 100);
+                    this.log.addWarning(['Key "' key '" not found in section "' section '" while reading: "' this.file_name '"'], 100);
                     data = [];
                 end
             end
@@ -631,7 +631,7 @@ classdef Ini_Manager < handle
                     end
                 end
                 if (isempty(data))
-                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                 end
             else
                 while ((s<=length(this.section)) && (s ~= 0))
@@ -651,7 +651,7 @@ classdef Ini_Manager < handle
                     end
                 end
                 if (k ~= 0)
-                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                 end
             end
         end
@@ -667,7 +667,7 @@ classdef Ini_Manager < handle
         function listSections(this, color_mode)
             % List the list of available sections
             if (nargin == 1)
-                color_mode = this.logger.getColorMode();
+                color_mode = this.log.getColorMode();
             end
 
             if (~this.getReadStatus())
@@ -687,11 +687,11 @@ classdef Ini_Manager < handle
             % List the list of the keys available
             if (nargin == 1)
                 section = 0;
-                color_mode = this.logger.getColorMode();
+                color_mode = this.log.getColorMode();
             end
             if (nargin == 2)
                 if (ischar(section))
-                    color_mode = this.logger.getColorMode();
+                    color_mode = this.log.getColorMode();
                 else
                     color_mode = section;
                     section = 0;
@@ -733,11 +733,11 @@ classdef Ini_Manager < handle
             % List the data contained in the ini
             if (nargin == 1)
                 section = 0;
-                color_mode = this.logger.getColorMode();
+                color_mode = this.log.getColorMode();
             end
             if (nargin == 2)
                 if (ischar(section))
-                    color_mode = this.logger.getColorMode();
+                    color_mode = this.log.getColorMode();
                 else
                     color_mode = section;
                     section = 0;

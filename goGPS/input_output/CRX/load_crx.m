@@ -50,7 +50,7 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 %output initialization
 %CRX = sparse(false(cc.getNumSat, length(time_R)));
 CRX = sparse(false(cc.getNumSat, length(time_R)));
-logger = Logger.getInstance();
+log = Logger.getInstance();
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, time_R);
@@ -75,7 +75,7 @@ n = 0;
 %CRX file found
 found = 0;
 
-logger.addMarkedMessage('Reading CRX data');
+log.addMarkedMessage('Reading CRX data');
 
 %find files with ".CRX" extension
 for j = 1 : nmax
@@ -99,7 +99,7 @@ for j = 1 : nmax
         strcmpi(crx_file_name(crx_fn_length - 3 : crx_fn_length), '.CRX')))
 
         n = n + 1;
-        logger.addMessage(sprintf('       - %s', crx_file_name));
+        log.addMessage(sprintf('       - %s', crx_file_name));
 
         %full path to the target file
         crx_file_target  = strcat(data_dir_crx, '/', crx_file_name);
@@ -109,9 +109,9 @@ for j = 1 : nmax
 
         %warnings
         if (fid_fd ~= -1)
-            logger.addStatusOk();
+            log.addStatusOk();
         else
-            logger.addWarning(['impossible to open CRX file - ', crx_file_name]);
+            log.addWarning(['impossible to open CRX file - ', crx_file_name]);
             break
         end
 
@@ -203,15 +203,15 @@ end
 
 %if no .CRX files are available, return
 if (n == 0)
-    logger.addWarning(['The required (updated) CRX files were not found in ' data_dir_crx ' directory.\n']);
+    log.addWarning(['The required (updated) CRX files were not found in ' data_dir_crx ' directory.\n']);
 else
     %CRX file found
     found = 1;
     bad_sat = find(any(CRX,2));
     if ~isempty(bad_sat)
         n_bad_epochs = sum(CRX(bad_sat,:)~=0,2);
-        logger.addWarning(sprintf('%d bad epochs (sat %2d) have been discovered into CRX\n', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
+        log.addWarning(sprintf('%d bad epochs (sat %2d) have been discovered into CRX\n', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
     end
 end
 
-logger.newLine();
+log.newLine();

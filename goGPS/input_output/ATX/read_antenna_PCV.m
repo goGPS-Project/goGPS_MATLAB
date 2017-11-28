@@ -65,7 +65,7 @@ function [antenna_PCV] = read_antenna_PCV(filename, antmod, date)
 % antenna_PCV.tablePCV_zen   : zenith angles corresponding to each column of antenna_PCV.tablePCV
 % antenna_PCV.tablePCV_azi   : azimutal angles corresponding to each row of antenna_PCV.tablePCV
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 
 for m = numel(antmod) : -1 : 1
     antenna_PCV(m) = struct('name', antmod{m}, ...
@@ -145,7 +145,7 @@ for file_pcv = 1 : size(filename, 1)
                                     if ~(antenna_PCV(m(1)).available)
 
                                         for a = 1:length(m)
-                                            logger.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
+                                            log.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
                                         end
 
                                         invalid_date = 0;
@@ -173,9 +173,9 @@ for file_pcv = 1 : size(filename, 1)
                                                 invalid_date = 1;
                                                 antenna_PCV(m(1)).n_frequency = 0;
                                                 if isinf(validity_end)
-                                                    logger.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start)), 100)
+                                                    log.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start)), 100)
                                                 else
-                                                    logger.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start), datestr(validity_end)), 100)
+                                                    log.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start), datestr(validity_end)), 100)
                                                 end
                                             end
                                         else  %receiver antenna
@@ -183,7 +183,7 @@ for file_pcv = 1 : size(filename, 1)
 
                                         if ~(invalid_date) % continue parsing
                                             for a = 1:length(m)
-                                                logger.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
+                                                log.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
                                             end
                                             l = l_start;
 
@@ -299,7 +299,7 @@ for file_pcv = 1 : size(filename, 1)
                                         end
                                     elseif (nargin > 2) && strcmp(line(41:44),'    ')
                                         flag_stop = true;
-                                        logger.addMessage('There are no more antenna!!!',100);
+                                        log.addMessage('There are no more antenna!!!',100);
                                     end
                                 end
                             end
@@ -314,19 +314,19 @@ for file_pcv = 1 : size(filename, 1)
 
                 end
             else
-                logger.addWarning('PCO/PCV file not loaded.\n');
+                log.addWarning('PCO/PCV file not loaded.\n');
             end
         else
-            logger.addWarning('PCO/PCV file not loaded.\n');
+            log.addWarning('PCO/PCV file not loaded.\n');
         end
     end
 end
 
 idx_not_found = find(~antenna_found);
 if ~isempty(idx_not_found)
-    logger.addWarning('The PCO/PCV model for the following antennas has not been found');
-    logger.addWarning('Some models are missing or not defined at the time of processing');
+    log.addWarning('The PCO/PCV model for the following antennas has not been found');
+    log.addWarning('Some models are missing or not defined at the time of processing');
     for a = 1 : length(idx_not_found)
-        logger.addWarning(sprintf(' -  antenna model for "%s" is missing', cell2mat(antmod(idx_not_found(a)))));
+        log.addWarning(sprintf(' -  antenna model for "%s" is missing', cell2mat(antmod(idx_not_found(a)))));
     end
 end

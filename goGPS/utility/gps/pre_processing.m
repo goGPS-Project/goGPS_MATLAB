@@ -89,7 +89,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     global cutoff snr_threshold n_sys flag_doppler_cs
 
     state = Go_State.getCurrentSettings();
-    logger = Logger.getInstance();
+    log = Logger.getInstance();
 
     % Check doppler validity, if dop1 == dop2 [ !! ]
     if any(dop1(:)) && any(dop2(:)) && ~any(serialize(nan2zero(zero2nan(dop1)-zero2nan(dop2))))
@@ -214,7 +214,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
     % remove short arcs
     min_arc = max([state.getMinArc() lagr_order]);
-    % logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+    % log.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
     pr1 = remove_short_arcs(pr1, min_arc);
     pr2 = remove_short_arcs(pr2, min_arc);
     ph1 = remove_short_arcs(ph1, min_arc);

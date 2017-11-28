@@ -92,7 +92,7 @@ classdef Meteo_Data < handle
     end
 
     properties (SetAccess = protected, GetAccess = protected)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
     end
 
     properties (SetAccess = private, GetAccess = protected)
@@ -119,8 +119,8 @@ classdef Meteo_Data < handle
             % SYNTAX: this.parseHeader(meteo_file)
 
             if ~this.file.isValid(1)
-                this.logger.addWarning('Meteorological file with no header or corrupted');
-                this.logger.addWarning(sprintf('Try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
+                this.log.addWarning('Meteorological file with no header or corrupted');
+                this.log.addWarning(sprintf('Try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
             else
                 % Try to parse header
                 try
@@ -129,7 +129,7 @@ classdef Meteo_Data < handle
                         throw(MException('MeteorologicalFile:InvalidHeader', 'file type is not described as "METEOROLOGICAL DATA"'));
                     end
                 catch ex
-                    this.logger.addWarning(sprintf('Problem detected in header of %s: %s', file.getFileName(), ex.message))
+                    this.log.addWarning(sprintf('Problem detected in header of %s: %s', file.getFileName(), ex.message))
                 end
 
                 % Scan the file header
@@ -150,7 +150,7 @@ classdef Meteo_Data < handle
                                 % Read types of obs
                                 this.n_type = sscanf(line(1:6),'%d');
                                 if (this.n_type >= 10)
-                                    this.logger.addWarning('Reading more than 10 fields is not yet supported');
+                                    this.log.addWarning('Reading more than 10 fields is not yet supported');
                                 end
                                 for t = 0 : (this.n_type - 1)
                                     str_type = line(8 + (3:4) + t * 6);
@@ -202,8 +202,8 @@ classdef Meteo_Data < handle
                         throw(MException('MeteorologicalFile:InvalidHeader', 'file does not contain the header field "# / TYPES OF OBSERV"'));
                     end
                 catch ex
-                    this.logger.addWarning(sprintf('Problem detected in the header: %s', ex.message))
-                    this.logger.addWarning(sprintf('try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
+                    this.log.addWarning(sprintf('Problem detected in the header: %s', ex.message))
+                    this.log.addWarning(sprintf('try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
                 end
             end
         end
@@ -237,7 +237,7 @@ classdef Meteo_Data < handle
                     this.data(col_id, l - eoh) = str2double(value);
                 end
             catch ex
-                this.logger.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
+                this.log.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
                 this.is_valid = false;
             end
             this.data = this.data'; % keep one column per data type
@@ -249,7 +249,7 @@ classdef Meteo_Data < handle
                 verbosity_lev = Logger.DEFAULT_VERBOSITY_LEV;
             end
 
-            this.logger.addMessage(sprintf('Loading Meteorological data from "%s"', file_name), iif(verbosity_lev < 50, Logger.DEFAULT_VERBOSITY_LEV, verbosity_lev));
+            this.log.addMessage(sprintf('Loading Meteorological data from "%s"', file_name), iif(verbosity_lev < 50, Logger.DEFAULT_VERBOSITY_LEV, verbosity_lev));
             try
                 this.time = GPS_Time(); % empty the time
                 this.file = File_Rinex(file_name, verbosity_lev);
@@ -258,7 +258,7 @@ classdef Meteo_Data < handle
                 fclose(fid);
                 meteo_file = meteo_file{1};
             catch ex
-                this.logger.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
+                this.log.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
                 return
             end
 
@@ -266,15 +266,15 @@ classdef Meteo_Data < handle
             this.parseHeader(meteo_file);
 
             if (nargin == 3) && ~isempty(type)
-                this.logger.addWarning('Meteorological file - overriding the file data types with custom types');
+                this.log.addWarning('Meteorological file - overriding the file data types with custom types');
                 this.type = type;
                 this.n_type = numel(type);
                 assert(sum(type < 1) + sum(type > 10) == 0, 'Invalid custom types');
             end
 
-            this.logger.addMessage(sprintf('\nThe following meteorological data are present in the header:'), verbosity_lev);
+            this.log.addMessage(sprintf('\nThe following meteorological data are present in the header:'), verbosity_lev);
             for t = 1 : this.n_type
-                this.logger.addMessage([' - ' this.getTypeExt{t}], verbosity_lev);
+                this.log.addMessage([' - ' this.getTypeExt{t}], verbosity_lev);
             end
             this.is_valid = this.file.isValid();
             % Parse the data
@@ -355,7 +355,7 @@ classdef Meteo_Data < handle
             
             narginchk(1,2);
             if this.time.isempty()
-                this.logger.addError(sprintf('Export failed - missing data - %s', this.marker_name));
+                this.log.addError(sprintf('Export failed - missing data - %s', this.marker_name));
             else
                 fnp = File_Name_Processor;
                 
@@ -384,7 +384,7 @@ classdef Meteo_Data < handle
                         mkdir(dir_container);
                     end
                     
-                    this.logger.addMessage(sprintf('Exporting met data to %s', cur_file_name));
+                    this.log.addMessage(sprintf('Exporting met data to %s', cur_file_name));
                     try
                         fid = fopen(cur_file_name, 'w');
                         str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
@@ -406,7 +406,7 @@ classdef Meteo_Data < handle
                         fwrite(fid, str);
                         fclose(fid);
                     catch ex
-                        this.logger.addError(sprintf('Export failed - %s', ex.message));
+                        this.log.addError(sprintf('Export failed - %s', ex.message));
                     end
                 end
             end
@@ -580,7 +580,7 @@ classdef Meteo_Data < handle
             % e.g. [x, y, z, amsl] = station(1).getLocation();
             %      md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
 
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
 
             md = Meteo_Data();
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
@@ -627,7 +627,7 @@ classdef Meteo_Data < handle
             pr_obs(sum(isnan(pr_obs),2) > 0, :) = [];
 
             if isempty(id_pr)
-                logger.addWarning('There are no station to get pressure information', 100);
+                log.addWarning('There are no station to get pressure information', 100);
                 pres = nan(time.length,1);
             else
                 %A = ones(size(id_pr));
@@ -655,7 +655,7 @@ classdef Meteo_Data < handle
             td_obs(sum(isnan(td_obs),2) > 1, :) = [];
 
             if isempty(id_td)
-                logger.addWarning('There are no station to get temperature information', 100);
+                log.addWarning('There are no station to get temperature information', 100);
                 temp = nan(time.length,1);
             else
                 trans = sum(q_fun_obs(id_td, id_td));
@@ -680,7 +680,7 @@ classdef Meteo_Data < handle
             hr_obs(sum(isnan(hr_obs),2) > 1, :) = [];
 
             if isempty(id_hr)
-                logger.addWarning('There are no station to get relative humidity information', 100);
+                log.addWarning('There are no station to get relative humidity information', 100);
                 hum = nan(time.length,1);
             else
                 trans = sum(q_fun_obs(id_hr, id_hr));

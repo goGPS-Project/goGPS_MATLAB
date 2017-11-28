@@ -68,7 +68,7 @@ classdef goGUIclass < handle
     % ======================================================================
 
         w_bar = [];                    % waitbar handle
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
 
         goh = [];                      % goGPS gui handler
 
@@ -275,7 +275,7 @@ classdef goGUIclass < handle
             this.initInterface();
             this.w_bar.close();
             t0 = toc;
-            this.logger.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t0));
+            this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t0));
         end
 
         % Fill all the Pop-up menus
@@ -2577,7 +2577,7 @@ classdef goGUIclass < handle
                 this.state.setDeprecateIniPath(fullfile(pathname, file_name));
                 this.state.updateExternals();
                 msgbox('Settings have been updated');
-                this.logger.addWarning('Settings have been updated');
+                this.log.addWarning('Settings have been updated');
             end
             this.updateGUI();
         end
@@ -2668,7 +2668,7 @@ classdef goGUIclass < handle
                 this.state.importIniFile(loadDataName);
                 this.importSettings(this.state);
             else
-                this.logger.addError('Unrecognized input file format!');
+                this.log.addError('Unrecognized input file format!');
             end
 
         end
@@ -3408,7 +3408,7 @@ classdef goGUIclass < handle
             goOk = this.test4Go();
             this.setElStatus([this.idUI.bSave this.idUI.bGo] , goOk, 1);
             this.edtINI.jEdit.jINI.setText(strCell2Str(this.state.exportIO(), 10));
-            this.logger.addWarning('Settings have been updated');
+            this.log.addWarning('Settings have been updated');
             msgbox('Settings have been updated');
         end
 

@@ -113,7 +113,7 @@ classdef Core_Utils < handle
                                                 if ~(antenna_PCV(m(1)).available)
 
                                                     for a = 1:length(m)
-                                                        this.logger.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
+                                                        this.log.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
                                                     end
 
                                                     invalid_date = 0;
@@ -141,9 +141,9 @@ classdef Core_Utils < handle
                                                             invalid_date = 1;
                                                             antenna_PCV(m(1)).n_frequency = 0;
                                                             if isinf(validity_end)
-                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start)), 100)
+                                                                this.log.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start)), 100)
                                                             else
-                                                                this.logger.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start), datestr(validity_end)), 100)
+                                                                this.log.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', date_limits.first.toString(), date_limits.last.toString(), datestr(validity_start), datestr(validity_end)), 100)
                                                             end
                                                         end
                                                     else  %receiver antenna
@@ -151,7 +151,7 @@ classdef Core_Utils < handle
 
                                                     if ~(invalid_date) % continue parsing
                                                         for a = 1:length(m)
-                                                            this.logger.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
+                                                            this.log.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
                                                         end
                                                         l = l_start;
 
@@ -264,7 +264,7 @@ classdef Core_Utils < handle
                                                     end
                                                 elseif (nargin > 2) && strcmp(line(41:44),'    ')
                                                     flag_stop = true;
-                                                    this.logger.addMessage('There are no more antenna!!!',100);
+                                                    this.log.addMessage('There are no more antenna!!!',100);
                                                 end
                                             end
                                         end
@@ -279,10 +279,10 @@ classdef Core_Utils < handle
 
                             end
                         else
-                            this.logger.addWarning('PCO/PCV file not loaded.\n');
+                            this.log.addWarning('PCO/PCV file not loaded.\n');
                         end
                     else
-                        this.logger.addWarning('PCO/PCV file not loaded.\n');
+                        this.log.addWarning('PCO/PCV file not loaded.\n');
                     end
                 end
             end
@@ -293,7 +293,7 @@ classdef Core_Utils < handle
                 for a = 1 : length(idx_not_found)
                     w_msg = sprintf('%s\n -  antenna model for "%s" is missing', w_msg, cell2mat(antmod(idx_not_found(a))));
                 end
-                this.logger.addWarning(w_msg);
+                this.log.addWarning(w_msg);
             end
         end
     end

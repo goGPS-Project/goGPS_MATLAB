@@ -8,7 +8,7 @@ if nargin < 3
     dontSave = false;
 end
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 error = 0;
 if exist(fn, 'file') == 2
     % found locally
@@ -43,7 +43,7 @@ else
     if m.isKey(url)
         scan = m(url);
     else
-        logger.addMessage(sprintf('Reading %s...', url));
+        log.addMessage(sprintf('Reading %s...', url));
         [EPHFILE,status] = urlread(url);
         if status == 1 && ~isempty(EPHFILE)
             scan = textscan(EPHFILE,'%f');

@@ -52,7 +52,7 @@ classdef Core_Block_Old < handle
     end
 
     properties (Access = public)% Public Access
-        logger
+        log
         state
 
         % number of position solutions to be estimated
@@ -131,7 +131,7 @@ classdef Core_Block_Old < handle
             % Core object creator initialize the structures needed for the computation:
             % EXAMPLE: go_block = Core_Block_Old(n_epoch, n_pr_obs, n_ph_obs)
             
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
             
             % number of position solutions to be estimated
@@ -211,7 +211,7 @@ classdef Core_Block_Old < handle
             %   state
             %
             % INTERNAL OUTOUT (properties whos values are changed):
-            %   logger, pos, pos0, pos_cov, is_fixed, x_float, x_fix, x_hr, Cxx, s02, v_hat,
+            %   log, pos, pos0, pos_cov, is_fixed, x_float, x_fix, x_hr, Cxx, s02, v_hat,
             %   sat_pr_track, sat_ph_track, obs_track
             %   y0, b, A, Q
             %
@@ -223,7 +223,7 @@ classdef Core_Block_Old < handle
             %   go_block = Core_Block_Old(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
             
-            this.logger.addMarkedMessage('Preparing goBlock system');
+            this.log.addMarkedMessage('Preparing goBlock system');
             
             this.time_diff = time_diff; % reference time
             this.pos = [];          % estimated parameters
@@ -318,7 +318,7 @@ classdef Core_Block_Old < handle
             %   [pos, pos_cov] = this.solveFloat(this)
             %
             % INTERNAL INPUT:
-            %   A, y0, b, Q, obs_track, amb_num, amb_prn_track, state, logger
+            %   A, y0, b, Q, obs_track, amb_num, amb_prn_track, state, log
             %
             % OUTPUT:
             %   pos     coordinates of the estimated positions
@@ -334,7 +334,7 @@ classdef Core_Block_Old < handle
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
             %   go_block.solveFloat()
             
-            this.logger.addMarkedMessage('Compute a float solution');
+            this.log.addMarkedMessage('Compute a float solution');
             
             if nargin == 1
                 full_slip_split = this.state.getFullSlipSplit();
@@ -353,13 +353,13 @@ classdef Core_Block_Old < handle
             end
             n_block = size(blk_cols, 2);
             
-            this.logger.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
+            this.log.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
             pivot_change = find(abs(diff(int8(this.pivot_track)))>0);
             row_id  = 1;
             this.ref_arc = zeros(n_block,1);
             bad_blocks = [];
             for i = 1 : n_block
-                this.logger.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
+                this.log.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
                 
                 % Extract a subset of the LS system
                 y0 = this.y0(blk_rows(:, i));
@@ -380,19 +380,19 @@ classdef Core_Block_Old < handle
                     [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, Q);
                     
                     if this.state.isPreCleaningOn()
-                        this.logger.addMessage('       - try to improve observations (risky...check the results!!!)');
+                        this.log.addMessage('       - try to improve observations (risky...check the results!!!)');
                         % Try to correct cycle slips / discontinuities in the observations and increase spike variance
                         % WARNING: risky operation, do it with consciousness, check the results against disabled pre-cleaning
                         %          this feature can be used when the phase residuals show unresolved anbiguities
                         [y0, Q] = this.preCorrectObsIntAmb(y0, b, A, col_ok, Q, this.n_pos, obs_track, pivot_change); % Try to correct integer ambiguities slips (maybe missed cycle slips)
                     end
                     
-                    this.logger.addMessage('       - first estimation');
+                    this.log.addMessage('       - first estimation');
                     
                     % computing a first solution with float ambiguities
                     [x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, Q); %#ok<*ASGLU>
                     
-                    this.logger.addMessage('       - improve solution by outlier underweight');
+                    this.log.addMessage('       - improve solution by outlier underweight');
                     % Improve solution by iterative increase of bad observations variance
                     [x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, v_hat, obs_track);
                     
@@ -411,7 +411,7 @@ classdef Core_Block_Old < handle
                     if (size(A,2) > 3 + 2)
                         if this.state.isOutlierRejectionOn()
                             % Delete bad observations and restore variances
-                            this.logger.addMessage('       - reject outliers');
+                            this.log.addMessage('       - reject outliers');
                             [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track] = this.cleanObsHiRes(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9, false);
                             %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
                             [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, Q);
@@ -429,7 +429,7 @@ classdef Core_Block_Old < handle
                 
                 if (size(A,2) < 3 + 2) || (size(A,1) <= size(A,2))
                     % If the system is completely unstable
-                    this.logger.addMessage('         [ WW ] system still unstable, try to use it as it is!!!\n                (it might be stabilized by the unified solution)');
+                    this.log.addMessage('         [ WW ] system still unstable, try to use it as it is!!!\n                (it might be stabilized by the unified solution)');
                     bad_blocks = [bad_blocks; i]; %#ok<AGROW>
                     y0 = this.y0(blk_rows(:, i));
                     b = this.b(blk_rows(:, i));
@@ -483,10 +483,10 @@ classdef Core_Block_Old < handle
                 end
             end
             
-            this.logger.addMarkedMessage('Compute the final float solution -------------------');
+            this.log.addMarkedMessage('Compute the final float solution -------------------');
             [this.x_float, this.Cxx, this.s02, this.v_hat] = fast_least_squares_solver(this.y0, this.b, this.A(:, this.col_ok), this.Q);
             
-            this.logger.addMessage('       - improve solution by outlier underweight');
+            this.log.addMessage('       - improve solution by outlier underweight');
             [this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, this.v_hat, this.obs_track);
             [this.phase_res, this.id_track] = this.computeDataTrack();
             
@@ -518,7 +518,7 @@ classdef Core_Block_Old < handle
                             blk_cols(1 : 3, :) = 0;
                             unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 3);
                             if ~isempty(unstable_block)
-                                this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                                this.log.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
                                 bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
                                 this.ref_arc(unstable_block) = [];
                             end
@@ -526,7 +526,7 @@ classdef Core_Block_Old < handle
                             for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
                             this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
 
-                            this.logger.addMessage(sprintf('         [ WW ] System probably unstable, removing arcs: %s PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                            this.log.addMessage(sprintf('         [ WW ] System probably unstable, removing arcs: %s PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
                             [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
                             [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
                         end
@@ -541,7 +541,7 @@ classdef Core_Block_Old < handle
                 end
                 
                 % if flag_outlier
-                %     this.logger.addMessage('       - reject outliers');
+                %     this.log.addMessage('       - reject outliers');
                 %     [this.phase_res, this.id_track] = this.computeDataTrack();
                 %     N_inv = [];
                 %     subset_out = serialize(this.id_track(abs(this.phase_res(:,:,1)) > 0.05));
@@ -568,7 +568,7 @@ classdef Core_Block_Old < handle
                         blk_cols(1 : 3, :) = 0;
                         unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 4);
                         if ~isempty(unstable_block)
-                            this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                            this.log.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
                             bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
                             this.ref_arc(unstable_block) = [];
                         end
@@ -576,7 +576,7 @@ classdef Core_Block_Old < handle
                         for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
                         this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
                         
-                        this.logger.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s\n                                          PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                        this.log.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s\n                                          PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
                         [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
                         [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
                         this.ref_arc = setdiff(this.ref_arc, bad_col - 3);
@@ -607,11 +607,11 @@ classdef Core_Block_Old < handle
             %close all; this.plotPhRes();
             
             % extract estimated position
-            this.logger.newLine();
-            this.logger.addMarkedMessage('Float solution computed, rover positions corrections:');
+            this.log.newLine();
+            this.log.addMarkedMessage('Float solution computed, rover positions corrections:');
             d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
             pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
-            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+            this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
             pos_cov = full(this.Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
             this.is_fixed = 0;
             this.pos = pos;
@@ -628,7 +628,7 @@ classdef Core_Block_Old < handle
             %   [pos, pos_cov] = this.solveFloat(this)
             %
             % INTERNAL INPUT:
-            %   A, y0, b, Q, obs_track, amb_num, amb_prn_track, state, logger
+            %   A, y0, b, Q, obs_track, amb_num, amb_prn_track, state, log
             %
             % OUTPUT:
             %   pos     coordinates of the estimated positions
@@ -644,7 +644,7 @@ classdef Core_Block_Old < handle
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
             %   go_block.solveFloat()
             
-            this.logger.addMarkedMessage('Compute a float solution');
+            this.log.addMarkedMessage('Compute a float solution');
             
             if nargin == 1
                 full_slip_split = this.state.getFullSlipSplit();
@@ -663,13 +663,13 @@ classdef Core_Block_Old < handle
             end
             n_block = size(blk_cols, 2);
             
-            this.logger.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
+            this.log.addMarkedMessage(sprintf('Independent blocks found: %d', n_block));
             pivot_change = find(abs(diff(int8(this.pivot_track)))>0);
             row_id  = 1;
             this.ref_arc = zeros(n_block,1);
             bad_blocks = [];
             for i = 1 : n_block
-                this.logger.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
+                this.log.addMessage(sprintf('      Processing block %d/%d -------------------------------', i, n_block));
                 
                 % Extract a subset of the LS system
                 y0 = this.y0(blk_rows(:, i));
@@ -692,7 +692,7 @@ classdef Core_Block_Old < handle
                     [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
                     
                     if this.state.isPreCleaningOn()
-                        this.logger.addMessage('       - try to improve observations (risky...check the results!!!)');
+                        this.log.addMessage('       - try to improve observations (risky...check the results!!!)');
                         % Try to correct cycle slips / discontinuities in the observations and increase spike variance
                         % WARNING: risky operation, do it with consciousness, check the results against disabled pre-cleaning
                         %          this feature can be used when the phase residuals show unresolved anbiguities
@@ -700,12 +700,12 @@ classdef Core_Block_Old < handle
                         iQ = cholinv(Q);
                     end
 
-                    this.logger.addMessage('       - first estimation');
+                    this.log.addMessage('       - first estimation');
 
                     % computing a first solution with float ambiguities
                     %[x_float, Cxx, s02, v_hat] = this.solveLS(y0, b, A, col_ok, iQ); %#ok<*ASGLU>
 
-                    this.logger.addMessage('       - improve solution by outlier underweight');
+                    this.log.addMessage('       - improve solution by outlier underweight');
                     %[x_float, Cxx, s02, v_hat, Q_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
                     % Improve solution by iterative increase of bad observations variance
                     n_clean = this.state.getBlockPostCleaningLoops();
@@ -723,7 +723,7 @@ classdef Core_Block_Old < handle
                         if this.state.isOutlierRejectionOn()
                             n_obs_tmp = size(A,1);
                             % Delete bad observations and restore variances
-                            this.logger.addMessage('       - reject outliers');
+                            this.log.addMessage('       - reject outliers');
                             [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ] = this.cleanObsHiRes(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 9, false);
                             %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track, iQ] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
                             [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
@@ -734,7 +734,7 @@ classdef Core_Block_Old < handle
                             end
                             
                             if size(A,1) < 0.6 * n_obs_tmp
-                                this.logger.addMessage('         [ WW ] too many outliers detected, use the block as it is!');
+                                this.log.addMessage('         [ WW ] too many outliers detected, use the block as it is!');
                                 A = [];
                             else
                                 % PLOT close all;
@@ -743,7 +743,7 @@ classdef Core_Block_Old < handle
 
                                 % Detect new full CS candidates -------------------------------------------
 
-                                this.logger.addMessage('       - detect new cycle slip candidates');
+                                this.log.addMessage('       - detect new cycle slip candidates');
                                 sensor = median(movstd(phase_res,3,'omitnan'),2,'omitnan');
                                 detector = find(sensor > min(0.1, 9 * std(sensor,'omitnan')) | isnan(sensor));
 
@@ -753,11 +753,11 @@ classdef Core_Block_Old < handle
                                 lim = [lim(1 : end - 1) + 1, lim(2 : end) - 1];
                                 lim = lim((lim(:,2) - lim(:,1)) > 5,:);
 
-                                this.logger.addMessage(sprintf('            %d candidate found', size(lim, 1) - 1));
+                                this.log.addMessage(sprintf('            %d candidate found', size(lim, 1) - 1));
 
                                 % Strong cleaning based on the check of the residuals derivatives ---------
 
-                                this.logger.addMessage('       - stronger reject outliers');
+                                this.log.addMessage('       - stronger reject outliers');
                                 [x_float, Cxx, s02, v_hat, y0, b, A, col_ok, Q, obs_track, amb_prn_track, iQ] = this.cleanObsHiResVar(y0, b, A, col_ok, Q, v_hat, obs_track, amb_prn_track, 0.997);
                                 %[~, ~, ~, ~, y0,  b, A, ~, Q, obs_track, amb_prn_track, iQ] = this.remSolitaryObs(y0, b, A, col_ok, Q, obs_track, amb_prn_track, round(this.state.getMinArc()/2));
                                 [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, iQ);
@@ -780,7 +780,7 @@ classdef Core_Block_Old < handle
 
                                     % Building a splitted system to compute separate and repair CS ------------
 
-                                    this.logger.addMessage('          - repair cycle slips');
+                                    this.log.addMessage('          - repair cycle slips');
                                     A_ck = spalloc(size(A, 1), 10000, sum(A(:)~=0));
                                     row = 0;
                                     s02_vec = [];
@@ -844,7 +844,7 @@ classdef Core_Block_Old < handle
                     if size(A,2) < 3
                         s02 = inf;
                     end
-                    this.logger.addMessage(sprintf('         [ WW ] system too small, try to use it unprocessed!!!\n                (it might be stabilized by the unified solution)'));
+                    this.log.addMessage(sprintf('         [ WW ] system too small, try to use it unprocessed!!!\n                (it might be stabilized by the unified solution)'));
 
                     bad_blocks = [bad_blocks; i]; %#ok<AGROW>
                     y0 = this.y0(blk_rows(:, i));
@@ -860,7 +860,7 @@ classdef Core_Block_Old < handle
                 else
                     if (s02 > 0.02)
                         % If the system is completely unstable
-                        this.logger.addMessage(sprintf('         [ WW ] system unstable (s02 = %.4f), try to use it as it is!!!\n                (it might be stabilized by the unified solution)', s02));
+                        this.log.addMessage(sprintf('         [ WW ] system unstable (s02 = %.4f), try to use it as it is!!!\n                (it might be stabilized by the unified solution)', s02));
                     end
                 end
 
@@ -911,8 +911,8 @@ classdef Core_Block_Old < handle
                 [this.col_ok, this.ref_arc] = this.getBestRefArc(this.y0, this.b, this.A, iQ);
             end
 
-            this.logger.addMarkedMessage('Compute the final float solution -------------------');
-            this.logger.addMessage('       - improve solution by outlier underweight');
+            this.log.addMarkedMessage('Compute the final float solution -------------------');
+            this.log.addMessage('       - improve solution by outlier underweight');
             %[this.x_float, this.Cxx, this.s02, this.v_hat, Q_tmp] = this.improveFloatSolution(this.y0, this.b, this.A, this.col_ok, this.Q, [], this.obs_track);
 
             [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, Q_tmp, iQ_tmp, this.phase_res, this.id_track] = this.loopCorrector(this.y0, this.b, this.A, this.col_ok, this.Q, this.obs_track, this.amb_prn_track, n_clean);
@@ -940,7 +940,7 @@ classdef Core_Block_Old < handle
                         blk_cols(1 : 3, :) = 0;
                         unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 3);
                         if ~isempty(unstable_block)
-                            this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                            this.log.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
                             bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
                             this.ref_arc(unstable_block) = [];
                         end
@@ -948,7 +948,7 @@ classdef Core_Block_Old < handle
                         for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
                         this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
 
-                        this.logger.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                        this.log.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
                         [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
                         [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
                     end
@@ -976,7 +976,7 @@ classdef Core_Block_Old < handle
                     blk_cols(1 : 3, :) = 0;
                     unstable_block = find(sum([blk_cols; -blk_cols(bad_col,:)]) < 4);
                     if ~isempty(unstable_block)
-                        this.logger.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
+                        this.log.addWarning(sprintf('One or more block have been found unstable, removing block %s', sprintf('%d ', unstable_block)));
                         bad_col = union(bad_col, find(blk_cols(:, unstable_block)));
                         this.ref_arc(unstable_block) = [];
                     end
@@ -984,7 +984,7 @@ classdef Core_Block_Old < handle
                     for a = 1 : numel(this.ref_arc); this.ref_arc(a) = this.ref_arc(a) - sum(bad_col < this.ref_arc(a) + 3); end
                     this.col_ok = setdiff(1 : size(this.A, 2), this.ref_arc + 3);
 
-                    this.logger.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s\n                                          PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
+                    this.log.addMessage(sprintf('         [ WW ] System unstable, removing arcs: %s\n                                          PRNs: %s', sprintf('%d ', bad_col - 3), sprintf('%d ', this.amb_prn_track(bad_col - 3))));
                     [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track] = this.remArcCol(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col);
                     [this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, bad_col] = this.remShortArc(this.A, this.y0, this.b, this.Q, this.obs_track, this.amb_prn_track, this.state.getMinArc());
                     this.ref_arc = setdiff(this.ref_arc, bad_col - 3);
@@ -1019,11 +1019,11 @@ classdef Core_Block_Old < handle
             end
 
             % extract estimated position
-            this.logger.newLine();
-            this.logger.addMarkedMessage('Float solution computed, rover positions corrections:');
+            this.log.newLine();
+            this.log.addMarkedMessage('Float solution computed, rover positions corrections:');
             d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
             pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
-            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+            this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
             pos_cov = full(this.Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
             this.is_fixed = 0;
             this.pos = pos;
@@ -1040,7 +1040,7 @@ classdef Core_Block_Old < handle
             %   [pos, pos_cov, amb_fix, amb_cov, amb_fix_full, ref_arc] = this.solveFix()
             %
             % INTERNAL INPUT:
-            %   x_float, Cxx, A, n_pos, state, logger
+            %   x_float, Cxx, A, n_pos, state, log
             %
             % OUTPUT:
             %   pos             coordinates of the estimated positions
@@ -1065,7 +1065,7 @@ classdef Core_Block_Old < handle
             %   solveFixPar
             %
 
-            this.logger.addMarkedMessage('Compute ambiguity fix through LAMBDA');
+            this.log.addMarkedMessage('Compute ambiguity fix through LAMBDA');
 
             [d_pos, pos_cov, is_fixed, amb_fix, amb_cov, amb_fix_full, ref_arc, G] = this.solveFixPar (this.x_float, this.Cxx, size(this.A, 2) - 3 - numel(this.ref_arc));
             this.is_fixed = is_fixed;
@@ -1073,9 +1073,9 @@ classdef Core_Block_Old < handle
             pos = this.pos;
             if (is_fixed)
                 % extract estimated position
-                this.logger.addMarkedMessage('Fixed solution computed, rover positions corrections:');
+                this.log.addMarkedMessage('Fixed solution computed, rover positions corrections:');
                 pos = repmat(this.pos0(:), 1, this.n_pos) + repmat(d_pos(:), 1, this.n_pos);
-                this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+                this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
                 this.pos = pos;
                 this.pos_cov = pos_cov;
                 this.pos_cov_fix = pos_cov;
@@ -1127,7 +1127,7 @@ classdef Core_Block_Old < handle
                 % Correct the observations for the cycle slips and merge the arcs
                 if this.state.isBlockOneArc()
                     %% Block one arc
-                    this.logger.addMarkedMessage('Compute the float solution correcting cycle slips\n(use one arc per satellite)');
+                    this.log.addMarkedMessage('Compute the float solution correcting cycle slips\n(use one arc per satellite)');
                     amb_correction = zeros(size(this.A, 2) - 3, 2);
                     amb_correction(this.col_ok(4:end) - 3, 1) = this.amb_fix_full;
                     %amb_correction(this.col_ok(4:end)-3, 2) = round(this.amb_fix_full / this.cs_factor) * this.cs_factor;
@@ -1153,7 +1153,7 @@ classdef Core_Block_Old < handle
 
                     % Delete bad observations and restore variances
                     if this.state.isOutlierRejectionOn()
-                        this.logger.addMessage('       - reject outliers');
+                        this.log.addMessage('       - reject outliers');
                         Q_tmp = this.Q;
                         [this.x_float, this.Cxx, this.s02, this.v_hat, this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track] = this.cleanObsHiRes(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.v_hat, this.obs_track, this.amb_prn_track, 9, false);
                         %[~, ~, ~, ~, this.y0,  this.b, this.A, ~, Q_tmp, this.obs_track, this.amb_prn_track, iQ] = this.remSolitaryObs(this.y0, this.b, this.A, this.col_ok, Q_tmp, this.obs_track, this.amb_prn_track, round(this.state.getMinArc()/2));
@@ -1164,11 +1164,11 @@ classdef Core_Block_Old < handle
 
                     [this.phase_res, this.id_track] = this.computeDataTrack(this.v_hat, [], this.A, this.obs_track, 1);
 
-                    this.logger.newLine();
-                    this.logger.addMarkedMessage('Second Float solution computed, rover positions corrections:');
+                    this.log.newLine();
+                    this.log.addMarkedMessage('Second Float solution computed, rover positions corrections:');
                     d_pos = reshape(this.x_float(1:this.n_pos * 3), 3, this.n_pos);
                     pos = repmat(this.pos0(:), 1, this.n_pos) + d_pos;
-                    this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
+                    this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [this.getENU(pos)' this.getDeltaENU(pos)']'));
                     pos_cov = full(this.Cxx(1:this.n_pos * 3, 1:this.n_pos * 3));
                     this.is_fixed = 0;
                     this.pos = pos;
@@ -1222,7 +1222,7 @@ classdef Core_Block_Old < handle
             s_rate = s_rate(1);
 
             if s_rate > 0
-                this.logger.addMarkedMessage(sprintf('Computing high rate solution @%d seconds', s_rate));
+                this.log.addMarkedMessage(sprintf('Computing high rate solution @%d seconds', s_rate));
 
                 % Find ids of observations involved in a certain time span (solution rate)
 
@@ -1277,7 +1277,7 @@ classdef Core_Block_Old < handle
                     % Check for positions that cannot be estimated
                     pos_nan = [];
                     if (sum(isnan(x_float(1 : 3 * n_pos_hr))) > 0)
-                        this.logger.addWarning('Some high rate positions have not been estimated!');
+                        this.log.addWarning('Some high rate positions have not been estimated!');
                         pos = x_float(1 : 3 * n_pos_hr);
                         pos_nan = isnan(pos);
                         pos_nan(3 * n_pos_hr + 1 : end) = false;
@@ -1300,7 +1300,7 @@ classdef Core_Block_Old < handle
                     end
                     v_hat = this.y0 - (A_hr(:, amb_hr_ok) * [d_pos(:); this.amb_fix_full] + this.b);
                 else
-                    this.logger.addWarning('The computed high rate solution is NOT fixed (float)!!!')
+                    this.log.addWarning('The computed high rate solution is NOT fixed (float)!!!')
                     d_pos = reshape(x_float(1 : 3 * n_pos_hr), 3, n_pos_hr);
                     pos_cov = Cxx(1 : 3 * n_pos_hr, 1 : 3 * n_pos_hr);
                 end
@@ -1308,8 +1308,8 @@ classdef Core_Block_Old < handle
                 this.x_hr = [d_pos(:); this.amb_fix_full];
                 pos = repmat(this.pos0, 1, n_pos_hr) + d_pos;
 
-                this.logger.addMarkedMessage('High Rate solution computed, rover positions corrections (mean HR):');
-                this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [mean(this.getENU(pos),1, 'omitnan')' mean(this.getDeltaENU(pos),1, 'omitnan')']'));
+                this.log.addMarkedMessage('High Rate solution computed, rover positions corrections (mean HR):');
+                this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', [mean(this.getENU(pos),1, 'omitnan')' mean(this.getDeltaENU(pos),1, 'omitnan')']'));
                 this.is_fixed = this.is_fixed * 2;
                 this.n_pos_hr = n_pos_hr;
                 this.pos = pos;
@@ -1438,17 +1438,17 @@ classdef Core_Block_Old < handle
 
     methods % Public Access
         function toString(this)
-            this.logger.addMarkedMessage('Float solution:');
-            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
+            this.log.addMarkedMessage('Float solution:');
+            this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
                 [mean(this.getENU(this.getFloatPos()),1, 'omitnan')' mean(this.getDeltaENU(this.getFloatPos()),1, 'omitnan')']'));
             if this.is_fixed > 1
-            this.logger.addMarkedMessage('Fixed Position:');
-            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
+            this.log.addMarkedMessage('Fixed Position:');
+            this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
                 [mean(this.getENU(this.getFixPos()),1, 'omitnan')' mean(this.getDeltaENU(this.getFixPos()),1, 'omitnan')']'));
             end
             if this.is_fixed == 2
-            this.logger.addMarkedMessage('Position @ High Rate (mean):');
-            this.logger.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
+            this.log.addMarkedMessage('Position @ High Rate (mean):');
+            this.log.addMessage(sprintf('       East      %12.4f   %+8.4f m\n       North     %12.4f   %+8.4f m\n       Up        %12.4f   %+8.4f m\n', ...
                 [mean(this.getENU(this.getPosHR()),1, 'omitnan')' mean(this.getDeltaENU(this.getPosHR()),1, 'omitnan')']'));
             end
         end
@@ -1731,7 +1731,7 @@ classdef Core_Block_Old < handle
             % go_block = Core_Block_Old.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, 3600);
             %%
             state = Go_State.getCurrentSettings();
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
 
             s_rate = s_rate(1);
             idx = (unique([0 : s_rate : max(time_diff) max(time_diff)]) / state.getProcessingRate)';
@@ -1745,7 +1745,7 @@ classdef Core_Block_Old < handle
             pos_float = zeros(n_step, 3, 1);
 
             for i = 1 : n_step
-                logger.addMessage(sprintf('\nProcessing HR solution: %02d/%02d ----------------------------------\n', i, n_step));
+                log.addMessage(sprintf('\nProcessing HR solution: %02d/%02d ----------------------------------\n', i, n_step));
                 go_block = Core_Block_Old (numel(time_diff(idx(i, 1) : idx(i, 2))), sum(serialize(pr1_R(:,idx(i, 1) : idx(i, 2)) ~= 0)), sum(serialize(ph1_R(:,idx(i, 1) : idx(i, 2)) ~= 0)));
 
                 go_block.prepare (time_diff(idx(i, 1) : idx(i, 2)), pos_R, pos_M, pr1_R(:,idx(i, 1) : idx(i, 2)), pr1_M(:,idx(i, 1) : idx(i, 2)), pr2_R(:,idx(i, 1) : idx(i, 2)), pr2_M(:,idx(i, 1) : idx(i, 2)), ...
@@ -1912,7 +1912,7 @@ classdef Core_Block_Old < handle
             Q_tmp = Q;
             while ~isempty(bad_col) && (size(A,2) >= 3 + 2)
                 bad_col = bad_col(1);
-                this.logger.addMessage(sprintf('       - System found unstable, removing arc %d - prn %d', bad_col - 3, amb_prn_track(bad_col - 3)));
+                this.log.addMessage(sprintf('       - System found unstable, removing arc %d - prn %d', bad_col - 3, amb_prn_track(bad_col - 3)));
                 [A, y0, b, Q, obs_track, amb_prn_track] = this.remArcCol(A, y0, b, Q, obs_track, amb_prn_track, bad_col);
                 [A, y0, b, Q, obs_track, amb_prn_track] = this.remShortArc(A, y0, b, Q, obs_track, amb_prn_track, this.state.getMinArc());
                 [col_ok, ref_arc] = this.getBestRefArc(y0, b, A, Q);
@@ -1934,13 +1934,13 @@ classdef Core_Block_Old < handle
             c = 1; is_new = true;
             while (c <= n_clean) && is_new
                 % Try to correct integer ambiguities (maybe missed cycle slips)
-                this.logger.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
+                this.log.addMessage(sprintf('       - try to fix previously undetected cycle slips %d', c));
                 win_size = (this.state.getMinArc()/2 + mod(1 + this.state.getMinArc()/2, 2));
                 [y0_ck, is_new_ck] = this.postCorrectIntAmb(y0, phase_res, id_track, A, amb_prn_track, win_size);
 
                 if is_new_ck
                     % Improve solution by iterative increase of bad observations variance
-                    %this.logger.addMessage('          - recompute the improved solution');
+                    %this.log.addMessage('          - recompute the improved solution');
                     [x_float_ck, Cxx_ck, s02_ck, v_hat_ck, Q_tmp_ck, iQ_tmp_ck] = this.improveFloatSolution(y0_ck, b, A, col_ok, Q, [], obs_track);
                     % if I'm improving the solution accept the correction
                     [phase_res_ck] = this.computeDataTrack(v_hat_ck, id_track);
@@ -1954,11 +1954,11 @@ classdef Core_Block_Old < handle
                         [x_float, Cxx, s02, v_hat, Q_tmp, iQ_tmp] = this.improveFloatSolution(y0, b, A, col_ok, Q, [], obs_track);
                         [phase_res] = this.computeDataTrack(v_hat, id_track);
                     else
-                        this.logger.addMessage('          - cycle slips detected but rejected!');
+                        this.log.addMessage('          - cycle slips detected but rejected!');
                         is_new = false;
                     end
                 else
-                    this.logger.addMessage('          - no cycle slips have been found!');
+                    this.log.addMessage('          - no cycle slips have been found!');
                     is_new = false;
                 end
                 c = c + 1;
@@ -2026,7 +2026,7 @@ classdef Core_Block_Old < handle
             %   go_block = Core_Block_Old(numel(time_GPS), sum(serialize(pr1_R(:,:,1) ~= 0)), sum(serialize(ph1_R(:,:,1) ~= 0)));
             %   go_block.prepare(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV);
 
-            this.logger.addMarkedMessage('Set up Design Matrix to estimate integer abiguities');
+            this.log.addMarkedMessage('Set up Design Matrix to estimate integer abiguities');
 
             amb_num = 0;
             this.amb_prn_track = [];
@@ -2116,7 +2116,7 @@ classdef Core_Block_Old < handle
             %   amb_num     Ambiguities number
             %
             % INTERNAL INPUT:
-            %   logger
+            %   log
             %
             % OUTPUT:
             %   d_pos       coordinates offset of the estimated positions
@@ -2167,14 +2167,14 @@ classdef Core_Block_Old < handle
                     [U] = chol(cov_N);
                     cov_N = U'*U;
                 catch ex
-                    this.logger.addWarning(sprintf('Phase ambiguities covariance matrix unstable - %s', ex.message));
+                    this.log.addWarning(sprintf('Phase ambiguities covariance matrix unstable - %s', ex.message));
                 end
 
                 % integer phase ambiguity solving by LAMBDA
                 [d_pos_ck, amb_fix_ck, amb_cov, pos_cov, d_pos, amb_fix] = lambdafix(x(1:3), x(4:end), cov_X, cov_N, cov_XN);
 
                 if sum(amb_fix_ck == x(4:end))
-                    this.logger.addWarning('LAMBDA returned a fixed solution that did not pass the ratio test\nTring to use the solution anyway');
+                    this.log.addWarning('LAMBDA returned a fixed solution that did not pass the ratio test\nTring to use the solution anyway');
                 end
 
                 n_cands = size(amb_fix, 2);
@@ -2195,7 +2195,7 @@ classdef Core_Block_Old < handle
                 amb_fix_full = amb_fix_full(:, id_best);
                 is_fixed = 1;
             catch ex
-                this.logger.addWarning(sprintf('It was not possible to estimate integer ambiguities: a float solution will be output.\n%s',ex.message));
+                this.log.addWarning(sprintf('It was not possible to estimate integer ambiguities: a float solution will be output.\n%s',ex.message));
                 pos_cov = cov_X;
                 amb_cov = cov_N;
                 amb_fix_full = x_float(4 : end);
@@ -2978,7 +2978,7 @@ classdef Core_Block_Old < handle
 
         function [data_track, id_track] = computeDataTrack(this, data, id_track, A, obs_track, n_pos)
             % Get a matrix of n_obs x n_arcs with the values of the observations in data
-            % Where no observations are present for a certain arcs it contains zerosÿ
+            % Where no observations are present for a certain arcs it contains zerosï¿½
             %
             % INPUT:
             %   data       data to be put in the matrix [n_obs x n_set]
@@ -3027,7 +3027,7 @@ classdef Core_Block_Old < handle
         function [out_struct] = struct(this)
             % convert to struct the content of the obj
             % SYNTAX: [out_struct] = this.struct;
-            out_struct.logger = this.logger;
+            out_struct.log = this.log;
             out_struct.state = this.state;
             out_struct.n_pos = this.n_pos;
 
@@ -3080,7 +3080,7 @@ classdef Core_Block_Old < handle
         function import(this, obj)
             % import from struct or obj all the properties
             % SYNTAX: this.import(obj);
-            this.logger = obj.logger;
+            this.log = obj.log;
             this.state = obj.state;
             this.n_pos = obj.n_pos;
 
@@ -3223,8 +3223,8 @@ classdef Core_Block_Old < handle
                 pos = reshape(x_float(1 : n_pos * 3) - cov_cross * cholinv(cov_amb) * (x_float(3 * n_pos + 1 : end) - amb_fix(:, 1)), 3, n_pos);
                 pos_cov = cov_pos  - cov_cross * cholinv(cov_amb) * cov_cross';
             catch ex
-                logger = Logger.getInstance();
-                logger.addWarning(sprintf('Phase ambiguities covariance matrix unstable - %s', ex.message));
+                log = Logger.getInstance();
+                log.addWarning(sprintf('Phase ambiguities covariance matrix unstable - %s', ex.message));
                 pos = reshape(x_float(1 : n_pos * 3) - cov_cross * (cov_amb)^-1 * (x_float(3 * n_pos + 1 : end) - amb_fix(:, 1)), 3, n_pos);
                 pos_cov = cov_pos  - cov_cross * (cov_amb)^-1 * cov_cross';
             end

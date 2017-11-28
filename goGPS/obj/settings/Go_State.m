@@ -122,8 +122,8 @@ classdef Go_State < Settings_Interface
             end
 
             if force_clean
-                logger = Logger.getInstance();
-                logger.addWarning('Cleaning settings of the session');
+                log = Logger.getInstance();
+                log.addWarning('Cleaning settings of the session');
                 clear unique_instance_settings__;
                 unique_instance_settings__ = [];
             end
@@ -172,7 +172,7 @@ classdef Go_State < Settings_Interface
                 try
                     this.cur_settings.import(settings);
                 catch ex
-                    this.logger.addWarning(['Go_State.import failed to import settings (invalid input settings) ', ex.message()]);
+                    this.log.addWarning(['Go_State.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
             end
         end
@@ -204,26 +204,29 @@ classdef Go_State < Settings_Interface
     % =========================================================================
     methods (Access = public)
         function initProcessing(this)
+            % Load all the files necessary to the functioning of a goGPS session
+            % SYNTAX:   this.initProcessing()
+            
             % Load external resources and update
             fnp = File_Name_Processor();
             out_dir = fnp.checkPath(this.cur_settings.getOutDir());
             if ~exist(out_dir, 'dir')
-                this.logger.newLine();
-                this.logger.addWarning(sprintf('The out folder does not exists\n Creating %s', out_dir));
+                this.log.newLine();
+                this.log.addWarning(sprintf('The out folder does not exists\n Creating %s', out_dir));
                 mkdir(out_dir);
             end
 
-            this.logger.newLine();
-            this.logger.addMessage(this.cur_settings.cc.toString);
-            this.logger.newLine();
+            this.log.addMessage(this.log.indent(this.cur_settings.cc.toString, 5));
 
             this.initRef();
             this.initGeoid();
+            
+            this.log.addMarkedMessage('Conjuring files!');
             fw = File_Wizard;
-            c_mode = this.logger.getColorMode();
-            this.logger.setColorMode(0);
+            c_mode = this.log.getColorMode();
+            this.log.setColorMode(0);
             fw.conjureFiles();
-            this.logger.setColorMode(c_mode);
+            this.log.setColorMode(c_mode);
         end
 
         function initGeoid(this)
@@ -242,7 +245,7 @@ classdef Go_State < Settings_Interface
                 this.geoid.nrows = size(this.geoid.grid, 1);
                 clear g
             catch
-                this.logger.addWarning('Reference geoid not found', 50);
+                this.log.addWarning('Reference geoid not found', 50);
                 % geoid unavailable
                 this.geoid.grid = 0;
                 this.geoid.cellsize = 0;

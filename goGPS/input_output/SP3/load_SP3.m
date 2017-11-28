@@ -55,9 +55,9 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 
-logger.addMarkedMessage('Reading SP3s (precise ephemeris) and clocks');
+log.addMarkedMessage('Reading SP3s (precise ephemeris) and clocks');
 
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
@@ -268,11 +268,11 @@ for p = 1 : numel(filename_SP3)
 end
 
 if SP3.time(1) > date_start.getGpsTime()
-    logger.addWarning(sprintf('Some SP3 files for the processing of the beginning of the interval are missing!!!\n'));
+    log.addWarning(sprintf('Some SP3 files for the processing of the beginning of the interval are missing!!!\n'));
     flag_unavail = 1;
 end
 if SP3.time(end) < date_stop.getGpsTime()
-    logger.addWarning(sprintf('Some SP3 files for the processing of the end of the interval are missing!!!\n'));
+    log.addWarning(sprintf('Some SP3 files for the processing of the end of the interval are missing!!!\n'));
     flag_unavail = 1;
 end
 
@@ -293,10 +293,10 @@ if (~flag_unavail)
         end
 
         if (f_clk == -1)
-            logger.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
+            log.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
         else
             [~, fn, fn_ext] = fileparts(filename_CLK{p});
-            logger.addMessage(sprintf('         Using as clock file: %s%s', fn, fn_ext));
+            log.addMessage(sprintf('         Using as clock file: %s%s', fn, fn_ext));
             % read the entire clk file in memory
             clk_file = textscan(f_clk,'%s','Delimiter', '\n');
             if (length(clk_file) == 1)
@@ -384,9 +384,9 @@ if (~flag_unavail)
     end
 
     if (SP3.clock_rate >= 60)
-        logger.addMarkedMessage(sprintf('Satellite clock rate: %f minutes', SP3.clock_rate/60));
+        log.addMarkedMessage(sprintf('Satellite clock rate: %f minutes', SP3.clock_rate/60));
     else
-        logger.addMarkedMessage(sprintf('Satellite clock rate: %f seconds', SP3.clock_rate));
+        log.addMarkedMessage(sprintf('Satellite clock rate: %f seconds', SP3.clock_rate));
     end
 end
 
@@ -403,4 +403,4 @@ SP3.clock(:,k+1:nEpochs) = [];
 if (nargin > 7)
     waitbar(1,wait_dlg)
 end
-logger.newLine();
+log.newLine();

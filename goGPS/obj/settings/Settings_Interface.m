@@ -8,7 +8,7 @@
 % COMMENTS
 % Settings have been build with multiple inheritance
 % A standard abstract interface have been created: Setting_Interface
-% it add to each subclass the object logger
+% it add to each subclass the object log
 % force the subclasses to implement three basic methods:
 %  - import:       when a setting object of identical class, or that inherits from the same class is passed to this function, the relative parameters are copied in the calling object
 %                  when an ini file is the input of the function, the object is updated with the settings contained into the file
@@ -49,7 +49,7 @@
 
 classdef Settings_Interface < handle
     properties (SetAccess = protected, GetAccess = protected)
-        logger; % Handler to the logger object
+        log; % Handler to the log object
     end
 
     properties (Abstract)
@@ -68,9 +68,9 @@ classdef Settings_Interface < handle
 
     methods (Access = 'public')
         function initLogger(this)
-            % Init the logger object
+            % Init the log object
             % SYNTAX: this.initLogger();
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
         end
 
         function ini = save(this, file_path)
@@ -152,7 +152,7 @@ classdef Settings_Interface < handle
             if (~isempty(field_val)) && (~isnan(field_val))
                 checked_val = logical(field_val);
             else
-                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
+                this.log.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
             end
         end
 
@@ -191,9 +191,9 @@ classdef Settings_Interface < handle
                 checked_val = default_val;
             else
                 if iscell(checked_val)
-                    this.logger.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
+                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
                 else
-                    this.logger.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
+                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
                 end
             end
         end
@@ -209,16 +209,16 @@ classdef Settings_Interface < handle
                     if (nargin >= 5) && (numel(limits) == 2) && ...
                             ((checked_val(i) > limits(2)) || (checked_val(i) < limits(1)))
                         checked_val(i) = max(limits(1), min(limits(2), checked_val(i)));
-                        this.logger.addWarning(sprintf('The value %g of the settings field %s is not within the valid limits (%g .. %g) => updating it to %g', field_val(i), field_name, limits(1),limits(2), checked_val(i)));
+                        this.log.addWarning(sprintf('The value %g of the settings field %s is not within the valid limits (%g .. %g) => updating it to %g', field_val(i), field_name, limits(1),limits(2), checked_val(i)));
                     end
                     % if I have a set of values => check for set intersection
                     if (nargin >= 6) && (~isempty(valid_val)) && (~ismember(checked_val(i), valid_val))
                         checked_val(i) = default_val;
-                        this.logger.addWarning(sprintf('The value %g for the settings field %s is not valid => using default %g. It should be one of: %s', field_val(i), field_name, checked_val(i), sprintf('%g ', valid_val)));
+                        this.log.addWarning(sprintf('The value %g for the settings field %s is not valid => using default %g. It should be one of: %s', field_val(i), field_name, checked_val(i), sprintf('%g ', valid_val)));
                     end
                 end
             else
-                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %g', field_name, checked_val));
+                this.log.addWarning(sprintf('The settings field %s is not valid => using default %g', field_name, checked_val));
             end
         end
     end
@@ -233,8 +233,8 @@ classdef Settings_Interface < handle
             % SINTAX: this.testInterfaceRoutines();
 
             %try
-                vl = this.logger.getVerbosityLev();
-                this.logger.setVerbosityLev(1e3);
+                vl = this.log.getVerbosityLev();
+                this.log.setVerbosityLev(1e3);
                 test = this;
                 raw_data = test.export();
 
@@ -249,9 +249,9 @@ classdef Settings_Interface < handle
                 disp(test.toString());
                 %delete('test__.ini');
             %catch ex
-            %    this.logger.addError(['Test failed: ' ex.message]);
+            %    this.log.addError(['Test failed: ' ex.message]);
             %end
-            this.logger.setVerbosityLev(vl);
+            this.log.setVerbosityLev(vl);
         end
     end
 end

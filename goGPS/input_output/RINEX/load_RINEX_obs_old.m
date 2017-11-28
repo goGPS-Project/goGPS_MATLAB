@@ -70,7 +70,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 
 global report
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 state = Go_State.getCurrentSettings();
 
 % Check the input arguments
@@ -120,7 +120,7 @@ for f = 1 : nFiles
         current_file = filename;
     end
 
-    logger.addMessage(sprintf('Reading file %s', current_file));
+    log.addMessage(sprintf('Reading file %s', current_file));
     File_Rinex(current_file,9);
 
     %open RINEX observation file
@@ -262,7 +262,7 @@ for f = 1 : nFiles
         end
     end
 
-    logger.addMessage('Done reading current RINEX');
+    log.addMessage('Done reading current RINEX');
 end
 
 % trim output (it have been pre-allocated bigger)
@@ -277,14 +277,14 @@ snr2 = snr2(:,(1 : max_k),:);
 date = date((1 : max_k),:,:);
 codeC1 = codeC1(:,(1 : max_k),:);
 
-logger.newLine();
-logger.addMessage('Syncing observations if needed');
+log.newLine();
+log.addMessage('Syncing observations if needed');
 
 %sync observations
 [time_zero, time_GPS, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
 sync_obs(time, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
 
-logger.addMessage('Trimming short arcs if needed');
+log.addMessage('Trimming short arcs if needed');
 % remove short arcs
 min_arc = state.getMinArc();
 for f = 1 : nFiles
@@ -327,7 +327,7 @@ for f = 1 : nFiles
         end
     end
 end
-logger.newLine();
+log.newLine();
 
 if (~isempty(report) && report.opt.write == 1)
     % extract quality parameters for report

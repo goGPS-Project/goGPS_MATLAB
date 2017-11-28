@@ -49,7 +49,7 @@ classdef Core_Pre_Processing < handle
     end
     
     properties (Access = public)% Public Access
-        logger
+        log
         state
         
         eph      % ephemeris of the satellite
@@ -66,7 +66,7 @@ classdef Core_Pre_Processing < handle
             % Core object creator initialize the structures needed for the pre_processing of the data:
             % EXAMPLE: pp = Core_Pre_Processing()
             
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
             if nargin == 0
                 this.state = Go_State.getCurrentSettings();
             else
@@ -245,7 +245,7 @@ classdef Core_Pre_Processing < handle
             % remove short arcs
             lagr_order = 10;
             min_arc = max([this.state.getMinArc() lagr_order]);
-            % logger.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
+            % log.addMessage(sprintf('Trimming arcs shorter than %d epochs', min_arc));
             pr1 = remove_short_arcs(pr1, min_arc);
             pr2 = remove_short_arcs(pr2, min_arc);
             ph1 = remove_short_arcs(ph1, min_arc);
@@ -1189,7 +1189,7 @@ classdef Core_Pre_Processing < handle
             % SYNTAX:
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
             
             time_desync  = round((time_ref - time) * 1e7) / 1e7;
             %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
@@ -1201,7 +1201,7 @@ classdef Core_Pre_Processing < handle
             [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
             if flag
                 time_desync_ph = time_desync;
-                logger.addMessage('Correcting phase for time desync', 100);
+                log.addMessage('Correcting phase for time desync', 100);
             else
                 time_desync_ph = 0;
             end
@@ -1209,7 +1209,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 time_desync_pr = time_desync;
-                logger.addMessage('Correcting pseudo-ranges for time desync', 100);
+                log.addMessage('Correcting pseudo-ranges for time desync', 100);
             else
                 time_desync_pr = 0;
             end
@@ -1224,7 +1224,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_lf);
             if flag
                 dt_pr = dt_ph;
-                logger.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
+                log.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
             else
                 dt_pr = zeros(size(dt_ph));
             end            
@@ -1234,7 +1234,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
             if flag
                 dt_pr = dt_pr + dt_ph_jumps;
-                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+                log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
             end
             
             % in some receivers the pseudo-range is not continuous while the phase are ok
@@ -1242,7 +1242,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr_jumps + dt_pr;
-                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+                log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
             end
             
             dt_ph = dt_ph + time_desync_ph;
@@ -1255,7 +1255,7 @@ classdef Core_Pre_Processing < handle
             % SYNTAX:
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
             
             time_desync  = round((time_ref - time) * 1e7) / 1e7;
             %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
@@ -1267,7 +1267,7 @@ classdef Core_Pre_Processing < handle
             [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
             if flag
                 time_desync_ph = time_desync;
-                logger.addMessage('Correcting phase for time desync', 100);
+                log.addMessage('Correcting phase for time desync', 100);
             else
                 time_desync_ph = 0;
             end
@@ -1275,7 +1275,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 time_desync_pr = time_desync;
-                logger.addMessage('Correcting pseudo-ranges for time desync', 100);
+                log.addMessage('Correcting pseudo-ranges for time desync', 100);
             else
                 time_desync_pr = 0;
             end
@@ -1288,7 +1288,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
             if flag
                 dt_pr = dt_ph;
-                logger.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+                log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
             else
                 dt_pr = zeros(size(dt_ph));
             end
@@ -1298,7 +1298,7 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr + dt_pr_jumps;
-                logger.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+                log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
             end
             
             dt_ph = dt_ph + time_desync_ph;

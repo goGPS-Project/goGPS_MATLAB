@@ -89,7 +89,7 @@ classdef GPS_Time < handle
     end
     
     properties (SetAccess = private, GetAccess = public)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
         
         time_type = 0;      % flag depending on its value different representation of time are possible
         
@@ -359,7 +359,7 @@ classdef GPS_Time < handle
                         case 3 % GPS_Time_Week_Dow (to unix time)
                             this.GPS_Time_Week_Dow(arg1, arg2);
                         otherwise
-                            this.logger.addError('Unrecognized time format!!!');
+                            this.log.addError('Unrecognized time format!!!');
                     end
             end
             %this.computeLeapSeconds();
@@ -421,7 +421,7 @@ classdef GPS_Time < handle
                         case 2 % GPS_Time.REF_TIME
                             this.appendRefTime(arg1, arg2, arg3);
                         otherwise
-                            this.logger.addError('Unrecognized time format!!!');
+                            this.log.addError('Unrecognized time format!!!');
                     end
             end
             %this.computeLeapSeconds();
@@ -1281,9 +1281,9 @@ classdef GPS_Time < handle
     methods (Static, Access = 'public')
         function test()
             % Testing function, tests some basic transformations
-            logger = Logger.getInstance(); % Handler to the logger object
+            log = Logger.getInstance(); % Handler to the log object
             
-            logger.addMessage('Testing Class Time - single value UTC');
+            log.addMessage('Testing Class Time - single value UTC');
             tic;
             t = GPS_Time(datenum('01-Jul-1994 00:00:00'), [], false);
             t.toGps();
@@ -1298,13 +1298,13 @@ classdef GPS_Time < handle
             t.toMatlabTime();
             t_diff = abs(t.mat_time - datenum('01-Jul-1994 00:00:00')) * 86400;
             if t_diff < 1e-5
-                logger.addStatusOk('Passed: difference under threshold (0.01 ms)');
+                log.addStatusOk('Passed: difference under threshold (0.01 ms)');
             else
-                logger.addWarning(sprintf('Difference greater than (0.01 ms): %e',t_diff));
+                log.addWarning(sprintf('Difference greater than (0.01 ms): %e',t_diff));
             end
             toc
             
-            logger.addMessage('Testing Class Time - multiple consecutive values GPS');
+            log.addMessage('Testing Class Time - multiple consecutive values GPS');
             tic;
             mat_time = datenum('01-Jul-1994 00:00:00');
             mat_time = (mat_time(1)-1:1/86400:mat_time(1)+1)';
@@ -1322,9 +1322,9 @@ classdef GPS_Time < handle
             t.toGps();
             t_diff = max(abs(t.mat_time - mat_time)) * 86400;
             if t_diff < 2e-5
-                logger.addStatusOk('Passed');
+                log.addStatusOk('Passed');
             else
-                logger.addWarning(sprintf('Difference greater than 0.2 ms: %e',t_diff));
+                log.addWarning(sprintf('Difference greater than 0.2 ms: %e',t_diff));
             end
             toc
         end

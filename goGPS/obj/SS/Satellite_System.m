@@ -269,7 +269,7 @@ classdef Satellite_System < Settings_Interface
             try
                 this.p_mode = this.gui2mode(state.mode, state.nav_mon, state.kalman_ls, state.code_dd_sa);
             catch ex
-                this.logger.addWarning(['Legacy import "Processing mode" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Processing mode" failed - ', ex.message])
             end
         end
     end

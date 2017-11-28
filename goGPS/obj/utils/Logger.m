@@ -6,7 +6,7 @@
 %   (up to now, only Command Windows is implemented)
 %
 % EXAMPLE
-%   logger = Logger.getInstance();
+%   log = Logger.getInstance();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Logger
 
@@ -281,6 +281,10 @@ classdef Logger < handle
                 end
                 fprintf(' ] ');
             end
+        end
+        
+        function str = indent(str, n_spaces)
+            str = strrep([char(ones(1,n_spaces) * 32) str], 10, char([10 ones(1, n_spaces) * 32]));
         end
     end
 

@@ -43,7 +43,7 @@
 classdef File_Rinex < handle
 
     properties (SetAccess = protected, GetAccess = protected)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
     end
 
     properties (SetAccess = protected, GetAccess = public)
@@ -123,8 +123,8 @@ classdef File_Rinex < handle
                         this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
 
                         this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        this.logger.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
-                        this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
+                        this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
+                        this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
 
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
@@ -147,7 +147,7 @@ classdef File_Rinex < handle
                         end
                         fclose(fid);
                         this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        this.logger.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
+                        this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         this.is_valid_list(f) = true;
                     catch ex
                         if this.first_epoch.lenght < f
@@ -156,17 +156,17 @@ classdef File_Rinex < handle
                         if this.last_epoch.lenght < f
                             this.last_epoch.addEpoch(0);
                         end
-                        this.logger.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
+                        this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
                         this.is_valid_list(f) = false;
                     end
                 else
-                    this.logger.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing']);
+                    this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing']);
                     this.is_valid_list(f) = false;
                 end
             end
             this.is_valid = all(this.is_valid_list);
             if (~this.is_valid)
-                this.logger.addWarning('Some or all the RINEX files are corrupted or missing!!!');
+                this.log.addWarning('Some or all the RINEX files are corrupted or missing!!!');
             end
         end
 

@@ -1,4 +1,4 @@
- %   CLASS IO_Settings
+%   CLASS IO_Settings
 % =========================================================================
 %
 % DESCRIPTION
@@ -363,7 +363,7 @@ classdef IO_Settings < Settings_Interface
                 this.prj_name   = fnp.checkPath(settings.getData('prj_name'));
                 this.prj_home   = fnp.getFullDirPath(settings.getData('prj_home'), pwd);
                 if ~exist(this.prj_home, 'dir')
-                    this.logger.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, pwd));
+                    this.log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, pwd));
                     this.prj_home = pwd;
                 end
                 % COMPUTATION CENTERS
@@ -861,7 +861,7 @@ classdef IO_Settings < Settings_Interface
                     this.input_file_ini_path = state.INIsettings;
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
             end
             this.check();
             this.updateExternals();
@@ -1133,7 +1133,7 @@ classdef IO_Settings < Settings_Interface
                 if (nargin == 2)
                     if (id > length(out))
                         out = out{end};
-                        this.logger.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
+                        this.log.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
                     else
                         out = out{id};
                     end
@@ -1219,7 +1219,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: out_prefix = this.getOutPath()
 
             if isempty(this.out_full_path)
-                this.logger.addWarning('Output prefix has not yet been computed! It should have been done before.');
+                this.log.addWarning('Output prefix has not yet been computed! It should have been done before.');
                 this.updateOutPath();
             end
             out = this.out_full_path;
@@ -1452,10 +1452,10 @@ classdef IO_Settings < Settings_Interface
             % Import the value of the external input files (stored in inputFile.ini)
             % SYNTAX: this.updateExternals();
             if ~isempty(this.input_file_ini_path)
-                this.logger.addWarning('Legacy importing input ini files');
+                this.log.addWarning('Legacy importing input ini files');
                 this.ext_ini = Ini_Manager(this.input_file_ini_path);
                 if ~this.ext_ini.readFile()
-                    this.logger.addError(sprintf('Legacy import failed - "%s" can not be read!!!', this.ext_ini.getFileName()));
+                    this.log.addError(sprintf('Legacy import failed - "%s" can not be read!!!', this.ext_ini.getFileName()));
                     this.input_file_ini_path = '';
                 else
 
@@ -1468,7 +1468,7 @@ classdef IO_Settings < Settings_Interface
                     end
                     dir_master = this.ext_ini.getData('Master', 'data_path');
                     if ~(isempty(dir_master)) && ~strcmp(dir_master, this.obs_dir)
-                        this.logger.addWarning('Importing legacy input file Master data_path seems different from Rover data_path - fix settings file manually');
+                        this.log.addWarning('Importing legacy input file Master data_path seems different from Rover data_path - fix settings file manually');
                     end
 
                     % import Receivers/SEID names
@@ -1668,10 +1668,10 @@ classdef IO_Settings < Settings_Interface
             if numel(path_parts) > 3
                 this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep));
                 this.prj_name = path_parts{end-1};
-                this.logger.addMessage('Trying to guess project name / home / ini');
-                this.logger.addMessage(sprintf(' name: %s', this.prj_name));
-                this.logger.addMessage(sprintf(' home: %s', this.prj_home));
-                this.logger.addMessage(sprintf(' ini:  %s', this.cur_ini));
+                this.log.addMessage('Trying to guess project name / home / ini');
+                this.log.addMessage(sprintf(' name: %s', this.prj_name));
+                this.log.addMessage(sprintf(' home: %s', this.prj_home));
+                this.log.addMessage(sprintf(' ini:  %s', this.cur_ini));
             end
         end
 
@@ -1686,12 +1686,12 @@ classdef IO_Settings < Settings_Interface
                 try
                     load([dtm_dir filesep 'tiles' filesep 'tile_header'], 'tile_header');
                     this.tile_header = tile_header;
-                    this.logger.addMessage(sprintf(' - DTM tile header in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_header']));
+                    this.log.addMessage(sprintf(' - DTM tile header in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_header']));
                     load([dtm_dir filesep 'tiles' filesep 'tile_georef'], 'tile_georef');
                     this.tile_georef = tile_georef;
-                    this.logger.addMessage(sprintf(' - DTM tile georef in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_georef']));
+                    this.log.addMessage(sprintf(' - DTM tile georef in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_georef']));
                 catch
-                    this.logger.addWarning(sprintf('Failed to read DTM stored in %s', [dtm_dir '/tiles/']));
+                    this.log.addWarning(sprintf('Failed to read DTM stored in %s', [dtm_dir '/tiles/']));
                     % use default zeroes values
                 end
             end
@@ -1912,13 +1912,13 @@ classdef IO_Settings < Settings_Interface
             this.checkCellStringField('obs_name', false);
 
             if numel(this.obs_name) > numel(this.obs_type)
-                this.logger.addError('I read more obs file names than obs types -> fixing setting all the other types to zeros\nplease review the applied solution!!!');
+                this.log.addError('I read more obs file names than obs types -> fixing setting all the other types to zeros\nplease review the applied solution!!!');
                 tmp = this.obs_type;
                 this.obs_type = zeros(numel(this.obs_name),1);
                 this.obs_type(1:numel(tmp)) = tmp(:);
             end
             if numel(this.obs_name) < numel(this.obs_type)
-                this.logger.addError('I read less obs file names than obs types -> fixing cutting type array\nplease review the applied solution!!!');
+                this.log.addError('I read less obs file names than obs types -> fixing cutting type array\nplease review the applied solution!!!');
                 this.obs_type = this.obs_type(1:numel(this.obs_name));
             end
 
@@ -2074,7 +2074,7 @@ classdef IO_Settings < Settings_Interface
                 for r = 1 : n_rec
 
                     if go_verbose
-                        this.logger.addMessage(sprintf('Checking files for %s receiver %d', obs_type_name, r));
+                        this.log.addMessage(sprintf('Checking files for %s receiver %d', obs_type_name, r));
                     end
                     file_name = file_name_all{r};
                     file_count = 0;
@@ -2084,10 +2084,10 @@ classdef IO_Settings < Settings_Interface
                         file_count = file_count + uint16(logical(file_ok));
                         if go_verbose
                             if file_ok
-                                this.logger.addStatusOk(sprintf('%s is present', full_path));
+                                this.log.addStatusOk(sprintf('%s is present', full_path));
                                 status = 1;
                             else
-                                this.logger.addError(sprintf('%s does not exist', full_path));
+                                this.log.addError(sprintf('%s does not exist', full_path));
                             end
                         end
                     end
@@ -2111,23 +2111,23 @@ classdef IO_Settings < Settings_Interface
             elseif isempty(file_name{1})
                 eph_ok = false;
             else
-                this.logger.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
-                this.logger.newLine();
+                this.log.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
+                this.log.newLine();
                 i = 0;
                 while (i < numel(file_name) && eph_ok)
                     i = i + 1;
                     eph_ok = exist(file_name{i}, 'file') == 2;
                     if eph_ok
-                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.logger.newLine();
+                this.log.newLine();
             end
         end
 
@@ -2144,23 +2144,23 @@ classdef IO_Settings < Settings_Interface
             elseif isempty(file_name{1})
                 clk_ok = true;
             else
-                this.logger.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
-                this.logger.newLine();
+                this.log.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
+                this.log.newLine();
                 i = 0;
                 while (i < numel(file_name) && clk_ok)
                     i = i + 1;
                     clk_ok = exist(file_name{i}, 'file') == 2;
                     if clk_ok
-                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.logger.newLine();
+                this.log.newLine();
             end
         end
         
@@ -2177,23 +2177,23 @@ classdef IO_Settings < Settings_Interface
             elseif isempty(file_name{1})
                 erp_ok = true;
             else
-                this.logger.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
-                this.logger.newLine();
+                this.log.addMarkedMessage(sprintf('Checking Earth rotation parameters files from %s', state.getHomeDir()));
+                this.log.newLine();
                 i = 0;
                 while (i < numel(file_name) && erp_ok)
                     i = i + 1;
                     erp_ok = exist(file_name{i}, 'file') == 2;
                     if erp_ok
-                        this.logger.addStatusOk(sprintf('%s', file_name_rel{i}));
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
                     else
                         if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
-                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
                         else
-                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
-                this.logger.newLine();
+                this.log.newLine();
             end
         end
     end

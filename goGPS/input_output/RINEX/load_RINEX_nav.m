@@ -61,7 +61,7 @@ if (iscell(filename))
 end
 
 flag_return = 0;
-logger = Logger.getInstance();
+log = Logger.getInstance();
 state = Go_State.getCurrentSettings();
 
 %number of satellite slots for enabled constellations
@@ -151,11 +151,11 @@ end
             if (exist(filename,'file'))
                 %parse RINEX navigation file (GPS) NOTE: filename expected to
                 %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
                 [Eph_G, iono_G] = RINEX_get_nav(filename, cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             else
-                logger.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
+                log.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
                 cc.deactivateGPS();
             end
         end
@@ -163,11 +163,11 @@ end
         if (cc.getGLONASS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'g'],'file'))
                 %parse RINEX navigation file (GLONASS)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
                 [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             elseif (~flag_mixed)
-                logger.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
+                log.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
                 cc.deactivateGLONASS();
             end
         end
@@ -175,11 +175,11 @@ end
         if (cc.getGalileo().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'l'],'file'))
                 %parse RINEX navigation file (Galileo)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
                 [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             elseif (~flag_mixed)
-                logger.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
+                log.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
                 cc.deactivateGalileo();
             end
         end
@@ -187,11 +187,11 @@ end
         if (cc.getBeiDou().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'c'],'file'))
                 %parse RINEX navigation file (BeiDou)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
                 [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             elseif (~flag_mixed)
-                logger.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
+                log.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
                 cc.deactivateBeiDou();
             end
         end
@@ -199,11 +199,11 @@ end
         if (cc.getQZSS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'q'],'file'))
                 %parse RINEX navigation file (QZSS)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
                 [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             elseif (~flag_mixed)
-                logger.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
+                log.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
                 cc.deactivateQZSS();
             end
         end
@@ -211,11 +211,11 @@ end
         if (cc.getIRNSS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'i'],'file'))
                 %parse RINEX navigation file (IRNSS)
-                if(~only_iono), logger.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
+                if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
                 [Eph_I, iono_I] = RINEX_get_nav([filename(1:end-1) 'i'], cc);
-                if(~only_iono), logger.addStatusOk(); end
+                if(~only_iono), log.addStatusOk(); end
             elseif (~flag_mixed)
-                logger.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
+                log.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
                 cc.deactivateIRNSS();
             end
         end
@@ -238,7 +238,7 @@ end
             iono = iono_I;
         else
             iono = zeros(8,1);
-            logger.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');
+            log.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');
         end
 
         if (wait_dlg_PresenceFlag)

@@ -65,7 +65,7 @@ classdef FTP_Downloader < handle
 
 
     properties (SetAccess = private, GetAccess = public)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
     end
 
     methods
@@ -129,7 +129,7 @@ classdef FTP_Downloader < handle
 
             % managing function overloading
             if (nargin < 3)
-                this.logger.addError('FTP_Downloader.download, not enough input parameters');
+                this.log.addError('FTP_Downloader.download, not enough input parameters');
                 status = FTP_Downloader.ERR_NEP;
                 return;
             elseif (nargin == 3)
@@ -156,14 +156,14 @@ classdef FTP_Downloader < handle
             if (this.checkNet)
                 % connect to the server
                 try
-                    this.logger.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
-                    this.logger.newLine();
+                    this.log.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
+                    this.log.newLine();
 
                     % Try to get the current directory to check the ftp connection
                     try
                         cd(this.ftp_server);
                     catch
-                        this.logger.addWarning('connected with remote FTP has been closed, trying to re-open it');
+                        this.log.addWarning('connected with remote FTP has been closed, trying to re-open it');
                         this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                     end
 
@@ -206,7 +206,7 @@ classdef FTP_Downloader < handle
                                 file_name = strcat(file_name, file_ext);
 
                                 if (file_exist)
-                                    this.logger.addStatusOk(sprintf('%s found in %s, downloading...',file_name, remote_dir));
+                                    this.log.addStatusOk(sprintf('%s found in %s, downloading...',file_name, remote_dir));
 
                                     try
                                         if ~(exist(local_dir,'dir'))
@@ -227,47 +227,47 @@ classdef FTP_Downloader < handle
                                                         [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
                                                         delete([local_dir filesep file_name]);
                                                     catch
-                                                        this.logger.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
+                                                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
                                                         compressed = 1;
                                                     end
                                                 end
                                                 this.file_name{i} = file_name(1:end-2);
-                                                this.logger.addMessage(sprintf('\b\b file ready!'));
+                                                this.log.addMessage(sprintf('\b\b file ready!'));
                                             catch
-                                                this.logger.addWarning(sprintf('decompression of %s from %s failed', file_name, strcat(this.addr, ':', this.port)));
+                                                this.log.addWarning(sprintf('decompression of %s from %s failed', file_name, strcat(this.addr, ':', this.port)));
                                                 status = FTP_Downloader.ERR_FNV;
                                             end
                                         else
-                                            this.logger.addMessage(sprintf('\b\b file ready!'));
+                                            this.log.addMessage(sprintf('\b\b file ready!'));
                                         end
                                     catch
-                                        this.logger.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
-                                        this.logger.addWarning('file not found or not accessible');
+                                        this.log.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
+                                        this.log.addWarning('file not found or not accessible');
                                         status = FTP_Downloader.ERR_FNF;
                                     end
                                 else
-                                    this.logger.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
-                                    this.logger.addWarning('file not found or not accessible');
+                                    this.log.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
+                                    this.log.addWarning('file not found or not accessible');
                                     status = FTP_Downloader.ERR_FNF;
                                 end
                             catch ex
-                                this.logger.addWarning(sprintf('connection to %s failed', strcat(this.addr, ':', this.port, remote_dir)));
-                                this.logger.addWarning(sprintf('%s', ex.message));
+                                this.log.addWarning(sprintf('connection to %s failed', strcat(this.addr, ':', this.port, remote_dir)));
+                                this.log.addWarning(sprintf('%s', ex.message));
                                 status = FTP_Downloader.ERR_FNF;
                             end
                         else
-                            this.logger.addStatusOk(sprintf('%s has been found locally', strcat(file_name, file_ext)));
+                            this.log.addStatusOk(sprintf('%s has been found locally', strcat(file_name, file_ext)));
                             status = FTP_Downloader.W_FP;
                         end
                     end
                 catch ex
-                    this.logger.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));
+                    this.log.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));
                     status = FTP_Downloader.ERR_FTP_FAIL;
                 end
             else
                 status = FTP_Downloader.ERR_NIC;
             end
-            this.logger.newLine();
+            this.log.newLine();
         end
     end
 
@@ -298,8 +298,8 @@ classdef FTP_Downloader < handle
                 fclose(fid);
             catch ex
                 file = '';
-                logger = Logger.getInstance();
-                logger.addError(ex.message);
+                log = Logger.getInstance();
+                log.addError(ex.message);
             end
         end
     end

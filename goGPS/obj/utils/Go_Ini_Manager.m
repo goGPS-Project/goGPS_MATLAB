@@ -21,7 +21,7 @@
 %       double = 10.4
 %
 % REQUIRES:
-%   logger:     Logger Class
+%   log:     Logger Class
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 

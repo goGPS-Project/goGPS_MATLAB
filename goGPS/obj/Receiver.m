@@ -42,7 +42,7 @@ classdef Receiver < handle
         cc = Constellation_Collector('GRECJ'); % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
-        logger                                 % handle to logger
+        log                                 % handle to log
     end
     
     properties (SetAccess = public, GetAccess = public)
@@ -115,7 +115,7 @@ classdef Receiver < handle
         function this = Receiver(cc)
             % SYNTAX  this = Receiver(<cc>)
             this.initObs();
-            this.logger = Logger.getInstance();
+            this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
             if nargin == 1
                 this.cc = cc;
@@ -210,13 +210,13 @@ classdef Receiver < handle
             
             t0 = tic;
             
-            this.logger.addMarkedMessage('Reading observations...');
-            this.logger.newLine();
+            this.log.addMarkedMessage('Reading observations...');
+            this.log.newLine();
             
             this.file =  File_Rinex(file_name, 9);
             
             if this.file.isValid()
-                this.logger.addMessage(sprintf('Opening file %s for reading', file_name), 100);
+                this.log.addMessage(sprintf('Opening file %s for reading', file_name), 100);
                 % open RINEX observation file
                 fid = fopen(file_name,'r');
                 txt = fread(fid,'*char')';
@@ -282,8 +282,8 @@ classdef Receiver < handle
                 this.obs_code(idx,:) = repmat('C2P',length(idx),1);
                 % other flags to be investiagated
                 
-                this.logger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
-                this.logger.newLine();
+                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
+                this.log.newLine();
             end
             
             % Compute the other useful status array of the receiver object
@@ -611,7 +611,7 @@ classdef Receiver < handle
                 end
                 if ~isempty(strfind(this.rin_obs_code.c, '1'))
                     this.rin_obs_code.c(this.rin_obs_code.c == '1') = '2';
-                    this.logger.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
+                    this.log.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
                 end
             end
             % 20) SYS / PHASE SHIFT
@@ -870,7 +870,7 @@ classdef Receiver < handle
                 sys = this.cc.getSys(system);
                 band = find(sys.CODE_RIN3_2BAND == flag(2));
                 if isempty(band)
-                    this.logger.addWarning('Obs not found',200);
+                    this.log.addWarning('Obs not found',200);
                     obs = [] ; idx = [];
                     return;
                 end
@@ -892,7 +892,7 @@ classdef Receiver < handle
                     end
                 end
                 if isempty(complete_flags)
-                    this.logger.addWarning('Obs not found',200);
+                    this.log.addWarning('Obs not found',200);
                     obs = [] ; idx = [];
                     return;
                 end
@@ -935,18 +935,18 @@ classdef Receiver < handle
                     idx(i) = find(sys_idx & this.prn == prn(i) & sum(this.obs_code == repmat(flags(i,:) ,size(this.obs_code,1) ,1),2) == 3);
                 end
             else
-                this.logger.addError(['Invalide length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
+                this.log.addError(['Invalide length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
             end
         end
         function [obs, prn, obs_code] = getIonoFree(this, flag1, flag2, system, max_obs_type)
             % get Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
-                rec.logger.addWarning('Can produce IONO free combination for the selcted observation')
+                rec.log.addWarning('Can produce IONO free combination for the selcted observation')
                 return
             end
             if flag1(1)~=flag2(1)
-                rec.logger.addWarning('Incompatible observation type')
+                rec.log.addWarning('Incompatible observation type')
                 return
             end
             if nargin <5
@@ -2050,7 +2050,7 @@ classdef Receiver < handle
                             if ~isempty(this.rec2sat.cs.iono )
                                 this.rec2sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.rec2sat.cs.iono);
                             else
-                                this.logger.addWarning('No klobuchar parameter found, iono correction not computed');
+                                this.log.addWarning('No klobuchar parameter found, iono correction not computed');
                             end
                             
                     end
@@ -2313,7 +2313,7 @@ classdef Receiver < handle
                 n_epoch = size(XS,1);
                 if nargin > 2
                     if size(XR,1) ~= n_epoch
-                        this.logger.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
+                        this.log.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
                         return
                     end
                 else
@@ -2525,7 +2525,7 @@ classdef Receiver < handle
                     end
                     this.w_bar.go(e);
                 end
-                this.logger.newLine();
+                this.log.newLine();
                 this.obs = obs;
             end
             
@@ -2626,7 +2626,7 @@ classdef Receiver < handle
                     end
                     if sum(f_id == 0)
                         [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
-                        this.logger.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
+                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
                     end
                     this.wl = [this.wl; wl];
                 end
@@ -2656,7 +2656,7 @@ classdef Receiver < handle
                     end
                     this.w_bar.go(e);
                 end
-                this.logger.newLine();
+                this.log.newLine();
                 this.obs = obs;
                 
             end

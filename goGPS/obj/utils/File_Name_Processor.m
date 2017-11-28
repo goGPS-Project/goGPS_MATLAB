@@ -62,7 +62,7 @@ classdef File_Name_Processor < handle
     end
 
     properties (SetAccess = private, GetAccess = public)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
     end
 
     properties (SetAccess = protected, GetAccess = protected)

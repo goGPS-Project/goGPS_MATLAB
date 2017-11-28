@@ -278,15 +278,15 @@ classdef Fig_Lab < handle
                 plot_list = 1;
             end
 
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
 
             fid = fopen(file_name_extraction,'r');
 
             if (fid < 0)
-                logger.addError(['Failed to open ', file_name_extraction]);
+                log.addError(['Failed to open ', file_name_extraction]);
             else
                 txt = fread(fid,'*char')';
-                logger.addMessage(['Reading ', file_name_extraction]);
+                log.addMessage(['Reading ', file_name_extraction]);
                 fclose(fid);
 
                 data = sscanf(txt','%4d-%3d  %2d/%2d/%2d    %2d:%2d:%6f   %14f   %14f   %14f   %14f   %14f   %14f\n');
@@ -347,15 +347,15 @@ classdef Fig_Lab < handle
                 hold_on = 0;
             end
 
-            logger = Logger.getInstance();
+            log = Logger.getInstance();
 
             fid = fopen(file_name_pos,'r');
 
             if (fid < 0)
-                logger.addError(['Failed to open ', file_name_pos]);
+                log.addError(['Failed to open ', file_name_pos]);
             else
                 txt = fread(fid,'*char')';
-                logger.addMessage(['Reading ', file_name_pos]);
+                log.addMessage(['Reading ', file_name_pos]);
                 fclose(fid);
 
                 data = sscanf(txt(207:end)',' %4d-%3d  %2d/%2d/%2d    %2d:%2d:%6f   %14f   %14f   %14f  %14f\n');

@@ -67,7 +67,7 @@ end
 core = Core.getInstance();
 core.showTextHeader();
 
-logger = Logger.getInstance();
+log = Logger.getInstance();
 
 % Pointer to the global settings:
 gs = Go_State.getInstance();
@@ -151,7 +151,7 @@ end
 %% GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
 
-logger.newLine();
+log.newLine();
 state.showTextMode();
 
 gs.initProcessing(); % Set up / download observations and navigational files
@@ -198,7 +198,7 @@ initial_mode = state.getMode();
 if num_session > 1
     is_batch = true;
     w_bar.setOutputType(0);
-    %logger.setColorMode(0);
+    %log.setColorMode(0);
 else
     is_batch = false;
 end
@@ -228,15 +228,14 @@ if goGPS_new
     %% NEW goGPS
     state.showTextMode();
     
-    sky = Core_Sky.getInstance();
-        
+    sky = Core_Sky.getInstance();    
     for s = 1 : num_session
         %-------------------------------------------------------------------------------------------
         % SESSION START
         %-------------------------------------------------------------------------------------------
         
         fprintf('\n--------------------------------------------------------------------------\n');
-        logger.addMessage(sprintf('Starting session %d of %d', s, num_session));
+        log.addMessage(sprintf('Starting session %d of %d', s, num_session));
         fprintf('--------------------------------------------------------------------------\n');
 
         % e.g. init sky
@@ -247,7 +246,8 @@ if goGPS_new
 
         clear trg;
         for t = 1 : num_trg_rec
-            logger.addMessage(sprintf('Working on target %d of %d', t, num_trg_rec));
+            log.newLine();
+            log.addMessage(sprintf('Working on target %d of %d', t, num_trg_rec));
             fprintf('--------------------------------------------------------------------------\n\n');
             
             trg(t) = Receiver(cc);
@@ -255,7 +255,7 @@ if goGPS_new
             trg(t).static = state.kf_mode == 0;
         end
         
-        
+        keyboard;
         
     end
 else
@@ -274,7 +274,7 @@ for session = 1 : num_session
     %-------------------------------------------------------------------------------------------
     
     fprintf('\n--------------------------------------------------------------------------\n');
-    logger.addMessage(sprintf('Starting session %d of %d', session, num_session));
+    log.addMessage(sprintf('Starting session %d of %d', session, num_session));
     fprintf('--------------------------------------------------------------------------\n\n');
     state.showTextMode();
     
@@ -317,9 +317,9 @@ for session = 1 : num_session
     end
     
     if ~fr.isValid()
-        logger.newLine();
-        logger.addWarning(sprintf('Skipping processing of "%s"', fnp.getRelDirPath(filename_R_obs{1})));
-        logger.newLine();
+        log.newLine();
+        log.addWarning(sprintf('Skipping processing of "%s"', fnp.getRelDirPath(filename_R_obs{1})));
+        log.newLine();
     else
         cur_date_start = fr.first_epoch.last();
         cur_date_stop = fr.last_epoch.first();
@@ -499,17 +499,17 @@ for session = 1 : num_session
                             
                             % set ROVER initial coordinates
                             if (exist('pos_R_crd','var') && any(pos_R_crd(:)))
-                                logger.newLine();
-                                logger.addMessage('Rover apriori position set from coordinate file:');
-                                logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
+                                log.newLine();
+                                log.addMessage('Rover apriori position set from coordinate file:');
+                                log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
                                 if report.opt.write == 1
                                     report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
                                 end
                                 pos_R = pos_R_crd;
                             else
-                                logger.newLine();
-                                logger.addMessage('Rover apriori position set from RINEX:');
-                                logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
+                                log.newLine();
+                                log.addMessage('Rover apriori position set from RINEX:');
+                                log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
                                 if report.opt.write == 1
                                     if any(pos_R)
                                         report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
@@ -518,7 +518,7 @@ for session = 1 : num_session
                                     end
                                 end
                             end
-                            logger.newLine();
+                            log.newLine();
                         end
                     end
                     
@@ -725,8 +725,8 @@ for session = 1 : num_session
                         end
                         
                         %pre-processing
-                        logger.addMarkedMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
-                        logger.newLine();
+                        log.addMarkedMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
+                        log.newLine();
                         w_bar.setBarLen(length(time_GPS_diff));
                         w_bar.createNewBar('Pre-processing rover...');
                         
@@ -783,7 +783,7 @@ for session = 1 : num_session
                     end
                     
                     if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
-                        logger.addWarning(' Either there are no observations available for processing, or some epoch is not valid.');
+                        log.addWarning(' Either there are no observations available for processing, or some epoch is not valid.');
                         return
                     end
                     
@@ -841,9 +841,9 @@ for session = 1 : num_session
                     
                     % set ROVER initial coordinates
                     if any(pos_R_crd)
-                        logger.newLine();
-                        logger.addMessage('Rover apriori position set from coordinate file:');
-                        logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
+                        log.newLine();
+                        log.addMessage('Rover apriori position set from coordinate file:');
+                        log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
                         if report.opt.write == 1
                             if (flag_XR ~= 2)
                                 report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
@@ -853,9 +853,9 @@ for session = 1 : num_session
                         end
                         pos_R = pos_R_crd;
                     else
-                        logger.newLine();
-                        logger.addMessage('Rover apriori position set from RINEX:');
-                        logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
+                        log.newLine();
+                        log.addMessage('Rover apriori position set from RINEX:');
+                        log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
                         if report.opt.write == 1
                             if any(pos_R)
                                 report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
@@ -868,30 +868,30 @@ for session = 1 : num_session
                     % set MASTER initial coordinates
                     if (flag_ms_pos)
                         if any(pos_M_crd) % master position read from coordinate file
-                            logger.newLine();
-                            logger.addMessage('Master position fixed from coordinate file:');
-                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1)));
+                            log.newLine();
+                            log.addMessage('Master position fixed from coordinate file:');
+                            log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1)));
                             if report.opt.write == 1
                                 report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file', char(report.obs.filename(end)), pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
                             end
                             pos_M = pos_M_crd;
                         else % master position read from RINEX header
-                            logger.newLine();
-                            logger.addMessage('Master position fixed from RINEX:');
-                            logger.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
+                            log.newLine();
+                            log.addMessage('Master position fixed from RINEX:');
+                            log.addMessage(sprintf('     X = %12.4f m\n     Y = %12.4f m\n     Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
                             if report.opt.write == 1
                                 report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
                             end
                         end
                     else % no valid pos_M_man found, so force positiong read from RINEX header
-                        logger.addWarning('MASTER coordinates forced fixed from RINEX');
-                        logger.addMessage(sprintf('                 X = %12.4f m\n                 Y = %12.4f m\n                 Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
+                        log.addWarning('MASTER coordinates forced fixed from RINEX');
+                        log.addMessage(sprintf('                 X = %12.4f m\n                 Y = %12.4f m\n                 Z = %12.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
                         if report.opt.write == 1
                             report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
                         end
                     end
                     
-                    logger.newLine();
+                    log.newLine();
                     % apply antenna offset over the marker to master coordinates
                     pos_M = local2globalPos(antoff_M, pos_M);
                     
@@ -919,10 +919,10 @@ for session = 1 : num_session
                         end
                         
                         %compute sun and moon position
-                        logger.addMessage('Computing Sun and Moon position...');
+                        log.addMessage('Computing Sun and Moon position...');
                         [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_M))));
-                        logger.addStatusOk();
-                        logger.newLine();
+                        log.addStatusOk();
+                        log.newLine();
                         
                         %store the position of Sun and Moon
                         SP3.t_sun  = time_GPS;
@@ -1020,7 +1020,7 @@ for session = 1 : num_session
                     if exist('min_epoch','var')
                         report.opt.min_epoch = min_epoch;
                         if size(time_R,1) < min_epoch
-                            logger.addError('The number of available epochs is lower than the minimum. The processing will not be performed.');
+                            log.addError('The number of available epochs is lower than the minimum. The processing will not be performed.');
                             % write report
                             report.errors.few_epochs = 1;
                             report_generator(report);
@@ -1074,7 +1074,7 @@ for session = 1 : num_session
                         
                         %if SBAS corrections are requested but not available
                         if (flag_SBAS && isempty(sbas))
-                            logger.addMessage('Switching back to standard (not SBAS-corrected) processing.')
+                            log.addMessage('Switching back to standard (not SBAS-corrected) processing.')
                         end
                     end
                     
@@ -1095,7 +1095,7 @@ for session = 1 : num_session
                     Eph(32,:) = Eph(32,:) - zero_time;
                     Eph(33,:) = Eph(33,:) - zero_time;
                     
-                    logger.addMessage(['Pre-processing master observations (file ' filename_obs{end} ')...']);
+                    log.addMessage(['Pre-processing master observations (file ' filename_obs{end} ')...']);
                     w_bar.setBarLen(length(time_GPS));
                     w_bar.createNewBar('Pre-processing master...');
                     
@@ -1123,7 +1123,7 @@ for session = 1 : num_session
                     
                     for f = 1 : size(time_R,3)
                         %pre-processing
-                        logger.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
+                        log.addMessage(['Pre-processing rover observations (file ' filename_obs{f} ')...']);
                         w_bar.setBarLen(length(time_GPS));
                         w_bar.createNewBar('Pre-processing rover...');
                         
@@ -1424,9 +1424,9 @@ for session = 1 : num_session
                             end
                         else
                             if (flag_var_dyn_model)
-                                logger.addWarning('Master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.');
+                                log.addWarning('Master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.');
                             else
-                                logger.addWarning('Master data not available, forcing undifferenced mode.');
+                                log.addWarning('Master data not available, forcing undifferenced mode.');
                             end
                         end
                     end
@@ -1466,8 +1466,8 @@ for session = 1 : num_session
             %check if the dataset was surveyed with a variable dynamic model
             d = dir([state.obs_dir '\' state.obs_name{1}(1:end-4) '_dyn.bin']);
             if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
-                logger.addWarning(' Dataset was not surveyed with a variable dynamic model:');
-                logger.addMessage('      Switching off variable dynamic model mode...');
+                log.addWarning(' Dataset was not surveyed with a variable dynamic model:');
+                log.addMessage('      Switching off variable dynamic model mode...');
                 flag_var_dyn_model = 0;
             end
             
@@ -4575,7 +4575,7 @@ for session = 1 : num_session
             end
         end
     end
-    logger.newLine();
+    log.newLine();
     toc
     
     state.setMode(initial_mode);

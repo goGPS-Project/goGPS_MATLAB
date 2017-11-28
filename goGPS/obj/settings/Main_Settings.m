@@ -558,11 +558,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: s_obj = Main_Settings(<ini_settings_file>);
 
             this.initLogger();
-            this.logger.addMarkedMessage('Building settings object...');
-            this.logger.newLine();
+            this.log.addMarkedMessage('Building settings object...');
+            this.log.newLine();
             if (nargin == 1)
                 if ~exist(ini_settings_file, 'file')
-                    this.logger.addWarning(sprintf('File "%s" not found!', ini_settings_file));
+                    this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
                     ini_settings_file = this.LAST_SETTINGS;
                 end
             else
@@ -572,7 +572,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if (exist(ini_settings_file, 'file') == 2)
                 this.importIniFile(ini_settings_file);
             else
-                this.logger.addMessage('using default settings')
+                this.log.addMessage('using default settings')
                 this.postImportInit();
             end
         end
@@ -966,8 +966,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if this.isModeKM() && this.isSeamlessKF()
                 str = strcat(str, 10, 'Kalman seamless processing enabled');
             end
-            this.logger.addMarkedMessage(str);
-            this.logger.newLine();
+            this.log.addMarkedMessage(str);
+            this.log.newLine();
         end
 
         function str_cell = export(this, str_cell)
@@ -1266,7 +1266,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.std_phase = 1e30;
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Receiver defaults" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Receiver defaults" failed - ', ex.message])
             end
 
             % DATA SELECTION  ---------------------------------------------
@@ -1287,7 +1287,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 end
 
             catch ex
-                this.logger.addWarning(['Legacy import "Data Selection" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Data Selection" failed - ', ex.message])
             end
 
             % PRE PROCESSING ----------------------------------------------
@@ -1299,7 +1299,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.cs_thr_pre_pro = str2double(state.cs_thresh);
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Pre Processing" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Pre Processing" failed - ', ex.message])
             end
 
             % OUTLIER DETECTION -------------------------------------------
@@ -1320,7 +1320,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.pp_max_phase_err_thr = str2double(state.phase_thr);
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Outlier Detection" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Outlier Detection" failed - ', ex.message])
             end
 
             % PROCESSING --------------------------------------------------
@@ -1346,7 +1346,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 end
                 this.stop_go_stop = state.stopGOstop;
             catch ex
-                this.logger.addWarning(['Legacy import "Processing" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Processing" failed - ', ex.message])
             end
 
             % MASTER STATION DEFAULT PARAMETERS ---------------------------
@@ -1367,11 +1367,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 % since they are considered data and not a settings they
                 % will not be included into the settings parameters
                 if (state.master_pos == 0) % If the coordinates of the master are not read from RINEX
-                    this.logger.addWarning(['Master position should be set into the RINEX file!', ex.message])
-                    this.logger.addWarning(['the coordinates are still read from UI but soon they won''t be imported anymore', ex.message])
+                    this.log.addWarning(['Master position should be set into the RINEX file!', ex.message])
+                    this.log.addWarning(['the coordinates are still read from UI but soon they won''t be imported anymore', ex.message])
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Master position" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Master position" failed - ', ex.message])
             end
 
             % INTEGER AMBIGUITY RESOLUTION --------------------------------
@@ -1385,7 +1385,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_iar_default_p0 = state.lambda_default_P0;
                 this.flag_doppler = state.flag_doppler;
             catch ex
-                this.logger.addWarning(['Legacy import "iar" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "iar" failed - ', ex.message])
             end
 
             % KALMAN FILTER PARAMETERS ------------------------------------
@@ -1408,7 +1408,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 this.antenna_h = str2double(state.antenna_h);
             catch ex
-                this.logger.addWarning(['Legacy import "Kalman filter parameters" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Kalman filter parameters" failed - ', ex.message])
             end
 
             % ATMOSPHERE ------------------------------------
@@ -1420,7 +1420,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.tropo_model = state.tropoModel - 1;
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Atmosphere models" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Atmosphere models" failed - ', ex.message])
             end
 
             % UI ----------------------------------------------------------
@@ -1433,7 +1433,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.plot_master = state.plot_master;
                 this.plot_google_earth = state.google_earth;
             catch ex
-                this.logger.addWarning(['Legacy import "UI Plotting flags" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "UI Plotting flags" failed - ', ex.message])
             end
 
             % NTRIP -------------------------------------------------------
@@ -1446,7 +1446,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                                     'password', state.password, ...
                                     'approx_position', struct('lat', str2double(state.approx_lat), 'lon', str2double(state.approx_lon), 'h', str2double(state.approx_h)));
             catch ex
-                this.logger.addWarning(['Legacy import "NTRIP parameters" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "NTRIP parameters" failed - ', ex.message])
             end
 
             % CAPTURE -----------------------------------------------------
@@ -1459,7 +1459,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.c_com_addr{r} = state.(sprintf('com_select_%d', r));
                 end
             catch ex
-                this.logger.addWarning(['Legacy import "Capture parameters" failed - ', ex.message])
+                this.log.addWarning(['Legacy import "Capture parameters" failed - ', ex.message])
             end
 
             this.check(); % check after import
@@ -1517,9 +1517,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.importIniFile@Settings_Interface(file_path);
                 this.updateExternals();
                 this.postImportInit();
-                this.logger.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
+                this.log.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
             else
-                this.logger.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
+                this.log.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
             end
         end
 
@@ -1530,7 +1530,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 load(file_path, 'state');
                 this.legacyImport(state);
             catch ex
-                this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
+                this.log.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
             end
             this.updateExternals();
             this.postImportInit();
@@ -1603,7 +1603,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('p_rate',[0.0001 1800]);
             this.checkNumericField('min_n_sat',[1 300]);
             if(this.getMode() == this.MODE_PP_LS_CP_SA && this.min_n_sat < 4)
-                this.logger.addWarning('Minimum number of satellites is forced to 4 (for LS undifferenced positioning)');
+                this.log.addWarning('Minimum number of satellites is forced to 4 (for LS undifferenced positioning)');
                 this.min_n_sat = 4;
             end
             this.checkNumericField('cut_off',[0 90]);
@@ -1637,13 +1637,13 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             if this.isModePPP()
                 if (this.cs_thr < 1e20)
-                    this.logger.addMessage('In PPP mode the cycle slips detection is computed during pre-processing',15);
-                    this.logger.addMessage('cycle slips detection is disabled during processing',15);
+                    this.log.addMessage('In PPP mode the cycle slips detection is computed during pre-processing',15);
+                    this.log.addMessage('cycle slips detection is disabled during processing',15);
                     this.cs_thr = 1e30; % i.e. disable cycle slips detection during KF processing
                 end
             else
                 if (this.cs_thr_pre_pro > 1)
-                    this.logger.addMessage('Forcing cycle slips detection threshold for pre-processing to 1');
+                    this.log.addMessage('Forcing cycle slips detection threshold for pre-processing to 1');
                     this.cs_thr_pre_pro = 1;
                 end
             end
@@ -1688,7 +1688,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);
             if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
-                this.logger.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
+                this.log.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
                 this.flag_kf_fb = 0;
             end
 

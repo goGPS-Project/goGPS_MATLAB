@@ -1,5 +1,5 @@
 classdef Core_Sky < handle
-    
+    % This class contains properties and methods to manage astronomical objects
     
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
@@ -33,55 +33,58 @@ classdef Core_Sky < handle
     %--------------------------------------------------------------------------
     
     properties
-        time_ref_coord  % Gps Times of tabulated aphemerids
-        time_ref_clock
-        coord  % cvoordinates of tabulated aphemerids [times x num_sat x 3]
-        coord_type % 0: Center of Mass 1: Antenna Phase Center
-        clock  % cloks of tabulated aphemerids [times x num_sat]
-%         prn
-%         sys 
-        %time_hr
-        %clock_hr
+        time_ref_coord         % GPS Times of ephemerides
+        time_ref_clock         % 
+        
+        coord                  % Ephemerides [times x num_sat x 3]
+        coord_type             % 0: Center of Mass 1: Antenna Phase Center
+        clock                  % clocks of ephemerides [times x num_sat]
+
         coord_rate = 900;
         clock_rate = 900;
-        iono
         
-        X_sun  % coord of tabulated sun positions ECEF at the same time of coord
-        X_moon % coord of tabulated moon positions ECEF at the same time of coord
-        sun_pol_coeff % coeff for polynoimial interpolation of tabulated sun positions
-        moon_pol_coeff % coeff for polynoimial interpolation of tabulated moon positions
+        iono                   % 16 iono parameters
         
-        ERP  % EARH rotation parameters
-        group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... %% GPS codes
-                               'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ... %GLONASS code
-                               'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; ... %GALIELEO codes
-                               'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ... %BeiDou codes
-                               'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... %% QZSS codes
-                               'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ... %% IRNSS codes
+        X_sun                  % coord of sun ephemerides ECEF at the same time of coord
+        X_moon                 % coord of moon ephemerides ECEF at the same time of coord
+        sun_pol_coeff          % coeff for polynoimial interpolation of tabulated sun positions
+        moon_pol_coeff         % coeff for polynoimial interpolation of tabulated moon positions
+        
+        erp                    % Earth Rotation Parameters
+        
+        group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... % GPS codes
+                               'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
+                               'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; ...          % GALILEO codes
+                               'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
+                               'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ...                                                       % BeiDou codes
+                               'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
                                'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS   
-                               ]; % ALL Rinex 3 code observations flags
+                               ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
+                           
         group_delays = zeros(32,77); % group delay of code measurements (meters) referenced to their constellation reference:
-                                     %    GPS -> Iono free linear combination C1P C2P
+                                     %    GPS     -> Iono free linear combination C1P C2P
                                      %    GLONASS -> Iono free linear combination C1P C2P
                                      %    Galileo -> Iono free linear combination
-                                     %    BedDou -> B3 signal
-                                     %    QZS -> Iono free linear combination
-                                     %    IRNSS -> Iono free linear combination
-                                     %    SABS -> Iono free linear combination
-        group_delays_times % 77x1 GPS_Time
-        antenna_PCO   %% satellites antenna phase center offset
-        antenna_PCV  %% satellites antenna phase center variations
-        %satType
-        avail
-        coord_pol_coeff %% coefficient of the polynomial interpolation for coordinates [11,3,num_sat,num_coeff_sets]
-        %start_time_idx  %%% index  defininig start of the day (time == 1)
-        cc % constellation collector
-    end
-    properties (Access = private)
+                                     %    BedDou  -> B3 signal
+                                     %    QZS     -> Iono free linear combination
+                                     %    IRNSS   -> Iono free linear combination
+                                     %    SABS    -> Iono free linear combination
+        group_delays_times           % 77x1 GPS_Time
         
-        log
-        state
+        ant_pco               % satellites antenna phase center offset
+        ant_pcv               % satellites antenna phase center variations
+        
+        avail                 % availability flag
+        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
+
     end
+    
+    properties (Access = private)        
+        log                   % logger handler
+        state                 % state handler
+        cc                    % constellation collector handler
+    end
+    
     methods (Access = 'private')
         % Creator
         function this = Core_Sky()
@@ -89,8 +92,7 @@ classdef Core_Sky < handle
             this.state = Go_State.getCurrentSettings();
             this.log = Logger.getInstance();
             this.cc = Go_State.getCurrentSettings().getConstellationCollector();
-            this.antenna_PCO =zeros(1,this.cc.getNumSat(),3);
-            
+            this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
         end
     end
     
@@ -108,54 +110,71 @@ classdef Core_Sky < handle
             end
         end
     end
+    
     % =========================================================================
     %  METHODS
     % =========================================================================
     
     methods % Public Access
-        function init(this)
-            state = Go_State.getCurrentSettings();
-            %%% might serve some scope
-        end
+                
         function initSession(this, start_date, stop_time)
-            state = Go_State.getCurrentSettings();
+            % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
+            % SYNTAX:
+            %    this.initSession(this, start_date, stop_time)
+                        
+            % load Epehemerids
+            eph_f_name   = this.state.getEphFileName(start_date, stop_time);
+            clock_f_name = this.state.getClkFileName(start_date, stop_time);
+            clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)); %%% condition to be tested in differnet cases
             
-            %%% load Epehemerids
-            eph_f_name   = state.getEphFileName(start_date, stop_time);
-            clock_f_name = state.getClkFileName(start_date, stop_time);
-            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
             this.clearOrbit();
-            if strfind(eph_f_name{1},'.sp3') % assuming all files have the same endings
+            
+            if strfind(eph_f_name{1}, '.sp3') % assuming all files have the same endings
+                this.log.addMarkedMessage('Importing ephemerides...');
                 for i = 1:length(eph_f_name)
                     this.addSp3(eph_f_name{i},clock_in_eph);
-                    this.coord_type = 0; %center of mass
+                    this.coord_type = 0; % center of mass
                 end
             else %% if not sp3 assume is a rinex navigational file
+                this.log.addMarkedMessage('Importing broadcast ephemerides...');
                 this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
             end
-            this.coord_type = 1; %Antenna phase center
+            
+            this.coord_type = 1;
             if not(clock_in_eph)
+                this.log.addMarkedMessage('Importing satellite clock files...');
                 for i = 1:length(clock_f_name)
                     [~,~,ext] = fileparts(clock_f_name{i});
-                    str = strsplit(ext,'_');
+                    str = strsplit(ext,'_');   %%%% GIULIO what's this????? bug????
                     this.addClk(clock_f_name{i});
                 end
             end
-            %%% compute pol for ephemerids
+            
+            this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
+            % compute polynomials for ephemerids
             this.computeSatPolyCoeff();
             this.computeSMPolyCoeff();
-            %%% load PCV
-            this.load_antenna_PCV(state.getAtxFile);
+            
+            % load PCV
+            this.log.addMarkedMessage('Loading antennas phase center variations');
+            this.loadAntPCV(this.state.getAtxFile);
             % pass to antenna phase center if necessary
             if this.coord_type == 0
                 this.toAPC();
             end
-            %%% load ERP
-            this.importERP(state.getErpFileName(start_date, stop_time),start_date);
-            %%% load DCB
+            
+            % load erp
+            this.log.addMarkedMessage('Importing Earth Rotation Parameters');
+            this.importERP(this.state.getErpFileName(start_date, stop_time),start_date);
+            
+            % load dcb
+            this.log.addMarkedMessage('Importing Differential code biases');
             this.importCODEDCB();
         end
+        
         function clearOrbit(this, gps_date)
+            % clear the object of the data older than gps_date
+            % SYNTAX: this.clearOrbit(gps_date) 
             if nargin > 1
                 this.clearCoord(gps_date);
                 this.clearClock(gps_date);
@@ -165,8 +184,9 @@ classdef Core_Sky < handle
                 this.clearSunMoon();
             end
         end
+        
         function clearCoord(this, gps_date)
-            % DESCRIPTION: clear coord data , if date is provided clear
+            % DESCRIPTION: clear coord data, if date is provided clear
             % only data before that date
             if nargin > 1
                 if this.time_ref_coord < gps_date
@@ -192,6 +212,7 @@ classdef Core_Sky < handle
                 this.coord_pol_coeff = [];
             end
         end
+        
         function clearClock(this, gps_date)
             % DESCRIPTION: clear clock data , if date is provided clear
             % only data before that date
@@ -208,6 +229,7 @@ classdef Core_Sky < handle
                 this.time_ref_clock = [];
             end
         end
+        
         function clearSunMoon(this, gps_date)
             % DESCRIPTION: clear sun and moon data , if date is provided clear
             % only data before that date
@@ -225,6 +247,7 @@ classdef Core_Sky < handle
             this.sun_pol_coeff = [];
             this.moon_pol_coeff = [];
         end
+        
         function orb_time = getCoordTime(this)
             % DESCRIPTION:
             % return the time of coordinates in GPS_Time (unix time)
@@ -232,7 +255,7 @@ classdef Core_Sky < handle
             orb_time.toUnixTime();
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
             
-            dt = [this.coord_rate : this.coord_rate : (size(this.coord,1)-1)*this.coord_rate]';
+            dt = (this.coord_rate : this.coord_rate : (size(this.coord,1)-1)*this.coord_rate)';
             
             
             u_t = r_u_t + uint32(fix(dt));
@@ -250,6 +273,7 @@ classdef Core_Sky < handle
             
             orb_time.appendUnixTime(u_t , u_t_f);
         end
+        
         function orb_time = getClockTime(this)
             % DESCRIPTION:
             % return the time of clock corrections in GPS_Time (unix time)
@@ -259,7 +283,7 @@ classdef Core_Sky < handle
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
             
             
-            dt = [this.clock_rate : this.clock_rate : (size(this.clock,1)-1)*this.clock_rate]';
+            dt = (this.clock_rate : this.clock_rate : (size(this.clock,1)-1)*this.clock_rate)';
             
             
             u_t = r_u_t + uint32(fix(dt));
@@ -278,6 +302,7 @@ classdef Core_Sky < handle
             orb_time.appendUnixTime(u_t , u_t_f);
             
         end
+        
         function importEph(this, eph, t_st, t_end, step, clock)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
@@ -316,31 +341,31 @@ classdef Core_Sky < handle
             this.clock = zeros ( length(times),this.cc.getNumSat);
             systems = unique(eph(31,:));
             for sys = systems
-            sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
-            i = 0;
-            prg_idx = sat;%this.cc.getIndex(sys,sat); % get progressive index of given satellites
-            t_dist_exced=false;
-            for t = times
-                i=i+1;
-                [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat,eph(:,eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
-                if clock
-                    this.clock(i,prg_idx) = clock_temp';
+                sat = unique(eph(30,eph(31,:) == sys)); %% keep only satellite also present in eph
+                i = 0;
+                prg_idx = sat;%this.cc.getIndex(sys,sat); % get progressive index of given satellites
+                t_dist_exced=false;
+                for t = times
+                    i = i + 1;
+                    [this.coord(i,prg_idx,:), ~, clock_temp, t_d_e]=this.satellitePositions(t, sat,eph(:,eph(31,:) == sys)); %%%% loss of precision problem should be less tha 1 mm
+                    if clock
+                        this.clock(i,prg_idx) = clock_temp';
+                    end
+                    t_dist_exced = t_dist_exced || t_d_e;
                 end
-                t_dist_exced = t_dist_exced || t_d_e;
-            end
-            if t_dist_exced
-                this.log.addWarning(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids \nPositions might be inaccurate\n ',t_st.toString(0),t_end.toString(0)))
-            end
+                if t_dist_exced
+                    this.log.addWarning(sprintf('One of the time bonds (%s , %s)\ntoo far from valid ephemerids \nPositions might be inaccurate\n ',t_st.toString(0),t_end.toString(0)))
+                end
             end
         end
+        
         function importBrdcs(this,f_names, t_st, t_end, clock, step)
             if nargin < 6
                 step = 900;
             end
             if nargin < 5
-                clock = true
+                clock = true;
             end
-            sat= this.cc.index;
             if nargin < 4 || t_end.isempty()
                 t_end = t_st;
             end
@@ -349,7 +374,7 @@ classdef Core_Sky < handle
             end
             eph = [];
             for i=1:length(f_names)
-                [eph_temp, this.iono, flag_return] = load_RINEX_nav(f_names{i},this.cc,0,0);
+                [eph_temp, this.iono] = load_RINEX_nav(f_names{i},this.cc,0,0);
                 eph = [eph eph_temp];
             end
             
@@ -362,34 +387,35 @@ classdef Core_Sky < handle
                 for s = unique(eph_const(1,:))
                     eph_sat = eph_const(:, eph_const(1,:) == s);
                     GD = eph_sat(28,1); % TGD change only every 3 months
-                
-                switch char(const) 
-                    case 'G'
+                    
+                    switch char(const)
+                        case 'G'
                             idx_c1w = this.getGroupDelayIdx('GC1W');
                             idx_c2w = this.getGroupDelayIdx('GC2W');
                             this.group_delays(s,idx_c1w) = -GD * goGNSS.V_LIGHT;
-                            f = this.cc.getGPS().F_VEC; % frequencies 
+                            f = this.cc.getGPS().F_VEC; % frequencies
                             this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
-                    case 'R'
+                        case 'R'
                             idx_c1p = this.getGroupDelayIdx('RC1P');
                             idx_c2p = this.getGroupDelayIdx('RC2P');
                             this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
-                            f = this.cc.getGLONASS().F_VEC; % frequencies 
+                            f = this.cc.getGLONASS().F_VEC; % frequencies
                             this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
-                    case 'E'
+                        case 'E'
                             idx_c1p = this.getGroupDelayIdx('EC1B');
                             idx_c2p = this.getGroupDelayIdx('EC5I');
                             this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
-                            f = this.cc.getGalileo().F_VEC; % frequencies 
+                            f = this.cc.getGalileo().F_VEC; % frequencies
                             this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
                             
-                end
+                    end
                 end
             end
                 
             
         end
-        function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this,time, sat, eph)
+        
+        function [XS,VS,dt_s, t_dist_exced] =  satellitePositions(this, time, sat, eph)
             
             % SYNTAX:
             %   [XS, VS] = satellite_positions(time_rx, sat, eph);
@@ -430,6 +456,7 @@ classdef Core_Sky < handle
             
             %XS=XS';
         end
+        
         function addSp3(this, filename_SP3, clock_flag)
             % SYNTAX:
             %   this.addSp3(filename_SP3, clock_flag)
@@ -452,13 +479,15 @@ classdef Core_Sky < handle
             if nargin <3
                 clock_flag = true;
             end
-            k = 0; % current epoch
             
-            
-            %SP3 file
+            % SP3 file
             f_sp3 = fopen(filename_SP3,'r');
             
-            if (f_sp3 ~= -1)
+            if (f_sp3 == -1)
+                this.log.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
+            else
+                fnp = File_Name_Processor;
+                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_SP3)));
                 
                 txt = fread(f_sp3,'*char')';
                 fclose(f_sp3);
@@ -475,16 +504,16 @@ classdef Core_Sky < handle
                 end
                 % get end pf header
                 % coord  rate
-                coord_rate = cell2mat(textscan(txt(repmat(lim(2,1),1,11) + [26:36]),'%f'));
+                coord_rate = cell2mat(textscan(txt(repmat(lim(2,1),1,11) + (26:36)),'%f'));
                 % n epochs
-                nEpochs = cell2mat(textscan(txt(repmat(lim(1,1),1,7) + [32:38]),'%f'));
+                nEpochs = cell2mat(textscan(txt(repmat(lim(1,1),1,7) + (32:38)),'%f'));
                 % find first epoch
-                string_time = txt(repmat(lim(1,1),1,28) + [3:30]);
+                string_time = txt(repmat(lim(1,1),1,28) + (3:30));
                 % convert the times into a 6 col time
                 date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.8f'));
                 % import it as a GPS_Time obj
                 sp3_first_ep = GPS_Time(date, [], true);
-                if this.coord_rate ~= coord_rate;
+                if this.coord_rate ~= coord_rate
                     if empty_file
                         this.coord_rate = coord_rate;
                         if clock_flag
@@ -522,13 +551,13 @@ classdef Core_Sky < handle
                     end
                 else
                     c_n_sat = size(this.coord,2);
-                    if memb_idx(1) == true & memb_idx(2) == false
+                    if memb_idx(1) == true && memb_idx(2) == false
                         n_new_epochs = idx_last - size(this.coord, 1);
                         this.coord = cat(1,this.coord,zeros(n_new_epochs,c_n_sat,3));
                         if clock_flag
                             this.clock = cat(1,this.clock,zeros(n_new_epochs,c_n_sat));
                         end
-                    elseif memb_idx(1) == false & memb_idx(2) == true
+                    elseif memb_idx(1) == false && memb_idx(2) == true
                         this.time_ref_coord = sp3_first_ep.getCopy();
                         if clock_flag
                             this.time_ref_clock = sp3_first_ep.getCopy();
@@ -556,7 +585,7 @@ classdef Core_Sky < handle
                         c_ep_idx = round((sp3_times - this.time_ref_coord) / this.coord_rate) +1; %current epoch index
                         this.coord(c_ep_idx,i,:) = cell2mat(textscan(txt(repmat(lim(sat_line,1),1,41) + repmat(5:45, length(sat_line), 1))','%f %f %f'))*1e3;
                         if clock_flag
-                            text = [txt(repmat(lim(sat_line,1),1,14) + repmat(46:59, length(sat_line), 1))];
+                            text = txt(repmat(lim(sat_line,1),1,14) + repmat(46:59, length(sat_line), 1));
                             clock = cell2mat(textscan(text','%f'))/1e6;
                             clock(clock > 0.99) = nan;
                             this.clock(c_ep_idx,i) = clock;
@@ -564,35 +593,35 @@ classdef Core_Sky < handle
                     else
                     end
                 end
-            else
-                this.log.addWarning([ filename_SP3 ' not found.']);
             end
             clear sp3_file;
             this.coord = zero2nan(this.coord);
         end
-        function fillClockGaps(this);
+        
+        function fillClockGaps(this)
             %DESCRIPTION: fill clock gaps linearly interpolating neighbour clocks
             for i = 1 : size(this.clock,2)
                 if not(sum(this.clock(:,i),1) == 0)
                     empty_clk_idx = this.clock(:,i) == 0 | isnan(this.clock(:,i));
                     n_ep = size(this.clock,1);
-                    if sum(empty_clk_idx) < n_ep & sum(empty_clk_idx) > 0
+                    if sum(empty_clk_idx) < n_ep && sum(empty_clk_idx) > 0
                         this.clock(empty_clk_idx,i) = nan;
                         for hole = find(empty_clk_idx)'
-                            [idx_bf  ] = max([1 : hole]'   .* (this.clock([1 : hole] ,i) ./this.clock([1 : hole] ,i) ));
-                            [idx_aft ] = min([hole : n_ep]'.* (this.clock([hole : n_ep] ,i) ./this.clock([hole : n_ep] ,i)));
+                            [idx_bf  ] = max((1 : hole)'   .* (this.clock(1 : hole ,i) ./this.clock(1 : hole ,i) ));
+                            [idx_aft ] = min((hole : n_ep)'.* (this.clock(hole : n_ep ,i) ./this.clock(hole : n_ep ,i)));
                             if isnan(idx_bf)
-                               this.clock(hole,i) =  this.clock(idx_aft,i);
+                                this.clock(hole,i) =  this.clock(idx_aft,i);
                             elseif isnan(idx_aft)
-                               this.clock(hole,i) =  this.clock(idx_bf,i);
-                               else
-                            this.clock(hole,i) = ((idx_aft - hole) * this.clock(idx_bf,i) + (hole - idx_bf) * this.clock(idx_aft,i)) / (idx_aft - idx_bf);
-                        end
+                                this.clock(hole,i) =  this.clock(idx_bf,i);
+                            else
+                                this.clock(hole,i) = ((idx_aft - hole) * this.clock(idx_bf,i) + (hole - idx_bf) * this.clock(idx_aft,i)) / (idx_aft - idx_bf);
+                            end
                         end
                     end
                 end
             end
         end
+        
         function addClk(this,filename_clk)
             % SYNTAX:
             %   eph_tab.addClk(filename_clk)
@@ -607,18 +636,17 @@ classdef Core_Sky < handle
             % the object add them, otherwise clear the object and add them
             % data that are alrady present are going to be overwritten
             f_clk = fopen(filename_clk,'r');
-            
             if (f_clk == -1)
                 this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
-                this.log.addMessage(sprintf('Opening file %s for reading', filename_clk));
+                fnp = File_Name_Processor;
+                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_clk)));
                 t0 = tic;
                 if isempty(this.clock)
                     empty_clk = true;
                 else
                     empty_clk = false;
-                    [ref_week, ref_sow] =this.time_ref_clock.getGpsWeek();
-                    
+                    [ref_week, ref_sow] = this.time_ref_clock.getGpsWeek(); %%%% GIULIO ??????
                 end
                 
                 % open RINEX observation file
@@ -638,8 +666,8 @@ classdef Core_Sky < handle
                 end
                 % get end pf header
                 eoh = strfind(txt,'END OF HEADER');
-                eoh = find(lim(:,1)>eoh);
-                eoh = eoh(1)-1;
+                eoh = find(lim(:,1) > eoh);
+                eoh = eoh(1) - 1;
                 sats_line = find(txt(lim(eoh+1:end,1)) == 'A' & txt(lim(eoh+1:end,1)+1) == 'S') + eoh;
                 % clk rate
                 clk_rate = [];
@@ -692,60 +720,195 @@ classdef Core_Sky < handle
                             end
                         end
                         c_ep_idx = round((sat_time - this.time_ref_clock) / this.clock_rate) +1; % epoch index
-                        
-                        
                         this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
                     end
                 end
-                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
-                this.log.newLine();
+                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);
+                this.log.newLine(100);
             end
         end
-        function importERP(this, f_name, time)
-            this.ERP = load_ERP(f_name, time.getGpsTime());
+        
+        function importERP(this, f_name, time)            
+            this.erp = this.loadERP(f_name, time.getGpsTime());
         end
+        
+        function [erp, found] = loadERP(this, filename, time)
+            % SYNTAX:
+            %   [erp, found] = loadERP(filename, time);
+            %
+            % INPUT:
+            %   filename = erp filename (including path) [string]
+            %   time = GPS time to identify the time range of interest [vector]
+            %
+            % OUTPUT:
+            %   erp = struct containing erp data
+            %   found = flag to check if the required file was found
+            %
+            % DESCRIPTION:
+            %   Tool for loading .erp files: Earth rotation parameters.
+            
+            fnp = File_Name_Processor();
+            found = 0;
+            erp = [];
+            MJD = [];
+            Xpole = [];
+            Ypole = [];
+            UT1_UTC = [];
+            LOD = [];
+            Xrt = [];
+            Yrt = [];
+            for f = 1 : length(filename)
+                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename{f})));
+                fid = fopen(filename{f},'rt');
+                
+                if fid == -1
+                    return
+                end
+                
+                l=fgetl(fid);
+                i=1;
+                
+                %check version
+                if ~strcmp(l, 'version 2')
+                    %wrong version
+                    fclose(fid);
+                    return
+                end
+                
+                while isempty(strfind(l,'  MJD'));
+                    if l==-1
+                        fclose(fid);
+                        return
+                    end
+                    l=fgetl(fid);
+                    i=i+1;
+                end
+                i=i+1;
+                fseek(fid, 0, 'bof');
+                
+                % [MJD,Xpole,Ypole,UT1_UTC,LOD,Xsig,Ysig,UTsig,LODsig,Nr,Nf,Nt,Xrt,Yrt,Xrtsig,Yrtsig] = textread(filename,'%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f','delimiter',' ','headerlines', i);
+                
+                ERP_data = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f','headerlines',i);
+                
+                if (isempty(ERP_data{1}))
+                    fclose(fid);
+                    return
+                else
+                    found = 1;
+                end
+                
+                MJD = [MJD; ERP_data{1}]; %#ok<*AGROW>
+                Xpole = [Xpole; ERP_data{2}];
+                Ypole = [Ypole; ERP_data{3}];
+                UT1_UTC = [UT1_UTC; ERP_data{4}];
+                LOD = [LOD; ERP_data{5}];
+                Xrt = [Xrt; ERP_data{13}];
+                Yrt = [Yrt; ERP_data{14}];
+                fclose(fid);
+            end
+            
+            jd = MJD + 2400000.5;
+            [gps_week, gps_sow, ~] = jd2gps(jd);
+            [ERP_date] = gps2date(gps_week, gps_sow);
+            [ERP_time] = weektow2time(gps_week, gps_sow ,'G');
+            
+            if ~any(ERP_time <= max(time) | ERP_time >= min(time))
+                % no suitable epochs found in erp file
+                erp = [];
+                return
+            end
+            
+            % assign erp values and compute rates (@ epoch of the first epoch of orbits
+            % erp.t0 = min(time);
+            
+            %correct MJD with the length of day
+            for i = 2 : length(ERP_time)
+                ERP_time(i)=ERP_time(i)+(LOD(i-1)*0.1e-6);
+            end
+            
+            erp.t = ERP_time;
+            erp.Xpole = Xpole;
+            erp.Ypole = Ypole;
+            erp.Xrt = Xrt;
+            erp.Yrt = Yrt;
+            
+            %coefficients of the IERS (2010) mean pole model
+            t0 = 2000;
+            cf_ante = [0   55.974   346.346; ...
+                1   1.8243    1.7896; ...
+                2  0.18413  -0.10729; ...
+                3 0.007024 -0.000908];
+            
+            cf_post = [0   23.513   358.891; ...
+                1   7.6141   -0.6287; ...
+                2      0.0       0.0; ...
+                3      0.0       0.0];
+            
+            idx_ante = find(ERP_date(:,1) <= 2010);
+            idx_post = find(ERP_date(:,1)  > 2010);
+            
+            %computation of the IERS (2010) mean pole
+            erp.meanXpole = zeros(size(erp.Xpole));
+            erp.meanYpole = zeros(size(erp.Ypole));
+            for d = 1 : 4
+                if (~isempty(idx_ante))
+                    erp.meanXpole(idx_ante) = erp.meanXpole(idx_ante) + (ERP_date(idx_ante,1) - t0).^cf_ante(d,1) .* cf_ante(d,2);
+                    erp.meanYpole(idx_ante) = erp.meanYpole(idx_ante) + (ERP_date(idx_ante,1) - t0).^cf_ante(d,1) .* cf_ante(d,3);
+                end
+                
+                if (~isempty(idx_post))
+                    erp.meanXpole(idx_post) = erp.meanXpole(idx_post) + (ERP_date(idx_post,1) - t0).^cf_post(d,1) .* cf_post(d,2);
+                    erp.meanYpole(idx_post) = erp.meanYpole(idx_post) + (ERP_date(idx_post,1) - t0).^cf_post(d,1) .* cf_post(d,3);
+                end
+            end
+            
+            erp.m1 =   erp.Xpole*1e-6 - erp.meanXpole*1e-3;
+            erp.m2 = -(erp.Ypole*1e-6 - erp.meanYpole*1e-3);
+        end
+
         function importCODEDCB(this)
-            [DCB] = load_dcb(this.state.DCB_DIR, double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
-            %%% assume that CODE DCB contains only GPS and GLONASS
+            [dcb] = load_dcb(this.state.DCB_DIR, double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
+            %%% assume that CODE dcb contains only GPS and GLONASS
             %GPS C1W - C2W
             idx_w1 =  this.getGroupDelayIdx('GC1W');
             idx_w2 =  this.getGroupDelayIdx('GC2W');
-            p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'G');
+            p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'G');
             iono_free = this.cc.getGPS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT*1e-9;
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
-            p1c1 = DCB.P1P2.value(DCB.P1C1.sys == 'G');
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
+            p1c1 = dcb.P1P2.value(dcb.P1C1.sys == 'G');
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
-            p1p2 = DCB.P1P2.value(DCB.P1P2.sys == 'R');
+            p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'R');
             iono_free = this.cc.getGLONASS.getIonoFree();
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(DCB.P1P2.prn(DCB.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
-            
-            
-            
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
         end
+        
         function importSinexDCB(this, filename)
-            %DESCRIPTION: import DCB in sinex format 
+            %DESCRIPTION: import dcb in sinex format 
             % TBD
         end
+        
         function idx = getGroupDelayIdx(this,flag)
             %DESCRIPTION: get the index of the gorup delay for the given
             %flag
             idx = find(sum(this.group_delays_flags == repmat(flag,size(this.group_delays_flags,1),1),2)==4);
         end
+        
         function importIono(this,f_name)
             [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
             if (flag_return)
                 return
             end
         end
+        
         function [sx ,sy, sz] = getSatFixFrame(this,time)
             
             % SYNTAX:
@@ -791,6 +954,7 @@ classdef Core_Sky < handle
                 nrm=sqrt(sum(A.^2,d));
             end
         end
+        
         function toCOM(this)
             %DESCRIPTION : convert coord to center of mass
             if this.coord_type == 0
@@ -799,16 +963,18 @@ classdef Core_Sky < handle
             this.coord = this.getCOM();
             this.coord_type = 0;
         end
+        
         function coord = getCOM(this)
             if this.coord_type == 0
                 coord = this.coord; %already ceneter of amss
             else
                 [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
-                coord = this.coord - cat(3, sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sx , 3) ...
-                    , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sy , 3) ...
-                    , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sz , 3));
+                coord = this.coord - cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
+                    , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
+                    , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
             end
         end
+        
         function toAPC(this)
             %DESCRIPTION : convert coord to center of antenna phase center
             if this.coord_type == 1
@@ -817,15 +983,17 @@ classdef Core_Sky < handle
             this.coord = this.getAPC();
             this.coord_type = 1;
         end
+        
         function coord = getAPC(this)
             if this.coord_type == 1
                 coord = this.coord; %already antennna phase center
             end
             [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
-            coord = this.coord + cat(3, sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sx , 3) ...
-                , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.antenna_PCO,size(this.coord,1),1,1) .* sz , 3));
+            coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
         end
+        
         function [dt_S] = clockInterpolate(this,time, sat)
             
             % SYNTAX:
@@ -882,6 +1050,7 @@ classdef Core_Sky < handle
             %                 %pause
             %             end
         end
+        
         function computeSatPolyCoeff(this)
             % SYNTAX:
             %   this.computeSatPolyCoeff();
@@ -910,6 +1079,7 @@ classdef Core_Sky < handle
                 end
             end
         end
+        
         function computeSMPolyCoeff(this)
             % SYNTAX:
             %   this.computeSatPolyCoeff();
@@ -938,6 +1108,7 @@ classdef Core_Sky < handle
                 end
             end
         end
+        
         function [X_sat, V_sat]=coordInterpolate(this,t,sat)
             % SYNTAX:
             %   [X_sat]=Eph_Tab.polInterpolate(t,sat)
@@ -1021,7 +1192,8 @@ classdef Core_Sky < handle
                 end
             end
         end
-        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this,t,no_moon);
+        
+        function [sun_ECEF,moon_ECEF ] = sunMoonInterpolate(this, t, no_moon)
             % SYNTAX:
             %   [X_sat]=Eph_Tab.sunInterpolate(t,sat)
             %
@@ -1090,7 +1262,8 @@ classdef Core_Sky < handle
                 end
             end
         end
-        function [sun_ECEF , moon_ECEF] = computeSunMoonPos(this,time,no_moon)
+        
+        function [sun_ECEF , moon_ECEF] = computeSunMoonPos(this, time, no_moon)
             % SYNTAX:
             %   this.computeSunMoonPos(p_time)
             %
@@ -1172,6 +1345,7 @@ classdef Core_Sky < handle
             
             %this.t_sun_rate =
         end
+        
         function tabulateSunMoonPos(this)
             % SYNTAX:
             %   this.computeSunMoonPos(p_time)
@@ -1186,6 +1360,7 @@ classdef Core_Sky < handle
             [this.X_sun , this.X_moon] = this.computeSunMoonPos(this.getCoordTime());
             this.computeSMPolyCoeff();
         end
+        
         function [eclipsed] = check_eclipse_condition(this, time, XS, sat)  %%% TO BE CORRECT
             
             % SYNTAX:
@@ -1222,16 +1397,16 @@ classdef Core_Sky < handle
             %threshold to detect noon/midnight maneuvers
             if sat > 32
                 t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
-            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA')))
+            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIA')))
                 t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
                 
-            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIR')))
+            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIR')))
                 t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-            elseif (~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIF')))
+            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIF')))
                 t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
             end
             
-            if (sat <= 32 & ~isempty(strfind(this.antenna_PCV(sat).sat_type,'BLOCK IIA')))
+            if (sat <= 32 & ~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIA')))
                 %shadow crossing affects only BLOCK IIA satellites
                 shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < goGNSS.ELL_A_GPS;
                 eclipsed(shadowCrossing) = 1;
@@ -1242,7 +1417,7 @@ classdef Core_Sky < handle
             
             
             
-        end
+        end        
 %         function importSP3Struct(this, sp3) % to be reimplemented
 %         matching right sysy and prn
 %             % 
@@ -1258,33 +1433,34 @@ classdef Core_Sky < handle
 %             this.t_sun = sp3.t_sun;
 %             this.X_sun = sp3.X_sun';
 %             this.X_moon = sp3.X_moon';
-%             this.ERP = sp3.ERP;
-%             this.DCB = sp3.DCB;
-%             this.antenna_PCO = sp3.antPCO;
+%             this.erp = sp3.erp;
+%             this.dcb = sp3.dcb;
+%             this.ant_pco = sp3.antPCO;
 %             this.start_time_idx = find(this.time == 1);
 %             
 %             
 %         end
-        function load_antenna_PCV(this, filename_pco)
-            antmod_S = this.cc.getAntennaId();
-            this.antenna_PCV = read_antenna_PCV(filename_pco, antmod_S, this.time_ref_coord.getMatlabTime());
-            this.antenna_PCO = zeros(1,this.cc.getNumSat(),3);
-            %this.satType = cell(1,size(this.antenna_PCV,2));
+
+        function loadAntPCV(this, filename_pcv)
+            % Loading antenna's phase center variations and offsets
+            fnp = File_Name_Processor();
+            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+
+            this.ant_pcv = this.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord.getMatlabTime());
+            this.ant_pco = zeros(1,this.cc.getNumSat(),3);
+            %this.satType = cell(1,size(this.ant_pcv,2));
             if isempty(this.avail)
-                this.avail = zeros(size(this.antenna_PCV,2),1)
+                this.avail = zeros(size(this.ant_pcv,2),1);
             end
-            for sat = 1 : size(this.antenna_PCV,2)
-                if (this.antenna_PCV(sat).n_frequency ~= 0)
-                    this.antenna_PCO(:,sat,:) = this.antenna_PCV(sat).offset(:,:,1);
-                    %this.satType{1,sat} = this.antenna_PCV(sat).sat_type;
+            for sat = 1 : size(this.ant_pcv,2)
+                if (this.ant_pcv(sat).n_frequency ~= 0)
+                    this.ant_pco(:,sat,:) = this.ant_pcv(sat).offset(:,:,1);
+                    %this.satType{1,sat} = this.ant_pcv(sat).sat_type;
                 else
                     this.avail(sat) = 0;
                 end
             end
         end
-
-        
-        
         
         function writeSP3(this, f_name, prec)
             % SYNTAX:
@@ -1335,6 +1511,7 @@ classdef Core_Sky < handle
             
             
         end
+        
         function writeHeader(this, fid, prec)
             
             if nargin<3
@@ -1398,6 +1575,7 @@ classdef Core_Sky < handle
             fprintf(fid,'/*                     Optional                             \n');
             fprintf(fid,'/*                              Lines                       \n');
         end
+        
         function writeEpoch(this,fid,XYZT,epoch)
             t=this.time_ref_coord.getCopy();
             t.addIntSeconds((epoch)*900);
@@ -1416,11 +1594,313 @@ classdef Core_Sky < handle
             
         end
         
-        
-        
     end
     
-    
     methods (Static)
+        
+        function [ant_pcv] = readAntennaPCV(filename, antmod, date)
+            % SYNTAX:
+            %   [antPCV] = readAntennaPCV(filename, antmod, date);
+            %
+            % INPUT:
+            %   filename = antenna phase center offset/variation file
+            %   antmod   = cell-array containing antenna model strings
+            %   date     = observation dates (required only when searching for satellite entries)
+            %
+            % OUTPUT:
+            %   ant_pcv (see description below)
+            %
+            % DESCRIPTION:
+            %   Extracts antenna phase center offset/variation values from a PCO/PCV file in ATX format.
+            %
+            % RESOURCES:
+            %   ftp://igs.org/pub/station/general/antex14.txt
+            
+            % ant_pcv struct definition
+            % ant_pcv.name           : antenna name (with radome code)
+            % ant_pcv.n_frequency    : number of available frequencies
+            % ant_pcv.frequency_name : array with name of available frequencies ({'G01';'G02';'R01',...})
+            % ant_pcv.frequency      : array with list of frequencies (carrier number) corresponding to the frequencies name ({'1';'2';'1',...})
+            % ant_pcv.sys            : array with code id of the system constellation of each frequency (1: GPS, 2: GLONASS, ...)
+            % ant_pcv.sysfreq        : array with codes of the system constellation and carrier of each frequency (11: GPS L1, 12: GPS L2, 21: GLONASS L1, ...)
+            % ant_pcv.offset         : ENU (receiver) or NEU (satellite) offset (one array for each frequency)
+            % ant_pcv.dazi           : increment of the azimuth (0.0 for non-azimuth-dependent phase center variations)
+            % ant_pcv.zen1           : Definition of the grid in zenith angle: minimum zenith angle
+            % ant_pcv.zen2           : Definition of the grid in zenith angle: maximum zenith angle
+            % ant_pcv.dzen           : Definition of the grid in zenith angle: increment of the zenith angle
+            % ant_pcv.tableNOAZI     : PCV values for NOAZI, in a cell array with a vector for each frequency [m]
+            % ant_pcv.tablePCV       : PCV values elev/azim depentend, in a cell array with a matrix for each frequency [m]
+            % ant_pcv.tablePCV_zen   : zenith angles corresponding to each column of ant_pcv.tablePCV
+            % ant_pcv.tablePCV_azi   : azimutal angles corresponding to each row of ant_pcv.tablePCV
+            
+            log = Logger.getInstance();
+            
+            for m = numel(antmod) : -1 : 1
+                ant_pcv(m) = struct('name', antmod{m}, ...
+                    'sat_type',[] ,...
+                    'n_frequency', 0, ...
+                    'available', 0, ...
+                    'type', '', ...
+                    'dazi', 0, ...
+                    'zen1', 0, ...
+                    'zen2', 0, ...
+                    'dzen', 0, ...
+                    'offset', [], ...
+                    'frequency_name', [], ...
+                    'frequency', [], ...
+                    'sys', [], ...
+                    'sysfreq', [], ...
+                    'tableNOAZI', [], ...
+                    'tablePCV_zen', [], ...
+                    'tablePCV_azi', [], ...
+                    'tablePCV', []);
+            end
+            antenna_found = zeros(length(antmod),1);
+            
+            % for each PCV file
+            for file_pcv = 1 : size(filename, 1)
+                if sum(antenna_found) < length(antmod)
+                    if (~isempty(filename))
+                        fid = fopen(char(filename(file_pcv, :)),'r');
+                        if (fid ~= -1)
+                            atx_file = textscan(fid,'%s','Delimiter', '\n', 'whitespace', '');
+                            atx_file = atx_file{1};
+                            fclose(fid);
+                            
+                            found = 0;
+                            format = 0;
+                            % get format (1: ATX, 2: Bernese 5.0, 3: Bernese 5.2)
+                            l = 1;
+                            line = atx_file{l};
+                            if ~isempty(strfind(line, 'ANTEX VERSION / SYST'))
+                                format = 1;
+                            end
+                            if ~isempty(strfind(line, 'MODEL NAME:'))
+                                format = 2;
+                            end
+                            if ~isempty(strfind(line, 'ANTENNA PHASE CENTER VARIATIONS DERIVED FROM ANTEX FILE'))
+                                format = 3;
+                            end
+                            
+                            switch format
+                                %% ATX
+                                case 1
+                                    flag_stop = 0;
+                                    ant_char = strcat(antmod{:});
+                                    while (l < numel(atx_file) && found < length(antmod) && ~flag_stop)
+                                        % go to the next antenna
+                                        line = atx_file{l};
+                                        while (l < numel(atx_file)-1) && ((length(line) < 76) || isempty(strfind(line(61:76),'START OF ANTENNA')))
+                                            l = l + 1; line = atx_file{l};
+                                        end
+                                        l = l + 1; line = atx_file{l};
+                                        
+                                        if ~isempty(strfind(line,'TYPE / SERIAL NO')) %#ok<*STREMP> % antenna serial number
+                                            if (nargin == 2) % receiver
+                                                id_ant = strfind(ant_char,line(1:20));
+                                                sat_type=[];
+                                            else
+                                                id_ant = strfind(ant_char, line(21:23));
+                                                sat_type=strtrim(line(1:20));
+                                            end
+                                            if ~isempty(id_ant)
+                                                if (nargin == 2) % receiver
+                                                    m = (id_ant - 1) / 20 + 1; % I'm reading the antenna
+                                                else
+                                                    m = (id_ant - 1) / 3 + 1; % I'm reading the antenna
+                                                end
+                                                
+                                                if ~(ant_pcv(m(1)).available)
+                                                    
+                                                    for a = 1:length(m)
+                                                        log.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
+                                                    end
+                                                    
+                                                    invalid_date = 0;
+                                                    
+                                                    validity_start = [];
+                                                    validity_end   = [];
+                                                    
+                                                    l_start = l; % line at the beginng of the antenna section
+                                                    % look for "VALID FROM" and "VALID UNTIL" lines (if satellite antenna)
+                                                    if (nargin > 2)
+                                                        while (isempty(strfind(line,'VALID FROM')))
+                                                            l = l + 1; line = atx_file{l};
+                                                        end
+                                                        validity_start = [str2num(line(3:6)) str2num(line(11:12)) str2num(line(17:18)) str2num(line(23:24)) str2num(line(29:30)) str2num(line(34:43))]; %#ok<*ST2NM>
+                                                        l = l + 1; line = atx_file{l};
+                                                        if (strfind(line, 'VALID UNTIL')) %#ok<*STRIFCND>
+                                                            validity_end = [str2num(line(3:6)) str2num(line(11:12)) str2num(line(17:18)) str2num(line(23:24)) str2num(line(29:30)) str2num(line(34:43))];
+                                                        else
+                                                            validity_end = Inf;
+                                                        end
+                                                    end
+                                                    
+                                                    if (~isempty(validity_start)) % satellite antenna
+                                                        if ~((datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end)))
+                                                            invalid_date = 1;
+                                                            ant_pcv(m(1)).n_frequency = 0;
+                                                            if isinf(validity_end)
+                                                                log.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start)), 100)
+                                                            else
+                                                                log.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start), datestr(validity_end)), 100)
+                                                            end
+                                                        end
+                                                    else  %receiver antenna
+                                                    end
+                                                    
+                                                    if ~(invalid_date) % continue parsing
+                                                        for a = 1:length(m)
+                                                            log.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
+                                                        end
+                                                        l = l_start;
+                                                        
+                                                        % get TYPE
+                                                        ant_pcv(m(1)).type = line(1:20);
+                                                        
+                                                        % PUT SATELLITE
+                                                        ant_pcv(m(1)).sat_type = sat_type;
+                                                        
+                                                        % get DAZI
+                                                        while (isempty(strfind(line,'DAZI')))
+                                                            l = l + 1; line = atx_file{l};
+                                                        end
+                                                        ant_pcv(m(1)).dazi=sscanf(line(1:8),'%f');
+                                                        
+                                                        % get ZEN1 / ZEN2 / DZEN
+                                                        while (isempty(strfind(line,'ZEN1 / ZEN2 / DZEN')))
+                                                            l = l + 1; line = atx_file{l};
+                                                        end
+                                                        ant_pcv(m(1)).zen1 = sscanf(line(1:8),'%f');
+                                                        ant_pcv(m(1)).zen2 = sscanf(line(9:14),'%f');
+                                                        ant_pcv(m(1)).dzen = sscanf(line(15:20),'%f');
+                                                        
+                                                        % get FREQUENCIES
+                                                        while (isempty(strfind(line,'# OF FREQUENCIES')))
+                                                            l = l + 1; line = atx_file{l};
+                                                        end
+                                                        ant_pcv(m(1)).n_frequency=sscanf(line(1:8),'%d');
+                                                        ant_pcv(m(1)).offset = zeros(1,3,ant_pcv(m(1)).n_frequency);
+                                                        
+                                                        %get information of each frequency
+                                                        frequencies_found = 0;
+                                                        
+                                                        while frequencies_found < ant_pcv(m(1)).n_frequency
+                                                            while (isempty(strfind(line,'START OF FREQUENCY')))
+                                                                l = l + 1; line = atx_file{l};
+                                                            end
+                                                            frequencies_found=frequencies_found+1;
+                                                            ant_pcv(m(1)).frequency_name(frequencies_found,:)=sscanf(line(4:6),'%s');
+                                                            ant_pcv(m(1)).frequency(frequencies_found)=sscanf(line(6),'%d');
+                                                            
+                                                            switch sscanf(line(4),'%c')
+                                                                case 'G'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 1;
+                                                                case 'R'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 2;
+                                                                case 'E'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 3;
+                                                                case 'J'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 4;
+                                                                case 'C'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 5;
+                                                                case 'I'
+                                                                    ant_pcv(m(1)).sys(frequencies_found) = 6;
+                                                            end
+                                                            ant_pcv(m(1)).sysfreq(frequencies_found) = ant_pcv(m(1)).sys(frequencies_found)*10+ant_pcv(m(1)).frequency(frequencies_found);
+                                                            
+                                                            while (isempty(strfind(line,'NORTH / EAST / UP')))
+                                                                l = l + 1; line = atx_file{l};
+                                                            end
+                                                            if (~isempty(validity_start)) %satellite antenna
+                                                                ant_pcv(m(1)).offset(1,1:3,frequencies_found) = [sscanf(line(1:10),'%f'),sscanf(line(11:20),'%f'),sscanf(line(21:30),'%f')].*1e-3; % N,E,U
+                                                                if (frequencies_found == ant_pcv(m(1)).n_frequency)
+                                                                    ant_pcv(m(1)).available = 1;
+                                                                end
+                                                            else
+                                                                ant_pcv(m(1)).offset(1,1:3,frequencies_found) = [sscanf(line(11:20),'%f'),sscanf(line(1:10),'%f'),sscanf(line(21:30),'%f')].*1e-3; %E,N,U
+                                                                ant_pcv(m(1)).available = 1;
+                                                            end
+                                                            
+                                                            number_of_zenith=(ant_pcv(m(1)).zen2-ant_pcv(m(1)).zen1)/ant_pcv(m(1)).dzen+1;
+                                                            if ant_pcv(m(1)).dazi~=0
+                                                                number_of_azimuth=(360-0)/ant_pcv(m(1)).dazi+1;
+                                                            else
+                                                                number_of_azimuth=0;
+                                                            end
+                                                            
+                                                            % NOAZI LINE
+                                                            l = l + 1; line = atx_file{l};
+                                                            ant_pcv(m(1)).tableNOAZI(1,:,frequencies_found)=sscanf(line(9:end),'%f')'.*1e-3;
+                                                            ant_pcv(m(1)).tablePCV_zen(1,1:number_of_zenith,1)=ant_pcv(m(1)).zen1:ant_pcv(m(1)).dzen:ant_pcv(m(1)).zen2;
+                                                            
+                                                            % TABLE AZI/ZEN DEPENDENT
+                                                            if number_of_azimuth ~= 0
+                                                                ant_pcv(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(number_of_azimuth,1);
+                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(number_of_azimuth,number_of_zenith);
+                                                            else
+                                                                ant_pcv(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(1,1);
+                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
+                                                            end
+                                                            
+                                                            l = l + 1; line = atx_file{l};
+                                                            if (isempty(strfind(line,'END OF FREQUENCY')))
+                                                                tablePCV=zeros(number_of_azimuth,number_of_zenith);
+                                                                for i=1:number_of_azimuth
+                                                                    tablePCV(i,:)=sscanf(line(9:end),'%f')'.*1e-3;
+                                                                    l = l + 1; line = atx_file{l};
+                                                                end
+                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=tablePCV;
+                                                                ant_pcv(m(1)).tablePCV_azi(:,1:number_of_azimuth,1)=0:ant_pcv(m(1)).dazi:360;
+                                                            end
+                                                            if number_of_azimuth == 0
+                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
+                                                            end
+                                                        end
+                                                        found = found + length(m);
+                                                        antenna_found(m) = 1;
+                                                        for a = 2 : length(m)
+                                                            ant_pcv(m(a)) = ant_pcv(m(1));
+                                                        end
+                                                    else % invalid_date
+                                                        while (isempty(strfind(line,'END OF ANTENNA')))
+                                                            l = l + 1; line = atx_file{l};
+                                                        end
+                                                    end
+                                                elseif (nargin > 2) && strcmp(line(41:44),'    ')
+                                                    flag_stop = true;
+                                                    log.addMessage('There are no more antenna!!!',100);
+                                                end
+                                            end
+                                        end
+                                    end
+                                case 2
+                                    
+                                    
+                                case 3
+                                    
+                                    
+                                case 0
+                                    
+                            end
+                        else
+                            log.addWarning('PCO/PCV file not loaded.\n');
+                        end
+                    else
+                        log.addWarning('PCO/PCV file not loaded.\n');
+                    end
+                end
+            end
+            
+            idx_not_found = find(~antenna_found);
+            if ~isempty(idx_not_found)
+                ww_msg = sprintf('The PCO/PCV model for the following antennas has not been found\nSome models are missing or not defined at the time of processing\n');
+                for a = 1 : length(idx_not_found)
+                    ww_msg = sprintf('%s -  antenna model for "%s" is missing\n', ww_msg, cell2mat(antmod(idx_not_found(a))));
+                end
+                log.addWarning(ww_msg);
+            end
+        end
+        
     end
 end

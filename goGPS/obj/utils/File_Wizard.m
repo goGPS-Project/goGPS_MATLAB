@@ -125,7 +125,7 @@ classdef File_Wizard < handle
     end
 
     properties (SetAccess = private, GetAccess = private)
-        logger = Logger.getInstance(); % Handler to the logger object
+        log = Logger.getInstance(); % Handler to the log object
         ftp_downloader;
     end
 
@@ -148,6 +148,7 @@ classdef File_Wizard < handle
             if (nargin == 1)
                 [date_start, date_stop] = this.conjureObsFile();
             end
+            
             this.state.setProcessingTime(date_start, date_stop, false);
             this.state.updateNavFileName();
             this.state.updateErpFileName();
@@ -162,8 +163,8 @@ classdef File_Wizard < handle
             % In a future here I'll download the required navigational files of a station in a network
 
             first_target_files = this.state.getTargetPath(1);
-            fh = File_Rinex(first_target_files);
-            this.logger.newLine();
+            fh = File_Rinex(first_target_files, 100);
+            this.log.newLine();
             first_epoch = fh.first_epoch.first;
             last_epoch = fh.last_epoch.last;
         end
@@ -466,8 +467,8 @@ classdef File_Wizard < handle
                     end
                 end
             else
-                this.logger.addStatusOk('Erp files are present ^_^');
-                this.logger.newLine();
+                this.log.addStatusOk('Erp files are present ^_^');
+                this.log.newLine();
             end
         end
         
@@ -603,8 +604,8 @@ classdef File_Wizard < handle
                     end
                 end
             else
-                this.logger.addStatusOk('Navigational files are present ^_^');
-                this.logger.newLine();
+                this.log.addStatusOk('Navigational files are present ^_^');
+                this.log.newLine();
             end
         end
     end

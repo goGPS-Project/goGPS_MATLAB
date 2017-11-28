@@ -68,7 +68,7 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
   % *****  The user must choose one of the following statements  *****
   %            ( Usually NRECL = 4 is used on Unix platforms)
 
-  logger = Logger.getInstance();
+  log = Logger.getInstance();
   NRECL = 4;
   %NRECL = 1;
 

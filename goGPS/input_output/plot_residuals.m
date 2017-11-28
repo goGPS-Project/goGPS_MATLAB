@@ -76,8 +76,8 @@ for s = 1 : 6 %numel(unique(constellations.systems))
             try
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals']);
             catch ex
-                logger = Logger.getInstance();
-                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
+                log = Logger.getInstance();
+                log.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
             end
             %remove figure
             close(f);
@@ -105,8 +105,8 @@ for s = 1 : 6 %numel(unique(constellations.systems))
             try
                 print(f1 , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals']);
             catch ex
-                logger = Logger.getInstance();
-                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
+                log = Logger.getInstance();
+                log.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
             end
 
 
@@ -136,8 +136,8 @@ for s = 1 : 6 %numel(unique(constellations.systems))
             try
                 print(f , '-dpdf', [filerootOUT '_' systems{s} '_PHASE_residuals_with_OUTLIERS']);
             catch ex
-                logger = Logger.getInstance();
-                logger.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
+                log = Logger.getInstance();
+                log.addError(sprintf('saving phase residuals PDF failed - %s\n', ex.message))
             end
 
             %remove figure
@@ -168,8 +168,8 @@ for s = 1 : 6 %numel(unique(constellations.systems))
             try
                 print(f1 , '-dpdf', [filerootOUT '_' systems{s} '_CODE_residuals_with_OUTLIERS']);
             catch ex
-                logger = Logger.getInstance();
-                logger.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
+                log = Logger.getInstance();
+                log.addError(sprintf('saving code residuals PDF failed - %s\n', ex.message))
             end
             close(f1);
         end
