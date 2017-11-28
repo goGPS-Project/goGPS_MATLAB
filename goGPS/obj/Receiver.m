@@ -1361,10 +1361,10 @@ classdef Receiver < handle
                 opt.coord_corr = 1;
                 opt.max_it = 10;
                 if sub_sample
-                    this.codePositionig(obs_ss, prn_ss, sys_ss, flag_ss, opt);
+                    this.codeStaticPositionig(obs_ss, prn_ss, sys_ss, flag_ss, opt);
                     [obs_ss, sys_ss, prn_ss, flag_ss] = this.removeUndCutOff(obs_ss, sys_ss, prn_ss, flag_ss, cut_off);
                 else
-                    this.codePositionig(obs, prn, sys, flag, opt);
+                    this.codeStaticPositionig(obs, prn, sys, flag, opt);
                 end
                  %%% remove obs under cu off
                 [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
@@ -1379,9 +1379,9 @@ classdef Receiver < handle
                 opt.coord_corr = 1;
                 opt.max_it = 10;
                 if sub_sample
-                    this.codePositionig(obs_ss, prn_ss, sys_ss, flag_ss, opt);
+                    this.codeStaticPositionig(obs_ss, prn_ss, sys_ss, flag_ss, opt);
                 else
-                    this.codePositionig(obs, prn, sys, flag, opt);
+                    this.codeStaticPositionig(obs, prn, sys, flag, opt);
                 end
             end
             if sub_sample
@@ -1409,9 +1409,9 @@ classdef Receiver < handle
             opt.coord_corr = 0.1;
             opt.no_pos = true;
             
-            this.codePositionig(obs, prn, sys, flag, opt); % get a first estimation of receiver clock offset to get correct orbit
+            this.codeStaticPositionig(obs, prn, sys, flag, opt); % get a first estimation of receiver clock offset to get correct orbit
             opt.no_pos = false;
-            this.codePositionig(obs, prn, sys, flag, opt);
+            this.codeStaticPositionig(obs, prn, sys, flag, opt);
         end
         function codeStaticPositionig(this, obs, prn, sys, flag, opt)
             % INPUT:

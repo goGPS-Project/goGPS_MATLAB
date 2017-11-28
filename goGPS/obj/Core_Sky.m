@@ -122,15 +122,11 @@ classdef Core_Sky < handle
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
                         
-            % load Epehemerids
-            eph_f_name   = this.state.getEphFileName(start_date, stop_time);
-            clock_f_name = this.state.getClkFileName(start_date, stop_time);
-            clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)); %%% condition to be tested in differnet cases
             
             %%% load Epehemerids
-            eph_f_name   = state.getEphFileName(start_date, stop_time);
-            clock_f_name = state.getClkFileName(start_date, stop_time);
-            clock_in_eph = true;%isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
+            eph_f_name   = this.state.getEphFileName(start_date, stop_time);
+            clock_f_name = this.state.getClkFileName(start_date, stop_time);
+            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
             this.clearOrbit();
             
             if strfind(eph_f_name{1}, '.sp3') % assuming all files have the same endings
