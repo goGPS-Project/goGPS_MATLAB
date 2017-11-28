@@ -1635,12 +1635,12 @@ classdef Receiver < handle
             % get best observation for all satellites and all epochs
             [obs, prn, sys, flag] = this.getBestCodeObs;
             
-%             %%% TEST REMOVE GALILEO
-%             gal_idx = sys == 'E';
-%             obs(gal_idx,:) = [];
-%             prn(gal_idx,:) = [];
-%             sys(gal_idx,:) = [];
-%             flag(gal_idx,:) = [];
+%             %%% TEST REMOVE ALL but GPS
+%             gps_idx = sys == 'G';
+%             obs(~gps_idx,:) = [];
+%             prn(~gps_idx,:) = [];
+%             sys(~gps_idx,:) = [];
+%             flag(~gps_idx,:) = [];
             
             
             %check if the combination is ionofree
@@ -1752,6 +1752,59 @@ classdef Receiver < handle
                     if not(isnan(this.xyz(e,:))) | sum(abs(x(1:3))) > 300
                         cur_xyz_est = this.xyz(e,:);
                     end
+                end
+            end
+            
+            %%% COMPUTE AGAIN XS BASED ON CURRENT CLCOK ESTIMATE
+            % hard threshold on dtR 
+            %this.dtR(abs(this.dtR) > 0.01) = 0;
+            XS = zeros(this.cc.getNumSat(), 3, n_epochs);
+            dist = zeros(n_epochs, this.cc.getNumSat());
+            % get Sat orbit correctiong ony for pseudorange
+            for i = 1 : this.cc.getNumSat();
+                    c_sys = this.cc.system(i);
+                    c_prn = this.cc.prn(i);
+                    idx_sat = sys == c_sys & prn == c_prn;
+                    if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                        c_obs = obs(idx_sat,:);
+                        
+                        c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                        idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
+                        %update time of flight times
+                        this.updateAvailIndex(c_l_obs,i);
+                        this.updateErrTropo(i,1);
+                        this.updateTOT(c_l_obs,i); % update time of travel
+                        [dist(:,i), XS_temp] = this.getSyntObs('I',i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
+                        
+                        XS(i,:,idx_obs) = rowNormalize(XS_temp)';
+                    end
+            end
+            for e = 1 : n_epochs
+                idx_obs = obs(:,e) > 0;
+                n_obs_ep = sum(idx_obs);
+                v_clocks= 1:n_clocks;
+                clock_ep = code_bias_ord(idx_obs);
+                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                pres_clock(pres_clock == 0) = [];
+                if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
+                    XS_temp = XS(sat(idx_obs),:,e);
+                    A_dcb = zeros(n_obs_ep, length(pres_clock));
+                    for i = 1:length(pres_clock)
+                        A_dcb(clock_ep == pres_clock(i),i) = 1;
+                    end
+                    A_temp = [- XS_temp A_dcb];
+                    
+                    y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
+                    x = A_temp \ y;
+                    res = y - A_temp * x;
+                    residuals(idx_obs,e) = res;
+%                     % --- robust estimation ---
+% 
+%                     Q = diag(min(res.^2,100));
+%                     x = Least_Squares.solver(y, zeros(size(y)), A_temp, Q);
+                    
+                    this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                    this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
                 end
             end
         end
@@ -2088,7 +2141,11 @@ classdef Receiver < handle
                     XS = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
                     %%% compute az el
                     if size(this.xyz,1)>1
-                        [az, el] = this.getAzimuthElevation(this.xyz(idx ,:) ,XS);
+                        XR = this.xyz(idx,:);
+                        [az, el] = this.getAzimuthElevation(XS, XR);
+                        h = h(idx);
+                        lat = lat(idx);
+                        lon = lon(idx);
                     else
                         [az, el] = this.getAzimuthElevation(XS);
                     end
