@@ -1303,7 +1303,7 @@ classdef Receiver < handle
                 end
             end
         end
-        function initPositioning(this)
+        function initStaticPositioning(this)
             % SYNTAX:
             %   this.initPositioning();
             %
@@ -1326,7 +1326,7 @@ classdef Receiver < handle
 %             [obs, prn, flag] = this.getIonoFree('C1','C2','G',1);
 %             sys = char('G' * ones(size(prn)));
             
-            iono_free = flag(1,1) == 'I';
+            iono_free = flag(1,7) == 'I';
             %                [obs, idx] = this.getObs('C1');
             %                prn = this.prn(idx);
             %                flag = this.obs_code(idx,:);
@@ -1415,8 +1415,8 @@ classdef Receiver < handle
             opt.no_pos = false;
             this.codePositionig(obs, prn, sys, flag, opt);
         end
-        function codePositionig(this, obs, prn, sys, flag, opt)
-            % INPUT: 
+        function codeStaticPositionig(this, obs, prn, sys, flag, opt)
+            % INPUT:
             %   opt: structure with options of the LS adjustement
             %        .coord_corr : stop if coordinate correction goes under
             %        the paramter
@@ -1474,18 +1474,13 @@ classdef Receiver < handle
             for s = 1:length(sat_ids)
                 sat_ids(s) = this.cc.getIndex(sys(s),prn(s));
             end
-           
             
-            if opt.rid_ep
-                this.dtR = zeros(this.time.length,length(u_code_bias_flag));
-                this.dtR_obs_code = u_code_bias_flag;
-            else
-                this.dtR = zeros(this.time.length,1);
-                this.rid = zeros(1, length(u_code_bias_flag)-1);
-                this.dtR_obs_code = u_code_bias_flag;
-                
-                
-            end
+            
+            
+            this.dtR = zeros(this.time.length,1);
+            this.rid = zeros(1, length(u_code_bias_flag)-1);
+            this.dtR_obs_code = u_code_bias_flag;
+            
             
             
             n_tot_obs = sum(sum(obs>0));
@@ -1498,162 +1493,269 @@ classdef Receiver < handle
             ls_solver.Q = speye(n_tot_obs);
             x = [999 999 999];
             
-            iono_free = true; %to be removed
             
             
-                %ls_solver.A =sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); %version with reference clock
-                
-                n_it = 0;
-                while max(abs(x(1:3))) > opt.coord_corr &   n_it < opt.max_it
-                    n_it = n_it + 1;
-                    ls_solver.clearUpdated();
-                    % fill the a matrix
-                    oc = 1; % obervation counter+
-                    XS_norm = zeros(this.cc.getNumSat(), 3, n_epochs);
-                    dist = zeros(n_epochs, this.cc.getNumSat());
-                    for i = 1 : this.cc.getNumSat();
-                        c_sys = this.cc.system(i);
-                        c_prn = this.cc.prn(i);
-                        idx_sat = sys == c_sys & prn == c_prn;
-                        idx_sat_i = find(idx_sat);
-                        if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
-                            c_obs = obs(idx_sat,:);
-                            
-                            c_obs_idx = c_obs > 0;
-                            c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
-                            idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
-                           
-                            
-                            n_obs_sat = sum(sum(c_obs>0));
-                            %update time of flight times
-                            this.updateAvailIndex(c_l_obs,i); 
-                            this.updateTOT(c_l_obs,i); % update time of travel
-                            %----- OLD WAY --------------------
-%                             
-%                             % CORRECT THE OBSERVATIONS
-%                             % iono corr
-%                             if ~iono_free
-%                                 err_iono = repmat(this.rec2sat.err_iono',size(c_obs,1),1); % c_obs = bsxfun(@minus, c_obs, err_iono);
-%                                 c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_iono(c_obs_idx);
-%                             end
-%                             % tropo corr
-%                             err_tropo = repmat(this.rec2sat.err_tropo(:,i)',size(c_obs,1),1);
-%                             c_obs(c_obs_idx) = c_obs(c_obs_idx) - err_tropo(c_obs_idx);
-%                             % solid earth corrections
-%                             solid_earth_corr = repmat(this.rec2sat.solid_earth_corr(:,i)',size(c_obs,1),1);
-%                             c_obs(c_obs_idx) = c_obs(c_obs_idx) - solid_earth_corr(c_obs_idx);
-%                             
-%                             
-%                             XS = this.getXSTxRot(i); %get satellite positions at transimssion time including earth rotation during the travel time
-%                             XR = repmat(this.xyz,sum(c_l_obs>0),1);
-%                             XS = XS - XR;
-%                             dist = sqrt(sum(XS.^2,2));
-                            %--------------------------------------------------------
-                            freq = flag(idx_sat_i(1), 7);
-                            if freq == ' ';
-                                freq = flag(idx_sat_i(1), 2);
-                            end
-                            [dist(:,i), XS] = this.getSyntObs(freq,i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
-                            %dist(dist==0) = [];
-                           
-
-                            XS_norm(i,:,idx_obs) = rowNormalize(XS)';
-                            
-                                                      
-                            
-                        end
-                    end
-                    %ls_solver.sortSystemByEpoch();
-                    if this.static == 1
-                        % preallocate normal matrix and 
-                        if opt.rid_ep
-                            n_par = 3+sum(n_ep_ch(1:end));
-                            N = spalloc(n_par,n_par,3*n_valid_epochs+n_valid_epochs*length(u_code_bias_flag));
-                            
-                        else
-                            n_par = 3+n_valid_epochs+length(u_code_bias_flag)-1;
-                            %N = spalloc(n_par,n_par,(3+length(u_code_bias_flag))*n_valid_epochs*2);
-                            
-                            num_dcb = length(u_code_bias_flag) -1;
-                            num_cp = 3+num_dcb; %num constant parmater
-                            N_cp = zeros(num_cp);
-                            N_col = zeros(n_valid_epochs,num_cp);%N coord and dcb
-                            N_diag = zeros(n_valid_epochs,1); %N clocks
-                        end
-                        B = zeros(n_par,1);                      
-                    end
-                    
-                    cur_val_ep = 0; 
-                    for e = 1 : n_epochs 
-                        obs_ep_idx_l = obs(:,e) >0; %logical index
+            %ls_solver.A =sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); %version with reference clock
+            
+            n_it = 0;
+            while max(abs(x(1:3))) > opt.coord_corr &   n_it < opt.max_it
+                n_it = n_it + 1;
+                ls_solver.clearUpdated();
+                % fill the a matrix
+                oc = 1; % obervation counter+
+                XS_norm = zeros(this.cc.getNumSat(), 3, n_epochs);
+                dist = zeros(n_epochs, this.cc.getNumSat());
+                for i = 1 : this.cc.getNumSat();
+                    c_sys = this.cc.system(i);
+                    c_prn = this.cc.prn(i);
+                    idx_sat = sys == c_sys & prn == c_prn;
+                    idx_sat_i = find(idx_sat);
+                    if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                        c_obs = obs(idx_sat,:);
                         
-                        if sum(obs_ep_idx_l) > 0
-                            cur_val_ep = cur_val_ep +1;
-                            
-                            obs_ep_idx = obs_ep_idx_l.*[1:1:length(obs_ep_idx_l)]'; %numerical index
-                            obs_ep_idx(obs_ep_idx==0)=[];
-                            
-                            num_obs_ep = length(obs_ep_idx);
-                            ch_obs = code_bias_ord(obs_ep_idx);
-                            u_dcb = unique(ch_obs);
-                            u_dcb(u_dcb == 1) = []; % remove refernce clock
-                            n_dcb = length(u_dcb);
-                            A_dcb = zeros(num_obs_ep, n_dcb);
-                            for i = 1:length(u_dcb)
-                                A_dcb(ch_obs==u_dcb(i),i) = 1;
-                            end
-                            % construc design matrix and (y0-b) for the current epoch
-                            A_ep = [-XS_norm(sat_ids(obs_ep_idx), : , e) A_dcb ones(num_obs_ep, 1) ];
-                            y_ep = obs(obs_ep_idx_l, e) - dist(e, sat_ids(obs_ep_idx))';
-                            % construct nomr matrix and A'*y for the
-                            % current epoch
-                            N_ep = A_ep'*A_ep;                    
-                            B_ep = A_ep' * y_ep;
-                            % fill the N and B matrix
-                            param_idx_c = [1 2 3 3+u_dcb'-1]; % non time dependent param
-                            param_idx = [param_idx_c 3+num_dcb+cur_val_ep ];
-                            B(param_idx) = B(param_idx) + B_ep;
-                            N_diag(cur_val_ep) = N_diag(cur_val_ep) + N_ep(end,end); % sum clock N
-                            n_tr_param = length(param_idx_c);
-                            for p = 1:n_tr_param
-                                N_cp(param_idx_c(p),param_idx_c) = N_cp(param_idx_c(p),param_idx_c) + N_ep(p,param_idx_c);
-                            end
-                            N_col(cur_val_ep,param_idx_c) = N_ep(n_tr_param+1,1:n_tr_param);  
+                        c_obs_idx = c_obs > 0;
+                        c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                        idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
+                        
+                        
+                        n_obs_sat = sum(sum(c_obs>0));
+                        %update time of flight times
+                        this.updateAvailIndex(c_l_obs,i);
+                        this.updateTOT(c_l_obs,i); % update time of travel
+                        freq = flag(idx_sat_i(1), 7);
+                        if freq == ' ';
+                            freq = flag(idx_sat_i(1), 2);
                         end
+                        [dist(:,i), XS] = this.getSyntObs(freq,i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
+                        %dist(dist==0) = [];
+                        
+                        
+                        XS_norm(i,:,idx_obs) = rowNormalize(XS)';
+                        
                     end
+                end
+                %ls_solver.sortSystemByEpoch();
+                if this.static == 1
+                    % preallocate normal matrix and
+                    n_par = 3+n_valid_epochs+length(u_code_bias_flag)-1;
+                    %N = spalloc(n_par,n_par,(3+length(u_code_bias_flag))*n_valid_epochs*2);
                     
-                    if opt.no_pos 
-                         %[x, res] = ls_solver.solve([4:size(ls_solver.A,2)]);
-                         num_param = num_dcb + n_valid_epochs;
-                        N = spdiags([zeros(num_dcb,1); N_diag], 0, num_param, num_param);
-                        N(1:num_dcb, 1:num_dcb) = N_cp(4:end, 4:end);
-                        N((num_dcb+1):num_param, 1:num_dcb) = N_col(:, 4:end);
-                        N(1:num_dcb, (num_dcb+1):num_param) = N_col(:, 4:end)';
-                        B = B(4:end);
-                        x = N\B;
-                         x = [zeros(3,1) ; x];
-                    else
-                        num_param = num_cp + n_valid_epochs;
-                        N = spdiags([zeros(num_cp,1); N_diag], 0, num_param, num_param);
-                        N(1:num_cp, 1:num_cp) = N_cp;
-                        N((num_cp+1):num_param, 1:num_cp) = N_col;
-                        N(1:num_cp, (num_cp+1):num_param) = N_col';
-                        x = N\B;
-                         %[x, res] = ls_solver.solve();
+                    num_dcb = length(u_code_bias_flag) -1;
+                    num_cp = 3+num_dcb; %num constant parameter
+                    N_cp = zeros(num_cp);
+                    N_col = zeros(n_valid_epochs,num_cp);%N coord and dcb
+                    N_diag = zeros(n_valid_epochs,1); %N clocks
+                    B = zeros(n_par,1);
+                end
+                
+                cur_val_ep = 0;
+                %                     n_type_obs = length(obs_ep_idx_l); % number of obervation types
+                %                     v_type_obs = (1 : n_type_obs)';
+                v_dcb = 1: num_dcb;
+                param_idx_c = [1 2 3 3+v_dcb]; % non time dependent param
+                n_c_param = length(param_idx_c);
+                v_c_param = 1:n_c_param;
+                % fill parts of normal matrix
+                for e = 1 : n_epochs
+                    obs_ep_idx_l = obs(:,e) > 0; %logical index
+                    
+                    if sum(obs_ep_idx_l) > 0
+                        cur_val_ep = cur_val_ep +1; % current valid epoch
+                        
+                        num_obs_ep = sum(obs_ep_idx_l);
+                        ch_obs = code_bias_ord(obs_ep_idx_l);
+                        
+                        A_dcb = zeros(num_obs_ep, num_dcb);
+                        for i = v_dcb
+                            A_dcb(ch_obs == i+1,i) = 1;
+                        end
+                        % construc design matrix and (y0-b) for the current epoch
+                        A_ep = [-XS_norm(sat_ids(obs_ep_idx_l), : , e) A_dcb ones(num_obs_ep, 1) ];
+                        y_ep = obs(obs_ep_idx_l, e) - dist(e, sat_ids(obs_ep_idx_l))';
+                        % construct nomr matrix and A'*y for the
+                        % current epoch
+                        N_ep = A_ep'*A_ep;
+                        B_ep = A_ep' * y_ep;
+                        % fill the N and B matrix
+                        
+                        param_idx = [param_idx_c 3+num_dcb+cur_val_ep ];
+                        B(param_idx) = B(param_idx) + B_ep;
+                        N_diag(cur_val_ep) = N_diag(cur_val_ep) + N_ep(end,end); % sum clock N
+                        for p = v_c_param
+                            N_cp(param_idx_c(p),param_idx_c) = N_cp(param_idx_c(p),param_idx_c) + N_ep(p,param_idx_c);
+                        end
+                        N_col(cur_val_ep,param_idx_c) = N_ep(n_c_param+1,1:n_c_param);
                     end
-                    this.xyz = this.xyz + x(1:3)';
-                    %
-                    if opt.rid_ep
+                end
+                
+                if opt.no_pos
+                    %[x, res] = ls_solver.solve([4:size(ls_solver.A,2)]);
+                    num_param = num_dcb + n_valid_epochs;
+                    N = spdiags([zeros(num_dcb,1); N_diag], 0, num_param, num_param);
+                    N(1:num_dcb, 1:num_dcb) = N_cp(4:end, 4:end);
+                    N((num_dcb+1):num_param, 1:num_dcb) = N_col(:, 4:end);
+                    N(1:num_dcb, (num_dcb+1):num_param) = N_col(:, 4:end)';
+                    B = B(4:end);
+                    x = N\B;
+                    x = [zeros(3,1) ; x];
+                else
+                    num_param = num_cp + n_valid_epochs;
+                    N = spdiags([zeros(num_cp,1); N_diag], 0, num_param, num_param);
+                    N(1:num_cp, 1:num_cp) = N_cp;
+                    N((num_cp+1):num_param, 1:num_cp) = N_col;
+                    N(1:num_cp, (num_cp+1):num_param) = N_col';
+                    x = N\B;
+                    %[x, res] = ls_solver.solve();
+                end
+                this.xyz = this.xyz + x(1:3)';
+                %
+                if opt.rid_ep
                     for i = 1:length(u_code_bias_flag)
                         %this.dtR(ch_idx_ep(i,:) > 0,i) = x((( n_valid_epochs + sum(n_ep_ch(2:i-1))) : (n_valid_epochs + sum(n_ep_ch(2:i)) -1 ) ) + 3) / Go_State.V_LIGHT;
                         this.dtR(ch_idx_ep(i,:) > 0,i) = x(((sum(n_ep_ch(1:i-1))) : (sum(n_ep_ch(1:i)) -1 ) ) + 4) / Go_State.V_LIGHT;
                     end
-                    else
-                        this.dtR(sum(obs,1) > 0,1,1) = x((4+num_dcb):end) / Go_State.V_LIGHT;
-                        this.rid = x(4: (3+num_dcb)) / Go_State.V_LIGHT;
-                    end
-                    
+                else
+                    this.dtR(sum(obs,1) > 0,1,1) = x((4+num_dcb):end) / Go_State.V_LIGHT;
+                    this.rid = x(4: (3+num_dcb)) / Go_State.V_LIGHT;
                 end
+                
+            end
+        end
+        function initDynamicGeodPositioning(this)
+            % DESCRIPTION: get dynamic postion using code observables
+            % (independent epochs, no kalman filters or regularization)
+            
+            %initialize modeled error matrix
+            this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
+            this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
+            this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
+            
+            % if not applied apply gruop delay
+            this.applyGroupDelay();
+            this.applyDts();
+            
+            % get best observation for all satellites and all epochs
+            [obs, prn, sys, flag] = this.getBestCodeObs;
+            
+%             %%% TEST REMOVE GALILEO
+%             gal_idx = sys == 'E';
+%             obs(gal_idx,:) = [];
+%             prn(gal_idx,:) = [];
+%             sys(gal_idx,:) = [];
+%             flag(gal_idx,:) = [];
+            
+            
+            %check if the combination is ionofree
+            iono_free = flag(1,7) == 'I';
+            n_epochs         = this.time.length;
+            code_bias_flag = [sys flag];
+            % compute a column with an integer that indicate whice
+            % code_bias to estimate for each obs
+            code_bias_ord = zeros(size(code_bias_flag,1),1);
+            u_code_bias_flag = unique(cellstr(code_bias_flag),'stable');
+            n_clocks = length(u_code_bias_flag);
+            for i = 1 : n_clocks
+                ch_idx_sat = sum([sys flag] == repmat( sprintf('%-8s',u_code_bias_flag{i}),length(sys),1),2) == 8;
+                code_bias_ord(ch_idx_sat) = i;
+            end
+            sat = zeros(size(prn));
+            for i = 1 : length(sat)
+                sat(i) = this.cc.getIndex(sys(i),prn(i));
+            end
+            
+                        this.dtR = zeros(n_epochs,n_clocks);
+                        this.dtR_obs_code = u_code_bias_flag;
+            this.xyz = zeros(n_epochs,3);
+            
+            XS = zeros(this.cc.getNumSat(), 3, n_epochs);
+            dist = zeros(n_epochs, this.cc.getNumSat());
+            % get Sat orbit correctiong ony for pseudorange
+            for i = 1 : this.cc.getNumSat();
+                    c_sys = this.cc.system(i);
+                    c_prn = this.cc.prn(i);
+                    idx_sat = sys == c_sys & prn == c_prn;
+                    if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                        c_obs = obs(idx_sat,:);
+                        
+                        c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                        idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
+                        %update time of flight times
+                        this.updateAvailIndex(c_l_obs,i);
+                        this.updateTOT(c_l_obs,i); % update time of travel
+                        [XS_temp , ~] = this.getXSTxRot(i);
+                        XS(i,:,idx_obs) = XS_temp';
+                    end
+            end
+
+            % get coarse postion from first valid epoch
+            %find first valid epoch
+            not_found = true;
+            e = 1;
+            while not_found & e < n_epochs
+                idx_obs = obs(:,e) > 0;
+                clock_temp = unique(code_bias_ord(idx_obs));
+                if sum(idx_obs) >= (3 + length(clock_temp));
+                    not_found = false;
+                end
+                e = e + 1;
+            end
+            x = [999 999 999];
+            n_obs_ep = sum(idx_obs);
+            v_clocks= 1:n_clocks;
+            while max(abs(x(1:3))) > 10
+                clock_ep = code_bias_ord(idx_obs);
+                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                pres_clock(pres_clock == 0) = [];
+                XS_temp = XS(sat(idx_obs),:,e);
+                XS_temp = XS_temp - repmat(this.xyz(e,:),sum(idx_obs),1);
+                dist = sqrt(sum(XS_temp.^2,2));
+                XS_temp_norm = XS_temp./repmat(dist,1,3);
+                A_dcb = zeros(n_obs_ep, length(pres_clock));
+                for i = 1:length(pres_clock)
+                            A_dcb(clock_ep == pres_clock(i),i) = 1;
+                end
+               A_temp = [- XS_temp_norm A_dcb];
+               y = obs(idx_obs, e) - dist;
+               x = A_temp \ y;
+               this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+               this.dtR(e,pres_clock) = x(4:end)';
+               cur_xyz_est = this.xyz(e,:);
+            end
+            residuals = zeros(size(obs));
+            for e = 1 : n_epochs
+                idx_obs = obs(:,e) > 0;
+                n_obs_ep = sum(idx_obs);
+                v_clocks= 1:n_clocks;
+                clock_ep = code_bias_ord(idx_obs);
+                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                pres_clock(pres_clock == 0) = [];
+                if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
+                    XS_temp = XS(sat(idx_obs),:,e);
+                    XS_temp = XS_temp - repmat(cur_xyz_est,sum(idx_obs),1);
+                    dist = sqrt(sum(XS_temp.^2,2));
+                    XS_temp_norm = XS_temp./repmat(dist,1,3);
+                    A_dcb = zeros(n_obs_ep, length(pres_clock));
+                    for i = 1:length(pres_clock)
+                        A_dcb(clock_ep == pres_clock(i),i) = 1;
+                    end
+                    A_temp = [- XS_temp_norm A_dcb];
+                    
+                    y = obs(idx_obs, e) - dist;
+                    x = A_temp \ y;
+                    res = y - A_temp * x;
+                    residuals(idx_obs,e) = res;
+%                     % --- robust estimation ---
+%                     
+%                     Q = diag(min(res.^2,100));
+%                     x = Least_Squares.solver(y, zeros(size(y)), A_temp, Q);
+                    
+                    this.xyz(e,:) = cur_xyz_est +x(1:3)';
+                    this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                    if not(isnan(this.xyz(e,:))) | sum(abs(x(1:3))) > 300
+                        cur_xyz_est = this.xyz(e,:);
+                    end
+                end
+            end
         end
         function [range, XS_loc] = getSyntObs(this,  obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
@@ -1856,8 +1958,8 @@ classdef Receiver < handle
             %   Compute the satellite clock error.
             if nargin < 2
                 dtS = zeros(size(this.rec2sat.avail_index));
-                for s = 1 : size(dtS)
-                    dtS(this.rec2sat.avail_index(:,s)) = this.rec2sat.cs.clockInterpolate(this.time(this.rec2sat.avail_index(:,s)),s);
+                for s = 1 : size(dtS,2)
+                    dtS(this.rec2sat.avail_index(:,s),s) = this.rec2sat.cs.clockInterpolate(this.time.getSubSet(this.rec2sat.avail_index(:,s)),s);
                 end
             else
                 idx = this.rec2sat.avail_index(:,sat) > 0;
@@ -2050,7 +2152,7 @@ classdef Receiver < handle
                             if ~isempty(this.rec2sat.cs.iono )
                                 this.rec2sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.rec2sat.cs.iono);
                             else
-                                this.log.addWarning('No klobuchar parameter found, iono correction not computed');
+                                this.logger.addWarning('No klobuchar parameter found, iono correction not computed',100);
                             end
                             
                     end
