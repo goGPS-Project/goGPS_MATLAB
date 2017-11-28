@@ -1021,8 +1021,8 @@ classdef Core_Pre_Processing < handle
             end
                         
             flag = 1;
-            i = 0;            
-            % Interpolate to reference time to find outliers in the 4th derivative 
+            i = 0;
+            % Interpolate to reference time to find outliers in the 4th derivative
             if ~isempty(time_set)
                 data_interp = zeros(size(data));
                 for s = 1 : size(data,2)
@@ -1062,8 +1062,8 @@ classdef Core_Pre_Processing < handle
             end
                         
             flag = 1;
-            i = 0;            
-            % Interpolate to reference time to find outliers in the 4th derivative 
+            i = 0;
+            % Interpolate to reference time to find outliers in the 4th derivative
             if ~isempty(time_set)
                 data_interp = zeros(size(data));
                 for s = 1 : size(data,2)
@@ -1085,7 +1085,7 @@ classdef Core_Pre_Processing < handle
                 sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
                 i = i + 1;
                 % expand the set of observations to allow flogging at the border of the valid intervals
-                sensor = movstd(sensor, win_size, 'omitnan');                
+                sensor = movstd(sensor, win_size, 'omitnan');
                 flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
                 data(flag) = NaN;
                 data_interp(flag) = NaN;
@@ -1100,7 +1100,7 @@ classdef Core_Pre_Processing < handle
                 win_size = 20;
             end
             
-            % Interpolate to reference time to find outliers in the 4th derivative 
+            % Interpolate to reference time to find outliers in the 4th derivative
             time_set = 1 : size(data,1);
             id_interp = flagExpand(~isnan(data), 5) & isnan(data);
             data_interp = data;
@@ -1146,7 +1146,7 @@ classdef Core_Pre_Processing < handle
             if sum(pos_jmp) > 0
                 ddt = ddt - simpleFill1D(ddt, pos_jmp);
                 dt = detrend(cumsum(ddt));
-                ph_bk = ph;                
+                ph_bk = ph;
                 ph = bsxfun(@minus, ph, dt);
                 d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
                 d4dt(abs(d4dt) < clock_thresh) = 0;
@@ -1155,11 +1155,11 @@ classdef Core_Pre_Processing < handle
             else
                 dt = zeros(size(ddt));
             end
-            dt = dt / 299792458;            
+            dt = dt / 299792458;
         end
         
         function [ph_out, dt] = remDtHF(ph)
-            % [ !! ] EXPERIMENTAL FUNCTION 
+            % [ !! ] EXPERIMENTAL FUNCTION
             % Remove high frequency from phases estimated by the 4th derivative
             % WARNING: this code works bbut it has a lot of border effects, especially if the dataset it's not continuous
             %
@@ -1176,10 +1176,10 @@ classdef Core_Pre_Processing < handle
 %             dt_lf = interp1(x(~isnan(dt_hf)), dt_hf(~isnan(dt_hf)), xi, 'spline', 'extrap');
 %             dt_lf = splinerMat([],medfilt_mat(dt_lf, 5), 5);
 %             dt_hf = dt_hf - dt_lf(margin + 1 : end - margin);
-            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(d4dt), 313, 0.01, 101)); 
-            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 177, 0.01, 101)); 
-            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 143, 0.01, 101)); 
-            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 107, 0.01, 101));             
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(d4dt), 313, 0.01, 101));
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 177, 0.01, 101));
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 143, 0.01, 101));
+            dt = cumsum(Core_Pre_Processing.highPass(nan2zero(dt), 107, 0.01, 101));
             ph_out = nan2zero(bsxfun(@minus, zero2nan(ph), dt));
             dt = dt / 299792458;
         end
@@ -1227,7 +1227,7 @@ classdef Core_Pre_Processing < handle
                 log.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
             else
                 dt_pr = zeros(size(dt_ph));
-            end            
+            end
 
             % correct the pseudo-ranges for jumps
             pr_dj = bsxfun(@minus, pr, dt_ph_jumps .* 299792458);

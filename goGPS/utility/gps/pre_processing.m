@@ -188,13 +188,13 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
     
     %flag_ph = false(size(ph));
-    %flag_pr = false(size(pr));    
+    %flag_pr = false(size(pr));
     [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
     [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
     %[ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
     %[pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
 
-    % flag by high deviation of the 4th derivate    
+    % flag by high deviation of the 4th derivate
     ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
     ph1 = ph(:,1:size(ph1,1))';
     ph2 = ph(:,(size(ph2,1)+1):end)';
@@ -563,7 +563,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         %----------------------------------------------------------------------------------------------
         
         dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
-        flag = abs(dGF)' > 10 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);        
+        flag = abs(dGF)' > 10 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
         ph1(flag) = NaN;
         ph2(flag) = NaN;
         ph_GF(flag) = NaN;

@@ -228,7 +228,7 @@ if goGPS_new
     %% NEW goGPS
     state.showTextMode();
     
-    sky = Core_Sky.getInstance();    
+    sky = Core_Sky.getInstance();
     for s = 1 : num_session
         %-------------------------------------------------------------------------------------------
         % SESSION START

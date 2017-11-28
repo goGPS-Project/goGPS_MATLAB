@@ -202,7 +202,7 @@ classdef Tropo < handle
             %
             % SYNTAX:  
             %   tropo = Tropo.loadBatch(file_name, run_start, run_stop)
-            % 
+            %
             % INPUT:
             %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
             %   run_start     number of the first run to load

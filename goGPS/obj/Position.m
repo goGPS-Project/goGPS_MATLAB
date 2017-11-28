@@ -90,7 +90,7 @@ classdef Position < handle
         function reset(this)
             this.time = GPS_Time();
             this.xyz = [];
-            this.enu = [];            
+            this.enu = [];
             this.lat = [];
             this.lon = [];
             this.h_ortho = [];
@@ -99,7 +99,7 @@ classdef Position < handle
             this.hdop =  [];
             this.khdop = [];
             this.a_fix = [];
-            this.s_rate = [];            
+            this.s_rate = [];
         end
         
         function importPosition(this, file)
@@ -154,7 +154,7 @@ classdef Position < handle
             n_sat = data(:,19);
             hdop =  data(:,20);
             khdop = data(:,21);
-            a_fix = data(:,25); 
+            a_fix = data(:,25);
             s_rate = data(:,26);
             
             % Append in obj
@@ -182,7 +182,7 @@ classdef Position < handle
             %
             % SYNTAX:  
             %   position = Position.loadBatch(file_name, run_start, run_stop)
-            % 
+            %
             % INPUT:
             %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
             %   run_start     number of the first run to load

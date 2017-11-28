@@ -34,7 +34,7 @@ classdef Core_Sky < handle
     
     properties
         time_ref_coord         % GPS Times of ephemerides
-        time_ref_clock         % 
+        time_ref_clock         %
         
         coord                  % Ephemerides [times x num_sat x 3]
         coord_type             % 0: Center of Mass 1: Antenna Phase Center
@@ -58,7 +58,7 @@ classdef Core_Sky < handle
                                'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
                                'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ...                                                       % BeiDou codes
                                'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
-                               'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS   
+                               'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
                                ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
                            
         group_delays = zeros(32,77); % group delay of code measurements (meters) referenced to their constellation reference:
@@ -79,7 +79,7 @@ classdef Core_Sky < handle
 
     end
     
-    properties (Access = private)        
+    properties (Access = private)
         log                   % logger handler
         state                 % state handler
         cc                    % constellation collector handler
@@ -178,7 +178,7 @@ classdef Core_Sky < handle
         
         function clearOrbit(this, gps_date)
             % clear the object of the data older than gps_date
-            % SYNTAX: this.clearOrbit(gps_date) 
+            % SYNTAX: this.clearOrbit(gps_date)
             if nargin > 1
                 this.clearCoord(gps_date);
                 this.clearClock(gps_date);
@@ -732,7 +732,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function importERP(this, f_name, time)            
+        function importERP(this, f_name, time)
             this.erp = this.loadERP(f_name, time.getGpsTime());
         end
         
@@ -896,7 +896,7 @@ classdef Core_Sky < handle
         end
         
         function importSinexDCB(this, filename)
-            %DESCRIPTION: import dcb in sinex format 
+            %DESCRIPTION: import dcb in sinex format
             % TBD
         end
         
@@ -1149,7 +1149,7 @@ classdef Core_Sky < handle
             c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
             
             c_times = this.getCoordTime();
-            % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop) 
+            % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
             t = t - this.time_ref_coord;
             c_times = c_times - this.time_ref_coord;
             %l_idx=idx-5;
@@ -1253,7 +1253,7 @@ classdef Core_Sky < handle
                 moon_ECEF=zeros(nt,3);
             end
             
-             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop) 
+             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
             t = t - this.time_ref_coord;
             c_times = c_times - this.time_ref_coord;
             
@@ -1445,15 +1445,15 @@ classdef Core_Sky < handle
             
             
             
-        end        
+        end
 %         function importSP3Struct(this, sp3) % to be reimplemented
 %         matching right sysy and prn
-%             % 
+%             %
 %             this.time = sp3.time;
 %             this.coord =permute(sp3.coord,[3 2 1]);
 %             this.clock = sp3.clock',
-%              this.prn = sp3.prn; 
-%             this.sys = sp3.sys; 
+%              this.prn = sp3.prn;
+%             this.sys = sp3.sys;
 %             this.time_hr = sp3.time_hr;
 %             this.clock_hr = sp3.clock_hr;
 %             this.coord_rate = sp3.coord_rate;
@@ -1465,8 +1465,8 @@ classdef Core_Sky < handle
 %             this.dcb = sp3.dcb;
 %             this.ant_pco = sp3.antPCO;
 %             this.start_time_idx = find(this.time == 1);
-%             
-%             
+%
+%
 %         end
 
         function loadAntPCV(this, filename_pcv)

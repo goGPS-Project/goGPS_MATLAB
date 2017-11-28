@@ -1124,7 +1124,7 @@ classdef Receiver < handle
                     end
                     dts_range_2 = dts_range(dts_idx);
                     nan_idx = obs_idx(find(isnan(dts_range_2)));
-                    this.obs(o, nan_idx) = 0; 
+                    this.obs(o, nan_idx) = 0;
                 end
                 
             end
@@ -1348,8 +1348,6 @@ classdef Receiver < handle
                     prn_ss =  prn;
                     sys_ss = sys;
                     flag_ss = flag;
-                    
-                    
                     
                     % remove line that might be empty
                     empty_sat = sum(obs_ss,2) == 0;
@@ -1745,7 +1743,7 @@ classdef Receiver < handle
                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
 %                     % --- robust estimation ---
-%                     
+%
 %                     Q = diag(min(res.^2,100));
 %                     x = Least_Squares.solver(y, zeros(size(y)), A_temp, Q);
                     
@@ -1761,7 +1759,7 @@ classdef Receiver < handle
             % DESCRIPTION: get the estimate of one measurmenet based on the
             % current postion
             % INPUT: 
-            %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency) 
+            %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency)
             n_epochs = size(this.obs, 2);
             n_sat = this.cc.getNumSat();
             if isnumeric(obs_type)
@@ -1823,7 +1821,7 @@ classdef Receiver < handle
                 idx_obs_f = idx_obs_f( el_idx );
                 obs(i,idx_obs_f) = 0;
             end
-            %%% remove possibly generated empty lines 
+            %%% remove possibly generated empty lines
             empty_idx = sum(obs >0,2) == 0;
             obs(empty_idx,:) = [];
             sys(empty_idx,:) = [];
@@ -2075,7 +2073,7 @@ classdef Receiver < handle
                 this.rec2sat.err_tropo = zeros(size(this.rec2sat.avail_index));
             end
             if nargin < 2 | strcmp(sat,'all')
-                if nargin < 3 
+                if nargin < 3
                         flag = this.state.tropo_model;
                 end
                 for s = 1 : size(this.rec2sat.avail_index,2)
@@ -2094,7 +2092,7 @@ classdef Receiver < handle
                     else
                         [az, el] = this.getAzimuthElevation(XS);
                     end
-                    if nargin < 3 
+                    if nargin < 3
                         flag = this.state.tropo_model;
                     end
                     switch flag
@@ -2180,7 +2178,7 @@ classdef Receiver < handle
             %   [stidecorr] = this.getSolidTideCorr();
             %
             % INPUT:
-            % 
+            %
             % OUTPUT:
             %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
             %
