@@ -1077,16 +1077,26 @@ classdef Receiver < handle
             % measurement when a value if provided froma an external source
             % (Navigational file  or DCB file)
             for i = 1:size(this.rec2sat.cs.group_delays,2)
-                if this.rec2sat.cs.group_delays(i) ~= 0
-                    
-                    idx = this.getObsIdx(this.rec2sat.cs.group_delays_flags(i,2:4),this.rec2sat.cs.group_delays_flags(i,1));
+                sys  = this.rec2sat.cs.group_delays_flags(i,1);
+                code = this.rec2sat.cs.group_delays_flags(i,2:4);
+                idx = this.getObsIdx(code, sys);
+                if sum(this.rec2sat.cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
                         for s = 1 : size(this.rec2sat.cs.group_delays,1)
                             sat_idx = find(this.prn(idx)== s);
                             sat_idx = idx(sat_idx);
-                            this.obs(sat_idx,not(this.obs(idx,sat_idx)==0)) = this.obs(sat_idx,not(this.obs(idx,sat_idx)==0)) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
+                            full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
+                            this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
+                            
                         end
                     end
+                else
+                %mark as bad obs frequencies that are nor reference frequencies or that have no correction
+                if ~this.cc.isRefFrequency(sys, str2num(code(2)))
+                    this.obs_validity(idx) = false;
+                    idx = this.getObsIdx(['L' code(2:end)], sys);
+                    this.obs_validity(idx) = sgn < 0;
+                end
                 end
             end
             
@@ -1325,7 +1335,7 @@ classdef Receiver < handle
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
             
             % if not applied apply gruop delay
-            %this.applyGroupDelay();
+            this.applyGroupDelay();
             this.applyDts();
             
             % get best observation for all satellites and all epochs
@@ -1636,14 +1646,15 @@ classdef Receiver < handle
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
             
             % if not applied apply gruop delay
+           %
             this.applyGroupDelay();
             this.applyDts();
             
             % get best observation for all satellites and all epochs
             [obs, prn, sys, flag] = this.getBestCodeObs;
             
-%             %%% TEST REMOVE ALL but GPS
-%             gps_idx = sys == 'G';
+%             %%% TEST REMOVE ALL but GPS and GLONASS
+%             gps_idx =  sys == 'G' & sum(flag == repmat('C1CC2WI',size(flag,1),1),2) == 7;% | sys == 'E' | sys == 'J';
 %             obs(~gps_idx,:) = [];
 %             prn(~gps_idx,:) = [];
 %             sys(~gps_idx,:) = [];
@@ -1749,22 +1760,26 @@ classdef Receiver < handle
                     x = A_temp \ y;
                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
-%                     % --- robust estimation ---
-%
-%                     Q = diag(min(res.^2,100));
-%                     x = Least_Squares.solver(y, zeros(size(y)), A_temp, Q);
-                    
                     this.xyz(e,:) = cur_xyz_est +x(1:3)';
                     this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
-                    if not(isnan(this.xyz(e,:))) | sum(abs(x(1:3))) > 300
+                    
+                    
+                    if not(isnan(this.xyz(e,:))) & sum(abs(x(1:3))) < 300
+                        
                         cur_xyz_est = this.xyz(e,:);
                     end
                 end
             end
             
             %%% COMPUTE AGAIN XS BASED ON CURRENT CLCOK ESTIMATE
-            % hard threshold on dtR 
-            %this.dtR(abs(this.dtR) > 0.01) = 0;
+            %remove cut off
+            cut_off = 5;
+            for a = 1:1
+            [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
+            sat = zeros(size(prn));
+            for i = 1 : length(sat)
+                sat(i) = this.cc.getIndex(sys(i),prn(i));
+            end
             XS = zeros(this.cc.getNumSat(), 3, n_epochs);
             dist = zeros(n_epochs, this.cc.getNumSat());
             % get Sat orbit correctiong ony for pseudorange
@@ -1779,8 +1794,11 @@ classdef Receiver < handle
                         idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
                         %update time of flight times
                         this.updateAvailIndex(c_l_obs,i);
-                        this.updateErrTropo(i,1);
+                        this.updateErrTropo(i,2);
+                        this.updateSolidEarthCorr(i);
+                        %this.updateErrTropo(i,1);
                         this.updateTOT(c_l_obs,i); % update time of travel
+                        
                         [dist(:,i), XS_temp] = this.getSyntObs('I',i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
                         
                         XS(i,:,idx_obs) = rowNormalize(XS_temp)';
@@ -1805,14 +1823,19 @@ classdef Receiver < handle
                     x = A_temp \ y;
                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
-%                     % --- robust estimation ---
-% 
-%                     Q = diag(min(res.^2,100));
-%                     x = Least_Squares.solver(y, zeros(size(y)), A_temp, Q);
-                    
-                    this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                    %--- robust estimation ---
+%                     for i = 1:10
+%                     res(res < 0.000001) = 300;
+%                     iQ = diag(1./min(res.^2,100));
+%                     x = (A_temp'*iQ*A_temp)\(A_temp'*(iQ*y));
+%                     res = y - A_temp * x;
+%                     end
+                    if max(abs(x(1:3))) <100;
+                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                    end
                     this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
                 end
+            end
             end
         end
         function [range, XS_loc] = getSyntObs(this,  obs_type, sat)
@@ -1873,8 +1896,11 @@ classdef Receiver < handle
                 idx_obs = obs(i,:) > 0;
                 this.updateAvailIndex(idx_obs, sat);
                 XS = this.getXSTxRot(sat);
-                
-                [~ , el] = this.getAzimuthElevation(XS);
+                if size(this.xyz,1) > 1
+                    [~ , el] = this.getAzimuthElevation(XS);
+                else
+                    [~ , el] = this.getAzimuthElevation(XS,this.xyz(idx_obs,:));
+                end
                 
                 idx_obs_f = find(idx_obs);
                 el_idx = el < cut_off;
@@ -1966,7 +1992,8 @@ classdef Receiver < handle
             %   Get Transmission time
             idx = this.rec2sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
-            time_tx.addSeconds(-this.rec2sat.tot(idx, sat));
+            time_tx.addSeconds( - this.rec2sat.tot(idx, sat));
+            dts = this.getDtS(sat);
             
             
         end
@@ -1983,7 +2010,8 @@ classdef Receiver < handle
                 this.rec2sat.tot = zeros(size(this.rec2sat.avail_index));
             end
             idx = this.rec2sat.avail_index(:,sat) > 0;
-            this.rec2sat.tot(idx, sat) =  ( obs(idx)' + this.rec2sat.err_tropo(idx,sat) + this.rec2sat.err_iono(idx,sat) )/ goGNSS.V_LIGHT + this.dtR(idx,1) ;
+            this.rec2sat.tot(idx, sat) =  ( obs(idx)' )/ goGNSS.V_LIGHT - this.dtR(idx,1); 
+            %                                        - this.rec2sat.err_tropo(idx,sat) - this.rec2sat.err_iono(idx,sat) 
             
         end
         function updateAvailIndex(this, obs, sat)
@@ -2063,6 +2091,7 @@ classdef Receiver < handle
             % DESCRIPTION:
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
+            %time_tx.addSeconds(); % rel clok neglegible
             [XS_tx, ~] = this.rec2sat.cs.coordInterpolate(time_tx,sat);
             
             
@@ -2268,9 +2297,12 @@ classdef Receiver < handle
                 [X_sun, X_moon]  = this.rec2sat.cs.sunMoonInterpolate(time);
                 XS               = this.rec2sat.cs.coordInterpolate(time, sat);
                 %receiver geocentric position
-                XR_n = norm(XR);
-                XR_u = repmat(XR / XR_n,time.length,1);
+                
+                if size(XR,1) == 1
                 XR   = repmat(XR,time.length, 1);
+                end
+                XR = XR(idx_sat,:);
+                XR_u = rowNormalize(XR);  
                 
                 %sun geocentric position
                 X_sun_n = repmat(sqrt(sum(X_sun.^2,2)),1,3);

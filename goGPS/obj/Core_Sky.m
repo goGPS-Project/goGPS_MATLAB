@@ -140,7 +140,7 @@ classdef Core_Sky < handle
                 this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
             end
             
-            this.coord_type = 1;
+            %this.coord_type = 1;
             if not(clock_in_eph)
                 this.log.addMarkedMessage('Importing satellite clock files...');
                 for i = 1:length(clock_f_name)
@@ -162,7 +162,7 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 this.toAPC();
             end
-            
+            this.computeSatPolyCoeff();
             % load erp
             this.log.addMarkedMessage('Importing Earth Rotation Parameters');
             this.importERP(this.state.getErpFileName(start_date, stop_time),start_date);
@@ -867,7 +867,8 @@ classdef Core_Sky < handle
         end
 
         function importCODEDCB(this)
-            [dcb] = load_dcb(this.state.DCB_DIR, double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
+            [dcb] = load_dcb('../data/satellite/DCB/', double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
+            this.state.DCB_DIR
             %%% assume that CODE dcb contains only GPS and GLONASS
             %GPS C1W - C2W
             idx_w1 =  this.getGroupDelayIdx('GC1W');
@@ -879,9 +880,9 @@ classdef Core_Sky < handle
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
-            p1c1 = dcb.P1P2.value(dcb.P1C1.sys == 'G');
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
+            p1c1 = dcb.P1C1.value(dcb.P1C1.sys == 'G');
+            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
@@ -946,9 +947,9 @@ classdef Core_Sky < handle
                 %                 i = [j(2).*k(3)-j(3).*k(2);
                 %                     j(3).*k(1)-j(1).*k(3);
                 %                     j(1).*k(2)-j(2).*k(1)];
-                sx(idx,:,:) = k;
+                sx(idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
                 sy(idx,:,:) = j ./ repmat(normAlngDir(j,3),1,1,3);
-                sz(idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
+                sz(idx,:,:) = k ;
             end
             function nrm=normAlngDir(A,d)
                 nrm=sqrt(sum(A.^2,d));
@@ -968,7 +969,8 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 coord = this.coord; %already ceneter of amss
             else
-                [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
+                [i, j, k] = this.getSatFixFrame(this.getCoordTime());
+                %sx = 
                 coord = this.coord - cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
                     , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                     , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
@@ -988,7 +990,10 @@ classdef Core_Sky < handle
             if this.coord_type == 1
                 coord = this.coord; %already antennna phase center
             end
-            [sx, sy, sz] = this.getSatFixFrame(this.getCoordTime());
+            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
+            sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+            sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+            sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
             coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
@@ -1182,7 +1187,7 @@ classdef Core_Sky < handle
                     t_fct8 ...
                     t_fct9 ...
                     t_fct10];
-                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.coord_pol_coeff(:,:,sat_idx,idx),11,3*n_sat),sum(t_idx),n_sat,3);
+                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(:,:,sat_idx,idx),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
                 %%% compute velocity
                 eval_vec = [ ...
                     ones(size(t_fct))  ...
@@ -1195,7 +1200,7 @@ classdef Core_Sky < handle
                     8*t_fct7 ...
                     9*t_fct8 ...
                     10*t_fct9];
-                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(this.coord_pol_coeff(2:end,:,sat_idx,idx),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
+                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,idx),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
                 
             end
             if size(X_sat,2)==1
