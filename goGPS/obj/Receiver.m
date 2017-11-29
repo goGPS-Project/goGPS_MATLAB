@@ -77,7 +77,6 @@ classdef Receiver < handle
         active_ids     % rows of active satellites
         wl             % wave-lenght of each row of row_id
         f_id           % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
-        ss_id          % satellite system number
         prn            % pseudo-range number of the satellite
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
@@ -156,7 +155,6 @@ classdef Receiver < handle
             this.active_ids = [];         % rows of active satellites
             this.wl         = [];         % wave-lenght of each row of row_id
             this.f_id       = [];         % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
-            this.ss_id      = [];         % satellite system number
             this.prn        = [];         % pseudo-range number of the satellite
             this.go_id      = [];         % internal id for a certain satellite
             this.system     = '';         % char id of the satellite system corresponding to the row_id
@@ -295,11 +293,10 @@ classdef Receiver < handle
         function updateStatus(this)
             % Compute the other useful status array of the receiver object
             % SYNTAX this.updateStatus();
-            [~, this.ss_id] = ismember(this.system, this.cc.SYS_C);
-            this.ss_id = this.ss_id';
+            [~, ss_id] = ismember(this.system, this.cc.sys_c);
             this.n_freq = numel(unique(this.f_id));
-            
-            this.go_id = this.prn + reshape(this.cc.n_sat(this.ss_id),length(this.prn),1); %%% some time second vector is a colum some time is a line reshape added to uniform
+            ss_offset = cumsum([0 this.cc.n_sat(1:end-1)]);
+            this.go_id = this.prn + reshape(ss_offset(ss_id'),length(this.prn),1); %%% some time second vector is a colum some time is a line reshape added to uniform
             this.n_sat = numel(unique(this.go_id));
             
             % Compute number of satellite per epoch
@@ -341,7 +338,6 @@ classdef Receiver < handle
             
             this.wl(id_obs) = [];
             this.f_id(id_obs) = [];
-            this.ss_id(id_obs) = [];
             this.prn(id_obs) = [];
             this.go_id(id_obs) = [];
             this.system(id_obs) = [];
