@@ -142,9 +142,10 @@ classdef Receiver < handle
             
             this.xyz          = [0 0 0];  % approximate position of the receiver (XYZ geocentric)
             
+            this.static       = true;     % the receivers are considered static unless specified
+            
             this.n_sat = 0;               % number of satellites
             this.n_freq = 0;              % number of stored frequencies
-            n_epo = 0;               % number of epochs stored
             this.n_spe = [];              % number of sat per epoch
             
             this.dt = 0;                  % clock offset of the receiver
@@ -220,6 +221,7 @@ classdef Receiver < handle
                 % open RINEX observation file
                 fid = fopen(file_name,'r');
                 txt = fread(fid,'*char')';
+                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
                 fclose(fid);
                 
                 % get new line separators
@@ -240,19 +242,15 @@ classdef Receiver < handle
                 if (this.rin_type < 3)
                     % considering rinex 2
                     this.parseRin2Data(txt, lim, eoh);
-                    
-                    
                 else
                     % considering rinex 3
                     this.parseRin3Data(txt, lim, eoh);
                 end
-                % guess rinex3 flag for incomplete flag (probably
-                % comning from rinex2)
-                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag
-                % C2D)
-                % receiver not supporter (in rinex 2) convert them
-                % using cc2noncc converter
-                % https://github.com/ianmartin/cc2noncc (not tested)
+                
+                % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
+                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag C2D) receiver not supporter (in rinex 2) convert them
+                % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
+                
                 % GPS C1 -> C1C
                 idx = this.getObsIdx('C1 ','G');
                 this.obs_code(idx,:) = repmat('C1C',length(idx),1);
@@ -829,6 +827,18 @@ classdef Receiver < handle
             ph = this.ph(id,:);
             wl = this.wl(id);
         end
+        
+        function [ph, wl] = getPhases(this, ss)
+            id_ph = this.obs_code(:, 1) == 'L';
+            if (nargin == 2)
+               id_ph = id_ph & this.system == ss;
+            end
+            ph = this.obs(id_ph, :);
+            wl = this.wl(id_ph);
+            
+            ph = bsxfun(@times, zero2nan(ph), wl)';
+        end
+        
         function [obs, idx] = getObs(this, flag, system, prn)
             % get observation and index corresponfing to the flag
             % SYNTAX this.getObsIdx(flag, <system>)
@@ -841,6 +851,7 @@ classdef Receiver < handle
             end
             obs = this.obs(idx,:);
         end
+        
         function [idx] = getObsIdx(this, flag, system, prn)
             % get observation index corresponfing to the flag
             % SYNTAX this.getObsIdx(flag, <system>)
@@ -2584,13 +2595,13 @@ classdef Receiver < handle
                 prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
                 
                 % update the maximum number of rows to store
-                n_obs = numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                    numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                    numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                    numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                    numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                    numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                    numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+                n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
+                        this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                        this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                        this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                        this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                        this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                        this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 
@@ -2653,32 +2664,40 @@ classdef Receiver < handle
                 id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
                 for e = 1 : n_epo % for each epoch
                     n_sat = this.n_spe(e);
+                    % get the list of satellites in view
                     sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
-                    sat = sat(~isspace(sat));
                     sat = sat(1:n_sat * 3);
-                    sat = reshape(sat, 3, n_sat)';
+                    sat = reshape(sat, 3, n_sat)';                    
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
-                    for s = 1 : size(sat, 1)
-                        % line to fill with the current observation line
-                        obs_line = (this.prn == prn_e(s)) & this.system' == sat(s, 1);
-                        line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
-                        line = mask(1 : n_ops * 16);
-                        for i = 0 : n_lps - 1
-                            try
-                                line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
-                            catch
-                                % empty last lines
+                    if numel(prn_e) < this.n_spe(e)
+                        this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
+                    else
+                        for s = 1 : size(sat, 1)
+                            % line to fill with the current observation line
+                            obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                            % if is empty I'm reading a constellation that is not active in the constellation collector
+                            %   -> discard the unwanted satellite
+                            if ~isempty(obs_line)
+                                line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
+                                line = mask(1 : n_ops * 16);
+                                for i = 0 : n_lps - 1
+                                    try
+                                        line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
+                                    catch
+                                        % empty last lines
+                                    end
+                                end
+                                % remove return characters
+                                ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                                % try with sscanf
+                                line = line(data_pos(1 : numel(line)));
+                                data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                                obs(obs_line, e) = data;
+                                % alternative approach with textscan
+                                %data = textscan(line, '%14.3f%1d%1d');
+                                %obs(obs_line(1:numel(data{1})), e) = data{1};
                             end
                         end
-                        % remove return characters
-                        ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                        % try with sscanf
-                        line = line(data_pos(1 : numel(line)));
-                        data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                        obs(obs_line, e) = data;
-                        % alternative approach with textscan
-                        %data = textscan(line, '%14.3f%1d%1d');
-                        %obs(obs_line(1:numel(data{1})), e) = data{1};
                     end
                     this.w_bar.go(e);
                 end
@@ -2727,12 +2746,12 @@ classdef Receiver < handle
                 
                 % update the maximum number of rows to store
                 n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                    this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                    this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                    this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                    this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                    this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                    this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+                        this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                        this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                        this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                        this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                        this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                        this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
                 
                 clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
                 

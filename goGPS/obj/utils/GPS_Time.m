@@ -6,6 +6,12 @@
 %
 % EXAMPLE
 %   settings = GPS_Time();
+
+% Constructor
+% SYNTAX:
+%   t = GPS_Time(matlab_time, <[]>, <is_gps = 1>, <0>);
+%   t = GPS_Time(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
+%   t = GPS_Time(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc GPS_Time
 %
@@ -201,7 +207,7 @@ classdef GPS_Time < handle
             % Private constructor - simulate polymorphism - GPS_Time_mat(time_matlab_reference, time_difference, is_gps)
             this.time_type = 2;
             this.time_ref = time_matlab_reference;
-            this.time_diff = time_difference;
+            this.time_diff = time_difference(:);
             if (nargin == 4)
                 if isempty(is_gps)
                     is_gps = true;
