@@ -1761,6 +1761,7 @@ classdef Receiver < handle
                 pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
                 pres_clock(pres_clock == 0) = [];
                 if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
+                    this.xyz(e,:) = cur_xyz_est; 
                     XS_temp = XS(sat(idx_obs),:,e);
                     XS_temp = XS_temp - repmat(cur_xyz_est,sum(idx_obs),1);
                     dist = sqrt(sum(XS_temp.^2,2));
@@ -1775,13 +1776,14 @@ classdef Receiver < handle
                     x = A_temp \ y;
                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
-                    this.xyz(e,:) = cur_xyz_est +x(1:3)';
-                    this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                    
+                    
                     
                     
                     if not(isnan(this.xyz(e,:))) & sum(abs(x(1:3))) < 300
-                        
+                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
                         cur_xyz_est = this.xyz(e,:);
+                        this.dtR(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
                     end
                 end
             end
