@@ -233,7 +233,7 @@ classdef Least_Squares < handle
             
             if nargout > 2
                 [n, m] = size(A);
-                s02 = (res' * Q \ res) / (n - m);
+                s02 = (res' * (Q \ res)) / (n - m);
                 if nargout > 3
                     % covariance matrix
                     Cxx = s02 * iN;

@@ -1636,7 +1636,7 @@ classdef Receiver < handle
                 
             end
         end
-        function initDynamicGeodPositioning(this, sys_w)
+        function initDynamicPositioning(this, sys_w)
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
             
@@ -1654,6 +1654,7 @@ classdef Receiver < handle
             [obs, prn, sys, flag] = this.getBestCodeObs;
             if nargin > 1
                 sys_idx = false(size(sys));
+                %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
                 for s = 1:length(sys_w)
                     sys_idx = sys_idx | sys == sys_w(s);
                 end
@@ -1663,7 +1664,7 @@ classdef Receiver < handle
                 flag(~sys_idx,:) = [];
             end
 %             %%% TEST REMOVE ALL but GPS and GLONASS
-%             gps_idx =  sys == 'G' & sum(flag == repmat('C1CC2WI',size(flag,1),1),2) == 7;% | sys == 'E' | sys == 'J';
+            % | sys == 'E' | sys == 'J';
 
             
             
@@ -1704,6 +1705,7 @@ classdef Receiver < handle
                         %update time of flight times
                         this.updateAvailIndex(c_l_obs,i);
                         this.updateTOT(c_l_obs,i); % update time of travel
+                        
                         [XS_temp , ~] = this.getXSTxRot(i);
                         XS(i,:,idx_obs) = XS_temp';
                     end
@@ -1742,6 +1744,13 @@ classdef Receiver < handle
                this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
                this.dtR(e,pres_clock) = x(4:end)';
                cur_xyz_est = this.xyz(e,:);
+            end
+            % if combination is not ionofree compute iono using coarse
+            % postion estimation computed with the first valid epoch
+            if ~iono_free
+                for i = 1 : this.cc.getNumSat()
+                    this.updateErrIono(i);
+                end
             end
             residuals = zeros(size(obs));
             for e = 1 : n_epochs
@@ -1801,6 +1810,9 @@ classdef Receiver < handle
                         %update time of flight times
                         this.updateAvailIndex(c_l_obs,i);
                         this.updateErrTropo(i,1);
+                        if ~iono_free
+                            this.updateErrIono();
+                        end
                         this.updateSolidEarthCorr(i);
                         %this.updateErrTropo(i,1);
                         this.updateTOT(c_l_obs,i); % update time of travel
@@ -1825,16 +1837,19 @@ classdef Receiver < handle
                     end
                     A_temp = [- XS_temp A_dcb];
                     
+                    
                     y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
-                    x = A_temp \ y;
-                    res = y - A_temp * x;
+                    b = zeros(size(y));
+                    Q = speye(length(y));
+                    [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
+%                     x = A_temp \ y;
+%                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
                     %--- robust estimation ---
-%                     for i = 1:10
-%                     res(res < 0.000001) = 300;
-%                     iQ = diag(1./min(res.^2,100));
-%                     x = (A_temp'*iQ*A_temp)\(A_temp'*(iQ*y));
-%                     res = y - A_temp * x;
+%                     for i = 1:1
+%                         res_n  = diag(Cxx);
+%                         Q = spdiags(min(res_n.^2,100) ,0 ,n_obs_ep ,n_obs_ep);
+%                         [x, res, s02, Cxx, Cyy] = Least_Squares.solver(y, b, A_temp, Q);
 %                     end
                     if max(abs(x(1:3))) <100;
                         this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
@@ -1902,7 +1917,7 @@ classdef Receiver < handle
                 idx_obs = obs(i,:) > 0;
                 this.updateAvailIndex(idx_obs, sat);
                 XS = this.getXSTxRot(sat);
-                if size(this.xyz,1) > 1
+                if size(this.xyz,1) == 1
                     [~ , el] = this.getAzimuthElevation(XS);
                 else
                     [~ , el] = this.getAzimuthElevation(XS,this.xyz(idx_obs,:));
@@ -2249,7 +2264,7 @@ classdef Receiver < handle
                             if ~isempty(this.rec2sat.cs.iono )
                                 this.rec2sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.rec2sat.cs.iono);
                             else
-                                this.logger.addWarning('No klobuchar parameter found, iono correction not computed',100);
+                                this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                             end
                             
                     end
@@ -2305,7 +2320,7 @@ classdef Receiver < handle
                 %receiver geocentric position
                 
                 if size(XR,1) == 1
-                XR   = repmat(XR,time.length, 1);
+                XR   = repmat(XR,this.time.length, 1);
                 end
                 XR = XR(idx_sat,:);
                 XR_u = rowNormalize(XR);  
