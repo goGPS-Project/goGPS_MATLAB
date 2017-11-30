@@ -1132,7 +1132,7 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function [ph, dt] = remDtJumps(ph, time_ref, time)
+        function [ph, dt] = remDtJumps(ph)
             % remove a jumps of the clock from phr
             % this peace of code is very very criptic, but it seems to work
             % review this whenever possible
@@ -1214,7 +1214,7 @@ classdef Core_Pre_Processing < handle
                 time_desync_pr = 0;
             end
             clear pr_ds ph_ds;
-            [ph, dt_ph_jumps] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
+            [ph, dt_ph_jumps] = Core_Pre_Processing.remDtJumps(ph);
             [ph, dt] = Core_Pre_Processing.remDtHF(ph);
             dt_ph = dt_ph_jumps + dt;
             %figure(1); plot(diff(zero2nan(ph)),'.k');
@@ -1238,7 +1238,7 @@ classdef Core_Pre_Processing < handle
             end
             
             % in some receivers the pseudo-range is not continuous while the phase are ok
-            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr);
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr_jumps + dt_pr;
@@ -1280,7 +1280,7 @@ classdef Core_Pre_Processing < handle
                 time_desync_pr = 0;
             end
             clear pr_ds ph_ds;
-            [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph, time_ref, time);
+            [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
             %figure(1); plot(diff(zero2nan(ph)),'.k');
 
             % correct the pseudo-ranges for jumps
@@ -1294,7 +1294,7 @@ classdef Core_Pre_Processing < handle
             end
             
             % in some receivers the pseudo-range is not continuous while the phase are ok
-            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr, time_ref, time);
+            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr);
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr + dt_pr_jumps;
@@ -1375,7 +1375,7 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     %  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
-    methods (Static, Access = private)
+    methods (Static, Access = public)
         function [data, flag] = testDesyncCorrection(data, data_corrected)
             % if the correction effectively removes jumps -> apply the correction
             % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
@@ -1386,7 +1386,7 @@ classdef Core_Pre_Processing < handle
                 data = data_corrected;
             end
         end
-
+        
         function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
             
             global cutoff cs_threshold_preprocessing

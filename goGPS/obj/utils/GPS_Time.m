@@ -6,9 +6,8 @@
 %
 % EXAMPLE
 %   settings = GPS_Time();
-
-% Constructor
-% SYNTAX:
+%
+% CONSTRUCTOR SYNTAX
 %   t = GPS_Time(matlab_time, <[]>, <is_gps = 1>, <0>);
 %   t = GPS_Time(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
 %   t = GPS_Time(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
@@ -859,7 +858,7 @@ classdef GPS_Time < handle
                     time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
                     time_diff = (this.mat_time - time_ref) * 86400;
-                case 1 % I'm already in UNIX TIME
+                case 1 % I'm in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
                     time_d = double(this.unix_time) / 86400 + 719529;

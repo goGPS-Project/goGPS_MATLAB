@@ -243,11 +243,10 @@ if goGPS_new
             log.addMessage(sprintf('Reading master %d of %d', i, num_mst_rec));
             fprintf('--------------------------------------------------------------------------\n\n');
             
-            mst(i) = Receiver(cc); %#ok<SAGROW>
-            mst(i).loadRinex(f_mst_rec{i}{s});
-            mst(i).static = state.kf_mode == 0; %#ok<SAGROW>
-            
             r = r + 1;
+            mst(i) = Receiver(cc); %#ok<SAGROW>
+            mst(i).loadRinex(f_mst_rec{i}{s});            
+            mst(i).correctTimeDesync();
             rec(r) = mst(i);
             
             % recompute the parameters for the ref_time estimation
@@ -262,10 +261,10 @@ if goGPS_new
             log.addMessage(sprintf('Reading reference %d of %d', i, num_ref_rec));
             fprintf('--------------------------------------------------------------------------\n\n');
             
+            r = r + 1;
             ref(i) = Receiver(cc); %#ok<SAGROW>
             ref(i).loadRinex(f_ref_rec{i}{s});
-
-            r = r + 1;
+            ref(i).correctTimeDesync();
             rec(r) = ref(i);
 
             % recompute the parameters for the ref_time estimation
@@ -279,12 +278,12 @@ if goGPS_new
             log.newLine();
             log.addMessage(sprintf('Reading target %d of %d', i, num_trg_rec));
             fprintf('--------------------------------------------------------------------------\n\n');
-            
+                        
+            r = r + 1;
             trg(i) = Receiver(cc); %#ok<SAGROW>
             trg(i).loadRinex(f_trg_rec{i}{s});
             trg(i).static = state.kf_mode == 0; %#ok<SAGROW>
-            
-            r = r + 1;
+            trg(i).correctTimeDesync();
             rec(r) = trg(i);            
 
             % recompute the parameters for the ref_time estimation
@@ -301,7 +300,6 @@ if goGPS_new
             clear pt0 pt1 pr;
         end        
         clear p_time_start p_time_stop p_rate r i;
-
         log.addMessage('Syncing times, computing reference time');
 
         keyboard;
