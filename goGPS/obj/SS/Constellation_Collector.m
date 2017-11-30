@@ -340,6 +340,42 @@ classdef Constellation_Collector < Settings_Interface
             sat_ko = true(this.n_sat_tot, 1); sat_ko(sat_ok) = false;
             lambda(sat_ko, :) = 0;
         end
+        function is_ref = isRefFrequency(this,sys,freq)
+            %DESCRIPTION: tell if the frequency is used as reference
+            %frequency (also in combination with other one) for the
+            %computation of sta clocks 
+            is_ref = false;
+            switch(sys)
+                case 'G'
+                    if freq == 1 | freq == 2
+                        is_ref = true;
+                    end
+                case 'R'
+                    if freq == 1 | freq == 2
+                        is_ref = true;
+                    end
+                case 'E'
+                    if freq == 1 | freq == 5
+                        is_ref = true;
+                    end
+                case 'J'
+                    if freq == 1 | freq == 2
+                        is_ref = true;
+                    end
+                case 'C'
+                    if freq == 2 | freq == 6
+                        is_ref = true;
+                    end
+                case 'I'
+                    if freq == 5 | freq == 9
+                        is_ref = true;
+                    end
+                case 'S'
+                    if freq == 1 | freq == 5
+                        is_ref = true;
+                    end
+            end
+        end
 
     end
 

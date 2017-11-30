@@ -867,8 +867,7 @@ classdef Core_Sky < handle
         end
 
         function importCODEDCB(this)
-            [dcb] = load_dcb('../data/satellite/DCB/', double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
-            this.state.DCB_DIR
+            [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
             %%% assume that CODE dcb contains only GPS and GLONASS
             %GPS C1W - C2W
             idx_w1 =  this.getGroupDelayIdx('GC1W');

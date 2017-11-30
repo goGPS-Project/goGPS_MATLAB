@@ -1058,6 +1058,12 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: erp_path = this.getErpPath()
             out = this.erp_dir;
         end
+        
+        function out = getDcbDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.dcb_dir;
+        end
 
         function out = getNavEphPath(this)
             % Get the path to the navigational files

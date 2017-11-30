@@ -1636,7 +1636,7 @@ classdef Receiver < handle
                 
             end
         end
-        function initDynamicGeodPositioning(this)
+        function initDynamicGeodPositioning(this, sys_w)
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
             
@@ -1652,13 +1652,19 @@ classdef Receiver < handle
             
             % get best observation for all satellites and all epochs
             [obs, prn, sys, flag] = this.getBestCodeObs;
-            
+            if nargin > 1
+                sys_idx = false(size(sys));
+                for s = 1:length(sys_w)
+                    sys_idx = sys_idx | sys == sys_w(s);
+                end
+                obs(~sys_idx,:) = [];
+                prn(~sys_idx,:) = [];
+                sys(~sys_idx,:) = [];
+                flag(~sys_idx,:) = [];
+            end
 %             %%% TEST REMOVE ALL but GPS and GLONASS
 %             gps_idx =  sys == 'G' & sum(flag == repmat('C1CC2WI',size(flag,1),1),2) == 7;% | sys == 'E' | sys == 'J';
-%             obs(~gps_idx,:) = [];
-%             prn(~gps_idx,:) = [];
-%             sys(~gps_idx,:) = [];
-%             flag(~gps_idx,:) = [];
+
             
             
             %check if the combination is ionofree
@@ -1794,7 +1800,7 @@ classdef Receiver < handle
                         idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
                         %update time of flight times
                         this.updateAvailIndex(c_l_obs,i);
-                        this.updateErrTropo(i,2);
+                        this.updateErrTropo(i,1);
                         this.updateSolidEarthCorr(i);
                         %this.updateErrTropo(i,1);
                         this.updateTOT(c_l_obs,i); % update time of travel

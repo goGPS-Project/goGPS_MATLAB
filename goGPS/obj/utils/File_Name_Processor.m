@@ -256,7 +256,7 @@ classdef File_Name_Processor < handle
                 end
             end
             % Fallback if not exist
-            if (nargin >= 3)
+            if (nargin >= 3) && ~isempty(dir_fallback) 
                 if ~exist(dir_path, 'file')
                     dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
                 end
