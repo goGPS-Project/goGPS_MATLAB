@@ -1003,7 +1003,33 @@ classdef GPS_Time < handle
                     end
             end
         end
-        
+        function remEpoch(this, id)
+            %DESCRIPTION: remove epochs by index
+                    % SYNTAX this.remEpoch(id)
+            
+            if islogical(id)
+                max_id = find(id == true, 1, 'last');
+            else
+                max_id = max(id);
+            end
+            
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    if (length(this.mat_time) >= max_id)
+                        this.mat_time(id) = [];
+                    end
+                case 1 % I'm in UNIX TIME
+                    if (length(this.unix_time) >= max_id)
+                        this.unix_time(id) = [];
+                        this.unix_time_f(id) = [];
+                    end
+                case 2 % I'm in REF TIME
+                    if (length(this.time_diff) >= max_id)
+                        this.time_diff(id) = [];
+                    end
+            end
+        end
+
         function new_obj = first(this, id_subset)
             % Get first element stored in GPS_Time
             if (nargin == 1)

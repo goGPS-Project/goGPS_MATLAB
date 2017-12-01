@@ -175,7 +175,7 @@ classdef Receiver < handle
             % SYNTAX: this.initR2S();
             
             this.rec2sat.cs           = Core_Sky.getInstance();
-            this.rec2sat.tot          = NaN(this.getNumEpochs, this.cc.getNumSat);
+            %this.rec2sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
@@ -312,7 +312,7 @@ classdef Receiver < handle
             
             this.obs_validity = any(this.obs, 2);
             
-            this.rec2sat.avail_index = false(this.time.length, this.cc.getNumSat());
+            %this.rec2sat.avail_index = false(this.time.length, this.cc.getNumSat());
         end
         
         function remEpoch(this, id_epo)
@@ -1062,11 +1062,11 @@ classdef Receiver < handle
             % get Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
-                rec.log.addWarning('Can produce IONO free combination for the selcted observation')
+                this.log.addWarning('Can produce IONO free combination for the selcted observation')
                 return
             end
             if flag1(1)~=flag2(1)
-                rec.log.addWarning('Incompatible observation type')
+                this.log.addWarning('Incompatible observation type')
                 return
             end
             if nargin <5
@@ -1457,10 +1457,6 @@ classdef Receiver < handle
 %             sys = char('G' * ones(size(prn)));
             
             iono_free = flag(1,7) == 'I';
-            %                [obs, idx] = this.getObs('C1');
-            %                prn = this.prn(idx);
-            %                flag = this.obs_code(idx,:);
-            %               sys = this.system(idx)';
             approx_pos_unknown = true;
             opt.rid_ep = false; %do not estimate channel dipendent error at each epoch
             
@@ -1754,6 +1750,9 @@ classdef Receiver < handle
             % (independent epochs, no kalman filters or regularization)
             
             %initialize modeled error matrix
+            if isempty(this.rec2sat.avail_index)
+                this.rec2sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
+            end
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
@@ -1895,6 +1894,8 @@ classdef Receiver < handle
                         cur_xyz_est = this.xyz(e,:);
                         this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
                     end
+                else
+                    keyboard
                 end
             end
             
@@ -1988,7 +1989,7 @@ classdef Receiver < handle
                 end
                 XS_loc = [];
             else
-                sat_idx = this.rec2sat.avail_index(:, sat);
+                sat_idx = this.rec2sat.avail_index(:, sat) > 0;
                 XS = this.getXSTxRot(sat);
                 XS_loc = nan(n_epochs, 3);
                 XS_loc(sat_idx,:) = XS;
@@ -2424,7 +2425,7 @@ classdef Receiver < handle
                 c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
                 
                 %interpolate sun moon and satellites
-                idx_sat = this.rec2sat.avail_index(:,sat);
+                idx_sat = this.rec2sat.avail_index(:,sat) > 0;
                 time = this.time.getSubSet(idx_sat);
                 [X_sun, X_moon]  = this.rec2sat.cs.sunMoonInterpolate(time);
                 XS               = this.rec2sat.cs.coordInterpolate(time, sat);
@@ -2489,6 +2490,7 @@ classdef Receiver < handle
                 LOSu = rowNormalize(LOS);
                 solid_earth_corr = zeros(size(idx_sat));
                 solid_earth_corr(idx_sat) = sum(conj(r).*LOSu,2);
+                solid_earth_corr(isnan(solid_earth_corr)) = 0; % if XR is 0 the correction goes to nan
             end
         end
         function [ocean_load_dcorr] = computeOceanLoading()
@@ -2745,7 +2747,7 @@ classdef Receiver < handle
                     all_sat = [all_sat sat];
                 end
                 all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
-                
+                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave under linux
                 gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
                 glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
                 gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
@@ -2823,6 +2825,7 @@ classdef Receiver < handle
                 mask = repmat('         0.00000',1 ,40);
                 data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
                 id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
+                bad_epochs = [];
                 for e = 1 : n_epo % for each epoch
                     n_sat = this.n_spe(e);
                     % get the list of satellites in view
@@ -2831,6 +2834,7 @@ classdef Receiver < handle
                     sat = reshape(sat, 3, n_sat)';                    
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                     if numel(prn_e) < this.n_spe(e)
+                        bad_epochs = [bad_epochs; e];
                         this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
                     else
                         for s = 1 : size(sat, 1)
@@ -2862,6 +2866,8 @@ classdef Receiver < handle
                     end
                     this.w_bar.go(e);
                 end
+                obs(:, bad_epochs) = [];
+                this.time.remEpoch(bad_epochs);
                 this.log.newLine();
                 this.obs = obs;
             end
