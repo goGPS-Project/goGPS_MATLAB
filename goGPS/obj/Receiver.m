@@ -344,10 +344,13 @@ classdef Receiver < handle
             this.system(id_obs) = [];
             
             
-            this.obs_code(id_obs, :) = [];            
+            this.obs_code(id_obs, :) = [];
         end
                 
         function correctTimeDesync(this)
+            %   Correction of jumps in code and phase due to dtR and time de-sync
+            % SYNTAX:
+            %   this.correctTimeDesync()
             this.log.addMarkedMessage('Correct for time desync');
             
             % computing nominal_time
@@ -382,7 +385,8 @@ classdef Receiver < handle
                 time_desync_ph = time_desync;
                 this.log.addMessage('Correcting phase for time desync', 100);
             else
-                time_desync_ph = 0;
+                time_desync_ph = - mean(zero2nan(time_desync), 'omitnan');
+                ph = ph - time_desync_ph .* 299792458;
             end
             
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
@@ -390,7 +394,8 @@ classdef Receiver < handle
                 time_desync_pr = time_desync;
                 this.log.addMessage('Correcting pseudo-ranges for time desync', 100);
             else
-                time_desync_pr = 0;
+                time_desync_pr = mean(time_desync, 'omitnan');
+                pr = pr - time_desync_pr .* 299792458;
             end
             clear pr_ds ph_ds;
             [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
@@ -414,15 +419,39 @@ classdef Receiver < handle
                 this.log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
             end
             
-            this.dt_ph = (dt_ph + time_desync_ph);
-            this.dt_pr = (dt_pr + time_desync_pr);
-                        
+            % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
+            if sum(dt_pr(~isnan(dt_pr))) ~= 0
+                all_time = repmat(time_ref, 1, size(pr,2))';
+                pr_tmp = pr' - mean(pr(:), 'omitnan');
+                % LS interpolant
+                [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
+                pr_dj = bsxfun(@minus, pr, dt_2nd_order);
+                [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+                if flag
+                    dt_pr = dt_pr + dt_2nd_order ./ 299792458;
+                    log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
+                end
+                
+                ph_dj = bsxfun(@minus, ph, dt_2nd_order);
+                [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_dj);
+                if flag
+                    dt_ph = dt_ph + dt_2nd_order ./ 299792458;
+                    log.addMessage('Correcting phase for 2nd order dt', 100);
+                end
+            end
+            
+            % Saving dt into the object properties
+            this.dt_ph = (dt_ph - time_desync_ph);
+            this.dt_pr = (dt_pr - time_desync_pr);
+                      
+            % Outlier rejection
             if (this.state.isOutlierRejectionOn())
                 this.log.addMarkedMessage('Removing principal outliers');
                 [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
                 [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
             
+            % Saving observations into the object properties
             this.setPhases(ph, wl, id_ph);
             this.setPseudoRanges(pr, id_pr);
             
@@ -1874,7 +1903,7 @@ classdef Receiver < handle
                 pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
                 pres_clock(pres_clock == 0) = [];
                 if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
-                    this.xyz(e,:) = cur_xyz_est; 
+                    this.xyz(e,:) = cur_xyz_est;
                     XS_temp = XS(sat(idx_obs),:,e);
                     XS_temp = XS_temp - repmat(cur_xyz_est,sum(idx_obs),1);
                     dist = sqrt(sum(XS_temp.^2,2));
@@ -2831,7 +2860,7 @@ classdef Receiver < handle
                     % get the list of satellites in view
                     sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
                     sat = sat(1:n_sat * 3);
-                    sat = reshape(sat, 3, n_sat)';                    
+                    sat = reshape(sat, 3, n_sat)';
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                     if numel(prn_e) < this.n_spe(e)
                         bad_epochs = [bad_epochs; e];

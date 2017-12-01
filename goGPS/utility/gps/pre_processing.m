@@ -196,12 +196,12 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
     % flag by high deviation of the 4th derivate
     ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
-    ph1 = ph(:,1:size(ph1,1))';
-    ph2 = ph(:,(size(ph2,1)+1):end)';
+    ph1 = ph(:,1:size(ph1_bk,1))';
+    ph2 = ph(:,(size(ph2_bk,1)+1):end)';
     
     % flag by high deviation of the 4th derivate
-    pr1 = nan2zero(pr(:,1:size(pr1,1))');
-    pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
+    pr1 = nan2zero(pr(:,1:size(pr1_bk,1))');
+    pr2 = nan2zero(pr(:,(size(pr2_bk,1)+1):end)');
     
     %figure(3); plot(diff(zero2nan(ph),4));
     %figure(4); plot(diff(zero2nan(pr),4))

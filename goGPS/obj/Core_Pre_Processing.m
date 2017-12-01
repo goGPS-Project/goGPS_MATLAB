@@ -1151,6 +1151,7 @@ classdef Core_Pre_Processing < handle
                 d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
                 d4dt(abs(d4dt) < clock_thresh) = 0;
                 dt = detrend(dt - cumsum(nan2zero([0; d4dt; zeros(3,1)])));
+                dt = dt - splinerMat([], dt, length(dt)/2);
                 ph = bsxfun(@minus, ph_bk, dt);
             else
                 dt = zeros(size(ddt));
@@ -1257,19 +1258,20 @@ classdef Core_Pre_Processing < handle
 
             log = Logger.getInstance();
             
-            time_desync  = round((time_ref - time) * 1e7) / 1e7;
+            time_desync  = round((time_ref - zero2nan(time)) * 1e7) / 1e7;
             %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
             %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
             
-            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
-            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            ph_ds = bsxfun(@minus, ph, nan2zero(time_desync) .* 299792458);
+            pr_ds = bsxfun(@minus, pr, nan2zero(time_desync) .* 299792458);
             % if adding the desync will improve the std it means that the receiver does not compensate for it
             [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
             if flag
                 time_desync_ph = time_desync;
                 log.addMessage('Correcting phase for time desync', 100);
             else
-                time_desync_ph = 0;
+                time_desync_ph = mean(time_desync, 'omitnan');
+                ph = ph + time_desync_ph .* 299792458;
             end
             
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
@@ -1277,7 +1279,8 @@ classdef Core_Pre_Processing < handle
                 time_desync_pr = time_desync;
                 log.addMessage('Correcting pseudo-ranges for time desync', 100);
             else
-                time_desync_pr = 0;
+                time_desync_pr = mean(time_desync, 'omitnan');
+                pr = pr + time_desync_pr .* 299792458;
             end
             clear pr_ds ph_ds;
             [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
@@ -1301,8 +1304,29 @@ classdef Core_Pre_Processing < handle
                 log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
             end
             
-            dt_ph = dt_ph + time_desync_ph;
-            dt_pr = dt_pr + time_desync_pr;
+            % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
+            if sum(dt_pr(~isnan(dt_pr))) ~= 0
+                all_time = repmat(time_ref, 1, size(pr,2))';
+                pr_tmp = pr' - mean(pr(:), 'omitnan');
+                % LS interpolant
+                [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
+                pr_dj = bsxfun(@minus, pr, dt_2nd_order);
+                [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+                if flag
+                    dt_pr = dt_pr + dt_2nd_order ./ 299792458;
+                    log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
+                end
+                
+                ph_dj = bsxfun(@minus, ph, dt_2nd_order);
+                [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_dj);
+                if flag
+                    dt_ph = dt_ph + dt_2nd_order ./ 299792458;
+                    log.addMessage('Correcting phase for 2nd order dt', 100);
+                end
+            end
+            
+            dt_ph = dt_ph - time_desync_ph;
+            dt_pr = dt_pr - time_desync_pr;
             %figure(2); plot(diff(zero2nan(pr)),'.k');
         end
         
