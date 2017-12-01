@@ -1827,14 +1827,15 @@ classdef Receiver < handle
             % get coarse postion from first valid epoch
             %find first valid epoch
             not_found = true;
-            e = 1;
+            e = 0;
             while not_found & e < n_epochs
+                e = e + 1;
                 idx_obs = obs(:,e) > 0;
                 clock_temp = unique(code_bias_ord(idx_obs));
                 if sum(idx_obs) >= (3 + length(clock_temp));
                     not_found = false;
                 end
-                e = e + 1;
+                
             end
             x = [999 999 999];
             n_obs_ep = sum(idx_obs);
@@ -2431,8 +2432,9 @@ classdef Receiver < handle
                 
                 if size(XR,1) == 1
                     XR   = repmat(XR,time.length, 1);
+                else
+                    XR = XR(idx_sat,:);
                 end
-                XR = XR(idx_sat,:);
                 XR_u = rowNormalize(XR);
                 
                 %sun geocentric position
