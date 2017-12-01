@@ -2432,7 +2432,6 @@ classdef Receiver < handle
                 if size(XR,1) == 1
                     XR   = repmat(XR,time.length, 1);
                 end
-                XR = XR(idx_sat,:);
                 XR_u = rowNormalize(XR);
                 
                 %sun geocentric position
