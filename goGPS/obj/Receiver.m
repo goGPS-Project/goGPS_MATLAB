@@ -385,7 +385,7 @@ classdef Receiver < handle
                 time_desync_ph = time_desync;
                 this.log.addMessage('Correcting phase for time desync', 100);
             else
-                time_desync_ph = - mean(zero2nan(time_desync), 'omitnan');
+                time_desync_ph = - mean(time_desync, 'omitnan');
                 ph = ph - time_desync_ph .* 299792458;
             end
             
@@ -421,10 +421,10 @@ classdef Receiver < handle
             
             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
             if sum(dt_pr(~isnan(dt_pr))) ~= 0
-                all_time = repmat(time_ref, 1, size(pr,2))';
+                all_time = repmat(ref_time, 1, size(pr,2))';
                 pr_tmp = pr' - mean(pr(:), 'omitnan');
                 % LS interpolant
-                [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
+                [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (ref_time(end) - ref_time(1))/2, 1e-9, ref_time');
                 pr_dj = bsxfun(@minus, pr, dt_2nd_order);
                 [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
                 if flag
@@ -2776,7 +2776,7 @@ classdef Receiver < handle
                     all_sat = [all_sat sat];
                 end
                 all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
-                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave under linux
+                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces               
                 gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
                 glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
                 gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
@@ -2861,10 +2861,14 @@ classdef Receiver < handle
                     sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
                     sat = sat(1:n_sat * 3);
                     sat = reshape(sat, 3, n_sat)';
+                    sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                     if numel(prn_e) < this.n_spe(e)
                         bad_epochs = [bad_epochs; e];
+                        cm = this.log.getColorMode();
+                        this.log.setColorMode(false); % disable color mode for speed up
                         this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
+                        this.log.setColorMode(cm);
                     else
                         for s = 1 : size(sat, 1)
                             % line to fill with the current observation line
