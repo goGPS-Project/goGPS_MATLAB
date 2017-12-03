@@ -425,20 +425,20 @@ classdef Receiver < handle
                 all_time = repmat(ref_time, 1, size(pr,2))';
                 pr_tmp = pr' - mean(pr(:), 'omitnan');
                 % LS interpolant
-                log.addMessage('Computing dt from observations');
+                this.log.addMessage(this.log.indent('Computing dt from observations', 6));
                 [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (ref_time(end) - ref_time(1))/2, 1e-9, ref_time');
                 pr_dj = bsxfun(@minus, pr, dt_2nd_order);
                 [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
                 if flag
                     dt_pr = dt_pr + dt_2nd_order ./ 299792458;
-                    log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
+                    this.log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
                 end
                 
                 ph_dj = bsxfun(@minus, ph, dt_2nd_order);
                 [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_dj);
                 if flag
                     dt_ph = dt_ph + dt_2nd_order ./ 299792458;
-                    log.addMessage('Correcting phase for 2nd order dt', 100);
+                    this.log.addMessage('Correcting phase for 2nd order dt', 100);
                 end
             end
             
