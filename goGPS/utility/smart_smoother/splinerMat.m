@@ -1,6 +1,6 @@
 function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFactor,x_ext)
 % SYNTAX:
-%   [ySplined xSpline sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,<x_ext>)
+%   [ySplined, xSpline, sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,<x_ext>)
 %
 % EXAMPLE:
 %   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext);
@@ -72,15 +72,15 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
     
     if ((nargin == 3) || (regFactor == 0))
         if (size(y,2) == 2)
-            [ySplined xSpline sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
+            [ySplined, xSpline, sWeights] = spliner_v51(x,y(:,1),y(:,2),dxs);
         else
-            [ySplined xSpline sWeights] = spliner_v5(x,y,dxs);
+            [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs);
         end
     else
         if (size(y,2) == 2)
-            [ySplined xSpline sWeights] = spliner_v51R(x,y(:,1),y(:,2),dxs, regFactor);
+            [ySplined, xSpline, sWeights] = spliner_v51R(x,y(:,1),y(:,2),dxs, regFactor);
         else
-            [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor);
+            [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor);
         end
     end
 
@@ -109,8 +109,7 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
 end
 
 % No Regularization + variances
-function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
-    xSpline = [];
+function [ySplined, xSpline, sWeights] = spliner_v51(x,y,yvar,dxs)
     nObs = length(x);
 
     % size of the intervall to interpolate
@@ -134,7 +133,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
     TN = zeros(nSplines, 1);
 
     curSpline = 1;          % first spline whose domain intersect the observation
-    tau = 0;                % normalized distance between the observation and the center of the curSpline
+    %tau = 0;                % normalized distance between the observation and the center of the curSpline
     i = 1;                  % index of the first observation
     first_obs = i;          % first observation used in the current A matrix
     first_spline = 1;       % first spline used in the current A matrix
@@ -147,10 +146,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
         tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
-            A(i-first_obs+1,1) = cubicSpline(tau);
-            A(i-first_obs+1,2) = cubicSpline(tau-1);
-            A(i-first_obs+1,3) = cubicSpline(tau-2);
-            A(i-first_obs+1,4) = cubicSpline(tau-3);
+            A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
             usedObs = usedObs+1;
             nSkip = 0;
             i = i+1;
@@ -164,7 +160,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
                 if (nSkip == 1)
                     A2 = A((skips(curSpline)+1):i-first_obs,:);
                     iQ = sparse(diag(1./yvar(first_obs+skips(curSpline):i-1)));
-                    N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) =   sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*iQ*A2);
+                    N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) = sparse(N(curLocalSpline:curLocalSpline+3,curLocalSpline:curLocalSpline+3) + A2'*iQ*A2);
 
                     % Computing TN
                     TN(curLocalSpline:curLocalSpline+3) = TN(curLocalSpline:curLocalSpline+3) + A2' * iQ * y(first_obs+skips(curSpline):i-1);
@@ -202,7 +198,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
                 skips(curSpline) = 0;
 
                 A = zeros(nObs-i, 4);
-                N = sparse(nSplines-curSpline+1,nSplines-curSpline+1);
+                N = sparse(nSplines-curSpline+1, nSplines-curSpline+1);
                 TN = zeros(nSplines-curSpline+1,1);
                 usedObs = 0;
             end
@@ -238,7 +234,7 @@ function [ySplined xSpline sWeights] = spliner_v51(x,y,yvar,dxs)
 end
 
 % Regularization + variances
-function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
+function [ySplined, xSpline, sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
     xSpline = [];
     nObs = length(x);
 
@@ -276,10 +272,7 @@ function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
         tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
-            A(i-first_obs+1,1) = cubicSpline(tau);
-            A(i-first_obs+1,2) = cubicSpline(tau-1);
-            A(i-first_obs+1,3) = cubicSpline(tau-2);
-            A(i-first_obs+1,4) = cubicSpline(tau-3);
+            A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
             usedObs = usedObs+1;
             nSkip = 0;
             i = i+1;
@@ -348,7 +341,7 @@ function [ySplined xSpline sWeights] = spliner_v51R(x,y,yvar,dxs, regFactor)
 end
 
 % No Regularization - no variances
-function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
+function [ySplined, xSpline, sWeights] = spliner_v5(x,y,dxs)
     xSpline = [];
     nObs = length(x);
 
@@ -386,10 +379,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
         tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
-            A(i-first_obs+1,1) = cubicSpline(tau);
-            A(i-first_obs+1,2) = cubicSpline(tau-1);
-            A(i-first_obs+1,3) = cubicSpline(tau-2);
-            A(i-first_obs+1,4) = cubicSpline(tau-3);
+            A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
             usedObs = usedObs+1;
             nSkip = 0;
             i = i+1;
@@ -476,8 +466,7 @@ function [ySplined xSpline sWeights] = spliner_v5(x,y,dxs)
 end
 
 % Regularization - no variances
-function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
-    xSpline = [];
+function [ySplined, xSpline, sWeights] = spliner_v5R(x,y,dxs, regFactor)
     nObs = length(x);
 
     % size of the intervall to interpolate
@@ -511,13 +500,10 @@ function [ySplined xSpline sWeights] = spliner_v5R(x,y,dxs, regFactor)
     skips(1) = 0;
     while (i <= nObs)
         % Compute the distance between the current observation and the current spline
-        tau = round((x(i)-xSpline(curSpline))/dxs *1e13)/1e13; % 1e13 rounding necessary to avoid numerical problems
+        tau = round((x(i) - xSpline(curSpline))/dxs * 1e13) / 1e13; % 1e13 rounding necessary to avoid numerical problems
         if (tau <= 2)
             % fill the design matrix
-            A(i-first_obs+1,1) = cubicSpline(tau);
-            A(i-first_obs+1,2) = cubicSpline(tau-1);
-            A(i-first_obs+1,3) = cubicSpline(tau-2);
-            A(i-first_obs+1,4) = cubicSpline(tau-3);
+            A(i-first_obs+1,:) = cubicSpline([tau (tau-1) (tau-2) (tau-3)]);
             usedObs = usedObs+1;
             nSkip = 0;
             i = i+1;
