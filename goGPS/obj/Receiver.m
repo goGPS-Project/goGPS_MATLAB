@@ -2368,7 +2368,7 @@ classdef Receiver < handle
                     
                     XS = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
                     %%% compute lat lon
-                    [~, lat, ~, lon] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                    [~, lat, ~, lon] = cart2geod(this.xyz(idx, 1), this.xyz(idx, 2), this.xyz(idx, 3));
                     %%% compute az el
                     if size(this.xyz,1)>1
                         [az, el] = this.getAzimuthElevation(this.xyz(idx,:) ,XS);

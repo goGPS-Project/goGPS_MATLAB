@@ -300,7 +300,9 @@ if goGPS_new
             clear pt0 pt1 pr;
         end        
         clear p_time_start p_time_stop p_rate r i;
-        log.addMessage('Syncing times, computing reference time');
+        fprintf('--------------------------------------------------------------------------\n');
+        log.newLine();
+        log.addMarkedMessage('Syncing times, computing reference time');
 
         keyboard;
     end
