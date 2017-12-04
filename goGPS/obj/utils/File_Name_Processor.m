@@ -21,7 +21,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.6.0 alpha 1 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -256,7 +256,7 @@ classdef File_Name_Processor < handle
                 end
             end
             % Fallback if not exist
-            if (nargin >= 3) && ~isempty(dir_fallback) 
+            if (nargin >= 3) && ~isempty(dir_fallback)
                 if ~exist(dir_path, 'file')
                     dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
                 end

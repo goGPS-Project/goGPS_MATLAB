@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.6.0 alpha 1 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -1646,7 +1646,7 @@ classdef Receiver < handle
             code_bias_flag   = cellstr([sys flag]);
             u_code_bias_flag = unique(code_bias_flag);
             
-            % initialize dt            
+            % initialize dt
             n_obs_ch         = zeros(size(u_code_bias_flag));
             n_ep_ch          = zeros(size(u_code_bias_flag));
             ch_idx_ep        = zeros(length(u_code_bias_flag),n_epochs);
@@ -1717,9 +1717,9 @@ classdef Receiver < handle
                         if freq == ' '
                             freq = flag(idx_sat_i(1), 2);
                         end
-                        [dist(:,i), XS] = this.getSyntObs(freq,i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet                        
+                        [dist(:,i), XS] = this.getSyntObs(freq,i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handdled yet
                         
-                        XS_norm(i,:,idx_obs) = rowNormalize(XS)';                        
+                        XS_norm(i,:,idx_obs) = rowNormalize(XS)';
                     end
                 end
                 %ls_solver.sortSystemByEpoch();
@@ -2184,7 +2184,7 @@ classdef Receiver < handle
             idx = this.rec2sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
             time_tx.addSeconds( - this.rec2sat.tot(idx, sat));
-            dts = this.getDtS(sat); %%% GIULIO check                
+            dts = this.getDtS(sat); %%% GIULIO check
         end
         
         function updateTOT(this, obs, sat)
@@ -2802,7 +2802,7 @@ classdef Receiver < handle
                     all_sat = [all_sat sat];
                 end
                 all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
-                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces               
+                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
                 gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
                 glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
                 gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
