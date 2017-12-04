@@ -86,7 +86,7 @@ fprintf('\n');
 for y = 1 : length(year)
 
     %target directory
-    s = '/aiub/BSWUSER52/GEN';
+    s = '/BSWUSER52/GEN';
 
     cd(ftp_server, '/');
     cd(ftp_server, s);
