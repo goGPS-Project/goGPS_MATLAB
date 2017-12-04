@@ -38,7 +38,7 @@ function [xR, cov_XR, y0, A, b, Q] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.5.2 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

@@ -3,7 +3,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.5.2 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -228,7 +228,7 @@ if goGPS_new
 
         % prepare reference time
         % processing time will start with the receiver with the last first epoch
-        %          and it will stop  with the receiver with the first last epoch        
+        %          and it will stop  with the receiver with the first last epoch
         clear p_time;
         p_time_zero = round(cur_date_start.getMatlabTime() * 24)/24; % get the reference time
         p_time_start = -inf;
@@ -245,14 +245,14 @@ if goGPS_new
             
             r = r + 1;
             mst(i) = Receiver(cc); %#ok<SAGROW>
-            mst(i).loadRinex(f_mst_rec{i}{s});            
+            mst(i).loadRinex(f_mst_rec{i}{s});
             mst(i).correctTimeDesync();
             rec(r) = mst(i);
             
             % recompute the parameters for the ref_time estimation
             p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
             p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;            
+            p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
         end
         
         clear ref;
@@ -270,7 +270,7 @@ if goGPS_new
             % recompute the parameters for the ref_time estimation
             p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
             p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;            
+            p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
         end
         
         clear trg;
@@ -284,7 +284,7 @@ if goGPS_new
             trg(i).loadRinex(f_trg_rec{i}{s});
             trg(i).static = state.kf_mode == 0; %#ok<SAGROW>
             trg(i).correctTimeDesync();
-            rec(r) = trg(i);            
+            rec(r) = trg(i);
 
             % recompute the parameters for the ref_time estimation
             % not that in principle I can have up to num_trg_rec ref_time
@@ -298,7 +298,7 @@ if goGPS_new
             p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
             p_time(i).toUnixTime();
             clear pt0 pt1 pr;
-        end        
+        end
         clear p_time_start p_time_stop p_rate r i;
         fprintf('--------------------------------------------------------------------------\n');
         log.newLine();
@@ -3859,7 +3859,7 @@ for session = 1 : num_session
                         head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
                         row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
                         for s = 1 : nSatTot
-                            head_str = [head_str,fsep_char,'az[ï¿½]',fsep_char,'el[ï¿½]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            head_str = [head_str,fsep_char,'az[ÿ]',fsep_char,'el[ÿ]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
                         end
                         for s = 1 : nSatTot

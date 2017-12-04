@@ -28,7 +28,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_init(XR0, time_rx, pr1, pr2, sn
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.5.2 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

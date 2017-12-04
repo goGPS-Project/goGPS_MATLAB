@@ -36,7 +36,7 @@ function goGPS_BLK_DD_code_phase_static(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, p
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.5.2 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

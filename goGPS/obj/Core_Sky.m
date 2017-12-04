@@ -924,7 +924,7 @@ classdef Core_Sky < handle
                 % removing header lines from lim
                 lim(1:eoh, :) = [];
                 % removing last two lines (check if it is a standrad) from lim
-                lim((end-1):end, :) = []; 
+                lim((end-1):end, :) = [];
                 %removing sations lines from lim
                 sta_lin = txt(lim(:,1)+19) ~= ' ';
                 lim(sta_lin,:) = [];
@@ -980,19 +980,19 @@ classdef Core_Sky < handle
                                 %%check if it connected to the reference
                                 %%ones
                                 sgn = 0;
-                                if     sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,1:3) ) == 3 
+                                if     sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,1:3) ) == 3
                                     ref_gd = ref_dcb_name(1,1:3);
                                     sat_gd = sat_dcb_name(j,4:6);
                                     sgn = 1;
-                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,1:3) ) == 3 
+                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,1:3) ) == 3
                                     ref_gd = ref_dcb_name(1,1:3);
                                     sat_gd = sat_dcb_name(j,1:3);
                                     sgn = -1;
-                                elseif sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,4:6) ) == 3 
+                                elseif sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,4:6) ) == 3
                                     ref_gd = ref_dcb_name(1,4:6);
                                     sat_gd = sat_dcb_name(j,4:6);
                                     sgn = 1;
-                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,4:6) ) == 3 
+                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,4:6) ) == 3
                                     ref_gd = ref_dcb_name(1,4:6);
                                     sat_gd = sat_dcb_name(j,1:3);
                                     sgn = -1;

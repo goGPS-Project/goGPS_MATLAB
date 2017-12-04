@@ -37,7 +37,7 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.1 beta 3
+%    |___/                    v 0.5.2 beta 1
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
