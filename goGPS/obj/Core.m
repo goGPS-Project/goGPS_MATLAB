@@ -46,7 +46,7 @@
 classdef Core < handle
 
     properties (Constant)
-        GO_GPS_VERSION = '0.5.1 beta 3';
+        GO_GPS_VERSION = '0.6.0 alpha 1 - nightly';
     end
 
     properties % Public Access
@@ -80,12 +80,14 @@ classdef Core < handle
             this.log = Logger.getInstance();
             if this.log.getColorMode()
                 cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
-                fprintf('\n--------------------------------------------------------------------------\n\n');
+                fprintf('\n--------------------------------------------------------------------------\n');
             else
                 fprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.GO_GPS_VERSION);
                 fprintf('\n');
-                fprintf('--------------------------------------------------------------------------\n\n');
+                fprintf('--------------------------------------------------------------------------\n');
             end
+            this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
+            fprintf('--------------------------------------------------------------------------\n\n');
         end
 
         function [logo, transparency] = getLogo()
