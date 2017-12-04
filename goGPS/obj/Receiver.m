@@ -848,6 +848,12 @@ classdef Receiver < handle
             n_sat = numel(unique(this.go_id));
         end
         
+        function is_static = isStatic(this)
+            % return true if the receiver is static
+            % SYNTAX: is_static = this.isStatic()
+            is_static = this.static;
+        end
+        
         function pr = pr1(this, flag_valid, sys_c)
             % get p_range 1 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
@@ -1512,6 +1518,18 @@ classdef Receiver < handle
             end
         end
         
+        function initPositioning(this)
+            % run the most appropriate init prositioning step depending on the static flag
+            % calls initStaticPositioning() or initDynamicPositioning()
+            % SYNTAX:
+            %   this.initPositioning();
+            if this.isStatic()
+                this.initStaticPositioning()
+            else
+                this.initDynamicPositioning()
+            end
+        end
+            
         function initStaticPositioning(this)
             % SYNTAX:
             %   this.initPositioning();
@@ -1809,6 +1827,7 @@ classdef Receiver < handle
                 
             end
         end
+        
         function initDynamicPositioning(this, sys_w)
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
@@ -2031,6 +2050,7 @@ classdef Receiver < handle
             end
             end
         end
+        
         function [range, XS_loc] = getSyntObs(this, obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
             % current postion
@@ -2078,6 +2098,7 @@ classdef Receiver < handle
             end
             
         end
+        
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)
@@ -2105,8 +2126,6 @@ classdef Receiver < handle
             prn(empty_idx,:) = [];
             flag(empty_idx,:) = [];
         end
-        
-        
     end
     
     % ==================================================================================================================================================
@@ -2398,6 +2417,7 @@ classdef Receiver < handle
             end
             
         end
+        
         function updateErrIono(this, sat)
             if isempty(this.rec2sat.err_iono)
                 this.rec2sat.err_iono = size(this.rec2sat.avail_index);
@@ -2407,12 +2427,16 @@ classdef Receiver < handle
                     this.updateErrIono(s);
                 end
             else
-                idx = this.rec2sat.avail_index(:,sat) > 0; %epoch for which satellite is present
+                idx = this.rec2sat.avail_index(:,sat) > 0; % epoch for which satellite is present
                 if sum(idx) > 0
                     
                     XS = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
                     %%% compute lat lon
-                    [~, lat, ~, lon] = cart2geod(this.xyz(idx, 1), this.xyz(idx, 2), this.xyz(idx, 3));
+                    if size(this.xyz,1) > 1
+                        [~, lat, ~, lon] = cart2geod(this.xyz(idx, 1), this.xyz(idx, 2), this.xyz(idx, 3));
+                    else
+                        [~, lat, ~, lon] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
+                    end
                     %%% compute az el
                     if size(this.xyz,1)>1
                         [az, el] = this.getAzimuthElevation(this.xyz(idx,:) ,XS);
