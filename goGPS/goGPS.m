@@ -7,6 +7,8 @@
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Originally written by:       Mirko Reguzzoni, Eugenio Realini
+%  Contributors:                Gatti Andrea, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -33,8 +35,6 @@
 clearvars -global -except ini_settings_file use_gui; %  exceptions for goGPSgo
 clearvars -except ini_settings_file use_gui; % exceptions for goGPSgo
 
-global report
-
 % if the plotting gets slower than usual, there might be problems with the
 % Java garbage collector. In case, you can try to use the following
 % command:
@@ -48,22 +48,17 @@ global report
 %cd(fileparts(which('goGPS')));
 %pwd
 
-% close all windows
-% close all
+% close all the opened files
 fclose('all');
 flag_init_out = false;
 
-% clear the command prompt
-%clc
 
-% disable warnings
-warning off;
-
-% include all subdirectories
+% add all the subdirectories to the search path
 if (~isdeployed)
     addpath(genpath(pwd));
 end
 
+% Init Core
 core = Core.getInstance();
 core.showTextHeader();
 
@@ -105,20 +100,8 @@ kalman_initialized = false;
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-global order o1 o2 o3 cutoff weights t nC
-global cs_threshold
-global iono_model tropo_model
-global flag_outlier flag_outlier_OLOO SPP_threshold
-global apriori_ZHD
-
-
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
-global goObj;
-% For future development the flag goObs will guide a possible migration to the
-% use of generic objects (such as goObservations) able to automatically manage
-% multiple modes
-goObj = 0;  % this variable is set in the interface.
 
 if (mode_user == 1)
     
@@ -129,22 +112,7 @@ if (mode_user == 1)
     [ok_go] = gui_goGPS;
     if (~ok_go)
         return
-    end
-    
-    [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-        flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-        filerootIN, ~, ~ , ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_outlier_OLOO, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
-    
-else
-    %----------------------------------------------------------------------------------------------
-    % USER-DEFINED SETTINGS
-    %----------------------------------------------------------------------------------------------
-    
-    [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-        flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-        filerootIN, ~, ~, ~, ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_outlier_OLOO, flag_tropo, flag_tropo_gradient, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
+    end        
 end
 
 %-------------------------------------------------------------------------------------------
@@ -160,23 +128,6 @@ cc = state.getConstellationCollector();
 
 % start evaluating computation time
 tic;
-
-%-------------------------------------------------------------------------------------------
-%% DETECT IF NAVIGATION FILE IS IN SP3 FORMAT
-%-------------------------------------------------------------------------------------------
-filename_nav = state.getFullNavEphPath(1);
-if goGNSS.isPP(mode)
-    fid = fopen(filename_nav);
-    line1 = fgetl(fid); line2 = fgetl(fid);
-    if (strcmp(line1(1),'#') && strcmp(line2(1:2),'##'))
-        flag_SP3 = 1;
-    else
-        flag_SP3 = 0;
-    end
-    fclose(fid);
-else
-    flag_SP3 = 0;
-end
 
 %-------------------------------------------------------------------------------------------
 %% STARTING BATCH
@@ -203,9 +154,6 @@ else
     is_batch = false;
 end
 
-
-% New implementation of goGPS
-%% NEW goGPS
 state.showTextMode();
 
 sky = Core_Sky.getInstance();
