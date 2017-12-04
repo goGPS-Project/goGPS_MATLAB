@@ -974,12 +974,50 @@ classdef Receiver < handle
             end
             pr = zero2nan(this.obs(id_pr, :)');
         end
-        
+                
         function setPseudoRanges(this, pr, id_pr)
             % set the pseudo ranges observations in meter (not cycles)
             % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<ss>)
             % SEE ALSO: getPhases setPhases getPseudoRanges
             this.obs(id_pr, :) = nan2zero(pr');
+        end
+        
+        function [dop, id_dop] = getDoppler(this, ss)
+            % get the doppler observations
+            % SYNTAX: [dop, id_dop] = this.getDoppler(<ss>)
+            % SEE ALSO: setDoppler
+            
+            id_dop = this.obs_code(:, 1) == 'D';
+            if (nargin == 2)
+                id_dop = id_dop & this.system == ss;
+            end
+            dop = zero2nan(this.obs(id_dop, :)');
+        end
+        
+        function setDoppler(this, dop, id_dop)
+            % set the snr observations
+            % SYNTAX: [pr, id_pr] = this.setDoppler(<ss>)
+            % SEE ALSO:  getDoppler
+            this.obs(id_dop, :) = nan2zero(dop');
+        end
+        
+        function [snr, id_snr] = getSnr(this, ss)
+            % get the doppler observations
+            % SYNTAX: [dop, id_dop] = this.getDoppler(<ss>)
+            % SEE ALSO: setDoppler
+            
+            id_snr = this.obs_code(:, 1) == 'S';
+            if (nargin == 2)
+                id_snr = id_snr & this.system == ss;
+            end
+            snr = zero2nan(this.obs(id_snr, :)');
+        end
+        
+        function setSnr(this, snr, id_snr)
+            % set the snr observations
+            % SYNTAX: [pr, id_pr] = this.setSnr(<ss>)
+            % SEE ALSO:  getSnr
+            this.obs(id_snr, :) = nan2zero(snr');
         end
         
         function [obs, idx] = getObs(this, flag, system, prn)
