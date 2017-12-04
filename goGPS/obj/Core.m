@@ -46,7 +46,7 @@
 classdef Core < handle
 
     properties (Constant)
-        GO_GPS_VERSION = '0.5.1 beta 3';
+        GO_GPS_VERSION = '0.5.2 beta 1';
     end
 
     properties % Public Access
