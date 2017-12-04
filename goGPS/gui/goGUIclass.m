@@ -235,6 +235,7 @@ classdef goGUIclass < handle
         function init(this, handles)
             % Init all the UI
             tic;
+            fprintf('\b');
             this.w_bar = Go_Wait_Bar.getInstance(5,'Initializing goGPS GUI...');
             this.w_bar.createNewBar('Init GUI');
             this.goh = handles;  % Save the handle of the figure
