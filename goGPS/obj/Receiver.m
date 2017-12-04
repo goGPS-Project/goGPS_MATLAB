@@ -1233,15 +1233,21 @@ classdef Receiver < handle
                             sat_idx = find(this.prn(idx)== s);
                             sat_idx = idx(sat_idx);
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
-                            this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
+                            if this.rec2sat.cs.group_delays(s,i) ~= 0
+                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
+                            elseif ~this.cc.isRefFrequency(sys, str2num(code(2)))
+                                this.obs_validity(idx) = false;
+                                idx = this.getObsIdx(['C' code(2:end)], sys);
+                                this.obs_validity(sat_idx) = sgn < 0;
+                            end
                             
                         end
+                        
                     end
                 else
                 %mark as bad obs frequencies that are nor reference frequencies or that have no correction
                 if ~this.cc.isRefFrequency(sys, str2num(code(2)))
-                    this.obs_validity(idx) = false;
-                    idx = this.getObsIdx(['L' code(2:end)], sys);
+                    idx = this.getObsIdx(['C' code(2:end)], sys);
                     this.obs_validity(idx) = sgn < 0;
                 end
                 end
