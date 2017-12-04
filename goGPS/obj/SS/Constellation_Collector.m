@@ -291,7 +291,7 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
 
-        function ant_mod = getAntennaId(this)
+        function ant_mod = getAntennaId(this, goid)
             % Equivalent to the old function sat_antenna_ID
             % return the "name" of the antennas of each active satellite
             % SYNTAX:
@@ -301,6 +301,9 @@ classdef Constellation_Collector < Settings_Interface
             prn = this.prn;
             prn(this.system == 'J') = prn(this.system == 'J') - 192;
             ant_mod = mat2cell([this.system' reshape(sprintf('%02d', prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
+            if nargin > 1
+                ant_mod = ant_mod{goid},
+            end
         end
         
         function lambda = getLegacyLambda(this, eph, sp3)
@@ -374,6 +377,26 @@ classdef Constellation_Collector < Settings_Interface
                     if freq == 1 | freq == 5
                         is_ref = true;
                     end
+            end
+        end
+        function ref_dcb = getRefDCB(this, goid)
+            % consider to move change them on the base of the source of
+            % precise orbit
+            sys = this.system(goid);
+            switch sys
+                case 'G'
+                    ref_dcb = ['C1WC2W'; 'C1PC2P']; %b 
+                case 'R'
+                    ref_dcb = 'C1PC2P';
+                case 'E'
+                    ref_dcb = ['C1CC5Q'; 'C1XC5X'];
+                case 'C'
+                    ref_dcb = 'C2IC7I';
+                case 'J'
+                    ref_dcb = 'C1XC2X'; % to be tested
+                case 'I'
+                    ref_dcb = 'C5AC9A';% to be tested
+                otherwise
             end
         end
 

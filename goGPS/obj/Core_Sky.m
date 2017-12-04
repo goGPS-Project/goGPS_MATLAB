@@ -65,7 +65,7 @@ classdef Core_Sky < handle
                                      %    GPS     -> Iono free linear combination C1P C2P
                                      %    GLONASS -> Iono free linear combination C1P C2P
                                      %    Galileo -> Iono free linear combination
-                                     %    BedDou  -> B3 signal
+                                     %    BedDou  -> Iono free linear combination
                                      %    QZS     -> Iono free linear combination
                                      %    IRNSS   -> Iono free linear combination
                                      %    SABS    -> Iono free linear combination
@@ -893,7 +893,125 @@ classdef Core_Sky < handle
         
         function importSinexDCB(this, filename)
             %DESCRIPTION: import dcb in sinex format
-            % TBD
+            % IMPORTANT WARNING: considering only daily dcb, some
+            % assumpotion on the structure of the file are maded, based on
+            % CAS MGEX DCB files
+                
+                % open SINEX dcb file
+                fid = fopen(filename,'r');
+                if fid == -1
+                    this.log.addWarning(sprintf('      File %s not found', filename));
+                    return
+                end
+                this.log.addMessage(sprintf('      Opening file %s for reading', filename));
+                txt = fread(fid,'*char')';
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                % get end of header
+                eoh = strfind(txt,'*BIAS SVN_ PRN STATION__ OBS1 OBS2 BIAS_START____ BIAS_END______ UNIT __ESTIMATED_VALUE____ _STD_DEV___');
+                eoh = find(lim(:,1) > eoh);
+                eoh = eoh(1) - 1;
+                % removing header lines from lim
+                lim(1:eoh, :) = [];
+                % removing last two lines (check if it is a standrad) from lim
+                lim((end-1):end, :) = []; 
+                %removing sations lines from lim
+                sta_lin = txt(lim(:,1)+19) ~= ' ';
+                lim(sta_lin,:) = [];
+                % TODO -> remove dcb of epoch different from the current one
+                % find dcb names presents
+                fl = lim(:,1);
+                
+                dcb_name = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
+                idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
+                dcb = sscanf([txt(idx)]','%f');
+                for s = 1 : this.cc.getNumSat()
+                    sys = this.cc.system(s);
+                    ant_id = this.cc.getAntennaId(s);
+                    sat_idx = sum(dcb_name(:,1:3) == repmat(ant_id,size(dcb_name,1),1),2) == 3;
+                    sat_dcb_name = dcb_name(sat_idx,4:end);
+                    sat_dcb = dcb(sat_idx);
+                    ref_dcb_name = this.cc.getRefDCB(s);
+                    %check if there is the reference dcb in the one
+                    %provided by the external source
+                    is_present  = false;%zeros(size(ref_dcb,1),1);
+                    ref_dcb_idx = 0;%zeros(size(ref_dcb,1),1);
+                    % WARNING: case the orbit is given with reference from a
+                    % single frequency is not considered
+                    % ASSUMPTION: the dcb of the reference frequencies is
+                    % given directly in its direct form, the case it could
+                    % be retrieved combining other dcb is not considered
+                    for i = 1 size(ref_dcb_name,1)
+                        idx = sum(sat_dcb_name == repmat(ref_dcb_name(1,:),size(sat_dcb_name,1),1),2) == size(ref_dcb_name,2);
+                        if  sum(idx,1) > 0
+                            is_present = 1;
+                            ref_dcb_idx = find(idx);
+                        end
+%                         idx = sum(sat_dcb_name == repmat(ref_dcb(1,[4:6 1:3]),size(sat_dcb_name,1),1),2) == size(ref_dcb,2);
+%                         if  sum(idx,1) > 0
+%                             is_present = -1;
+%                             ref_dcb_idx = find(idx);
+%                         end
+                        if is_present~=0
+                            %%% set the dcb for the reference frequencies
+                            prn = this.cc.prn(s);
+                            iono_free = this.cc.getSys(sys).getIonoFree();
+                            %fist freq
+                            
+                            
+                            dcb_col = find( idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,1:3)]) );
+                            this.group_delays(prn, dcb_col) = iono_free.alpha2 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
+                            dcb_col = find(idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,4:6)]));
+                            this.group_delays(prn, dcb_col) = iono_free.alpha1 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
+                            sat_dcb(ref_dcb_idx) = [];
+                            sat_dcb_name(ref_dcb_idx,:) = [];
+                            % ASSUMPTION: the other dcbs are directly connected to the reference one an not through a chain
+                            for j = 1 : length(sat_dcb)
+                                %%check if it connected to the reference
+                                %%ones
+                                sgn = 0;
+                                if     sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,1:3) ) == 3 
+                                    ref_gd = ref_dcb_name(1,1:3);
+                                    sat_gd = sat_dcb_name(j,4:6);
+                                    sgn = 1;
+                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,1:3) ) == 3 
+                                    ref_gd = ref_dcb_name(1,1:3);
+                                    sat_gd = sat_dcb_name(j,1:3);
+                                    sgn = -1;
+                                elseif sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,4:6) ) == 3 
+                                    ref_gd = ref_dcb_name(1,4:6);
+                                    sat_gd = sat_dcb_name(j,4:6);
+                                    sgn = 1;
+                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,4:6) ) == 3 
+                                    ref_gd = ref_dcb_name(1,4:6);
+                                    sat_gd = sat_dcb_name(j,1:3);
+                                    sgn = -1;
+                                end
+                                if sgn ~=0
+                                    dcb_col_r = find(idxCharLines(this.group_delays_flags,[sys ref_gd]));
+                                    dcb_col   = find(idxCharLines(this.group_delays_flags,[sys sat_gd]));
+                                    if this.group_delays(prn, dcb_col_r) ~= 0
+                                        this.group_delays(prn, dcb_col) = this.group_delays(prn, dcb_col_r) + sgn*sat_dcb(j) * goGNSS.V_LIGHT * 1e-9;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                end
+                
+           
+            
         end
         
         function idx = getGroupDelayIdx(this,flag)
