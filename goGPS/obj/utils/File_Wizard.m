@@ -154,7 +154,7 @@ classdef File_Wizard < handle
             this.state.updateErpFileName();
             this.conjureNavFiles(date_start, date_stop);
             this.conjureErpFiles(date_start, date_stop);
-            %this.conjureDCBFiles(date_start, date_stop);
+            this.conjureDCBFiles(date_start, date_stop);
             %this.conjureCRXFiles(date_start, date_stop);
         end
 

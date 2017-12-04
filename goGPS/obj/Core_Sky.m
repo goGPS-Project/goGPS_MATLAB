@@ -944,8 +944,8 @@ classdef Core_Sky < handle
                     ref_dcb_name = this.cc.getRefDCB(s);
                     %check if there is the reference dcb in the one
                     %provided by the external source
-                    is_present  = false;%zeros(size(ref_dcb,1),1);
-                    ref_dcb_idx = 0;%zeros(size(ref_dcb,1),1);
+                    is_present  = false;
+                    ref_dcb_idx = 0;
                     % WARNING: case the orbit is given with reference from a
                     % single frequency is not considered
                     % ASSUMPTION: the dcb of the reference frequencies is
@@ -957,11 +957,6 @@ classdef Core_Sky < handle
                             is_present = 1;
                             ref_dcb_idx = find(idx);
                         end
-%                         idx = sum(sat_dcb_name == repmat(ref_dcb(1,[4:6 1:3]),size(sat_dcb_name,1),1),2) == size(ref_dcb,2);
-%                         if  sum(idx,1) > 0
-%                             is_present = -1;
-%                             ref_dcb_idx = find(idx);
-%                         end
                         if is_present~=0
                             %%% set the dcb for the reference frequencies
                             prn = this.cc.prn(s);
