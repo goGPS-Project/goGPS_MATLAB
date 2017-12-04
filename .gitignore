@@ -8,6 +8,8 @@
 !/data/antenna/ATX/.gitignore
 !/data/antenna/ATX/I08.ATX
 !/data/antenna/ATX/I14.ATX
+!/data/antenna/ATX/igs14_1941.atx
+!/data/antenna/ATX/igs14_1977.atx
 
 !/data/satellite
 /data/satellite/*
