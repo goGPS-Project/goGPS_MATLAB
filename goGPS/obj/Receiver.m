@@ -1573,7 +1573,7 @@ classdef Receiver < handle
             
             sub_sample = false;
             if  approx_pos_unknown
-                this.xyz = [0 0 0];
+                this.xyz = this.xyz_approx;
                 if sum(sum(obs,1)) >= 100
                     % sub sample observations
                     sub_sample = true;
@@ -1873,7 +1873,11 @@ classdef Receiver < handle
             
                         this.dt = zeros(n_epochs,n_clocks);
                         this.dt_obs_code = u_code_bias_flag;
-            this.xyz = zeros(n_epochs,3);
+            if ~isempty(this.xyz_approx) & sum(this.xyz_approx) ~= 0
+                this.xyz = repmat(this.xyz_approx, n_epochs, 1);
+            else
+                this.xyz = zeros(n_epochs,3);
+            end
             
             XS = zeros(this.cc.getNumSat(), 3, n_epochs);
             dist = zeros(n_epochs, this.cc.getNumSat());
