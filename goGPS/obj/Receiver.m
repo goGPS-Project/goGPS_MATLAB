@@ -1518,28 +1518,11 @@ classdef Receiver < handle
             end
         end
         
-        function initPositioning(this)
+        function initPositioning(this,sys_w)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX:
             %   this.initPositioning();
-            if this.isStatic()
-                this.initStaticPositioning()
-            else
-                this.initDynamicPositioning()
-            end
-        end
-            
-        function initStaticPositioning(this)
-            % SYNTAX:
-            %   this.initPositioning();
-            %
-            % INPUT:
-            % OUTPUT:
-            %
-            % DESCRIPTION:
-            %   Get postioning using code observables
-            
             % Init "errors"
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
@@ -1551,6 +1534,36 @@ classdef Receiver < handle
             
             % get best observation for all satellites and all epochs
             [obs, prn, sys, flag] = this.getBestCodeObs;
+            % remove unwanted system
+            if nargin > 1
+                sys_idx = false(size(sys));
+                %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
+                for s = 1:length(sys_w)
+                    sys_idx = sys_idx | sys == sys_w(s);
+                end
+                obs(~sys_idx,:) = [];
+                prn(~sys_idx,:) = [];
+                sys(~sys_idx,:) = [];
+                flag(~sys_idx,:) = [];
+            end
+            
+            if this.isStatic()
+                this.initStaticPositioning(obs, prn, sys, flag)
+            else
+                this.initDynamicPositioning(obs, prn, sys, flag)
+            end
+        end
+            
+        function initStaticPositioning(this,obs, prn, sys, flag)
+            % SYNTAX:
+            %   this.initPositioning();
+            %
+            % INPUT:
+            % OUTPUT:
+            %
+            % DESCRIPTION:
+            %   Get postioning using code observables
+            
             
             iono_free = flag(1,7) == 'I';
             % It should be this:
@@ -1828,7 +1841,7 @@ classdef Receiver < handle
             end
         end
         
-        function initDynamicPositioning(this, sys_w)
+        function initDynamicPositioning(this, obs, prn, sys, flag)
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
             
@@ -1839,24 +1852,6 @@ classdef Receiver < handle
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
-            
-            % if not applied apply gruop delay
-            this.applyGroupDelay();
-            this.applyDtSat();
-            
-            % get best observation for all satellites and all epochs
-            [obs, prn, sys, flag] = this.getBestCodeObs;
-            if nargin > 1
-                sys_idx = false(size(sys));
-                %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
-                for s = 1:length(sys_w)
-                    sys_idx = sys_idx | sys == sys_w(s);
-                end
-                obs(~sys_idx,:) = [];
-                prn(~sys_idx,:) = [];
-                sys(~sys_idx,:) = [];
-                flag(~sys_idx,:) = [];
-            end
             
             %check if the combination is ionofree
             iono_free = flag(1,7) == 'I';
@@ -2027,25 +2022,38 @@ classdef Receiver < handle
                         A_dcb(clock_ep == pres_clock(i),i) = 1;
                     end
                     A_temp = [- XS_temp A_dcb];
-                    
-                    
+
                     y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
+                    % remove parmater with one clock only, they add no
+                    % value create problem for the robust sdjustment
+%                     one_idx = sum(A_temp(:,4:end),1) == 1;
+%                     rm_col = 3+find(one_idx);
+%                     rm_idx = A_temp(:,rm_col) > 0;
+%                     y(rm_idx) = [];
+%                     n_obs_ep = length(y);
+%                     A_temp(rm_idx,:) = [];
+%                     A_temp(:,rm_col) = [];
+%                     pres_clock(rm_col-3) = [];
+                    
                     b = zeros(size(y));
                     Q = speye(length(y));
                     [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
 %                     x = A_temp \ y;
 %                     res = y - A_temp * x;
-                    residuals(idx_obs,e) = res;
+                    %residuals(idx_obs,e) = res;
                     %--- robust estimation ---
 %                     for i = 1:1
-%                         res_n  = diag(Cxx);
-%                         Q = spdiags(min(res_n.^2,100) ,0 ,n_obs_ep ,n_obs_ep);
-%                         [x, res, s02, Cxx, Cyy] = Least_Squares.solver(y, b, A_temp, Q);
+%                         res = res/s02;
+%                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
+%                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
 %                     end
                     if max(abs(x(1:3))) <100;
                         this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                        this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                    else
+                        this.dt(e,pres_clock) = 0;
+                        this.xyz(e,:) = 0;
                     end
-                    this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
                 end
             end
             end
