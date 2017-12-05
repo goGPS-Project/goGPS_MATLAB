@@ -145,10 +145,10 @@ classdef Core_Sky < handle
                 this.log.addMarkedMessage('Importing satellite clock files...');
                 for i = 1:length(clock_f_name)
                     [~,~,ext] = fileparts(clock_f_name{i});
-                    str = strsplit(ext,'_');   %%%% GIULIO what's this????? bug????
                     this.addClk(clock_f_name{i});
                 end
             end
+            
             
             this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
             % compute polynomials for ephemerids
@@ -865,6 +865,7 @@ classdef Core_Sky < handle
             erp.m1 =   erp.Xpole*1e-6 - erp.meanXpole*1e-3;
             erp.m2 = -(erp.Ypole*1e-6 - erp.meanYpole*1e-3);
         end
+        
 
         function importCODEDCB(this)
             [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));

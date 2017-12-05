@@ -193,6 +193,7 @@ for s = 1 : num_session
         mst(i) = Receiver(cc); %#ok<SAGROW>
         mst(i).loadRinex(f_mst_rec{i}{s});
         mst(i).correctTimeDesync();
+        mst(i).remBad();
         rec(r) = mst(i);
         
         % recompute the parameters for the ref_time estimation
@@ -211,6 +212,7 @@ for s = 1 : num_session
         ref(i) = Receiver(cc); %#ok<SAGROW>
         ref(i).loadRinex(f_ref_rec{i}{s});
         ref(i).correctTimeDesync();
+        ref(i).remBad();
         rec(r) = ref(i);
         
         % recompute the parameters for the ref_time estimation
@@ -228,8 +230,10 @@ for s = 1 : num_session
         r = r + 1;
         trg(i) = Receiver(cc); %#ok<SAGROW>
         trg(i).loadRinex(f_trg_rec{i}{s});
+        trg(i).remBad();
         trg(i).static = state.kf_mode == 0; %#ok<SAGROW>
         trg(i).correctTimeDesync();
+        
         rec(r) = trg(i);
         
         % recompute the parameters for the ref_time estimation

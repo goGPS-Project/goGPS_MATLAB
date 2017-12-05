@@ -83,7 +83,7 @@ classdef Receiver < handle
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
-        obs_validity   % validity of the row (does it contains usable values?)
+        %obs_validity   % validity of the row (does it contains usable values?)
         
         obs_code       % obs code for each line of the data matrix obs
         obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
@@ -104,7 +104,8 @@ classdef Receiver < handle
             'az',          [], ...    % double  [n_epoch x n_sat] azimuth
             'el',          [], ...    % double  [n_epoch x n_sat] elevation
             'cs',          [], ...    % Core_Sky
-            'XS_tx',       [] ...     % compute Satellite postion a t transmission time
+            'XS_tx',       [], ...    % compute Satellite postion a t transmission time
+            'crx',         [] ...     % bad epochs based on crx file
             )
     end
     
@@ -128,6 +129,7 @@ classdef Receiver < handle
         
         function initObs(this)
             % initialize the receiver obj
+            
             this.file = [];             % file rinex object
             this.rin_type = 0;          % rinex version format
             
@@ -161,7 +163,7 @@ classdef Receiver < handle
             this.go_id      = [];         % internal id for a certain satellite
             this.system     = '';         % char id of the satellite system corresponding to the row_id
             
-            this.obs_validity = [];       % validity of the row (does it contains usable values?)
+            %this.obs_validity = [];       % validity of the row (does it contains usable values?)
             
             this.obs_code   = [];         % obs code for each line of the data matrix obs
             this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
@@ -178,6 +180,9 @@ classdef Receiver < handle
             this.rec2sat.cs           = Core_Sky.getInstance();
             %this.rec2sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
+
+            
+            
         end
         
         function loadRinex(this, file_name)
@@ -289,7 +294,7 @@ classdef Receiver < handle
             this.active_ids = true(this.getNumObservables, 1);
             
             % remove empty observables
-            this.remObs(~this.obs_validity)
+            this.remObs(~this.active_ids)
         end
         
         function updateStatus(this)
@@ -311,7 +316,7 @@ classdef Receiver < handle
             %    this.n_spe(e) = numel(unique(this.go_id(this.obs(:,e) ~= 0)));
             %end
             
-            this.obs_validity = any(this.obs, 2);
+            this.active_ids = any(this.obs, 2);
             
             %this.rec2sat.avail_index = false(this.time.length, this.cc.getNumSat());
         end
@@ -326,28 +331,52 @@ classdef Receiver < handle
                 this.dt(id_epo) = [];
             end
             
-            this.obs_validity = any(this.obs, 2);
+            this.active_ids = any(this.obs, 2);
         end
         
         function remObs(this, id_obs)
             % remove observations with a certain id
             % SYNTAX:   this.remObs(id_obs)
-            
             this.obs(id_obs,:) = [];
-            
+            this.obs_code(id_obs, :) = [];
             this.active_ids(id_obs) = [];
-            this.obs_validity(id_obs) = [];
-            
             this.wl(id_obs) = [];
             this.f_id(id_obs) = [];
             this.prn(id_obs) = [];
             this.go_id(id_obs) = [];
             this.system(id_obs) = [];
-            
-            
-            this.obs_code(id_obs, :) = [];
         end
-                
+          
+        function remEmptyObs(this)
+            %DESCRIPTION: remove empty obs lines
+            empty_sat = sum(abs(this.obs),2) == 0;
+            this.remObs(empty_sat);
+        end
+        
+        function remBad(this)
+            %DESCRIPTION: Remove observation marked as bad in crx file and
+            %satellite which prn exceed the maximum prn (spare satellites, in
+            %maintenance, etc ..)
+            %remove spare satellites
+            for s = 1 : length(this.cc.sys_c)
+                sys_idx = find(this.system == this.cc.sys_c(s));
+                prn = this.prn(sys_idx);
+                over_max_idx = prn > this.cc.n_sat(s);
+                to_remove = sys_idx(over_max_idx);
+                this.obs(to_remove, :) = 0;
+            end
+            %remove bad epoch in crx
+            [CRX, found] = load_crx(this.state.crx_dir, double(this.time.getGpsWeek), this.time.getGpsTime, this.cc);
+            if found 
+                for s = 1 : size(CRX,1)
+                    c_sat_idx = this.go_id == s;
+                    this.obs(c_sat_idx,CRX(s,:)) = 0;
+                end
+            end
+            % chck empty lines
+            this.remEmptyObs();
+        end
+        
         function correctTimeDesync(this)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX:
@@ -1280,9 +1309,9 @@ classdef Receiver < handle
                             if this.rec2sat.cs.group_delays(s,i) ~= 0
                                 this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
                             elseif ~this.cc.isRefFrequency(sys, str2num(code(2)))
-                                this.obs_validity(idx) = false;
+                                this.active_ids(idx) = false;
                                 idx = this.getObsIdx(['C' code(2:end)], sys);
-                                this.obs_validity(sat_idx) = sgn < 0;
+                                this.active_ids(sat_idx) = sgn < 0;
                             end
                             
                         end
@@ -1292,7 +1321,7 @@ classdef Receiver < handle
                 %mark as bad obs frequencies that are nor reference frequencies or that have no correction
                 if ~this.cc.isRefFrequency(sys, str2num(code(2)))
                     idx = this.getObsIdx(['C' code(2:end)], sys);
-                    this.obs_validity(idx) = sgn < 0;
+                    this.active_ids(idx) = sgn < 0;
                 end
                 end
             end
@@ -1317,8 +1346,8 @@ classdef Receiver < handle
             
             
             idx = [this.getObsIdx('C'); this.getObsIdx('L')];
-            if isempty(this.obs_validity)
-                this.obs_validity= false(size(this.obs,1),1);
+            if isempty(this.active_ids)
+                this.active_ids= false(size(this.obs,1),1);
             end
             for i = 1 : this.cc.getNumSat();
                 prn = this.cc.prn(i);
@@ -1339,24 +1368,28 @@ classdef Receiver < handle
                     dts_range_2 = dts_range(dts_idx);
                     nan_idx = obs_idx(find(isnan(dts_range_2)));
                     this.obs(o, nan_idx) = 0;
-                end
-                
-            end
-            
-            
+                end 
+            end    
         end
+        
         function applyDtSat(this)
             if this.dts_delay_status == 0
                 this.DtSat(1);
                 this.dts_delay_status = 1; %applied
             end
         end
+        
         function removeDtSat(this)
             if this.dts_delay_status == 1
                 this.DtSat(-1);
                 this.dts_delay_status = 0; %applied
             end
         end
+        
+        
+        
+        
+        
         function [obs, prn, sys, flag] = getBestCodeObs(this);
             % INPUT:
             % OUPUT:
@@ -1375,7 +1408,7 @@ classdef Receiver < handle
             flag = [];
             for i=1:this.cc.getNumSat()
                 sat_idx = this.getObsIdx('C',this.cc.system(i),this.cc.prn(i));
-                sat_idx = sat_idx(this.obs_validity(sat_idx) );
+                sat_idx = sat_idx(this.active_ids(sat_idx) );
                 if ~isempty(sat_idx)
                     % get epoch for which iono free is possible
                     sat_obs = this.obs(sat_idx,:);
@@ -1523,6 +1556,8 @@ classdef Receiver < handle
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX:
             %   this.initPositioning();
+            % INPUT:
+            %   sys_w = wanted system
             % Init "errors"
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
@@ -1535,7 +1570,9 @@ classdef Receiver < handle
             % get best observation for all satellites and all epochs
             [obs, prn, sys, flag] = this.getBestCodeObs;
             % remove unwanted system
-            if nargin > 1
+            if nargin < 2
+                sys_w = this.cc.sys_c;
+            end
                 sys_idx = false(size(sys));
                 %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
                 for s = 1:length(sys_w)
@@ -1545,7 +1582,7 @@ classdef Receiver < handle
                 prn(~sys_idx,:) = [];
                 sys(~sys_idx,:) = [];
                 flag(~sys_idx,:) = [];
-            end
+
             
             if this.isStatic()
                 this.initStaticPositioning(obs, prn, sys, flag)
@@ -1585,6 +1622,7 @@ classdef Receiver < handle
                     sys_ss = sys;
                     flag_ss = flag;
                     
+                   
                     % remove line that might be empty
                     empty_sat = sum(obs_ss,2) == 0;
                     obs_ss(empty_sat, :) = [];
@@ -1966,7 +2004,7 @@ classdef Receiver < handle
                     x = A_temp \ y;
                     res = y - A_temp * x;
                     residuals(idx_obs,e) = res;
-                    if not(isnan(this.xyz(e,:))) & sum(abs(x(1:3))) < 300
+                    if not(isnan(this.xyz(e,:))) %& sum(abs(x(1:3))) < 300
                         this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
                         cur_xyz_est = this.xyz(e,:);
                         this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;

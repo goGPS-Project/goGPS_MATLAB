@@ -290,6 +290,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.updateStatus(active_list);
             end
         end
+        
 
         function ant_mod = getAntennaId(this, goid)
             % Equivalent to the old function sat_antenna_ID
@@ -703,6 +704,7 @@ classdef Constellation_Collector < Settings_Interface
             % return the SBAS satellite system object
             gps = handle(this.sbs);
         end
+        
         function sys = getSys(this, sys)
             % return the system based on is identified char
             switch sys
@@ -722,13 +724,23 @@ classdef Constellation_Collector < Settings_Interface
                         sys = this.getSBAS();
             end
         end
+        
         function index = getIndex(this,sys,prn)
-            % get progressive index for giveng system and prns
+            % get progressive index for giving system and prns
             index = zeros(size(prn));
+            if length(sys) == 1
+                sys = repmat(sys,length(prn),1);
+            end
             for i = 1:length(prn)
                 p = prn(i);
-                index(i) = find(this.system == sys & [this.prn == p]');
+                s = sys(i);
+                index(i) = this.index( [this.system == s]' & this.prn == p);
             end
+            
+        end
+        
+        function sat_name = getSatName(this, go_id)
+            sat_name = reshape(sprintf('%c%02d', [this.system(go_id); this.prn(go_id)'])', 3, length(go_id))';
         end
     end
 
