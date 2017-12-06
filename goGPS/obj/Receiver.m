@@ -296,7 +296,18 @@ classdef Receiver < handle
             % remove empty observables
             this.remObs(~this.active_ids)
         end
-        
+        function preProcessing(this)
+            %DESCRIPTION: Do all operation needed in order to preprocess
+            %the data
+            %remove bad observation (spare satellites or bad epochs from CRX)
+            this.remBad();
+            % correct for raw estimate of clock error based on the phase meausrements
+            this.correctTimeDesync();
+            % set to static or dynamic
+            this.static = this.state.kf_mode == 0; 
+            %code only solution
+            this.initPositioning();
+        end
         function updateStatus(this)
             % Compute the other useful status array of the receiver object
             % SYNTAX this.updateStatus();
@@ -358,6 +369,7 @@ classdef Receiver < handle
             %satellite which prn exceed the maximum prn (spare satellites, in
             %maintenance, etc ..)
             %remove spare satellites
+            this.log.addMarkedMessage('Removing satellites whose prn exceed the maximum official one')
             for s = 1 : length(this.cc.sys_c)
                 sys_idx = find(this.system == this.cc.sys_c(s));
                 prn = this.prn(sys_idx);
@@ -366,6 +378,7 @@ classdef Receiver < handle
                 this.obs(to_remove, :) = 0;
             end
             %remove bad epoch in crx
+            this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
             [CRX, found] = load_crx(this.state.crx_dir, double(this.time.getGpsWeek), this.time.getGpsTime, this.cc);
             if found 
                 for s = 1 : size(CRX,1)
@@ -1559,15 +1572,18 @@ classdef Receiver < handle
             % INPUT:
             %   sys_w = wanted system
             % Init "errors"
+            this.log.addMarkedMessage('Computing postion and clock errors based on code only')
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
-            
+            this.log.addMessage(this.log.indent('Applying satellites DCB',6))
             % if not applied apply gruop delay
             this.applyGroupDelay();
+            this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity depandant realtivistic correction',6))
             this.applyDtSat();
             
             % get best observation for all satellites and all epochs
+            this.log.addMessage(this.log.indent('Get best code combination vavliable for each satellites and epoch',6))
             [obs, prn, sys, flag] = this.getBestCodeObs;
             % remove unwanted system
             if nargin < 2
@@ -1601,7 +1617,7 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Get postioning using code observables
             
-            
+            this.log.addMessage(this.log.indent('starting initial static postioning',6))
             iono_free = flag(1,7) == 'I';
             % It should be this:
             % approx_pos_unknown = all(this.xyz_approx(:) == 0);
@@ -1611,6 +1627,7 @@ classdef Receiver < handle
             sub_sample = false;
             if  approx_pos_unknown
                 this.xyz = this.xyz_approx;
+                this.log.addMessage(this.log.indent('getting coarse position on subsample of data',6))
                 if sum(sum(obs,1)) >= 100
                     % sub sample observations
                     sub_sample = true;
@@ -1649,6 +1666,7 @@ classdef Receiver < handle
                 end
                                
                 % second estimation with atmosphere
+                this.log.addMessage(this.log.indent('improving estimation',6))
                 opt.coord_corr = 1;
                 opt.max_it = 10;
                 if sub_sample
@@ -1682,9 +1700,10 @@ classdef Receiver < handle
             opt.max_it = 1;
             opt.coord_corr = 0.1;
             opt.no_pos = true;
-            
+            this.log.addMessage(this.log.indent('Get final clock error estimation to sysncronize satellite positions',6))
             this.codeStaticPositionig(obs, prn, sys, flag, opt); % get a first estimation of receiver clock offset to get correct orbit
             opt.no_pos = false;
+            this.log.addMessage(this.log.indent('Final estimation',6))
             this.codeStaticPositionig(obs, prn, sys, flag, opt);
         end
         
@@ -1884,6 +1903,7 @@ classdef Receiver < handle
             % (independent epochs, no kalman filters or regularization)
             
             %initialize modeled error matrix
+            this.log.addMessage(this.log.indent('Sarting dynamic positioning',6))
             if isempty(this.rec2sat.avail_index)
                 this.rec2sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
             end
@@ -1937,7 +1957,7 @@ classdef Receiver < handle
                         XS(i,:,idx_obs) = XS_temp';
                     end
             end
-
+            this.log.addMessage(this.log.indent('Getting very coarse postion from first valid epoch',6))
             % get coarse postion from first valid epoch
             %find first valid epoch
             not_found = true;
@@ -1981,6 +2001,7 @@ classdef Receiver < handle
                 end
             end
             residuals = zeros(size(obs));
+            this.log.addMessage(this.log.indent('Getting coarse position for all epoch',6))
             for e = 1 : n_epochs
                 idx_obs = obs(:,e) > 0;
                 n_obs_ep = sum(idx_obs);
@@ -2014,7 +2035,7 @@ classdef Receiver < handle
                 end
             end
             
-            %%% COMPUTE AGAIN XS BASED ON CURRENT CLCOK ESTIMATE
+            %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
             %remove cut off
             cut_off = 5;
             for a = 1:1
@@ -2050,6 +2071,7 @@ classdef Receiver < handle
                         XS(i,:,idx_obs) = rowNormalize(XS_temp)';
                     end
             end
+            this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
             for e = 1 : n_epochs
                 idx_obs = obs(:,e) > 0;
                 n_obs_ep = sum(idx_obs);
@@ -2106,6 +2128,8 @@ classdef Receiver < handle
             % current postion
             % INPUT: 
             %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency)
+            % EXAMPLE:
+            % this.getSyntObs(1,go_id)
             n_epochs = size(this.obs, 2);
             n_sat = this.cc.getNumSat();
             if isnumeric(obs_type)
@@ -2419,6 +2443,7 @@ classdef Receiver < handle
                 this.rec2sat.err_tropo = zeros(size(this.rec2sat.avail_index));
             end
             if nargin < 2 | strcmp(sat,'all')
+                this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
                 if nargin < 3
                         flag = this.state.tropo_model;
                 end
@@ -2473,6 +2498,7 @@ classdef Receiver < handle
                 this.rec2sat.err_iono = size(this.rec2sat.avail_index);
             end
             if nargin < 2
+                this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
                 for s = 1 : size(this.rec2sat.avail_index,2)
                     this.updateErrIono(s);
                 end
@@ -2516,6 +2542,7 @@ classdef Receiver < handle
             %DESCRIPTION: upadte the correction related to solid earth
             % solid tides, ocean loading, pole tides.
             if isempty(this.rec2sat.solid_earth_corr)
+                this.log.addMessage(this.log.indent('Updating solid earth corrections',6))
                 this.rec2sat.solid_earth_corr = zeros(size(this.rec2sat.avail_index));
             end
             if nargin < 2
