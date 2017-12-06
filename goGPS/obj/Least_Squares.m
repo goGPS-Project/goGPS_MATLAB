@@ -59,11 +59,11 @@ classdef Least_Squares < handle
         P       % A' / iQ                                [ n_par x n_obs]
         N       % Normal matrix                          [ n_par x n_par]
         iN      % inverse of the Normal Matrix           [ n_par x n_par]
-       
+        
     end
     
-    properties (GetAccess = private)
-         updated % flag to sync when the output parameters have been computed / the input change
+    properties(GetAccess = private)
+        updated % flag to sync when the output parameters have been computed / the input change
         
         % [x res s02 Cxx iQ P/N iN]
     end
@@ -80,19 +80,19 @@ classdef Least_Squares < handle
             % SYNTAX:
             %    this.import(A, b, y0, Q)
             %    this.import(A, b, y0, Q, x, Cxx, s02, res)
-            this.A  = A;
-            this.b  = b;
+            this.A = A;
+            this.b = b;
             this.y0 = y0;
-            this.Q  = Q;
+            this.Q = Q;
             
             if nargin == 8
                 this.x = x;
                 this.res = res;
                 this.s02 = s02;
                 this.Cxx = Cxx;
-                this.updated = true(8,1);
+                this.updated = true(8, 1);
             else
-                this.updated = false(8,1);
+                this.updated = false(8, 1);
             end
         end
         
@@ -102,7 +102,7 @@ classdef Least_Squares < handle
             y0 = this.y0;
             b = this.b;
             if nargin > 1
-                A = this.A(:,column);
+                A = this.A(:, column);
             else
                 A = this.A;
             end
@@ -143,15 +143,15 @@ classdef Least_Squares < handle
                 end
             end
             if nargout > 1
-            % estimation of the variance of the observation error
-            if ~this.updated(2)
-                y_hat = A * x + b;
-                res = y0 - y_hat;
-                this.res = res;
-                this.updated(2) = true;
-            else
-                res = this.res;
-            end
+                % estimation of the variance of the observation error
+                if ~this.updated(2)
+                    y_hat = A * x + b;
+                    res = y0 - y_hat;
+                    this.res = res;
+                    this.updated(2) = true;
+                else
+                    res = this.res;
+                end
             end
             
             if nargout > 2
@@ -187,26 +187,26 @@ classdef Least_Squares < handle
         
     end
     
-    methods (Access = 'private')
+    methods(Access = 'private')
         function init(this)
             % Clear the object content
             % SYNTAX: this.init();
             
-            this.A  = [];
+            this.A = [];
             this.y0 = [];
-            this.b  = [];
-            this.Q  = [];
+            this.b = [];
+            this.Q = [];
             
-            this.iQ  = [];
-            this.x   = [];
+            this.iQ = [];
+            this.x = [];
             this.Cxx = [];
             this.s02 = [];
             this.res = [];
-            this.updated = false(8,1    );
+            this.updated = false(8, 1);
         end
     end
     
-    methods (Static)
+    methods(Static)
         function [x, res, s02, Cxx, Cyy] = solver(y0, b, A, Q)
             % Solve a LS problem
             % SYNTAX: [x, res, s02, Cxx, Cyy] = solver(y0, b, A, Q)
@@ -289,7 +289,7 @@ classdef Least_Squares < handle
             y_hat = A * x + b;
             res = y0 - y_hat;
             
-            s02 = (res' /  Q * res) / (n - m);
+            s02 = (res' / Q * res) / (n - m);
         end
     end
 end
