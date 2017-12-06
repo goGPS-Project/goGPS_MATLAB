@@ -1165,14 +1165,22 @@ classdef Core_Pre_Processing < handle
             pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
             if sum(pos_jmp) > 0
                 ddt = ddt - simpleFill1D(ddt, pos_jmp);
-                dt = detrend(cumsum(ddt));
+                dt = cumsum(ddt);
                 ph_bk = ph;
                 ph = bsxfun(@minus, ph, dt);
                 d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
                 d4dt(abs(d4dt) < clock_thresh) = 0;
-                dt = detrend(dt - cumsum(nan2zero([0; d4dt; zeros(3,1)])));
-                dt = dt - splinerMat([], dt, length(dt)/2);
-                ph = bsxfun(@minus, ph_bk, dt);
+                dt = dt - cumsum(nan2zero([0; d4dt; zeros(3,1)]));
+                dt_s = detrend(dt) - splinerMat([], detrend(dt), length(dt)/2);
+                
+                [~, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, dt_s));
+                if flag
+                    dt = dt_s;
+                end
+                [ph, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, detrend(dt)));
+                if flag
+                    dt = detrend(dt);
+                end                
             else
                 dt = zeros(size(ddt));
             end
