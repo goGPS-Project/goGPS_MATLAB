@@ -240,6 +240,8 @@ for s = 1 : num_session
         pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
         pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
         pr = lcm(lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)), state.getProcessingRate() * 1e6) * 1e-6;
+        pt0 = ceil(pt0 / pr) * pr;
+        pt1 = floor(pt1 / pr) * pr;
         
         p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
         p_time(i).toUnixTime();
