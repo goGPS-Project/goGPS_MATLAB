@@ -180,7 +180,7 @@ classdef Receiver < handle
             this.rec2sat.cs           = Core_Sky.getInstance();
             %this.rec2sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
-
+            
             
             
         end
@@ -296,6 +296,7 @@ classdef Receiver < handle
             % remove empty observables
             this.remObs(~this.active_ids)
         end
+        
         function preProcessing(this)
             %DESCRIPTION: Do all operation needed in order to preprocess
             %the data
@@ -304,10 +305,11 @@ classdef Receiver < handle
             % correct for raw estimate of clock error based on the phase meausrements
             this.correctTimeDesync();
             % set to static or dynamic
-            this.static = this.state.kf_mode == 0; 
+            this.static = this.state.kf_mode == 0;
             %code only solution
             this.initPositioning();
         end
+        
         function updateStatus(this)
             % Compute the other useful status array of the receiver object
             % SYNTAX this.updateStatus();
@@ -357,7 +359,7 @@ classdef Receiver < handle
             this.go_id(id_obs) = [];
             this.system(id_obs) = [];
         end
-          
+        
         function remEmptyObs(this)
             %DESCRIPTION: remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
@@ -380,7 +382,7 @@ classdef Receiver < handle
             %remove bad epoch in crx
             this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
             [CRX, found] = load_crx(this.state.crx_dir, double(this.time.getGpsWeek), this.time.getGpsTime, this.cc);
-            if found 
+            if found
                 for s = 1 : size(CRX,1)
                     c_sat_idx = this.go_id == s;
                     this.obs(c_sat_idx,CRX(s,:)) = 0;
@@ -487,7 +489,7 @@ classdef Receiver < handle
             % Saving dt into the object properties
             this.dt_ph = (dt_ph - time_desync_ph);
             this.dt_pr = (dt_pr - time_desync_pr);
-                      
+            
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
                 this.log.addMarkedMessage('Removing principal outliers');
@@ -994,14 +996,14 @@ classdef Receiver < handle
             
             id_ph = this.obs_code(:, 1) == 'L';
             if (nargin == 2)
-               id_ph = id_ph & (this.system == ss)';
+                id_ph = id_ph & (this.system == ss)';
             end
             ph = this.obs(id_ph, :);
             wl = this.wl(id_ph);
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
         end
-
+        
         function setPhases(this, ph, wl, id_ph)
             % set the phases observations in meter (not cycles)
             % SYNTAX: setPhases(this, ph, wl, id_ph)
@@ -1010,19 +1012,19 @@ classdef Receiver < handle
             ph = bsxfun(@rdivide, zero2nan(ph'), wl);
             this.obs(id_ph, :) = nan2zero(ph);
         end
-
+        
         function [pr, id_pr] = getPseudoRanges(this, ss)
             % get the pseudo ranges observations in meter (not cycles)
             % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<ss>)
             % SEE ALSO: getPhases setPhases setPseudoRanges
-
+            
             id_pr = this.obs_code(:, 1) == 'C';
             if (nargin == 2)
-               id_pr = id_pr & (this.system == ss)';
+                id_pr = id_pr & (this.system == ss)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
         end
-                
+        
         function setPseudoRanges(this, pr, id_pr)
             % set the pseudo ranges observations in meter (not cycles)
             % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<ss>)
@@ -1331,11 +1333,11 @@ classdef Receiver < handle
                         
                     end
                 else
-                %mark as bad obs frequencies that are nor reference frequencies or that have no correction
-                if ~this.cc.isRefFrequency(sys, str2num(code(2)))
-                    idx = this.getObsIdx(['C' code(2:end)], sys);
-                    this.active_ids(idx) = sgn < 0;
-                end
+                    %mark as bad obs frequencies that are nor reference frequencies or that have no correction
+                    if ~this.cc.isRefFrequency(sys, str2num(code(2)))
+                        idx = this.getObsIdx(['C' code(2:end)], sys);
+                        this.active_ids(idx) = sgn < 0;
+                    end
                 end
             end
             
@@ -1381,8 +1383,8 @@ classdef Receiver < handle
                     dts_range_2 = dts_range(dts_idx);
                     nan_idx = obs_idx(find(isnan(dts_range_2)));
                     this.obs(o, nan_idx) = 0;
-                end 
-            end    
+                end
+            end
         end
         
         function applyDtSat(this)
@@ -1484,7 +1486,7 @@ classdef Receiver < handle
                                             
                                         end
                                         
-                                       if sum(obs_tmp(to_fill_epoch)>0)>0 % if there is some new observation
+                                        if sum(obs_tmp(to_fill_epoch)>0)>0 % if there is some new observation
                                             second_freq = [second_freq; zeros(1,n_epoch)];
                                             second_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
                                             sf_idx(to_fill_epoch) = size(second_freq,1);
@@ -1502,10 +1504,10 @@ classdef Receiver < handle
                             for y = 1 : size(s_obs_code,1)
                                 inv_wl1 = 1/this.wl(this.getObsIdx(f_obs_code(k,:),this.cc.system(i),this.cc.prn(i)));
                                 inv_wl2 = 1/this.wl(this.getObsIdx(s_obs_code(y,:),this.cc.system(i),this.cc.prn(i)));
-%                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
-%                                     keyboard
-%                                 end
-                                    
+                                %                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
+                                %                                     keyboard
+                                %                                 end
+                                
                                 obs_tmp = ((inv_wl1).^2 .* first_freq(k,:) - (inv_wl2).^2 .* second_freq(y,:))./ ( (inv_wl1).^2 - (inv_wl2).^2 );
                                 obs_tmp(isnan(obs_tmp)) = 0;
                                 if sum(obs_tmp>0)>0
@@ -1564,7 +1566,7 @@ classdef Receiver < handle
             end
         end
         
-        function initPositioning(this,sys_w)
+        function initPositioning(this, sys_w)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX:
@@ -1572,33 +1574,33 @@ classdef Receiver < handle
             % INPUT:
             %   sys_w = wanted system
             % Init "errors"
-            this.log.addMarkedMessage('Computing postion and clock errors based on code only')
+            this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
             this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
-            this.log.addMessage(this.log.indent('Applying satellites DCB',6))
+            this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
             % if not applied apply gruop delay
             this.applyGroupDelay();
-            this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity depandant realtivistic correction',6))
+            this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
             this.applyDtSat();
             
             % get best observation for all satellites and all epochs
-            this.log.addMessage(this.log.indent('Get best code combination vavliable for each satellites and epoch',6))
+            this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
             [obs, prn, sys, flag] = this.getBestCodeObs;
             % remove unwanted system
             if nargin < 2
                 sys_w = this.cc.sys_c;
             end
-                sys_idx = false(size(sys));
-                %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
-                for s = 1:length(sys_w)
-                    sys_idx = sys_idx | sys == sys_w(s);
-                end
-                obs(~sys_idx,:) = [];
-                prn(~sys_idx,:) = [];
-                sys(~sys_idx,:) = [];
-                flag(~sys_idx,:) = [];
-
+            sys_idx = false(size(sys));
+            %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
+            for s = 1:length(sys_w)
+                sys_idx = sys_idx | sys == sys_w(s);
+            end
+            obs(~sys_idx,:) = [];
+            prn(~sys_idx,:) = [];
+            sys(~sys_idx,:) = [];
+            flag(~sys_idx,:) = [];
+            
             
             if this.isStatic()
                 this.initStaticPositioning(obs, prn, sys, flag)
@@ -1606,7 +1608,7 @@ classdef Receiver < handle
                 this.initDynamicPositioning(obs, prn, sys, flag)
             end
         end
-            
+        
         function initStaticPositioning(this,obs, prn, sys, flag)
             % SYNTAX:
             %   this.initPositioning();
@@ -1639,7 +1641,7 @@ classdef Receiver < handle
                     sys_ss = sys;
                     flag_ss = flag;
                     
-                   
+                    
                     % remove line that might be empty
                     empty_sat = sum(obs_ss,2) == 0;
                     obs_ss(empty_sat, :) = [];
@@ -1657,14 +1659,14 @@ classdef Receiver < handle
                 else
                     this.codeStaticPositionig(obs, prn, sys, flag, opt);
                 end
-                 %%% remove obs under cu off
+                %%% remove obs under cu off
                 [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
                 % update atmosphere
                 this.updateErrTropo('all', 1);
                 if ~iono_free
                     this.updateErrIono();
                 end
-                               
+                
                 % second estimation with atmosphere
                 this.log.addMessage(this.log.indent('improving estimation',6))
                 opt.coord_corr = 1;
@@ -1716,9 +1718,9 @@ classdef Receiver < handle
             % measurements
             
             if nargin < 5
-                opt = struct('coord_corr', 0.1, ... 
-                             'max_it',  10, ...
-                             'no_pos', false);
+                opt = struct('coord_corr', 0.1, ...
+                    'max_it',  10, ...
+                    'no_pos', false);
             end
             if ~isfield(opt,'no_pos')
                 opt.no_pos = false;
@@ -1767,7 +1769,7 @@ classdef Receiver < handle
             this.dt = zeros(this.time.length,1);
             this.rid = zeros(1, length(u_code_bias_flag)-1);
             this.dt_obs_code = u_code_bias_flag;
-                         
+            
             n_tot_obs = sum(sum(obs>0));
             
             % initialize LS solver
@@ -1777,7 +1779,7 @@ classdef Receiver < handle
             ls_solver.y0_epoch = zeros(n_tot_obs,1);
             ls_solver.Q = speye(n_tot_obs);
             x = [999 999 999];
-                        
+            
             % ls_solver.A = sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); % version with reference clock
             
             n_it = 0;
@@ -1929,8 +1931,8 @@ classdef Receiver < handle
                 sat(i) = this.cc.getIndex(sys(i),prn(i));
             end
             
-                        this.dt = zeros(n_epochs,n_clocks);
-                        this.dt_obs_code = u_code_bias_flag;
+            this.dt = zeros(n_epochs,n_clocks);
+            this.dt_obs_code = u_code_bias_flag;
             if ~isempty(this.xyz_approx) & sum(this.xyz_approx) ~= 0
                 this.xyz = repmat(this.xyz_approx, n_epochs, 1);
             else
@@ -1941,21 +1943,21 @@ classdef Receiver < handle
             dist = zeros(n_epochs, this.cc.getNumSat());
             % get Sat orbit correctiong ony for pseudorange
             for i = 1 : this.cc.getNumSat();
-                    c_sys = this.cc.system(i);
-                    c_prn = this.cc.prn(i);
-                    idx_sat = sys == c_sys & prn == c_prn;
-                    if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
-                        c_obs = obs(idx_sat,:);
-                        
-                        c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
-                        idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
-                        %update time of flight times
-                        this.updateAvailIndex(c_l_obs,i);
-                        this.updateTOT(c_l_obs,i); % update time of travel
-                        
-                        [XS_temp , ~] = this.getXSTxRot(i);
-                        XS(i,:,idx_obs) = XS_temp';
-                    end
+                c_sys = this.cc.system(i);
+                c_prn = this.cc.prn(i);
+                idx_sat = sys == c_sys & prn == c_prn;
+                if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                    c_obs = obs(idx_sat,:);
+                    
+                    c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                    idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
+                    %update time of flight times
+                    this.updateAvailIndex(c_l_obs,i);
+                    this.updateTOT(c_l_obs,i); % update time of travel
+                    
+                    [XS_temp , ~] = this.getXSTxRot(i);
+                    XS(i,:,idx_obs) = XS_temp';
+                end
             end
             this.log.addMessage(this.log.indent('Getting very coarse postion from first valid epoch',6))
             % get coarse postion from first valid epoch
@@ -1984,14 +1986,14 @@ classdef Receiver < handle
                 XS_temp_norm = XS_temp./repmat(dist,1,3);
                 A_dcb = zeros(n_obs_ep, length(pres_clock));
                 for i = 1:length(pres_clock)
-                            A_dcb(clock_ep == pres_clock(i),i) = 1;
+                    A_dcb(clock_ep == pres_clock(i),i) = 1;
                 end
-               A_temp = [- XS_temp_norm A_dcb];
-               y = obs(idx_obs, e) - dist;
-               x = A_temp \ y;
-               this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-               this.dt(e,pres_clock) = x(4:end)';
-               cur_xyz_est = this.xyz(e,:);
+                A_temp = [- XS_temp_norm A_dcb];
+                y = obs(idx_obs, e) - dist;
+                x = A_temp \ y;
+                this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                this.dt(e,pres_clock) = x(4:end)';
+                cur_xyz_est = this.xyz(e,:);
             end
             % if combination is not ionofree compute iono using coarse
             % postion estimation computed with the first valid epoch
@@ -2039,15 +2041,15 @@ classdef Receiver < handle
             %remove cut off
             cut_off = 5;
             for a = 1:1
-            [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
-            sat = zeros(size(prn));
-            for i = 1 : length(sat)
-                sat(i) = this.cc.getIndex(sys(i),prn(i));
-            end
-            XS = zeros(this.cc.getNumSat(), 3, n_epochs);
-            dist = zeros(n_epochs, this.cc.getNumSat());
-            % get Sat orbit correctiong ony for pseudorange
-            for i = 1 : this.cc.getNumSat();
+                [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
+                sat = zeros(size(prn));
+                for i = 1 : length(sat)
+                    sat(i) = this.cc.getIndex(sys(i),prn(i));
+                end
+                XS = zeros(this.cc.getNumSat(), 3, n_epochs);
+                dist = zeros(n_epochs, this.cc.getNumSat());
+                % get Sat orbit correctiong ony for pseudorange
+                for i = 1 : this.cc.getNumSat();
                     c_sys = this.cc.system(i);
                     c_prn = this.cc.prn(i);
                     idx_sat = sys == c_sys & prn == c_prn;
@@ -2070,63 +2072,63 @@ classdef Receiver < handle
                         
                         XS(i,:,idx_obs) = rowNormalize(XS_temp)';
                     end
-            end
-            this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
-            for e = 1 : n_epochs
-                idx_obs = obs(:,e) > 0;
-                n_obs_ep = sum(idx_obs);
-                v_clocks= 1:n_clocks;
-                clock_ep = code_bias_ord(idx_obs);
-                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
-                pres_clock(pres_clock == 0) = [];
-                if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
-                    XS_temp = XS(sat(idx_obs),:,e);
-                    A_dcb = zeros(n_obs_ep, length(pres_clock));
-                    for i = 1:length(pres_clock)
-                        A_dcb(clock_ep == pres_clock(i),i) = 1;
-                    end
-                    A_temp = [- XS_temp A_dcb];
-
-                    y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
-                    % remove parmater with one clock only, they add no
-                    % value create problem for the robust sdjustment
-%                     one_idx = sum(A_temp(:,4:end),1) == 1;
-%                     rm_col = 3+find(one_idx);
-%                     rm_idx = A_temp(:,rm_col) > 0;
-%                     y(rm_idx) = [];
-%                     n_obs_ep = length(y);
-%                     A_temp(rm_idx,:) = [];
-%                     A_temp(:,rm_col) = [];
-%                     pres_clock(rm_col-3) = [];
-                    
-                    b = zeros(size(y));
-                    Q = speye(length(y));
-                    [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
-%                     x = A_temp \ y;
-%                     res = y - A_temp * x;
-                    %residuals(idx_obs,e) = res;
-                    %--- robust estimation ---
-%                     for i = 1:1
-%                         res = res/s02;
-%                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
-%                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
-%                     end
-                    if max(abs(x(1:3))) <100;
-                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                        this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
-                    else
-                        this.dt(e,pres_clock) = 0;
-                        this.xyz(e,:) = 0;
+                end
+                this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
+                for e = 1 : n_epochs
+                    idx_obs = obs(:,e) > 0;
+                    n_obs_ep = sum(idx_obs);
+                    v_clocks= 1:n_clocks;
+                    clock_ep = code_bias_ord(idx_obs);
+                    pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                    pres_clock(pres_clock == 0) = [];
+                    if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
+                        XS_temp = XS(sat(idx_obs),:,e);
+                        A_dcb = zeros(n_obs_ep, length(pres_clock));
+                        for i = 1:length(pres_clock)
+                            A_dcb(clock_ep == pres_clock(i),i) = 1;
+                        end
+                        A_temp = [- XS_temp A_dcb];
+                        
+                        y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
+                        % remove parmater with one clock only, they add no
+                        % value create problem for the robust sdjustment
+                        %                     one_idx = sum(A_temp(:,4:end),1) == 1;
+                        %                     rm_col = 3+find(one_idx);
+                        %                     rm_idx = A_temp(:,rm_col) > 0;
+                        %                     y(rm_idx) = [];
+                        %                     n_obs_ep = length(y);
+                        %                     A_temp(rm_idx,:) = [];
+                        %                     A_temp(:,rm_col) = [];
+                        %                     pres_clock(rm_col-3) = [];
+                        
+                        b = zeros(size(y));
+                        Q = speye(length(y));
+                        [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
+                        %                     x = A_temp \ y;
+                        %                     res = y - A_temp * x;
+                        %residuals(idx_obs,e) = res;
+                        %--- robust estimation ---
+                        %                     for i = 1:1
+                        %                         res = res/s02;
+                        %                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
+                        %                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
+                        %                     end
+                        if max(abs(x(1:3))) <100;
+                            this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                            this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                        else
+                            this.dt(e,pres_clock) = 0;
+                            this.xyz(e,:) = 0;
+                        end
                     end
                 end
-            end
             end
         end
         
         function [range, XS_loc] = getSyntObs(this, obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
             % current postion
-            % INPUT: 
+            % INPUT:
             %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency)
             % EXAMPLE:
             % this.getSyntObs(1,go_id)
@@ -2156,13 +2158,13 @@ classdef Receiver < handle
                 sys = this.cc.system(sat);
                 switch obs_type
                     case 'I'
-                            iono_factor = 0;
+                        iono_factor = 0;
                     case '1'
-                            iono_factor = 1;
+                        iono_factor = 1;
                     otherwise
-                            iono_factors = this.cc.getSys(sys).getIonoFactor([1 str2num(obs_type)]);
-                            iono_factor = iono_factors.alpha2 / iono_factors.aplha1;
-                            
+                        iono_factors = this.cc.getSys(sys).getIonoFactor([1 str2num(obs_type)]);
+                        iono_factor = iono_factors.alpha2 / iono_factors.aplha1;
+                        
                 end
                 range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
                 
@@ -2445,7 +2447,7 @@ classdef Receiver < handle
             if nargin < 2 | strcmp(sat,'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
                 if nargin < 3
-                        flag = this.state.tropo_model;
+                    flag = this.state.tropo_model;
                 end
                 for s = 1 : size(this.rec2sat.avail_index,2)
                     this.updateErrTropo(s, flag);
@@ -2729,440 +2731,440 @@ classdef Receiver < handle
                 ocean_load_dcorr(s,1) = sum(conj(corrXYZ).*LOSu);
             end
         end
-            function [poletidecorr] = getPoleTideCorr(this, time, XR, XS, phiC, lam)
-                
-                % SYNTAX:
-                %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
-                %
-                % INPUT:
-                %   time = GPS time
-                %   XR   = receiver position  (X,Y,Z)
-                %   XS   = satellite position (X,Y,Z)
-                %   phiC = receiver geocentric latitude (rad)
-                %   lam  = receiver longitude (rad)
-                %
-                % OUTPUT:
-                %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
-                %
-                % DESCRIPTION:
-                %   Computation of the pole tide displacement terms.
-                if (nargin < 5)
-                    [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
-                end
-                
-                poletidecorr = zeros(size(XS,1),1);
-                
-                %interpolate the pole displacements
-                if (~isempty(this.ERP))
-                    if (length(this.ERP.t) > 1)
-                        m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
-                        m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
-                    else
-                        m1 = this.ERP.m1;
-                        m2 = this.ERP.m2;
-                    end
-                    
-                    deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                    deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
-                    deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                    
-                    corrENU(1,1) = deltaLam; %east
-                    corrENU(2,1) = deltaPhi; %north
-                    corrENU(3,1) = deltaR;   %up
-                    
-                    %displacement along the receiver-satellite line-of-sight
-                    XRcorr = local2globalPos(corrENU, XR);
-                    corrXYZ = XRcorr - XR;
-                    for s = 1 : size(XS,1)
-                        LOS  = XR - XS(s,:)';
-                        LOSu = LOS / norm(LOS);
-                        poletidecorr(s,1) = -dot(corrXYZ,LOSu);
-                    end
-                end
-                
-            end
-            function updateAzimuthElevation(this, XS, XR)
-            end
-            function [az, el] = getAzimuthElevation(this, XS, XR)
-                % SYNTAX:
-                %   [az, el] = this.getAzimuthElevation(XS)
-                %
-                % INPUT:
-                % XS = positions of satellite [n_epoch x 1]
-                % XR = positions of reciever [n_epoch x 1] (optional, non static
-                % case)
-                % OUTPUT:
-                % Az = Azimuths of satellite [n_epoch x 1]
-                % El = Elevations of satellite [n_epoch x 1]
-                % during time of travel
-                % DESCRIPTION:
-                %   Compute Azimuth and elevation of the staellite
-                n_epoch = size(XS,1);
-                if nargin > 2
-                    if size(XR,1) ~= n_epoch
-                        this.log.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
-                        return
-                    end
-                else
-                    XR = repmat(this.xyz(1,:),n_epoch,1);
-                end
-                
-                az = zeros(n_epoch,1); el = zeros(n_epoch,1);
-                
-                [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
-                XSR = XS - XR; %%% sats orbit with origon in receiver
-                
-                e_unit = [-sin(lam)            cos(lam)           zeros(size(lam))       ]; % East unit vector
-                n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
-                u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
-                
-                e = sum(e_unit .* XSR,2);
-                n = sum(n_unit .* XSR,2);
-                u = sum(u_unit .* XSR,2);
-                
-                hor_dist = sqrt( e.^2 + n.^2);
-                
-                zero_idx = hor_dist < 1.e-20;
-                
-                az(zero_idx) = 0;
-                el(zero_idx) = 90;
-                
-                az(~zero_idx) = atan2d(e(~zero_idx),n(~zero_idx));
-                el(~zero_idx) = atan2d(u(~zero_idx),hor_dist(~zero_idx));
-                
-                
-            end
-            function [dist, corr] = getRelDistance(this, XS, XR)
-                % SYNTAX:
-                %   [corr, distSR_corr] = this.getRelDistance(XS, XR);
-                %
-                % INPUT:
-                % XS = positions of satellite [n_epoch x 1]
-                % XR = positions of reciever [n_epoch x 1] (optional, non static
-                % case)
-                %
-                % OUTPUT:
-                %   corr = relativistic range error correction term (Shapiro delay)
-                %   dist = dist
-                % DESCRIPTION:
-                %   Compute distance from satellite ot reciever considering
-                %   (Shapiro delay) - copied from
-                %   relativistic_range_error_correction.m
-                n_epoch = size(XS,1);
-                if nargin > 2
-                    if size(XR,1) ~= n_epoch
-                        this.log.addError('[ getRelDistance ] Number of satellite positions differ from number of receiver positions');
-                        return
-                    end
-                else
-                    XR = repmat(this.xyz(1,:),n_epoch,1);
-                end
-                
-                distR = sqrt(sum(XR.^2 ,2));
-                distS = sqrt(sum(XS.^2 ,2));
-                
-                distSR = sqrt(sum((XS-XR).^2 ,2));
-                
-                
-                GM = 3.986005e14;
-                
-                
-                corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
-                
-                dist = distSR + corr;
-                
-            end
-        end
-        
-        methods (Access = private)
-            function parseRin2Data(this, txt, lim, eoh)
-                % Parse the data part of a RINEX 2 file -  the header must already be parsed
-                % SYNTAX: this.parseRin2Data(txt, lim, eoh)
-                
-                % find all the observation lines
-                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
-                n_epo = numel(t_line);
-                % extract all the epoch lines
-                string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, n_epo, 1))';
-                % convert the times into a 6 col time
-                date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %10.7f'));
-                after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
-                % import it as a GPS_Time obj
-                this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-                this.rate = this.time.getRate();
-                n_epo = numel(t_line);
-                
-                % get number of sat per epoch
-                this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(29:31, n_epo, 1))', '%d');
-                
-                all_sat = [];
-                for e = 1 : n_epo
-                    n_sat = this.n_spe(e);
-                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
-                    sat = sat(1:n_sat * 3);
-                    all_sat = [all_sat sat];
-                end
-                all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
-                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
-                gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
-                glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
-                gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
-                qzs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'J', 2 : 3)', '%2d'));
-                bds_prn = unique(sscanf(all_sat(all_sat(:,1) == 'C', 2 : 3)', '%2d'));
-                irn_prn = unique(sscanf(all_sat(all_sat(:,1) == 'I', 2 : 3)', '%2d'));
-                sbs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'S', 2 : 3)', '%2d'));
-                prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
-                
-                % update the maximum number of rows to store
-                n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                        this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                        this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                        this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                        this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                        this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                        this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
-                
-                clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
-                
-                % order of storage
-                % sat_system / obs_code / satellite
-                sys_c = char(this.cc.sys_c + 32);
-                n_ss = numel(sys_c); % number of satellite system
-                
-                % init datasets
-                obs = zeros(n_obs, n_epo);
-                
-                this.obs_code = [];
-                this.prn = [];
-                this.system = [];
-                this.f_id = [];
-                this.wl = [];
-                
-                for  s = 1 : n_ss
-                    sys = sys_c(s);
-                    n_sat = numel(prn.(sys)); % number of satellite system
-                    this.n_sat = this.n_sat + n_sat;
-                    n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
-                    % transform in n_code x 3
-                    obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
-                    % replicate obs_code for n_sat
-                    obs_code = serialize(repmat(obs_code, 1, n_sat)');
-                    obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    
-                    this.obs_code = [this.obs_code; obs_code];
-                    prn_ss = repmat(prn.(sys)', n_code, 1);
-                    this.prn = [this.prn; prn_ss];
-                    this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
-                    
-                    f_id = obs_code(:,2);
-                    ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
-                    [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
-                    
-                    ismember(this.system, this.cc.SYS_C);
-                    this.f_id = [this.f_id; f_id];
-                    
-                    if s == 2
-                        wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
-                        wl(prn_ss > ss.N_SAT) = NaN;
-                        wl(f_id == 0) = NaN;
-                    else
-                        wl = ss.L_VEC(max(1, f_id))';
-                        wl(f_id == 0) = NaN;
-                    end
-                    this.wl = [this.wl; wl];
-                end
-                
-                this.w_bar.createNewBar(' Parsing epochs...');
-                this.w_bar.setBarLen(n_epo);
-                
-                n_ops = numel(this.rin_obs_code.g)/3; % number of observations per satellite
-                n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
-                
-                mask = repmat('         0.00000',1 ,40);
-                data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
-                id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
-                bad_epochs = [];
-                for e = 1 : n_epo % for each epoch
-                    n_sat = this.n_spe(e);
-                    % get the list of satellites in view
-                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
-                    sat = sat(1:n_sat * 3);
-                    sat = reshape(sat, 3, n_sat)';
-                    sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
-                    prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
-                    if numel(prn_e) < this.n_spe(e)
-                        bad_epochs = [bad_epochs; e];
-                        cm = this.log.getColorMode();
-                        this.log.setColorMode(false); % disable color mode for speed up
-                        this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
-                        this.log.setColorMode(cm);
-                    else
-                        for s = 1 : size(sat, 1)
-                            % line to fill with the current observation line
-                            obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
-                            % if is empty I'm reading a constellation that is not active in the constellation collector
-                            %   -> discard the unwanted satellite
-                            if ~isempty(obs_line)
-                                line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
-                                line = mask(1 : n_ops * 16);
-                                for i = 0 : n_lps - 1
-                                    try
-                                        line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
-                                    catch
-                                        % empty last lines
-                                    end
-                                end
-                                % remove return characters
-                                ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                                % try with sscanf
-                                line = line(data_pos(1 : numel(line)));
-                                data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                                obs(obs_line, e) = data;
-                                % alternative approach with textscan
-                                %data = textscan(line, '%14.3f%1d%1d');
-                                %obs(obs_line(1:numel(data{1})), e) = data{1};
-                            end
-                        end
-                    end
-                    this.w_bar.go(e);
-                end
-                obs(:, bad_epochs) = [];
-                this.time.remEpoch(bad_epochs);
-                this.log.newLine();
-                this.obs = obs;
+        function [poletidecorr] = getPoleTideCorr(this, time, XR, XS, phiC, lam)
+            
+            % SYNTAX:
+            %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
+            %
+            % INPUT:
+            %   time = GPS time
+            %   XR   = receiver position  (X,Y,Z)
+            %   XS   = satellite position (X,Y,Z)
+            %   phiC = receiver geocentric latitude (rad)
+            %   lam  = receiver longitude (rad)
+            %
+            % OUTPUT:
+            %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
+            %
+            % DESCRIPTION:
+            %   Computation of the pole tide displacement terms.
+            if (nargin < 5)
+                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
             end
             
-            function parseRin3Data(this, txt, lim, eoh)
-                % find all the observation lines
-                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
-                n_epo = numel(t_line);
-                % extract all the epoch lines
-                string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
-                % convert the times into a 6 col time
-                date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
-                % import it as a GPS_Time obj
-                this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-                this.rate = this.time.getRate();
-                n_epo = numel(t_line);
-                
-                % get number of observations per epoch
-                this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, n_epo, 1))', '%d');
-                d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
-                
-                all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
-                
-                % find the data present into the file
-                gps_line = d_line(txt(lim(d_line,1)) == 'G');
-                glo_line = d_line(txt(lim(d_line,1)) == 'R');
-                gal_line = d_line(txt(lim(d_line,1)) == 'E');
-                qzs_line = d_line(txt(lim(d_line,1)) == 'J');
-                bds_line = d_line(txt(lim(d_line,1)) == 'C');
-                irn_line = d_line(txt(lim(d_line,1)) == 'I');
-                sbs_line = d_line(txt(lim(d_line,1)) == 'S');
-                % Activate only the constellation that are present in the receiver
-                %this.cc.setActive([isempty(gps_line) isempty(glo_line) isempty(gal_line) isempty(qzs_line) isempty(bds_line) isempty(irn_line) isempty(sbs_line)]);
-                
-                gps_prn = unique(sscanf(txt(repmat(lim(gps_line,1), 1, 2) + repmat(1 : 2, numel(gps_line), 1))', '%2d'));
-                glo_prn = unique(sscanf(txt(repmat(lim(glo_line,1), 1, 2) + repmat(1 : 2, numel(glo_line), 1))', '%2d'));
-                gal_prn = unique(sscanf(txt(repmat(lim(gal_line,1), 1, 2) + repmat(1 : 2, numel(gal_line), 1))', '%2d'));
-                qzs_prn = unique(sscanf(txt(repmat(lim(qzs_line,1), 1, 2) + repmat(1 : 2, numel(qzs_line), 1))', '%2d'));
-                bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
-                irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
-                sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
-                prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
-                
-                % update the maximum number of rows to store
-                n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                        this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                        this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                        this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                        this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                        this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                        this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
-                
-                clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
-                
-                % order of storage
-                % sat_system / obs_code / satellite
-                sys_c = char(this.cc.sys_c + 32);
-                n_ss = numel(sys_c); % number of satellite system
-                
-                % init datasets
-                obs = zeros(n_obs, n_epo);
-                
-                this.obs_code = [];
-                this.prn = [];
-                this.system = [];
-                this.f_id = [];
-                this.wl = [];
-                this.n_sat = 0;
-                for  s = 1 : n_ss
-                    sys = sys_c(s);
-                    n_sat = numel(prn.(sys)); % number of satellite system
-                    this.n_sat = this.n_sat + n_sat;
-                    n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
-                    % transform in n_code x 3
-                    obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
-                    % replicate obs_code for n_sat
-                    obs_code = serialize(repmat(obs_code, 1, n_sat)');
-                    obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    
-                    this.obs_code = [this.obs_code; obs_code];
-                    prn_ss = repmat(prn.(sys)', n_code, 1);
-                    this.prn = [this.prn; prn_ss];
-                    this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
-                    
-                    f_id = obs_code(:,2);
-                    ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
-                    [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
-                    
-                    ismember(this.system, this.cc.SYS_C);
-                    this.f_id = [this.f_id; f_id];
-                    
-                    if s == 2
-                        wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
-                        wl(prn_ss > ss.N_SAT) = NaN;
-                        wl(f_id == 0) = NaN;
-                    else
-                        wl = ss.L_VEC(max(1, f_id))';
-                        wl(f_id == 0) = NaN;
-                    end
-                    if sum(f_id == 0)
-                        [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
-                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
-                    end
-                    this.wl = [this.wl; wl];
+            poletidecorr = zeros(size(XS,1),1);
+            
+            %interpolate the pole displacements
+            if (~isempty(this.ERP))
+                if (length(this.ERP.t) > 1)
+                    m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
+                    m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
+                else
+                    m1 = this.ERP.m1;
+                    m2 = this.ERP.m2;
                 end
                 
-                this.w_bar.createNewBar(' Parsing epochs...');
-                this.w_bar.setBarLen(n_epo);
+                deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+                deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
+                deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
                 
-                mask = repmat('         0.00000',1 ,40);
-                data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
-                for e = 1 : n_epo % for each epoch
-                    sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_spe(e),1),1,3) + repmat(0:2, this.n_spe(e), 1));
-                    prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
+                corrENU(1,1) = deltaLam; %east
+                corrENU(2,1) = deltaPhi; %north
+                corrENU(3,1) = deltaR;   %up
+                
+                %displacement along the receiver-satellite line-of-sight
+                XRcorr = local2globalPos(corrENU, XR);
+                corrXYZ = XRcorr - XR;
+                for s = 1 : size(XS,1)
+                    LOS  = XR - XS(s,:)';
+                    LOSu = LOS / norm(LOS);
+                    poletidecorr(s,1) = -dot(corrXYZ,LOSu);
+                end
+            end
+            
+        end
+        function updateAzimuthElevation(this, XS, XR)
+        end
+        function [az, el] = getAzimuthElevation(this, XS, XR)
+            % SYNTAX:
+            %   [az, el] = this.getAzimuthElevation(XS)
+            %
+            % INPUT:
+            % XS = positions of satellite [n_epoch x 1]
+            % XR = positions of reciever [n_epoch x 1] (optional, non static
+            % case)
+            % OUTPUT:
+            % Az = Azimuths of satellite [n_epoch x 1]
+            % El = Elevations of satellite [n_epoch x 1]
+            % during time of travel
+            % DESCRIPTION:
+            %   Compute Azimuth and elevation of the staellite
+            n_epoch = size(XS,1);
+            if nargin > 2
+                if size(XR,1) ~= n_epoch
+                    this.log.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
+                    return
+                end
+            else
+                XR = repmat(this.xyz(1,:),n_epoch,1);
+            end
+            
+            az = zeros(n_epoch,1); el = zeros(n_epoch,1);
+            
+            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
+            XSR = XS - XR; %%% sats orbit with origon in receiver
+            
+            e_unit = [-sin(lam)            cos(lam)           zeros(size(lam))       ]; % East unit vector
+            n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
+            u_unit = [ cos(phi).*cos(lam)  cos(phi).*sin(lam) sin(phi)]; % Up unit vector
+            
+            e = sum(e_unit .* XSR,2);
+            n = sum(n_unit .* XSR,2);
+            u = sum(u_unit .* XSR,2);
+            
+            hor_dist = sqrt( e.^2 + n.^2);
+            
+            zero_idx = hor_dist < 1.e-20;
+            
+            az(zero_idx) = 0;
+            el(zero_idx) = 90;
+            
+            az(~zero_idx) = atan2d(e(~zero_idx),n(~zero_idx));
+            el(~zero_idx) = atan2d(u(~zero_idx),hor_dist(~zero_idx));
+            
+            
+        end
+        function [dist, corr] = getRelDistance(this, XS, XR)
+            % SYNTAX:
+            %   [corr, distSR_corr] = this.getRelDistance(XS, XR);
+            %
+            % INPUT:
+            % XS = positions of satellite [n_epoch x 1]
+            % XR = positions of reciever [n_epoch x 1] (optional, non static
+            % case)
+            %
+            % OUTPUT:
+            %   corr = relativistic range error correction term (Shapiro delay)
+            %   dist = dist
+            % DESCRIPTION:
+            %   Compute distance from satellite ot reciever considering
+            %   (Shapiro delay) - copied from
+            %   relativistic_range_error_correction.m
+            n_epoch = size(XS,1);
+            if nargin > 2
+                if size(XR,1) ~= n_epoch
+                    this.log.addError('[ getRelDistance ] Number of satellite positions differ from number of receiver positions');
+                    return
+                end
+            else
+                XR = repmat(this.xyz(1,:),n_epoch,1);
+            end
+            
+            distR = sqrt(sum(XR.^2 ,2));
+            distS = sqrt(sum(XS.^2 ,2));
+            
+            distSR = sqrt(sum((XS-XR).^2 ,2));
+            
+            
+            GM = 3.986005e14;
+            
+            
+            corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+            
+            dist = distSR + corr;
+            
+        end
+    end
+    
+    methods (Access = private)
+        function parseRin2Data(this, txt, lim, eoh)
+            % Parse the data part of a RINEX 2 file -  the header must already be parsed
+            % SYNTAX: this.parseRin2Data(txt, lim, eoh)
+            
+            % find all the observation lines
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
+            n_epo = numel(t_line);
+            % extract all the epoch lines
+            string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, n_epo, 1))';
+            % convert the times into a 6 col time
+            date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %10.7f'));
+            after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
+            % import it as a GPS_Time obj
+            this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
+            this.rate = this.time.getRate();
+            n_epo = numel(t_line);
+            
+            % get number of sat per epoch
+            this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(29:31, n_epo, 1))', '%d');
+            
+            all_sat = [];
+            for e = 1 : n_epo
+                n_sat = this.n_spe(e);
+                sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                sat = sat(1:n_sat * 3);
+                all_sat = [all_sat sat];
+            end
+            all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
+            all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
+            gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
+            glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
+            gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
+            qzs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'J', 2 : 3)', '%2d'));
+            bds_prn = unique(sscanf(all_sat(all_sat(:,1) == 'C', 2 : 3)', '%2d'));
+            irn_prn = unique(sscanf(all_sat(all_sat(:,1) == 'I', 2 : 3)', '%2d'));
+            sbs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'S', 2 : 3)', '%2d'));
+            prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
+            
+            % update the maximum number of rows to store
+            n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
+                this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+            
+            clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
+            
+            % order of storage
+            % sat_system / obs_code / satellite
+            sys_c = char(this.cc.sys_c + 32);
+            n_ss = numel(sys_c); % number of satellite system
+            
+            % init datasets
+            obs = zeros(n_obs, n_epo);
+            
+            this.obs_code = [];
+            this.prn = [];
+            this.system = [];
+            this.f_id = [];
+            this.wl = [];
+            
+            for  s = 1 : n_ss
+                sys = sys_c(s);
+                n_sat = numel(prn.(sys)); % number of satellite system
+                this.n_sat = this.n_sat + n_sat;
+                n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
+                % transform in n_code x 3
+                obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                % replicate obs_code for n_sat
+                obs_code = serialize(repmat(obs_code, 1, n_sat)');
+                obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
+                
+                this.obs_code = [this.obs_code; obs_code];
+                prn_ss = repmat(prn.(sys)', n_code, 1);
+                this.prn = [this.prn; prn_ss];
+                this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
+                
+                f_id = obs_code(:,2);
+                ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
+                [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
+                
+                ismember(this.system, this.cc.SYS_C);
+                this.f_id = [this.f_id; f_id];
+                
+                if s == 2
+                    wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                    wl(prn_ss > ss.N_SAT) = NaN;
+                    wl(f_id == 0) = NaN;
+                else
+                    wl = ss.L_VEC(max(1, f_id))';
+                    wl(f_id == 0) = NaN;
+                end
+                this.wl = [this.wl; wl];
+            end
+            
+            this.w_bar.createNewBar(' Parsing epochs...');
+            this.w_bar.setBarLen(n_epo);
+            
+            n_ops = numel(this.rin_obs_code.g)/3; % number of observations per satellite
+            n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
+            
+            mask = repmat('         0.00000',1 ,40);
+            data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+            id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
+            bad_epochs = [];
+            for e = 1 : n_epo % for each epoch
+                n_sat = this.n_spe(e);
+                % get the list of satellites in view
+                sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                sat = sat(1:n_sat * 3);
+                sat = reshape(sat, 3, n_sat)';
+                sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
+                prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
+                if numel(prn_e) < this.n_spe(e)
+                    bad_epochs = [bad_epochs; e];
+                    cm = this.log.getColorMode();
+                    this.log.setColorMode(false); % disable color mode for speed up
+                    this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
+                    this.log.setColorMode(cm);
+                else
                     for s = 1 : size(sat, 1)
                         % line to fill with the current observation line
                         obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                        % if is empty I'm reading a constellation that is not active in the constellation collector
+                        %   -> discard the unwanted satellite
                         if ~isempty(obs_line)
-                            line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
+                            line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
+                            line = mask(1 : n_ops * 16);
+                            for i = 0 : n_lps - 1
+                                try
+                                    line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
+                                catch
+                                    % empty last lines
+                                end
+                            end
+                            % remove return characters
                             ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                             % try with sscanf
                             line = line(data_pos(1 : numel(line)));
                             data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                            obs(obs_line(1:size(data,1)), e) = data;
+                            obs(obs_line, e) = data;
+                            % alternative approach with textscan
+                            %data = textscan(line, '%14.3f%1d%1d');
+                            %obs(obs_line(1:numel(data{1})), e) = data{1};
                         end
-                        % alternative approach with textscan
-                        %data = textscan(line, '%14.3f%1d%1d');
-                        %obs(obs_line(1:numel(data{1})), e) = data{1};
                     end
-                    this.w_bar.go(e);
                 end
-                this.log.newLine();
-                this.obs = obs;
-                
+                this.w_bar.go(e);
             end
+            obs(:, bad_epochs) = [];
+            this.time.remEpoch(bad_epochs);
+            this.log.newLine();
+            this.obs = obs;
         end
         
+        function parseRin3Data(this, txt, lim, eoh)
+            % find all the observation lines
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            n_epo = numel(t_line);
+            % extract all the epoch lines
+            string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
+            % convert the times into a 6 col time
+            date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
+            % import it as a GPS_Time obj
+            this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
+            this.rate = this.time.getRate();
+            n_epo = numel(t_line);
+            
+            % get number of observations per epoch
+            this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(32:34, n_epo, 1))', '%d');
+            d_line = find(~[true(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            
+            all_sat = txt(repmat(lim(d_line,1), 1, 3) + repmat(0 : 2, numel(d_line), 1));
+            
+            % find the data present into the file
+            gps_line = d_line(txt(lim(d_line,1)) == 'G');
+            glo_line = d_line(txt(lim(d_line,1)) == 'R');
+            gal_line = d_line(txt(lim(d_line,1)) == 'E');
+            qzs_line = d_line(txt(lim(d_line,1)) == 'J');
+            bds_line = d_line(txt(lim(d_line,1)) == 'C');
+            irn_line = d_line(txt(lim(d_line,1)) == 'I');
+            sbs_line = d_line(txt(lim(d_line,1)) == 'S');
+            % Activate only the constellation that are present in the receiver
+            %this.cc.setActive([isempty(gps_line) isempty(glo_line) isempty(gal_line) isempty(qzs_line) isempty(bds_line) isempty(irn_line) isempty(sbs_line)]);
+            
+            gps_prn = unique(sscanf(txt(repmat(lim(gps_line,1), 1, 2) + repmat(1 : 2, numel(gps_line), 1))', '%2d'));
+            glo_prn = unique(sscanf(txt(repmat(lim(glo_line,1), 1, 2) + repmat(1 : 2, numel(glo_line), 1))', '%2d'));
+            gal_prn = unique(sscanf(txt(repmat(lim(gal_line,1), 1, 2) + repmat(1 : 2, numel(gal_line), 1))', '%2d'));
+            qzs_prn = unique(sscanf(txt(repmat(lim(qzs_line,1), 1, 2) + repmat(1 : 2, numel(qzs_line), 1))', '%2d'));
+            bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
+            irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
+            sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
+            prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
+            
+            % update the maximum number of rows to store
+            n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
+                this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
+                this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
+                this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
+                this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
+                this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
+                this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+            
+            clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
+            
+            % order of storage
+            % sat_system / obs_code / satellite
+            sys_c = char(this.cc.sys_c + 32);
+            n_ss = numel(sys_c); % number of satellite system
+            
+            % init datasets
+            obs = zeros(n_obs, n_epo);
+            
+            this.obs_code = [];
+            this.prn = [];
+            this.system = [];
+            this.f_id = [];
+            this.wl = [];
+            this.n_sat = 0;
+            for  s = 1 : n_ss
+                sys = sys_c(s);
+                n_sat = numel(prn.(sys)); % number of satellite system
+                this.n_sat = this.n_sat + n_sat;
+                n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
+                % transform in n_code x 3
+                obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                % replicate obs_code for n_sat
+                obs_code = serialize(repmat(obs_code, 1, n_sat)');
+                obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
+                
+                this.obs_code = [this.obs_code; obs_code];
+                prn_ss = repmat(prn.(sys)', n_code, 1);
+                this.prn = [this.prn; prn_ss];
+                this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
+                
+                f_id = obs_code(:,2);
+                ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
+                [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
+                
+                ismember(this.system, this.cc.SYS_C);
+                this.f_id = [this.f_id; f_id];
+                
+                if s == 2
+                    wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                    wl(prn_ss > ss.N_SAT) = NaN;
+                    wl(f_id == 0) = NaN;
+                else
+                    wl = ss.L_VEC(max(1, f_id))';
+                    wl(f_id == 0) = NaN;
+                end
+                if sum(f_id == 0)
+                    [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
+                    this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
+                end
+                this.wl = [this.wl; wl];
+            end
+            
+            this.w_bar.createNewBar(' Parsing epochs...');
+            this.w_bar.setBarLen(n_epo);
+            
+            mask = repmat('         0.00000',1 ,40);
+            data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+            for e = 1 : n_epo % for each epoch
+                sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_spe(e),1),1,3) + repmat(0:2, this.n_spe(e), 1));
+                prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
+                for s = 1 : size(sat, 1)
+                    % line to fill with the current observation line
+                    obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                    if ~isempty(obs_line)
+                        line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
+                        ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                        % try with sscanf
+                        line = line(data_pos(1 : numel(line)));
+                        data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                        obs(obs_line(1:size(data,1)), e) = data;
+                    end
+                    % alternative approach with textscan
+                    %data = textscan(line, '%14.3f%1d%1d');
+                    %obs(obs_line(1:numel(data{1})), e) = data{1};
+                end
+                this.w_bar.go(e);
+            end
+            this.log.newLine();
+            this.obs = obs;
+            
+        end
     end
+    
+end
