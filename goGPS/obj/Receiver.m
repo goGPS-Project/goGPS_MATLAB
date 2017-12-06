@@ -981,7 +981,7 @@ classdef Receiver < handle
             
             id_ph = this.obs_code(:, 1) == 'L';
             if (nargin == 2)
-               id_ph = id_ph & this.system == ss;
+               id_ph = id_ph & (this.system == ss)';
             end
             ph = this.obs(id_ph, :);
             wl = this.wl(id_ph);
@@ -1005,7 +1005,7 @@ classdef Receiver < handle
 
             id_pr = this.obs_code(:, 1) == 'C';
             if (nargin == 2)
-               id_pr = id_pr & this.system == ss;
+               id_pr = id_pr & (this.system == ss)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
         end
@@ -1024,7 +1024,7 @@ classdef Receiver < handle
             
             id_dop = this.obs_code(:, 1) == 'D';
             if (nargin == 2)
-                id_dop = id_dop & this.system == ss;
+                id_dop = id_dop & (this.system == ss)';
             end
             dop = zero2nan(this.obs(id_dop, :)');
         end
@@ -1043,7 +1043,7 @@ classdef Receiver < handle
             
             id_snr = this.obs_code(:, 1) == 'S';
             if (nargin == 2)
-                id_snr = id_snr & this.system == ss;
+                id_snr = id_snr & (this.system == ss)';
             end
             snr = zero2nan(this.obs(id_snr, :)');
         end
