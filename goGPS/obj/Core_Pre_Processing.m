@@ -222,24 +222,22 @@ classdef Core_Pre_Processing < handle
             pr2_bk = pr2;
             ph = zero2nan(bsxfun(@times, [ph1_bk; ph2_bk], [lambda(:, 1); lambda(:,2)])');
             pr = zero2nan([pr1_bk; pr2_bk]');
-            figure(1); plot(diff(zero2nan(ph),4));
-            figure(2); plot(diff(zero2nan(pr),4))
-            [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
-            ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
-            
-            % flag by high deviation of the 4th derivate
-            ph = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
-            ph1 = ph(:,1:size(ph1,1))';
-            ph2 = ph(:,(size(ph2,1)+1):end)';
-            
-            % flag by high deviation of the 4th derivate
-            pr = this.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6);
-            pr1 = nan2zero(pr(:,1:size(pr1,1))');
-            pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
-            
-            figure(3); plot(diff(zero2nan(ph),4));
-            figure(4); plot(diff(zero2nan(pr),4))
 
+            [pr, ph, dt_pr, dt_ph] = Core_Pre_Processing.correctTimeDesync(time_ref, time, pr, ph);
+            [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+            [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+            %[ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+            %[pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+            
+            % flag by high deviation of the 4th derivate
+            ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+            ph1 = ph(:,1:size(ph1_bk,1))';
+            ph2 = ph(:,(size(ph2_bk,1)+1):end)';
+            
+            % flag by high deviation of the 4th derivate
+            pr1 = nan2zero(pr(:,1:size(pr1_bk,1))');
+            pr2 = nan2zero(pr(:,(size(pr2_bk,1)+1):end)');
+                       
             % ----------------------------------------------------------------------------------------------------
             
             % remove short arcs
@@ -558,15 +556,25 @@ classdef Core_Pre_Processing < handle
                 %-------------------------------------------------------------------------------------------------------------
                 
                 ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
+                % Filter dtR
+                lim = getOutliers(dt_r ~= 0);
+                dt_r = simpleFill1D(zero2nan(dt_r), dt_r == 0, 'spline');
+                for i = 1 : size(lim, 1)
+                    dt_r(lim(i,1) : lim(i,2)) = splinerMat([], dt_r(lim(i,1) : lim(i,2)), 3);
+                end
                 ph = bsxfun(@minus, ph, v_light * dt_r);
-                % estimate high frequency clock residuals
-                [ph, dt] = Core_Pre_Processing.computeAndRemoveDt(ph);
-                dt_r = dt_r + dt;
                 
                 % apply new dtR to pseudo-ranges
                 pr = zero2nan([pr1; pr2]');
                 pr = bsxfun(@minus, pr, v_light * dt_r);
-                
+
+                % flag by high deviation of the 4th derivate
+                sensor = Core_Pre_Processing.diffAndPred(zero2nan(ph), 4);
+                sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
+                flag = sensor > 20;
+                ph1(flag(:,1:size(ph1,1))') = NaN;
+                ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
+
                 ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
                 ph1 = zero2nan(ph(:,1:size(ph1,1))');
                 ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
@@ -808,20 +816,32 @@ classdef Core_Pre_Processing < handle
                 %             end
                 %         end
                 %    end
-                pr1 = pr1_interp;
-                pr2 = pr2_interp;
-                ph1 = ph1_interp;
-                ph2 = ph2_interp;
-                
                 % flag by high deviation of the 4th derivate
-                sensor = Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4);
+                ph = zero2nan(bsxfun(@times, [ph1_interp; ph2_interp], [lambda(:, 1); lambda(:,2)])');
+                pr = zero2nan([pr1_interp; pr2_interp]');
+                sensor = Core_Pre_Processing.diffAndPred(ph, 4);
                 sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
                 flag = sensor > 3;
-                ph1(flag(:,1:size(ph1,1))') = 0;
-                ph2(flag(:,(size(ph2,1)+1):end)') = 0;
+                flag_ph = flag | flag_ph;
+                
+                [ph, flag] = Core_Pre_Processing.flagRawObsD4(ph, [], [], 6);
+                flag_ph = flag | flag_ph;
+                [pr, flag] = Core_Pre_Processing.flagRawObsD4(pr, [], [], 6);
+                flag_pr = flag | flag_pr;
+                % flagging borders could decrease the performance of the final solution
+                % skipping
+                %[ph, flag] = Core_Pre_Processing.flagBorders(ph, 20);
+                %flag_ph = flag | flag_ph;
+                %[pr, flag] = Core_Pre_Processing.flagBorders(pr, 20);
+                %flag_pr = flag | flag_pr;
+                
+                ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
+                ph1 = (ph(:,1:size(ph1,1))');
+                ph2 = (ph(:,(size(ph2,1)+1):end)');
+                pr1 = nan2zero(pr(:,1:size(pr1,1))');
+                pr2 = nan2zero(pr(:,(size(pr2,1)+1):end)');
                 
                 for s = 1 : n_sat
-                    
                     %repeat remove short arcs after cycle slip detection
                     % remove short arcs
                     min_arc = max([this.state.getMinArc() lagr_order]);

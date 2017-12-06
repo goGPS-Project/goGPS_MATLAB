@@ -538,14 +538,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         % apply new dtR to pseudo-ranges
         pr = zero2nan([pr1; pr2]');
         pr = bsxfun(@minus, pr, v_light * dtR);
-
-        % flag by high deviation of the 4th derivate
-        sensor = Core_Pre_Processing.diffAndPred(zero2nan(ph), 4);
-        sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
-        flag = sensor > 20;
-        ph1(flag(:,1:size(ph1,1))') = NaN;
-        ph2(flag(:,(size(ph2,1)+1):end)') = NaN;
-
+       
         ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
         ph1 = zero2nan(ph(:,1:size(ph1,1))');
         ph2 = zero2nan(ph(:,(size(ph2,1)+1):end)');
