@@ -1067,11 +1067,10 @@ classdef Core_Pre_Processing < handle
             if ~isempty(time_set)
                 data_interp = zeros(size(data));
                 for s = 1 : size(data,2)
-                    tmp = nan2zero(data(:,s));
-                    if any(tmp)
-                        %id_interp = (conv(tmp ~= 0, ones(9,1), 'same') > 0); % interp with borders
-                        id_interp = tmp ~= 0;
-                        data_interp(id_interp,s) = interp1(time_set, zero2nan(data(:,s)), time_ref(id_interp), 'spline', 'extrap');
+                    tmp = zero2nan(data(:,s));
+                    id_interp = ~isnan(tmp);
+                    if sum(~isnan(tmp) > 2)
+                        data_interp(id_interp,s) = interp1(time_set(id_interp), tmp(id_interp), time_ref(id_interp), 'spline', 'extrap');
                     end
                 end
             else
