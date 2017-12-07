@@ -895,65 +895,65 @@ classdef Receiver < handle
             is_static = this.static;
         end
         
-        function pr = pr1(this, ss)
+        function pr = pr1(this, sys_c)
             % get p_range 1 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
             pr = zeros(this.cc.n_sat_tot, size(this.obs, 2));
             
             id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '1';
             if (nargin == 2)
-                id_pr = id_pr & (this.system == ss)';
+                id_pr = id_pr & (this.system == sys_c)';
             end            
             pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
-        function pr = pr2(this, ss)
+        function pr = pr2(this, sys_c)
             % get p_range 2 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
             pr = zeros(this.cc.n_sat_tot, size(this.obs, 2));
             
             id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '2';
             if (nargin == 2)
-                id_pr = id_pr & (this.system == ss)';
+                id_pr = id_pr & (this.system == sys_c)';
             end            
             pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
-        function [ph, wl] = ph1(this, ss)
+        function [ph, wl] = ph1(this, sys_c)
             % get phase 1 (Legacy)
             % SYNTAX this.ph1(<flag_valid>, <sys_c>)
             ph = zeros(this.cc.n_sat_tot, size(this.obs, 2));
             wl = zeros(this.cc.n_sat_tot, 1);
             id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '1';
             if (nargin == 2)
-                id_ph = id_ph & (this.system == ss)';
+                id_ph = id_ph & (this.system == sys_c)';
             end            
             ph(this.go_id(id_ph), :) = this.obs(id_ph, :);
             wl(this.go_id(id_ph)) = this.wl(id_ph);
             ph = bsxfun(@times, zero2nan(ph), wl);            
         end
         
-        function [ph, wl] = ph2(this, ss)
+        function [ph, wl] = ph2(this, sys_c)
             % get phase 2 (Legacy)
             % SYNTAX this.ph1(<flag_valid>, <sys_c>)
             ph = zeros(this.cc.n_sat_tot, size(this.obs, 2));
             wl = zeros(this.cc.n_sat_tot, 1);
             id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '2';
             if (nargin == 2)
-                id_ph = id_ph & (this.system == ss)';
+                id_ph = id_ph & (this.system == sys_c)';
             end            
             wl(this.go_id(id_ph)) = this.wl(id_ph);
             ph = bsxfun(@times, zero2nan(ph), wl);
         end                
         
-        function [ph, wl, id_ph] = getPhases(this, ss)
+        function [ph, wl, id_ph] = getPhases(this, sys_c)
             % get the phases observations in meter (not cycles)
-            % SYNTAX: [ph, wl, id_ph] = this.getPhases(<ss>)
+            % SYNTAX: [ph, wl, id_ph] = this.getPhases(<sys_c>)
             % SEE ALSO: setPhases getPseudoRanges setPseudoRanges
             
             id_ph = this.obs_code(:, 1) == 'L';
             if (nargin == 2)
-                id_ph = id_ph & (this.system == ss)';
+                id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
             wl = this.wl(id_ph);
@@ -970,59 +970,59 @@ classdef Receiver < handle
             this.obs(id_ph, :) = nan2zero(ph);
         end
         
-        function [pr, id_pr] = getPseudoRanges(this, ss)
+        function [pr, id_pr] = getPseudoRanges(this, sys_c)
             % get the pseudo ranges observations in meter (not cycles)
-            % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<ss>)
+            % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<sys_c>)
             % SEE ALSO: getPhases setPhases setPseudoRanges
             
             id_pr = this.obs_code(:, 1) == 'C';
             if (nargin == 2)
-                id_pr = id_pr & (this.system == ss)';
+                id_pr = id_pr & (this.system == sys_c)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
         end
         
         function setPseudoRanges(this, pr, id_pr)
             % set the pseudo ranges observations in meter (not cycles)
-            % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<ss>)
+            % SYNTAX: [pr, id_pr] = this.getPseudoRanges(<sys_c>)
             % SEE ALSO: getPhases setPhases getPseudoRanges
             this.obs(id_pr, :) = nan2zero(pr');
         end
         
-        function [dop, id_dop] = getDoppler(this, ss)
+        function [dop, id_dop] = getDoppler(this, sys_c)
             % get the doppler observations
-            % SYNTAX: [dop, id_dop] = this.getDoppler(<ss>)
+            % SYNTAX: [dop, id_dop] = this.getDoppler(<sys_c>)
             % SEE ALSO: setDoppler
             
             id_dop = this.obs_code(:, 1) == 'D';
             if (nargin == 2)
-                id_dop = id_dop & (this.system == ss)';
+                id_dop = id_dop & (this.system == sys_c)';
             end
             dop = zero2nan(this.obs(id_dop, :)');
         end
         
         function setDoppler(this, dop, id_dop)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setDoppler(<ss>)
+            % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
             % SEE ALSO:  getDoppler
             this.obs(id_dop, :) = nan2zero(dop');
         end
         
-        function [snr, id_snr] = getSnr(this, ss)
+        function [snr, id_snr] = getSnr(this, sys_c)
             % get the doppler observations
-            % SYNTAX: [dop, id_dop] = this.getDoppler(<ss>)
+            % SYNTAX: [dop, id_dop] = this.getDoppler(<sys_c>)
             % SEE ALSO: setDoppler
             
             id_snr = this.obs_code(:, 1) == 'S';
             if (nargin == 2)
-                id_snr = id_snr & (this.system == ss)';
+                id_snr = id_snr & (this.system == sys_c)';
             end
             snr = zero2nan(this.obs(id_snr, :)');
         end
         
         function setSnr(this, snr, id_snr)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setSnr(<ss>)
+            % SYNTAX: [pr, id_pr] = this.setSnr(<sys_c>)
             % SEE ALSO:  getSnr
             this.obs(id_snr, :) = nan2zero(snr');
         end
