@@ -2120,8 +2120,9 @@ classdef Receiver < handle
                     case '1'
                         iono_factor = 1;
                     otherwise
-                        iono_factors = this.cc.getSys(sys).getIonoFree([1 str2num(obs_type)]);
-                        iono_factor = iono_factors.alpha2 / iono_factors.alpha1;
+                        wl_ref = this.cc.getGPS.F_VEC(1);
+                        wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
+                        iono_factor= wl_ref^2/ wl^2;
                         
                 end
                 range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
@@ -2168,8 +2169,13 @@ classdef Receiver < handle
                     c_obs_idx = idx_obs(j); % index of the observation we are currently processing
                     ep_idx = this.obs(c_obs_idx,:) > 0;
                     freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
-                    iono_factors = this.cc.getSys(sys(j)).getIonoFree([1 freq]);
-                    iono_factor = iono_factors.alpha2 / iono_factors.alpha1;
+                    if sys(j) == 'G' && freq == 1
+                        iono_factor = 1;
+                    else
+                        wl_ref = this.cc.getGPS.F_VEC(1);
+                        wl = this.cc.getSys(sys(j)).F_VEC(freq);
+                        iono_factor= wl_ref^2/ wl^2;
+                    end
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
                     if phase
                         synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx) / this.wl(c_obs_idx);
