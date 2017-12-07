@@ -93,7 +93,7 @@ classdef Receiver < handle
         group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
         dts_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for the clock of the satellite(0: not corrected , 1: corrected)
         
-        rec2sat = struct( ...
+        sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
             'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
             'err_iono',    [], ...    % double  [n_epoch x n_sat] iono error
@@ -177,9 +177,9 @@ classdef Receiver < handle
             % initialize satellite related parameters
             % SYNTAX: this.initR2S();
             
-            this.rec2sat.cs           = Core_Sky.getInstance();
-            %this.rec2sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
-            %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
+            this.sat.cs           = Core_Sky.getInstance();
+            %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
+            %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
         function loadRinex(this, file_name)
@@ -328,7 +328,7 @@ classdef Receiver < handle
             
             this.active_ids = any(this.obs, 2);
             
-            %this.rec2sat.avail_index = false(this.time.length, this.cc.getNumSat());
+            %this.sat.avail_index = false(this.time.length, this.cc.getNumSat());
         end
         
         function remEpoch(this, id_epo)
@@ -1269,18 +1269,18 @@ classdef Receiver < handle
             % DESCRIPTION. apply group delay corrections for code and pahse
             % measurement when a value if provided froma an external source
             % (Navigational file  or DCB file)
-            for i = 1:size(this.rec2sat.cs.group_delays,2)
-                sys  = this.rec2sat.cs.group_delays_flags(i,1);
-                code = this.rec2sat.cs.group_delays_flags(i,2:4);
+            for i = 1:size(this.sat.cs.group_delays,2)
+                sys  = this.sat.cs.group_delays_flags(i,1);
+                code = this.sat.cs.group_delays_flags(i,2:4);
                 idx = this.getObsIdx(code, sys);
-                if sum(this.rec2sat.cs.group_delays(:,i)) ~= 0
+                if sum(this.sat.cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
-                        for s = 1 : size(this.rec2sat.cs.group_delays,1)
+                        for s = 1 : size(this.sat.cs.group_delays,1)
                             sat_idx = find(this.prn(idx)== s);
                             sat_idx = idx(sat_idx);
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
-                            if this.rec2sat.cs.group_delays(s,i) ~= 0
-                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.rec2sat.cs.group_delays(s,i);
+                            if this.sat.cs.group_delays(s,i) ~= 0
+                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.sat.cs.group_delays(s,i);
                             elseif ~this.cc.isRefFrequency(sys, str2num(code(2)))
                                 this.active_ids(idx) = false;
                                 idx = this.getObsIdx(['C' code(2:end)], sys);
@@ -1401,7 +1401,7 @@ classdef Receiver < handle
                     freq_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_2BAND;
                     track_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_ATTRIB;
                     if sum(iono_free > 0)
-                        %this.rec2sat.avail_index(:,i) = iono_free; % epoch for which observation is present
+                        %this.sat.avail_index(:,i) = iono_free; % epoch for which observation is present
                         % find first freq obs
                         to_fill_epoch = iono_free;
                         first_freq = [];
@@ -1481,7 +1481,7 @@ classdef Receiver < handle
                     else % do not mix iono free and not combined observations
                         % find best code
                         to_fill_epoch = av_idx;
-                        %this.rec2sat.avail_index(:,i) = av_idx; % epoch for which observation is present
+                        %this.sat.avail_index(:,i) = av_idx; % epoch for which observation is present
                         for f = 1 :length(freq_list)
                             track_prior = track_list{f};
                             for c = 1:length(track_prior)
@@ -1510,7 +1510,7 @@ classdef Receiver < handle
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
                 times.addSeconds(-obs(o,o_idx_l)'/Go_State.V_LIGHT); % add roucg time of flight
-                xs = this.rec2sat.cs.coordInterpolate(times,s);
+                xs = this.sat.cs.coordInterpolate(times,s);
                 to_remove = isnan(xs(:,1));
                 o_idx = find(o_idx_l);
                 to_remove = o_idx(to_remove);
@@ -1533,9 +1533,9 @@ classdef Receiver < handle
             %   sys_c = wanted system
             % Init "errors"
             this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
-            this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
-            this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
-            this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
             this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
             % if not applied apply gruop delay
             this.applyGroupDelay();
@@ -1864,12 +1864,12 @@ classdef Receiver < handle
             
             %initialize modeled error matrix
             this.log.addMessage(this.log.indent('Sarting dynamic positioning',6))
-            if isempty(this.rec2sat.avail_index)
-                this.rec2sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
+            if isempty(this.sat.avail_index)
+                this.sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
             end
-            this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
-            this.rec2sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
-            this.rec2sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
+            this.sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
             
             %check if the combination is ionofree
             iono_free = flag(1,7) == 'I';
@@ -2102,7 +2102,7 @@ classdef Receiver < handle
                 end
                 XS_loc = [];
             else
-                sat_idx = this.rec2sat.avail_index(:, sat) > 0;
+                sat_idx = this.sat.avail_index(:, sat) > 0;
                 XS = this.getXSTxRot(sat);
                 XS_loc = nan(n_epochs, 3);
                 XS_loc(sat_idx,:) = XS;
@@ -2125,7 +2125,7 @@ classdef Receiver < handle
                         iono_factor= wl_ref^2/ wl^2;
                         
                 end
-                range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
+                range = range + this.sat.err_tropo(:,sat) + iono_factor * this.sat.err_iono(:,sat) + this.sat.solid_earth_corr(:,sat);
                 
                 XS_loc(isnan(range),:) = [];
                 %range = range';
@@ -2189,7 +2189,7 @@ classdef Receiver < handle
                         wl = this.cc.getSys(sys(j)).F_VEC(freq);
                         iono_factor= wl_ref ^ 2/ wl ^ 2;
                     end
-                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
+                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx,i)';
                     if phase
                         synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx);
                     end
@@ -2208,9 +2208,9 @@ classdef Receiver < handle
                 this.updateAvailIndex(idx_obs, sat);
                 XS = this.getXSTxRot(sat);
                 if size(this.xyz,1) == 1
-                    [~ , el] = this.getAzimuthElevation(XS);
+                    [~ , el] = this.getAzimuthElevationXS(XS);
                 else
-                    [~ , el] = this.getAzimuthElevation(XS,this.xyz(idx_obs,:));
+                    [~ , el] = this.getAzimuthElevationXS(XS,this.xyz(idx_obs,:));
                 end
                 
                 idx_obs_f = find(idx_obs);
@@ -2299,10 +2299,9 @@ classdef Receiver < handle
             %
             % DESCRIPTION:
             %   Get Transmission time
-            idx = this.rec2sat.avail_index(:, sat) > 0;
+            idx = this.sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
-            time_tx.addSeconds( - this.rec2sat.tot(idx, sat));
-            dts = this.getDtS(sat); %%% GIULIO check
+            time_tx.addSeconds( - this.sat.tot(idx, sat));
         end
         
         function updateTOT(this, obs, sat)
@@ -2314,18 +2313,18 @@ classdef Receiver < handle
             % OUTPUT:
             % DESCRIPTION:
             %   Compute the signal time of travel.
-            if isempty(this.rec2sat.tot)
-                this.rec2sat.tot = zeros(size(this.rec2sat.avail_index));
+            if isempty(this.sat.tot)
+                this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            idx = this.rec2sat.avail_index(:,sat) > 0;
-            this.rec2sat.tot(idx, sat) =  ( obs(idx)' + this.rec2sat.err_tropo(idx,sat) + this.rec2sat.err_iono(idx,sat) )/ goGNSS.V_LIGHT + this.dt(idx,1);
+            idx = this.sat.avail_index(:,sat) > 0;
+            this.sat.tot(idx, sat) =  ( obs(idx)' + this.sat.err_tropo(idx,sat) + this.sat.err_iono(idx,sat) )/ goGNSS.V_LIGHT + this.dt(idx,1);
         end
         function updateAvailIndex(this, obs, sat)
             % DESCRIPTION: upadte avaliabilty of measurement on staellite
-            if isempty(this.rec2sat.avail_index)
-                this.rec2sat.avail_index = false(this.time.length, this.cc.getNumSat());
+            if isempty(this.sat.avail_index)
+                this.sat.avail_index = false(this.time.length, this.cc.getNumSat());
             end
-            this.rec2sat.avail_index(:,sat) = obs > 0;
+            this.sat.avail_index(:,sat) = obs > 0;
         end
         function time_of_travel = getTOT(this)
             % SYNTAX:
@@ -2349,21 +2348,21 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Compute the satellite clock error.
             if nargin < 2
-                dtS = zeros(size(this.rec2sat.avail_index));
+                dtS = zeros(size(this.sat.avail_index));
                 for s = 1 : size(dtS,2)
-                    dtS(this.rec2sat.avail_index(:,s),s) = this.rec2sat.cs.clockInterpolate(this.time.getSubSet(this.rec2sat.avail_index(:,s)),s);
+                    dtS(this.sat.avail_index(:,s),s) = this.sat.cs.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)),s);
                 end
             else
-                idx = this.rec2sat.avail_index(:,sat) > 0;
-                dtS = this.rec2sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
+                idx = this.sat.avail_index(:,sat) > 0;
+                dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
             end
             
         end
         function dtRel = getRelClkCorr(this, sat)
             % DESCRIPTION : get clock offset of the satellite due to
             % special relativity (eccntrcity term)
-            idx = this.rec2sat.avail_index(:,sat) > 0;
-            [X,V] = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
+            idx = this.sat.avail_index(:,sat) > 0;
+            [X,V] = this.sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
             dtRel = -2 * sum(conj(X) .* V,2) / (goGNSS.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
         end
         
@@ -2398,17 +2397,17 @@ classdef Receiver < handle
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
             %time_tx.addSeconds(); % rel clok neglegible
-            [XS_tx, ~] = this.rec2sat.cs.coordInterpolate(time_tx,sat);
+            [XS_tx, ~] = this.sat.cs.coordInterpolate(time_tx,sat);
             
             
-            %                 [XS_tx(idx,:,:), ~] = this.rec2sat.cs.coordInterpolate(time_tx);
-            %             XS_tx  = zeros(size(this.rec2sat.avail_index));
+            %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
+            %             XS_tx  = zeros(size(this.sat.avail_index));
             %             for s = 1 : size(XS_tx)
-            %                 idx = this.rec2sat.avail_index(:,s);
+            %                 idx = this.sat.avail_index(:,s);
             %                 %%% compute staeliite position a t trasmission time
             %                 time_tx = this.time.subset(idx);
-            %                 time_tx = time_tx.time_diff - this.rec2sat.tot(idx,s)
-            %                 [XS_tx(idx,:,:), ~] = this.rec2sat.cs.coordInterpolate(time_tx);
+            %                 time_tx = time_tx.time_diff - this.sat.tot(idx,s)
+            %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
             %             end
         end
         function [XS_r] = earthRotationCorrection(this, XS, sat)
@@ -2430,8 +2429,8 @@ classdef Receiver < handle
             %%% TBD -> consider the case XS and travel_time does not match
             XS_r = zeros(size(XS));
             
-            idx = this.rec2sat.avail_index(:,sat) > 0;
-            travel_time = this.rec2sat.tot(idx,sat);
+            idx = this.sat.avail_index(:,sat) > 0;
+            travel_time = this.sat.tot(idx,sat);
             sys = this.cc.system(sat);
             switch char(sys)
                 case 'G'
@@ -2464,33 +2463,33 @@ classdef Receiver < handle
             % sat : number of sat
             % flag: flag of the tropo model
             %DESCRIPTION: update the tropospheric correction
-            if isempty(this.rec2sat.err_tropo)
-                this.rec2sat.err_tropo = zeros(size(this.rec2sat.avail_index));
+            if isempty(this.sat.err_tropo)
+                this.sat.err_tropo = zeros(size(this.sat.avail_index));
             end
             if nargin < 2 | strcmp(sat,'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
                 if nargin < 3
                     flag = this.state.tropo_model;
                 end
-                for s = 1 : size(this.rec2sat.avail_index,2)
+                for s = 1 : size(this.sat.avail_index,2)
                     this.updateErrTropo(s, flag);
                 end
             else
-                this.rec2sat.err_tropo(:, sat) = 0;
+                this.sat.err_tropo(:, sat) = 0;
                 %%% compute lat lon
                 [~, lat, h, lon] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
-                idx = this.rec2sat.avail_index(:,sat) > 0;
+                idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx)>0
-                    XS = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
+                    XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
                     %%% compute az el
                     if size(this.xyz,1)>1
                         XR = this.xyz(idx,:);
-                        [az, el] = this.getAzimuthElevation(XS, XR);
+                        [az, el] = this.getAzimuthElevationXS(XS, XR);
                         h = h(idx);
                         lat = lat(idx);
                         lon = lon(idx);
                     else
-                        [az, el] = this.getAzimuthElevation(XS);
+                        [az, el] = this.getAzimuthElevationXS(XS);
                     end
                     if nargin < 3
                         flag = this.state.tropo_model;
@@ -2499,7 +2498,7 @@ classdef Receiver < handle
                         case 0 %no model
                             
                         case 1 %Saastamoinen with standard atmosphere
-                            this.rec2sat.err_tropo(idx, sat) = Atmosphere.saastamoinen_model(lat, lon, h, el);
+                            this.sat.err_tropo(idx, sat) = Atmosphere.saastamoinen_model(lat, lon, h, el);
                             
                         case 2 %Saastamoinen with GPT
                             time = this.time.getGpsTime();
@@ -2508,7 +2507,7 @@ classdef Receiver < handle
                             for e = 1 : size(idx,1)
                                 if idx(e) > 0
                                     [gps_week, gps_sow, gps_dow] = this.time.getGpsWeek(e);
-                                    this.rec2sat.err_tropo(e, sat) = Atmosphere.saastamoinen_model_GPT(time(e), lat_t(e), lon_t(e), h_t(e), el_t(e));
+                                    this.sat.err_tropo(e, sat) = Atmosphere.saastamoinen_model_GPT(time(e), lat_t(e), lon_t(e), h_t(e), el_t(e));
                                 end
                             end
                             
@@ -2519,19 +2518,19 @@ classdef Receiver < handle
         end
         
         function updateErrIono(this, sat)
-            if isempty(this.rec2sat.err_iono)
-                this.rec2sat.err_iono = size(this.rec2sat.avail_index);
+            if isempty(this.sat.err_iono)
+                this.sat.err_iono = size(this.sat.avail_index);
             end
             if nargin < 2
                 this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
-                for s = 1 : size(this.rec2sat.avail_index,2)
+                for s = 1 : size(this.sat.avail_index,2)
                     this.updateErrIono(s);
                 end
             else
-                idx = this.rec2sat.avail_index(:,sat) > 0; % epoch for which satellite is present
+                idx = this.sat.avail_index(:,sat) > 0; % epoch for which satellite is present
                 if sum(idx) > 0
                     
-                    XS = this.rec2sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
+                    XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
                     %%% compute lat lon
                     if size(this.xyz,1) > 1
                         [~, lat, ~, lon] = cart2geod(this.xyz(idx, 1), this.xyz(idx, 2), this.xyz(idx, 3));
@@ -2540,21 +2539,21 @@ classdef Receiver < handle
                     end
                     %%% compute az el
                     if size(this.xyz,1)>1
-                        [az, el] = this.getAzimuthElevation(this.xyz(idx,:) ,XS);
+                        [az, el] = this.getAzimuthElevationXS(this.xyz(idx,:) ,XS);
                     else
-                        [az, el] = this.getAzimuthElevation(XS);
+                        [az, el] = this.getAzimuthElevationXS(XS);
                     end
                     
                     
                     switch this.state.iono_model
                         case 0 %no model
-                            this.rec2sat.err_iono(idx,sat) = zeros(size(el));
+                            this.sat.err_iono(idx,sat) = zeros(size(el));
                         case 1 %Geckle and Feen model
                             %corr = simplified_model(lat, lon, az, el, mjd);
                         case 2 %Klobuchar model
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
-                            if ~isempty(this.rec2sat.cs.iono )
-                                this.rec2sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.rec2sat.cs.iono);
+                            if ~isempty(this.sat.cs.iono )
+                                this.sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.sat.cs.iono);
                             else
                                 this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                             end
@@ -2566,17 +2565,17 @@ classdef Receiver < handle
         function updateSolidEarthCorr(this, sat)
             %DESCRIPTION: upadte the correction related to solid earth
             % solid tides, ocean loading, pole tides.
-            if isempty(this.rec2sat.solid_earth_corr)
+            if isempty(this.sat.solid_earth_corr)
                 this.log.addMessage(this.log.indent('Updating solid earth corrections',6))
-                this.rec2sat.solid_earth_corr = zeros(size(this.rec2sat.avail_index));
+                this.sat.solid_earth_corr = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
                 
-                for s = 1 : size(this.rec2sat.avail_index,2)
+                for s = 1 : size(this.sat.avail_index,2)
                     this.updateSolidEarthCorr(s);
                 end
             else
-                this.rec2sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
+                this.sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
             end
         end
         function solid_earth_corr = computeSolidTideCorr(this, sat)
@@ -2592,8 +2591,8 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Computation of the solid Earth tide displacement terms.
             if nargin < 2
-                solid_earth_corr = zeros(size(this.rec2sat.avail_index));
-                for s = 1 : size(this.rec2sat.avail_index,2)
+                solid_earth_corr = zeros(size(this.sat.avail_index));
+                for s = 1 : size(this.sat.avail_index,2)
                     solid_earth_corr(:,s) = this.updateSolidTideCorr(s);
                 end
             else
@@ -2606,10 +2605,10 @@ classdef Receiver < handle
                 c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
                 
                 %interpolate sun moon and satellites
-                idx_sat = this.rec2sat.avail_index(:,sat) > 0;
+                idx_sat = this.sat.avail_index(:,sat) > 0;
                 time = this.time.getSubSet(idx_sat);
-                [X_sun, X_moon]  = this.rec2sat.cs.sunMoonInterpolate(time);
-                XS               = this.rec2sat.cs.coordInterpolate(time, sat);
+                [X_sun, X_moon]  = this.sat.cs.sunMoonInterpolate(time);
+                XS               = this.sat.cs.coordInterpolate(time, sat);
                 %receiver geocentric position
                 
                 if size(XR,1) == 1
@@ -2806,11 +2805,30 @@ classdef Receiver < handle
             end
             
         end
-        function updateAzimuthElevation(this, XS, XR)
+        function updateAzimuthElevation(this, sat)
+            %DESCRIPTION: upadte azimute elevation into.sat
+            if nargin < 2
+                for i = 1 : this.cc.getNumSat();
+                    this.updateAzimuthElevation(i);
+                end
+            else
+                if isempty(this.sat.el)
+                    this.sat.el = zeros(size(this.sat.avail_index));
+                end
+                if isempty(this.sat.az)
+                    this.sat.az = zeros(size(this.sat.avail_index));
+                end
+                av_idx = this.sat.avail_index(:, sat);
+                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = getAzimuthElevation(this, sat);
+            end
         end
-        function [az, el] = getAzimuthElevation(this, XS, XR)
+        function [az, el] = getAzimuthElevation(this, sat)
+            XS = this.getXSTxRot(sat);
+            [az, el] = this.getAzimuthElevationXS(XS);
+        end
+        function [az, el] = getAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
-            %   [az, el] = this.getAzimuthElevation(XS)
+            %   [az, el] = this.getAzimuthElevationXS(XS)
             %
             % INPUT:
             % XS = positions of satellite [n_epoch x 1]
@@ -2825,12 +2843,13 @@ classdef Receiver < handle
             n_epoch = size(XS,1);
             if nargin > 2
                 if size(XR,1) ~= n_epoch
-                    this.log.addError('[ getAzimuthElevation ] Number of satellite positions differ from number of receiver positions');
+                    this.log.addError('[ getAzimuthElevationXS ] Number of satellite positions differ from number of receiver positions');
                     return
                 end
             else
                 XR = repmat(this.xyz(1,:),n_epoch,1);
             end
+            
             
             az = zeros(n_epoch,1); el = zeros(n_epoch,1);
             
