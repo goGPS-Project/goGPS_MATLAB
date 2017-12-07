@@ -2135,10 +2135,16 @@ classdef Receiver < handle
         end
         
         function synt_ph_obs = getSyntPhObs(this, sys_c)
+            if nargin < 2
+                sys_c = this.cc.sys_c;
+            end
             synt_ph_obs = this.getSyntCurObs( true, sys_c);            
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
+            if nargin < 2
+                sys_c = this.cc.sys_c;
+            end
             synt_pr_obs = this.getSyntCurObs(false, sys_c);            
         end
         
