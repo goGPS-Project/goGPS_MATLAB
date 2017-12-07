@@ -295,15 +295,17 @@ classdef Receiver < handle
         end
         
         function preProcessing(this)
-            %DESCRIPTION: Do all operation needed in order to preprocess
-            %the data
-            %remove bad observation (spare satellites or bad epochs from CRX)
+            % Do all operation needed in order to preprocess the data 
+            % remove bad observation (spare satellites or bad epochs from CRX)
+            % SYNTAX:
+            %   this.preProcessing();
+            
             this.remBad();
             % correct for raw estimate of clock error based on the phase meausrements
             this.correctTimeDesync();
             % set to static or dynamic
             this.static = this.state.kf_mode == 0;
-            %code only solution
+            % code only solution
             this.initPositioning();
         end
         
@@ -1322,7 +1324,7 @@ classdef Receiver < handle
             if isempty(this.active_ids)
                 this.active_ids= false(size(this.obs,1),1);
             end
-            for i = 1 : this.cc.getNumSat();
+            for i = 1 : this.cc.getNumSat()
                 prn = this.cc.prn(i);
                 sys = this.cc.system(i);
                 sat_idx = this.prn == prn & [this.system == sys]' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
@@ -1350,6 +1352,42 @@ classdef Receiver < handle
                 this.DtSat(1);
                 this.dts_delay_status = 1; %applied
             end
+        end
+        
+        function smoothAndApplyDt(this)
+            % Smooth dt * c correction computed from init-positioning with a spline with base 3 * rate,
+            % apply the smoothed dt to pseudo-ranges and phases
+            % SYNTAX:
+            %   this.smoothAndApplyDt()
+
+            lim = getOutliers(this.dt ~= 0);
+            dt = simpleFill1D(zero2nan(this.dt), this.dt == 0, 'spline');
+            for i = 1 : size(lim, 1)
+                dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
+            end        
+            this.dt = dt;
+            this.applyDtRec(dt)
+            %this.dt_pr = this.dt_pr + this.dt;
+            %this.dt_ph = this.dt_ph + this.dt;
+            %this.dt = zeros(size(this.dt_pr));
+        end
+        
+        function applyDtRec(this, dt_pr, dt_ph)
+            % Apply dt * c correction to pseudo-ranges and phases
+            % SYNTAX:
+            %   this.applyDtRec(dt)
+            %   this.applyDtRec(dt_pr, dt_ph)
+            
+            narginchk(2,3);
+            if nargin == 2
+                dt_ph = dt_pr;
+            end
+            [pr, id_pr] = this.getPseudoRanges();
+            pr = bsxfun(@minus, pr, dt_pr * 299792458);
+            this.setPseudoRanges(pr, id_pr);            
+            [ph, wl, id_ph] = this.getPhases();
+            ph = bsxfun(@minus, ph, dt_ph * 299792458);
+            this.setPhases(ph, wl, id_ph);
         end
         
         function removeDtSat(this)
@@ -1565,6 +1603,10 @@ classdef Receiver < handle
             else
                 this.initDynamicPositioning(obs, prn, sys, flag)
             end
+            
+            % Apply dt from the clock estimated by initPositioning
+            this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6))
+            this.smoothAndApplyDt();
         end
         
         function initStaticPositioning(this,obs, prn, sys, flag)
