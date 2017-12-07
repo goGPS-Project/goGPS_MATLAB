@@ -2162,8 +2162,8 @@ classdef Receiver < handle
                     case '1'
                         iono_factor = 1;
                     otherwise
-                        iono_factors = this.cc.getSys(sys).getIonoFactor([1 str2num(obs_type)]);
-                        iono_factor = iono_factors.alpha2 / iono_factors.aplha1;
+                        iono_factors = this.cc.getSys(sys).getIonoFree([1 str2num(obs_type)]);
+                        iono_factor = iono_factors.alpha2 / iono_factors.alpha1;
                         
                 end
                 range = range + this.rec2sat.err_tropo(:,sat) + iono_factor * this.rec2sat.err_iono(:,sat) + this.rec2sat.solid_earth_corr(:,sat);
@@ -2174,7 +2174,53 @@ classdef Receiver < handle
             end
             
         end
-        
+        function synt_ph_obs = getSyntPhObs(this, sys_w)
+
+            synt_ph_obs = this.getSyntCurObs( true, sys_w);
+            
+        end
+        function synt_pr_obs = getSyntPrObs(this, sys_w)
+
+            synt_pr_obs = this.getSyntCurObs(false, sys_w);
+            
+        end
+        function synt_pr_obs = getSyntCurObs(this, phase, sys_w)
+            idx_obs = []
+            for s = sys_w
+            if phase
+                idx_obs =[ idx_obs; this.getObsIdx('L',s)];
+            else
+                idx_obs =[ idx_obs; this.getObsIdx('C',s)];
+            end
+            end
+
+            synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
+            sys = this.system(idx_obs);
+            prn = this.prn(idx_obs);
+            sat = this.cc.getIndex(sys,prn);
+            u_sat = unique(sat);
+            o = 0;
+            for i = u_sat'
+                sat_idx = find(sat == i);
+                this.updateAvailIndex(sum(this.obs(sat_idx,:),1) > 0, i);
+                this.updateErrIono(i);
+                this.updateErrTropo(i);
+                range = this.getSyntObs('I', i);
+                for j = sat_idx'
+                    o = o + 1;
+                    c_obs_idx = idx_obs(j); % index of the observation we are currently processing
+                    ep_idx = this.obs(c_obs_idx,:) > 0;
+                    freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
+                    iono_factors = this.cc.getSys(sys(j)).getIonoFree([1 freq]);
+                    iono_factor = iono_factors.alpha2 / iono_factors.alpha1;
+                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
+                    if phase 
+                        synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx) / this.wl(c_obs_idx);
+                    end
+                end
+                
+            end
+        end
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)

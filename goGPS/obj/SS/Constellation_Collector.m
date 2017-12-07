@@ -400,6 +400,15 @@ classdef Constellation_Collector < Settings_Interface
                 otherwise
             end
         end
+        
+        function band = getBand(this, sys, freq)
+            %DESCRIPTION: get band for given frequency and system
+            if isnumeric(freq)
+                freq = num2str(freq);
+            end
+            ss = this.getSys(sys);
+            band = find(ss.CODE_RIN3_2BAND == freq);
+        end
 
     end
 
