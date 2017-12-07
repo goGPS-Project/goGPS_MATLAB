@@ -180,9 +180,6 @@ classdef Receiver < handle
             this.rec2sat.cs           = Core_Sky.getInstance();
             %this.rec2sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.rec2sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
-            
-            
-            
         end
         
         function loadRinex(this, file_name)
@@ -898,96 +895,56 @@ classdef Receiver < handle
             is_static = this.static;
         end
         
-        function pr = pr1(this, flag_valid, sys_c)
+        function pr = pr1(this, ss)
             % get p_range 1 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
-            switch nargin
-                case 1
-                    id = (this.active_ids) & (this.f_id == 1);
-                case 2
-                    if flag_valid
-                        id = (this.active_ids) & (this.f_id == 1) & this.pr_validity;
-                    else
-                        id = (this.active_ids) & (this.f_id == 1);
-                    end
-                case 3
-                    id = (this.active_ids) & (this.f_id == 1) & this.pr_validity & this.system' == sys_c;
-            end
-            pr = this.pr(id,:);
+            pr = zeros(this.cc.n_sat_tot, size(this.obs, 2));
+            
+            id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '1';
+            if (nargin == 2)
+                id_pr = id_pr & (this.system == ss)';
+            end            
+            pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
-        function pr = pr2(this, flag_valid, sys_c)
+        function pr = pr2(this, ss)
             % get p_range 2 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
-            switch nargin
-                case 1
-                    id = (this.active_ids) & (this.f_id == 2);
-                case 2
-                    if flag_valid
-                        id = (this.active_ids) & (this.f_id == 2) & this.pr_validity;
-                    else
-                        id = (this.active_ids) & (this.f_id == 2);
-                    end
-                case 3
-                    id = (this.active_ids) & (this.f_id == 2) & this.pr_validity & this.system' == sys_c;
-            end
-            pr = this.pr(id,:);
+            pr = zeros(this.cc.n_sat_tot, size(this.obs, 2));
+            
+            id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '2';
+            if (nargin == 2)
+                id_pr = id_pr & (this.system == ss)';
+            end            
+            pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
-        function [ph, wl] = ph1(this, flag_valid, sys_c)
+        function [ph, wl] = ph1(this, ss)
             % get phase 1 (Legacy)
             % SYNTAX this.ph1(<flag_valid>, <sys_c>)
-            switch nargin
-                case 1
-                    id = (this.active_ids) & (this.f_id == 1);
-                case 2
-                    if flag_valid
-                        id = (this.active_ids) & (this.f_id == 1) & this.pr_validity;
-                    else
-                        id = (this.active_ids) & (this.f_id == 1);
-                    end
-                case 3
-                    id = (this.active_ids) & (this.f_id == 1) & this.pr_validity & this.system' == sys_c;
-            end
-            ph = this.ph(id,:);
-            wl = this.wl(id);
+            ph = zeros(this.cc.n_sat_tot, size(this.obs, 2));
+            wl = zeros(this.cc.n_sat_tot, 1);
+            id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '1';
+            if (nargin == 2)
+                id_ph = id_ph & (this.system == ss)';
+            end            
+            ph(this.go_id(id_ph), :) = this.obs(id_ph, :);
+            wl(this.go_id(id_ph)) = this.wl(id_ph);
+            ph = bsxfun(@times, zero2nan(ph), wl);            
         end
         
-        function [ph, wl] = ph2(this, flag_valid, sys_c)
+        function [ph, wl] = ph2(this, ss)
             % get phase 2 (Legacy)
             % SYNTAX this.ph1(<flag_valid>, <sys_c>)
-            switch nargin
-                case 1
-                    id = (this.active_ids) & (this.f_id == 2);
-                case 2
-                    if flag_valid
-                        id = (this.active_ids) & (this.f_id == 2) & this.pr_validity;
-                    else
-                        id = (this.active_ids) & (this.f_id == 2);
-                    end
-                case 3
-                    id = (this.active_ids) & (this.f_id == 2) & this.pr_validity & this.system' == sys_c;
-            end
-            ph = this.ph(id,:);
-            wl = this.wl(id);
-        end
-        
-        function [ph, wl] = getPhGps(this, flag_valid)
-            % get phase 2 (Legacy)
-            % SYNTAX this.ph1(<flag_valid>, <sys_c>)
-            switch nargin
-                case 1
-                    id = (this.active_ids) & (this.system == 'G')';
-                case 2
-                    if flag_valid
-                        id = (this.active_ids) & (this.system == 'G')' & this.pr_validity;
-                    else
-                        id = (this.active_ids) & (this.system == 'G')';
-                    end
-            end
-            ph = this.ph(id,:);
-            wl = this.wl(id);
-        end
+            ph = zeros(this.cc.n_sat_tot, size(this.obs, 2));
+            wl = zeros(this.cc.n_sat_tot, 1);
+            id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '2';
+            if (nargin == 2)
+                id_ph = id_ph & (this.system == ss)';
+            end            
+            wl(this.go_id(id_ph)) = this.wl(id_ph);
+            ph = bsxfun(@times, zero2nan(ph), wl);
+        end                
         
         function [ph, wl, id_ph] = getPhases(this, ss)
             % get the phases observations in meter (not cycles)
@@ -1088,14 +1045,15 @@ classdef Receiver < handle
             % SYNTAX this.getObsIdx(flag, <system>)
             idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
             if nargin > 2
-                idx = idx & [this.system == system]';
+                idx = idx & (this.system == system)';
             end
             if nargin > 3
-                idx = idx & reshape(this.prn == prn,length(this.prn),1);
+                idx = idx & reshape(this.prn == prn, length(this.prn),1);
             end
             idx = find(idx);
-            idx(idx==0)=[];
+            idx(idx == 0) = [];
         end
+        
         function [obs,idx] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
             % channel according to the feinition in GPS_SS, GLONASS_SS
@@ -2131,7 +2089,7 @@ classdef Receiver < handle
             % INPUT:
             %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency)
             % EXAMPLE:
-            % this.getSyntObs(1,go_id)
+            %   this.getSyntObs(1,go_id)
             n_epochs = size(this.obs, 2);
             n_sat = this.cc.getNumSat();
             if isnumeric(obs_type)
@@ -2174,26 +2132,25 @@ classdef Receiver < handle
             end
             
         end
+        
         function synt_ph_obs = getSyntPhObs(this, sys_w)
-
-            synt_ph_obs = this.getSyntCurObs( true, sys_w);
-            
+            synt_ph_obs = this.getSyntCurObs( true, sys_w);            
         end
+        
         function synt_pr_obs = getSyntPrObs(this, sys_w)
-
-            synt_pr_obs = this.getSyntCurObs(false, sys_w);
-            
+            synt_pr_obs = this.getSyntCurObs(false, sys_w);            
         end
+        
         function synt_pr_obs = getSyntCurObs(this, phase, sys_w)
-            idx_obs = []
+            idx_obs = [];
             for s = sys_w
-            if phase
-                idx_obs =[ idx_obs; this.getObsIdx('L',s)];
-            else
-                idx_obs =[ idx_obs; this.getObsIdx('C',s)];
+                if phase
+                    idx_obs = [idx_obs; this.getObsIdx('L', s)];
+                else
+                    idx_obs = [idx_obs; this.getObsIdx('C', s)];
+                end
             end
-            end
-
+            
             synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
             sys = this.system(idx_obs);
             prn = this.prn(idx_obs);
@@ -2214,13 +2171,14 @@ classdef Receiver < handle
                     iono_factors = this.cc.getSys(sys(j)).getIonoFree([1 freq]);
                     iono_factor = iono_factors.alpha2 / iono_factors.alpha1;
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
-                    if phase 
+                    if phase
                         synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx) / this.wl(c_obs_idx);
                     end
                 end
                 
             end
         end
+        
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)
