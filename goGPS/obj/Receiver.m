@@ -2143,7 +2143,12 @@ classdef Receiver < handle
         end
         
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
+            % DESCRIPTION: get syntetic observation for code or phase
             idx_obs = [];
+            if nargin < 2
+                sys_c = this.cc.sys_c;
+            end
+            
             for s = sys_c
                 if phase
                     idx_obs = [idx_obs; this.getObsIdx('L', s)];
@@ -2151,13 +2156,14 @@ classdef Receiver < handle
                     idx_obs = [idx_obs; this.getObsIdx('C', s)];
                 end
             end
+
             
             synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
             sys = this.system(idx_obs);
             prn = this.prn(idx_obs);
             sat = this.cc.getIndex(sys,prn);
             u_sat = unique(sat);
-            o = 0;
+
             for i = u_sat'
                 sat_idx = find(sat == i);
                 this.updateAvailIndex(sum(this.obs(sat_idx,:),1) > 0, i);
@@ -2165,7 +2171,8 @@ classdef Receiver < handle
                 this.updateErrTropo(i);
                 range = this.getSyntObs('I', i);
                 for j = sat_idx'
-                    o = o + 1;
+                    o = idx_obs(j);
+                    o = find(idx_obs == o);
                     c_obs_idx = idx_obs(j); % index of the observation we are currently processing
                     ep_idx = this.obs(c_obs_idx,:) > 0;
                     freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
@@ -2174,7 +2181,7 @@ classdef Receiver < handle
                     else
                         wl_ref = this.cc.getGPS.F_VEC(1);
                         wl = this.cc.getSys(sys(j)).F_VEC(freq);
-                        iono_factor= wl_ref^2/ wl^2;
+                        iono_factor= wl_ref ^ 2/ wl ^ 2;
                     end
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
                     if phase
