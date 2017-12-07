@@ -2151,7 +2151,7 @@ classdef Receiver < handle
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
             % DESCRIPTION: get syntetic observation for code or phase
             idx_obs = [];
-            if nargin < 2
+            if nargin < 3
                 sys_c = this.cc.sys_c;
             end
             
