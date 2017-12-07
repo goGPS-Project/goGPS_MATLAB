@@ -1393,7 +1393,7 @@ classdef goGUIclass < handle
                     this.newVal = this.curVal;
                 end
                 this.newVal(this.getFlag) = this.curVal(this.getFlag);
-                this.getFlag = false(size(this.getFlag()));
+                this.getFlag = false(size(this.getFlag));
             end
 
         end
@@ -1450,7 +1450,7 @@ classdef goGUIclass < handle
 
                 % Save the status in the object
                 this.curVal(this.setFlag) = this.newVal(this.setFlag);
-                this.setFlag = false(size(this.setFlag()));
+                this.setFlag = false(size(this.setFlag));
             end
         end
     end

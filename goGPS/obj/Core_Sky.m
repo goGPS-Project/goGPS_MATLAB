@@ -91,7 +91,7 @@ classdef Core_Sky < handle
             % Core object creator
             this.state = Go_State.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Go_State.getCurrentSettings().getConstellationCollector();
+            this.cc = Go_State.getCurrentSettings().getConstellationCollector;
             this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
         end
     end
@@ -1049,7 +1049,7 @@ classdef Core_Sky < handle
             for idx = 1 : t_sun.length()
                 x_sun = X_sun(idx,:);
                 x_sat = X_sat(idx,:,:);
-                e = permute(repmat(x_sun,1,1,n_sat),[1 3 2]) - x_sat() ;
+                e = permute(repmat(x_sun,1,1,n_sat),[1 3 2]) - x_sat ;
                 e = e./repmat(normAlngDir(e,3),1,1,3);
                 k = -x_sat./repmat(normAlngDir(x_sat,3),1,1,3);
                 j=cross(k,e);

@@ -2584,7 +2584,7 @@ classdef Receiver < handle
                     solid_earth_corr(:,s) = this.updateSolidTideCorr(s);
                 end
             else
-                XR = this.xyz();
+                XR = this.xyz;
                 if (nargin < 6)
                     [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
                 end
