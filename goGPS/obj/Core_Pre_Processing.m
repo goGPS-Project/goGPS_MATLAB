@@ -1409,8 +1409,10 @@ classdef Core_Pre_Processing < handle
             end
             data = [repmat(data(1,:), n_order, 1); data];
             for s = 1 : size(data, 2)
-                if ~isnan(data(1,s)) && sum(~isnan(data(:,s))) > 2
-                    data(1 : n_order, s) = interp1(t_ref, data(1 + n_order : end, s), 1 - n_order : 0, 'pchip', 'extrap');
+                tmp = data(1 + n_order : end, s);
+                id_ok = ~isnan(tmp);
+                if sum(id_ok) > 2
+                    data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
                 end
             end
             diff_data = diff(data, n_order);
