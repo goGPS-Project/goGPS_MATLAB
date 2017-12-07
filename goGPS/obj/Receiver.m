@@ -1524,13 +1524,13 @@ classdef Receiver < handle
             end
         end
         
-        function initPositioning(this, sys_w)
+        function initPositioning(this, sys_c)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX:
             %   this.initPositioning();
             % INPUT:
-            %   sys_w = wanted system
+            %   sys_c = wanted system
             % Init "errors"
             this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
             this.rec2sat.err_tropo = zeros(this.time.length, this.cc.getNumSat());
@@ -1547,12 +1547,12 @@ classdef Receiver < handle
             [obs, prn, sys, flag] = this.getBestCodeObs;
             % remove unwanted system
             if nargin < 2
-                sys_w = this.cc.sys_c;
+                sys_c = this.cc.sys_c;
             end
             sys_idx = false(size(sys));
             %sys_idx =  sum(flag == repmat('C1WC2WI',size(flag,1),1),2) == 7;
-            for s = 1:length(sys_w)
-                sys_idx = sys_idx | sys == sys_w(s);
+            for s = 1:length(sys_c)
+                sys_idx = sys_idx | sys == sys_c(s);
             end
             obs(~sys_idx,:) = [];
             prn(~sys_idx,:) = [];
@@ -2134,17 +2134,17 @@ classdef Receiver < handle
             
         end
         
-        function synt_ph_obs = getSyntPhObs(this, sys_w)
-            synt_ph_obs = this.getSyntCurObs( true, sys_w);            
+        function synt_ph_obs = getSyntPhObs(this, sys_c)
+            synt_ph_obs = this.getSyntCurObs( true, sys_c);            
         end
         
-        function synt_pr_obs = getSyntPrObs(this, sys_w)
-            synt_pr_obs = this.getSyntCurObs(false, sys_w);            
+        function synt_pr_obs = getSyntPrObs(this, sys_c)
+            synt_pr_obs = this.getSyntCurObs(false, sys_c);            
         end
         
-        function synt_pr_obs = getSyntCurObs(this, phase, sys_w)
+        function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
             idx_obs = [];
-            for s = sys_w
+            for s = sys_c
                 if phase
                     idx_obs = [idx_obs; this.getObsIdx('L', s)];
                 else
@@ -2178,7 +2178,7 @@ classdef Receiver < handle
                     end
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.rec2sat.err_iono(ep_idx,i)';
                     if phase
-                        synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx) / this.wl(c_obs_idx);
+                        synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx);
                     end
                 end
                 
