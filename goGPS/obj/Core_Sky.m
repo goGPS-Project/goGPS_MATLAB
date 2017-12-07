@@ -126,7 +126,11 @@ classdef Core_Sky < handle
             %%% load Epehemerids
             eph_f_name   = this.state.getEphFileName(start_date, stop_time);
             clock_f_name = this.state.getClkFileName(start_date, stop_time);
-            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)); %%% condition to be tested in differnet cases
+            clock_is_present = true;
+            for i = 1:length(clock_f_name)
+                clock_is_present = clock_is_present && exist(clock_f_name{i});
+            end  
+            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
             this.clearOrbit();
             
             if strfind(eph_f_name{1}, '.sp3') % assuming all files have the same endings
