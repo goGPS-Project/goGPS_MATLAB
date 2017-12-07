@@ -1363,7 +1363,9 @@ classdef Receiver < handle
             lim = getOutliers(this.dt ~= 0);
             dt = simpleFill1D(zero2nan(this.dt), this.dt == 0, 'spline');
             for i = 1 : size(lim, 1)
-                dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
+                if lim(i,2) - lim(i,1) > 5
+                    dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
+                end
             end        
             this.dt = dt;
             this.applyDtRec(dt)
