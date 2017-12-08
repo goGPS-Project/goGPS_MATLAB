@@ -131,7 +131,7 @@ pi = 3.14159265359d0;
 
 % reference day is 28 January
 % this is taken from Niell (1996) to be consistent
-[year, doy] = time.last.getDOY();
+doy = (time.last.getGpsTime() / 86400 - 22) / 365.25d0;
 
 % degree n and order m
 nmax = 9;
@@ -179,7 +179,7 @@ else                % northern hemisphere
     c11h = 0.005;
     c10h = 0.001;
 end
-ch = c0h + ((cos(doy/365.25d0*2*pi + phh)+1)*c11h/2 + c10h)*(1-cos(dlat));
+ch = c0h + ((cos(doy*2*pi + phh)+1)*c11h/2 + c10h)*(1-cos(dlat));
 
 ahm = 0.d0;
 aha = 0.d0;
@@ -191,7 +191,7 @@ for n = 0:nmax
         aha = aha + (ah_amp(i) *V(n+1,m+1) + bh_amp(i) *W(n+1,m+1));
     end
 end
-ah  = (ahm + aha*cos(doy/365.25d0*2.d0*pi))*1d-5;
+ah  = (ahm + aha*cos(doy*2.d0*pi))*1d-5;
 
 sine   = sin(pi/2 - zd);
 % cose   = cos(pi/2 - zd);
@@ -227,7 +227,7 @@ for n = 0:nmax;
         awa = awa + (aw_amp(i) *V(n+1,m+1) + bw_amp(i) *W(n+1,m+1));
     end
 end
-aw =  (awm + awa*cos(doy/365.25d0*2*pi))*1d-5;
+aw =  (awm + awa*cos(doy*2*pi))*1d-5;
 
 beta   = bw ./ ( sine + cw );
 gamma  = aw ./ ( sine + beta);
