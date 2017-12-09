@@ -501,7 +501,7 @@ classdef Receiver < handle
             this.setPseudoRanges(pr, id_pr);
             
             this.time.toUnixTime;
-            this.time.addSeconds( - this.dt_pr - time_desync);
+            this.time.addSeconds( - this.dt_pr);
         end
         
         function LEGACYapplyDtDrift(this)
@@ -2363,13 +2363,15 @@ classdef Receiver < handle
             idx = this.sat.avail_index(:,sat) > 0;
             this.sat.tot(idx, sat) =  ( obs(idx)' + this.sat.err_tropo(idx,sat) + this.sat.err_iono(idx,sat) )/ goGNSS.V_LIGHT + this.dt(idx,1);
         end
+        
         function updateAvailIndex(this, obs, sat)
-            % DESCRIPTION: upadte avaliabilty of measurement on staellite
+            % DESCRIPTION: update avaliabilty of measurement on staellite
             if isempty(this.sat.avail_index)
                 this.sat.avail_index = false(this.time.length, this.cc.getNumSat());
             end
             this.sat.avail_index(:,sat) = obs > 0;
         end
+        
         function time_of_travel = getTOT(this)
             % SYNTAX:
             %   this.getTraveltime()
@@ -2499,18 +2501,19 @@ classdef Receiver < handle
             XS_r(:,1) = sum(xR .* XS(:,1:2),2); % X
             XS_r(:,2) = sum(yR .* XS(:,1:2),2); % Y
             XS_r(:,3) = XS(:,3); % Z
-            
-            
         end
+        
         function  updateErrTropo(this, sat, flag)
             %INPUT:
             % sat : number of sat
             % flag: flag of the tropo model
             %DESCRIPTION: update the tropospheric correction
+            atmo = Atmosphere();
+            
             if isempty(this.sat.err_tropo)
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
             end
-            if nargin < 2 | strcmp(sat,'all')
+            if nargin < 2 || strcmp(sat,'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
                 if nargin < 3
                     flag = this.state.tropo_model;
@@ -2522,6 +2525,7 @@ classdef Receiver < handle
                 this.sat.err_tropo(:, sat) = 0;
                 %%% compute lat lon
                 [~, lat, h, lon] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+
                 idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx)>0
                     XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), sat);
@@ -2542,16 +2546,29 @@ classdef Receiver < handle
                         case 0 %no model
                             
                         case 1 %Saastamoinen with standard atmosphere
-                            this.sat.err_tropo(idx, sat) = Atmosphere.saastamoinen_model(lat, lon, h, el);
+                            geoid = Go_State.getInstance.getRefGeoid();
+                            if geoid.ncols > 0
+                                % geoid ondulation interpolation
+                                undu = getOrthometricCorr(lat(1), lon(1)); % consider geoid undulation constant
+                            else
+                                undu = [];
+                            end
+                            this.sat.err_tropo(idx, sat) = atmo.saastamoinen_model(h, undu, el);
                             
-                        case 2 %Saastamoinen with GPT
-                            time = this.time.getGpsTime();
+                        case 2 % Saastamoinen with GPT
+                            geoid = Go_State.getInstance.getRefGeoid();
+                            if geoid.ncols > 0
+                                % geoid ondulation interpolation
+                                undu = getOrthometricCorr(lat(1), lon(1), geoid); % consider geoid undulation constant
+                            else
+                                undu = [];
+                            end
+                            gps_time = this.time.getGpsTime();
                             lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = 1 : size(idx,1)
                                 if idx(e) > 0
-                                    [gps_week, gps_sow, gps_dow] = this.time.getGpsWeek(e);
-                                    this.sat.err_tropo(e, sat) = Atmosphere.saastamoinen_model_GPT(time(e), lat_t(e), lon_t(e), h_t(e), el_t(e));
+                                    this.sat.err_tropo(e, sat) = atmo.saastamoinen_model_GPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                                 end
                             end
                             
@@ -2852,7 +2869,7 @@ classdef Receiver < handle
         function updateAzimuthElevation(this, sat)
             %DESCRIPTION: upadte azimute elevation into.sat
             if nargin < 2
-                for i = 1 : this.cc.getNumSat();
+                for i = 1 : this.cc.getNumSat()
                     this.updateAzimuthElevation(i);
                 end
             else
