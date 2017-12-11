@@ -1,18 +1,17 @@
-function setLastLineWidth(h, width)
-
-% setLastLinesWidth get the last lines handler and change them to a <width> value
+function setLastLineWidth(h,width)
+% setLastLineWidth get the last lines handler and change them to a <width> value
 %
 % SINTAX:
-%   setLastLinesWidth(<h>, width)
-%   setLastLinesWidth(width)
+%   setLastLineWidth(<h>,width)
+%   setLastLineWidth(width)
 %
 % EXAMPLE:
-%   setLastLinesWidth(gcf,2);
-%   setLastLinesWidth(2);
+%   setLastLineWidth(gca,2);
+%   setLastLineWidth(2);
 %
 % INPUT:
-%   h       = handler to the figure to modify           <optional argument>
-%   width   = requested width for the last line
+%   h       = handler to the axes to modify           <optional argument>
+%   width   = requested width of the last lines
 %
 % DEFAULT VALUES:
 %   h       = gcf
@@ -28,7 +27,7 @@ function setLastLineWidth(h, width)
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
-%  Contributors:     ...
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
