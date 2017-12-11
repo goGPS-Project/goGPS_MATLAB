@@ -307,6 +307,8 @@ classdef Receiver < handle
             this.static = this.state.kf_mode == 0;
             % code only solution
             this.initPositioning();
+            %this.smoothAndApplyDt();
+           
         end
         
         function updateStatus(this)
@@ -1602,14 +1604,19 @@ classdef Receiver < handle
             
             % Apply dt from the clock estimated by initPositioning
             this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6))
-            this.smoothAndApplyDt();
+            
         end
         
         function initStaticPositioning(this,obs, prn, sys, flag)
             % SYNTAX:
-            %   this.initPositioning();
+            %   this.StaticPositioning(obs, prn, sys, flag)
             %
             % INPUT:
+            % obs : observations [meters]
+            % prn : prn of observations
+            % sys : sys of observations
+            % flag : name of obsevation [obs_code1 obs_code2 comb_code]
+            %        comb_code --> Iono Free = I
             % OUTPUT:
             %
             % DESCRIPTION:
@@ -1644,7 +1651,7 @@ classdef Receiver < handle
                     flag_ss(empty_sat, :) = [];
                     sys_ss(empty_sat, :)  = [];
                 end
-                cut_off = 10;
+                cut_off = 15;
                 % first estimation noatmosphere
                 opt.coord_corr = 1;
                 opt.max_it = 10;
@@ -1654,9 +1661,7 @@ classdef Receiver < handle
                 else
                     this.codeStaticPositionig(obs, prn, sys, flag, opt);
                 end
-                %%% remove obs under cu off
-                [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
-                
+               
                 % update atmosphere
                 this.updateErrTropo('all', 1);
                 if ~iono_free
@@ -1701,6 +1706,8 @@ classdef Receiver < handle
             this.log.addMessage(this.log.indent('Get final clock error estimation to sysncronize satellite positions',6))
             this.codeStaticPositionig(obs, prn, sys, flag, opt); % get a first estimation of receiver clock offset to get correct orbit
             opt.no_pos = false;
+            %%% remove obs under cu off
+            [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
             this.log.addMessage(this.log.indent('Final estimation',6))
             this.codeStaticPositionig(obs, prn, sys, flag, opt);
         end
@@ -1908,6 +1915,17 @@ classdef Receiver < handle
         end
         
         function initDynamicPositioning(this, obs, prn, sys, flag)
+            % SYNTAX:
+            %   this.initDynamicPositioning(obs, prn, sys, flag)
+            %
+            % INPUT:
+            % obs : observations [meters]
+            % prn : prn of observations
+            % sys : sys of observations
+            % flag : name of obsevation [obs_code1 obs_code2 comb_code]
+            %        comb_code --> Iono Free = I
+            % OUTPUT:
+            %
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
             
@@ -2224,6 +2242,8 @@ classdef Receiver < handle
                 this.updateAvailIndex(sum(this.obs(sat_idx,:),1) > 0, i);
                 this.updateErrIono(i);
                 this.updateErrTropo(i);
+                this.updateSolidEarthCorr(i);
+                this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
                 range = this.getSyntObs('I', i);
                 for j = sat_idx'
                     o = idx_obs(j);
