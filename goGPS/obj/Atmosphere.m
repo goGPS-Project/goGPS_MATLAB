@@ -103,20 +103,22 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            h(undu > -300) = h(undu > -300) - undu(undu > -300);
+            % ¬¬ undulation is never less than 300 m (on Earth)
+            %h(undu > -300) = h(undu > -300) - undu(undu > -300);
+            h = h - undu;
             h(h < 0) = 0;
             
             if (h < 5000)
                 
-                %conversion to radians
+                % conversion to radians
                 el = abs(el) * pi/180;
                 
-                %Standard atmosphere - Berg, 1948 (Bernese)
-                %pressure [mbar]
+                % Standard atmosphere - Berg, 1948 (Bernese)
+                % pressure [mbar]
                 Pr = this.STD_PRES;
-                %temperature [K]
+                % temperature [K]
                 Tr = this.STD_TEMP;
-                %humidity [%]
+                % humidity [%]
                 Hr = this.STD_HUMI;
                 
                 P = Pr * (1-0.0000226*h).^5.225;
@@ -150,9 +152,10 @@ classdef Atmosphere < handle
                 
                 e = 0.01 * H .* exp(-37.2465 + 0.213166*T - 0.000256908*T.^2);
                 
-                %tropospheric delay
-                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ max(0.01,(tan(el)).^2))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0
-                
+                % tropospheric delay
+                w_fun = (1-tan(el).^2./(tan(el).^2+tan(el+2).^2));
+                %delay = ((0.002277 ./ sin(el)) .* (P - (B ./ tan(el).^2)) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e);
+                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el).^2+ 0.01.*w_fun))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0                
             else
                 delay = zeros(size(el));
             end
