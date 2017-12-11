@@ -2205,7 +2205,7 @@ classdef Receiver < handle
             if nargin < 2
                 sys_c = this.cc.sys_c;
             end
-            synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');
+            synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');            
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -2217,6 +2217,8 @@ classdef Receiver < handle
         
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
             % DESCRIPTION: get syntetic observation for code or phase
+            obs_type = {'code', 'phase'};
+            this.log.addMessage(sprintf('Synthesising %s observations', obs_type{phase + 1}) );
             idx_obs = [];
             if nargin < 3
                 sys_c = this.cc.sys_c;
@@ -2230,7 +2232,6 @@ classdef Receiver < handle
                 end
             end
 
-            
             synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
             sys = this.system(idx_obs);
             prn = this.prn(idx_obs);
@@ -3003,6 +3004,39 @@ classdef Receiver < handle
             
             dist = distSR + corr;
             
+        end
+    end
+    
+    % Plots and visualization of the data stored within the object;   
+    methods (Access = public)
+        
+        function plotVsSynt(this)
+            [ph, ~, id_ph] = this.getPhases;
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhObs); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            figure; subplot(2,3,1); plot(sensor_ph);
+            
+            this.updateAzimuthElevation()                        
+            id_ok = (~isnan(sensor_ph));
+            az = this.sat.az(:,this.go_id(id_ph));
+            el = this.sat.el(:,this.go_id(id_ph));
+            %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
+            subplot(2,3,3);  polarscatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 50, serialize(sensor_ph(id_ok)), 'filled'); 
+            caxis([-1 1]); colormap(gat); setColorMapGat([-1 1], 0.8, [-0.15 0.15]); colorbar();
+            subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]); 
+            
+            [pr, id_pr] = this.getPseudoRanges;
+            sensor_pr = Core_Pre_Processing.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
+            subplot(2,3,4); plot(sensor_pr);
+            
+            id_ok = (~isnan(sensor_pr));          
+            az = this.sat.az(:,this.go_id(id_pr));
+            el = this.sat.el(:,this.go_id(id_pr));
+            %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
+            subplot(2,3,6);  polarscatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 50, serialize(sensor_pr(id_ok)), 'filled'); 
+            caxis([-20 20]); colorbar(); %colormap(gat); setColorMapGat([-15 15], 0.8, [-0.15 0.15]); colorbar()
+            subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
+            caxis([-1 1]); colorbar(); %colormap(gat); setColorMapGat([-15 15], 0.8, [-0.15 0.15]); colorbar()
+
         end
     end
     
