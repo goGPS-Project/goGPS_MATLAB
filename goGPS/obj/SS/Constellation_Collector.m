@@ -300,7 +300,7 @@ classdef Constellation_Collector < Settings_Interface
             % SEE ALSO:
             %   sat_antenna_ID
             prn = this.prn;
-            prn(this.system == 'J') = prn(this.system == 'J') - 192;
+            %prn(this.system == 'J') = prn(this.system == 'J') - 192;
             ant_mod = mat2cell([this.system' reshape(sprintf('%02d', prn), 2, this.n_sat_tot)'], ones(this.n_sat_tot,1));
             if nargin > 1
                 ant_mod = ant_mod{goid};
@@ -743,6 +743,9 @@ classdef Constellation_Collector < Settings_Interface
             for i = 1:length(prn)
                 p = prn(i);
                 s = sys(i);
+%                 if s == 'J' %% WARNING PATCH FIX  --> consider set prn of QZSS as the others
+%                     p = p + 192;
+%                 end
                 index(i) = this.index( [this.system == s]' & this.prn == p);
             end
             
