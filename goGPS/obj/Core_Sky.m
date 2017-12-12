@@ -1103,6 +1103,46 @@ classdef Core_Sky < handle
             this.coord_type = 1;
         end
         
+        function pcv_delay = getPCV(this, freq, sat, el, az)
+            % DESCRIPTION: get the pcv correction for a given satellite and a given
+            % azimuth and elevations using linear or bilinear interpolation
+            
+            ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
+            ant_idx = sum(ant_names == repmat(this.cc.getAntennaId(sat),size(ant_names,1),1),2) == 3;
+            sat_pcv = this.ant_pcv(ant_idx);
+            %tranform el in zen
+            zen = 90 - el;
+            % get el idx
+            zen_pcv = sat_pcv.tablePCV_zen;
+            
+            min_zen = zen_pcv(1);
+            max_zen = zen_pcv(end);
+            d_zen = (max_zen - min_zen)/length(zen_pcv);
+            zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
+            d_f_r_el = min(max(zen_idx*d_zen - zen, 0), 1) / d_zen;
+            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) %no azimuth change
+                pcv_val = sat_pcv.tableNOAZI(:,:,freq); %etract the right frequency
+                
+                pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
+            else
+               pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
+               
+               %find azimuth indexes
+               az_pcv = sat_pcv.tablePCV_azi;
+                min_az = az_pcv(1);
+                max_az = az_pcv(end);
+                d_az = (max_az - min_az)/length(az_pcv);
+                az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
+                d_f_r_az = min(max(az - az_idx*d_az, 0), 1)/d_az; 
+                
+                %interpolate along zenital angle
+                pcv_delay_lf =  d_f_r_el .* pcv_val(zen_idx,az_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx)';
+                pcv_delay1_rg = d_f_r_el .* pcv_val(zen_idx,az_idx +1 )' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx+1)';
+                %interpolate alogn azimtuh
+                pcv_delay = d_f_r_az .* pcv_delay_lf' + (1 - d_f_r_az) .* pcv_delay1_rg';
+            end
+        end
+        
         function coord = getAPC(this)
             if this.coord_type == 1
                 coord = this.coord; %already antennna phase center
@@ -1114,6 +1154,7 @@ classdef Core_Sky < handle
             coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
+            
         end
         
         function [dt_S] = clockInterpolate(this,time, sat)

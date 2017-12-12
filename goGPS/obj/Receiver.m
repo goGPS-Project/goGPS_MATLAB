@@ -94,6 +94,8 @@ classdef Receiver < handle
         
         group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
         dts_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for the clock of the satellite(0: not corrected , 1: corrected)
+        sh_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for shapiro delay(0: not corrected , 1: corrected)
+        pcv_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for pcv variations(0: not corrected , 1: corrected)
         
         sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
@@ -309,7 +311,11 @@ classdef Receiver < handle
             this.static = this.state.kf_mode == 0;
             % code only solution
             this.initPositioning();
-            %this.smoothAndApplyDt();
+            % smooth clock estimation 
+            this.smoothAndApplyDt();
+            % apply pcv corrections
+            this.applyPCV();
+            
            
         end
         
@@ -3018,7 +3024,7 @@ classdef Receiver < handle
             el(~zero_idx) = atan2d(u(~zero_idx), hor_dist(~zero_idx));
         end
         
-        function [dist, corr] = getRelDistance(this, XS, XR)
+        function [sh_delay] = getShapirodelay(this, sat)
             % SYNTAX:
             %   [corr, distSR_corr] = this.getRelDistance(XS, XR);
             %
@@ -3034,14 +3040,11 @@ classdef Receiver < handle
             %   Compute distance from satellite ot reciever considering
             %   (Shapiro delay) - copied from
             %   relativistic_range_error_correction.m
-            n_epoch = size(XS,1);
-            if nargin > 2
-                if size(XR,1) ~= n_epoch
-                    this.log.addError('[ getRelDistance ] Number of satellite positions differ from number of receiver positions');
-                    return
-                end
+            XS = this.getXSTxRot(sat);
+            if this.isStatic()
+                XR = repmat(this.xyz,size(XS,1),1);
             else
-                XR = repmat(this.xyz(1,:),n_epoch,1);
+                XR = this.xyz(this.sat.avail_index(:,sat),:);
             end
             
             distR = sqrt(sum(XR.^2 ,2));
@@ -3053,10 +3056,42 @@ classdef Receiver < handle
             GM = 3.986005e14;
             
             
-            corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+            sh_delay = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
             
-            dist = distSR + corr;
             
+        end
+        function shDelay(this,sgn)
+            % DESCRIPTION: add or subtract shapiro delay from observations
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                    for f = freqs
+                        obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                        sh_delays = this.getShapirodelay(s);
+                        for o = find(obs_idx_f)'
+                            pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)';
+                        end
+                    end
+                end
+            end
+        end
+        
+        function applyShDelay(this)
+            if this.sh_delay_status == 0
+                this.shDelay(1);
+                this.sh_delay_status = 1; %applied
+            end
+        end
+        
+        function removeShDelay(this)
+            if this.sh_delay_status == 1
+                this.shDelay(-1);
+                this.sh_delay_status = 0; %not applied
+            end
         end
         function PCV(this,sgn)
                 % DESCRIPTION: correct measurement for PCV both of receiver
@@ -3116,11 +3151,17 @@ classdef Receiver < handle
         end
         
         function applyPCV(this)
-            this.PCV(1);
+            if this.pcv_delay_status == 0
+                this.PCV(1);
+                this.pcv_delay_status = 1; %applied
+            end
         end
         
         function removePCV(this)
-            this.PCV(-1);
+            if this.pcv_delay_status == 1
+                this.PCV(-1);
+                this.pcv_delay_status = 0; %applied
+            end
         end
         
     end
