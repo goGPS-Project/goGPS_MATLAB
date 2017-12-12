@@ -83,6 +83,8 @@ classdef Receiver < handle
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
+        pcv            % phase center corrections for the receiver
+        
         %obs_validity   % validity of the row (does it contains usable values?)
         
         obs_code       % obs code for each line of the data matrix obs
@@ -2169,16 +2171,7 @@ classdef Receiver < handle
                 end
                 XS_loc = [];
             else
-                sat_idx = this.sat.avail_index(:, sat) > 0;
-                XS = this.getXSTxRot(sat);
-                XS_loc = nan(n_epochs, 3);
-                XS_loc(sat_idx,:) = XS;
-                if size(this.xyz,1) == 1
-                    XR = repmat(this.xyz, n_epochs, 1);
-                else
-                    XR = this.xyz;
-                end
-                XS_loc = XS_loc - XR;
+                XS_loc = this.getXSLoc(sat);
                 range = sqrt(sum(XS_loc.^2,2));
                 sys = this.cc.system(sat);
                 switch obs_type
@@ -2439,11 +2432,10 @@ classdef Receiver < handle
         
         function [XS_tx_r ,XS_tx] = getXSTxRot(this, sat)
             % SYNTAX:
-            %   [XS_tx_r ,XS_tx] = this.getXSTxRot( time_rx, cc)
+            %   [XS_tx_r ,XS_tx] = this.getXSTxRot( sat)
             %
             % INPUT:
-            % time_rx = receiver time
-            % cc = Constellation Collector
+            % sat = go-id of the satellite
             % OUTPUT:
             % XS_tx = satellite position computed at trasmission time
             % XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured
@@ -2451,10 +2443,54 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Compute satellite positions at transmission time and rotate them by the earth rotation
             %   occured during time of travel of the signal
-            [XS_tx] = this.getXSTx(sat);
-            [XS_tx_r]  = this.earthRotationCorrection(XS_tx, sat);
+            if nargin > 1
+                [XS_tx] = this.getXSTx(sat);
+                [XS_tx_r]  = this.earthRotationCorrection(XS_tx, sat);
+            else
+                n_sat = this.cc.getNumSat();
+                XS_tx_r = zeros(this.time.length,n_sat,3);
+                for i = 1 : n_sat
+                    [XS_tx] = this.getXSTx(i);
+                    [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
+                    XS_tx_r(this.sat.avail_index(:,i) ,i ,:) = permute(XS_tx_r_temp, [1 3 2]);
+                end
+            end
         end
         
+        function [XS_loc] = getXSLoc(this, sat)
+            % SYNTAX:
+            %   [XS_tx_r ,XS_tx] = this.getXSLoc( sat)
+            %
+            % INPUT:
+            % sat = go-id of the satellite
+            % OUTPUT:
+            % XS_tx = satellite position computed at trasmission time
+            % XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured
+            % during time of travel
+            % DESCRIPTION:
+            %   Compute satellite positions at transmission time and rotate them by the earth rotation
+            %   occured during time of travel of the signal and subtract
+            %   the postion term
+            n_epochs = this.time.length;
+            if nargin > 1
+                sat_idx = this.sat.avail_index(:, sat) > 0;
+                XS = this.getXSTxRot(sat);
+                XS_loc = nan(n_epochs, 3);
+                XS_loc(sat_idx,:) = XS;
+                if size(this.xyz,1) == 1
+                    XR = repmat(this.xyz, n_epochs, 1);
+                else
+                    XR = this.xyz;
+                end
+                XS_loc = XS_loc - XR;               
+            else
+                n_sat = this.cc.getNumSat();
+                XS_loc = zeros(n_epochs,n_sat,3);
+                for i = 1 : n_sat
+                    XS_loc(:,i ,:) = this.getXSLoc(i);
+                end
+            end
+        end
         function [XS_tx] = getXSTx(this, sat)
             % SYNTAX:
             %   [XS_tx_frame , XS_rx_frame] = this.getXSTx()
@@ -2898,7 +2934,9 @@ classdef Receiver < handle
             %DESCRIPTION: upadte azimute elevation into.sat
             if nargin < 2
                 for i = 1 : this.cc.getNumSat()
-                    this.updateAzimuthElevation(i);
+                    if sum(this.go_id == i) > 0
+                        this.updateAzimuthElevation(i);
+                    end
                 end
             else
                 if isempty(this.sat.el)
