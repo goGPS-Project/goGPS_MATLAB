@@ -2276,9 +2276,9 @@ classdef Receiver < handle
                 this.updateAvailIndex(idx_obs, sat);
                 XS = this.getXSTxRot(sat);
                 if size(this.xyz,1) == 1
-                    [~ , el] = this.getAzimuthElevationXS(XS);
+                    [~ , el] = this.computeAzimuthElevationXS(XS);
                 else
-                    [~ , el] = this.getAzimuthElevationXS(XS,this.xyz(idx_obs,:));
+                    [~ , el] = this.computeAzimuthElevationXS(XS,this.xyz(idx_obs,:));
                 end
                 
                 idx_obs_f = find(idx_obs);
@@ -2630,12 +2630,12 @@ classdef Receiver < handle
                     %%% compute az el
                     if size(this.xyz,1) > 1 % is dynamic
                         XR = this.xyz(idx,:);
-                        [az, el] = this.getAzimuthElevationXS(XS, XR);
+                        [az, el] = this.computeAzimuthElevationXS(XS, XR);
                         h = h_full(idx);
                         lat = lat_full(idx);
                         lon = lon_full(idx);
                     else  % is static
-                        [az, el] = this.getAzimuthElevationXS(XS);
+                        [az, el] = this.computeAzimuthElevationXS(XS);
                         h = h_full;
                         lat = lat_full;
                         lon = lon_full;
@@ -2684,9 +2684,9 @@ classdef Receiver < handle
                     end
                     %%% compute az el
                     if size(this.xyz,1)>1
-                        [az, el] = this.getAzimuthElevationXS(this.xyz(idx,:) ,XS);
+                        [az, el] = this.computeAzimuthElevationXS(this.xyz(idx,:) ,XS);
                     else
-                        [az, el] = this.getAzimuthElevationXS(XS);
+                        [az, el] = this.computeAzimuthElevationXS(XS);
                     end
                     
                     
@@ -2818,7 +2818,16 @@ classdef Receiver < handle
                 solid_earth_corr(isnan(solid_earth_corr)) = 0; % if XR is 0 the correction goes to nan
             end
         end
-        function [ocean_load_dcorr] = computeOceanLoading()
+        function [XR] = getXR(this)
+            %DESCRPTION: get xyz or the same repeated by the number of
+            %epoch
+            if this.isStatic
+                XR = repmat(this.xyz,this.time.length,1);
+            else
+                XR = this.xyz;
+            end
+        end
+        function [ocean_load_corr] = computeOceanLoading(this, sat) % WARNING: to be tested
             
             % SYNTAX:
             %   [oceanloadcorr] = ocean_loading_correction(time, XR, XS);
@@ -2829,12 +2838,19 @@ classdef Receiver < handle
             %   oceanloadcorr = ocean loading correction terms (along the satellite-receiver line-of-sight)
             %
             % DESCRIPTION:
-            %   Computation of the ocean loading displacement terms.
+            %   Computation of the ocean loading displacement terms.ù
+            % NOTES: 
+            %  Inefficent to compute them separate by staellites always call
+            %  as a block
+            
+            if nargin < 2
+                sat = 1 : this.cc.getNumSat();
+            end
             
             %ocean loading displacements matrix, station-dependent (see http://holt.oso.chalmers.se/loading/)
             global ol_disp zero_time
             
-            ocean_load_dcorr = zeros(size(XS,1),1);
+            ocean_load_corr = zeros(this.time.length,length(sat));
             if (isempty(ol_disp))
                 return
             end
@@ -2858,7 +2874,7 @@ classdef Receiver < handle
             
             refdate = datenum([1975 1 1 0 0 0]);
             
-            [week, sow] = time2weektow(zero_time + time);
+            [week, sow] = time2weektow(zero_time + this.time.getGpsTime);
             dateUTC = datevec(gps2utc(datenum(gps2date(week, sow))));
             
             %separate the fractional part of day in seconds
@@ -2888,14 +2904,18 @@ classdef Receiver < handle
             corrENU(2,1) = -corr(3,1); %north
             corrENU(3,1) =  corr(1,1); %up
             
+            % get XR
+            XR = this.getXR();
             %displacement along the receiver-satellite line-of-sight
             XRcorr = local2globalPos(corrENU, XR);
             corrXYZ = XRcorr - XR;
-            for s = 1 : size(XS,1)
-                LOS  = XR - XS(s,:)';
-                LOSu = LOS / norm(LOS);
+            for s = sat
+                sat_idx = this.sat.avail_index(:,s);
+                az = this.getAz(s);
+                el = this.getEl(s);
+                LOSu = [cos(el)*sin(az) cos(el)*cos(az) sin(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                ocean_load_dcorr(s,1) = sum(conj(corrXYZ).*LOSu);
+                ocean_load_corr(sat_idx,s) = sum(conj(corrXYZ(sat_idx,:)).*LOSu);
             end
         end
         function [poletidecorr] = getPoleTideCorr(this, time, XR, XS, phiC, lam)
@@ -2967,18 +2987,25 @@ classdef Receiver < handle
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
                 av_idx = this.sat.avail_index(:, sat);
-                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = getAzimuthElevation(this, sat);
+                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = computeAzimuthElevation(this, sat);
             end
         end
         
-        function [az, el] = getAzimuthElevation(this, sat)
+        function [az, el] = computeAzimuthElevation(this, sat)
             XS = this.getXSTxRot(sat);
-            [az, el] = this.getAzimuthElevationXS(XS);
+            [az, el] = this.computeAzimuthElevationXS(XS);
         end
-        
-        function [az, el] = getAzimuthElevationXS(this, XS, XR)
+        function [az] = getAz(this, sat)
+            %DESCRIPTION: get valid azimuth for given satellite
+            az = this.sat.az(this.sat.avail_index(:,sat));
+        end
+        function [el] = getEl(this, sat)
+            %DESCRIPTION: get valid elevation for given satellite
+            el = this.sat.el(this.sat.avail_index(:,sat));
+        end
+        function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
-            %   [az, el] = this.getAzimuthElevationXS(XS)
+            %   [az, el] = this.computeAzimuthElevationXS(XS)
             %
             % INPUT:
             % XS = positions of satellite [n_epoch x 1]
@@ -2993,7 +3020,7 @@ classdef Receiver < handle
             n_epoch = size(XS,1);
             if nargin > 2
                 if size(XR,1) ~= n_epoch
-                    this.log.addError('[ getAzimuthElevationXS ] Number of satellite positions differ from number of receiver positions');
+                    this.log.addError('[ computeAzimuthElevationXS ] Number of satellite positions differ from number of receiver positions');
                     return
                 end
             else
