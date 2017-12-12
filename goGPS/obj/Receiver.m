@@ -83,7 +83,7 @@ classdef Receiver < handle
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
-        pcv            % phase center corrections for the receiver
+        pcv = []       % phase center corrections for the receiver
         
         %obs_validity   % validity of the row (does it contains usable values?)
         
@@ -2463,7 +2463,7 @@ classdef Receiver < handle
                 [XS_tx_r]  = this.earthRotationCorrection(XS_tx, sat);
             else
                 n_sat = this.cc.getNumSat();
-                XS_tx_r = zeros(this.time.length,n_sat,3);
+                XS_tx_r = zeros(this.time.length, n_sat, 3);
                 for i = 1 : n_sat
                     [XS_tx] = this.getXSTx(i);
                     [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
@@ -3058,8 +3058,74 @@ classdef Receiver < handle
             dist = distSR + corr;
             
         end
+        function PCV(this,sgn)
+                % DESCRIPTION: correct measurement for PCV both of receiver
+                % antenna and satellite antenna
+                if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
+                    this.setAllAvailIndex();
+                    % getting sat - receiver vector for each epoch
+                    XR_sat = - this.getXSLoc();
+                   
+                    if ~isempty(this.pcv)
+                        %TODO correct for receiver pcv
+                        XS = - XR_sat;
+                    end
+                    if ~isempty(this.sat.cs.ant_pcv)
+                         
+                        % getting satellite reference frame for each epoch
+                        [i, j, k] = this.sat.cs.getSatFixFrame(this.time);
+                         sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+                         sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+                        sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
+                        
+                        % transgform into satellite reference system
+                        XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
+                        
+                        % getting ax and el
+                        distances = sqrt(sum(XR_sat.^2,3));
+                        XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
+                        
+                        az = atan2(XR_sat_norm(:, :, 1),XR_sat_norm(:, :, 2));
+                        az(az<0) = az(az<0) + 2*pi;
+                        el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
+                        
+                        % getting pscv and applying it to the obs
+                        for s = 1 : size(el,2)
+                            obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                            obs_idx = obs_idx & this.go_id == s;
+                            if sum(obs_idx) > 0
+                                freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                                for f = freqs
+                                    obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                    az_idx = ~isnan(az(:,s));
+                                    az_tmp = az(az_idx,s) / pi * 180;
+                                    el_idx = ~isnan(el(:,s));
+                                    el_tmp = el(el_idx,s) / pi * 180;
+                                    pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
+                                    for o = find(obs_idx_f)'
+                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                    end
+                                end
+                            end
+                        end
+                        
+                    end
+                end
+        end
+        
+        function applyPCV(this)
+            this.PCV(1);
+        end
+        
+        function removePCV(this)
+            this.PCV(-1);
+        end
+        
     end
     
+   
     % Plots and visualization of the data stored within the object;   
     methods (Access = public)
         
