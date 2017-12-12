@@ -2389,6 +2389,21 @@ classdef Receiver < handle
             this.sat.avail_index(:,sat) = obs > 0;
         end
         
+        function setAllAvailIndex(this)
+            % DESCRIPTION: update avaliabilty of measurement on all
+            % satellite based on all code and phase
+            if isempty(this.sat.avail_index)
+                this.sat.avail_index = false(this.time.length, this.cc.getNumSat());
+            end
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.go_id == s & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+                if sum(obs_idx) > 0
+                    av_idx = colFirstNonZero(this.obs(obs_idx,:)) ~= 0 ;
+                    this.sat.avail_index(:,s) = av_idx;
+                end
+            end
+        end
+        
         function time_of_travel = getTOT(this)
             % SYNTAX:
             %   this.getTraveltime()
