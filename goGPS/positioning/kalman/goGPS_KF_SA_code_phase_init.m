@@ -180,7 +180,8 @@ N0 = eye(nN);
 T0 = eye(nT);
 
 %matrix structure of clock parameters
-C0 = eye(nC);
+C0 = eye(nC);     %random walk
+% C0 = zeros(nC); %white noise
 
 %system dynamics
 %X(t+1)  = X(t) + Vx(t)
