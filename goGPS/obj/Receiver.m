@@ -3006,54 +3006,92 @@ classdef Receiver < handle
             this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.getShortName()});
         end
         
-        function [poletidecorr] = computePoleTideCorr(this, time, XR, XS, phiC, lam)
+        function poleTide(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            pt_corr = this.computePoleTideCorr();
+            if isempty(pt_corr)
+                this.log.addWarning('No ocean loading displacements matrix present for the receiver')
+                return
+            end
+                
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                    end
+                end
+            end
+        end
+        
+        function applyPoleTide(this)
+            if this.pt_delay_status == 0
+                this.poleTide(1);
+                this.pt_delay_status = 1; %applied
+            end
+        end
+        
+        function removePoleTide(this)
+            if this.pt_delay_status == 1
+                this.poleTide(-1);
+                this.pt_delay_status = 0; %not applied
+            end
+        end
+        
+        
+        function [pole_tide_corr] = computePoleTideCorr(this, sat)
             
             % SYNTAX:
             %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
             %
             % INPUT:
-            %   time = GPS time
-            %   XR   = receiver position  (X,Y,Z)
-            %   XS   = satellite position (X,Y,Z)
-            %   phiC = receiver geocentric latitude (rad)
-            %   lam  = receiver longitude (rad)
             %
             % OUTPUT:
             %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
             %
             % DESCRIPTION:
             %   Computation of the pole tide displacement terms.
-            if (nargin < 5)
-                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+            
+            if nargin < 2
+                sat = 1 : this.cc.getNumSat();
             end
             
-            poletidecorr = zeros(size(XS,1),1);
+            XR = this.getXR;
+            [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
             
+            pole_tide_corr = zeros(this.time.length,length(sat));
+            erp  = this.sat.cs.erp;
             %interpolate the pole displacements
-            if (~isempty(this.ERP))
-                if (length(this.ERP.t) > 1)
-                    m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
-                    m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
+            if (~isempty(erp))
+                if (length(erp.t) > 1)
+                    m1 = interp1(erp.t, erp.m1, this.time.getGpsTime, 'linear', 'extrap');
+                    m2 = interp1(erp.t, erp.m2, this.time.getGpsTime, 'linear', 'extrap');
                 else
-                    m1 = this.ERP.m1;
-                    m2 = this.ERP.m2;
+                    m1 = repmat(erp.m1,this.time.length,1);
+                    m2 = repmat(erp.m2,this.time.length,1);
                 end
                 
-                deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
-                deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+                deltaR   = -33*sin(2*phiC).*(m1.*cos(lam) + m2.*sin(lam))*1e-3;
+                deltaLam =  9* cos(  phiC).*(m1.*sin(lam) - m2.*cos(lam))*1e-3;
+                deltaPhi = -9* cos(2*phiC).*(m1.*cos(lam) + m2.*sin(lam))*1e-3;
                 
-                corrENU(1,1) = deltaLam; %east
-                corrENU(2,1) = deltaPhi; %north
-                corrENU(3,1) = deltaR;   %up
+                corrENU(:,1) = deltaLam; %east
+                corrENU(:,2) = deltaPhi; %north
+                corrENU(:,3) = deltaR;   %up
                 
                 %displacement along the receiver-satellite line-of-sight
-                XRcorr = local2globalPos(corrENU, XR);
+                XRcorr = local2globalPos(corrENU', XR')';
                 corrXYZ = XRcorr - XR;
-                for s = 1 : size(XS,1)
-                    LOS  = XR - XS(s,:)';
-                    LOSu = LOS / norm(LOS);
-                    poletidecorr(s,1) = -dot(corrXYZ,LOSu);
+                for i  = 1 : length(sat)
+                    s = sat(i);
+                    sat_idx = this.sat.avail_index(:,s);
+                    az = this.getAz(s) / 180 *pi;
+                    el = this.getEl(s) / 180 * pi;
+                    LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
+                    % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+                    pole_tide_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
                 end
             end
             
