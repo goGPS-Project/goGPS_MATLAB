@@ -124,6 +124,54 @@ classdef Receiver < handle
     % ==================================================================================================================================================
     
     methods
+        function toString(this)
+            % Display on screen information about the receiver
+            % SYNTAX: this.toString();
+            
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMarkedMessage(sprintf('Receiver %s', this.name));
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
+            this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
+            this.log.newLine();            
+            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', this.n_sat));
+            this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));            
+            this.log.newLine();
+            
+            xyz0 = this.getAPrioriPos();
+            [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+            static_dynamic = {'Dynamic', 'Static'};
+            this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
+            fprintf(' ----------------------------------------------------------\n')            
+            this.log.addMessage(' Receiver a-priori position:');
+            this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
+            
+            if ~isempty(this.xyz)
+                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                xyz_m = median(this.xyz, 'omitnan');
+                enu_m = median(enu, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Receiver median position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+
+                                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                xyz_m = median(this.xyz, 'omitnan');
+                enu_m = median(enu, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Correction of the a-priori position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+            end
+            fprintf(' ----------------------------------------------------------\n')
+
+        end
+        
         function this = Receiver(cc)
             % SYNTAX  this = Receiver(<cc>)
             this.initObs();
