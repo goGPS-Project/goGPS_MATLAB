@@ -173,7 +173,7 @@ classdef Core_Sky < handle
             
             % load dcb
             this.log.addMarkedMessage('Importing Differential code biases');
-            this.importCODEDCB();
+            this.importSinexDCB();
         end
         
         function clearOrbit(this, gps_date)
@@ -896,14 +896,20 @@ classdef Core_Sky < handle
             this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
         end
         
-        function importSinexDCB(this, filename)
+        function importSinexDCB(this)
             %DESCRIPTION: import dcb in sinex format
             % IMPORTANT WARNING: considering only daily dcb, some
             % assumpotion on the structure of the file are maded, based on
             % CAS MGEX DCB files
                 
                 % open SINEX dcb file
-                fid = fopen(filename,'r');
+                filename = this.state.getDcbFile();
+                filename = filename{1};
+                if isempty(filename)
+                    this.log.addWarning('No dcb file found');
+                    return
+                end
+                fid = fopen([this.state.getDcbDir() '/' filename],'r');
                 if fid == -1
                     this.log.addWarning(sprintf('      File %s not found', filename));
                     return
@@ -937,14 +943,14 @@ classdef Core_Sky < handle
                 % find dcb names presents
                 fl = lim(:,1);
                 
-                dcb_name = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
+                filename = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
                 idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
                 dcb = sscanf([txt(idx)]','%f');
                 for s = 1 : this.cc.getNumSat()
                     sys = this.cc.system(s);
                     ant_id = this.cc.getAntennaId(s);
-                    sat_idx = sum(dcb_name(:,1:3) == repmat(ant_id,size(dcb_name,1),1),2) == 3;
-                    sat_dcb_name = dcb_name(sat_idx,4:end);
+                    sat_idx = sum(filename(:,1:3) == repmat(ant_id,size(filename,1),1),2) == 3;
+                    sat_dcb_name = filename(sat_idx,4:end);
                     sat_dcb = dcb(sat_idx);
                     ref_dcb_name = this.cc.getRefDCB(s);
                     %check if there is the reference dcb in the one
