@@ -317,6 +317,8 @@ classdef Receiver < handle
             this.initPositioning();
             % smooth clock estimation 
             this.smoothAndApplyDt();
+            %update azimuth elevation 
+            this.updateAzimuthElevation();
             % apply pcv corrections
             this.applyPCV();
             
@@ -1710,6 +1712,7 @@ classdef Receiver < handle
             end
             
             % update solid earth corrections
+            this.updateAzimuthElevation();
             this.updateSolidEarthCorr();
             % final estimation
             opt.max_it = 1;
@@ -2808,13 +2811,14 @@ classdef Receiver < handle
             
             %displacement along the receiver-satellite line-of-sight
             
-            for s = sat
+            for i  = 1 : length(sat)
+                s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
                 az = this.getAz(s);
                 el = this.getEl(s);
                 LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                solid_earth_corr(sat_idx,s) = sum(conj(r(sat_idx,:)).*LOSu,2);
+                solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
             end
             
         end
