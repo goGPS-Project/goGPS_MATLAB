@@ -427,7 +427,7 @@ classdef IO_Settings < Settings_Interface
                 this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir')), this.prj_home));
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
-                this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
+                this.ref_graph_file  = fnp.getFullDirPath(settings.getData('ref_graph_file'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ref_graph_file')), this.prj_home));
                 this.erp_dir    = fnp.getFullDirPath(settings.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
                 this.erp_name   = fnp.checkPath(settings.getData('erp_name'));
                 this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
@@ -794,7 +794,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Directory of DTM data', str_cell);
             str_cell = Ini_Manager.toIniString('dtm_dir', fnp.getRelDirPath(this.dtm_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('File containing a graph of path constraints', str_cell);
-            str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);
+            str_cell = Ini_Manager.toIniString('ref_graph_file', fnp.getRelDirPath(this.ref_graph_file, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % UI
             str_cell = Ini_Manager.toIniStringSection('INPUT_UI', str_cell);
