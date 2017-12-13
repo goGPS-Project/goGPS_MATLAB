@@ -115,7 +115,12 @@ classdef File_Wizard < handle
                                                                                                                   'broadcast',  'data/campaign/mgex/daily/rinex3/${YYYY}/brdm/brdm${DOY}0.${YY}p'), ...
                                                                                                     'clk_30s', struct('final', 'products/mgex/${WWWW}/gbm${WWWWD}.clk'), ...
                                                                                                     'erp', struct('final', 'products/mgex/${WWWW}/gbm${WWWWD}.erp'), ...
-                                                                                                    'bds', struct('final', 'products/mgex/${WWWW}/gbm${WWWWD}.bias')))))));
+                                                                                                     'bds', struct('final', 'products/mgex/${WWWW}/gbm${WWWWD}.bias'))))))... %);
+                                  ,'ign',struct('ftpd', FTP_Downloader('ftp://igs.ign.fr/','21'), ...
+                                        'par',  struct('mxd', struct('path', '/', ...
+                                                                     'center', struct('cas', struct('name', 'Chinese Academy of Sciences (CAS) ', ...
+                                                                                                    'dcb', struct('final', 'pub/igs/products/mgex/dcb/${YYYY}/CAS0MGXRAP_${YYYY}${DOY}0000_01D_01D_DCB.BSX.gz')))))) );
+                                           
     	date_start; % first epoch of common observations (among all the obs files)
         date_stop;  % last epoch of common observations (among all the obs files)
     end
@@ -180,7 +185,63 @@ classdef File_Wizard < handle
             % OUTPUT:
             %
             % DESCRIPTION:
-            %   Download of .DCB files from the AIUB FTP server.
+            %   Download of CAS .DCB files from the IGN server.
+            dcb_ok = true;
+            % check if file are present
+            fnp = File_Name_Processor();
+            ss = 'mxd';
+            archive = 'ign';
+            provider = 'cas';
+            dcb_type = 'final';
+            dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
+            tmp_date_start = date_start.getCopy;
+            tmp_date_stop = date_stop.getCopy;
+            file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
+            names = {};
+            for i = 1 : length(file_list)
+                [~, name, ext] = fileparts(file_list{i});
+                names{end+1} = name;
+                if exist([this.state.getDcbDir name], 'file') ~= 2
+                    dcb_ok = false;
+                end
+                
+                
+            end
+            this.state.setDcbFile(names);
+            
+            
+            if (~dcb_ok)
+                
+                
+                
+                
+                this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
+                for i = 1 : length(file_list)
+                    [~, name, ext] = fileparts(file_list{i});
+                    if (isunix())
+                        system(['uncompress -f ' this.state.getDcbDir() '/' name ext]);
+                    else
+                        try
+                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                            delete([this.state.getDcbDir() '/' name ext]);
+                            s2 = s2(1:end-2);
+                        catch
+                            fprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']);
+                            compressed = 1;
+                        end
+                    end
+                end
+                
+
+            else
+                this.log.addStatusOk('Dcb files are present ^_^');
+                this.log.newLine();
+            end
+            
+            
+            
+            
+            %{
             gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
             gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
             %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
@@ -303,6 +364,7 @@ classdef File_Wizard < handle
             close(ftp_server);
             
             fprintf('Download complete.\n')
+            %}
         end
         function conjureCRXFiles(this, date_start, date_stop)
             % SYNTAX:

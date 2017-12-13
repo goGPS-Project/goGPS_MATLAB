@@ -173,7 +173,7 @@ classdef Core_Sky < handle
             
             % load dcb
             this.log.addMarkedMessage('Importing Differential code biases');
-            this.importCODEDCB();
+            this.importSinexDCB();
         end
         
         function clearOrbit(this, gps_date)
@@ -896,14 +896,20 @@ classdef Core_Sky < handle
             this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
         end
         
-        function importSinexDCB(this, filename)
+        function importSinexDCB(this)
             %DESCRIPTION: import dcb in sinex format
             % IMPORTANT WARNING: considering only daily dcb, some
             % assumpotion on the structure of the file are maded, based on
             % CAS MGEX DCB files
                 
                 % open SINEX dcb file
-                fid = fopen(filename,'r');
+                filename = this.state.getDcbFile();
+                filename = filename{1};
+                if isempty(filename)
+                    this.log.addWarning('No dcb file found');
+                    return
+                end
+                fid = fopen([this.state.getDcbDir() '/' filename],'r');
                 if fid == -1
                     this.log.addWarning(sprintf('      File %s not found', filename));
                     return
@@ -937,14 +943,14 @@ classdef Core_Sky < handle
                 % find dcb names presents
                 fl = lim(:,1);
                 
-                dcb_name = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
+                filename = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
                 idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
                 dcb = sscanf([txt(idx)]','%f');
                 for s = 1 : this.cc.getNumSat()
                     sys = this.cc.system(s);
                     ant_id = this.cc.getAntennaId(s);
-                    sat_idx = sum(dcb_name(:,1:3) == repmat(ant_id,size(dcb_name,1),1),2) == 3;
-                    sat_dcb_name = dcb_name(sat_idx,4:end);
+                    sat_idx = sum(filename(:,1:3) == repmat(ant_id,size(filename,1),1),2) == 3;
+                    sat_dcb_name = filename(sat_idx,4:end);
                     sat_dcb = dcb(sat_idx);
                     ref_dcb_name = this.cc.getRefDCB(s);
                     %check if there is the reference dcb in the one
@@ -1103,6 +1109,56 @@ classdef Core_Sky < handle
             this.coord_type = 1;
         end
         
+        function pcv_delay = getPCV(this, band, sat, el, az)
+            % DESCRIPTION: get the pcv correction for a given satellite and a given
+            % azimuth and elevations using linear or bilinear interpolation
+            
+             pcv_delay = zeros(size(el));
+          
+            ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
+            ant_idx = sum(ant_names == repmat(this.cc.getAntennaId(sat),size(ant_names,1),1),2) == 3;
+            sat_pcv = this.ant_pcv(ant_idx);
+            
+            freq = find(this.cc.getSys(this.cc.system(sat)).CODE_RIN3_2BAND == num2str(band));
+            freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
+            
+            if isempty(freq)
+                this.log.addWarning(sprintf('No PCV model for %s frequency',[this.cc.system(sat) band]),100);
+                return
+            end
+            %tranform el in zen
+            zen = 90 - el;
+            % get el idx
+            zen_pcv = sat_pcv.tablePCV_zen;
+            
+            min_zen = zen_pcv(1);
+            max_zen = zen_pcv(end);
+            d_zen = (max_zen - min_zen)/length(zen_pcv);
+            zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
+            d_f_r_el = min(max(zen_idx*d_zen - zen, 0), 1) / d_zen;
+            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) %no azimuth change
+                pcv_val = sat_pcv.tableNOAZI(:,:,freq); %etract the right frequency
+                
+                pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
+            else
+               pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
+               
+               %find azimuth indexes
+               az_pcv = sat_pcv.tablePCV_azi;
+                min_az = az_pcv(1);
+                max_az = az_pcv(end);
+                d_az = (max_az - min_az)/length(az_pcv);
+                az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
+                d_f_r_az = min(max(az - az_idx*d_az, 0), 1)/d_az; 
+                
+                %interpolate along zenital angle
+                pcv_delay_lf =  d_f_r_el .* pcv_val(zen_idx,az_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx)';
+                pcv_delay1_rg = d_f_r_el .* pcv_val(zen_idx,az_idx +1 )' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx+1)';
+                %interpolate alogn azimtuh
+                pcv_delay = d_f_r_az .* pcv_delay_lf' + (1 - d_f_r_az) .* pcv_delay1_rg';
+            end
+        end
+        
         function coord = getAPC(this)
             if this.coord_type == 1
                 coord = this.coord; %already antennna phase center
@@ -1114,6 +1170,7 @@ classdef Core_Sky < handle
             coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
+            
         end
         
         function [dt_S] = clockInterpolate(this,time, sat)

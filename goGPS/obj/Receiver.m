@@ -83,7 +83,7 @@ classdef Receiver < handle
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
-        pcv            % phase center corrections for the receiver
+        pcv = []       % phase center corrections for the receiver
         
         %obs_validity   % validity of the row (does it contains usable values?)
         
@@ -92,8 +92,16 @@ classdef Receiver < handle
         
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         
+        ocean_load_disp = [];%ocean loading displacemnet for the station
+        
         group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
         dts_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for the clock of the satellite(0: not corrected , 1: corrected)
+        sh_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for shapiro delay(0: not corrected , 1: corrected)
+        pcv_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for pcv variations(0: not corrected , 1: corrected)
+        ol_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for ocean loading(0: not corrected , 1: corrected)
+        pt_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for pole tides(0: not corrected , 1: corrected)
+        pw_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for phase wind up(0: not corrected , 1: corrected)
+        et_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for solid earth tide(0: not corrected , 1: corrected)
         
         sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
@@ -183,6 +191,7 @@ classdef Receiver < handle
             %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
+        
         
         function loadRinex(this, file_name)
             % SYNTAX:
@@ -309,7 +318,13 @@ classdef Receiver < handle
             this.static = this.state.kf_mode == 0;
             % code only solution
             this.initPositioning();
-            %this.smoothAndApplyDt();
+            % smooth clock estimation 
+            this.smoothAndApplyDt();
+            %update azimuth elevation 
+            this.updateAzimuthElevation();
+            % apply pcv corrections
+            this.applyPCV();
+            
            
         end
         
@@ -893,6 +908,12 @@ classdef Receiver < handle
             % get the number of epochs stored in the object
             % SYNTAX: n_sat = this.getNumSat()
             n_sat = numel(unique(this.go_id));
+        end
+        
+        function s_name = getShortName(this)
+            %DESCRIPTION: return the fisrt 4 character of the filename
+            %corresponfing to the receiver short name
+            s_name = this.file.file_name_list{1}(1:4);
         end
         
         function is_static = isStatic(this)
@@ -1700,6 +1721,7 @@ classdef Receiver < handle
             end
             
             % update solid earth corrections
+            this.updateAzimuthElevation();
             this.updateSolidEarthCorr();
             % final estimation
             opt.max_it = 1;
@@ -2066,6 +2088,7 @@ classdef Receiver < handle
             
             %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
             %remove cut off
+            this.updateAzimuthElevation();
             cut_off = 5;
             for a = 1:1
                 [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
@@ -2270,9 +2293,9 @@ classdef Receiver < handle
                 this.updateAvailIndex(idx_obs, sat);
                 XS = this.getXSTxRot(sat);
                 if size(this.xyz,1) == 1
-                    [~ , el] = this.getAzimuthElevationXS(XS);
+                    [~ , el] = this.computeAzimuthElevationXS(XS);
                 else
-                    [~ , el] = this.getAzimuthElevationXS(XS,this.xyz(idx_obs,:));
+                    [~ , el] = this.computeAzimuthElevationXS(XS,this.xyz(idx_obs,:));
                 end
                 
                 idx_obs_f = find(idx_obs);
@@ -2463,7 +2486,7 @@ classdef Receiver < handle
                 [XS_tx_r]  = this.earthRotationCorrection(XS_tx, sat);
             else
                 n_sat = this.cc.getNumSat();
-                XS_tx_r = zeros(this.time.length,n_sat,3);
+                XS_tx_r = zeros(this.time.length, n_sat, 3);
                 for i = 1 : n_sat
                     [XS_tx] = this.getXSTx(i);
                     [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
@@ -2624,12 +2647,12 @@ classdef Receiver < handle
                     %%% compute az el
                     if size(this.xyz,1) > 1 % is dynamic
                         XR = this.xyz(idx,:);
-                        [az, el] = this.getAzimuthElevationXS(XS, XR);
+                        [az, el] = this.computeAzimuthElevationXS(XS, XR);
                         h = h_full(idx);
                         lat = lat_full(idx);
                         lon = lon_full(idx);
                     else  % is static
-                        [az, el] = this.getAzimuthElevationXS(XS);
+                        [az, el] = this.computeAzimuthElevationXS(XS);
                         h = h_full;
                         lat = lat_full;
                         lon = lon_full;
@@ -2678,9 +2701,9 @@ classdef Receiver < handle
                     end
                     %%% compute az el
                     if size(this.xyz,1)>1
-                        [az, el] = this.getAzimuthElevationXS(this.xyz(idx,:) ,XS);
+                        [az, el] = this.computeAzimuthElevationXS(this.xyz(idx,:) ,XS);
                     else
-                        [az, el] = this.getAzimuthElevationXS(XS);
+                        [az, el] = this.computeAzimuthElevationXS(XS);
                     end
                     
                     
@@ -2717,6 +2740,7 @@ classdef Receiver < handle
                 this.sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
             end
         end
+        
         function solid_earth_corr = computeSolidTideCorr(this, sat)
             
             % SYNTAX:
@@ -2730,89 +2754,159 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Computation of the solid Earth tide displacement terms.
             if nargin < 2
-                solid_earth_corr = zeros(size(this.sat.avail_index));
-                for s = 1 : size(this.sat.avail_index,2)
-                    solid_earth_corr(:,s) = this.updateSolidTideCorr(s);
+                sat  = 1 : this.cc.getNumSat();
+            end
+            solid_earth_corr = zeros(this.time.length, length(sat));
+            XR = this.getXR();
+
+                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
+            %north (b) and radial (c) local unit vectors
+            b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
+            c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
+            
+            %interpolate sun moon and satellites
+            time = this.time.getCopy;
+            [X_sun, X_moon]  = this.sat.cs.sunMoonInterpolate(time);
+            XS               = this.sat.cs.coordInterpolate(time, sat);
+            %receiver geocentric position
+            
+            
+            XR_u = rowNormalize(XR);
+            
+            %sun geocentric position
+            X_sun_n = repmat(sqrt(sum(X_sun.^2,2)),1,3);
+            X_sun_u = X_sun ./ X_sun_n;
+            
+            %moon geocentric position
+            X_moon_n = repmat(sqrt(sum(X_moon.^2,2)),1,3);
+            X_moon_u = X_moon ./ X_moon_n;
+            
+            %latitude dependence
+            p = (3*sin(phiC)^2-1)/2;
+            
+            %gravitational parameters
+            GE = goGNSS.GM_GAL; %Earth
+            GS = GE*332946.0; %Sun
+            GM = GE*0.01230002; %Moon
+            
+            %Earth equatorial radius
+            R = 6378136.6;
+            
+            %nominal degree 2 Love number
+            H2 = 0.6078 - 0.0006*p;
+            %nominal degree 2 Shida number
+            L2 = 0.0847 + 0.0002*p;
+            
+            %solid Earth tide displacement (degree 2)
+            Vsun  = repmat(sum(conj(X_sun_u) .* XR_u, 2),1,3);
+            Vmoon = repmat(sum(conj(X_moon_u) .* XR_u, 2),1,3);
+            r_sun2  = (GS*R^4)./(GE*X_sun_n.^3) .*(H2.*XR_u.*(1.5*Vsun.^2  - 0.5)+ 3*L2*Vsun .*(X_sun_u  - Vsun .*XR_u));
+            r_moon2 = (GM*R^4)./(GE*X_moon_n.^3).*(H2.*XR_u.*(1.5*Vmoon.^2 - 0.5) + 3*L2*Vmoon.*(X_moon_u - Vmoon.*XR_u));
+            r = r_sun2 + r_moon2;
+            
+            %nominal degree 3 Love number
+            H3 = 0.292;
+            %nominal degree 3 Shida number
+            L3 = 0.015;
+            
+            %solid Earth tide displacement (degree 3)
+            r_sun3  = (GS.*R^5)./(GE.*X_sun_n.^4) .*(H3*XR_u.*(2.5.*Vsun.^3  - 1.5.*Vsun)  +   L3*(7.5*Vsun.^2  - 1.5).*(X_sun_u  - Vsun .*XR_u));
+            r_moon3 = (GM.*R^5)./(GE.*X_moon_n.^4).*(H3*XR_u.*(2.5.*Vmoon.^3 - 1.5.*Vmoon) +   L3*(7.5*Vmoon.^2 - 1.5).*(X_moon_u - Vmoon.*XR_u));
+            r = r + r_sun3 + r_moon3;
+            
+            %from "conventional tide free" to "mean tide"
+            radial = (-0.1206 + 0.0001*p)*p;
+            north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
+            r = r + repmat([radial*c + north*b]',time.length,1);
+            
+            %displacement along the receiver-satellite line-of-sight
+            
+            for i  = 1 : length(sat)
+                s = sat(i);
+                sat_idx = this.sat.avail_index(:,s);
+                az = this.getAz(s);
+                el = this.getEl(s);
+                LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
+                % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+                solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
+            end
+            
+        end
+        function solidEarthTide(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            et_corr = this.computeSolidTideCorr();
+            
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
+                    end
                 end
-            else
-                XR = this.xyz;
-                if (nargin < 6)
-                    [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
-                end
-                %north (b) and radial (c) local unit vectors
-                b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
-                c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
-                
-                %interpolate sun moon and satellites
-                idx_sat = this.sat.avail_index(:,sat) > 0;
-                time = this.time.getSubSet(idx_sat);
-                [X_sun, X_moon]  = this.sat.cs.sunMoonInterpolate(time);
-                XS               = this.sat.cs.coordInterpolate(time, sat);
-                %receiver geocentric position
-                
-                if size(XR,1) == 1
-                    XR   = repmat(XR,time.length, 1);
-                else
-                    XR = XR(idx_sat,:);
-                end
-                XR_u = rowNormalize(XR);
-                
-                %sun geocentric position
-                X_sun_n = repmat(sqrt(sum(X_sun.^2,2)),1,3);
-                X_sun_u = X_sun ./ X_sun_n;
-                
-                %moon geocentric position
-                X_moon_n = repmat(sqrt(sum(X_moon.^2,2)),1,3);
-                X_moon_u = X_moon ./ X_moon_n;
-                
-                %latitude dependence
-                p = (3*sin(phiC)^2-1)/2;
-                
-                %gravitational parameters
-                GE = goGNSS.GM_GAL; %Earth
-                GS = GE*332946.0; %Sun
-                GM = GE*0.01230002; %Moon
-                
-                %Earth equatorial radius
-                R = 6378136.6;
-                
-                %nominal degree 2 Love number
-                H2 = 0.6078 - 0.0006*p;
-                %nominal degree 2 Shida number
-                L2 = 0.0847 + 0.0002*p;
-                
-                %solid Earth tide displacement (degree 2)
-                Vsun  = repmat(sum(conj(X_sun_u) .* XR_u, 2),1,3);
-                Vmoon = repmat(sum(conj(X_moon_u) .* XR_u, 2),1,3);
-                r_sun2  = (GS*R^4)./(GE*X_sun_n.^3) .*(H2.*XR_u.*(1.5*Vsun.^2  - 0.5)+ 3*L2*Vsun .*(X_sun_u  - Vsun .*XR_u));
-                r_moon2 = (GM*R^4)./(GE*X_moon_n.^3).*(H2.*XR_u.*(1.5*Vmoon.^2 - 0.5) + 3*L2*Vmoon.*(X_moon_u - Vmoon.*XR_u));
-                r = r_sun2 + r_moon2;
-                
-                %nominal degree 3 Love number
-                H3 = 0.292;
-                %nominal degree 3 Shida number
-                L3 = 0.015;
-                
-                %solid Earth tide displacement (degree 3)
-                r_sun3  = (GS.*R^5)./(GE.*X_sun_n.^4) .*(H3*XR_u.*(2.5.*Vsun.^3  - 1.5.*Vsun)  +   L3*(7.5*Vsun.^2  - 1.5).*(X_sun_u  - Vsun .*XR_u));
-                r_moon3 = (GM.*R^5)./(GE.*X_moon_n.^4).*(H3*XR_u.*(2.5.*Vmoon.^3 - 1.5.*Vmoon) +   L3*(7.5*Vmoon.^2 - 1.5).*(X_moon_u - Vmoon.*XR_u));
-                r = r + r_sun3 + r_moon3;
-                
-                %from "conventional tide free" to "mean tide"
-                radial = (-0.1206 + 0.0001*p)*p;
-                north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
-                r = r + repmat([radial*c + north*b]',time.length,1);
-                
-                %displacement along the receiver-satellite line-of-sight
-                
-                LOS  = XR - XS;
-                LOSu = rowNormalize(LOS);
-                solid_earth_corr = zeros(size(idx_sat));
-                solid_earth_corr(idx_sat) = sum(conj(r).*LOSu,2);
-                solid_earth_corr(isnan(solid_earth_corr)) = 0; % if XR is 0 the correction goes to nan
             end
         end
-        function [ocean_load_dcorr] = computeOceanLoading()
+        
+        function applySolidEarthTide(this)
+            if this.et_delay_status == 0
+                this.solidEarthTide(1);
+                this.et_delay_status = 1; %applied
+            end
+        end
+        
+        function removeSolidEarthTide(this)
+            if this.et_delay_status == 1
+                this.solidEarthTide(-1);
+                this.et_delay_status = 0; %not applied
+            end
+        end
+        
+        function [XR] = getXR(this)
+            %DESCRPTION: get xyz or the same repeated by the number of
+            %epoch
+            if this.isStatic
+                XR = repmat(this.xyz,this.time.length,1);
+            else
+                XR = this.xyz;
+            end
+        end
+        
+         function oceanLoading(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            ol_corr = this.computeOceanLoading();
+            if isempty(ol_corr)
+                this.log.addWarning('No ocean loading displacements matrix present for the receiver')
+                return
+            end
+                
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx);
+                    end
+                end
+            end
+        end
+        
+        function applyOceanLoading(this)
+            if this.ol_delay_status == 0
+                this.oceanLoading(1);
+                this.ol_delay_status = 1; %applied
+            end
+        end
+        
+        function removeOceanLoading(this)
+            if this.ol_delay_status == 1
+                this.oceanLoading(-1);
+                this.ol_delay_status = 0; %not applied
+            end
+        end
+        
+        function [ocean_load_corr] = computeOceanLoading(this, sat) % WARNING: to be tested
             
             % SYNTAX:
             %   [oceanloadcorr] = ocean_loading_correction(time, XR, XS);
@@ -2823,15 +2917,22 @@ classdef Receiver < handle
             %   oceanloadcorr = ocean loading correction terms (along the satellite-receiver line-of-sight)
             %
             % DESCRIPTION:
-            %   Computation of the ocean loading displacement terms.
+            %   Computation of the ocean loading displacement terms.ù
+            % NOTES: 
+            %  Inefficent to compute them separate by staellites always call
+            %  as a block
             
-            %ocean loading displacements matrix, station-dependent (see http://holt.oso.chalmers.se/loading/)
-            global ol_disp zero_time
+            if nargin < 2
+                sat = 1 : this.cc.getNumSat();
+            end
             
-            ocean_load_dcorr = zeros(size(XS,1),1);
-            if (isempty(ol_disp))
+            
+            ocean_load_corr = zeros(this.time.length,length(sat));
+            if (isempty(this.ocean_load_disp)) || this.ocean_load_disp.available == 0
                 return
             end
+            
+            ol_disp = this.ocean_load_disp;
             
             %terms depending on the longitude of the lunar node (see Kouba and Heroux, 2001)
             fj = 1; %(at 1-3 mm precision)
@@ -2852,12 +2953,12 @@ classdef Receiver < handle
             
             refdate = datenum([1975 1 1 0 0 0]);
             
-            [week, sow] = time2weektow(zero_time + time);
+            [week, sow] = time2weektow(this.time.getGpsTime);
             dateUTC = datevec(gps2utc(datenum(gps2date(week, sow))));
             
             %separate the fractional part of day in seconds
-            fday = dateUTC(4)*3600 + dateUTC(5)*60 + dateUTC(6);
-            dateUTC(4:end) = 0;
+            fday = dateUTC(:,4)*3600 + dateUTC(:,5)*60 + dateUTC(:,6);
+            dateUTC(:,4:end) = 0;
             
             %number of days since reference date (1 Jan 1975)
             days = (datenum(dateUTC) - refdate);
@@ -2865,81 +2966,133 @@ classdef Receiver < handle
             capt = (27392.500528 + 1.000000035*days)/36525;
             
             %mean longitude of the Sun at the beginning of day
-            H0 = (279.69668 + (36000.768930485 + 3.03e-4*capt)*capt)*pi/180;
+            H0 = (279.69668 + (36000.768930485 + 3.03e-4.*capt).*capt).*pi/180;
             
             %mean longitude of the Moon at the beginning of day
-            S0 = (((1.9e-6*capt - 0.001133)*capt + 481267.88314137)*capt + 270.434358)*pi/180;
+            S0 = (((1.9e-6*capt - 0.001133).*capt + 481267.88314137).*capt + 270.434358).*pi/180;
             
             %mean longitude of the lunar perigee at the beginning of day
-            P0 = (((-1.2e-5*capt - 0.010325)*capt + 4069.0340329577)*capt + 334.329653)*pi/180;
+            P0 = (((-1.2e-5.*capt - 0.010325).*capt + 4069.0340329577).*capt + 334.329653)*pi/180;
             
-            corr = zeros(3,1);
+            corr = zeros(this.time.length,3);
+            corrENU = zeros(this.time.length,3);
             for k = 1 : 11
                 angle = tidal_waves(k,1)*fday + tidal_waves(k,2)*H0 + tidal_waves(k,3)*S0 + tidal_waves(k,4)*P0 + tidal_waves(k,5)*2*pi;
-                corr  = corr + fj*ol_disp(1).matrix(1:3,k).*cos(angle + uj - ol_disp(1).matrix(4:6,k)*pi/180);
+                corr  = corr + repmat(fj*ol_disp.matrix(1:3,k)',this.time.length,1).*cos(repmat(angle,1,3) + uj - repmat(ol_disp.matrix(4:6,k)'*pi/180,this.time.length,1));
             end
-            corrENU(1,1) = -corr(2,1); %east
-            corrENU(2,1) = -corr(3,1); %north
-            corrENU(3,1) =  corr(1,1); %up
+            corrENU(:,1) = -corr(:,1); %east
+            corrENU(:,2) = -corr(:,2); %north
+            corrENU(:,3) =  corr(:,3); %up
             
+            % get XR
+            XR = this.getXR();
             %displacement along the receiver-satellite line-of-sight
-            XRcorr = local2globalPos(corrENU, XR);
+            XRcorr = local2globalPos(corrENU', XR')';
             corrXYZ = XRcorr - XR;
-            for s = 1 : size(XS,1)
-                LOS  = XR - XS(s,:)';
-                LOSu = LOS / norm(LOS);
+
+            for i  = 1 : length(sat)
+                s = sat(i);
+                sat_idx = this.sat.avail_index(:,s);
+                az = this.getAz(s) / 180 *pi;
+                el = this.getEl(s) / 180 * pi;
+                LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                ocean_load_dcorr(s,1) = sum(conj(corrXYZ).*LOSu);
+                ocean_load_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
             end
         end
-        function [poletidecorr] = getPoleTideCorr(this, time, XR, XS, phiC, lam)
+        
+        function importOceanLoading(this)
+            %DESCRIPTION: load ocean loading displcement matrix from
+            %ocean_loading.blq if satation is present
+            this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.getShortName()});
+        end
+        
+        function poleTide(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            pt_corr = this.computePoleTideCorr();
+            if isempty(pt_corr)
+                this.log.addWarning('No ocean loading displacements matrix present for the receiver')
+                return
+            end
+                
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                    end
+                end
+            end
+        end
+        
+        function applyPoleTide(this)
+            if this.pt_delay_status == 0
+                this.poleTide(1);
+                this.pt_delay_status = 1; %applied
+            end
+        end
+        
+        function removePoleTide(this)
+            if this.pt_delay_status == 1
+                this.poleTide(-1);
+                this.pt_delay_status = 0; %not applied
+            end
+        end
+        
+        
+        function [pole_tide_corr] = computePoleTideCorr(this, sat)
             
             % SYNTAX:
             %   [poletidecorr] = pole_tide_correction(time, XR, XS, SP3, phiC, lam);
             %
             % INPUT:
-            %   time = GPS time
-            %   XR   = receiver position  (X,Y,Z)
-            %   XS   = satellite position (X,Y,Z)
-            %   phiC = receiver geocentric latitude (rad)
-            %   lam  = receiver longitude (rad)
             %
             % OUTPUT:
             %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
             %
             % DESCRIPTION:
             %   Computation of the pole tide displacement terms.
-            if (nargin < 5)
-                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+            
+            if nargin < 2
+                sat = 1 : this.cc.getNumSat();
             end
             
-            poletidecorr = zeros(size(XS,1),1);
+            XR = this.getXR;
+            [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
             
+            pole_tide_corr = zeros(this.time.length,length(sat));
+            erp  = this.sat.cs.erp;
             %interpolate the pole displacements
-            if (~isempty(this.ERP))
-                if (length(this.ERP.t) > 1)
-                    m1 = interp1(this.ERP.t, this.ERP.m1, time, 'linear', 'extrap');
-                    m2 = interp1(this.ERP.t, this.ERP.m2, time, 'linear', 'extrap');
+            if (~isempty(erp))
+                if (length(erp.t) > 1)
+                    m1 = interp1(erp.t, erp.m1, this.time.getGpsTime, 'linear', 'extrap');
+                    m2 = interp1(erp.t, erp.m2, this.time.getGpsTime, 'linear', 'extrap');
                 else
-                    m1 = this.ERP.m1;
-                    m2 = this.ERP.m2;
+                    m1 = repmat(erp.m1,this.time.length,1);
+                    m2 = repmat(erp.m2,this.time.length,1);
                 end
                 
-                deltaR   = -33*sin(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
-                deltaLam =  9* cos(  phiC)*(m1*sin(lam) - m2*cos(lam))*1e-3;
-                deltaPhi = -9* cos(2*phiC)*(m1*cos(lam) + m2*sin(lam))*1e-3;
+                deltaR   = -33*sin(2*phiC).*(m1.*cos(lam) + m2.*sin(lam))*1e-3;
+                deltaLam =  9* cos(  phiC).*(m1.*sin(lam) - m2.*cos(lam))*1e-3;
+                deltaPhi = -9* cos(2*phiC).*(m1.*cos(lam) + m2.*sin(lam))*1e-3;
                 
-                corrENU(1,1) = deltaLam; %east
-                corrENU(2,1) = deltaPhi; %north
-                corrENU(3,1) = deltaR;   %up
+                corrENU(:,1) = deltaLam; %east
+                corrENU(:,2) = deltaPhi; %north
+                corrENU(:,3) = deltaR;   %up
                 
                 %displacement along the receiver-satellite line-of-sight
-                XRcorr = local2globalPos(corrENU, XR);
+                XRcorr = local2globalPos(corrENU', XR')';
                 corrXYZ = XRcorr - XR;
-                for s = 1 : size(XS,1)
-                    LOS  = XR - XS(s,:)';
-                    LOSu = LOS / norm(LOS);
-                    poletidecorr(s,1) = -dot(corrXYZ,LOSu);
+                for i  = 1 : length(sat)
+                    s = sat(i);
+                    sat_idx = this.sat.avail_index(:,s);
+                    az = this.getAz(s) / 180 *pi;
+                    el = this.getEl(s) / 180 * pi;
+                    LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
+                    % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+                    pole_tide_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
                 end
             end
             
@@ -2961,18 +3114,25 @@ classdef Receiver < handle
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
                 av_idx = this.sat.avail_index(:, sat);
-                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = getAzimuthElevation(this, sat);
+                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = computeAzimuthElevation(this, sat);
             end
         end
         
-        function [az, el] = getAzimuthElevation(this, sat)
+        function [az, el] = computeAzimuthElevation(this, sat)
             XS = this.getXSTxRot(sat);
-            [az, el] = this.getAzimuthElevationXS(XS);
+            [az, el] = this.computeAzimuthElevationXS(XS);
         end
-        
-        function [az, el] = getAzimuthElevationXS(this, XS, XR)
+        function [az] = getAz(this, sat)
+            %DESCRIPTION: get valid azimuth for given satellite
+            az = this.sat.az(this.sat.avail_index(:,sat),sat);
+        end
+        function [el] = getEl(this, sat)
+            %DESCRIPTION: get valid elevation for given satellite
+            el = this.sat.el(this.sat.avail_index(:,sat),sat);
+        end
+        function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
-            %   [az, el] = this.getAzimuthElevationXS(XS)
+            %   [az, el] = this.computeAzimuthElevationXS(XS)
             %
             % INPUT:
             % XS = positions of satellite [n_epoch x 1]
@@ -2987,7 +3147,7 @@ classdef Receiver < handle
             n_epoch = size(XS,1);
             if nargin > 2
                 if size(XR,1) ~= n_epoch
-                    this.log.addError('[ getAzimuthElevationXS ] Number of satellite positions differ from number of receiver positions');
+                    this.log.addError('[ computeAzimuthElevationXS ] Number of satellite positions differ from number of receiver positions');
                     return
                 end
             else
@@ -3018,7 +3178,7 @@ classdef Receiver < handle
             el(~zero_idx) = atan2d(u(~zero_idx), hor_dist(~zero_idx));
         end
         
-        function [dist, corr] = getRelDistance(this, XS, XR)
+        function [sh_delay] = computeShapirodelay(this, sat)
             % SYNTAX:
             %   [corr, distSR_corr] = this.getRelDistance(XS, XR);
             %
@@ -3034,14 +3194,11 @@ classdef Receiver < handle
             %   Compute distance from satellite ot reciever considering
             %   (Shapiro delay) - copied from
             %   relativistic_range_error_correction.m
-            n_epoch = size(XS,1);
-            if nargin > 2
-                if size(XR,1) ~= n_epoch
-                    this.log.addError('[ getRelDistance ] Number of satellite positions differ from number of receiver positions');
-                    return
-                end
+            XS = this.getXSTxRot(sat);
+            if this.isStatic()
+                XR = repmat(this.xyz,size(XS,1),1);
             else
-                XR = repmat(this.xyz(1,:),n_epoch,1);
+                XR = this.xyz(this.sat.avail_index(:,sat),:);
             end
             
             distR = sqrt(sum(XR.^2 ,2));
@@ -3053,13 +3210,117 @@ classdef Receiver < handle
             GM = 3.986005e14;
             
             
-            corr = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+            sh_delay = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
             
-            dist = distSR + corr;
             
         end
+        function shDelay(this,sgn)
+            % DESCRIPTION: add or subtract shapiro delay from observations
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                    for f = freqs
+                        obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                        sh_delays = this.computeShapirodelay(s);
+                        for o = find(obs_idx_f)'
+                            pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)';
+                        end
+                    end
+                end
+            end
+        end
+        
+        function applyShDelay(this)
+            if this.sh_delay_status == 0
+                this.shDelay(1);
+                this.sh_delay_status = 1; %applied
+            end
+        end
+        
+        function removeShDelay(this)
+            if this.sh_delay_status == 1
+                this.shDelay(-1);
+                this.sh_delay_status = 0; %not applied
+            end
+        end
+        function PCV(this,sgn)
+                % DESCRIPTION: correct measurement for PCV both of receiver
+                % antenna and satellite antenna
+                if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
+                    this.setAllAvailIndex();
+                    % getting sat - receiver vector for each epoch
+                    XR_sat = - this.getXSLoc();
+                   
+                    if ~isempty(this.pcv)
+                        %TODO correct for receiver pcv
+                        XS = - XR_sat;
+                    end
+                    if ~isempty(this.sat.cs.ant_pcv)
+                         
+                        % getting satellite reference frame for each epoch
+                        [i, j, k] = this.sat.cs.getSatFixFrame(this.time);
+                         sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+                         sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+                        sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
+                        
+                        % transgform into satellite reference system
+                        XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
+                        
+                        % getting ax and el
+                        distances = sqrt(sum(XR_sat.^2,3));
+                        XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
+                        
+                        az = atan2(XR_sat_norm(:, :, 1),XR_sat_norm(:, :, 2));
+                        az(az<0) = az(az<0) + 2*pi;
+                        el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
+                        
+                        % getting pscv and applying it to the obs
+                        for s = 1 : size(el,2)
+                            obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                            obs_idx = obs_idx & this.go_id == s;
+                            if sum(obs_idx) > 0
+                                freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                                for f = freqs'
+                                    obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                    az_idx = ~isnan(az(:,s));
+                                    az_tmp = az(az_idx,s) / pi * 180;
+                                    el_idx = ~isnan(el(:,s));
+                                    el_tmp = el(el_idx,s) / pi * 180;
+                                    pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
+                                    for o = find(obs_idx_f)'
+                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                    end
+                                end
+                            end
+                        end
+                        
+                    end
+                end
+        end
+        
+        function applyPCV(this)
+            if this.pcv_delay_status == 0
+                this.PCV(1);
+                this.pcv_delay_status = 1; %applied
+            end
+        end
+        
+        function removePCV(this)
+            if this.pcv_delay_status == 1
+                this.PCV(-1);
+                this.pcv_delay_status = 0; %applied
+            end
+        end
+        
     end
     
+   
     % Plots and visualization of the data stored within the object;   
     methods (Access = public)
         
