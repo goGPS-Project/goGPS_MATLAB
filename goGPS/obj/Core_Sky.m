@@ -1103,13 +1103,23 @@ classdef Core_Sky < handle
             this.coord_type = 1;
         end
         
-        function pcv_delay = getPCV(this, freq, sat, el, az)
+        function pcv_delay = getPCV(this, band, sat, el, az)
             % DESCRIPTION: get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
+             pcv_delay = zeros(size(el));
+          
             ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
             ant_idx = sum(ant_names == repmat(this.cc.getAntennaId(sat),size(ant_names,1),1),2) == 3;
             sat_pcv = this.ant_pcv(ant_idx);
+            
+            freq = find(this.cc.getSys(this.cc.system(sat)).CODE_RIN3_2BAND == num2str(band));
+            freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
+            
+            if isempty(freq)
+                this.log.addWarning(sprintf('No PCV model for %s frequency',[this.cc.system(sat) band]),100);
+                return
+            end
             %tranform el in zen
             zen = 90 - el;
             % get el idx

@@ -3235,7 +3235,7 @@ classdef Receiver < handle
                             obs_idx = obs_idx & this.go_id == s;
                             if sum(obs_idx) > 0
                                 freqs = unique(str2num(this.obs_code(obs_idx,2)));
-                                for f = freqs
+                                for f = freqs'
                                     obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                                     az_idx = ~isnan(az(:,s));
                                     az_tmp = az(az_idx,s) / pi * 180;
