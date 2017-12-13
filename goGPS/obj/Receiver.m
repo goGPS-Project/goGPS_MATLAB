@@ -92,6 +92,8 @@ classdef Receiver < handle
         
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         
+        ocean_load_disp = [];%ocean loading displacemnet for the station
+        
         group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
         dts_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for the clock of the satellite(0: not corrected , 1: corrected)
         sh_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for shapiro delay(0: not corrected , 1: corrected)
@@ -189,6 +191,7 @@ classdef Receiver < handle
             %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
+        
         
         function loadRinex(this, file_name)
             % SYNTAX:
@@ -905,6 +908,12 @@ classdef Receiver < handle
             % get the number of epochs stored in the object
             % SYNTAX: n_sat = this.getNumSat()
             n_sat = numel(unique(this.go_id));
+        end
+        
+        function s_name = getShortName(this)
+            %DESCRIPTION: return the fisrt 4 character of the filename
+            %corresponfing to the receiver short name
+            s_name = this.file.file_name_list{1}(1:4);
         end
         
         function is_static = isStatic(this)
@@ -2825,18 +2834,14 @@ classdef Receiver < handle
         function solidEarthTide(this,sgn)
             % DESCRIPTION: add or subtract ocean loading from observations
             et_corr = this.computeSolidTideCorr();
-                
+            
             for s = 1 : this.cc.getNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
-                    freqs = unique(str2num(this.obs_code(obs_idx,2)));
-                    for f = freqs
-                        obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                        for o = find(obs_idx_f)'
-                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
-                        end
+                    for o = find(obs_idx)'
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
                     end
                 end
             end
@@ -2878,14 +2883,9 @@ classdef Receiver < handle
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
-                    freqs = unique(str2num(this.obs_code(obs_idx,2)));
-                    for f = freqs
-                        obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                        ol_corr = this.computeShapirodelay(s);
-                        for o = find(obs_idx_f)'
+                    for o = find(obs_idx)'
                             o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(ol_idx)';
-                        end
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx);
                     end
                 end
             end
@@ -2925,13 +2925,13 @@ classdef Receiver < handle
                 sat = 1 : this.cc.getNumSat();
             end
             
-            %ocean loading displacements matrix, station-dependent (see http://holt.oso.chalmers.se/loading/)
-            global ol_disp zero_time
             
             ocean_load_corr = zeros(this.time.length,length(sat));
-            if (isempty(ol_disp))
+            if (isempty(this.ocean_load_disp)) || this.ocean_load_disp.available == 0
                 return
             end
+            
+            ol_disp = this.ocean_load_disp;
             
             %terms depending on the longitude of the lunar node (see Kouba and Heroux, 2001)
             fj = 1; %(at 1-3 mm precision)
@@ -2952,12 +2952,12 @@ classdef Receiver < handle
             
             refdate = datenum([1975 1 1 0 0 0]);
             
-            [week, sow] = time2weektow(zero_time + this.time.getGpsTime);
+            [week, sow] = time2weektow(this.time.getGpsTime);
             dateUTC = datevec(gps2utc(datenum(gps2date(week, sow))));
             
             %separate the fractional part of day in seconds
-            fday = dateUTC(4)*3600 + dateUTC(5)*60 + dateUTC(6);
-            dateUTC(4:end) = 0;
+            fday = dateUTC(:,4)*3600 + dateUTC(:,5)*60 + dateUTC(:,6);
+            dateUTC(:,4:end) = 0;
             
             %number of days since reference date (1 Jan 1975)
             days = (datenum(dateUTC) - refdate);
@@ -2965,37 +2965,47 @@ classdef Receiver < handle
             capt = (27392.500528 + 1.000000035*days)/36525;
             
             %mean longitude of the Sun at the beginning of day
-            H0 = (279.69668 + (36000.768930485 + 3.03e-4*capt)*capt)*pi/180;
+            H0 = (279.69668 + (36000.768930485 + 3.03e-4.*capt).*capt).*pi/180;
             
             %mean longitude of the Moon at the beginning of day
-            S0 = (((1.9e-6*capt - 0.001133)*capt + 481267.88314137)*capt + 270.434358)*pi/180;
+            S0 = (((1.9e-6*capt - 0.001133).*capt + 481267.88314137).*capt + 270.434358).*pi/180;
             
             %mean longitude of the lunar perigee at the beginning of day
-            P0 = (((-1.2e-5*capt - 0.010325)*capt + 4069.0340329577)*capt + 334.329653)*pi/180;
+            P0 = (((-1.2e-5.*capt - 0.010325).*capt + 4069.0340329577).*capt + 334.329653)*pi/180;
             
-            corr = zeros(3,1);
+            corr = zeros(this.time.length,3);
+            corrENU = zeros(this.time.length,3);
             for k = 1 : 11
                 angle = tidal_waves(k,1)*fday + tidal_waves(k,2)*H0 + tidal_waves(k,3)*S0 + tidal_waves(k,4)*P0 + tidal_waves(k,5)*2*pi;
-                corr  = corr + fj*ol_disp(1).matrix(1:3,k).*cos(angle + uj - ol_disp(1).matrix(4:6,k)*pi/180);
+                corr  = corr + repmat(fj*ol_disp.matrix(1:3,k)',this.time.length,1).*cos(repmat(angle,1,3) + uj - repmat(ol_disp.matrix(4:6,k)'*pi/180,this.time.length,1));
             end
-            corrENU(1,1) = -corr(2,1); %east
-            corrENU(2,1) = -corr(3,1); %north
-            corrENU(3,1) =  corr(1,1); %up
+            corrENU(:,1) = -corr(:,1); %east
+            corrENU(:,2) = -corr(:,2); %north
+            corrENU(:,3) =  corr(:,3); %up
             
             % get XR
             XR = this.getXR();
             %displacement along the receiver-satellite line-of-sight
-            XRcorr = local2globalPos(corrENU, XR);
+            XRcorr = local2globalPos(corrENU', XR')';
             corrXYZ = XRcorr - XR;
-            for s = sat
+
+            for i  = 1 : length(sat)
+                s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
-                az = this.getAz(s);
-                el = this.getEl(s);
-                LOSu = [cos(el)*sin(az) cos(el)*cos(az) sin(el)];
+                az = this.getAz(s) / 180 *pi;
+                el = this.getEl(s) / 180 * pi;
+                LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                ocean_load_corr(sat_idx,s) = sum(conj(corrXYZ(sat_idx,:)).*LOSu);
+                ocean_load_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
             end
         end
+        
+        function importOceanLoading(this)
+            %DESCRIPTION: load ocean loading displcement matrix from
+            %ocean_loading.blq if satation is present
+            this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.getShortName()});
+        end
+        
         function [poletidecorr] = computePoleTideCorr(this, time, XR, XS, phiC, lam)
             
             % SYNTAX:
@@ -3075,11 +3085,11 @@ classdef Receiver < handle
         end
         function [az] = getAz(this, sat)
             %DESCRIPTION: get valid azimuth for given satellite
-            az = this.sat.az(this.sat.avail_index(:,sat));
+            az = this.sat.az(this.sat.avail_index(:,sat),sat);
         end
         function [el] = getEl(this, sat)
             %DESCRIPTION: get valid elevation for given satellite
-            el = this.sat.el(this.sat.avail_index(:,sat));
+            el = this.sat.el(this.sat.avail_index(:,sat),sat);
         end
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
