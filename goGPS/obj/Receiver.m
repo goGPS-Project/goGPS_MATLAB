@@ -2088,6 +2088,7 @@ classdef Receiver < handle
             
             %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
             %remove cut off
+            this.updateAzimuthElevation();
             cut_off = 5;
             for a = 1:1
                 [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
