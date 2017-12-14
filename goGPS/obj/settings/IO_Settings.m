@@ -253,6 +253,7 @@ classdef IO_Settings < Settings_Interface
         crx_dir = IO_Settings.CRX_DIR;
         % Path to DCB folder containing files of Differential Code Biases
         dcb_dir = IO_Settings.DCB_DIR;
+        dcb_name = []; %setted in File_Wizard.ConjureDCB
         % Path to EMS folder containing files of EGNOS Message Server.
         ems_dir = IO_Settings.EMS_DIR;
 
@@ -1040,6 +1041,12 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: erp_path = this.getErpPath()
             erp_file = this.erp_name;
         end
+        
+        function dcb_file = getDcbFile(this)
+            % Get the file name of the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            dcb_file = this.dcb_name;
+        end
 
         function out = getNavEphDir(this)
             % Get the path to the navigational files
@@ -1336,6 +1343,12 @@ classdef IO_Settings < Settings_Interface
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
             this.erp_name = erp_name;
+        end
+        
+        function setDcbFile(this, dcb_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.dcb_name = dcb_name;
         end
 
         function setOutPrefix(this, out_prefix)
