@@ -233,9 +233,10 @@ for f = 1 : nFiles
 
     time(f) = GPS_Time(date(1:k-1,:,f));
     % try to guess observation rate when not read from header
-    if (interval(1,1,f) == 0)
+    % do not trust the RINEX interval
+    %if (interval(1,1,f) == 0)
         interval(1,1,f) = time(f).getRate();
-    end
+    %end
 
     %-------------------------------------------------------------------------------
 
