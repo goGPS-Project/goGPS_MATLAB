@@ -1439,8 +1439,8 @@ classdef Receiver < handle
             % SYNTAX:
             %   this.smoothAndApplyDt()
 
-            lim = getOutliers(this.dt ~= 0);
-            dt = simpleFill1D(zero2nan(this.dt), this.dt == 0, 'spline');
+            lim = getOutliers(this.dt(:,1) ~= 0);
+            dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
             for i = 1 : size(lim, 1)
                 if lim(i,2) - lim(i,1) > 5
                     dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
@@ -1498,7 +1498,7 @@ classdef Receiver < handle
             flag = [];
             for i=1:this.cc.getNumSat()
                 sat_idx = this.getObsIdx('C',this.cc.system(i),this.cc.prn(i));
-                sat_idx = sat_idx(this.active_ids(sat_idx) );
+                sat_idx = sat_idx(this.active_ids(sat_idx));
                 if ~isempty(sat_idx)
                     % get epoch for which iono free is possible
                     sat_obs = this.obs(sat_idx,:);
@@ -1675,7 +1675,7 @@ classdef Receiver < handle
             sys(~sys_idx,:) = [];
             flag(~sys_idx,:) = [];
             
-            
+            this.static = 0;
             if this.isStatic()
                 this.initStaticPositioning(obs, prn, sys, flag)
             else
@@ -3190,6 +3190,70 @@ classdef Receiver < handle
             end
             
         end
+        
+        function [ph_wind_up] = computePhaseWindUp(this, sat)
+            
+            %east (a) and north (b) local unit vectors
+            XR = this.getXR();
+            [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
+            a = [-sin(lam) cos(lam) zeros(size(lam))];
+            b = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)];
+            if nargin < 2
+                sat = 1: this.cc.getNumSat();
+            end
+            ph_wind_up = zeros(this.time.length,length(sat));
+            for s = sat
+                av_idx = this.sat.avail_index(:,s);
+                s_time = this.time.getSubSet(av_idx);
+                s_a = a(av_idx,:);
+                s_b = b(av_idx,:);
+                [i, j, k] = this.sat.cs.getSatFixFrame(s_time,s);
+                
+                %receiver and satellites effective dipole vectors
+                Dr = s_a - k.*repmat(sum(k.*s_a,2),1,3) + cross(k,s_b);
+                Ds = i - k.*repmat(sum(k.*i,2),1,3) - cross(k,j);
+                
+                %phase wind-up computation
+                psi = sum(conj(k) .* cross(Ds, Dr),2);
+                arg = sum(conj(Ds) .* Dr,2) ./ (sqrt(sum(Ds.^2,2)) .* sqrt(sum(Dr.^2,2)));
+                arg(arg < -1) = -1;
+                arg(arg > 1) = 1;
+                dPhi = sign(psi).*acos(arg)./(2*pi);
+                ph_wind_up(av_idx,s) = dPhi;
+            end
+        end
+        
+        
+        function phaseWindUpCorr(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            ph_wind_up = this.computePhaseWindUp();
+                
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx) * this.wl(o);
+                    end
+                end
+            end
+        end
+        
+        function applyPhaseWindUpCorr(this)
+            if this.pw_delay_status == 0
+                this.phaseWindUpCorr(1);
+                this.pw_delay_status = 1; %applied
+            end
+        end
+        
+        function removePhaseWindUpCorr(this)
+            if this.pw_delay_status == 1
+                this.phaseWindUpCorr(-1);
+                this.pw_delay_status = 0; %not applied
+            end
+        end
+        
         
         function updateAzimuthElevation(this, sat)
             %DESCRIPTION: upadte azimute elevation into.sat

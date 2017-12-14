@@ -173,7 +173,7 @@ classdef Core_Sky < handle
             
             % load dcb
             this.log.addMarkedMessage('Importing Differential code biases');
-            this.importSinexDCB();
+            this.importDCB();
         end
         
         function clearOrbit(this, gps_date)
@@ -869,7 +869,16 @@ classdef Core_Sky < handle
             erp.m1 =   erp.Xpole*1e-6 - erp.meanXpole*1e-3;
             erp.m2 = -(erp.Ypole*1e-6 - erp.meanYpole*1e-3);
         end
-        
+        function importDCB(this)
+            dcb_names = this.state.getDcbFile();
+            dcb_name = dcb_names{1};
+            if strfind(dcb_name,'CAS')
+                this.importSinexDCB();
+            else
+                this.importCODEDCB();
+            end
+        end
+            
 
         function importCODEDCB(this)
             [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
@@ -929,7 +938,7 @@ classdef Core_Sky < handle
                     lim(end,:) = [];
                 end
                 % get end of header
-                eoh = strfind(txt,'*BIAS SVN_ PRN STATION__ OBS1 OBS2 BIAS_START____ BIAS_END______ UNIT __ESTIMATED_VALUE____ _STD_DEV___');
+                eoh = strfind(txt,'*BIAS SVN_ PRN ');
                 eoh = find(lim(:,1) > eoh);
                 eoh = eoh(1) - 1;
                 % removing header lines from lim
@@ -975,9 +984,9 @@ classdef Core_Sky < handle
                             %fist freq
                             
                             
-                            dcb_col = find( idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,1:3)]) );
+                            dcb_col =  idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,1:3)]) ;
                             this.group_delays(prn, dcb_col) = iono_free.alpha2 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
-                            dcb_col = find(idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,4:6)]));
+                            dcb_col = idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,4:6)]);
                             this.group_delays(prn, dcb_col) = iono_free.alpha1 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
                             sat_dcb(ref_dcb_idx) = [];
                             sat_dcb_name(ref_dcb_idx,:) = [];
@@ -1004,8 +1013,8 @@ classdef Core_Sky < handle
                                     sgn = -1;
                                 end
                                 if sgn ~=0
-                                    dcb_col_r = find(idxCharLines(this.group_delays_flags,[sys ref_gd]));
-                                    dcb_col   = find(idxCharLines(this.group_delays_flags,[sys sat_gd]));
+                                    dcb_col_r = idxCharLines(this.group_delays_flags,[sys ref_gd]);
+                                    dcb_col   = idxCharLines(this.group_delays_flags,[sys sat_gd]);
                                     if this.group_delays(prn, dcb_col_r) ~= 0
                                         this.group_delays(prn, dcb_col) = this.group_delays(prn, dcb_col_r) + sgn*sat_dcb(j) * goGNSS.V_LIGHT * 1e-9;
                                     end
@@ -1033,7 +1042,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [sx ,sy, sz] = getSatFixFrame(this,time)
+        function [sx ,sy, sz] = getSatFixFrame(this,time,sat)
             
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
@@ -1052,8 +1061,12 @@ classdef Core_Sky < handle
             
             t_sun = time;
             X_sun = this.sunMoonInterpolate(t_sun, true);
-            
-            X_sat = this.coordInterpolate(time);
+            if nargin > 2
+                X_sat = this.coordInterpolate(time,sat);
+                X_sat = permute(X_sat,[1 3 2]);
+            else
+                X_sat = this.coordInterpolate(time);
+            end
             n_sat = size(X_sat,2);
             sx = zeros(size(X_sat)); sy = sx; sz = sx;
             for idx = 1 : t_sun.length()
@@ -1073,6 +1086,11 @@ classdef Core_Sky < handle
                 sx(idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
                 sy(idx,:,:) = j ./ repmat(normAlngDir(j,3),1,1,3);
                 sz(idx,:,:) = k ;
+            end
+            if n_sat == 1
+                sx = squeeze(sx);
+                sy = squeeze(sy);
+                sz = squeeze(sz);
             end
             function nrm=normAlngDir(A,d)
                 nrm=sqrt(sum(A.^2,d));
