@@ -152,16 +152,16 @@ classdef Receiver < handle
                                 xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
             
             if ~isempty(this.xyz)
-                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
-                xyz_m = median(this.xyz, 'omitnan');
+                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                xyz_m = median(zero2nan(this.xyz), 'omitnan');
                 enu_m = median(enu, 'omitnan');
                 this.log.newLine();
                 this.log.addMessage(' Receiver median position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
                                     xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
 
-                                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
-                xyz_m = median(this.xyz, 'omitnan');
+                                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                xyz_m = median(zero2nan(this.xyz), 'omitnan');
                 enu_m = median(enu, 'omitnan');
                 this.log.newLine();
                 this.log.addMessage(' Correction of the a-priori position:');
@@ -292,7 +292,7 @@ classdef Receiver < handle
                 end
                 lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
                 lim = [lim lim(:,2) - lim(:,1)];
-                if lim(end,3) < 3
+                while lim(end,3) < 3
                     lim(end,:) = [];
                 end
                 
@@ -2759,9 +2759,13 @@ classdef Receiver < handle
                     end
                     
                     switch flag
-                        case 0 %no model
+                        case 0 % no model
                             
-                        case 1 %Saastamoinen with standard atmosphere
+                        case 1 % Saastamoinen with standard atmosphere
+                            if isempty(undu)
+                                this.log.addWarning('Geoid not found = using undulation = 0');
+                                undu = 0;
+                            end
                             this.sat.err_tropo(idx, s) = atmo.saastamoinen_model(h, undu, el);
                             
                         case 2 % Saastamoinen with GPT
@@ -3505,10 +3509,10 @@ classdef Receiver < handle
             % SYNTAX this.plotPositionENU();
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
-                enu = this.xyz;
+                enu = zero2nan(this.xyz);
                 xyz0 = this.getAPrioriPos;
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));                
-                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
                 figure; 
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
@@ -3535,12 +3539,12 @@ classdef Receiver < handle
                 figure; 
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
-                subplot(3,1,1); plot(t, 1e0 * (this.xyz(:,1) - xyz0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
+                subplot(3,1,1); plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8;
-                subplot(3,1,2); plot(t, 1e0 * (this.xyz(:,2) - xyz0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
+                subplot(3,1,2); plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                subplot(3,1,3); plot(t, 1e0 * (this.xyz(:,3) - xyz0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
+                subplot(3,1,3); plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
                 linkaxes(ax, 'x');
             else   
