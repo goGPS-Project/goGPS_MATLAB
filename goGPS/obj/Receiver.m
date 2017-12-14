@@ -124,6 +124,54 @@ classdef Receiver < handle
     % ==================================================================================================================================================
     
     methods
+        function toString(this)
+            % Display on screen information about the receiver
+            % SYNTAX: this.toString();
+            
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMarkedMessage(sprintf('Receiver %s', this.name));
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
+            this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
+            this.log.newLine();            
+            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', this.n_sat));
+            this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));            
+            this.log.newLine();
+            
+            xyz0 = this.getAPrioriPos();
+            [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+            static_dynamic = {'Dynamic', 'Static'};
+            this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
+            fprintf(' ----------------------------------------------------------\n')            
+            this.log.addMessage(' Receiver a-priori position:');
+            this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
+            
+            if ~isempty(this.xyz)
+                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                xyz_m = median(this.xyz, 'omitnan');
+                enu_m = median(enu, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Receiver median position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+
+                                enu = this.xyz; [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                xyz_m = median(this.xyz, 'omitnan');
+                enu_m = median(enu, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Correction of the a-priori position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+            end
+            fprintf(' ----------------------------------------------------------\n')
+
+        end
+        
         function this = Receiver(cc)
             % SYNTAX  this = Receiver(<cc>)
             this.initObs();
@@ -922,6 +970,15 @@ classdef Receiver < handle
             is_static = this.static;
         end
         
+        function xyz = getAPrioriPos(this)
+            % return apriori position
+            % SYNTAX: xyz = this.getAPrioriPos()
+            xyz = this.xyz_approx;
+            if ~any(xyz) && ~isempty(this.xyz)
+                xyz = median(this.xyz);
+            end
+        end
+        
         function pr = pr1(this, sys_c)
             % get p_range 1 (Legacy)
             % SYNTAX this.pr1(<flag_valid>, <sys_c>)
@@ -1630,7 +1687,7 @@ classdef Receiver < handle
             
         end
         
-        function initStaticPositioning(this,obs, prn, sys, flag)
+        function initStaticPositioning(this, obs, prn, sys, flag)
             % SYNTAX:
             %   this.StaticPositioning(obs, prn, sys, flag)
             %
@@ -1645,6 +1702,24 @@ classdef Receiver < handle
             % DESCRIPTION:
             %   Get postioning using code observables
             
+            if nargin == 1
+                % get best observation for all satellites and all epochs
+                this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
+                [obs, prn, sys, flag] = this.getBestCodeObs;
+                % remove unwanted system
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
+                sys_idx = false(size(sys));
+                for s = 1:length(sys_c)
+                    sys_idx = sys_idx | sys == sys_c(s);
+                end
+                obs(~sys_idx,:) = [];
+                prn(~sys_idx,:) = [];
+                sys(~sys_idx,:) = [];
+                flag(~sys_idx,:) = [];
+            end
+           
             this.log.addMessage(this.log.indent('Starting initial static postioning',6))
             iono_free = flag(1,7) == 'I';
             % It should be this:
@@ -1952,7 +2027,25 @@ classdef Receiver < handle
             %
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
-            
+
+            if nargin == 1
+                % get best observation for all satellites and all epochs
+                this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
+                [obs, prn, sys, flag] = this.getBestCodeObs;
+                % remove unwanted system
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
+                sys_idx = false(size(sys));
+                for s = 1:length(sys_c)
+                    sys_idx = sys_idx | sys == sys_c(s);
+                end
+                obs(~sys_idx,:) = [];
+                prn(~sys_idx,:) = [];
+                sys(~sys_idx,:) = [];
+                flag(~sys_idx,:) = [];
+            end
+
             %initialize modeled error matrix
             this.log.addMessage(this.log.indent('Sarting dynamic positioning',6))
             if isempty(this.sat.avail_index)
@@ -3208,10 +3301,10 @@ classdef Receiver < handle
             
             
             GM = 3.986005e14;
-            
+                        
+            corr = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
             sh_delay = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
-            
             
         end
         function shDelay(this,sgn)
@@ -3323,11 +3416,59 @@ classdef Receiver < handle
    
     % Plots and visualization of the data stored within the object;   
     methods (Access = public)
+        function plotPositionENU(this)
+            % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
+            % SYNTAX this.plotPositionENU();
+            if size(this.xyz,1) > 1
+                this.log.addMessage('Plotting positions');
+                enu = this.xyz;
+                xyz0 = this.getAPrioriPos;
+                [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));                
+                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+                figure; 
+                color_order = handle(gca).ColorOrder;
+                t = this.time.getMatlabTime();
+                subplot(3,1,1); plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
+                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
+                h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8;
+                subplot(3,1,2); plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
+                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
+                subplot(3,1,3); plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
+                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
+                linkaxes(ax, 'x');
+            else   
+                this.log.addMessage('Plotting a single point static position is not yet supported');
+            end
+        end
+            
+        function plotPositionXYZ(this)
+            % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
+            % SYNTAX this.plotPositionXYZ();
+            if size(this.xyz,1) > 1
+                this.log.addMessage('Plotting positions');
+                xyz0 = this.getAPrioriPos();
+
+                figure; 
+                color_order = handle(gca).ColorOrder;
+                t = this.time.getMatlabTime();
+                subplot(3,1,1); plot(t, 1e0 * (this.xyz(:,1) - xyz0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
+                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
+                h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8;
+                subplot(3,1,2); plot(t, 1e0 * (this.xyz(:,2) - xyz0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
+                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
+                subplot(3,1,3); plot(t, 1e0 * (this.xyz(:,3) - xyz0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
+                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
+                linkaxes(ax, 'x');
+            else   
+                this.log.addMessage('Plotting a single point static position is not yet supported');
+            end
+        end
         
         function plotVsSynt(this)
+            % Phases            
             [ph, ~, id_ph] = this.getPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhObs); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            figure; subplot(2,3,1); plot(sensor_ph);
+            figure; subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
             
             this.updateAzimuthElevation()                        
             id_ok = (~isnan(sensor_ph));
@@ -3338,20 +3479,22 @@ classdef Receiver < handle
             caxis([-1 1]); colormap(gat); setColorMapGat([-1 1], 0.8, [-0.15 0.15]); colorbar();
             subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]); 
             
+            % Pseudo Ranges
             [pr, id_pr] = this.getPseudoRanges;
             sensor_pr = Core_Pre_Processing.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
-            subplot(2,3,4); plot(sensor_pr);
+            subplot(2,3,4); plot(sensor_pr); title('Pseudo-ranges observed vs synthesised');
             
             id_ok = (~isnan(sensor_pr));          
             az = this.sat.az(:,this.go_id(id_pr));
             el = this.sat.el(:,this.go_id(id_pr));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
             subplot(2,3,6);  polarscatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 50, serialize(sensor_pr(id_ok)), 'filled'); 
-            caxis([-20 20]); colorbar(); %colormap(gat); setColorMapGat([-15 15], 0.8, [-0.15 0.15]); colorbar()
+            caxis([-20 20]); colorbar();
             subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
-            caxis([-1 1]); colorbar(); %colormap(gat); setColorMapGat([-15 15], 0.8, [-0.15 0.15]); colorbar()
-
+            caxis([-1 1]); colorbar(); 
         end
+        
+        
     end
     
     methods (Access = private)
@@ -3509,7 +3652,7 @@ classdef Receiver < handle
             obs(:, bad_epochs) = [];
             this.time.remEpoch(bad_epochs);
             this.log.newLine();
-            this.obs = obs;
+            this.obs = obs; 
         end
         
         function parseRin3Data(this, txt, lim, eoh)
