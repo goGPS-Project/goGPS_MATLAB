@@ -245,7 +245,7 @@ classdef Go_State < Settings_Interface
                 this.geoid.nrows = size(this.geoid.grid, 1);
                 clear g
             catch
-                this.log.addWarning('Reference geoid not found', 50);
+                this.log.addWarning('Reference geoid not found');
                 % geoid unavailable
                 this.geoid.grid = 0;
                 this.geoid.cellsize = 0;

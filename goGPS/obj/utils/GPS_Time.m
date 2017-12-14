@@ -1056,6 +1056,7 @@ classdef GPS_Time < handle
                 end
             end
         end
+        
         function gps_time_subset = getSubSet(this, index)
             % create a copy of the object having only a subset of time_diff
             gps_time_subset = this.getCopy();
