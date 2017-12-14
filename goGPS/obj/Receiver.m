@@ -372,10 +372,10 @@ classdef Receiver < handle
             this.setAllAvailIndex();
             %update azimuth elevation 
             this.updateAzimuthElevation();
-            % apply pcv corrections
+            % apply various corrections
             this.applyPCV();
             this.applyPoleTide();
-            this.applyPhaseWindUpCorr();
+            %this.applyPhaseWindUpCorr();
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
@@ -1682,7 +1682,7 @@ classdef Receiver < handle
             sys(~sys_idx,:) = [];
             flag(~sys_idx,:) = [];
             
-            this.static = 0;
+            %this.static = 0;
             if this.isStatic()
                 this.initStaticPositioning(obs, prn, sys, flag)
             else
@@ -1768,6 +1768,7 @@ classdef Receiver < handle
                 end
                
                 % update atmosphere
+                this.updateAzimuthElevation();
                 this.updateErrTropo('all', 1);
                 if ~iono_free
                     this.updateErrIono();
@@ -1788,22 +1789,17 @@ classdef Receiver < handle
             
             if sub_sample
                 % update avalibilty index
-                for s = 1:this.cc.getNumSat()
-                    idx_sat = prn == this.cc.prn(s) & sys == this.cc.system(s);
-                    if sum(idx_sat) >0
-                        this.updateAvailIndex(sum(obs(idx_sat,:),1),s)
-                    end
-                end
+                this.setAllAvailIndex();
             end
             
             % update Atmosphere Corrections
+            this.updateAzimuthElevation();
             this.updateErrTropo('all', 1);
             if ~iono_free
                 this.updateErrIono();
             end
             
             % update solid earth corrections
-            this.updateAzimuthElevation();
             this.updateSolidEarthCorr();
             % final estimation
             opt.max_it = 1;
@@ -2746,18 +2742,19 @@ classdef Receiver < handle
                     XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), s);
                     %%% compute az el
                     if size(this.xyz,1) > 1 % is dynamic
-                        XR = this.xyz(idx,:);
-                        [az, el] = this.computeAzimuthElevationXS(XS, XR);
+%                         XR = this.xyz(idx,:);
+%                         [az, el] = this.computeAzimuthElevationXS(XS, XR);
                         h = h_full(idx);
                         lat = lat_full(idx);
                         lon = lon_full(idx);
                     else  % is static
-                        [az, el] = this.computeAzimuthElevationXS(XS);
+%                         [az, el] = this.computeAzimuthElevationXS(XS);
                         h = h_full;
                         lat = lat_full;
                         lon = lon_full;
                     end
-                    
+                    az = this.getAz(s);
+                    el = this.getEl(s);
                     switch flag
                         case 0 % no model
                             
@@ -3290,7 +3287,7 @@ classdef Receiver < handle
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
                 av_idx = this.sat.avail_index(:, sat);
-                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = computeAzimuthElevation(this, sat);
+                [this.sat.az(av_idx, sat), this.sat.el(av_idx, sat)] = this.computeAzimuthElevation(sat);
             end
         end
         
@@ -3563,7 +3560,7 @@ classdef Receiver < handle
             az = this.sat.az(:,this.go_id(id_ph));
             el = this.sat.el(:,this.go_id(id_ph));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            subplot(2,3,3);  polarscatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 50, serialize(sensor_ph(id_ok)), 'filled'); 
+            h1 = subplot(2,3,3);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_ph(id_ok)), 'filled'); 
             caxis([-1 1]); colormap(gat); setColorMapGat([-1 1], 0.8, [-0.15 0.15]); colorbar();
             subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]); 
             
@@ -3576,7 +3573,7 @@ classdef Receiver < handle
             az = this.sat.az(:,this.go_id(id_pr));
             el = this.sat.el(:,this.go_id(id_pr));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            subplot(2,3,6);  polarscatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 50, serialize(sensor_pr(id_ok)), 'filled'); 
+            h1 = subplot(2,3,6);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled'); 
             caxis([-20 20]); colorbar();
             subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]); colorbar(); 
