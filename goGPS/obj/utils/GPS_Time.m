@@ -636,7 +636,11 @@ classdef GPS_Time < handle
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    this.unix_time_f = round((time_s - double(this.unix_time)) * 1e4) / 1e4;
+                    rounding = 2.^(48-ceil(log2(double(this.mat_time)))); % 52 bits of mantissa -> 32 a bit of margin
+                    this.unix_time_f = round((time_s - double(this.unix_time)) * rounding) / rounding;                    
+                    second_correction = - floor(this.unix_time_f);
+                    this.unix_time = this.unix_time - uint32(second_correction);
+                    this.unix_time_f = this.unix_time_f + second_correction;
                     clear time_s
                     this.mat_time = [];
                 case 1 % I'm already in UNIX TIME
@@ -647,7 +651,11 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    this.unix_time_f = time_s - double(this.unix_time) + this.time_diff;
+                    rounding = 2.^(48-ceil(log2(this.time_diff))); % 52 bits of mantissa -> 32 a bit of margin
+                    this.unix_time_f = round((time_s - double(this.unix_time) + this.time_diff) .* rounding) ./ rounding;
+                    second_correction = - floor(this.unix_time_f);
+                    this.unix_time = this.unix_time - uint32(second_correction);
+                    this.unix_time_f = this.unix_time_f + second_correction;
                     clear time_s
                     this.time_ref = [];
                     this.time_diff = [];
@@ -820,8 +828,9 @@ classdef GPS_Time < handle
             end
         end
         
-        function [unix_time, unix_time_f] = getUnixTime(this)
+        function [unix_time, unix_time_f, second_correction] = getUnixTime(this)
             % get Unix Time, precision up to the ps precision
+            second_correction = 0;
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     % constants in matlab are slower than copied values :-( switching to values
@@ -830,6 +839,9 @@ classdef GPS_Time < handle
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
                     unix_time_f = round((time_s - double(unix_time)) * 1e4) / 1e4;
+                    second_correction = - floor(unix_time_f);
+                    unix_time = unix_time - uint32(second_correction);
+                    unix_time_f = unix_time_f + second_correction;
                 case 1 % I'm already in UNIX TIME
                     unix_time = this.unix_time;
                     unix_time_f = this.unix_time_f;
@@ -839,6 +851,9 @@ classdef GPS_Time < handle
                     time_s = (this.time_ref - 719529) * 86400;
                     unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
                     unix_time_f = time_s - double(unix_time) + this.time_diff;
+                    second_correction = - floor(unix_time_f);
+                    unix_time = unix_time - uint32(second_correction);
+                    unix_time_f = unix_time_f + second_correction;
             end
         end
         
@@ -940,9 +955,9 @@ classdef GPS_Time < handle
                 else
                     time = this.getMatlabTime();
                     time(isnan(time)) = 0;
-                    date_6col = datevec(time);
                     [~, fraction_of_seconds] = this.getUnixTime();
-                    date_6col(:,6) = floor(date_6col(:,6)) + fraction_of_seconds;
+                    date_6col = datevec(time - (round(fraction_of_seconds)) / 86400);
+                    date_6col(:,6) = round(date_6col(:,6)) + fraction_of_seconds;
                     date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%010.7f', date_6col')',27,numel(time))';
                 end
                 if (nargin == 1)
@@ -968,6 +983,29 @@ classdef GPS_Time < handle
             else
                 [w, s, d] = this.getGpsWeek();
                 date_string = sprintf('Week %d - dow %d - sow %d\n', w, d, s);
+            end
+        end
+        
+        function round(this, rounding)
+            % round the time
+            % SYNTAX: 
+            %   this.round(rounding);
+            % EXAMPLE:
+            %   this.round(1e-5);
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    this.mat_time = (round(this.mat_time * 86400 ./ rounding) .* rounding) / 86400;
+                case 1 % I'm in UNIX TIME
+                    this.unix_time_f = round(this.unix_time_f ./ rounding) .* rounding;
+                    idx =  this.unix_time_f >= 1;                    
+                    this.unix_time(idx) = this.unix_time(idx) + uint32(ceil(this.unix_time_f(idx)));
+                    this.unix_time_f(idx) = this.unix_time_f(idx) - ceil(this.unix_time_f(idx));
+                    
+                    idx =  this.unix_time_f < 0;                    
+                    this.unix_time(idx) = this.unix_time(idx) - uint32(-floor(this.unix_time_f(idx)));
+                    this.unix_time_f(idx) = this.unix_time_f(idx) - floor(this.unix_time_f(idx));
+                case 2 % I'm in REF TIME
+                    this.time_diff = round(this.time_diff ./ rounding) .* rounding;
             end
         end
         
@@ -1132,41 +1170,25 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    if sign(n_seconds) == 1
-                        
+                    if sign(n_seconds) == 1                        
                         this.unix_time = this.unix_time + uint32(fix(n_seconds));
-                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
-                        
-                    else
-                        
+                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);                        
+                    else                        
                         this.unix_time = this.unix_time - uint32(fix(-n_seconds));
-                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
-                        
+                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);                        
                     end
-                    idx =  this.unix_time_f >= 1;
+                    idx = this.unix_time_f > 0;                    
+                    this.unix_time(idx) = this.unix_time(idx) + uint32(ceil(this.unix_time_f(idx)));
+                    this.unix_time_f(idx) = this.unix_time_f(idx) - ceil(this.unix_time_f(idx));
                     
-                    this.unix_time(idx) = this.unix_time(idx) + 1;
-                    this.unix_time_f(idx) = this.unix_time_f(idx) - 1;
-                    
-                    idx =  this.unix_time_f < 0;
-                    
-                    this.unix_time(idx) = this.unix_time(idx) - 1;
-                    this.unix_time_f(idx) = 1 + this.unix_time_f(idx);
-                    
-
-                    %{
-                    if sign(n_seconds) == 1
-                        this.unix_time = this.unix_time + uint32(fix(n_seconds));
-                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
-                    else
-                        this.unix_time = this.unix_time - uint32(fix(-n_seconds));
-                        this.unix_time_f = this.unix_time_f - rem(n_seconds,1);
-                    end
-                    %}
+                    idx = this.unix_time_f < 0;                    
+                    this.unix_time(idx) = this.unix_time(idx) - uint32(-floor(this.unix_time_f(idx)));
+                    this.unix_time_f(idx) = this.unix_time_f(idx) - floor(this.unix_time_f(idx));                                       
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
             end
         end
+        
         function res = lt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<' function
             %%% get unix time
