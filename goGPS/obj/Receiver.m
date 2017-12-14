@@ -368,10 +368,17 @@ classdef Receiver < handle
             this.initPositioning();
             % smooth clock estimation 
             this.smoothAndApplyDt();
+            % set all availability index
+            this.setAllAvailIndex();
             %update azimuth elevation 
             this.updateAzimuthElevation();
             % apply pcv corrections
             this.applyPCV();
+            this.applyPoleTide();
+            this.applyPhaseWindUpCorr();
+            this.applySolidEarthTide();
+            this.applyShDelay();
+            this.applyOceanLoading();
             
            
         end
@@ -2943,6 +2950,7 @@ classdef Receiver < handle
         
         function applySolidEarthTide(this)
             if this.et_delay_status == 0
+                this.log.addMarkedMessage('Applying Solid Earth Tide corrections');
                 this.solidEarthTide(1);
                 this.et_delay_status = 1; %applied
             end
@@ -2950,6 +2958,7 @@ classdef Receiver < handle
         
         function removeSolidEarthTide(this)
             if this.et_delay_status == 1
+                this.log.addMarkedMessage('Removing Solid Earth Tide corrections');
                 this.solidEarthTide(-1);
                 this.et_delay_status = 0; %not applied
             end
@@ -2987,6 +2996,7 @@ classdef Receiver < handle
         
         function applyOceanLoading(this)
             if this.ol_delay_status == 0
+                this.log.addMarkedMessage('Applying Ocean Loading corrections');
                 this.oceanLoading(1);
                 this.ol_delay_status = 1; %applied
             end
@@ -2994,6 +3004,7 @@ classdef Receiver < handle
         
         function removeOceanLoading(this)
             if this.ol_delay_status == 1
+                this.log.addMarkedMessage('Removing Ocean Loading corrections');
                 this.oceanLoading(-1);
                 this.ol_delay_status = 0; %not applied
             end
@@ -3122,6 +3133,7 @@ classdef Receiver < handle
         
         function applyPoleTide(this)
             if this.pt_delay_status == 0
+                this.log.addMarkedMessage('Applying Pole Tide corrections');
                 this.poleTide(1);
                 this.pt_delay_status = 1; %applied
             end
@@ -3129,6 +3141,7 @@ classdef Receiver < handle
         
         function removePoleTide(this)
             if this.pt_delay_status == 1
+                this.log.addMarkedMessage('Removing Pole Tide corrections');
                 this.poleTide(-1);
                 this.pt_delay_status = 0; %not applied
             end
@@ -3242,6 +3255,7 @@ classdef Receiver < handle
         
         function applyPhaseWindUpCorr(this)
             if this.pw_delay_status == 0
+                this.log.addMarkedMessage('Applying Phase Wind Up corrections');
                 this.phaseWindUpCorr(1);
                 this.pw_delay_status = 1; %applied
             end
@@ -3249,6 +3263,7 @@ classdef Receiver < handle
         
         function removePhaseWindUpCorr(this)
             if this.pw_delay_status == 1
+                this.log.addMarkedMessage('Removing Phase Wind Up corrections');
                 this.phaseWindUpCorr(-1);
                 this.pw_delay_status = 0; %not applied
             end
@@ -3378,6 +3393,7 @@ classdef Receiver < handle
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
                     freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                    freqs = reshape(freqs,1,length(freqs));
                     for f = freqs
                         obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                         sh_delays = this.computeShapirodelay(s);
@@ -3393,6 +3409,7 @@ classdef Receiver < handle
         
         function applyShDelay(this)
             if this.sh_delay_status == 0
+                this.log.addMarkedMessage('Applying Shapiro delay corrections');
                 this.shDelay(1);
                 this.sh_delay_status = 1; %applied
             end
@@ -3400,6 +3417,7 @@ classdef Receiver < handle
         
         function removeShDelay(this)
             if this.sh_delay_status == 1
+                this.log.addMarkedMessage('Removing Shapiro delay corrections');
                 this.shDelay(-1);
                 this.sh_delay_status = 0; %not applied
             end
@@ -3463,6 +3481,7 @@ classdef Receiver < handle
         
         function applyPCV(this)
             if this.pcv_delay_status == 0
+                this.log.addMarkedMessage('Applying PCV corrections');
                 this.PCV(1);
                 this.pcv_delay_status = 1; %applied
             end
@@ -3470,6 +3489,7 @@ classdef Receiver < handle
         
         function removePCV(this)
             if this.pcv_delay_status == 1
+                this.log.addMarkedMessage('Removing PCV corrections');
                 this.PCV(-1);
                 this.pcv_delay_status = 0; %applied
             end
