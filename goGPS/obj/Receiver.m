@@ -3205,35 +3205,47 @@ classdef Receiver < handle
             
         end
         
-        function [ph_wind_up] = computePhaseWindUp(this, sat)
+        function [ph_wind_up] = computePhaseWindUp(this)
             
             %east (a) and north (b) local unit vectors
             XR = this.getXR();
             [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
             a = [-sin(lam) cos(lam) zeros(size(lam))];
             b = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)];
-            if nargin < 2
-                sat = 1: this.cc.getNumSat();
-            end
+            s_time = this.time.getCopy();%SubSet(av_idx);
+            s_a = a;%(av_idx,:);
+            s_b = b;%(av_idx,:);
+            
+            
+            sat = 1: this.cc.getNumSat();
+            
+            [i, j, k] = this.sat.cs.getSatFixFrame(s_time);
             ph_wind_up = zeros(this.time.length,length(sat));
             for s = sat
                 av_idx = this.sat.avail_index(:,s);
-                s_time = this.time.getSubSet(av_idx);
-                s_a = a(av_idx,:);
-                s_b = b(av_idx,:);
-                [i, j, k] = this.sat.cs.getSatFixFrame(s_time,s);
+                i_s = squeeze(i(:,s,:));
+                j_s = squeeze(j(:,s,:));
+                k_s = squeeze(k(:,s,:));
                 
                 %receiver and satellites effective dipole vectors
-                Dr = s_a - k.*repmat(sum(k.*s_a,2),1,3) + cross(k,s_b);
-                Ds = i - k.*repmat(sum(k.*i,2),1,3) - cross(k,j);
+                Dr = s_a - k_s.*repmat(sum(k_s.*s_a,2),1,3) + cross(k_s,s_b);
+                Ds = i_s - k_s.*repmat(sum(k_s.*i_s,2),1,3) - cross(k_s,j_s);
                 
                 %phase wind-up computation
-                psi = sum(conj(k) .* cross(Ds, Dr),2);
+                psi = sum(conj(k_s) .* cross(Ds, Dr),2);
                 arg = sum(conj(Ds) .* Dr,2) ./ (sqrt(sum(Ds.^2,2)) .* sqrt(sum(Dr.^2,2)));
                 arg(arg < -1) = -1;
                 arg(arg > 1) = 1;
                 dPhi = sign(psi).*acos(arg)./(2*pi);
-                ph_wind_up(av_idx,s) = dPhi;
+                % find jump
+                ddPhi = diff(dPhi);
+                jumps = find(abs(ddPhi) > 0.9);
+                jumps_sgn = sign(ddPhi(jumps));
+                for t = 1 : length(jumps)
+                    jump = jumps(t);
+                    dPhi((jump+1):end) = dPhi((jump+1):end) - jumps_sgn(t);
+                end
+                ph_wind_up(av_idx,s) = dPhi(av_idx);
             end
         end
         
