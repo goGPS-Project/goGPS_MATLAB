@@ -57,7 +57,7 @@ compressed = 0;
 igs_url = 'cddis.gsfc.nasa.gov';
 
 %AIUB FTP server URL
-aiub_url = 'ftp.unibe.ch';
+aiub_url = 'ftp.aiub.unibe.ch';
 
 %download directory
 if (nargin < 2)
