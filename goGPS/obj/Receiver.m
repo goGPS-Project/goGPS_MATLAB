@@ -381,8 +381,6 @@ classdef Receiver < handle
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
-            
-           
         end
         
         function updateStatus(this)
@@ -2048,7 +2046,7 @@ classdef Receiver < handle
             end
 
             %initialize modeled error matrix
-            this.log.addMessage(this.log.indent('Sarting dynamic positioning',6))
+            this.log.addMessage(this.log.indent('Sorting dynamic positioning', 6))
             if isempty(this.sat.avail_index)
                 this.sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
             end
@@ -2076,16 +2074,15 @@ classdef Receiver < handle
             
             this.dt = zeros(n_epochs,n_clocks);
             this.dt_obs_code = u_code_bias_flag;
-            if ~isempty(this.xyz_approx) & sum(this.xyz_approx) ~= 0
+            if ~isempty(this.xyz_approx) && sum(this.xyz_approx) ~= 0
                 this.xyz = repmat(this.xyz_approx, n_epochs, 1);
             else
                 this.xyz = zeros(n_epochs,3);
             end
             
             XS = zeros(this.cc.getNumSat(), 3, n_epochs);
-            dist = zeros(n_epochs, this.cc.getNumSat());
             % get Sat orbit correctiong ony for pseudorange
-            for i = 1 : this.cc.getNumSat();
+            for i = 1 : this.cc.getNumSat()
                 c_sys = this.cc.system(i);
                 c_prn = this.cc.prn(i);
                 idx_sat = sys == c_sys & prn == c_prn;
@@ -2102,26 +2099,26 @@ classdef Receiver < handle
                     XS(i,:,idx_obs) = XS_temp';
                 end
             end
-            this.log.addMessage(this.log.indent('Getting very coarse postion from first valid epoch',6))
+            this.log.addMessage(this.log.indent('Getting very coarse postion from first valid epoch', 6))
             % get coarse postion from first valid epoch
             %find first valid epoch
             not_found = true;
             e = 0;
-            while not_found & e < n_epochs
+            while not_found && e < n_epochs
                 e = e + 1;
                 idx_obs = obs(:,e) > 0;
                 clock_temp = unique(code_bias_ord(idx_obs));
                 if sum(idx_obs) >= (3 + length(clock_temp));
                     not_found = false;
-                end
-                
+                end                
             end
+            
             x = [999 999 999];
             n_obs_ep = sum(idx_obs);
-            v_clocks= 1:n_clocks;
+            v_clocks = 1 : n_clocks;
             while max(abs(x(1:3))) > 10
                 clock_ep = code_bias_ord(idx_obs);
-                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                pres_clock = (sum(repmat(clock_ep, 1, n_clocks) == repmat(v_clocks, n_obs_ep, 1), 1) > 0) .* v_clocks;
                 pres_clock(pres_clock == 0) = [];
                 XS_temp = XS(sat(idx_obs),:,e);
                 XS_temp = XS_temp - repmat(this.xyz(e,:),sum(idx_obs),1);
@@ -2531,6 +2528,7 @@ classdef Receiver < handle
             %   Compute the signal transmission time.
             time_of_travel = this.tot;
         end
+        
         function dtS = getDtS(this, sat)
             % SYNTAX:
             %   this.getDtS(time_rx)
@@ -2550,15 +2548,15 @@ classdef Receiver < handle
             else
                 idx = this.sat.avail_index(:,sat) > 0;
                 dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
-            end
-            
+            end            
         end
+        
         function dtRel = getRelClkCorr(this, sat)
             % DESCRIPTION : get clock offset of the satellite due to
             % special relativity (eccntrcity term)
             idx = this.sat.avail_index(:,sat) > 0;
             [X,V] = this.sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
-            dtRel = -2 * sum(conj(X) .* V,2) / (goGNSS.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
+            dtRel = -2 * sum(conj(X) .* V, 2) / (goGNSS.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
         end
         
         
