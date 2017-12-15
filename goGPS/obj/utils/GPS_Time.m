@@ -636,7 +636,7 @@ classdef GPS_Time < handle
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    rounding = 2.^(48-ceil(log2(double(this.mat_time)))); % 52 bits of mantissa -> 32 a bit of margin
+                    rounding = 2.^(48 - max(0,log2(this.mat_time+1e-33))); % 52 bits of mantissa -> 32 a bit of margin
                     this.unix_time_f = round((time_s - double(this.unix_time)) * rounding) / rounding;                    
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
@@ -651,7 +651,7 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    rounding = 2.^(48-ceil(log2(this.time_diff))); % 52 bits of mantissa -> 32 a bit of margin
+                    rounding = 2.^(48 - max(0,log2(this.time_diff+1e-33))); % 52 bits of mantissa -> 32 a bit of margin
                     this.unix_time_f = round((time_s - double(this.unix_time) + this.time_diff) .* rounding) ./ rounding;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
