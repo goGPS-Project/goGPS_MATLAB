@@ -175,7 +175,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     % correct nominal time desynchronization and jumps ---------------------------------------------------
     
     % nominal time desynchronization (e.g. with some low-cost receivers)
-    time_desync = round((time_ref - time) * 1e7) / 1e7; % computed here, used in init_positioning
+    %time_desync = round((time_ref - time) * 1e7) / 1e7; % computed here, used in init_positioning
     
     ph1_bk = ph1;
     ph2_bk = ph2;
