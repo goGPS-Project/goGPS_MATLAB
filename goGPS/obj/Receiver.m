@@ -3574,6 +3574,34 @@ classdef Receiver < handle
             caxis([-1 1]); colorbar();
         end
         
+        function removeOutlierMarkCycleSlip(this)
+            % mark all as outlier and interpolate
+            % get observed values
+            [ph, ~, id_ph] = this.getPhases;
+            % first time derivative 
+            synt_ph = this.getSyntPhObs;
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
+            %subtract median
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % multiply for wavelenght
+            sensor_ph = sensor_ph./repmat(this.wl(id_ph)',this.time.length,1);
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > 0.3;
+            %take them off
+            ph(poss_out_idx) = nan;
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph,3);
+            %subtract median
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % multiply for wavelenght
+            sensor_ph = sensor_ph./repmat(this.wl(id_ph)',this.time.length,1);
+            %find possible cycle slip
+            % cycle slip when they exceed 0.6 cycle
+            poss_slip_idx = abs(sensor_ph) > 0.3;
+            % redo diff only cycle slip should be present
+            
+            
+        end
+        
         
     end
     
