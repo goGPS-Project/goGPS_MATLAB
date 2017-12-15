@@ -821,8 +821,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     % idx_cs_occur = num_cs_occur >= 4;
     % bad_epochs(epoch(idx_cs_occur)) = 1;
     
-    ph1 = jmpFix(ph1, lambda(:,1), state);
-    ph2 = jmpFix(ph2, lambda(:,2), state);
     %%% DEBBUG data = ph1'; figure; subplot(2,2,1); plot(zero2nan(data)); subplot(2,2,2); plot(diff(zero2nan(data),1));subplot(2,2,3); plot(diff(zero2nan(data),2));subplot(2,2,4); plot(bsxfun(@minus,diff(zero2nan(data),4),median(diff(zero2nan(data),4),2,'omitnan'))); subplot(2,2,1); title('data'); subplot(2,2,2); title('first derivative'); subplot(2,2,3); title('second derivative'); subplot(2,2,4); title('forth derivative (reduced)');
     
     % At this point the data is syncronized to the reference time, and corrected for dtR and de-sync
