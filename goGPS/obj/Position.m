@@ -37,8 +37,9 @@ classdef Position < handle
         xyz      % point position
         enu      % point position
         
-        lat      % ellipsoidical latitude
-        lon      % ellipsoidical longitude
+        lat      % ellipsoidal latitude
+        lon      % ellipsoidal longitude
+        h_ellips % ellipsoidal height
         h_ortho  % hortometric height
         
         n_sat
@@ -90,16 +91,18 @@ classdef Position < handle
         function reset(this)
             this.time = GPS_Time();
             this.xyz = [];
-            this.enu = [];
+            this.enu = [];            
             this.lat = [];
             this.lon = [];
+            
+            this.h_ellips = [];
             this.h_ortho = [];
             
             this.n_sat = [];
             this.hdop =  [];
             this.khdop = [];
             this.a_fix = [];
-            this.s_rate = [];
+            this.s_rate = [];            
         end
         
         function importPosition(this, file)
@@ -115,6 +118,7 @@ classdef Position < handle
             % Open position file as a string stream
             fid = fopen(file);
             txt = fread(fid,'*char')';
+            txt(txt == 13) = [];
             fclose(fid);
             
             % get new line separators
@@ -126,7 +130,7 @@ classdef Position < handle
             lim = [lim lim(:,2) - lim(:,1)];
             
             % corrupted lines
-            ko_lines = find(lim(:, 3) ~= 416);
+            ko_lines = find(lim(:, 3) ~= median(lim(:,3)));
             for l = numel(ko_lines) : -1 : 1
                 txt(lim(ko_lines(l), 1) : lim(ko_lines(l), 2) + 1) = [];
             end
@@ -136,8 +140,8 @@ classdef Position < handle
             % File example:
             %    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV
             %2017/04/03    00:00:00.000             1943        86400.000      45.80216141       9.09562643         291.5094     4398305.8406      704150.1081     4550153.9697     5072071.0952      507430.9212         244.4506             32 T               10            0.870            0.472           0.0000           0.0000           0.0000                0           0.0000          2.30187          0.04934          0.00000
-            data = sscanf(txt(lim(2,1):end)','%4d/%2d/%2d    %2d:%2d:%6f             %4d %16f %16f %16f %16f %16f %16f %16f %16f %16f %16f %14d T %16d %16f %16f %16f %16f %16f %16d %16f %16f %16f %16f\n');
-            data = reshape(data, 29, numel(data)/29)';
+            data = sscanf(txt(lim(2,1):end)','%4d/%2d/%2d    %2d:%2d:%6f             %4d %16f %16f %16f %16f %16f %16f %16f %16f %16f %16f %14d %c %16d %16f %16f %16f %16f %16f %16d %16f %16f %16f %16f\n');
+            data = reshape(data, 30, numel(data)/30)';
             % import it as a GPS_Time obj
             if this.time.length() == 0
                 this.time = GPS_Time(data(:,1:6));
@@ -147,15 +151,16 @@ classdef Position < handle
             
             lat = data(:,9);
             lon = data(:,10);
-            h_ortho = data(:,11);
+            h_ellips = data(:,11);
+            h_ortho = data(:,17);
             
             xyz = data(:,12:14);
-            enu = data(:,15:17);
-            n_sat = data(:,19);
-            hdop =  data(:,20);
-            khdop = data(:,21);
-            a_fix = data(:,25);
-            s_rate = data(:,26);
+            enu = data(:,[16 15 17]);
+            n_sat = data(:,20);
+            hdop =  data(:,21);
+            khdop = data(:,22);
+            a_fix = data(:,26); 
+            s_rate = data(:,27);
             
             % Append in obj
             this.xyz = [this.xyz; xyz];
@@ -163,6 +168,7 @@ classdef Position < handle
             
             this.lat = [this.lat; lat];
             this.lon = [this.lon; lon];
+            this.h_ellips = [this.h_ellips; h_ellips];
             this.h_ortho = [this.h_ortho; h_ortho];
             
             this.n_sat = [this.n_sat; n_sat];
@@ -182,7 +188,7 @@ classdef Position < handle
             %
             % SYNTAX:  
             %   position = Position.loadBatch(file_name, run_start, run_stop)
-            %
+            % 
             % INPUT:
             %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
             %   run_start     number of the first run to load
