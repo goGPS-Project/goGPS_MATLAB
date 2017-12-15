@@ -364,8 +364,8 @@ classdef Receiver < handle
             % correct for raw estimate of clock error based on the phase meausrements
             this.correctTimeDesync();
             % set to static or dynamic
-            % this.static = this.state.kf_mode == 0;
-            this.static = false;
+             this.static = this.state.kf_mode == 0;
+            %this.static = false;
             % code only solution
             this.initPositioning();
             % smooth clock estimation
@@ -1765,7 +1765,7 @@ classdef Receiver < handle
                 
                 % update atmosphere
                 this.updateAzimuthElevation();
-                this.updateErrTropo('all', 1);
+                this.updateErrTropo();
                 if ~iono_free
                     this.updateErrIono();
                 end
@@ -2046,7 +2046,7 @@ classdef Receiver < handle
             end
             
             %initialize modeled error matrix
-            this.log.addMessage(this.log.indent('Sorting dynamic positioning', 6))
+            this.log.addMessage(this.log.indent('Starting dynamic positioning', 6))
             if isempty(this.sat.avail_index)
                 this.sat.avail_index = zeros(this.time.length, this.cc.getNumSat());
             end
@@ -2181,12 +2181,12 @@ classdef Receiver < handle
             %remove cut off
             this.setAllAvailIndex();
             this.updateAzimuthElevation();
-            this.updateErrTropo('all',1);
+            this.updateErrTropo();
             if ~iono_free
                 this.updateErrIono();
             end
             this.updateSolidEarthCorr();
-            cut_off = 5;
+            cut_off = 15;
             [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
             sat = zeros(size(prn));
             for i = 1 : length(sat)
@@ -2342,12 +2342,12 @@ classdef Receiver < handle
             prn = this.prn(idx_obs);
             sat = this.cc.getIndex(sys,prn);
             u_sat = unique(sat);
-            
+            this.setAllAvailIndex();
+            this.updateErrIono();
+            this.updateErrTropo();
             for i = u_sat'
                 sat_idx = find(sat == i);
-                this.updateAvailIndex(sum(this.obs(sat_idx,:),1) > 0, i);
-                this.updateErrIono(i);
-                this.updateErrTropo(i,1);
+                
                 this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
                 range = this.getSyntObs('I', i);
                 for j = sat_idx'
