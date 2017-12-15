@@ -49,7 +49,7 @@ state = Go_State.getCurrentSettings();
 
 %AIUB FTP server IP address
 % aiub_ip = '130.92.9.78'; % ftp.unibe.ch
-aiub_ip = 'ftp.unibe.ch';
+aiub_ip = 'ftp.aiub.unibe.ch';
 
 %download directory
 down_dir = state.crx_dir;
