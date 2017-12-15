@@ -210,7 +210,7 @@ else
     bad_sat = find(any(CRX,2));
     if ~isempty(bad_sat)
         n_bad_epochs = sum(CRX(bad_sat,:)~=0,2);
-        log.addWarning(sprintf('%d bad epochs (sat %2d) have been discovered into CRX\n', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
+        log.addWarning(sprintf('%d bad epochs (sat %2d) have been discovered into CRX', [nonzeros(n_bad_epochs), nonzeros(bad_sat)]'));
     end
 end
 
