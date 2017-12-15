@@ -1312,9 +1312,9 @@ classdef Core_Sky < handle
             end
         end
         
-        function [X_sat, V_sat]=coordInterpolate(this,t,sat)
+        function [X_sat, V_sat] = coordInterpolate(this, t, sat)
             % SYNTAX:
-            %   [X_sat]=Eph_Tab.polInterpolate(t,sat)
+            %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
             %
             % INPUT:
             %    t = vector of times where to interpolate
@@ -1332,8 +1332,8 @@ classdef Core_Sky < handle
             if isempty(this.coord_pol_coeff)
                 this.computeSatPolyCoeff();
             end
-            n_sat=length(sat_idx);
-            nt=t.length();
+            n_sat = length(sat_idx);
+            nt = t.length();
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
@@ -1353,7 +1353,7 @@ classdef Core_Sky < handle
             un_idx = unique(c_idx)';
             for idx = un_idx
                 t_idx = c_idx == idx;
-                times= t(t_idx);
+                times = t(t_idx);
                 %times=t.getSubSet(t_idx);
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
                 %t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
