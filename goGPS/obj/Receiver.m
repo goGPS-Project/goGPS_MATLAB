@@ -136,21 +136,21 @@ classdef Receiver < handle
             this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
             this.log.newLine();
             this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
-            this.log.newLine();            
+            this.log.newLine();
             this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', this.n_sat));
             this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
             this.log.newLine();
-            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));            
+            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
             this.log.newLine();
             
             xyz0 = this.getAPrioriPos();
             [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
             static_dynamic = {'Dynamic', 'Static'};
             this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
-            fprintf(' ----------------------------------------------------------\n')            
+            fprintf(' ----------------------------------------------------------\n')
             this.log.addMessage(' Receiver a-priori position:');
             this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
+                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
             
             if ~isempty(this.xyz)
                 enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
@@ -159,18 +159,18 @@ classdef Receiver < handle
                 this.log.newLine();
                 this.log.addMessage(' Receiver median position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
-
-                                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+                
+                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
                 xyz_m = median(zero2nan(this.xyz), 'omitnan');
                 enu_m = median(enu, 'omitnan');
                 this.log.newLine();
                 this.log.addMessage(' Correction of the a-priori position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
             end
             fprintf(' ----------------------------------------------------------\n')
-
+            
         end
         
         function this = Receiver(cc)
@@ -355,7 +355,7 @@ classdef Receiver < handle
         end
         
         function preProcessing(this)
-            % Do all operation needed in order to preprocess the data 
+            % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX:
             %   this.preProcessing();
@@ -368,11 +368,11 @@ classdef Receiver < handle
             this.static = false;
             % code only solution
             this.initPositioning();
-            % smooth clock estimation 
+            % smooth clock estimation
             this.smoothAndApplyDt();
             % set all availability index
             this.setAllAvailIndex();
-            %update azimuth elevation 
+            %update azimuth elevation
             this.updateAzimuthElevation();
             % apply various corrections
             this.applyPCV();
@@ -480,13 +480,13 @@ classdef Receiver < handle
             % reordering observations filling empty epochs with zeros;
             this.time = GPS_Time(nominal_time_zero, ref_time, this.time.isGPS(), 2);
             this.time.toUnixTime; this.time.round(1e-5);
-
+            
             [~, id_not_empty] = intersect(ref_time, nominal_time);
             id_empty = setdiff(1 : numel(nominal_time), id_not_empty);
             
             time_desync = zeros(size(nominal_time));
             time_desync(id_not_empty) = round((rinex_time - nominal_time) * 1e7) / 1e7; % the rinex time has a maximum of 7 significant decimal digits
-            this.desync = time_desync;            
+            this.desync = time_desync;
             clear nominal_time_zero nominal_time rinex_time
             
             this.obs(:, id_not_empty) = this.obs;
@@ -980,7 +980,7 @@ classdef Receiver < handle
                 pos = this.xyz;
             end
         end
-
+        
         
         function pr = pr1(this, sys_c)
             % get p_range 1 (Legacy)
@@ -990,7 +990,7 @@ classdef Receiver < handle
             id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '1';
             if (nargin == 2)
                 id_pr = id_pr & (this.system == sys_c)';
-            end            
+            end
             pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
@@ -1002,7 +1002,7 @@ classdef Receiver < handle
             id_pr = this.obs_code(:, 1) == 'C' & this.obs_code(:, 2) == '2';
             if (nargin == 2)
                 id_pr = id_pr & (this.system == sys_c)';
-            end            
+            end
             pr(this.go_id(id_pr), :) = this.obs(id_pr, :);
         end
         
@@ -1014,10 +1014,10 @@ classdef Receiver < handle
             id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '1';
             if (nargin == 2)
                 id_ph = id_ph & (this.system == sys_c)';
-            end            
+            end
             ph(this.go_id(id_ph), :) = this.obs(id_ph, :);
             wl(this.go_id(id_ph)) = this.wl(id_ph);
-            ph = bsxfun(@times, zero2nan(ph), wl);            
+            ph = bsxfun(@times, zero2nan(ph), wl);
         end
         
         function [ph, wl] = ph2(this, sys_c)
@@ -1028,10 +1028,10 @@ classdef Receiver < handle
             id_ph = this.obs_code(:, 1) == 'L' & this.obs_code(:, 2) == '2';
             if (nargin == 2)
                 id_ph = id_ph & (this.system == sys_c)';
-            end            
+            end
             wl(this.go_id(id_ph)) = this.wl(id_ph);
             ph = bsxfun(@times, zero2nan(ph), wl);
-        end                
+        end
         
         function [ph, wl, id_ph] = getPhases(this, sys_c)
             % get the phases observations in meter (not cycles)
@@ -1372,8 +1372,8 @@ classdef Receiver < handle
                                 this.active_ids(idx) = false;
                                 idx = this.getObsIdx(['C' code(2:end)], sys);
                                 this.active_ids(sat_idx) = sgn < 0;
-                            end                            
-                        end                        
+                            end
+                        end
                     end
                 else
                     % mark as bad obs frequencies that are nor reference frequencies or that have no correction
@@ -1382,7 +1382,7 @@ classdef Receiver < handle
                         this.active_ids(idx) = sgn < 0;
                     end
                 end
-            end            
+            end
         end
         
         function applyGroupDelay(this)
@@ -1441,14 +1441,14 @@ classdef Receiver < handle
             % apply the smoothed dt to pseudo-ranges and phases
             % SYNTAX:
             %   this.smoothAndApplyDt()
-
+            
             lim = getOutliers(this.dt(:,1) ~= 0);
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
             for i = 1 : size(lim, 1)
                 if lim(i,2) - lim(i,1) > 5
                     dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
                 end
-            end        
+            end
             this.dt = dt;
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
@@ -1468,7 +1468,7 @@ classdef Receiver < handle
             end
             [pr, id_pr] = this.getPseudoRanges();
             pr = bsxfun(@minus, pr, dt_pr * 299792458);
-            this.setPseudoRanges(pr, id_pr);            
+            this.setPseudoRanges(pr, id_pr);
             [ph, wl, id_ph] = this.getPhases();
             ph = bsxfun(@minus, ph, dt_ph * 299792458);
             this.setPhases(ph, wl, id_ph);
@@ -1722,7 +1722,7 @@ classdef Receiver < handle
                 sys(~sys_idx,:) = [];
                 flag(~sys_idx,:) = [];
             end
-           
+            
             this.log.addMessage(this.log.indent('Starting initial static postioning',6))
             iono_free = flag(1,7) == 'I';
             % It should be this:
@@ -1762,7 +1762,7 @@ classdef Receiver < handle
                 else
                     this.codeStaticPositionig(obs, prn, sys, flag, opt);
                 end
-               
+                
                 % update atmosphere
                 this.updateAzimuthElevation();
                 this.updateErrTropo('all', 1);
@@ -2008,7 +2008,7 @@ classdef Receiver < handle
                 else
                     this.dt(sum(obs,1) > 0,1,1) = x((4+num_dcb):end) / Go_State.V_LIGHT;
                     this.rid = x(4: (3+num_dcb)) / Go_State.V_LIGHT;
-                end                
+                end
             end
         end
         
@@ -2026,7 +2026,7 @@ classdef Receiver < handle
             %
             % DESCRIPTION: get dynamic postion using code observables
             % (independent epochs, no kalman filters or regularization)
-
+            
             if nargin == 1
                 % get best observation for all satellites and all epochs
                 this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
@@ -2044,7 +2044,7 @@ classdef Receiver < handle
                 sys(~sys_idx,:) = [];
                 flag(~sys_idx,:) = [];
             end
-
+            
             %initialize modeled error matrix
             this.log.addMessage(this.log.indent('Sorting dynamic positioning', 6))
             if isempty(this.sat.avail_index)
@@ -2110,7 +2110,7 @@ classdef Receiver < handle
                 clock_temp = unique(code_bias_ord(idx_obs));
                 if sum(idx_obs) >= (3 + length(clock_temp));
                     not_found = false;
-                end                
+                end
             end
             
             x = [999 999 999];
@@ -2179,88 +2179,86 @@ classdef Receiver < handle
             
             %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
             %remove cut off
+            this.setAllAvailIndex();
             this.updateAzimuthElevation();
+            this.updateErrTropo('all',1);
+            if ~iono_free
+                this.updateErrIono();
+            end
+            this.updateSolidEarthCorr();
             cut_off = 5;
-            for a = 1:1
-                [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
-                sat = zeros(size(prn));
-                for i = 1 : length(sat)
-                    sat(i) = this.cc.getIndex(sys(i),prn(i));
+            [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
+            sat = zeros(size(prn));
+            for i = 1 : length(sat)
+                sat(i) = this.cc.getIndex(sys(i),prn(i));
+            end
+            XS = zeros(this.cc.getNumSat(), 3, n_epochs);
+            dist = zeros(n_epochs, this.cc.getNumSat());
+            % get Sat orbit correctiong ony for pseudorange
+            for i = 1 : this.cc.getNumSat();
+                c_sys = this.cc.system(i);
+                c_prn = this.cc.prn(i);
+                idx_sat = sys == c_sys & prn == c_prn;
+                if sum(idx_sat) > 0 % if we have an observation for the satellite
+                    c_obs = obs(idx_sat,:);
+                    
+                    c_l_obs = colFirstNonZero(c_obs); % all best obs one one line
+                    idx_obs = c_l_obs > 0; % epoch with obseravtion from the satellite
+                    % update time of flight times
+                    this.updateAvailIndex(c_l_obs,i);
+                    this.updateTOT(c_l_obs,i); % update time of travel
+                    
+                    [dist(:,i), XS_temp] = this.getSyntObs('I',i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
+                    
+                    XS(i,:,idx_obs) = rowNormalize(XS_temp)';
                 end
-                XS = zeros(this.cc.getNumSat(), 3, n_epochs);
-                dist = zeros(n_epochs, this.cc.getNumSat());
-                % get Sat orbit correctiong ony for pseudorange
-                for i = 1 : this.cc.getNumSat();
-                    c_sys = this.cc.system(i);
-                    c_prn = this.cc.prn(i);
-                    idx_sat = sys == c_sys & prn == c_prn;
-                    if sum(idx_sat) > 0 % if we have an observation for the satellite
-                        c_obs = obs(idx_sat,:);
-                        
-                        c_l_obs = colFirstNonZero(c_obs); % all best obs one one line
-                        idx_obs = c_l_obs > 0; % epoch with obseravtion from the satellite
-                        % update time of flight times
-                        this.updateAvailIndex(c_l_obs,i);
-                        this.updateErrTropo(i,1);
-                        if ~iono_free
-                            this.updateErrIono();
-                        end
-                        this.updateSolidEarthCorr(i);
-                        %this.updateErrTropo(i,1);
-                        this.updateTOT(c_l_obs,i); % update time of travel
-                        
-                        [dist(:,i), XS_temp] = this.getSyntObs('I',i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
-                        
-                        XS(i,:,idx_obs) = rowNormalize(XS_temp)';
+            end
+            this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
+            for e = 1 : n_epochs
+                idx_obs = obs(:,e) > 0;
+                n_obs_ep = sum(idx_obs);
+                v_clocks= 1:n_clocks;
+                clock_ep = code_bias_ord(idx_obs);
+                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
+                pres_clock(pres_clock == 0) = [];
+                if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
+                    XS_temp = XS(sat(idx_obs),:,e);
+                    A_dcb = zeros(n_obs_ep, length(pres_clock));
+                    for i = 1:length(pres_clock)
+                        A_dcb(clock_ep == pres_clock(i),i) = 1;
                     end
-                end
-                this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
-                for e = 1 : n_epochs
-                    idx_obs = obs(:,e) > 0;
-                    n_obs_ep = sum(idx_obs);
-                    v_clocks= 1:n_clocks;
-                    clock_ep = code_bias_ord(idx_obs);
-                    pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
-                    pres_clock(pres_clock == 0) = [];
-                    if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
-                        XS_temp = XS(sat(idx_obs),:,e);
-                        A_dcb = zeros(n_obs_ep, length(pres_clock));
-                        for i = 1:length(pres_clock)
-                            A_dcb(clock_ep == pres_clock(i),i) = 1;
-                        end
-                        A_temp = [- XS_temp A_dcb];
-                        
-                        y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
-                        % remove parmater with one clock only, they add no
-                        % value create problem for the robust sdjustment
-                        %                     one_idx = sum(A_temp(:,4:end),1) == 1;
-                        %                     rm_col = 3+find(one_idx);
-                        %                     rm_idx = A_temp(:,rm_col) > 0;
-                        %                     y(rm_idx) = [];
-                        %                     n_obs_ep = length(y);
-                        %                     A_temp(rm_idx,:) = [];
-                        %                     A_temp(:,rm_col) = [];
-                        %                     pres_clock(rm_col-3) = [];
-                        
-                        b = zeros(size(y));
-                        Q = speye(length(y));
-                        [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
-                        %                     x = A_temp \ y;
-                        %                     res = y - A_temp * x;
-                        %residuals(idx_obs,e) = res;
-                        %--- robust estimation ---
-                        %                     for i = 1:1
-                        %                         res = res/s02;
-                        %                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
-                        %                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
-                        %                     end
-                        if max(abs(x(1:3))) <100;
-                            this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                            this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
-                        else
-                            this.dt(e,pres_clock) = 0;
-                            this.xyz(e,:) = 0;
-                        end
+                    A_temp = [- XS_temp A_dcb];
+                    
+                    y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
+                    % remove parmater with one clock only, they add no
+                    % value create problem for the robust sdjustment
+                    %                     one_idx = sum(A_temp(:,4:end),1) == 1;
+                    %                     rm_col = 3+find(one_idx);
+                    %                     rm_idx = A_temp(:,rm_col) > 0;
+                    %                     y(rm_idx) = [];
+                    %                     n_obs_ep = length(y);
+                    %                     A_temp(rm_idx,:) = [];
+                    %                     A_temp(:,rm_col) = [];
+                    %                     pres_clock(rm_col-3) = [];
+                    
+                    b = zeros(size(y));
+                    Q = speye(length(y));
+                    [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
+                    %                     x = A_temp \ y;
+                    %                     res = y - A_temp * x;
+                    %residuals(idx_obs,e) = res;
+                    %--- robust estimation ---
+                    %                     for i = 1:1
+                    %                         res = res/s02;
+                    %                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
+                    %                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
+                    %                     end
+                    if max(abs(x(1:3))) <100;
+                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
+                        this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                    else
+                        this.dt(e,pres_clock) = 0;
+                        this.xyz(e,:) = 0;
                     end
                 end
             end
@@ -2299,7 +2297,7 @@ classdef Receiver < handle
                         iono_factor= wl_ref^2/ wl^2;
                         
                 end
-                range = range + this.sat.err_tropo(:,sat) + iono_factor * this.sat.err_iono(:,sat) + this.sat.solid_earth_corr(:,sat);
+                range = range + this.sat.err_tropo(:,sat) + iono_factor * this.sat.err_iono(:,sat);
                 
                 XS_loc(isnan(range),:) = [];
                 %range = range';
@@ -2312,7 +2310,7 @@ classdef Receiver < handle
             if nargin < 2
                 sys_c = this.cc.sys_c;
             end
-            synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');            
+            synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -2338,19 +2336,18 @@ classdef Receiver < handle
                     idx_obs = [idx_obs; this.getObsIdx('C', s)];
                 end
             end
-
+            
             synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
             sys = this.system(idx_obs);
             prn = this.prn(idx_obs);
             sat = this.cc.getIndex(sys,prn);
             u_sat = unique(sat);
-
+            
             for i = u_sat'
                 sat_idx = find(sat == i);
                 this.updateAvailIndex(sum(this.obs(sat_idx,:),1) > 0, i);
                 this.updateErrIono(i);
-                this.updateErrTropo(i);
-                this.updateSolidEarthCorr(i);
+                this.updateErrTropo(i,1);
                 this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
                 range = this.getSyntObs('I', i);
                 for j = sat_idx'
@@ -2548,7 +2545,7 @@ classdef Receiver < handle
             else
                 idx = this.sat.avail_index(:,sat) > 0;
                 dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
-            end            
+            end
         end
         
         function dtRel = getRelClkCorr(this, sat)
@@ -2612,7 +2609,7 @@ classdef Receiver < handle
                 else
                     XR = this.xyz;
                 end
-                XS_loc = XS_loc - XR;               
+                XS_loc = XS_loc - XR;
             else
                 n_sat = this.cc.getNumSat();
                 XS_loc = zeros(n_epochs,n_sat,3);
@@ -2714,9 +2711,9 @@ classdef Receiver < handle
             end
             
             this.sat.err_tropo(:, sat) = 0;
-                        
+            
             %%% compute lat lon
-            [~, lat_full, h_full, lon_full] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+            [~, lon_full, h_full, lat_full] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
             
             if nargin < 3
                 flag = this.state.tropo_model;
@@ -2732,24 +2729,24 @@ classdef Receiver < handle
                 end
             end
             
-            for s = sat                                
+            for s = sat
                 idx = this.sat.avail_index(:, s) > 0;
                 if sum(idx)>0
-                    XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), s);
-                    %%% compute az el
+                    
                     if size(this.xyz,1) > 1 % is dynamic
-%                         XR = this.xyz(idx,:);
-%                         [az, el] = this.computeAzimuthElevationXS(XS, XR);
+                        %                         XR = this.xyz(idx,:);
+                        %                         [az, el] = this.computeAzimuthElevationXS(XS, XR);
                         h = h_full(idx);
                         lat = lat_full(idx);
                         lon = lon_full(idx);
                     else  % is static
-%                         [az, el] = this.computeAzimuthElevationXS(XS);
+                        %                         [az, el] = this.computeAzimuthElevationXS(XS);
                         h = h_full;
                         lat = lat_full;
                         lon = lon_full;
                     end
-                    az = this.getAz(s);
+                    %%% get compute az el
+                    %az = this.getAz(s);
                     el = this.getEl(s);
                     switch flag
                         case 0 % no model
@@ -2767,7 +2764,7 @@ classdef Receiver < handle
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = 1 : size(idx,1)
                                 if idx(e) > 0
-                                    this.sat.err_tropo(e, sat) = atmo.saastamoinen_model_GPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
+                                    this.sat.err_tropo(e, s) = atmo.saastamoinen_model_GPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                                 end
                             end
                     end
@@ -2855,8 +2852,8 @@ classdef Receiver < handle
             end
             solid_earth_corr = zeros(this.time.length, length(sat));
             XR = this.getXR();
-
-                [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
+            
+            [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(1,2), XR(1,3));
             %north (b) and radial (c) local unit vectors
             b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
             c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
@@ -3105,14 +3102,14 @@ classdef Receiver < handle
                 this.log.addWarning('No ocean loading displacements matrix present for the receiver')
                 return
             end
-                
+            
             for s = 1 : this.cc.getNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
-                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
                     end
                 end
             end
@@ -3239,14 +3236,14 @@ classdef Receiver < handle
         function phaseWindUpCorr(this,sgn)
             % DESCRIPTION: add or subtract ocean loading from observations
             ph_wind_up = this.computePhaseWindUp();
-                
+            
             for s = 1 : this.cc.getNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
-                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx) * this.wl(o);
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx) * this.wl(o);
                     end
                 end
             end
@@ -3379,7 +3376,7 @@ classdef Receiver < handle
             
             
             GM = 3.986005e14;
-                        
+            
             corr = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
             sh_delay = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
@@ -3422,60 +3419,60 @@ classdef Receiver < handle
             end
         end
         function PCV(this,sgn)
-                % DESCRIPTION: correct measurement for PCV both of receiver
-                % antenna and satellite antenna
-                if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
-                    this.setAllAvailIndex();
-                    % getting sat - receiver vector for each epoch
-                    XR_sat = - this.getXSLoc();
-                   
-                    if ~isempty(this.pcv)
-                        %TODO correct for receiver pcv
-                        XS = - XR_sat;
-                    end
-                    if ~isempty(this.sat.cs.ant_pcv)
-                         
-                        % getting satellite reference frame for each epoch
-                        [i, j, k] = this.sat.cs.getSatFixFrame(this.time);
-                         sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
-                         sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
-                        sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-                        
-                        % transgform into satellite reference system
-                        XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
-                        
-                        % getting ax and el
-                        distances = sqrt(sum(XR_sat.^2,3));
-                        XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
-                        
-                        az = atan2(XR_sat_norm(:, :, 1),XR_sat_norm(:, :, 2));
-                        az(az<0) = az(az<0) + 2*pi;
-                        el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
-                        
-                        % getting pscv and applying it to the obs
-                        for s = 1 : size(el,2)
-                            obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
-                            obs_idx = obs_idx & this.go_id == s;
-                            if sum(obs_idx) > 0
-                                freqs = unique(str2num(this.obs_code(obs_idx,2)));
-                                for f = freqs'
-                                    obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
-                                    az_idx = ~isnan(az(:,s));
-                                    az_tmp = az(az_idx,s) / pi * 180;
-                                    el_idx = ~isnan(el(:,s));
-                                    el_tmp = el(el_idx,s) / pi * 180;
-                                    pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
-                                    for o = find(obs_idx_f)'
-                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
-                                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
-                                    end
+            % DESCRIPTION: correct measurement for PCV both of receiver
+            % antenna and satellite antenna
+            if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
+                this.setAllAvailIndex();
+                % getting sat - receiver vector for each epoch
+                XR_sat = - this.getXSLoc();
+                
+                if ~isempty(this.pcv)
+                    %TODO correct for receiver pcv
+                    XS = - XR_sat;
+                end
+                if ~isempty(this.sat.cs.ant_pcv)
+                    
+                    % getting satellite reference frame for each epoch
+                    [i, j, k] = this.sat.cs.getSatFixFrame(this.time);
+                    sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+                    sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+                    sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
+                    
+                    % transgform into satellite reference system
+                    XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
+                    
+                    % getting ax and el
+                    distances = sqrt(sum(XR_sat.^2,3));
+                    XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
+                    
+                    az = atan2(XR_sat_norm(:, :, 1),XR_sat_norm(:, :, 2));
+                    az(az<0) = az(az<0) + 2*pi;
+                    el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
+                    
+                    % getting pscv and applying it to the obs
+                    for s = 1 : size(el,2)
+                        obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                        obs_idx = obs_idx & this.go_id == s;
+                        if sum(obs_idx) > 0
+                            freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                            for f = freqs'
+                                obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                az_idx = ~isnan(az(:,s));
+                                az_tmp = az(az_idx,s) / pi * 180;
+                                el_idx = ~isnan(el(:,s));
+                                el_tmp = el(el_idx,s) / pi * 180;
+                                pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
+                                for o = find(obs_idx_f)'
+                                    pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                                    o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                    this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
                                 end
                             end
                         end
-                        
                     end
+                    
                 end
+            end
         end
         
         function applyPCV(this)
@@ -3496,8 +3493,8 @@ classdef Receiver < handle
         
     end
     
-   
-    % Plots and visualization of the data stored within the object;   
+    
+    % Plots and visualization of the data stored within the object;
     methods (Access = public)
         function plotPositionENU(this)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
@@ -3506,9 +3503,9 @@ classdef Receiver < handle
                 this.log.addMessage('Plotting positions');
                 enu = zero2nan(this.xyz);
                 xyz0 = this.getAPrioriPos;
-                [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));                
+                [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                 [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                figure; 
+                figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
                 subplot(3,1,1); plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
@@ -3519,19 +3516,19 @@ classdef Receiver < handle
                 subplot(3,1,3); plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
                 linkaxes(ax, 'x');
-            else   
+            else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
             end
         end
-            
+        
         function plotPositionXYZ(this)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 xyz0 = this.getAPrioriPos();
-
-                figure; 
+                
+                figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
                 subplot(3,1,1); plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
@@ -3542,39 +3539,39 @@ classdef Receiver < handle
                 subplot(3,1,3); plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
                 linkaxes(ax, 'x');
-            else   
+            else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
             end
         end
         
         function plotVsSynt(this)
-            % Phases            
+            % Phases
             [ph, ~, id_ph] = this.getPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhObs); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             figure; subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
             
-            this.updateAzimuthElevation()                        
+            this.updateAzimuthElevation()
             id_ok = (~isnan(sensor_ph));
             az = this.sat.az(:,this.go_id(id_ph));
             el = this.sat.el(:,this.go_id(id_ph));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            h1 = subplot(2,3,3);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_ph(id_ok)), 'filled'); 
+            h1 = subplot(2,3,3);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_ph(id_ok)), 'filled');
             caxis([-1 1]); colormap(gat); setColorMapGat([-1 1], 0.8, [-0.15 0.15]); colorbar();
-            subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]); 
+            subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]);
             
             % Pseudo Ranges
             [pr, id_pr] = this.getPseudoRanges;
             sensor_pr = Core_Pre_Processing.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
             subplot(2,3,4); plot(sensor_pr); title('Pseudo-ranges observed vs synthesised');
             
-            id_ok = (~isnan(sensor_pr));          
+            id_ok = (~isnan(sensor_pr));
             az = this.sat.az(:,this.go_id(id_pr));
             el = this.sat.el(:,this.go_id(id_pr));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            h1 = subplot(2,3,6);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled'); 
+            h1 = subplot(2,3,6);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled');
             caxis([-20 20]); colorbar();
             subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
-            caxis([-1 1]); colorbar(); 
+            caxis([-1 1]); colorbar();
         end
         
         
@@ -3735,7 +3732,7 @@ classdef Receiver < handle
             obs(:, bad_epochs) = [];
             this.time.remEpoch(bad_epochs);
             this.log.newLine();
-            this.obs = obs; 
+            this.obs = obs;
         end
         
         function parseRin3Data(this, txt, lim, eoh)
