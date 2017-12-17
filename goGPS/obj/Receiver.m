@@ -154,20 +154,20 @@ classdef Receiver < handle
             
             if ~isempty(this.xyz)
                 enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 'omitnan');
-                enu_m = median(enu, 'omitnan');
+                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
+                enu_m = median(enu, 1, 'omitnan');
                 this.log.newLine();
                 this.log.addMessage(' Receiver median position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+                                            xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
                 
                 enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 'omitnan');
-                enu_m = median(enu, 'omitnan');
+                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
+                enu_m = median(enu, 1, 'omitnan');
                 this.log.newLine();
                 this.log.addMessage(' Correction of the a-priori position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+                                            xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
             end
             fprintf(' ----------------------------------------------------------\n')
             
