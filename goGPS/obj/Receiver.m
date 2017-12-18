@@ -3578,21 +3578,73 @@ classdef Receiver < handle
             h = title(sprintf('dt - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
-        function plotSNR(this)
+        function plotSNR(this, sys_c)
             % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX: this.plotSNR
+            % SYNTAX: this.plotSNR(sys_c)
             
             % SNRs
-            [snr] = this.getSNR;
+            if nargin == 2
+                [snr, snr_id] = this.getSNR(sys_c);
+            else
+                [snr, snr_id] = this.getSNR();
+            end
             
             figure; 
             this.updateAzimuthElevation()
             id_ok = (~isnan(snr));
-            az = this.sat.az(:,this.go_id(:));
-            el = this.sat.el(:,this.go_id(:));
+            az = this.sat.az(:,this.go_id(snr_id));
+            el = this.sat.el(:,this.go_id(snr_id));
             polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
             colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
             h = title(sprintf('SNR - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+        end
+        
+        function plotDataAvailability(this, sys_c)
+            % Plot all the satellite seen by the system
+            % SYNTAX: this.plotDataAvailability(sys_c)
+            
+            if (nargin == 1)
+                sys_c = 'GREJCIS';
+            end
+            figure;
+            ss_ok = intersect(this.cc.sys_c, sys_c);
+            for ss = ss_ok
+                ss_id = find(this.cc.sys_c == ss);
+                switch numel(ss_ok)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                for prn = this.cc.prn(this.cc.system == ss)'
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :)));
+                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                    hold on;
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :)));
+                    plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
+                    hold on;
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :)));
+                    plot(id_ok, prn * ones(size(id_ok)), '.');
+                end
+                prn_ss = unique(this.prn(this.system == ss));
+                xlim([1 size(this.obs,2)]);
+                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                h = ylabel('PRN'); h.FontWeight = 'bold';
+                ax = gca(); ax.YTick = prn_ss;
+                grid on;
+                h = xlabel('epoch'); h.FontWeight = 'bold';
+                title(this.cc.SYS_EXT_NAME{this.cc.SYS_C == ss});
+                dockAllFigures
+            end
         end
         
         function removeOutlierMarkCycleSlip(this)
