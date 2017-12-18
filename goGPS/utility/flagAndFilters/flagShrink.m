@@ -1,8 +1,8 @@
 % SYNTAX:
-%    flag = flagExpand(flag, expand_size)
+%    flag = flagShrink(flag, expand_size)
 %
 % DESCRIPTION:
-%    expand the flag array
+%    shrink the flag array
 %    if flag is a matrix this flagging expansion will work column by column
 %
 % INPUT:
@@ -40,10 +40,10 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function flag = flagExpand(flag, expand_size)
+function flag = flagShrink(flag, expand_size)
     % compute a moving window median to filter the data in input
     
     for c = 1 : size(flag, 2)
-        flag(:, c) = conv(single(flag(:, c)), ones(2 * expand_size + 1, 1)', 'same') > 0;
+        flag(:, c) = ~conv(single(~flag(:, c)), ones(2 * expand_size + 1, 1)', 'same') > 0;
     end
 end
