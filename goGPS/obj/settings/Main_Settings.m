@@ -1508,7 +1508,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: this.importIniFile(<file_path>);
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
-            % property "cur_ini" defined in the superclass IO_Settings            if (nargin == 1)
+            % property "cur_ini" defined in the superclass IO_Settings
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
@@ -1522,7 +1522,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.log.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
             end
         end
-
+        
         function importLegacyFile(this, file_path)
             % Import from an old mat settings file the content of the Settings object
             % SYNTAX: this.importLegacyFile(file_path);
