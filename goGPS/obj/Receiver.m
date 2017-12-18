@@ -173,17 +173,20 @@ classdef Receiver < handle
             
         end
         
-        function this = Receiver(cc)
+        function this = Receiver(cc, rinex_file_name)
             % SYNTAX  this = Receiver(<cc>)
             this.initObs();
             this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
-            if nargin == 1
+            if nargin >= 1 && ~isempty(cc)
                 this.cc = cc;
             else
                 this.cc = this.state.cc;
             end
             this.w_bar = Go_Wait_Bar.getInstance();
+            if nargin >= 2 && ~isempty(rinex_file_name)
+                this.loadRinex(rinex_file_name);
+            end
         end
         
         function initObs(this)
@@ -561,39 +564,7 @@ classdef Receiver < handle
             this.setPseudoRanges(pr, id_pr);
             
             this.time.addSeconds( - this.dt_pr);
-        end
-        
-        function LEGACYapplyDtDrift(this)
-            % add dt * v_light to pseudo ranges and phases
-            if ~this.clock_corrected_obs
-                cpp = Core_Pre_Processing;
-                d_dt = cpp.diffAndPred(this.dt);
-                [d_dt] = simpleFill1D(d_dt, abs(d_dt) > 1e-4);
-                dt = cumsum(d_dt);
-                
-                dt_corr = repmat(dt' * Go_State.V_LIGHT, size(this.ph, 1), 1);
-                
-                this.pr = this.pr - dt_corr;
-                this.ph = this.ph - dt_corr;
-                this.clock_corrected_obs = true;
-            end
-        end
-        
-        function remDtDrift(this)
-            % del dt * v_light to pseudo ranges and phases
-            if this.clock_corrected_obs
-                cpp = Core_Pre_Processing;
-                d_dt = cpp.diffAndPred(this.dt);
-                [d_dt] = simpleFill1D(d_dt, abs(d_dt) > 1e-4);
-                dt = cumsum(d_dt);
-                
-                dt_corr = repmat(dt * Go_State.V_LIGHT, 1, this.n_sat, this.n_freq);
-                
-                this.pr = this.pr + dt_corr;
-                this.ph = this.ph + dt_corr;
-                this.clock_corrected_obs = false;
-            end
-        end
+        end        
         
         function parseRinHead(this, txt, lim, eoh)
             % Parse the header of the Observation Rinex file
@@ -1076,7 +1047,7 @@ classdef Receiver < handle
             this.obs(id_pr, :) = nan2zero(pr');
         end
         
-        function [dop, id_dop] = getDoppler(this, sys_c)
+        function [dop, wl, id_dop] = getDoppler(this, sys_c)
             % get the doppler observations
             % SYNTAX: [dop, id_dop] = this.getDoppler(<sys_c>)
             % SEE ALSO: setDoppler
@@ -1086,16 +1057,19 @@ classdef Receiver < handle
                 id_dop = id_dop & (this.system == sys_c)';
             end
             dop = zero2nan(this.obs(id_dop, :)');
+            wl = this.wl(id_ph);
+            dop = bsxfun(@times, zero2nan(dop), wl)';            
         end
         
-        function setDoppler(this, dop, id_dop)
+        function setDoppler(this, dop, wl, id_dop)
             % set the snr observations
             % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
             % SEE ALSO:  getDoppler
+            dop = bsxfun(@rdivide, zero2nan(dop'), wl);
             this.obs(id_dop, :) = nan2zero(dop');
         end
         
-        function [snr, id_snr] = getSnr(this, sys_c)
+        function [snr, id_snr] = getSNR(this, sys_c)
             % get the doppler observations
             % SYNTAX: [dop, id_dop] = this.getDoppler(<sys_c>)
             % SEE ALSO: setDoppler
@@ -1107,10 +1081,10 @@ classdef Receiver < handle
             snr = zero2nan(this.obs(id_snr, :)');
         end
         
-        function setSnr(this, snr, id_snr)
+        function setSNR(this, snr, id_snr)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setSnr(<sys_c>)
-            % SEE ALSO:  getSnr
+            % SYNTAX: [pr, id_pr] = this.setSNR(<sys_c>)
+            % SEE ALSO:  getSNR
             this.obs(id_snr, :) = nan2zero(snr');
         end
         
@@ -3545,6 +3519,9 @@ classdef Receiver < handle
         end
         
         function plotVsSynt(this)
+            % Plots phases and pseudo-ranges aginst their synthesised values
+            % SYNTAX: this.plotVsSynt
+            
             % Phases
             [ph, ~, id_ph] = this.getPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhObs); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
@@ -3572,6 +3549,23 @@ classdef Receiver < handle
             caxis([-20 20]); colorbar();
             subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]); colorbar();
+        end
+        
+        function plotSNR(this)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX: this.plotSNR
+            
+            % SNRs
+            [snr] = this.getSNR;
+            
+            figure; 
+            this.updateAzimuthElevation()
+            id_ok = (~isnan(snr));
+            az = this.sat.az(:,this.go_id(:));
+            el = this.sat.el(:,this.go_id(:));
+            polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+            colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+            h = title(sprintf('SNR - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
         end
         
         function removeOutlierMarkCycleSlip(this)
