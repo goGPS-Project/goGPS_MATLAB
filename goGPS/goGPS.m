@@ -1171,7 +1171,7 @@ for session = 1 : num_session
                     end
                     
                      if (~flag_SEID)
-                        flag_XM_prep = 2;
+                        flag_XM_prep = iif(flag_XM == 0, 1, flag_XM);
                         if state.isModeBlock()
                             pp = Core_Pre_Processing(state, Eph, SP3);
                             [time_M_diff, pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, el_m, az_m, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pp.execute(time_GPS_diff, time_M_diff, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, flag_full_prepro, order);
@@ -3857,7 +3857,7 @@ for session = 1 : num_session
                         head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD[m]',fsep_char,'ZTD[m]',fsep_char,'TGN[mm]',fsep_char,'TGE[mm]',fsep_char,'ZWD[m]',fsep_char,'PWV[mm]');
                         row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
                         for s = 1 : nSatTot
-                            head_str = [head_str,fsep_char,'az[ÿ]',fsep_char,'el[ÿ]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+                            head_str = [head_str,fsep_char,'az[d]',fsep_char,'el[d]' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
                             row_str  = [row_str  '%16.5f %16.5f']; %#ok<AGROW>
                         end
                         for s = 1 : nSatTot
