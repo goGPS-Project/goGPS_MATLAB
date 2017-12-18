@@ -364,11 +364,11 @@ classdef Receiver < handle
             %   this.preProcessing();
             
             this.remBad();
-            % correct for raw estimate of clock error based on the phase meausrements
+            % correct for raw estimate of clock error based on the phase measure
             this.correctTimeDesync();
             % set to static or dynamic
-             this.static = this.state.kf_mode == 0;
-            %this.static = false;
+            this.static = this.state.kf_mode == 0;
+            %this.TEST_smoothCodeWithDoppler(51);            
             % code only solution
             this.initPositioning();
             % smooth clock estimation
@@ -384,6 +384,18 @@ classdef Receiver < handle
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
+        end
+        
+        function TEST_smoothCodeWithDoppler(this, win_size)
+            % This function has been tested in particular cases on UBLOX single frequency
+            % In the future see: Optimal Doppler-aided smoothing strategy for GNSS navigation
+            [pr, id_pr] = this.getPseudoRanges;
+            pr_corr = Core_Pre_Processing.diffAndPred(pr + cumsum(nan2zero(this.getDoppler * this.rate)));
+            for s = 1 : size(pr_corr, 2)
+                pr_corr(:,s) = cumsum(nan2zero(pr_corr(:,s) - splinerMat([], movmedian(pr_corr(:,s), 3, 'omitnan'), win_size, 1e-9)));
+                pr_corr(:,s) = pr_corr(:,s) - splinerMat([], pr_corr(:,s), win_size, 1e-9);
+            end
+            this.setPseudoRanges(this.getPseudoRanges - pr_corr, id_pr);            
         end
         
         function updateStatus(this)
@@ -558,7 +570,7 @@ classdef Receiver < handle
                 [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
                 [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
-            
+                        
             % Saving observations into the object properties
             this.setPhases(ph, wl, id_ph);
             this.setPseudoRanges(pr, id_pr);
@@ -938,7 +950,7 @@ classdef Receiver < handle
             % SYNTAX: xyz = this.getAPrioriPos()
             xyz = this.xyz_approx;
             if ~any(xyz) && ~isempty(this.xyz)
-                xyz = median(this.xyz);
+                xyz = median(this.xyz, 1);
             end
         end
         
@@ -1057,8 +1069,8 @@ classdef Receiver < handle
                 id_dop = id_dop & (this.system == sys_c)';
             end
             dop = zero2nan(this.obs(id_dop, :)');
-            wl = this.wl(id_ph);
-            dop = bsxfun(@times, zero2nan(dop), wl)';            
+            wl = this.wl(id_dop);
+            dop = bsxfun(@times, zero2nan(dop), wl');
         end
         
         function setDoppler(this, dop, wl, id_dop)
@@ -3482,12 +3494,12 @@ classdef Receiver < handle
                 figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
-                subplot(3,1,1); plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
+                subplot(3,1,1); plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                subplot(3,1,2); plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
+                subplot(3,1,2); plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
-                subplot(3,1,3); plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
+                subplot(3,1,3); plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
                 linkaxes(ax, 'x');
             else
@@ -3505,12 +3517,12 @@ classdef Receiver < handle
                 figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
-                subplot(3,1,1); plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(1,:));
+                subplot(3,1,1); plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                subplot(3,1,2); plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(2,:));
+                subplot(3,1,2); plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                subplot(3,1,3); plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 20, 'LineWidth', 2, 'Color', color_order(3,:));
+                subplot(3,1,3); plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
                 linkaxes(ax, 'x');
             else
@@ -3549,6 +3561,24 @@ classdef Receiver < handle
             caxis([-20 20]); colorbar();
             subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]); colorbar();
+        end
+        
+        function plotDt(this)
+            % Plot Clock error
+            % SYNTAX: this.plotDt
+            
+            figure; 
+            t = this.time.getMatlabTime;
+            plot(t, -this.desync, '-k', 'LineWidth', 2);
+            hold on;
+            plot(t, this.dt_pr, ':', 'LineWidth', 2);
+            plot(t, this.dt_ph, ':', 'LineWidth', 2);
+            plot(t, this.dt, '-', 'LineWidth', 2);
+            plot(t, this.dt + this.dt_pr, '-', 'LineWidth', 2);
+            legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
+            xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+
+            h = title(sprintf('dt - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
         function plotSNR(this)
