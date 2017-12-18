@@ -190,8 +190,7 @@ for s = 1 : num_session
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        mst(i) = Receiver(cc); %#ok<SAGROW>
-        mst(i).loadRinex(f_mst_rec{i}{s});
+        mst(i) = Receiver(cc, f_mst_rec{i}{s}); %#ok<SAGROW>
         mst(i).preProcessing();
         rec(r) = mst(i);
         
@@ -208,8 +207,7 @@ for s = 1 : num_session
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        ref(i) = Receiver(cc); %#ok<SAGROW>
-        ref(i).loadRinex(f_ref_rec{i}{s});
+        ref(i) = Receiver(cc, f_ref_rec{i}{s}); %#ok<SAGROW>
         ref(i).preProcessing();
         rec(r) = ref(i);
         
@@ -226,9 +224,7 @@ for s = 1 : num_session
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        trg(i) = Receiver(cc); %#ok<SAGROW>
-        
-        trg(i).loadRinex(f_trg_rec{i}{s});
+        trg(i) = Receiver(cc, f_trg_rec{i}{s}); %#ok<SAGROW>        
         trg(i).preProcessing();
         rec(r) = trg(i);
         
