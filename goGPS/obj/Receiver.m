@@ -2328,7 +2328,7 @@ classdef Receiver < handle
                     o = idx_obs(j);
                     o = find(idx_obs == o);
                     c_obs_idx = idx_obs(j); % index of the observation we are currently processing
-                    ep_idx = this.obs(c_obs_idx,:) > 0;
+                    ep_idx = this.obs(c_obs_idx,:) ~= 0;
                     freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
                     if sys(j) == 'G' && freq == 1
                         iono_factor = 1;
@@ -2338,9 +2338,6 @@ classdef Receiver < handle
                         iono_factor= wl_ref ^ 2/ wl ^ 2;
                     end
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx,i)';
-                    if phase
-                        synt_pr_obs(o, ep_idx) = synt_pr_obs(o, ep_idx);
-                    end
                 end
                 
             end
