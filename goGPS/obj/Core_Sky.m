@@ -61,7 +61,7 @@ classdef Core_Sky < handle
                                'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
                                ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
                            
-        group_delays = zeros(32,77); % group delay of code measurements (meters) referenced to their constellation reference:
+        group_delays = zeros(32,82); % group delay of code measurements (meters) referenced to their constellation reference:
                                      %    GPS     -> Iono free linear combination C1P C2P
                                      %    GLONASS -> Iono free linear combination C1P C2P
                                      %    Galileo -> Iono free linear combination
