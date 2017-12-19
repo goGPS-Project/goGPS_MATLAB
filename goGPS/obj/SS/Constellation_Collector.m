@@ -386,11 +386,11 @@ classdef Constellation_Collector < Settings_Interface
             sys = this.system(goid);
             switch sys
                 case 'G'
-                    ref_dcb = ['C1WC2W'; 'C1PC2P']; %b
+                    ref_dcb = ['C1WC2W';]; %b
                 case 'R'
                     ref_dcb = 'C1PC2P';
                 case 'E'
-                    ref_dcb = ['C1CC5Q'; 'C1XC5X'];
+                    ref_dcb = ['C1CC5Q';];
                 case 'C'
                     ref_dcb = 'C2IC7I';
                 case 'J'

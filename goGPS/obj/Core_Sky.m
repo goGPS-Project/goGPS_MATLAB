@@ -955,74 +955,51 @@ classdef Core_Sky < handle
                 filename = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
                 idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
                 dcb = sscanf(txt(idx)','%f');
+                idx = repmat(fl,1,8) + repmat([97:104],length(fl),1);
+                dcb_std = sscanf(txt(idx)','%f');
                 for s = 1 : this.cc.getNumSat()
                     sys = this.cc.system(s);
+                    prn = this.cc.prn(s);
                     ant_id = this.cc.getAntennaId(s);
                     sat_idx = sum(filename(:,1:3) == repmat(ant_id,size(filename,1),1),2) == 3;
                     sat_dcb_name = filename(sat_idx,4:end);
                     sat_dcb = dcb(sat_idx);
+                    sat_dcb_std = dcb_std(sat_idx);
                     ref_dcb_name = this.cc.getRefDCB(s);
                     %check if there is the reference dcb in the one
                     %provided by the external source
-                    is_present  = false;
-                    ref_dcb_idx = 0;
-                    % WARNING: case the orbit is given with reference from a
-                    % single frequency is not considered
-                    % ASSUMPTION: the dcb of the reference frequencies is
-                    % given directly in its direct form, the case it could
-                    % be retrieved combining other dcb is not considered
-                    for i = 1 : size(ref_dcb_name,1)
-                        idx = sum(sat_dcb_name == repmat(ref_dcb_name(1,:), size(sat_dcb_name,1),1),2) == size(ref_dcb_name,2);
-                        if  sum(idx,1) > 0
-                            is_present = 1;
-                            ref_dcb_idx = find(idx);
-                        end
-                        if is_present~=0
-                            %%% set the dcb for the reference frequencies
-                            prn = this.cc.prn(s);
-                            iono_free = this.cc.getSys(sys).getIonoFree();
-                            %fist freq
-                            
-                            
-                            dcb_col =  idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,1:3)]) ;
-                            this.group_delays(prn, dcb_col) = iono_free.alpha2 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
-                            dcb_col = idxCharLines(this.group_delays_flags,[sys ref_dcb_name(1,4:6)]);
-                            this.group_delays(prn, dcb_col) = iono_free.alpha1 * sat_dcb(ref_dcb_idx) * goGNSS.V_LIGHT * 1e-9;
-                            sat_dcb(ref_dcb_idx) = [];
-                            sat_dcb_name(ref_dcb_idx,:) = [];
-                            % ASSUMPTION: the other dcbs are directly connected to the reference one an not through a chain
-                            for j = 1 : length(sat_dcb)
-                                %%check if it connected to the reference
-                                %%ones
-                                sgn = 0;
-                                if     sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,1:3) ) == 3
-                                    ref_gd = ref_dcb_name(1,1:3);
-                                    sat_gd = sat_dcb_name(j,4:6);
-                                    sgn = 1;
-                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,1:3) ) == 3
-                                    ref_gd = ref_dcb_name(1,1:3);
-                                    sat_gd = sat_dcb_name(j,1:3);
-                                    sgn = -1;
-                                elseif sum(sat_dcb_name(j,1:3) == ref_dcb_name(1,4:6) ) == 3
-                                    ref_gd = ref_dcb_name(1,4:6);
-                                    sat_gd = sat_dcb_name(j,4:6);
-                                    sgn = 1;
-                                elseif sum(sat_dcb_name(j,4:6) == ref_dcb_name(1,4:6) ) == 3
-                                    ref_gd = ref_dcb_name(1,4:6);
-                                    sat_gd = sat_dcb_name(j,1:3);
-                                    sgn = -1;
-                                end
-                                if sgn ~=0
-                                    dcb_col_r = idxCharLines(this.group_delays_flags,[sys ref_gd]);
-                                    dcb_col   = idxCharLines(this.group_delays_flags,[sys sat_gd]);
-                                    if this.group_delays(prn, dcb_col_r) ~= 0
-                                        this.group_delays(prn, dcb_col) = this.group_delays(prn, dcb_col_r) + sgn*sat_dcb(j) * goGNSS.V_LIGHT * 1e-9;
-                                    end
-                                end
-                            end
-                        end
-                    end
+
                     
+                    % Set up the desing matrix
+                    sys_gd = this.group_delays_flags(this.group_delays_flags(:,1) == sys,2:4);
+                    A = zeros(size(sat_dcb_name,1),size(sys_gd,1));
+                    for d = 1 : size(sat_dcb_name,1)
+                        idx1 = idxCharLines(sys_gd, sat_dcb_name(d,1:3));
+                        A(d,idx1) =  1;
+                        idx2 = idxCharLines(sys_gd, sat_dcb_name(d,4:6));
+                        A(d,idx2) = -1;
+                    end
+                    % find not present gd
+                    connected = sum(abs(A)) > 0;
+                    A = A(:,connected);
+                    W = diag(1./sat_dcb_std.^2);
+                    % set the refernce ionoifree combination to zero using lagrange multiplier
+                    const = zeros(1,size(A,2));
+                    iono_free = this.cc.getSys(sys).getIonoFree();
+                    ref_col1 = idxCharLines(sys_gd(connected,:),ref_dcb_name(1:3));
+                    const(ref_col1) = iono_free.alpha1;
+                    ref_col2 = idxCharLines(sys_gd(connected,:),ref_dcb_name(4:6));
+                    const(ref_col2) = - iono_free.alpha2;
+                    N = [ A'*W*A  const';const 0];
+                    gd = N\([A'*W*sat_dcb; 0]);
+                    if isnan(gd)
+                        this.log.addWarning('Invalid set of DCB ignoring them')
+                    else
+                        gd(end) = []; %taking off lagrange multiplier
+                        dcb_col   = idxCharLines(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
+                        this.group_delays(prn, dcb_col) = - gd * goGNSS.V_LIGHT * 1e-9;
+                    end
+                   
                 end
                 
            
