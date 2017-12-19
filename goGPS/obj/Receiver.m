@@ -357,7 +357,7 @@ classdef Receiver < handle
             this.remObs(~this.active_ids)
         end
         
-        function preProcessing(this)
+        function preProcessing(this, is_static)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX:
@@ -367,8 +367,12 @@ classdef Receiver < handle
             % correct for raw estimate of clock error based on the phase measure
             this.correctTimeDesync();
             % set to static or dynamic
-            this.static = this.state.kf_mode == 0;
-            %this.TEST_smoothCodeWithDoppler(51);            
+            if (nargin == 2)
+                this.static = is_static;
+            else
+                this.static = this.state.kf_mode == 0;
+            end
+            % this.TEST_smoothCodeWithDoppler(51);            
             % code only solution
             this.initPositioning();
             % smooth clock estimation
@@ -575,7 +579,7 @@ classdef Receiver < handle
             this.setPhases(ph, wl, id_ph);
             this.setPseudoRanges(pr, id_pr);
             
-            this.time.addSeconds( - this.dt_pr);
+            this.time.addSeconds(-this.dt_pr);
         end        
         
         function parseRinHead(this, txt, lim, eoh)
@@ -1384,6 +1388,7 @@ classdef Receiver < handle
                 this.group_delay_status = 0; %applied
             end
         end
+        
         function DtSat(this,flag)
             % DESCRIPTION. apply clock satellite corrections for code and phase
             % IMPORTANT: if no clock is present delete the observation
@@ -1458,6 +1463,7 @@ classdef Receiver < handle
             [ph, wl, id_ph] = this.getPhases();
             ph = bsxfun(@minus, ph, dt_ph * 299792458);
             this.setPhases(ph, wl, id_ph);
+            this.time.addSeconds( - dt_pr);
         end
         
         function removeDtSat(this)
@@ -3479,9 +3485,12 @@ classdef Receiver < handle
     
     % Plots and visualization of the data stored within the object;
     methods (Access = public)
-        function plotPositionENU(this)
+        function plotPositionENU(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
+            if nargin == 1
+                one_plot = false;
+            end
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 enu = zero2nan(this.xyz);
@@ -3491,22 +3500,33 @@ classdef Receiver < handle
                 figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
-                subplot(3,1,1); plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));
+                if ~one_plot, subplot(3,1,1); end
+                plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                subplot(3,1,2); plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                if ~one_plot, subplot(3,1,2); end
+                plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
-                subplot(3,1,3); plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                if ~one_plot, subplot(3,1,3); end
+                 plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
-                linkaxes(ax, 'x');
+                if one_plot
+                    h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                else
+                    linkaxes(ax, 'x');
+                end
             else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
             end
+            grid on;
         end
         
-        function plotPositionXYZ(this)
+        function plotPositionXYZ(this, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
+            if nargin == 1
+                one_plot = false;
+            end
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 xyz0 = this.getAPrioriPos();
@@ -3514,17 +3534,24 @@ classdef Receiver < handle
                 figure;
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
-                subplot(3,1,1); plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));
+                if ~one_plot, subplot(3,1,1); end
+                plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                subplot(3,1,2); plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                if ~one_plot, subplot(3,1,2); end
+                plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                subplot(3,1,3); plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
+                if ~one_plot, subplot(3,1,2); end
+                plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                if one_plot
+                    h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                end
                 linkaxes(ax, 'x');
             else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
             end
+            grid on;
         end
         
         function plotVsSynt(this)
