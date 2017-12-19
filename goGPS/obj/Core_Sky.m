@@ -954,7 +954,7 @@ classdef Core_Sky < handle
                 
                 filename = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
                 idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
-                dcb = sscanf([txt(idx)]','%f');
+                dcb = sscanf(txt(idx)','%f');
                 for s = 1 : this.cc.getNumSat()
                     sys = this.cc.system(s);
                     ant_id = this.cc.getAntennaId(s);
@@ -972,7 +972,7 @@ classdef Core_Sky < handle
                     % given directly in its direct form, the case it could
                     % be retrieved combining other dcb is not considered
                     for i = 1 : size(ref_dcb_name,1)
-                        idx = sum(sat_dcb_name == repmat(ref_dcb_name(1,:),size(sat_dcb_name,1),1),2) == size(ref_dcb_name,2);
+                        idx = sum(sat_dcb_name == repmat(ref_dcb_name(1,:), size(sat_dcb_name,1),1),2) == size(ref_dcb_name,2);
                         if  sum(idx,1) > 0
                             is_present = 1;
                             ref_dcb_idx = find(idx);

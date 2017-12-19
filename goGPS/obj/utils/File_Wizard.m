@@ -205,22 +205,14 @@ classdef File_Wizard < handle
                     if exist([this.state.getDcbDir name], 'file') ~= 2
                         dcb_ok = false;
                     end
-                    
-                    
                 end
                 this.state.setDcbFile(names);
-                
-                
                 if (~dcb_ok)
-                    
-                    
-                    
-                    
                     this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
                     for i = 1 : length(file_list)
                         [~, name, ext] = fileparts(file_list{i});
                         if (isunix())
-                            system(['uncompress -f ' this.state.getDcbDir() '/' name ext]);
+                            system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
                         else
                             try
                                 [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
