@@ -971,7 +971,7 @@ classdef Core_Sky < handle
                     % ASSUMPTION: the dcb of the reference frequencies is
                     % given directly in its direct form, the case it could
                     % be retrieved combining other dcb is not considered
-                    for i = 1 size(ref_dcb_name,1)
+                    for i = 1 : size(ref_dcb_name,1)
                         idx = sum(sat_dcb_name == repmat(ref_dcb_name(1,:),size(sat_dcb_name,1),1),2) == size(ref_dcb_name,2);
                         if  sum(idx,1) > 0
                             is_present = 1;
