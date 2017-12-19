@@ -3541,7 +3541,7 @@ classdef Receiver < handle
                 if ~one_plot, subplot(3,1,2); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                if ~one_plot, subplot(3,1,2); end
+                if ~one_plot, subplot(3,1,3); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
                 if one_plot
