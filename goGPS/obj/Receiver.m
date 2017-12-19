@@ -3653,13 +3653,13 @@ classdef Receiver < handle
                 end
                 
                 for prn = this.cc.prn(this.cc.system == ss)'
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :)));
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :),1));
                     plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
                     hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :)));
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :),1));
                     plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
                     hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :)));
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
                     plot(id_ok, prn * ones(size(id_ok)), '.');
                 end
                 prn_ss = unique(this.prn(this.system == ss));
