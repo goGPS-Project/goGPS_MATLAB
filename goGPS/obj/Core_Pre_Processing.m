@@ -1414,9 +1414,12 @@ classdef Core_Pre_Processing < handle
             % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
             dd = diff(zero2nan(data),2);
             ddc = diff(zero2nan(data_corrected),2);
-            flag = std(serialize(dd(~(isnan(dd))))) > std(serialize(ddc(~(isnan(ddc)))));
-            if flag
+            flag = std(serialize(dd(~(isnan(dd))))) - std(serialize(ddc(~(isnan(ddc)))));
+            if flag < 0 || abs(flag) < 1e-11
+                flag = true;
                 data = data_corrected;
+            else
+                flag = false;
             end
         end
         
