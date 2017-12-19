@@ -636,7 +636,7 @@ classdef GPS_Time < handle
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    rounding = 2.^(48 - max(0,log2(this.mat_time+1e-33))); % 52 bits of mantissa -> 32 a bit of margin
+                    rounding = 2.^(48 - max(0,log2(this.mat_time + eps(this.mat_time)))); % 52 bits of mantissa -> 32 a bit of margin
                     this.unix_time_f = round((time_s - double(this.unix_time)) * rounding) / rounding;                    
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
@@ -651,7 +651,7 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    rounding = 2.^(48 - max(0,log2(this.time_diff+1e-33))); % 52 bits of mantissa -> 32 a bit of margin
+                    rounding = 2.^(48 - max(0,log2(this.time_diff + eps(this.time_diff)))); % 52 bits of mantissa -> 32 a bit of margin
                     this.unix_time_f = round((time_s - double(this.unix_time) + this.time_diff) .* rounding) ./ rounding;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
@@ -1154,11 +1154,7 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    if sign(n_seconds) == 1
-                        this.unix_time = this.unix_time + uint32(n_seconds);
-                    else
-                        this.unix_time = this.unix_time - uint32(-n_seconds);
-                    end
+                    this.unix_time = uint32(int64(this.unix_time) + int64(n_seconds));
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
             end
@@ -1170,20 +1166,10 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    if sign(n_seconds) == 1                        
-                        this.unix_time = this.unix_time + uint32(fix(n_seconds));
-                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);                        
-                    else                        
-                        this.unix_time = this.unix_time - uint32(fix(-n_seconds));
-                        this.unix_time_f = this.unix_time_f + rem(n_seconds,1);                        
-                    end
-                    idx = this.unix_time_f > 0;                    
-                    this.unix_time(idx) = this.unix_time(idx) + uint32(ceil(this.unix_time_f(idx)));
-                    this.unix_time_f(idx) = this.unix_time_f(idx) - ceil(this.unix_time_f(idx));
-                    
-                    idx = this.unix_time_f < 0;                    
-                    this.unix_time(idx) = this.unix_time(idx) - uint32(-floor(this.unix_time_f(idx)));
-                    this.unix_time_f(idx) = this.unix_time_f(idx) - floor(this.unix_time_f(idx));                                       
+                    this.unix_time = uint32(int64(this.unix_time)  + int64(fix(n_seconds)));
+                    this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
+                    this.unix_time = uint32(int64(this.unix_time) + int64(floor(this.unix_time_f)));
+                    this.unix_time_f = this.unix_time_f - floor(this.unix_time_f);
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
             end
@@ -1206,14 +1192,16 @@ classdef GPS_Time < handle
             
             res = (unix_time1 > unix_time2) |( (unix_time1 == unix_time2) & (unix_time_f1 > unix_time_f2) );
         end
+        
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
             
             [~, sec, sec_f] = gt_1 -gt_2;
-            prec = max(gt_1.getPrecision,gt_2.getPrecision);
+            prec = max(gt_1.getPrecision, gt_2.getPrecision);
             res = abs(sec+sec_f) < prec;
             
         end
+        
         function [sec, sec_i, sec_f] = minus(gt_1, gt_2)
             % OUTPUT:
             %    sec = difference in seconds
@@ -1224,20 +1212,21 @@ classdef GPS_Time < handle
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             sec_i = int64(unix_time1) - int64(unix_time2);
-            sec_f =unix_time_f1 - unix_time_f2;
+            sec_f = unix_time_f1 - unix_time_f2;
             
             
             % make the two values consistent
             idx_sec = sec_i > 0;
             idx_sec_f = sec_f >0;
             idx_conflict = xor(idx_sec,idx_sec_f);
-            if sum(idx_conflict)>0
+            if sum(idx_conflict) > 0
                 sec_i(idx_conflict) = sec_i(idx_conflict) + int64(sign(sec_f(idx_conflict)));
                 sec_f(idx_conflict) = sec_f(idx_conflict) - sign(sec_f(idx_conflict));
             end
             sec = double(sec_i) + sec_f;
             
         end
+        
         function prec = getPrecision(this)
             % get precison of current time
             switch this.time_type
