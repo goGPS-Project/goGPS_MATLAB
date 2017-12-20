@@ -1413,9 +1413,7 @@ classdef Core_Pre_Processing < handle
         function [data, flag] = testDesyncCorrection(data, data_corrected)
             % if the correction effectively removes jumps -> apply the correction
             % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
-            dd = diff(zero2nan(data),2);
-            ddc = diff(zero2nan(data_corrected),2);
-            flag = std(serialize(dd(~(isnan(dd))))) > std(serialize(ddc(~(isnan(ddc)))));
+            flag = mean(std(data_corrected,'omitnan'),'omitnan') < mean(std(data,'omitnan'),'omitnan');            
             if flag
                 data = data_corrected;
             end
