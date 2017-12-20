@@ -526,7 +526,7 @@ classdef Receiver < handle
             
             % correct the pseudo-ranges for jumps
             pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+            [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
             if flag
                 dt_pr = dt_ph;
                 this.log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
@@ -549,15 +549,16 @@ classdef Receiver < handle
 %                 % LS interpolant
 %                 this.log.addMessage(this.log.indent('Computing dt from observations', 6));
 %                 [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (ref_time(end) - ref_time(1)), 1e-9, ref_time');
+%                 dt_2nd_order = detrend(dt_2nd_order);
 %                 pr_dj = bsxfun(@minus, pr, dt_2nd_order);
-%                 [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+%                 [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
 %                 if flag
 %                     dt_pr = dt_pr + dt_2nd_order ./ 299792458;
 %                     this.log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
 %                 end
 %                 
 %                 ph_dj = bsxfun(@minus, ph, dt_2nd_order);
-%                 [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_dj);
+%                 [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_dj);
 %                 if flag
 %                     dt_ph = dt_ph + dt_2nd_order ./ 299792458;
 %                     this.log.addMessage('Correcting phase for 2nd order dt', 100);
