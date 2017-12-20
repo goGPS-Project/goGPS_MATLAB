@@ -3798,7 +3798,7 @@ classdef Receiver < handle
                     % repair
                     % TO DO half cycle
                     if ~isnan(jmp)
-                        this.obs(id_ph(p),c:end) = this.obs(id_ph(p),c:end) - round(jmp);
+                        this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
                     end
                     if abs(jmp -round(jmp)) < 0.1
                         poss_slip_idx(c, p) = -1;
