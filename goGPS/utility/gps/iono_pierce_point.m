@@ -54,6 +54,9 @@ hI = 350;       %ionosphere thin shell height [km]
 k = (R/(R+hI))*cos(elS);
 phipp = (pi/2) - elS - asin(k);
 
+%set azimuth from -180 to 180
+azS = mod((azS+pi),2*pi)-pi;
+
 %latitude of the ionosphere piercing point
 latpp = asin(sin(latR)*cos(phipp) + cos(latR)*sin(phipp)*cos(azS));
 
