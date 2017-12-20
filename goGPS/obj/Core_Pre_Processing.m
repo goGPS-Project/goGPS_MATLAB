@@ -1225,12 +1225,15 @@ classdef Core_Pre_Processing < handle
             %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
             
             % apply time_desync
-            ph = bsxfun(@minus, ph, nan2zero(time_desync) .* 299792458);
-            pr = bsxfun(@minus, pr, nan2zero(time_desync) .* 299792458);
-
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            [ph, flag_ph] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_ds);
+            
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            [pr, flag_pr] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_ds);
+            
             [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
             %figure(1); plot(diff(zero2nan(ph)),'.k');
-
+            
             % correct the pseudo-ranges for jumps
             pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
             [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
@@ -1246,10 +1249,19 @@ classdef Core_Pre_Processing < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr + dt_pr_jumps;
-                log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+                dt_pr_trend = cumsum(ones(size(ph,1),1) * median(diff(dt_pr),'omitnan'));
+                dt_pr_trend = dt_pr_trend - mean(dt_pr_trend);
+                this.log.addWarning('Phases and pseudo-ranges seem to "jump" in different ways');
+                
+                ph_dt = bsxfun(@minus, ph, dt_pr_trend .* 299792458);
+                [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_dt);
+                if flag
+                    dt_ph = dt_ph + dt_pr_trend;
+                    this.log.addMessage(this.log.indent('Correcting phases for dt trend as estimated from pseudo_ranges observations', 1));
+                end
             end
             
-%             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
+            %             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
 %             if sum(dt_pr(~isnan(dt_pr))) ~= 0
 %                 all_time = repmat(time_ref, 1, size(pr,2))';
 %                 pr_tmp = pr' - mean(pr(:), 'omitnan');
