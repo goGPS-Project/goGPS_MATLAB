@@ -3593,10 +3593,10 @@ classdef Receiver < handle
             az = this.sat.az(:,this.go_id(id_pr));
             el = this.sat.el(:,this.go_id(id_pr));
             %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            h1 = subplot(2,3,6);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled');
+            h1 = subplot(2,3,6); polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled');
             caxis([-20 20]); colorbar();
-            subplot(2,3,5);  scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
-            caxis([-1 1]); colorbar();
+            subplot(2,3,5); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
+            caxis([-1 1]);
         end
         
         function plotDt(this)
@@ -3607,10 +3607,10 @@ classdef Receiver < handle
             t = this.time.getMatlabTime;
             plot(t, (-this.desync), '-k', 'LineWidth', 2);
             hold on;
-            plot(t, (this.dt_pr), ':', 'LineWidth', 2);
-            plot(t, (this.dt_ph), ':', 'LineWidth', 2);
-            plot(t, (this.dt), '-', 'LineWidth', 2);
-            plot(t, (this.dt) + zero2nan(this.dt_pr), '-', 'LineWidth', 2);
+            plot(t, this.dt_pr, ':', 'LineWidth', 2);
+            plot(t, this.dt_ph, ':', 'LineWidth', 2);
+            plot(t, this.dt, '-', 'LineWidth', 2);
+            plot(t, this.dt + this.dt_pr, '-', 'LineWidth', 2);
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
 
