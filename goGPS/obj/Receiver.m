@@ -3602,12 +3602,12 @@ classdef Receiver < handle
             
             figure; 
             t = this.time.getMatlabTime;
-            plot(t, zero2nan(-this.desync), '-k', 'LineWidth', 2);
+            plot(t, (-this.desync), '-k', 'LineWidth', 2);
             hold on;
-            plot(t, zero2nan(this.dt_pr), ':', 'LineWidth', 2);
-            plot(t, zero2nan(this.dt_ph), ':', 'LineWidth', 2);
-            plot(t, zero2nan(this.dt), '-', 'LineWidth', 2);
-            plot(t, zero2nan(this.dt) + zero2nan(this.dt_pr), '-', 'LineWidth', 2);
+            plot(t, (this.dt_pr), ':', 'LineWidth', 2);
+            plot(t, (this.dt_ph), ':', 'LineWidth', 2);
+            plot(t, (this.dt), '-', 'LineWidth', 2);
+            plot(t, (this.dt) + zero2nan(this.dt_pr), '-', 'LineWidth', 2);
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
 
