@@ -47,9 +47,9 @@ function h = polarScatter(az, decl, point_size, color, flag)
     %%%
 
     decl_n = decl/(pi/2)*scale;
-    az = az + pi/2;
-    x = cos(az).*decl_n;
-    y = sin(az).*decl_n;
+    az = -az + pi/2;
+    x = cos(az) .* decl_n;
+    y = sin(az) .* decl_n;
     if nargin > 4 && strcmp(flag,'filled')
         h = scatter(x,y,point_size,color,'filled');
     else
@@ -75,7 +75,7 @@ function h = polarScatter(az, decl, point_size, color, flag)
         x = cos(a).*decl_l;
         y = sin(a).*decl_l;
         if abs(a-2*pi) > 0.0001
-            text(cos(a)*1.1,sin(a)*1.1,sprintf('%d',round((a-pi/2)/pi*180)),'HorizontalAlignment','center');
+            text(cos(a)*1.1,sin(a)*1.1,sprintf('%d', mod(round((2*pi - a + pi/2) / pi * 180), 360)), 'HorizontalAlignment','center');
         end
         plot(x,y,'color',[0.6 0.6 0.6]);
 
