@@ -136,7 +136,7 @@ if (n > 0)
         else                             letter='X';
         end
 
-        utm_zone(i,:) = sprintf('%02d %c', M(i, 1), letter);
+       utm_zone(i,:) = sprintf('%02d %c', nan2zero(M(i, 1)), letter);
     end
 
     for i = 1 : n
