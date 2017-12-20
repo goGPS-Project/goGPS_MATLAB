@@ -105,7 +105,7 @@ classdef Receiver < handle
         et_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for solid earth tide(0: not corrected , 1: corrected)
         
         outlier_idx_ph;
-        cycle_slip_idx_ph;
+        cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
         
         sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
@@ -2324,54 +2324,7 @@ classdef Receiver < handle
             synt_pr_obs = zero2nan(this.getSyntCurObs(false, sys_c)');
         end
         
-        function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
-            % DESCRIPTION: get syntetic observation for code or phase
-            obs_type = {'code', 'phase'};
-            this.log.addMessage(sprintf('Synthesising %s observations', obs_type{phase + 1}) );
-            idx_obs = [];
-            if nargin < 3
-                sys_c = this.cc.sys_c;
-            end
-            
-            for s = sys_c
-                if phase
-                    idx_obs = [idx_obs; this.getObsIdx('L', s)];
-                else
-                    idx_obs = [idx_obs; this.getObsIdx('C', s)];
-                end
-            end
-            
-            synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
-            sys = this.system(idx_obs);
-            prn = this.prn(idx_obs);
-            sat = this.cc.getIndex(sys,prn);
-            u_sat = unique(sat);
-            this.setAllAvailIndex();
-            this.updateErrIono();
-            this.updateErrTropo();
-            for i = u_sat'
-                sat_idx = find(sat == i);
-                
-                this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
-                range = this.getSyntObs('I', i);
-                for j = sat_idx'
-                    o = idx_obs(j);
-                    o = find(idx_obs == o);
-                    c_obs_idx = idx_obs(j); % index of the observation we are currently processing
-                    ep_idx = this.obs(c_obs_idx,:) ~= 0;
-                    freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
-                    if sys(j) == 'G' && freq == 1
-                        iono_factor = 1;
-                    else
-                        wl_ref = this.cc.getGPS.F_VEC(1);
-                        wl = this.cc.getSys(sys(j)).F_VEC(freq);
-                        iono_factor= wl_ref ^ 2/ wl ^ 2;
-                    end
-                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx,i)';
-                end
-                
-            end
-        end
+        
         
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
@@ -3686,17 +3639,23 @@ classdef Receiver < handle
             end
         end
         
-        function removeOutlierMarkCycleSlip(this)
+        function phRemoveOutlierMarkCycleSlipAndRepair(this)
             
             %PARAMETRS
             ol_thrs = 0.5; %outlier threshold
             cs_thrs = 0.5; %CYCLE SLIP TRHS
             sa_thrs = 10; %short arc threshold
+            
+            
+            %----------------------------
+            % Outlier Detection
+            %----------------------------
+            
             % mark all as outlier and interpolate
             % get observed values
             [ph, ~, id_ph_l] = this.getPhases;
             id_ph = find(id_ph_l);
-            % first time derivative 
+            % first time derivative
             synt_ph = this.getSyntPhObs;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
             %subtract median
@@ -3708,7 +3667,12 @@ classdef Receiver < handle
             %take them off
             ph2=ph;
             ph2(poss_out_idx) = nan;
-            %join the nan 
+            
+            %----------------------------
+            % Cycle slip detection
+            %----------------------------
+            
+            %join the nan
             sensor_ph_cs = nan(size(sensor_ph));
             for o = 1 : size(ph2,2)
                 tmp_ph = ph2(:,o);
@@ -3758,13 +3722,104 @@ classdef Receiver < handle
             % remove too short possible arc
             to_short_idx = flagMerge(poss_slip_idx,sa_thrs);
             poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
-            to_short_idx(poss_slip_idx) =false; 
+            to_short_idx(poss_slip_idx) =false;
             poss_out_idx(to_short_idx) = true;
             no_out_ph(to_short_idx) = nan;
+            
+            
+            %----------------------------
+            % Cycle slip repair
+            %----------------------------
+            
+            % window used to estimate cycle slip
+            % linear time
+            lin_time = 300; %single diffrence is linear in 5 minutes
+            max_window = 200; %maximum windows allowed (for computational reason)
+            win_size = min(max_window,ceil(lin_time / this.rate/2)*2); %force even
+            
+            
+            d_no_out = no_out_ph - synt_ph ./ repmat(this.wl(id_ph_l)',size(ph,1),1);
+            n_ep = this.time.length;
+            for p = 1:size(poss_slip_idx,2)
+                c_slip = find(poss_slip_idx(:,p)');
+                for c = c_slip
+                    
+                    slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
+                    if isempty(slip_bf)
+                        slip_bf = 0;
+                    end
+                    st_wind_idx = max(1,c - win_size /2 + slip_bf);
+                    slip_aft = find(poss_slip_idx(c :min( c + win_size / 2,n_ep), p),1,'first');
+                    if isempty(slip_aft)
+                        slip_aft = 0;
+                    end
+                    end_wind_idx = min(c + win_size /2 - slip_bf -1,n_ep);
+                    jmp_idx =  win_size /2 - slip_bf +1;
+                    
+                    % find best master before
+                    idx_other_l = 1:size(poss_slip_idx,2) ~= p;
+                    idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
+                    best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_bf = sum(poss_mst); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_bf,'descend');
+                    [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
+                    
+                    % find best master after
+                    idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
+                    best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_aft = sum(poss_mst); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_aft,'descend');
+                    [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
+                    
+                    
+                    %decide which arc to use
+                    bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
+                    if isempty(bst_1)
+                        bst_1 = find(rnk_bf == 1 ,1,'first');
+                        bst_2 = find(rnk_aft == 1,1,'first');
+                        mode = 2;
+                    else
+                        bst_2 = bst_1;
+                        mode = 1;
+                    end
+                    idx_other = find(idx_other_l);
+                    s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
+                    jmp = estimateJump(s_diff, jmp_idx,mode);
+                    
+                    
+                    % repair
+                    % TO DO half cycle
+                    if ~isnan(jmp)
+                        this.obs(id_ph(p),c:end) = this.obs(id_ph(p),c:end) - round(jmp);
+                    end
+                    if abs(jmp -round(jmp)) < 0.1
+                        poss_slip_idx(c, p) = -1;
+                    else
+                        poss_slip_idx(c, p) = 1;
+                    end
+                    
+                    
+                    
+                    
+                end
+                
+            end
+            
+            
+            
+            
+            
+            % save index into object
             this.outlier_idx_ph = sparse(poss_out_idx);
             this.cycle_slip_idx_ph = sparse(poss_slip_idx);
-            
-            
         end
         
         
@@ -4058,6 +4113,55 @@ classdef Receiver < handle
             this.log.newLine();
             this.obs = obs;
             
+        end
+        
+        function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
+            % DESCRIPTION: get syntetic observation for code or phase
+            obs_type = {'code', 'phase'};
+            this.log.addMessage(sprintf('Synthesising %s observations', obs_type{phase + 1}) );
+            idx_obs = [];
+            if nargin < 3
+                sys_c = this.cc.sys_c;
+            end
+            
+            for s = sys_c
+                if phase
+                    idx_obs = [idx_obs; this.getObsIdx('L', s)];
+                else
+                    idx_obs = [idx_obs; this.getObsIdx('C', s)];
+                end
+            end
+            
+            synt_pr_obs = zeros(length(idx_obs), size(this.obs,2));
+            sys = this.system(idx_obs);
+            prn = this.prn(idx_obs);
+            sat = this.cc.getIndex(sys,prn);
+            u_sat = unique(sat);
+            this.setAllAvailIndex();
+            this.updateErrIono();
+            this.updateErrTropo();
+            for i = u_sat'
+                sat_idx = find(sat == i);
+                
+                this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
+                range = this.getSyntObs('I', i);
+                for j = sat_idx'
+                    o = idx_obs(j);
+                    o = find(idx_obs == o);
+                    c_obs_idx = idx_obs(j); % index of the observation we are currently processing
+                    ep_idx = this.obs(c_obs_idx,:) ~= 0;
+                    freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
+                    if sys(j) == 'G' && freq == 1
+                        iono_factor = 1;
+                    else
+                        wl_ref = this.cc.getGPS.F_VEC(1);
+                        wl = this.cc.getSys(sys(j)).F_VEC(freq);
+                        iono_factor= wl_ref ^ 2/ wl ^ 2;
+                    end
+                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx,i)';
+                end
+                
+            end
         end
     end
     
