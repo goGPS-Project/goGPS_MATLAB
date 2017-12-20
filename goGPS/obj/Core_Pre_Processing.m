@@ -1171,15 +1171,15 @@ classdef Core_Pre_Processing < handle
                 d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
                 d4dt(abs(d4dt) < clock_thresh) = 0;
                 dt = dt - cumsum(nan2zero([0; d4dt; zeros(3,1)]));
-                dt_s = detrend(dt) - splinerMat([], detrend(dt), length(dt)/2);
+                dt_s = detrend(detrend(dt) - splinerMat([], detrend(dt), length(dt)/2));
                 
-                [~, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, dt_s));
-                if flag
-                    dt = dt_s;
-                end
-                [ph, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, detrend(dt)));
+                [~, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, detrend(dt)));
                 if flag
                     dt = detrend(dt);
+                end
+                [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, dt_s));
+                if flag
+                    dt = dt_s;
                 end                
             else
                 dt = zeros(size(ddt));
@@ -1213,72 +1213,6 @@ classdef Core_Pre_Processing < handle
             dt = dt / 299792458;
         end
 
-        function [pr, ph, dt_pr, dt_ph] = correctTimeDesyncHF(time_ref, time, pr, ph)
-            %   Correction of jumps in code and phase due to dtR and time de-sync
-            % SYNTAX:
-            %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
-
-            log = Logger.getInstance();
-            
-            time_desync  = round((time_ref - time) * 1e7) / 1e7;
-            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
-            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
-            
-            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
-            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
-            % if adding the desync will improve the std it means that the receiver does not compensate for it
-            [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_ds);
-            if flag
-                time_desync_ph = time_desync;
-                log.addMessage('Correcting phase for time desync', 100);
-            else
-                time_desync_ph = 0;
-            end
-            
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
-            if flag
-                time_desync_pr = time_desync;
-                log.addMessage('Correcting pseudo-ranges for time desync', 100);
-            else
-                time_desync_pr = 0;
-            end
-            clear pr_ds ph_ds;
-            [ph, dt_ph_jumps] = Core_Pre_Processing.remDtJumps(ph);
-            [ph, dt] = Core_Pre_Processing.remDtHF(ph);
-            dt_ph = dt_ph_jumps + dt;
-            %figure(1); plot(diff(zero2nan(ph)),'.k');
-
-            % correct the pseudo-ranges for HF
-            pr_lf = bsxfun(@minus, pr, dt .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_lf);
-            if flag
-                dt_pr = dt_ph;
-                log.addMessage('Correcting pseudo-ranges for dt HF as estimated from phases observations', 100);
-            else
-                dt_pr = zeros(size(dt_ph));
-            end
-
-            % correct the pseudo-ranges for jumps
-            pr_dj = bsxfun(@minus, pr, dt_ph_jumps .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
-            if flag
-                dt_pr = dt_pr + dt_ph_jumps;
-                log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
-            end
-            
-            % in some receivers the pseudo-range is not continuous while the phase are ok
-            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
-            if flag
-                dt_pr = dt_pr_jumps + dt_pr;
-                log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
-            end
-            
-            dt_ph = dt_ph + time_desync_ph;
-            dt_pr = dt_pr + time_desync_pr;
-            %figure(2); plot(diff(zero2nan(pr)),'.k');
-        end
-        
         function [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX:
@@ -1299,7 +1233,7 @@ classdef Core_Pre_Processing < handle
 
             % correct the pseudo-ranges for jumps
             pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
+            [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
             if flag
                 dt_pr = dt_ph;
                 log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
@@ -1315,26 +1249,27 @@ classdef Core_Pre_Processing < handle
                 log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
             end
             
-            % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
-            if sum(dt_pr(~isnan(dt_pr))) ~= 0
-                all_time = repmat(time_ref, 1, size(pr,2))';
-                pr_tmp = pr' - mean(pr(:), 'omitnan');
-                % LS interpolant
-                [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
-                pr_dj = bsxfun(@minus, pr, dt_2nd_order);
-                [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_dj);
-                if flag
-                    dt_pr = dt_pr + dt_2nd_order ./ 299792458;
-                    log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
-                end
-                
-                ph_dj = bsxfun(@minus, ph, dt_2nd_order);
-                [ph, flag] = Core_Pre_Processing.testDesyncCorrection(ph, ph_dj);
-                if flag
-                    dt_ph = dt_ph + dt_2nd_order ./ 299792458;
-                    log.addMessage('Correcting phase for 2nd order dt', 100);
-                end
-            end
+%             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
+%             if sum(dt_pr(~isnan(dt_pr))) ~= 0
+%                 all_time = repmat(time_ref, 1, size(pr,2))';
+%                 pr_tmp = pr' - mean(pr(:), 'omitnan');
+%                 % LS interpolant
+%                 [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
+%                 %dt_2nd_order = detrend(dt_2nd_order);
+%                 pr_dj = bsxfun(@minus, pr, dt_2nd_order);
+%                 [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
+%                 if flag
+%                     dt_pr = dt_pr + dt_2nd_order ./ 299792458;
+%                     log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
+%                 end
+%                 
+%                 ph_dj = bsxfun(@minus, ph, dt_2nd_order);
+%                 [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_dj);
+%                 if flag
+%                     dt_ph = dt_ph + dt_2nd_order ./ 299792458;
+%                     log.addMessage('Correcting phase for 2nd order dt', 100);
+%                 end
+%             end
             %figure(2); plot(diff(zero2nan(pr)),'.k');
         end
         
@@ -1400,7 +1335,7 @@ classdef Core_Pre_Processing < handle
     end
     
     % ==================================================================================================================================================
-    %  PRIVATE FUNCTIONS called by pubblic calls
+    %  PRIVATE FUNCTIONS called by public calls
     % ==================================================================================================================================================
     
     methods (Access = public)
@@ -1413,7 +1348,16 @@ classdef Core_Pre_Processing < handle
         function [data, flag] = testDesyncCorrection(data, data_corrected)
             % if the correction effectively removes jumps -> apply the correction
             % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
-            flag = mean(std(data_corrected,'omitnan'),'omitnan') < mean(std(data,'omitnan'),'omitnan');            
+            flag = mean(std(data_corrected, 'omitnan'), 'omitnan') < mean(std(data, 'omitnan'), 'omitnan');
+            if flag
+                data = data_corrected;
+            end
+        end
+        
+        function [data, flag] = testDiffDesyncCorrection(data, data_corrected)
+            % if the correction effectively removes jumps -> apply the correction
+            % SYNTAX: [data, flag] = testDesyncCorrection(data, data_corrected)
+            flag = mean(std(diff(zero2nan(data_corrected)), 'omitnan'), 'omitnan') < mean(std(diff(zero2nan(data)), 'omitnan'), 'omitnan');
             if flag
                 data = data_corrected;
             end

@@ -175,7 +175,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     % correct nominal time desynchronization and jumps ---------------------------------------------------
     
     % nominal time desynchronization (e.g. with some low-cost receivers)
-    %time_desync = round((time_ref - time) * 1e7) / 1e7; % computed here, used in init_positioning
+    time_desync = round((time - time_ref) * 1e7) / 1e7; % computed here, used in init_positioning
     
     ph1_bk = ph1;
     ph2_bk = ph2;
@@ -371,7 +371,6 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         %-------------------------------------------------------------------------------------------------------------
         % RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
         %-------------------------------------------------------------------------------------------------------------
-
         if (nisbs > 1)
             %unknown_index = find(~isnan(n_obs_epoch));
             n_obs_epoch(isnan(n_obs_epoch)) = [];
@@ -588,7 +587,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         index_e = find(time ~= 0);
 
         % time "correction"
-        time(index_e) = time(index_e) - dt_ph(index_e) - dtR(index_e);
+        time(index_e) = time(index_e) - dt_ph(index_e) - dtR(index_e) - time_desync(index_e);
 
         % variables to store interpolated observations
         pr1_interp = zeros(size(pr1));
