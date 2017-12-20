@@ -518,8 +518,11 @@ classdef Receiver < handle
             [pr, id_pr] = this.getPseudoRanges();
             
             % apply desync
-            ph = bsxfun(@minus, ph, time_desync .* 299792458);
-            pr = bsxfun(@minus, pr, time_desync .* 299792458);
+            ph_ds = bsxfun(@minus, ph, time_desync .* 299792458);
+            [ph, flag_ph] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_ds);
+            
+            pr_ds = bsxfun(@minus, pr, time_desync .* 299792458);
+            [pr, flag_pr] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_ds);
             
             [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
             %figure(1); plot(diff(zero2nan(ph)),'.k');
@@ -539,7 +542,16 @@ classdef Receiver < handle
             [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
             if flag
                 dt_pr = dt_pr + dt_pr_jumps;
-                this.log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+                dt_pr_trend = cumsum(ones(size(ph,1),1) * median(diff(dt_pr),'omitnan'));
+                dt_pr_trend = dt_pr_trend - mean(dt_pr_trend);
+                this.log.addWarning('Phases and pseudo-ranges seem to "jump" in different ways');
+                
+                ph_dt = bsxfun(@minus, ph, dt_pr_trend .* 299792458);
+                [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_dt);
+                if flag
+                    dt_ph = dt_ph + dt_pr_trend;
+                    this.log.addMessage(this.log.indent('Correcting phases for dt trend as estimated from pseudo_ranges observations', 1));
+                end
             end
             
 %             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
@@ -1473,10 +1485,6 @@ classdef Receiver < handle
                 this.dts_delay_status = 0; %applied
             end
         end
-        
-        
-        
-        
         
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT:
@@ -3594,12 +3602,12 @@ classdef Receiver < handle
             
             figure; 
             t = this.time.getMatlabTime;
-            plot(t, -this.desync, '-k', 'LineWidth', 2);
+            plot(t, zero2nan(-this.desync), '-k', 'LineWidth', 2);
             hold on;
-            plot(t, this.dt_pr, ':', 'LineWidth', 2);
-            plot(t, this.dt_ph, ':', 'LineWidth', 2);
-            plot(t, this.dt, '-', 'LineWidth', 2);
-            plot(t, this.dt + this.dt_pr, '-', 'LineWidth', 2);
+            plot(t, zero2nan(this.dt_pr), ':', 'LineWidth', 2);
+            plot(t, zero2nan(this.dt_ph), ':', 'LineWidth', 2);
+            plot(t, zero2nan(this.dt), '-', 'LineWidth', 2);
+            plot(t, zero2nan(this.dt) + zero2nan(this.dt_pr), '-', 'LineWidth', 2);
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
 
