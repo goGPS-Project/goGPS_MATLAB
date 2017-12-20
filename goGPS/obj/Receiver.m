@@ -104,6 +104,9 @@ classdef Receiver < handle
         pw_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for phase wind up(0: not corrected , 1: corrected)
         et_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for solid earth tide(0: not corrected , 1: corrected)
         
+        outlier_idx_ph;
+        cycle_slip_idx_ph;
+        
         sat = struct( ...
             'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
             'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
@@ -3675,29 +3678,82 @@ classdef Receiver < handle
         end
         
         function removeOutlierMarkCycleSlip(this)
+            
+            %PARAMETRS
+            ol_thrs = 0.5; %outlier threshold
+            cs_thrs = 0.5; %CYCLE SLIP TRHS
+            sa_thrs = 10; %short arc threshold
             % mark all as outlier and interpolate
             % get observed values
-            [ph, ~, id_ph] = this.getPhases;
+            [ph, ~, id_ph_l] = this.getPhases;
+            id_ph = find(id_ph_l);
             % first time derivative 
             synt_ph = this.getSyntPhObs;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
             %subtract median
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             % multiply for wavelenght
-            sensor_ph = sensor_ph./repmat(this.wl(id_ph)',this.time.length,1);
+            sensor_ph = sensor_ph./repmat(this.wl(id_ph_l)',this.time.length,1);
             % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > 0.3;
+            poss_out_idx = abs(sensor_ph) > ol_thrs;
             %take them off
-            ph(poss_out_idx) = nan;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph,3);
+            ph2=ph;
+            ph2(poss_out_idx) = nan;
+            %join the nan 
+            sensor_ph_cs = nan(size(sensor_ph));
+            for o = 1 : size(ph2,2)
+                tmp_ph = ph2(:,o);
+                ph_idx = not(isnan(tmp_ph));
+                tmp_ph = tmp_ph(ph_idx);
+                sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
+            end
+            
             %subtract median
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
             % multiply for wavelenght
-            sensor_ph = sensor_ph./repmat(this.wl(id_ph)',this.time.length,1);
+            sensor_ph_cs2 = sensor_ph_cs2./repmat(this.wl(id_ph_l)',this.time.length,1);
             %find possible cycle slip
-            % cycle slip when they exceed 0.6 cycle
-            poss_slip_idx = abs(sensor_ph) > 0.3;
-            % redo diff only cycle slip should be present
+            % cycle slip when they exceed thrhsold cycle
+            poss_slip_idx = abs(sensor_ph_cs2) > cs_thrs;
+            
+            %check if epoch before cycle slip can be restored
+            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
+            poss_rest = poss_rest & poss_out_idx;
+            poss_rest_line = sum(poss_rest,2);
+            poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
+            ph_rest_lines = ph(poss_rest_line,:);
+            synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+            
+            sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+            %subtract median
+            sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
+            % multiply for wavelenght
+            sensor_rst = sensor_rst./repmat(this.wl(id_ph_l)',size(sensor_rst,1),1);
+            for i = 1:size(sensor_rst,2)
+                for c = find(poss_rest(:,i))'
+                    if ~isempty(c)
+                        idx = sum(poss_rest_line(1:c));
+                        if abs(sensor_rst(idx,i)) < cs_thrs
+                            poss_out_idx(c,i) = false; %is not outlier
+                            %move 1 step before the cycle slip index
+                            poss_slip_idx(c+1,i) = false;
+                            poss_slip_idx(c,i) = true;
+                        end
+                    end
+                end
+            end
+            
+            no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
+            no_out_ph(poss_out_idx) = nan;
+            
+            % remove too short possible arc
+            to_short_idx = flagMerge(poss_slip_idx,sa_thrs);
+            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
+            to_short_idx(poss_slip_idx) =false; 
+            poss_out_idx(to_short_idx) = true;
+            no_out_ph(to_short_idx) = nan;
+            this.outlier_idx_ph = sparse(poss_out_idx);
+            this.cycle_slip_idx_ph = sparse(poss_slip_idx);
             
             
         end
