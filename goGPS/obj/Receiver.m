@@ -1046,6 +1046,7 @@ classdef Receiver < handle
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
+            ph(this.outlier_idx_ph') = nan;
             wl = this.wl(id_ph);
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
@@ -2315,6 +2316,7 @@ classdef Receiver < handle
                 sys_c = this.cc.sys_c;
             end
             synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');
+            synt_ph_obs(this.outlier_idx_ph) = nan;
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -3678,7 +3680,9 @@ classdef Receiver < handle
                 tmp_ph = ph2(:,o);
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
-                sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
+                if ~isempty(tmp_ph)
+                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
+                end
             end
             
             %subtract median
@@ -3725,6 +3729,8 @@ classdef Receiver < handle
             to_short_idx(poss_slip_idx) =false;
             poss_out_idx(to_short_idx) = true;
             no_out_ph(to_short_idx) = nan;
+            n_out = sum(sum(poss_out_idx));
+            this.log.addMarkedMessage(sprintf('%d phase observations marked as outlier',n_out));
             
             
             %----------------------------
@@ -3733,17 +3739,21 @@ classdef Receiver < handle
             
             % window used to estimate cycle slip
             % linear time
-            lin_time = 300; %single diffrence is linear in 5 minutes
-            max_window = 200; %maximum windows allowed (for computational reason)
+            lin_time = 900; %single diffrence is linear in 15 minutes
+            max_window = 600; %maximum windows allowed (for computational reason)
             win_size = min(max_window,ceil(lin_time / this.rate/2)*2); %force even
             
             
             d_no_out = no_out_ph - synt_ph ./ repmat(this.wl(id_ph_l)',size(ph,1),1);
             n_ep = this.time.length;
+            poss_slip_idx = double(poss_slip_idx);
+            n_cycleslip = 0;
+            n_repaired = 0;
+            jmps = [];
             for p = 1:size(poss_slip_idx,2)
                 c_slip = find(poss_slip_idx(:,p)');
                 for c = c_slip
-                    
+                    n_cycleslip = n_cycleslip + 1;
                     slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
                     if isempty(slip_bf)
                         slip_bf = 0;
@@ -3785,25 +3795,29 @@ classdef Receiver < handle
                     if isempty(bst_1)
                         bst_1 = find(rnk_bf == 1 ,1,'first');
                         bst_2 = find(rnk_aft == 1,1,'first');
-                        mode = 2;
+                        same_slope = false;
                     else
                         bst_2 = bst_1;
-                        mode = 1;
+                        same_slope = true;
                     end
                     idx_other = find(idx_other_l);
                     s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
-                    jmp = estimateJump(s_diff, jmp_idx,mode);
-                    
+                    jmp = nan;
+                    if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
+                        jmp = estimateJump(s_diff, jmp_idx,same_slope);
+                        jmps= [jmps ; jmp];
+                    end
                     
                     % repair
                     % TO DO half cycle
                     if ~isnan(jmp)
                         this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
                     end
-                    if abs(jmp -round(jmp)) < 0.1
-                        poss_slip_idx(c, p) = -1;
+                    if abs(jmp -round(jmp)) < 0.2
+                        poss_slip_idx(c, p) = - 1;
+                        n_repaired = n_repaired +1;
                     else
-                        poss_slip_idx(c, p) = 1;
+                        poss_slip_idx(c, p) =   1;
                     end
                     
                     
@@ -3813,13 +3827,13 @@ classdef Receiver < handle
                 
             end
             
-            
+            this.log.addMarkedMessage(sprintf('%d of %d cycle slip repaired',n_repaired,n_cycleslip));
             
             
             
             % save index into object
-            this.outlier_idx_ph = sparse(poss_out_idx);
-            this.cycle_slip_idx_ph = sparse(poss_slip_idx);
+             this.outlier_idx_ph = sparse(poss_out_idx);
+%             this.cycle_slip_idx_ph = sparse(poss_slip_idx);
         end
         
         
