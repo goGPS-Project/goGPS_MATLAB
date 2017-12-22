@@ -3654,7 +3654,7 @@ classdef Receiver < handle
             end
         end
         
-        function phRemoveOutlierMarkCycleSlip(this)
+        function removeOutlierMarkCycleSlip(this)
             
             %PARAMETRS
             ol_thrs = 0.5; %outlier threshold
@@ -3682,6 +3682,7 @@ classdef Receiver < handle
             %take them off
             ph2=ph;
             ph2(poss_out_idx) = nan;
+            ph2 = simpleFill1D(ph2, poss_out_idx);
             
             %----------------------------
             % Cycle slip detection
@@ -3741,10 +3742,10 @@ classdef Receiver < handle
             poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
             to_short_idx(poss_slip_idx) =false;
             poss_out_idx(to_short_idx) = true;
-            no_out_ph(to_short_idx) = nan;
+            
             n_out = sum(sum(poss_out_idx));
             this.outlier_idx_ph = sparse(poss_out_idx);
-            this.cycle_slip_idx_ph = sparse(poss_slip_idx);
+            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
             this.log.addMarkedMessage(sprintf('%d phase observations marked as outlier',n_out));
             
         end
@@ -3772,7 +3773,7 @@ classdef Receiver < handle
             n_repaired = 0;
             jmps = [];
             for p = 1:size(poss_slip_idx,2)
-                c_slip = find(poss_slip_idx(:,p)');
+                c_slip = find(poss_slip_idx(:,p)' == 1);
                 for c = c_slip
                     n_cycleslip = n_cycleslip + 1;
                     slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
@@ -3791,25 +3792,27 @@ classdef Receiver < handle
                     idx_other_l = 1:size(poss_slip_idx,2) ~= p;
                     idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
                     best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
+                    poss_mst_bf =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
                     for j = 1 : length(best_cs)
-                        poss_mst(1:best_cs(j),j) = false;
+                        poss_mst_bf(1:best_cs(j),j) = false;
                     end
-                    num_us_ep_bf = sum(poss_mst); % number of usable epoch befor
+                    num_us_ep_bf = sum(poss_mst_bf); % number of usable epoch befor
                     data_sorted = sort(num_us_ep_bf,'descend');
                     [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
                     
                     % find best master after
                     idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
                     best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
+                    poss_mst_aft =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
                     for j = 1 : length(best_cs)
-                        poss_mst(1:best_cs(j),j) = false;
+                        poss_mst_aft(1:best_cs(j),j) = false;
                     end
-                    num_us_ep_aft = sum(poss_mst); % number of usable epoch befor
+                    num_us_ep_aft = sum(poss_mst_aft); % number of usable epoch befor
                     data_sorted = sort(num_us_ep_aft,'descend');
                     [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
                     
+                    
+                    idx_other = find(idx_other_l);
                     
                     %decide which arc to use
                     bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
@@ -3821,20 +3824,29 @@ classdef Receiver < handle
                         bst_2 = bst_1;
                         same_slope = true;
                     end
-                    idx_other = find(idx_other_l);
+                    
                     s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
                     jmp = nan;
                     if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
-                        jmp = estimateJump(s_diff, jmp_idx,same_slope);
+                        jmp = estimateJump(s_diff, jmp_idx,same_slope,'median');
                         jmps= [jmps ; jmp];
                     end
+                    
+                    %{
+                    ph_piv = d_no_out(st_wind_idx : end_wind_idx,p);
+                    usable_s = sum(poss_mst_bf) > 0 & sum(poss_mst_aft);
+                    ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
+                    ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
+                    ph_other(:, ~usable_s) = [];
+                    %}
+                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
                     
                     % repair
                     % TO DO half cycle
                     if ~isnan(jmp)
                         this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
                     end
-                    if abs(jmp -round(jmp)) < 0.2
+                    if abs(jmp -round(jmp)) < 0.1
                         poss_slip_idx(c, p) = - 1;
                         n_repaired = n_repaired +1;
                     else
@@ -3850,11 +3862,35 @@ classdef Receiver < handle
             
             this.log.addMarkedMessage(sprintf('%d of %d cycle slip repaired',n_repaired,n_cycleslip));
             
-            
+            this.cycle_slip_idx_ph = poss_slip_idx;
             
             % save index into object
              
 %             
+        end
+        function removeShortArch(this)
+            % removes arch shorter than 
+            min_arch = 10;
+            ph = this.getPhases();
+            idx = ~isnan(ph);
+            idx_s = flagShrink(idx,min_arch/2);
+            idx_e = flagExpand(idx_s,min_arch/2);
+            el_idx = xor(idx,idx_e);
+            this.outlier_idx_ph(el_idx) =  true;
+            this.cycle_slip_idx_ph(el_idx) = 0;
+        end
+        
+        function plotCycleSlip(this)
+            if ~isempty(this.cycle_slip_idx_ph)
+                ph = this.getPhases();
+                synt_ph = this.getSyntPhases();
+                d_ph = ph - synt_ph;
+                figure;
+                plot(d_ph);
+                ep = repmat([1: this.time.length]',1,size(d_ph,2));
+                hold on
+                scatter(ep(this.cycle_slip_idx_ph~=0),d_ph(this.cycle_slip_idx_ph~=0))
+            end
         end
         
         
