@@ -3540,7 +3540,7 @@ classdef Receiver < handle
             
             % Phases
             [ph, ~, id_ph] = this.getPhases;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhObs); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             figure; subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
             
             this.updateAzimuthElevation()
