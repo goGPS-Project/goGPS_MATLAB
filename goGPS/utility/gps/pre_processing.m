@@ -530,8 +530,11 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         lim = getOutliers(dtR ~= 0);
         dtR = simpleFill1D(zero2nan(dtR), dtR == 0, 'spline');
         for i = 1 : size(lim, 1)
-            dtR(lim(i,1) : lim(i,2)) = splinerMat([], dtR(lim(i,1) : lim(i,2)), 3);
+            if lim(i,2) - lim(i,1) > 5
+                dtR(lim(i,1) : lim(i,2)) = splinerMat([], dtR(lim(i,1) : lim(i,2)), 3);
+            end    
         end
+                    
         ph = bsxfun(@minus, ph, v_light * dtR);
         
         % apply new dtR to pseudo-ranges
