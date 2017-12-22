@@ -76,6 +76,18 @@ classdef Core_Sky < handle
         
         avail                 % availability flag
         coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
+        
+        ionex = struct( ...
+            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'lat_lim',    [], ...    % latitude limits
+            'lon_lim',    [], ...    % longitude limits
+            'd_lat',      [], ...    %lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'first_time', [], ...    % times [time] of the maps
+            'dt',         [], ...    % time spacing
+            'n_t',        [], ...    % num of epocvhs
+            'heigth',     []  ...    % heigh of the layer
+            )                 
 
     end
     
@@ -1004,6 +1016,76 @@ classdef Core_Sky < handle
                 
            
             
+        end
+        
+        function importIonex(this, filename)
+            fid = fopen([filename],'r');
+            if fid == -1
+                this.log.addWarning(sprintf('      File %s not found', filename));
+                return
+            end
+            this.log.addMessage(sprintf('      Opening file %s for reading', filename));
+            txt = fread(fid,'*char')';
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  numel(txt)
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+            lim = [lim lim(:,2) - lim(:,1)];
+            if lim(end,3) < 3
+                lim(end,:) = [];
+            end
+            % read header
+            for l = 1:size(lim,1)
+                line = txt(lim(l,1):lim(l,2));
+                if strfind(line,'END OF HEADER')
+                    break
+                elseif strfind(line,'EPOCH OF FIRST MAP')
+                    first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                elseif strfind(line,'EPOCH OF LAST MAP')
+                    last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                elseif strfind(line,'INTERVAL')
+                    interval = sscanf(line(1:60),'%f')';
+                elseif strfind(line,'HGT1 / HGT2 / DHGT')
+                    height = sscanf(line(1:60),'%f %f %f')';
+                elseif strfind(line,'LAT1 / LAT2 / DLAT')
+                    lats = sscanf(line(1:60),'%f %f %f')';
+                elseif strfind(line,'LON1 / LON2 / DLON')
+                    lons = sscanf(line(1:60),'%f %f %f')';
+                end 
+            end
+            lim(1:l,:) = [];
+            txt(1:(lim(1,1)-1)) = [];
+            lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
+            if isempty(this.ionex.data)
+                this.ionex.first_time = first_epoch;
+                this.ionex.dt = interval;
+                this.ionex.nt =  round((last_epoch - first_epoch) / interval);
+                this.ionex.lat_lim = lats(1:2);
+                this.ionex.dlat = lats(3);
+                this.ionex.lon_lim = lons(1:2);
+                this.ionex.dlon = lons(3);
+                this.ionex.height = height;
+                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.nt);
+            end
+            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80)
+            n_lat = size(this.ionex.data,1)+1;
+            n_lon = size(this.ionex.data,2)+1;
+            nt = this.ionex.nt;
+            lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
+            st_l  = lim(lines, 1);
+            cols = [0:(n_lon*5+n_line_1_lat-2)];
+            idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
+            idx(:,81:81:length(cols))   = [];
+            vals = txt(serialize(idx'));
+            %vals = serialize(vals');
+            vals = reshape(vals,5,length(vals)/5);
+            vals = sscanf(vals,'%f');
+            this.ionex.data = reshape(vals,n_lat,n_lon,nt);
+            keyboard
         end
         
         function idx = getGroupDelayIdx(this,flag)
