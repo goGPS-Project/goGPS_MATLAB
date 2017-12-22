@@ -3868,9 +3868,8 @@ classdef Receiver < handle
              
 %             
         end
-        function removeShortArch(this)
+        function removeShortArch(this,min_arch)
             % removes arch shorter than 
-            min_arch = 10;
             ph = this.getPhases();
             idx = ~isnan(ph);
             idx_s = flagShrink(idx,min_arch/2);
@@ -3893,6 +3892,57 @@ classdef Receiver < handle
             end
         end
         
+        function plotSmoothRef(this)
+            ph = this.getPhases();
+            synt_ph = this.getSyntPhases();
+            d_ph = ph - synt_ph;
+            d_ph(this.cycle_slip_idx_ph ~= 0) =nan;
+            filt_length = 1000;
+            idx = double(~isnan(d_ph));
+            idx_s = flagShrink(idx,filt_length/2);
+            idx_e = flagExpand(idx_s,filt_length/2);
+            el_idx = xor(idx,idx_e);
+            idx(el_idx) = 0;
+            filt_arm = floor(filt_length/2);
+            idx = flagShrink(idx,4);
+            
+            filt = (-filt_arm:filt_arm)/filt_length*5;
+            filt = exp(-(filt).^2);
+            filt = filt'./sum(filt);
+            sats = 1 : size(ph,2);
+            idx_f = zeros(size(idx));
+            d_ph2= zeros(size(d_ph));
+            for i = sats
+            idx_f(:,i) = conv(idx(:,i),filt,'same');
+             d_ph2(:,i) = d_ph(:,i) -mean(d_ph2(:,i),'omitnan');
+            end
+            idx1 = min(circshift(idx_f,filt_arm),circshift(idx_f,-filt_arm));
+            w_ph = d_ph2 .* idx1;
+            r_ph = nan(size(ph));
+            
+            for i = sats
+                w_ph_t = w_ph(:,sats~=i);
+                scale = sum(idx1(:,sats~=i),2,'omitnan');
+                to_diff = sum(w_ph_t,2,'omitnan')./scale;
+                x = (1:length(to_diff))';
+                valid_x = ~isnan(to_diff);
+                x = x(valid_x);
+                xx = 0:300:length(valid_x);
+                pp = spline(x,to_diff(valid_x),xx(8:end-7));
+                pp = [repmat(pp(1),1,7) pp repmat(pp(end),1,7)];
+                to_diff(valid_x) = to_diff(valid_x)- spline(xx,pp,x);%polyval(p,x);
+                
+                r_ph(:,i) = d_ph(:,i) - to_diff;
+            end
+            figure;
+            plot(r_ph);
+            ep = repmat([1: this.time.length]',1,size(r_ph,2));
+                hold on
+                scatter(ep(this.cycle_slip_idx_ph~=0),r_ph(this.cycle_slip_idx_ph~=0))
+        end
+
+            
+            
         
     end
     
