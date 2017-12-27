@@ -2108,7 +2108,10 @@ classdef Receiver < handle
         end
         
         function translateToNominal(this)
-            %DESCRIPTION: trabslate receiver observations to nominal epochs
+            %DESCRIPTION: translate receiver observations to nominal epochs
+            % TO BE UNDERSTOOD
+            tt = this.dt(:,1) + this.dt_ph;
+            this.timeTraslateObs(tt)
             
         end
         
