@@ -48,6 +48,7 @@ classdef Receiver < handle
     properties (SetAccess = public, GetAccess = public)
         file           % file rinex object
         rin_type       % rinex version format
+        rinex_ss       % flag containing the satellite system of the rinex file, G: GPS, R: GLONASS, E: Galileo, J: QZSS, C: BDS, I: IRNSS, S: SBAS payload, M: Mixed
         
         ant            % antenna number
         ant_type       % antenna type
@@ -657,10 +658,11 @@ classdef Receiver < handle
                 l = l + 1;
                 if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
                     type_found = true;
-                    dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');
+                    dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');                    
                 end
             end
             this.rin_type = dataset{1};
+            this.rinex_ss = dataset{4};
             if dataset{2} == 'O'
                 if (this.rin_type < 3)
                     if (dataset{4} ~= 'G')
@@ -3726,6 +3728,7 @@ classdef Receiver < handle
             this.log.addMarkedMessage(sprintf('%d phase observations marked as outlier',n_out));
             
         end
+        
         function tryCycleSlipRepair(this)
             %----------------------------
             % Cycle slip repair
@@ -3828,13 +3831,8 @@ classdef Receiver < handle
                         n_repaired = n_repaired +1;
                     else
                         poss_slip_idx(c, p) =   1;
-                    end
-                    
-                    
-                    
-                    
-                end
-                
+                    end                    
+                end                
             end
             
             this.log.addMarkedMessage(sprintf('%d of %d cycle slip repaired',n_repaired,n_cycleslip));
@@ -3952,6 +3950,7 @@ classdef Receiver < handle
                 all_sat = [all_sat sat];
             end
             all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
+            all_sat(all_sat(:,1) == 32) = this.rinex_ss;
             all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
             gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
             glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
@@ -4037,6 +4036,7 @@ classdef Receiver < handle
                 sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
                 sat = sat(1:n_sat * 3);
                 sat = reshape(sat, 3, n_sat)';
+                sat(sat(:,1) == 32) = this.rinex_ss;
                 sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
                 prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
                 if numel(prn_e) < this.n_spe(e)
