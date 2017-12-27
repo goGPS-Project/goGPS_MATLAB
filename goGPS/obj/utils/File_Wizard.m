@@ -202,7 +202,7 @@ classdef File_Wizard < handle
                 for i = 1 : length(file_list)
                     [~, name, ext] = fileparts(file_list{i});
                     names{end+1} = name;
-                    if exist([this.state.getDcbDir name], 'file') ~= 2
+                    if exist(checkPath([this.state.getDcbDir '/' name]), 'file') ~= 2
                         dcb_ok = false;
                     end
                 end

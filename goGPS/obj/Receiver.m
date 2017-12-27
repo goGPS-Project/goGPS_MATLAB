@@ -384,7 +384,7 @@ classdef Receiver < handle
             % smooth clock estimation
             this.smoothAndApplyDt();
             % set all availability index
-            this.setAllAvailIndex();
+            this.updateAllAvailIndex();
             %update azimuth elevation
             this.updateAzimuthElevation();
             % apply various corrections
@@ -1738,7 +1738,7 @@ classdef Receiver < handle
             
             if sub_sample
                 % update avalibilty index
-                this.setAllAvailIndex();
+                this.updateAllAvailIndex();
             end
             
             % update Atmosphere Corrections
@@ -1930,7 +1930,7 @@ classdef Receiver < handle
             
             %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
             %remove cut off
-            this.setAllAvailIndex();
+            this.updateAllAvailIndex();
             this.updateAzimuthElevation();
             this.updateErrTropo();
             if ~iono_free
@@ -2188,7 +2188,7 @@ classdef Receiver < handle
             this.sat.avail_index(:,sat) = obs > 0;
         end
         
-        function setAllAvailIndex(this)
+        function updateAllAvailIndex(this)
             % DESCRIPTION: update avaliabilty of measurement on all
             % satellite based on all code and phase
             if isempty(this.sat.avail_index)
@@ -3115,7 +3115,7 @@ classdef Receiver < handle
             % DESCRIPTION: correct measurement for PCV both of receiver
             % antenna and satellite antenna
             if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
-                this.setAllAvailIndex();
+                this.updateAllAvailIndex();
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
@@ -3985,7 +3985,7 @@ classdef Receiver < handle
             prn = this.prn(idx_obs);
             sat = this.cc.getIndex(sys,prn);
             u_sat = unique(sat);
-            this.setAllAvailIndex();
+            this.updateAllAvailIndex();
             this.updateErrIono();
             this.updateErrTropo();
             for i = u_sat'
