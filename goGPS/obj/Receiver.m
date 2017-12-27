@@ -125,10 +125,26 @@ classdef Receiver < handle
     end
     
     % ==================================================================================================================================================
-    %  SETTER
+    %  PUBLIC METHODS
     % ==================================================================================================================================================
     
     methods
+        function this = Receiver(cc, rinex_file_name)
+            % SYNTAX  this = Receiver(<cc>)
+            this.initObs();
+            this.log = Logger.getInstance();
+            this.state = Go_State.getCurrentSettings();
+            if nargin >= 1 && ~isempty(cc)
+                this.cc = cc;
+            else
+                this.cc = this.state.cc;
+            end
+            this.w_bar = Go_Wait_Bar.getInstance();
+            if nargin >= 2 && ~isempty(rinex_file_name)
+                this.loadRinex(rinex_file_name);
+            end
+        end
+        
         function toString(this)
             % Display on screen information about the receiver
             % SYNTAX: this.toString();
@@ -177,21 +193,7 @@ classdef Receiver < handle
             
         end
         
-        function this = Receiver(cc, rinex_file_name)
-            % SYNTAX  this = Receiver(<cc>)
-            this.initObs();
-            this.log = Logger.getInstance();
-            this.state = Go_State.getCurrentSettings();
-            if nargin >= 1 && ~isempty(cc)
-                this.cc = cc;
-            else
-                this.cc = this.state.cc;
-            end
-            this.w_bar = Go_Wait_Bar.getInstance();
-            if nargin >= 2 && ~isempty(rinex_file_name)
-                this.loadRinex(rinex_file_name);
-            end
-        end
+        
         
         function initObs(this)
             % initialize the receiver obj
@@ -1095,14 +1097,6 @@ classdef Receiver < handle
             dop = bsxfun(@times, zero2nan(dop), wl');
         end
         
-        function setDoppler(this, dop, wl, id_dop)
-            % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
-            % SEE ALSO:  getDoppler
-            dop = bsxfun(@rdivide, zero2nan(dop'), wl);
-            this.obs(id_dop, :) = nan2zero(dop');
-        end
-        
         function [snr, id_snr] = getSNR(this, sys_c)
             % get the doppler observations
             % SYNTAX: [dop, id_dop] = this.getDoppler(<sys_c>)
@@ -1114,14 +1108,7 @@ classdef Receiver < handle
             end
             snr = zero2nan(this.obs(id_snr, :)');
         end
-        
-        function setSNR(this, snr, id_snr)
-            % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setSNR(<sys_c>)
-            % SEE ALSO:  getSNR
-            this.obs(id_snr, :) = nan2zero(snr');
-        end
-        
+         
         function [obs, idx] = getObs(this, flag, system, prn)
             % get observation and index corresponfing to the flag
             % SYNTAX this.getObsIdx(flag, <system>)
@@ -1328,6 +1315,25 @@ classdef Receiver < handle
             [obs, prn, obs_code] = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
     end
+    % ==================================================================================================================================================
+    % SETTER
+    % ==================================================================================================================================================
+    methods 
+        function setDoppler(this, dop, wl, id_dop)
+            % set the snr observations
+            % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
+            % SEE ALSO:  getDoppler
+            dop = bsxfun(@rdivide, zero2nan(dop'), wl);
+            this.obs(id_dop, :) = nan2zero(dop');
+        end
+        
+        function setSNR(this, snr, id_snr)
+            % set the snr observations
+            % SYNTAX: [pr, id_pr] = this.setSNR(<sys_c>)
+            % SEE ALSO:  getSNR
+            this.obs(id_snr, :) = nan2zero(snr');
+        end
+    end
     
     % ==================================================================================================================================================
     %  FUNCTIONS used as utilities
@@ -1407,41 +1413,17 @@ classdef Receiver < handle
             end
         end
         
-        function DtSat(this,flag)
-            % DESCRIPTION. apply clock satellite corrections for code and phase
-            % IMPORTANT: if no clock is present delete the observation
-            
-            if isempty(this.active_ids)
-                this.active_ids = false(size(this.obs,1),1);
-            end
-            
-            for i = 1 : this.cc.getNumSat()
-                prn = this.cc.prn(i);
-                sys = this.cc.system(i);
-                sat_idx = this.prn == prn & (this.system == sys)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
-                ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0));
-                this.updateAvailIndex(ep_idx,i);
-                dts_range = ( this.getDtS(i) + this.getRelClkCorr(i) ) * goGNSS.V_LIGHT;
-                for o = find(sat_idx)'
-                    obs_idx_l = this.obs(o,:) ~= 0;
-                    obs_idx = find(obs_idx_l);
-                    dts_idx = obs_idx_l(ep_idx);
-                    if this.obs_code(o,1) == 'C'
-                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
-                    else
-                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
-                    end
-                    dts_range_2 = dts_range(dts_idx);
-                    nan_idx = obs_idx(isnan(dts_range_2));
-                    this.obs(o, nan_idx) = 0;
-                end
-            end
-        end
-        
         function applyDtSat(this)
             if this.dts_delay_status == 0
                 this.DtSat(1);
                 this.dts_delay_status = 1; %applied
+            end
+        end
+        
+        function removeDtSat(this)
+            if this.dts_delay_status == 1
+                this.DtSat(-1);
+                this.dts_delay_status = 0; %applied
             end
         end
         
@@ -1484,12 +1466,7 @@ classdef Receiver < handle
             this.time.addSeconds( - dt_pr);
         end
         
-        function removeDtSat(this)
-            if this.dts_delay_status == 1
-                this.DtSat(-1);
-                this.dts_delay_status = 0; %applied
-            end
-        end
+        
         
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT:
@@ -4282,6 +4259,37 @@ classdef Receiver < handle
                     synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx,i)';
                 end
                 
+            end
+        end
+        
+        function DtSat(this,flag)
+            % DESCRIPTION. apply clock satellite corrections for code and phase
+            % IMPORTANT: if no clock is present delete the observation
+            
+            if isempty(this.active_ids)
+                this.active_ids = false(size(this.obs,1),1);
+            end
+            
+            for i = 1 : this.cc.getNumSat()
+                prn = this.cc.prn(i);
+                sys = this.cc.system(i);
+                sat_idx = this.prn == prn & (this.system == sys)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+                ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0));
+                this.updateAvailIndex(ep_idx,i);
+                dts_range = ( this.getDtS(i) + this.getRelClkCorr(i) ) * goGNSS.V_LIGHT;
+                for o = find(sat_idx)'
+                    obs_idx_l = this.obs(o,:) ~= 0;
+                    obs_idx = find(obs_idx_l);
+                    dts_idx = obs_idx_l(ep_idx);
+                    if this.obs_code(o,1) == 'C'
+                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
+                    else
+                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
+                    end
+                    dts_range_2 = dts_range(dts_idx);
+                    nan_idx = obs_idx(isnan(dts_range_2));
+                    this.obs(o, nan_idx) = 0;
+                end
             end
         end
     end
