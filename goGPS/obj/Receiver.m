@@ -2085,6 +2085,29 @@ classdef Receiver < handle
         end
         
         
+        function timeTraslateObs(this, tt)
+            % DESCRIPTION: translate observations at different epoch based on linear modeling of the satellite
+            % copute the sat postion at the current epoch
+            XS = this.getXSLoc();
+            
+            % translate the time
+            this.time.addSeconds(tt);
+            % copute the sat postion at epoch trasnlated
+            XS_t = this.getXSLoc();
+            
+            %compute the correction
+            d_XS = XS_t - XS;
+            d_range = sqrt(sum(d_XS.^2,3));
+            for i = 1 : size(d_range,2)
+                obs_idx = this.go_id == i & ( this.obs_code(:,1) == 'L' | this.obs_code(:,1) == 'C' )
+                n_obs = sum(obs_idx);
+                this.obs(obs_idx,:) = this.obs(obs_idx,:) + repmat(d_range(:,i)',n_obs ,1);
+            end
+            
+        end
+        
+        
+        
         
     end
     
