@@ -2096,13 +2096,19 @@ classdef Receiver < handle
             XS_t = this.getXSLoc();
             
             %compute the correction
-            d_XS = XS_t - XS;
-            d_range = sqrt(sum(d_XS.^2,3));
+            range = sqrt(sum(XS.^2,3));
+            range_t = sqrt(sum(XS_t.^2,3));
+            d_range = range_t - range;
             for i = 1 : size(d_range,2)
-                obs_idx = this.go_id == i & ( this.obs_code(:,1) == 'L' | this.obs_code(:,1) == 'C' )
+                obs_idx = this.go_id == i & ( this.obs_code(:,1) == 'L' | this.obs_code(:,1) == 'C' );
                 n_obs = sum(obs_idx);
                 this.obs(obs_idx,:) = this.obs(obs_idx,:) + repmat(d_range(:,i)',n_obs ,1);
             end
+            
+        end
+        
+        function translateToNominal(this)
+            %DESCRIPTION: trabslate receiver observations to nominal epochs
             
         end
         
