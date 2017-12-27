@@ -636,8 +636,8 @@ classdef GPS_Time < handle
                     % due to numerical error propagation I can keep only 4 decimal
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    rounding = 2.^(48 - max(0,log2(this.mat_time + eps(this.mat_time)))); % 52 bits of mantissa -> 32 a bit of margin
-                    this.unix_time_f = round((time_s - double(this.unix_time)) * rounding) / rounding;                    
+                    rounding = 10.^(round(16 - max(0,log10(this.mat_time * 86400 + eps(this.mat_time * 86400))))); % 52 bits of mantissa
+                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding;                    
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
                     this.unix_time_f = this.unix_time_f + second_correction;
@@ -651,7 +651,7 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    rounding = 2.^(48 - max(0,log2(this.time_diff + eps(this.time_diff)))); % 52 bits of mantissa -> 32 a bit of margin
+                    rounding = 10.^(round(16 - max(0,log10(this.time_diff + eps(this.time_diff))))); % 52 bits of mantissa
                     this.unix_time_f = round((time_s - double(this.unix_time) + this.time_diff) .* rounding) ./ rounding;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
@@ -873,22 +873,35 @@ classdef GPS_Time < handle
                     time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
                     time_diff = (this.mat_time - time_ref) * 86400;
+                    if (nargin == 2)
+                        % optional change of reference
+                        time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+                        time_ref = new_time_mat_ref;
+                    end
                 case 1 % I'm in UNIX TIME
-                    % constants in matlab are slower than copied values :-( switching to values
-                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO;
-                    time_d = double(this.unix_time) / 86400 + 719529;
-                    time_ref = fix(time_d(1));
-                    time_diff = round((time_d - time_ref) * 86400) + this.unix_time_f;
+                    % constants in matlab are slower than copied values :-( switching to values                    
+                    % this.UNIX_ZERO == 719529; 
+                    if nargin == 2
+                        time_ref = fix((new_time_mat_ref(1)  - 719529.0) * 86400);
+                        rounding = 10.^(round(16 - max(0,log10(ceil(new_time_mat_ref(1)) * 86400 + eps(new_time_mat_ref(1) * 86400))))); % 52 bits of mantissa
+                        time_ref_f = round(rem((new_time_mat_ref(1)  - 719529.0) * 86400, 1) * rounding) / rounding;
+                    else
+                        time_ref = this.unix_time(1);
+                        time_ref_f = 0;
+                    end
+                    time_diff = double(int64(this.unix_time) - int64(time_ref)) + this.unix_time_f - time_ref_f;
+                    time_ref = (time_ref / 86400 + 719529.0) + time_ref_f / 86400;
                 case 2 % I'm in REF TIME
-                    time_ref = this.time_ref;
-                    time_diff = this.time_diff;
+                    if (nargin == 2)
+                        % optional change of reference
+                        time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+                        time_ref = new_time_mat_ref;
+                    else
+                        time_ref = this.time_ref;
+                        time_diff = this.time_diff;
+                    end
             end
             
-            % optional change of reference
-            if (nargin == 2)
-                time_diff = time_diff + (time_ref - new_time_mat_ref) * 86400;
-                time_ref = new_time_mat_ref;
-            end
         end
         
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this,id)
