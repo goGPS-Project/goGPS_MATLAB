@@ -1209,7 +1209,7 @@ classdef Receiver < handle
             % get Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
-                this.log.addWarning('Can produce IONO free combination for the selcted observation')
+                this.log.addWarning('Can not produce IONO free combination for the selcted observation')
                 return
             end
             if flag1(1)~=flag2(1)
