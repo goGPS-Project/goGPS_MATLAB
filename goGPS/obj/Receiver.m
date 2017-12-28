@@ -4221,12 +4221,6 @@ classdef Receiver < handle
             
             n_tot_obs = sum(sum(obs>0));
             
-            % initialize LS solver
-            ls_solver = Least_Squares_Manipulator();
-            ls_solver.y0 = zeros(n_tot_obs,1);
-            ls_solver.b = zeros(n_tot_obs,1);
-            ls_solver.y0_epoch = zeros(n_tot_obs,1);
-            ls_solver.Q = speye(n_tot_obs);
             x = [999 999 999];
             
             % ls_solver.A = sparse(n_tot_obs,3+n_valid_epochs+sum(n_ep_ch(2:end))); % version with reference clock
@@ -4234,7 +4228,6 @@ classdef Receiver < handle
             n_it = 0;
             while max(abs(x(1:3))) > opt.coord_corr && n_it < opt.max_it
                 n_it = n_it + 1;
-                ls_solver.clearUpdated();
                 % fill the a matrix
                 XS_norm = zeros(this.cc.getNumSat(), 3, n_epochs);
                 dist = zeros(n_epochs, this.cc.getNumSat());
