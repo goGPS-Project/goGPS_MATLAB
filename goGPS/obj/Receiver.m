@@ -1217,7 +1217,7 @@ classdef Receiver < handle
                 return
             end
             if nargin <5
-                max_obs_type = 1
+                max_obs_type = 1;
             end
             [obs1, idx1] = this.getPrefObsCh(flag1, system, max_obs_type);
             [obs2, idx2] = this.getPrefObsCh(flag2, system, max_obs_type);
@@ -1403,6 +1403,7 @@ classdef Receiver < handle
             % SYNTAX:
             %   this.smoothAndApplyDt()
             
+            this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6))
             lim = getOutliers(this.dt(:,1) ~= 0);
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
             for i = 1 : size(lim, 1)
@@ -1638,8 +1639,7 @@ classdef Receiver < handle
                 this.initDynamicPositioning(obs, prn, sys, flag)
             end
             
-            % Apply dt from the clock estimated by initPositioning
-            this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6))
+            
             
         end
         
@@ -3993,13 +3993,13 @@ classdef Receiver < handle
                 this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
                 
                 f_id = obs_code(:,2);
-                ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
+                ss = this.cc.getSys(sys - 32);
                 [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                 
                 ismember(this.system, this.cc.SYS_C);
                 this.f_id = [this.f_id; f_id];
                 
-                if s == 2
+                if sys == 'r'
                     wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                     wl(prn_ss > ss.N_SAT) = NaN;
                     wl(f_id == 0) = NaN;
