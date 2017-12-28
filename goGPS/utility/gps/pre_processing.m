@@ -527,13 +527,15 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         
         ph = zero2nan(bsxfun(@times, zero2nan([ph1; ph2]), [lambda(:, 1); lambda(:,2)])');
         % Filter dtR
-        lim = getOutliers(dtR ~= 0);
-        dtR = simpleFill1D(zero2nan(dtR), dtR == 0, 'spline');
+        id_ko = dtR == 0;
+        lim = getOutliers(dtR(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(dtR(:,1),2)) < 1e-8);
+        dt = simpleFill1D(zero2nan(dtR(:,1)), dtR == 0, 'spline');
         for i = 1 : size(lim, 1)
             if lim(i,2) - lim(i,1) > 5
-                dtR(lim(i,1) : lim(i,2)) = splinerMat([], dtR(lim(i,1) : lim(i,2)), 3);
-            end    
+                dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
+            end
         end
+        dtR = simpleFill1D(zero2nan(dt), id_ko, 'spline');                    
                     
         ph = bsxfun(@minus, ph, v_light * dtR);
         
@@ -590,7 +592,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         index_e = find(time ~= 0);
 
         % time "correction"
-        time(index_e) = time(index_e) - dt_ph(index_e) - dtR(index_e) - time_desync(index_e);
+        time(index_e) = time(index_e) - dt_pr(index_e) - dtR(index_e);
 
         % variables to store interpolated observations
         pr1_interp = zeros(size(pr1));
