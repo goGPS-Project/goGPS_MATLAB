@@ -651,8 +651,8 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    rounding = 10.^(round(16 - max(0,log10(this.time_diff + eps(this.time_diff))))); % 52 bits of mantissa
-                    this.unix_time_f = round((time_s - double(this.unix_time) + this.time_diff) .* rounding) ./ rounding;
+                    rounding = 2.^(round(47 - max(0,log2(time_s + eps(time_s))))); % 52 bits of mantissa -> but I need to consider only 47 bits to keep precision
+                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding + this.time_diff;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
                     this.unix_time_f = this.unix_time_f + second_correction;
@@ -850,7 +850,8 @@ classdef GPS_Time < handle
                     % time_s = (this.mat_time - this.UNIX_ZERO) * this.SEC_IN_DAY; % convert mat_time in seconds
                     time_s = (this.time_ref - 719529) * 86400;
                     unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
-                    unix_time_f = time_s - double(unix_time) + this.time_diff;
+                    rounding = 2.^(round(47 - max(0,log2(time_s + eps(time_s))))); % 52 bits of mantissa -> but I need to consider only 47 bits to keep precision
+                    unix_time_f = round((time_s - double(unix_time)) .* rounding) ./ rounding + this.time_diff;
                     second_correction = - floor(unix_time_f);
                     unix_time = unix_time - uint32(second_correction);
                     unix_time_f = unix_time_f + second_correction;
