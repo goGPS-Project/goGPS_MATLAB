@@ -2392,7 +2392,7 @@ classdef goGUIclass < handle
 
             if this.isPostProc()
                 % Receivers file --------------------------------------
-                if this.state.isModeSEID()
+                if this.isSEID()
                     status = this.state.checkReferenceFiles();
                     set(this.goh.tNumRec, 'String', num2str(this.state.getReferenceCount()));
                 else
@@ -2409,7 +2409,7 @@ classdef goGUIclass < handle
                 end
 
                 % Master file -----------------------------------------
-                if this.state.isModeSEID()
+                if this.isSEID()
                     status = this.state.checkTargetFiles();
                 else
                     status = this.state.checkMasterFiles();
