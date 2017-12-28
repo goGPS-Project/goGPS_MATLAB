@@ -107,6 +107,7 @@ classdef Receiver < handle
         
         outlier_idx_ph;
         cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
+        ph_idx % idx of outlier and cycle slip in obs 
         synt_ph;           % syntetic phases
         
         sat = struct( ...
@@ -1123,11 +1124,12 @@ classdef Receiver < handle
             idx(idx == 0) = [];
         end
         
-        function [obs,idx] = getPrefObsCh(this, flag, system, max_obs_type)
+        function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
             % channel according to the feinition in GPS_SS, GLONASS_SS
             % SYNTAX this.getObsIdx(flag, <system>)
             
+            cycle_slips = [];
             if length(flag)==3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
                 idx = idx & [this.system == system]';
@@ -1177,6 +1179,10 @@ classdef Receiver < handle
                 n_opt = size(idxes,2);
                 n_epochs = size(this.obs,2);
                 obs = zeros(length(prn)*n_opt,n_epochs);
+                snr = zeros(size(obs));
+                if flag(1) == 'L'
+                    cycle_slips = sparse(size(obs,1),size(obs,2));
+                end
                 flags = zeros(length(prn)*n_opt,3);
                 for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on diffrent lines)
                     sat_idx = sys_idx & this.prn==prn(s);
@@ -1185,8 +1191,17 @@ classdef Receiver < handle
                     take_idx = ones(1,n_epochs)>0;
                     for i = 1 : n_opt
                         c_idx = idxes(:, i) & sat_idx;
+                        snr_idx = idxCharLines(this.obs_code, ['S' complete_flags(i,2:3)]) & sat_idx;
                         if sum(c_idx)>0
                             obs((s-1)*n_opt+i,take_idx) = this.obs(c_idx,take_idx);
+                            
+                            snr((s-1)*n_opt+i,take_idx) = this.obs(snr_idx,take_idx);
+                            if ~isempty(this.outlier_idx_ph) && flag(1) == 'L'% take off outlier
+                                ph_idx = this.ph_idx == find(c_idx);
+                                obs((s-1)*n_opt+i,this.outlier_idx_ph(:,ph_idx)) = 0;
+                                snr((s-1)*n_opt+i,this.outlier_idx_ph(:,ph_idx)) = 0;
+                                cycle_slips((s-1)*n_opt+i,:) = this.cycle_slip_idx_ph(:,ph_idx)';
+                            end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
                         end
                         take_idx = take_idx & obs((s-1)*n_opt+i,:) == 0;
@@ -1207,7 +1222,7 @@ classdef Receiver < handle
                 this.log.addError(['Invalide length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
             end
         end
-        function [obs, prn, obs_code] = getIonoFree(this, flag1, flag2, system, max_obs_type)
+        function [obs_set] = getIonoFree(this, flag1, flag2, system, max_obs_type)
             % get Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
@@ -1221,8 +1236,8 @@ classdef Receiver < handle
             if nargin <5
                 max_obs_type = 1;
             end
-            [obs1, idx1] = this.getPrefObsCh(flag1, system, max_obs_type);
-            [obs2, idx2] = this.getPrefObsCh(flag2, system, max_obs_type);
+            [obs1, idx1, snr1, cs1] = this.getPrefObsCh(flag1, system, max_obs_type);
+            [obs2, idx2, snr2, cs2] = this.getPrefObsCh(flag2, system, max_obs_type);
             
             prn1 = this.prn(idx1);
             prn2 = this.prn(idx2);
@@ -1236,29 +1251,55 @@ classdef Receiver < handle
             idx2 = idx2(sset_idx2);
             obs1 = obs1(sset_idx1,:);
             obs2 = obs2(sset_idx2,:);
+            snr1 = snr1(sset_idx1,:);
+            snr2 = snr2(sset_idx2,:);
+            if flag1(1)=='L'
+                cs1 = cs1(sset_idx1,:);
+                cs2 = cs2(sset_idx2,:);
+            end
             
             %%% find the longer idx and replicate th other one to match the
             %%% prn
             if length(idx1) > length(idx2)
                 idx_tmp = zeros(size(idx1));
                 obs_tmp = zeros(size(obs1));
+                snr_tmp = zeros(size(snr1));
                 duplicate = prn1(1:end-1) == prn1(2:end);
                 idx_tmp(~duplicate) = idx2;
                 obs_tmp(~duplicate,:) = obs2;
+                snr_tmp(~duplicate,:) = snr2;
                 idx_tmp(duplicate) = idx_tmp(find(duplicate)+1);
                 obs_tmp(duplicate,:) = obs_tmp(find(duplicate)+1,:);
+                snr_tmp(duplicate,:) = snr_tmp(find(duplicate)+1,:);
                 idx2 = idx_tmp;
                 obs2 = obs_tmp;
+                snr2 = snr_tmp;
+                if flag1(1)=='L'
+                    cs_tmp = zeros(size(cs1));
+                    cs_tmp(~duplicate,:) = cs2;
+                    cs_tmp(duplicate,:) = cs_tmp(find(duplicate)+1,:);
+                    cs2 = cs_tmp;
+                end
             else
                 idx_tmp = zeros(size(idx2));
                 obs_tmp = zeros(size(obs2));
+                snr_tmp = zeros(size(snr2));
                 duplicate = [prn2(1:end-1) == prn2(2:end); false];
                 idx_tmp(~duplicate) = idx1;
                 obs_tmp(~duplicate,:) = obs1;
+                snr_tmp(~duplicate,:) = snr1;
                 idx_tmp(duplicate) = idx_tmp(find(duplicate)+1);
                 obs_tmp(duplicate,:) = obs_tmp(find(duplicate)+1,:);
+                snr_tmp(duplicate,:) = snr_tmp(find(duplicate)+1,:);
                 idx1 = idx_tmp;
                 obs1 = obs_tmp;
+                snr1 = snr_tmp;
+                if flag1(1)=='L'
+                    cs_tmp = zeros(size(cs2));
+                    cs_tmp(~duplicate,:) = cs1;
+                    cs_tmp(duplicate,:) = cs_tmp(find(duplicate)+1,:);
+                    cs1 = cs_tmp;
+                end
             end
             %             obs1 = this.obs(idx1,:);
             %             obs2 = this.obs(idx2,:);
@@ -1277,17 +1318,36 @@ classdef Receiver < handle
             % put zeros to NaN
             obs1(obs1 == 0) = NaN;
             obs2(obs2 == 0) = NaN;
+            snr1(snr1 == 0) = NaN;
+            snr2(snr2 == 0) = NaN;
             
             %gte wavelenghts
-            inv_wl1 = repmat(1./this.wl(idx1),1,size(obs1,2)); %1/wl1;
-            inv_wl2 = repmat(1./this.wl(idx2),1,size(obs2,2)); % 1/wl2;%
-            obs = ((inv_wl1).^2 .* obs1 - (inv_wl2).^2 .* obs2)./ ( (inv_wl1).^2 - (inv_wl2).^2 );
-            
+            n_ep = size(obs1,2);
+            inv_wl1 = repmat(1./this.wl(idx1),1,n_ep); %1/wl1;
+            inv_wl2 = repmat(1./this.wl(idx2),1,n_ep); % 1/wl2;%
+            alpha1 = ((inv_wl1).^2 )./ ( (inv_wl1).^2 - (inv_wl2).^2 );
+            alpha2 = ((inv_wl2).^2)./ ( (inv_wl1).^2 - (inv_wl2).^2 );
+            obs = alpha1 .* repmat(wl1,1,n_ep) .* obs1 - alpha2.* repmat(wl2,1,n_ep) .* obs2;
+            snr = sqrt((alpha1.* snr1).^2 + (-alpha2 .* snr2).^2); % snr trated as std
+            wl = alpha2(:,1)./alpha1(:,2) .* wl2;%alpha2 ./ alpha1 .* repmat(wl2,1,n_ep);
             % set NaN to 0
-            obs(isnan(obs)) = 0;
-            obs_code = [this.obs_code(idx1,:) this.obs_code(idx2,:)];
+            nanidx = isnan(obs);
+            obs(nanidx) = 0;
+            snr(nanidx) = 0;
+            snr(isnan(snr)) = 0;
+            obs_code = [repmat(system,length(idx2),1) this.obs_code(idx1,:) this.obs_code(idx2,:) repmat('I',length(idx2),1)];
+            go_id = this.cc.getIndex(system, prn);
+            el = this.sat.el(:,go_id);
+            el(obs ==  0) = 0;
+            az = this.sat.az(:,go_id);
+            az(obs ==  0) = 0;
+            obs_set = Observation_Set(obs' ,obs_code, wl', el, az, prn');
+            obs_set.snr = snr';
+            if flag1(1)=='L'
+               obs_set.cycle_slip = (cs1 | cs2)';
+            end
         end
-        function [obs, prn, obs_code] = getPrefIonoFree(this, obs_type, system)
+        function [obs_set]  = getPrefIonoFree(this, obs_type, system)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
@@ -1299,7 +1359,7 @@ classdef Receiver < handle
                 end
             end
             iono_pref = iono_pref(is_present,:);
-            [obs, prn, obs_code] = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+            [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
     end
     % ==================================================================================================================================================
@@ -2085,6 +2145,24 @@ classdef Receiver < handle
             synt_pr_obs = zero2nan(this.computeSyntCurObs(false, sys_c)');
         end
         
+        function synt_obs = getSyntTwin(this, obs_set)
+            % DESCRIPTION: get the syntethic twin for the observations
+            % contained in obs_set
+            synt_obs = zeros(size(obs_set.obs));
+            for i = 1 : size(synt_obs,2)
+                go_id = this.cc.getIndex(obs_set.obs_code(i,1),obs_set.prn(i));
+                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
+                    [range] = this.computeSyntObs('I', go_id);
+                else
+                    f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
+                    [range] = this.computeSyntObs('I', go_id);
+                end
+                idx_obs = obs_set.obs(:,i) ~= 0;
+                synt_obs(idx_obs, i) = range(idx_obs);
+            end
+            
+        end
+        
         
         function timeTraslateObs(this, tt)
             % DESCRIPTION: translate observations at different epoch based on linear modeling of the satellite
@@ -2111,7 +2189,7 @@ classdef Receiver < handle
         function translateToNominal(this)
             %DESCRIPTION: translate receiver observations to nominal epochs
             % TO BE UNDERSTOOD
-            tt = this.dt(:,1) + this.dt_ph;
+            tt = this.dt(:,1) + this.dt_pr;
             this.timeTraslateObs(tt)
             
         end
@@ -3550,6 +3628,7 @@ classdef Receiver < handle
             
             no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
             no_out_ph(poss_out_idx) = nan;
+            this.ph_idx = find(id_ph_l);
             
             % remove too short possible arc
             to_short_idx = flagMerge(poss_slip_idx,sa_thrs);
