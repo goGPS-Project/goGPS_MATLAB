@@ -1131,12 +1131,12 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function [ph, dt] = remDtJumps(ph)
-            % remove a jumps of the clock from phr
-            % this peace of code is very very criptic, but it seems to work
+        function [obs, dt] = remDtJumps(obs)
+            % remove a jumps of the clock from ph/pr
+            % this piece of code is very very criptic, but it seems to work
             % review this whenever possible
-            ph = zero2nan(ph);
-            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),3), 2, 'omitnan');
+            obs = zero2nan(obs);
+            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),3), 2, 'omitnan');
             ddt = cumsum(cumsum(nan2zero(d3dt)));
             ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
             % check if there is any discontinuity in the clock drift
@@ -1145,21 +1145,23 @@ classdef Core_Pre_Processing < handle
             if sum(pos_jmp) > 0
                 ddt = ddt - simpleFill1D(ddt, pos_jmp);
                 dt = cumsum(ddt);
-                ph_bk = ph;
-                ph = bsxfun(@minus, ph, dt);
-                d4dt = median(diff(zero2nan(ph),4), 2, 'omitnan');
-                d4dt(abs(d4dt) < clock_thresh) = 0;
-                dt = dt - cumsum(nan2zero([0; d4dt; zeros(3,1)]));
-                dt_s = detrend(detrend(dt) - splinerMat([], detrend(dt), length(dt)/2));
-                
-                [~, flag] = Core_Pre_Processing.testDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, detrend(dt)));
-                if flag
-                    dt = detrend(dt);
-                end
-                [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(bsxfun(@minus, ph_bk, dt), bsxfun(@minus, ph_bk, dt_s));
-                if flag
-                    dt = dt_s;
-                end
+                ph_bk = obs;
+                obs = bsxfun(@minus, obs, dt);
+                d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');                
+                dobs = Core_Pre_Processing.diffAndPred(obs);
+                % find jmps on the median 4th derivate
+                jmp_candidate = flagExpand(abs(d4dt) > clock_thresh,2);
+                % detect the real jmp index
+                lim = getOutliers(jmp_candidate);
+                jmp = false(size(jmp_candidate));
+                for l = 1 : size(lim,1)
+                    [~, id_max] = max(nan2zero(max(abs(dobs(lim(l,1) : lim(l,2), :))')));
+                    jmp(id_max + lim(l,1) - 1) = true;
+                end                
+                % velocity offsets beteween sat
+                d4dt(~jmp) = 0;
+                obs = bsxfun(@minus, obs, cumsum(d4dt));                
+                dt = dt + cumsum(d4dt);
             else
                 dt = zeros(size(ddt));
             end
@@ -1266,56 +1268,62 @@ classdef Core_Pre_Processing < handle
             log = Logger.getInstance();
             
             time_desync  = round((zero2nan(time) - time_ref) * 1e7) / 1e7;
-            %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
-            %figure(2); clf; plot(diff(zero2nan(pr))); hold on;
             
-            % apply time_desync
-            ph = bsxfun(@minus, ph, nan2zero(time_desync) .* 299792458);
-            pr = bsxfun(@minus, pr, nan2zero(time_desync) .* 299792458);
-
-            [ph, dt_ph] = Core_Pre_Processing.remDtJumps(ph);
-            %figure(1); plot(diff(zero2nan(ph)),'.k');
-
-            % correct the pseudo-ranges for jumps
-            pr_dj = bsxfun(@minus, pr, dt_ph .* 299792458);
-            [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
-            if flag
-                dt_pr = dt_ph;
-                log.addMessage('Correcting pseudo-ranges for dt as estimated from phases observations', 100);
+            if any(time_desync)
+                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
+                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);                
+                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);                
+                
+                %% time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
+                ddt = [0; diff(time_desync)];
+                ddrifting = ddt - ddt_pr;
+                drifting = cumsum(ddt - ddt_pr);
+                
+                % Linear interpolation of ddrifting
+                jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock                
+                d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
+                jmp = [jmp_reset; jmp_fit];
+                drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
+                
+                dt_ph = drifting + dt_ph_dj;
+                dt_pr = drifting + dt_pr_dj;
+                
+                t_offset = round(mean(dt_pr(sort(jmp_reset)) - time_desync(sort(jmp_reset))) * 1e7) * 1e-7;
+                dt_ph = dt_ph - t_offset;
+                dt_pr = dt_pr - t_offset;
+                
+                ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
             else
-                dt_pr = zeros(size(dt_ph));
+                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);                
+                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                if numel(jmp_reset) > 2
+                    drifting = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(ddt_pr))', 'spline');
+                else
+                    drifting = 0;
+                end
+                dt_pr = dt_pr_dj - drifting;
+                t_offset = mean(dt_pr);
+                dt_ph = dt_ph_dj - drifting - t_offset;
+                dt_pr = dt_pr - t_offset;
+
+                ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
             end
             
-            % in some receivers the pseudo-range is not continuous while the phase are ok
-            [pr_ds, dt_pr_jumps] = Core_Pre_Processing.remDtJumps(pr);
-            [pr, flag] = Core_Pre_Processing.testDesyncCorrection(pr, pr_ds);
-            if flag
-                dt_pr = dt_pr + dt_pr_jumps;
-                log.addMessage('Correcting pseudo-ranges for dt as estimated from their observations', 100);
+            if any(dt_ph_dj)
+                log.addMessage(log.indent('Correcting carrier phases jumps', 6));
+            else
+                log.addMessage(log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6));
             end
-            
-%             % Computing 2nd order time correction directly from the observations (EXPERIMENTAL)
-%             if sum(dt_pr(~isnan(dt_pr))) ~= 0
-%                 all_time = repmat(time_ref, 1, size(pr,2))';
-%                 pr_tmp = pr' - mean(pr(:), 'omitnan');
-%                 % LS interpolant
-%                 [~, ~, ~, dt_2nd_order] = splinerMat(all_time(~isnan(pr_tmp)), pr_tmp(~isnan(pr_tmp)), (time_ref(end)-time_ref(1))/2, 1e-9, time_ref');
-%                 %dt_2nd_order = detrend(dt_2nd_order);
-%                 pr_dj = bsxfun(@minus, pr, dt_2nd_order);
-%                 [pr, flag] = Core_Pre_Processing.testDiffDesyncCorrection(pr, pr_dj);
-%                 if flag
-%                     dt_pr = dt_pr + dt_2nd_order ./ 299792458;
-%                     log.addMessage('Correcting pseudo-ranges for 2nd order dt', 100);
-%                 end
-%                 
-%                 ph_dj = bsxfun(@minus, ph, dt_2nd_order);
-%                 [ph, flag] = Core_Pre_Processing.testDiffDesyncCorrection(ph, ph_dj);
-%                 if flag
-%                     dt_ph = dt_ph + dt_2nd_order ./ 299792458;
-%                     log.addMessage('Correcting phase for 2nd order dt', 100);
-%                 end
-%             end
-            %figure(2); plot(diff(zero2nan(pr)),'.k');
+            if any(dt_pr_dj)
+                log.addMessage(log.indent('Correcting pseudo-ranges jumps', 6));
+            else
+                log.addMessage(log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6));
+            end            
         end
         
         function [obs_out] = remShortArcs(obs_in, min_len)
