@@ -3462,13 +3462,16 @@ classdef Receiver < handle
                 if ~one_plot, subplot(3,1,1); end
                 plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
+                grid on;
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
                 plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
+                grid on;
                 if ~one_plot, subplot(3,1,3); end
-                 plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
+                grid on;
                 if one_plot
                     h = ylabel('ENU [m]'); h.FontWeight = 'bold';
                 else
@@ -3496,21 +3499,23 @@ classdef Receiver < handle
                 if ~one_plot, subplot(3,1,1); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
+                grid on;
                 h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
+                grid on;
                 if ~one_plot, subplot(3,1,3); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                grid on;
                 if one_plot
                     h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
                 end
                 linkaxes(ax, 'x');
             else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
-            end
-            grid on;
+            end            
         end
         
         function plotVsSynt(this)
@@ -3552,7 +3557,7 @@ classdef Receiver < handle
             
             figure; 
             t = this.time.getMatlabTime;
-            plot(t, (-this.desync), '-k', 'LineWidth', 2);
+            plot(t, this.desync, '-k', 'LineWidth', 2);
             hold on;
             plot(t, this.dt_pr, ':', 'LineWidth', 2);
             plot(t, this.dt_ph, ':', 'LineWidth', 2);
