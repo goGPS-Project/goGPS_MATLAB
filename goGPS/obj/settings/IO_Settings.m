@@ -2099,12 +2099,11 @@ classdef IO_Settings < Settings_Interface
                     file_count = 0;
                     for f = 1 : numel(file_name)
                         full_path = fnp.checkPath(file_name{f});
-                        file_ok = exist(full_path, 'file');
+                        file_ok = exist(full_path, 'file') == 2;
                         file_count = file_count + uint16(logical(file_ok));
                         if go_verbose
                             if file_ok
                                 this.log.addStatusOk(sprintf('%s is present', full_path));
-                                status = 1;
                             else
                                 this.log.addError(sprintf('%s does not exist', full_path));
                             end
