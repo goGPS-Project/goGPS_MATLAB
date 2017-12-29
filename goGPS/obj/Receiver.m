@@ -1338,10 +1338,10 @@ classdef Receiver < handle
             obs_code = [repmat(system,length(idx2),1) this.obs_code(idx1,:) this.obs_code(idx2,:) repmat('I',length(idx2),1)];
             go_id = this.cc.getIndex(system, prn);
             el = this.sat.el(:,go_id);
-            el(obs ==  0) = 0;
+            el(obs' ==  0) = 0;
             az = this.sat.az(:,go_id);
-            az(obs ==  0) = 0;
-            obs_set = Observation_Set(obs' ,obs_code, wl', el, az, prn');
+            az(obs' ==  0) = 0;
+            obs_set = Observation_Set(this.time.getCopy(), obs' ,obs_code, wl', el, az, prn');
             obs_set.snr = snr';
             if flag1(1)=='L'
                obs_set.cycle_slip = (cs1 | cs2)';
@@ -1657,6 +1657,18 @@ classdef Receiver < handle
                     flag(o,:) = [];
                 end
             end
+        end
+        
+        function staticPPP(this)
+            ls = Least_Squares_Manipulator();
+            ls.setUpPPP(this, []);
+            ls.Astack2Nstack();
+            % set time regularization for the troposphere and its gradients
+            ls.setTimeRegularization(7, 0.1);
+            ls.setTimeRegularization(8, 0.1);
+            ls.setTimeRegularization(9, 0.1);
+            x = ls.solve();
+            keyboard;
         end
         
         function initPositioning(this, sys_c)
@@ -2145,20 +2157,24 @@ classdef Receiver < handle
             synt_pr_obs = zero2nan(this.computeSyntCurObs(false, sys_c)');
         end
         
-        function synt_obs = getSyntTwin(this, obs_set)
+        function [synt_obs, xs_loc] = getSyntTwin(this, obs_set)
             % DESCRIPTION: get the syntethic twin for the observations
             % contained in obs_set
             synt_obs = zeros(size(obs_set.obs));
+            xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
             for i = 1 : size(synt_obs,2)
                 go_id = this.cc.getIndex(obs_set.obs_code(i,1),obs_set.prn(i));
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
-                    [range] = this.computeSyntObs('I', go_id);
+                    [range, xs_loc_t] = this.computeSyntObs('I', go_id);
                 else
                     f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
-                    [range] = this.computeSyntObs('I', go_id);
+                    [range, xs_loc_t] = this.computeSyntObs(f, go_id);
                 end
                 idx_obs = obs_set.obs(:,i) ~= 0;
+                range_idx = range ~= 0;
+                xs_idx = idx_obs(range_idx);
                 synt_obs(idx_obs, i) = range(idx_obs);
+                xs_loc(idx_obs, i,:) = permute(xs_loc_t(xs_idx,:),[1 3 2]);
             end
             
         end
