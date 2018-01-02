@@ -150,10 +150,10 @@ classdef File_Rinex < handle
                         this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         this.is_valid_list(f) = true;
                     catch ex
-                        if this.first_epoch.lenght < f
+                        if this.first_epoch.length < f
                             this.first_epoch.addEpoch(0);
                         end
-                        if this.last_epoch.lenght < f
+                        if this.last_epoch.length < f
                             this.last_epoch.addEpoch(0);
                         end
                         this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
