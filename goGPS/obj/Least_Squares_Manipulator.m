@@ -50,6 +50,7 @@ classdef Least_Squares_Manipulator < handle
         y % observations  [ n_obs x 1]
         w % observation weight [ n_obs x 1]
         epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
+        sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
         param_class % [n_param x 1] each paramter can be part of a class [ 1 : x , 2 : y , 3 : z, 4: inter channel/frequency/system biases, 5: ambiguity, 6: clock
         %                                                                  7 : tropo, 8: tropo inclination north, 9: tropo inclination east ]
@@ -78,9 +79,14 @@ classdef Least_Squares_Manipulator < handle
             % set up number of parametrs requires
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-            % remove not valid empty epoch
-            idx_valid_ep_l = sum(diff_obs,2) ~= 0;
-            diff_obs(~idx_valid_ep_l,:) = [];
+            % remove not valid empty epoch or with only one satellite (too
+            % bad conditioned)
+            idx_valid_ep_l = sum(diff_obs ~= 0,2) > 1;
+            diff_obs(~idx_valid_ep_l,:) = [];  
+            xs_loc(~idx_valid_ep_l,:,:) = [];
+            idx_valid_stream = sum(diff_obs,1) ~= 0;
+            diff_obs(:,~idx_valid_stream) = [];  
+            xs_loc(:,~idx_valid_stream,:) = [];
             obs_set.remEpochs(~idx_valid_ep_l);
             n_epochs = size(obs_set.obs,1);
             this.n_epochs = n_epochs;
@@ -97,15 +103,20 @@ classdef Least_Squares_Manipulator < handle
                 iob_idx(idx_b) = c-1;
             end
             iob_p_idx = iob_idx + n_coo;
-            
-            amb_idx = ones(size(obs_set.cycle_slip));
+            cycle_slip = obs_set.cycle_slip;
+            cycle_slip(diff_obs == 0) = 0;
+            amb_idx = ones(size(cycle_slip));
             for s = 1 : n_stream
                 if s > 1
                     amb_idx(:,s) = amb_idx(:,s) + amb_idx(n_epochs,s-1);
                 end
-                cs = find(obs_set.cycle_slip(:,s) > 0)';
+                cs = find(cycle_slip(:,s) > 0)';
                 for c = cs
-                    amb_idx(c:end,s) = amb_idx(c:end,s) + 1;
+                    %check if cycle slip is not marked at first epoch of
+                    %the stream
+                    if c ~= find(diff_obs(:,s) ~= 0,1,'first')
+                        amb_idx(c:end,s) = amb_idx(c:end,s) + 1;
+                    end
                 end
             end
             
@@ -113,17 +124,17 @@ classdef Least_Squares_Manipulator < handle
             n_iob = size(u_obs_code,1)-1; 
             
             n_obs = sum(sum(diff_obs ~= 0));
-            n_amb = sum(sum(obs_set.cycle_slip > 0)) + n_stream;
+            n_amb = max(max(amb_idx));
             clocks_idx = n_coo + n_iob + n_amb + ep_p_idx;
             
-            A = zeros(n_obs, n_coo + 6); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A = zeros(n_obs, n_coo + n_iob + 2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             epoch = zeros(n_obs,1);
-            A_idx = zeros(n_obs, n_coo + 6); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            sat = zeros(n_obs,1);
+            A_idx = zeros(n_obs, n_coo + n_iob + 2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             A_idx(:,1:3) = repmat([1 2 3],n_obs,1);
             y = zeros(n_obs,1);
             w = zeros(n_obs,1);
             obs_count = 1;
-            amb_count = 1;
             for s = 1 : n_stream
                 vaild_ep_stream = diff_obs(:,s)~= 0;
                 
@@ -136,25 +147,29 @@ classdef Least_Squares_Manipulator < handle
                 n_obs_stream = length(obs_stream);
                 lines_stream = obs_count +(0 : (n_obs_stream-1));
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
+                sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
                 w(lines_stream) = snr_stream;
                 A(lines_stream , 1 : 3) = los_stream;
-                A(lines_stream , 4) = iob_idx(s) > 0;
-                A_idx(lines_stream , 4) = iob_p_idx(s);
-                A(lines_stream , 5) = obs_set.wl(s);
-                A_idx(lines_stream , 5) = n_coo + n_iob + amb_idx(vaild_ep_stream,s);
-                A(lines_stream , 6) = 1;
-                A_idx(lines_stream , 6) = n_coo + n_iob  +n_amb + ep_p_idx(vaild_ep_stream);
+                if n_iob > 0
+                    A(lines_stream , 4) = iob_idx(s) > 0;
+                    A_idx(lines_stream , 4) = max(n_coo+1,iob_p_idx(s));
+                end
+               
+                A(lines_stream , n_coo + n_iob + 1) = obs_set.wl(s);
+                A_idx(lines_stream , n_coo + n_iob + 1) = n_coo + n_iob + amb_idx(vaild_ep_stream,s);
+                A(lines_stream , n_coo + n_iob + 2) = 1;
+                A_idx(lines_stream , n_coo + n_iob + 2) = n_coo + n_iob  +n_amb + ep_p_idx(vaild_ep_stream);
                 sine = sin(el_stream);
                 cose = cos(el_stream);
-                not_inf_factor = 0.01;
-                A(lines_stream , 7) = 1./(sine + not_inf_factor);
+                not_inf_factor = 0.1;
+%                 A(lines_stream , n_coo + n_iob + 3) = 1./(sine + not_inf_factor);
                 derivative_term = - cose ./ (sine + not_inf_factor).^2;
-                A(lines_stream , 8) = cos(az_stream) .* derivative_term;
-                A(lines_stream , 9) = sin(az_stream) .* derivative_term;
-                A_idx(lines_stream , 7) = n_coo + n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
-                A_idx(lines_stream , 8) = n_coo + 2*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
-                A_idx(lines_stream , 9) = n_coo + 3*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
+%                 A(lines_stream , n_coo + n_iob + 4) = cos(az_stream) .* derivative_term;
+%                 A(lines_stream , n_coo + n_iob + 5) = sin(az_stream) .* derivative_term;
+%                 A_idx(lines_stream , n_coo + n_iob + 3) = n_coo + n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
+%                 A_idx(lines_stream , n_coo + n_iob + 4) = n_coo + 2*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
+%                 A_idx(lines_stream , n_coo + n_iob + 5) = n_coo + 3*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
                 obs_count = obs_count + n_obs_stream;
             end
             this.A_ep = A;
@@ -162,8 +177,14 @@ classdef Least_Squares_Manipulator < handle
             this.w = w;
             this.y = y;
             this.epoch = epoch;
-            this.param_flag = [ 0 0 0 -1 -1 1 1 1 1];
-            this.param_class = [ 1 2 3 4 5 6 7 8 9];
+            this.sat = sat;
+            if n_iob > 0
+                this.param_flag = [ 0 0 0 -1 -1 1];% 1];% 1 1];
+                this.param_class = [ 1 2 3 4 5 6];% 7];% 8 9];
+            else
+                this.param_flag = [ 0 0 0 -1 1];% 1];% 1 1];
+                this.param_class = [ 1 2 3 4 5];% 6];% 7 8];
+            end
         end
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;
@@ -181,6 +202,20 @@ classdef Least_Squares_Manipulator < handle
                 A_l = this.A_ep(i,:);
                 w = this.w(i);
                 this.N_ep(:,:,i) =  (w*A_l)' * A_l;
+            end
+        end
+        function res = getResiduals(this,x)
+            res_l = zeros(size(this.y));
+            for o = 1 : size(this.A_ep,1)
+                res_l(o) = this.y(o) - this.A_ep(o,:)*x(this.A_idx(o,:));
+            end
+            n_epochs = max(this.epoch);
+            n_sat = max(this.sat);
+            res = zeros(n_epochs,n_sat);
+            for i = 1 : n_sat
+                idx = this.sat == i;
+                ep = this.epoch(idx);
+                res(ep,i) = res_l(idx);
             end
         end
         function [x, res, s02, Cxx] = solve(this)
@@ -219,36 +254,53 @@ classdef Least_Squares_Manipulator < handle
                 
                 Ndiags(:,:,e) = Ndiags(:,:,e) + N_ep(idx_non_constant,idx_non_constant);
                 %fill B
-                B(p_idx) = A_ep' * w * y;
+                B(p_idx) = B(p_idx) + A_ep' * w * y;
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
             reg_diag0 = ones(n_epochs,1) + [0 ; ones(n_epochs - 2, 1); 0];
             reg_diag1 = -ones(n_epochs -1 , 1);
-            Ndiags = permute(Ndiags,[ 3 1 2]);
+            Ndiags = permute(Ndiags,[ 3 1 2]);         
             for i = 1 : n_ep_class
                 N_col = [];
                 for j = 1 : n_ep_class
-                    diag = Ndiags(:,i,j);
+                    diag0 = Ndiags(:,i,j);
                     N_el = sparse(n_epochs, n_epochs);
                     if j == i 
-                        class = class_ep_wise(i);
-                        idx_c = this.time_regularization(:,1) == class;
-                        w = this.time_regularization(idx_c,2);
+                        cur_class = class_ep_wise(i);
+                        idx_c = this.time_regularization(:,1) == cur_class;
+                        w = 1./this.time_regularization(idx_c,2);
                         if sum(idx_c)
-                            diag = diag + reg_diag0 * w;
+                            diag0 = diag0 + reg_diag0 * w;
                             diag1 = reg_diag1 * w;
                             N_el = spdiags([0;diag1],1,N_el);
                             N_el = spdiags(diag1,-1,N_el);
                         end
                     end
-                    N_el = spdiags(diag,0,N_el);
+                    N_el = spdiags(diag0,0,N_el);
                     N_col = [N_col; N_el];
                 end
                 Nee = [Nee N_col];
             end
             N = [[Ncc Nce'];[Nce Nee]];
+            if nargout > 3
+                %inverse by partitioning, taken from:
+                % Mikhail, Edward M., and Friedrich E. Ackermann. "Observations and least squares." (1976). pp 447
+                Ncc = sparse(Ncc);
+                Nce = sparse(Nce);
+                invNcc = (Ncc)^(-1);
+                invNee = (Nee)^(-1);
+                a22ia21 = invNee*Nce;
+                invN11 = (Ncc - (Nce')*a22ia21)^(-1);
+                invN12 = - invN11*(a22ia21');
+                invN21 = invN12';
+                invN22 = invNee - a22ia21*invN12;
+                Cxx = [[invN11; invN21] [invN12; invN22]];
+                x = Cxx*B;
+            else
             x = N\B;
+            
+            end
         end
     end
 end

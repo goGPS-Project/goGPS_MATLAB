@@ -70,28 +70,33 @@ classdef Observation_Set < handle
         end
         function merge(this, obs_set)
             % DESCRIPTION: merge observation with same time stamps
-            this.obs = [this.obs obs_set.obs];
+            %cases empty object
             if isempty(this.time) %case void set
                 this.time = obs_set.time;
             end
+            %case optional field empty
+            if isempty(this.snr) 
+                this.snr = nan(size(this.obs));
+            end
+            if isempty(this.cycle_slip) 
+                this.cycle_slip = sparse(size(this.obs,1),size(this.obs,2));
+            end
+            %merge
+            this.obs = [this.obs obs_set.obs];
             this.obs_code = [this.obs_code ;obs_set.obs_code];
             this.wl = [this.wl obs_set.wl];
             this.el = [this.el obs_set.el];
             this.az = [this.az obs_set.az];
             this.prn = [this.prn obs_set.prn];
             this.go_id = [this.go_id obs_set.go_id];
-            if isempty(this.snr) 
-                this.snr = nan(size(this.obs));
-            end
+            
             if isempty(obs_set.snr)
                 snr2 = nan(size(obs_set.obs));
             else
                 snr2 = obs_set.snr;
             end
             this.snr = [this.snr snr2];
-            if isempty(this.cycle_slip) 
-                this.cycle_slip = sparse(size(this.obs,1),size(this.obs,2));
-            end
+            
             if isempty(obs_set.cycle_slip)
                 cycle_slip2 = sparse(size(obs_set.obs,1),size(obs_set.obs,2));
             else
@@ -117,6 +122,7 @@ classdef Observation_Set < handle
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];
             this.az(:,idx_col) = [];
+            this.el(:,idx_col) = [];
             this.cycle_slip(:,idx_col) = [];
             this.snr(:,idx_col) = [];
             this.obs_code(idx_col,:) = [];

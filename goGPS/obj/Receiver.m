@@ -392,10 +392,11 @@ classdef Receiver < handle
             % apply various corrections
             this.applyPCV();
             this.applyPoleTide();
-            %this.applyPhaseWindUpCorr();
+            this.applyPhaseWindUpCorr();
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
+            this.removeOutlierMarkCycleSlip();
         end
         
         function TEST_smoothCodeWithDoppler(this, win_size)
@@ -1664,6 +1665,7 @@ classdef Receiver < handle
             ls.setUpPPP(this, []);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients
+            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT);
             ls.setTimeRegularization(7, 0.1);
             ls.setTimeRegularization(8, 0.1);
             ls.setTimeRegularization(9, 0.1);
@@ -2160,6 +2162,8 @@ classdef Receiver < handle
         function [synt_obs, xs_loc] = getSyntTwin(this, obs_set)
             % DESCRIPTION: get the syntethic twin for the observations
             % contained in obs_set
+            % WARNING: the time of the observation set and the time of
+            % receiver as to be the same
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
             for i = 1 : size(synt_obs,2)
@@ -2751,7 +2755,11 @@ classdef Receiver < handle
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
+                        if  this.obs_code(o,1) == 'L'
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx) ./ this.wl(o);
+                        else
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
+                        end
                     end
                 end
             end
@@ -2900,7 +2908,11 @@ classdef Receiver < handle
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx);
+                        if  this.obs_code(o,1) == 'L'
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx) ./ this.wl(o);
+                        else
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx);
+                        end
                     end
                 end
             end
@@ -3042,7 +3054,11 @@ classdef Receiver < handle
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                        if  this.obs_code(o,1) == 'L'
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx) ./ this.wl(o);
+                        else
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                        end
                     end
                 end
             end
@@ -3133,12 +3149,12 @@ classdef Receiver < handle
             ph_wind_up = this.computePhaseWindUp();
             
             for s = 1 : this.cc.getNumSat()
-                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx) * this.wl(o);
+                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx);
                     end
                 end
             end
@@ -3224,7 +3240,11 @@ classdef Receiver < handle
                         for o = find(obs_idx_f)'
                             pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                             o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)';
+                            if  this.obs_code(o,1) == 'L'
+                                this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
+                            else
+                                this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)';
+                            end
                         end
                     end
                 end
@@ -3334,7 +3354,11 @@ classdef Receiver < handle
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                                     o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                                    this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                    if  this.obs_code(o,1) == 'L'
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                    else
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                    end
                                 end
                             end
                         end
@@ -3590,7 +3614,7 @@ classdef Receiver < handle
             %take them off
             ph2=ph;
             ph2(poss_out_idx) = nan;
-            ph2 = simpleFill1D(ph2, poss_out_idx);
+            %ph2 = simpleFill1D(ph2, poss_out_idx);
             
             %----------------------------
             % Cycle slip detection
