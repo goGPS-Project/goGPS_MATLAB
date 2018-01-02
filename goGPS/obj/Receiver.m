@@ -1760,7 +1760,7 @@ classdef Receiver < handle
             if  approx_pos_unknown
                 this.xyz = this.xyz_approx;
                 this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
-                if sum(sum(obs,1)) >= 100
+                if sum(sum(obs,1) > 0) >= 100
                     % sub sample observations
                     sub_sample = true;
                     idx_ss = 1 : 100; % min(100, size(obs,2)) ; %(1: round(size(obs,2) / 100):size(obs,2));
