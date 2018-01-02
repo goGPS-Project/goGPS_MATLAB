@@ -1171,17 +1171,19 @@ classdef Core_Pre_Processing < handle
                 d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');                
                 dobs = Core_Pre_Processing.diffAndPred(obs);
                 % find jmps on the median 4th derivate
-                jmp_candidate = flagExpand(abs(d4dt) > clock_thresh,2);
+                jmp_candidate = flagExpand(abs(nan2zero(d4dt)) > clock_thresh, 2);
                 % detect the real jmp index
                 lim = getOutliers(jmp_candidate);
                 jmp = false(size(jmp_candidate));
                 for l = 1 : size(lim,1)
-                    [~, id_max] = max(nan2zero(max(abs(dobs(lim(l,1) : lim(l,2), :))')));
+                    [~, id_max] = max(nan2zero(max(abs(nan2zero(dobs(lim(l,1) : lim(l,2), :)))')));
                     jmp(id_max + lim(l,1) - 1) = true;
-                end                
+                    d4dt(id_max + lim(l,1) - 1) = median(sign(dobs(id_max + lim(l,1) - 1,:)),'omitnan') * ...
+                                                  median(zero2nan(max(zero2nan(abs(diff(nan2zero(dobs(lim(l,1) : lim(l,2), :))))))),'omitnan');
+                end
                 % velocity offsets beteween sat
                 d4dt(~jmp) = 0;
-                obs = bsxfun(@minus, obs, cumsum(d4dt));                
+                obs = bsxfun(@minus, obs, cumsum(nan2zero(d4dt)));
                 dt = dt + cumsum(d4dt);
             else
                 dt = zeros(size(ddt));
@@ -1222,7 +1224,12 @@ classdef Core_Pre_Processing < handle
 
             log = Logger.getInstance();
             
-            time_desync  = round((zero2nan(time) - time_ref) * 1e7) / 1e7;
+            
+            id_not_empty = time ~= 0; 
+
+            time_desync = nan(size(time)); 
+            time_desync(id_not_empty)  = round((time(id_not_empty) - time_ref(id_not_empty)) * 1e7) / 1e7; % the rinex time has a maximum of 7 significant decimal digits 
+            time_desync = simpleFill1D(time_desync,isnan(time_desync),'nearest');
             
             if any(time_desync)
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
@@ -1244,14 +1251,14 @@ classdef Core_Pre_Processing < handle
                 dt_ph = drifting + dt_ph_dj;
                 dt_pr = drifting + dt_pr_dj;
                 
-                t_offset = round(mean(dt_pr(sort(jmp_reset)) - time_desync(sort(jmp_reset))) * 1e7) * 1e-7;
+                t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
                 dt_ph = dt_ph - t_offset;
                 dt_pr = dt_pr - t_offset;
                 
                 ph = bsxfun(@minus, ph, dt_ph .* 299792458);
                 pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
             else
-                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);                
+                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
                 ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
                 jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
@@ -1270,14 +1277,14 @@ classdef Core_Pre_Processing < handle
             end
             
             if any(dt_ph_dj)
-                log.addMessage(log.indent('Correcting carrier phases jumps', 6));
+                log.addMessage(log.indent('Correcting carrier phases jumps', 6),100);
             else
-                log.addMessage(log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6));
+                log.addMessage(log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6),100);
             end
             if any(dt_pr_dj)
-                log.addMessage(log.indent('Correcting pseudo-ranges jumps', 6));
+                log.addMessage(log.indent('Correcting pseudo-ranges jumps', 6),100);
             else
-                log.addMessage(log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6));
+                log.addMessage(log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6),100);
             end            
         end
         
