@@ -2181,40 +2181,34 @@ classdef Receiver < handle
             end
             
         end
-        
-        
-        function timeTraslateObs(this, tt)
+                
+        function timeShiftObs(this, tt)
             % DESCRIPTION: translate observations at different epoch based on linear modeling of the satellite
             % copute the sat postion at the current epoch
             XS = this.getXSLoc();
             
             % translate the time
             this.time.addSeconds(tt);
-            % copute the sat postion at epoch trasnlated
+            % compute the sat postion at epoch traslated
             XS_t = this.getXSLoc();
             
-            %compute the correction
+            % compute the correction
             range = sqrt(sum(XS.^2,3));
             range_t = sqrt(sum(XS_t.^2,3));
             d_range = range_t - range;
-            for i = 1 : size(d_range,2)
-                obs_idx = this.go_id == i & ( this.obs_code(:,1) == 'L' | this.obs_code(:,1) == 'C' );
-                n_obs = sum(obs_idx);
-                this.obs(obs_idx,:) = this.obs(obs_idx,:) + repmat(d_range(:,i)',n_obs ,1);
-            end
-            
+            % Correct phases
+            obs_idx = this.obs_code(:,1) == 'L';
+            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + bsxfun(@rdivide, d_range(:,this.go_id(obs_idx))', this.wl(obs_idx)));
+            % Correct pseudo-ranges
+            obs_idx = this.obs_code(:,1) == 'C';
+            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + d_range(:,this.go_id(obs_idx))');
         end
         
-        function translateToNominal(this)
-            %DESCRIPTION: translate receiver observations to nominal epochs
-            % TO BE UNDERSTOOD
-            tt = this.dt(:,1) + this.dt_pr;
-            this.timeTraslateObs(tt)
-            
+        function shiftToNominal(this)
+            % DESCRIPTION: translate receiver observations to nominal epochs
+            tt = this.dt(:,1) + this.dt_pr - this.desync;
+            this.timeShiftObs(tt)            
         end
-        
-        
-        
         
     end
     

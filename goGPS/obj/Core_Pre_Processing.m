@@ -1268,8 +1268,7 @@ classdef Core_Pre_Processing < handle
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
             log = Logger.getInstance();
-            
-            
+                        
             id_not_empty = time ~= 0; 
 
             time_desync = nan(size(time)); 
