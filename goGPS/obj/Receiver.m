@@ -528,8 +528,7 @@ classdef Receiver < handle
             [ph, wl, id_ph] = this.getPhases();
             [pr, id_pr] = this.getPseudoRanges();
             
-            % apply desync
-                        
+            % apply desync                        
             if any(time_desync)
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);                
@@ -550,7 +549,7 @@ classdef Receiver < handle
                 dt_ph = drifting + dt_ph_dj;
                 dt_pr = drifting + dt_pr_dj;
                 
-                t_offset = round(mean(dt_pr(sort(jmp_reset)) - time_desync(sort(jmp_reset))) * 1e7) * 1e-7;
+                t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
                 dt_ph = dt_ph - t_offset;
                 dt_pr = dt_pr - t_offset;
                 
@@ -601,7 +600,7 @@ classdef Receiver < handle
             this.setPhases(ph, wl, id_ph);
             this.setPseudoRanges(pr, id_pr);
             
-            this.time.addSeconds(-this.dt_pr);
+            this.time.addSeconds(time_desync - this.dt_pr);
         end
         
         function parseRinHead(this, txt, lim, eoh)
