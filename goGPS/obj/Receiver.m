@@ -719,7 +719,7 @@ classdef Receiver < handle
                 this.ant_type = '';
             else
                 this.ant = strtrim(txt(lim(fln, 1) + (0:20)));
-                this.ant_type = strtrim(txt(lim(fln, 1) + (21:40)));
+                this.ant_type = strtrim(txt(lim(fln, 1) + (20:40)));
             end
             % 7) 'APPROX POSITION XYZ'
             fln = find(line2head == 7, 1, 'first'); % get field line
