@@ -163,11 +163,11 @@ classdef Least_Squares_Manipulator < handle
                 sine = sin(el_stream);
                 cose = cos(el_stream);
                 not_inf_factor = 0.1;
-%                 A(lines_stream , n_coo + n_iob + 3) = 1./(sine + not_inf_factor);
+                 A(lines_stream , n_coo + n_iob + 3) = 1./(sine + not_inf_factor);
                 derivative_term = - cose ./ (sine + not_inf_factor).^2;
 %                 A(lines_stream , n_coo + n_iob + 4) = cos(az_stream) .* derivative_term;
 %                 A(lines_stream , n_coo + n_iob + 5) = sin(az_stream) .* derivative_term;
-%                 A_idx(lines_stream , n_coo + n_iob + 3) = n_coo + n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
+                 A_idx(lines_stream , n_coo + n_iob + 3) = n_coo + n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
 %                 A_idx(lines_stream , n_coo + n_iob + 4) = n_coo + 2*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
 %                 A_idx(lines_stream , n_coo + n_iob + 5) = n_coo + 3*n_clocks + n_iob +n_amb + ep_p_idx(vaild_ep_stream);
                 obs_count = obs_count + n_obs_stream;
@@ -179,11 +179,11 @@ classdef Least_Squares_Manipulator < handle
             this.epoch = epoch;
             this.sat = sat;
             if n_iob > 0
-                this.param_flag = [ 0 0 0 -1 -1 1];% 1];% 1 1];
-                this.param_class = [ 1 2 3 4 5 6];% 7];% 8 9];
+                this.param_flag = [ 0 0 0 -1 -1 1 1];% 1 1];
+                this.param_class = [ 1 2 3 4 5 6 7];% 8 9];
             else
-                this.param_flag = [ 0 0 0 -1 1];% 1];% 1 1];
-                this.param_class = [ 1 2 3 4 5];% 6];% 7 8];
+                this.param_flag = [ 0 0 0 -1 1 1];% 1 1];
+                this.param_class = [ 1 2 3 4 5 6];% 7 8];
             end
         end
         function setTimeRegularization(this, param_class, time_variability)
