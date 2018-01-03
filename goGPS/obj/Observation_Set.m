@@ -106,7 +106,27 @@ classdef Observation_Set < handle
         end
         function obs = getUnderCutOff(this, cut_off)
             obs = this.obs;
-            obs(this.el < cutoff) = 0;
+            obs(this.el < cut_off) = 0;
+        end
+        function remUnderCutOff(this, cut_off)
+            idx = this.el < cut_off;
+            this.remObs(idx);
+        end
+        function remObs(this,idx)
+            this.obs(idx) = 0;
+            this.snr(idx) = 0;
+            this.el(idx) = 0;
+            this.az(idx) = 0;
+            this.cycle_slip(idx) = 0;
+            this.sanitizeEmpty();
+        end
+        function sanitizeEmpty(this)
+            %remove empty lines
+            idx_e = sum(this.obs,2) == 0;
+            this.remEpochs(idx_e);
+            %remove empty column
+            idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
+            this.removeColumn(idx_rem_c);
         end
         function remEpochs(this, idx_rem)
             this.obs(idx_rem,:) = [];
@@ -115,9 +135,7 @@ classdef Observation_Set < handle
             this.az(idx_rem,:) = [];
             this.cycle_slip(idx_rem,:) = [];
             this.time = this.time.getSubSet(~idx_rem);
-            %remove possible generated empty column
-            idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
-            this.removeColumn(idx_rem_c);
+
         end
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];

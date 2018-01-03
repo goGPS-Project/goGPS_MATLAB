@@ -1161,7 +1161,7 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 return %already ceneter of amss
             end
-            this.coord = this.getCOM();
+            this.COMtoAPC(-1);
             this.coord_type = 0;
         end
         
@@ -1170,7 +1170,9 @@ classdef Core_Sky < handle
                 coord = this.coord; %already ceneter of amss
             else
                 [i, j, k] = this.getSatFixFrame(this.getCoordTime());
-                %sx = 
+                sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+                sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+                sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
                 coord = this.coord - cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
                     , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                     , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
@@ -1182,8 +1184,33 @@ classdef Core_Sky < handle
             if this.coord_type == 1
                 return %already antennna phase center
             end
-            this.coord = this.getAPC();
+            this.COMtoAPC(1);
             this.coord_type = 1;
+        end
+        
+         function coord = getAPC(this)
+            if this.coord_type == 1
+                coord = this.coord; %already antennna phase center
+            end
+            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
+            sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+            sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+            sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
+            coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
+            
+         end
+        
+         function COMtoAPC(this, direction)
+            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
+            sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
+            sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
+            sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
+            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
+            
         end
         
         function pcv_delay = getPCV(this, band, sat, el, az)
@@ -1203,6 +1230,14 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('No PCV model for %s frequency',[this.cc.system(sat) band]),100);
                 return
             end
+            if this.coord_type == 0
+                % if coordinates refers to center of mass apply also pco
+                sat_pco = permute(this.ant_pco(:,ant_idx,:),[ 3 1 2]);
+                neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                pco_delay = neu_los*sat_pco;
+            else
+                pco_delay = zeros(size(el));
+            end
             %tranform el in zen
             zen = 90 - el;
             % get el idx
@@ -1212,11 +1247,11 @@ classdef Core_Sky < handle
             max_zen = zen_pcv(end);
             d_zen = (max_zen - min_zen)/length(zen_pcv);
             zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
-            d_f_r_el = min(max(zen_idx*d_zen - zen, 0), 1) / d_zen;
+            d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
             if nargin < 4 || isempty(sat_pcv.tablePCV_azi) %no azimuth change
                 pcv_val = sat_pcv.tableNOAZI(:,:,freq); %etract the right frequency
                 
-                pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
+                pcv_delay = pco_delay +  d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
             else
                pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
                
@@ -1224,31 +1259,23 @@ classdef Core_Sky < handle
                az_pcv = sat_pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
-                d_az = (max_az - min_az)/length(az_pcv);
+                d_az = (max_az - min_az)/(length(az_pcv)-1);
                 az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(az - az_idx*d_az, 0), 1)/d_az; 
+                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1); 
                 
                 %interpolate along zenital angle
-                pcv_delay_lf =  d_f_r_el .* pcv_val(zen_idx,az_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx)';
-                pcv_delay1_rg = d_f_r_el .* pcv_val(zen_idx,az_idx +1 )' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1,az_idx+1)';
+                idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
+                idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
+                pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
+                idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
+                idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
+                pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
                 %interpolate alogn azimtuh
-                pcv_delay = d_f_r_az .* pcv_delay_lf' + (1 - d_f_r_az) .* pcv_delay1_rg';
+                pcv_delay = pco_delay + d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
             end
         end
         
-        function coord = getAPC(this)
-            if this.coord_type == 1
-                coord = this.coord; %already antennna phase center
-            end
-            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
-            sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
-            sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
-            sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-            coord = this.coord + cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
-            
-        end
+       
         
         function [dt_S] = clockInterpolate(this,time, sat)
             
@@ -1726,7 +1753,7 @@ classdef Core_Sky < handle
             fnp = File_Name_Processor();
             this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
 
-            this.ant_pcv = this.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord.getMatlabTime());
+            this.ant_pcv = read_antenna_PCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord.getMatlabTime());
             this.ant_pco = zeros(1,this.cc.getNumSat(),3);
             %this.satType = cell(1,size(this.ant_pcv,2));
             if isempty(this.avail)
