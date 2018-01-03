@@ -144,7 +144,8 @@ classdef Receiver < handle
             this.w_bar = Go_Wait_Bar.getInstance();
             if nargin >= 2 && ~isempty(rinex_file_name)
                 this.loadRinex(rinex_file_name);
-            end
+                this.loadAntModel();
+            end  
         end
         
         function toString(this)
@@ -365,6 +366,13 @@ classdef Receiver < handle
             this.remObs(~this.active_ids)
         end
         
+        function loadAntModel(this)
+            filename_pcv = this.state.getAtxFile;
+            fnp = File_Name_Processor();
+            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+            this.pcv = read_antenna_PCV(filename_pcv, {this.ant_type});
+        end
+        
         function preProcessing(this, is_static)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
@@ -390,6 +398,7 @@ classdef Receiver < handle
             %update azimuth elevation
             this.updateAzimuthElevation();
             % apply various corrections
+            this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to COM
             this.applyPCV();
             this.applyPoleTide();
             this.applyPhaseWindUpCorr();
@@ -397,6 +406,7 @@ classdef Receiver < handle
             this.applyShDelay();
             this.applyOceanLoading();
             this.removeOutlierMarkCycleSlip();
+            %this.removeShortArch(20);
         end
         
         function TEST_smoothCodeWithDoppler(this, win_size)
@@ -1664,12 +1674,17 @@ classdef Receiver < handle
             ls = Least_Squares_Manipulator();
             ls.setUpPPP(this, []);
             ls.Astack2Nstack();
-            % set time regularization for the troposphere and its gradients
-            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT);
-            ls.setTimeRegularization(7, 0.1);
-            ls.setTimeRegularization(8, 0.1);
-            ls.setTimeRegularization(9, 0.1);
-            x = ls.solve();
+            % set time regularization for the troposphere and its gradients  
+            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT);%
+            ls.setTimeRegularization(7, this.state.std_tropo);
+            ls.setTimeRegularization(8, this.state.std_tropo_gradient);
+            ls.setTimeRegularization(9, this.state.std_tropo_gradient);
+            [x, res] = ls.solve();
+            coo    = x(1:3,1);
+            clock = x(x(:,2) == 5,1);
+            tropo = x(x(:,2) == 6,1);
+            gntropo = x(x(:,2) == 7,1);
+            getropo = x(x(:,2) == 8,1);
             keyboard;
         end
         
@@ -3317,7 +3332,44 @@ classdef Receiver < handle
                 
                 if ~isempty(this.pcv)
                     %TODO correct for receiver pcv
-                    XS = - XR_sat;
+                    f_code_history = []; % save f_code checked to print only one time the warning message
+                    for s = 1 : size(this.sat.el,2)
+                        sat_idx = this.sat.avail_index(:,s);
+                        el = this.sat.el(sat_idx,s);
+                        az = this.sat.el(sat_idx,s);
+                        neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                        obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                        obs_idx = obs_idx & this.go_id == s;
+                        if sum(obs_idx) > 0
+                            freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                            for f = freqs'
+                                obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
+                                sys = this.system(obs_idx_f);
+                                f_code = [sys(1) sprintf('%02d',f)];
+                                
+                                pco_idx = idxCharLines(this.pcv.frequency_name,f_code);
+                                if sum(pco_idx)
+                                    pco = this.pcv.offset(:,:,pco_idx)';
+                                    pco_delays = neu_los*pco;
+                                    pcv_delays = pco_delays + this.getPCV(pco_idx,el,az);
+                                    for o = find(obs_idx_f)'
+                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
+                                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                        if  this.obs_code(o,1) == 'L'
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                        else
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)';
+                                        end
+                                    end
+                                else
+                                    if isempty(f_code_history) || ~sum(idxCharLines(f_code_history,f_code))
+                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s and frequency %s',this.ant_type,f_code),6));
+                                        f_code_history = [f_code_history;f_code];
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
                 if ~isempty(this.sat.cs.ant_pcv)
                     
@@ -3330,7 +3382,7 @@ classdef Receiver < handle
                     % transgform into satellite reference system
                     XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
                     
-                    % getting ax and el
+                    % getting az and el
                     distances = sqrt(sum(XR_sat.^2,3));
                     XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
                     
@@ -3355,9 +3407,9 @@ classdef Receiver < handle
                                     pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                                     o_idx = this.obs(o, :) ~=0; %find where apply corrections
                                     if  this.obs_code(o,1) == 'L'
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
                                     else
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)';
                                     end
                                 end
                             end
@@ -3365,6 +3417,51 @@ classdef Receiver < handle
                     end
                     
                 end
+            end
+        end
+        
+        function pcv_delay = getPCV(this, idx, el, az) %Duplicate of method in Core_Sky consider restructuring
+            % DESCRIPTION: get the pcv correction for a given satellite and a given
+            % azimuth and elevations using linear or bilinear interpolation
+            
+             pcv_delay = zeros(size(el));
+
+            pcv = this.pcv;
+            
+            %tranform el in zen
+            zen = 90 - el;
+            % get el idx
+            zen_pcv = pcv.tablePCV_zen;
+            
+            min_zen = zen_pcv(1);
+            max_zen = zen_pcv(end);
+            d_zen = (max_zen - min_zen)/(length(zen_pcv)-1);
+            zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
+            d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
+            if nargin < 4 || isempty(pcv.tablePCV_azi) %no azimuth change
+                pcv_val = pcv.tableNOAZI(:,:,idx); %etract the right frequency
+                
+                pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
+            else
+               pcv_val = pcv.tablePCV(:,:,idx); %etract the right frequency
+               
+               %find azimuth indexes
+               az_pcv = pcv.tablePCV_azi;
+                min_az = az_pcv(1);
+                max_az = az_pcv(end);
+                d_az = (max_az - min_az)/(length(az_pcv)-1);
+                az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
+                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1); 
+                
+                %interpolate along zenital angle
+                idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
+                idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
+                pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
+                idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
+                idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
+                pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
+                %interpolate alogn azimtuh
+                pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
             end
         end
         
