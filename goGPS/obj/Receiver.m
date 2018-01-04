@@ -398,6 +398,8 @@ classdef Receiver < handle
             this.initPositioning();
             % smooth clock estimation
             this.smoothAndApplyDt();
+            this.dt_ip = this.dt;
+            this.dt(:) = 0;
             % set all availability index
             this.updateAllAvailIndex();
             % update azimuth elevation
@@ -460,12 +462,7 @@ classdef Receiver < handle
             % remove epochs with a certain id
             % SYNTAX:   this.remObs(id_obs)
             
-            this.obs(:,epo) = [];
-            this.time.delId(id_opo);
-            if numel(this.dt) == this.getNumObservables()
-                this.dt(id_epo) = [];
-            end
-            
+            this.obs(:,epo) = 0;
             this.active_ids = any(this.obs, 2);
         end
         
@@ -516,6 +513,20 @@ classdef Receiver < handle
             this.remEmptyObs();
         end
         
+        function nominal_time = getNominalTime(this)
+            % get the nominal time aka rounded time cosidering a  constant
+            % sampling rate
+            % SYNTAX: nominal_time = this.getNominalTime()
+            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
+            rinex_time = this.time.getRefTime(nominal_time_zero);
+            nominal_time = round(rinex_time * this.time.getRate) / this.time.getRate;
+            ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
+            
+            % reordering observations filling empty epochs with zeros;
+            nominal_time = GPS_Time(nominal_time_zero, ref_time, this.time.isGPS(), 2);
+            nominal_time.toUnixTime;
+        end
+        
         function correctTimeDesync(this)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX:
@@ -524,9 +535,9 @@ classdef Receiver < handle
             
             % computing nominal_time
             nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
-            nominal_time = round(this.time.getRefTime(nominal_time_zero) * this.time.getRate) / this.time.getRate;
-            ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
             rinex_time = this.time.getRefTime(nominal_time_zero);
+            nominal_time = round(rinex_time * this.time.getRate) / this.time.getRate;
+            ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
             
             % reordering observations filling empty epochs with zeros;
             this.time = GPS_Time(nominal_time_zero, ref_time, this.time.isGPS(), 2);
@@ -547,7 +558,7 @@ classdef Receiver < handle
             this.n_spe(id_not_empty) = this.n_spe;
             this.n_spe(id_empty) = 0;
             
-            % extract phases
+            % extract observations
             [ph, wl, id_ph] = this.getPhases();
             [pr, id_pr] = this.getPseudoRanges();
             
@@ -1695,6 +1706,7 @@ classdef Receiver < handle
             coo    = x(1:3,1);
             clock = x(x(:,2) == 5,1);
             tropo = x(x(:,2) == 6,1);
+            amb = x(x(:,2) == 4,1);
             gntropo = x(x(:,2) == 7,1);
             getropo = x(x(:,2) == 8,1);
             keyboard;
@@ -2234,7 +2246,8 @@ classdef Receiver < handle
         
         function shiftToNominal(this)
             % DESCRIPTION: translate receiver observations to nominal epochs
-            tt = this.dt(:,1) + this.dt_pr - this.desync;
+            nominal_time = getNominalTime(this)
+            tt = nominal_time - this.time;
             this.timeShiftObs(tt)            
         end
         
@@ -2780,9 +2793,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx);
                         end
                     end
                 end
@@ -2890,7 +2903,7 @@ classdef Receiver < handle
                 sat_idx = this.sat.avail_index(:,s);
                 az = this.getAz(s);
                 el = this.getEl(s);
-                LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
+                LOSu = [cosd(el).*sind(az) cosd(el).*cosd(az) sind(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
                 solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
             end
@@ -2933,9 +2946,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx);
                         end
                     end
                 end
@@ -3079,9 +3092,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx);
                         end
                     end
                 end
@@ -3178,7 +3191,7 @@ classdef Receiver < handle
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ph_wind_up(o_idx);
+                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ph_wind_up(o_idx);
                     end
                 end
             end
@@ -3265,9 +3278,9 @@ classdef Receiver < handle
                             pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                             o_idx = this.obs(o, :) ~=0; %find where apply corrections
                             if  this.obs_code(o,1) == 'L'
-                                this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
+                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
                             else
-                                this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* sh_delays(pcv_idx)';
+                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)';
                             end
                         end
                     end
@@ -3615,8 +3628,8 @@ classdef Receiver < handle
             hold on;
             plot(t, this.dt_pr, ':', 'LineWidth', 2);
             plot(t, this.dt_ph, ':', 'LineWidth', 2);
-            plot(t, this.dt, '-', 'LineWidth', 2);
-            plot(t, this.dt + this.dt_pr, '-', 'LineWidth', 2);
+            plot(t, this.dt_ip, '-', 'LineWidth', 2);
+            plot(t, this.dt_ip + this.dt_pr, '-', 'LineWidth', 2);
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
             

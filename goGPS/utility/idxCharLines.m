@@ -3,7 +3,7 @@ function idx = idxCharLines(mat,line)
 %equal to line
 n_idx = size(line,1);
 if n_idx == 1
-    idx= sum(mat == repmat(line,size(mat,1),1) ,2) == size(mat,2); % to be backward compatible
+    idx= sum(mat == repmat(line,size(mat,1),1) ,2) == size(mat,2); % to be backward compatible return logical array
 else
     idx = zeros(n_idx,1);
     for i = 1: length(idx)
