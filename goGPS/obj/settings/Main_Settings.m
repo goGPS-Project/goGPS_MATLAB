@@ -980,9 +980,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             this.check(); % check before export
 
+            str_cell = Ini_Manager.toIniStringSection('SOFTWARE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('goGPS config file', str_cell);
+            str_cell = Ini_Manager.toIniString('version', Core.GO_GPS_VERSION, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
             str_cell = this.export@IO_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
+            
             % RECEIVER DEFAULT PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('RECEIVERS', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of code observations [m]', str_cell);
