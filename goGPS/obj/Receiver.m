@@ -415,8 +415,7 @@ classdef Receiver < handle
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
-            this.removeOutlierMarkCycleSlip();
-            %this.removeShortArch(20);
+            this.removeOutlierMarkCycleSlip();            
         end
         
         function TEST_smoothCodeWithDoppler(this, win_size)
@@ -625,7 +624,7 @@ classdef Receiver < handle
             
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
-                this.log.addMarkedMessage('Removing principal outliers');
+                this.log.addMarkedMessage('Removing main outliers');
                 [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
                 [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
@@ -3352,7 +3351,7 @@ classdef Receiver < handle
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
-                if ~isempty(this.pcv)
+                if ~isempty(this.pcv) && ~isempty(this.pcv.name)
                     %TODO correct for receiver pcv
                     f_code_history = []; % save f_code checked to print only one time the warning message
                     for s = 1 : size(this.sat.el,2)
@@ -3706,40 +3705,45 @@ classdef Receiver < handle
         end
         
         function removeOutlierMarkCycleSlip(this)
+            this.log.addMarkedMessage('Cleaning observations');
             
-            %PARAMETRS
-            ol_thrs = 0.5; %outlier threshold
-            cs_thrs = 0.5; %CYCLE SLIP TRHS
-            sa_thrs = 10; %short arc threshold
-            
+            % PARAMETRS
+            ol_thr = 0.5; % outlier threshold
+            cs_thr = 0.5; % CYCLE SLIP THR
+            sa_thr = 10;  % short arc threshold            
             
             %----------------------------
             % Outlier Detection
             %----------------------------
             
+            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
+            mask = this.sat.el > this.state.cut_off;
+            this.obs = this.obs .* mask(:, this.go_id)';
+            
             % mark all as outlier and interpolate
             % get observed values
-            [ph, ~, id_ph_l] = this.getPhases;
+            [ph, wl, id_ph_l] = this.getPhases;
             
+            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
             % first time derivative
             synt_ph = this.getSyntPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
-            %subtract median
+            % subtract median (clock error)
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % multiply for wavelenght
-            sensor_ph = sensor_ph./repmat(this.wl(id_ph_l)',this.time.length,1);
+            % divide for wavelenght
+            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > ol_thrs;
-            %take them off
-            ph2=ph;
+            poss_out_idx = abs(sensor_ph) > ol_thr;
+            % take them off
+            ph2 = ph;
             ph2(poss_out_idx) = nan;
-            %ph2 = simpleFill1D(ph2, poss_out_idx);
             
             %----------------------------
             % Cycle slip detection
             %----------------------------
             
-            %join the nan
+            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
+            % join the nan
             sensor_ph_cs = nan(size(sensor_ph));
             for o = 1 : size(ph2,2)
                 tmp_ph = ph2(:,o);
@@ -3750,15 +3754,16 @@ classdef Receiver < handle
                 end
             end
             
-            %subtract median
+            % subtract median
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
-            % multiply for wavelenght
-            sensor_ph_cs2 = sensor_ph_cs2./repmat(this.wl(id_ph_l)',this.time.length,1);
-            %find possible cycle slip
-            % cycle slip when they exceed thrhsold cycle
-            poss_slip_idx = abs(sensor_ph_cs2) > cs_thrs;
-            
-            %check if epoch before cycle slip can be restored
+            % divide for wavelenght
+            sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
+
+            % find possible cycle slip
+            % cycle slip when they exceed threhsold cycle
+            poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;            
+
+            % check if epoch before cycle slip can be restored
             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
             poss_rest = poss_rest & poss_out_idx;
             poss_rest_line = sum(poss_rest,2);
@@ -3767,15 +3772,15 @@ classdef Receiver < handle
             synt_ph_rest_lines = synt_ph(poss_rest_line,:);
             
             sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
-            %subtract median
+            % subtract median
             sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-            % multiply for wavelenght
-            sensor_rst = sensor_rst./repmat(this.wl(id_ph_l)',size(sensor_rst,1),1);
+            % divide for wavelenght
+            sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
             for i = 1:size(sensor_rst,2)
                 for c = find(poss_rest(:,i))'
                     if ~isempty(c)
                         idx = sum(poss_rest_line(1:c));
-                        if abs(sensor_rst(idx,i)) < cs_thrs
+                        if abs(sensor_rst(idx,i)) < cs_thr
                             poss_out_idx(c,i) = false; %is not outlier
                             %move 1 step before the cycle slip index
                             poss_slip_idx(c+1,i) = false;
@@ -3790,7 +3795,7 @@ classdef Receiver < handle
             this.ph_idx = find(id_ph_l);
             
             % remove too short possible arc
-            to_short_idx = flagMerge(poss_slip_idx,sa_thrs);
+            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
             poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
             to_short_idx(poss_slip_idx) =false;
             poss_out_idx(to_short_idx) = true;
@@ -3798,8 +3803,9 @@ classdef Receiver < handle
             n_out = sum(sum(poss_out_idx));
             this.outlier_idx_ph = sparse(poss_out_idx);
             this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
-            this.log.addMarkedMessage(sprintf('%d phase observations marked as outlier',n_out));
+            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
+            this.removeShortArch(this.state.getMinArc);
         end
         
         function tryCycleSlipRepair(this)
@@ -3908,7 +3914,7 @@ classdef Receiver < handle
                 end                
             end
             
-            this.log.addMarkedMessage(sprintf('%d of %d cycle slip repaired',n_repaired,n_cycleslip));
+            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
             
             this.cycle_slip_idx_ph = poss_slip_idx;
             
@@ -3916,15 +3922,23 @@ classdef Receiver < handle
             
             %
         end
-        function removeShortArch(this,min_arch)
+        function removeShortArch(this, min_arc)
             % removes arch shorter than
-            ph = this.getPhases();
-            idx = ~isnan(ph);
-            idx_s = flagShrink(idx,min_arch/2);
-            idx_e = flagExpand(idx_s,min_arch/2);
-            el_idx = xor(idx,idx_e);
-            this.outlier_idx_ph(el_idx) =  true;
-            this.cycle_slip_idx_ph(el_idx) = 0;
+            % SYNTAX:
+            %   this.removeShortArch()
+            if min_arc > 1
+                this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
+                [ph, wl, id_ph]= this.getPhases();
+                idx = ~isnan(ph);
+                idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
+                idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
+                el_idx = xor(idx,idx_e);
+                this.outlier_idx_ph(el_idx) =  true;
+                this.cycle_slip_idx_ph(el_idx) = 0;
+                ph(this.outlier_idx_ph) = 0;
+                this.setPhases(ph, wl, id_ph);
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
+            end
         end
         
         function plotCycleSlip(this)
@@ -4289,7 +4303,7 @@ classdef Receiver < handle
         function synt_pr_obs = computeSyntCurObs(this, phase, sys_c)
             % DESCRIPTION: get syntetic observation for code or phase
             obs_type = {'code', 'phase'};
-            this.log.addMessage(sprintf('Synthesising %s observations', obs_type{phase + 1}) );
+            this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1}),6));
             idx_obs = [];
             if nargin < 3
                 sys_c = this.cc.sys_c;
