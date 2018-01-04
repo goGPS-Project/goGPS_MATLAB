@@ -117,6 +117,11 @@ classdef Observation_Set < handle
             this.snr(idx) = 0;
             this.el(idx) = 0;
             this.az(idx) = 0;
+            idx2 = find(idx);
+            idx2(idx2==(size(idx,1) * size(idx,2))) = [];
+            for i = idx2'
+                this.cycle_slip(i+1) = this.cycle_slip(i+1) | this.cycle_slip(i);
+            end
             this.cycle_slip(idx) = 0;
             this.sanitizeEmpty();
         end
@@ -133,6 +138,8 @@ classdef Observation_Set < handle
             this.snr(idx_rem,:) = [];
             this.el(idx_rem,:) = [];
             this.az(idx_rem,:) = [];
+            idx_rem_n = find(idx_rem);
+            this.cycle_slip(idx_rem_n+1,:) = this.cycle_slip(idx_rem_n+1,:) |this.cycle_slip(idx_rem_n,:) ;% bring cycle slips to next epochs
             this.cycle_slip(idx_rem,:) = [];
             this.time = this.time.getSubSet(~idx_rem);
 

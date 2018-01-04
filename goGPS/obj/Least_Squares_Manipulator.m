@@ -89,6 +89,7 @@ classdef Least_Squares_Manipulator < handle
             if sum(sum(snr_to_fill));
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
+            obs_set.remUnderCutOff(15);
             % set up number of parametrs requires
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
@@ -100,7 +101,7 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
             diff_obs(:, ~idx_valid_stream) = [];
             xs_loc(:, ~idx_valid_stream, :) = [];
-            obs_set.remUnderCutOff(5);
+            
             obs_set.remEpochs(~idx_valid_ep_l);
             obs_set.sanitizeEmpty();
             n_epochs = size(obs_set.obs, 1);
@@ -178,17 +179,22 @@ classdef Least_Squares_Manipulator < handle
                 sine = sin(el_stream);
                 cose = cos(el_stream);
                 not_inf_factor = 0.01;
+                if ppp_opt.tropo
                 A(lines_stream, n_coo+n_iob+3) = 1 ./ (sine + not_inf_factor);
+                A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                end
+                if ppp_opt.tropo_g
                 derivative_term = -cose ./ (sine + not_inf_factor).^2;
                 A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* derivative_term;
                 A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* derivative_term;
-                A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                
                 A_idx(lines_stream, n_coo+n_iob+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 A_idx(lines_stream, n_coo+n_iob+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                end
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
-            w(:) = 1;%this.state.std_phase;
+            w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
             
             this.A_ep = A;
@@ -197,13 +203,8 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
-            if n_iob > 0
-                this.param_flag = [0, 0, 0, -1, -1, 1, 1, 1, 1];
-                this.param_class = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-            else
-                this.param_flag = [0, 0, 0, -1, 1, 1, 1, 1];
-                this.param_class = [1, 2, 3, 4, 5, 6, 7, 8];
-            end
+            this.param_flag = [0, 0, 0, -1*ones(n_iob), -1, 1, 1*ones(ppp_opt.tropo), 1*ones(ppp_opt.tropo_g), 1*ones(ppp_opt.tropo_g)];
+            this.param_class = [1, 2, 3, 4*ones(n_iob), 5, 6, 7*ones(ppp_opt.tropo), 8*ones(ppp_opt.tropo_g), 9*ones(ppp_opt.tropo_g)];
         end
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;

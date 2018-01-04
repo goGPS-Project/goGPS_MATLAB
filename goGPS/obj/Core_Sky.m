@@ -1132,18 +1132,19 @@ classdef Core_Sky < handle
                 x_sun = X_sun(idx,:);
                 x_sat = X_sat(idx,:,:);
                 e = permute(repmat(x_sun,1,1,n_sat),[1 3 2]) - x_sat ;
-                e = e./repmat(normAlngDir(e,3),1,1,3);
-                k = -x_sat./repmat(normAlngDir(x_sat,3),1,1,3);
-                j=cross(k,e);
+                e = e./repmat(normAlngDir(e,3),1,1,3); %sun direction
+                k = -x_sat./repmat(normAlngDir(x_sat,3),1,1,3); %earth directions (z)
+                j=cross(k,e); % perpendicular to bot earth and sun dorection (y)
+                j= j ./ repmat(normAlngDir(j,3),1,1,3); % normalize, earth amd sun dorection are not perpendicular
                 %                 j = [k(2).*e(3)-k(3).*e(2);
                 %                     k(3).*e(1)-k(1).*e(3);
                 %                     k(1).*e(2)-k(2).*e(1)];
-                i=cross(j,k);
+                i=cross(j,k); %(x)
                 %                 i = [j(2).*k(3)-j(3).*k(2);
                 %                     j(3).*k(1)-j(1).*k(3);
                 %                     j(1).*k(2)-j(2).*k(1)];
-                sx(idx,:,:) = i ./ repmat(normAlngDir(i,3),1,1,3);
-                sy(idx,:,:) = j ./ repmat(normAlngDir(j,3),1,1,3);
+                sx(idx,:,:) = i ;
+                sy(idx,:,:) = j ;
                 sz(idx,:,:) = k ;
             end
             if n_sat == 1

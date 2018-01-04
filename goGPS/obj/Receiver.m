@@ -1693,23 +1693,30 @@ classdef Receiver < handle
             end
         end
         
-        function staticPPP(this)
+        function res = staticPPP(this)
             ls = Least_Squares_Manipulator();
-            ls.setUpPPP(this, []);
+            ppp_opt.tropo = true; %this.state.flag_tropo;
+            ppp_opt.tropo_g = true;%this.state.flag_tropo_gradient;
+            ls.setUpPPP(this, ppp_opt);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients  
-            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT);%
-            ls.setTimeRegularization(7, this.state.std_tropo);
-            ls.setTimeRegularization(8, this.state.std_tropo_gradient);
-            ls.setTimeRegularization(9, this.state.std_tropo_gradient);
+%             ls.setTimeRegularization(1, 0.00001);
+%             ls.setTimeRegularization(2, 0.00001);
+%             ls.setTimeRegularization(3, 0.00001);
+            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT/0.005);%
+            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * this.rate/0.003 * 10);
+            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * this.rate/0.005);
+            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * this.rate/0.005);
             [x, res] = ls.solve();
+            
             coo    = x(1:3,1);
-            clock = x(x(:,2) == 5,1);
-            tropo = x(x(:,2) == 6,1);
-            amb = x(x(:,2) == 4,1);
-            gntropo = x(x(:,2) == 7,1);
-            getropo = x(x(:,2) == 8,1);
-            keyboard;
+            clock = x(x(:,2) == 6,1);
+            tropo = x(x(:,2) == 7,1);
+            amb = x(x(:,2) == 5,1);
+            gntropo = x(x(:,2) == 8,1);
+            getropo = x(x(:,2) == 9,1);
+            this.log.addMessage(sprintf('DEBUG: s02 = %f',mean(abs(res(res~=0)))));
+            this.log.addMessage(sprintf('DEBUG: distance from rine pos = %.3f %.3f %.3f',this.xyz + coo'-this.xyz_approx));
         end
         
         function initPositioning(this, sys_c)
@@ -2736,9 +2743,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx,s)';
                         end
                     end
                 end
@@ -2889,9 +2896,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx,s)';
                         end
                     end
                 end
@@ -3035,9 +3042,9 @@ classdef Receiver < handle
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx,s)';
                         end
                     end
                 end
@@ -3134,7 +3141,7 @@ classdef Receiver < handle
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ph_wind_up(o_idx);
+                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ph_wind_up(o_idx,s)'; % add or subtract???
                     end
                 end
             end
@@ -3170,13 +3177,13 @@ classdef Receiver < handle
             
             sat = 1: this.cc.getNumSat();
             
-            [i, j, k] = this.sat.cs.getSatFixFrame(s_time);
+            [x, y, z] = this.sat.cs.getSatFixFrame(s_time);
             ph_wind_up = zeros(this.time.length,length(sat));
             for s = sat
                 av_idx = this.sat.avail_index(:,s);
-                i_s = squeeze(i(:,s,:));
-                j_s = squeeze(j(:,s,:));
-                k_s = squeeze(k(:,s,:));
+                i_s = squeeze(x(:,s,:));
+                j_s = squeeze(y(:,s,:));
+                k_s = squeeze(z(:,s,:));
                 
                 %receiver and satellites effective dipole vectors
                 Dr = s_a - k_s.*repmat(sum(k_s.*s_a,2),1,3) + cross(k_s,s_b);
@@ -3339,19 +3346,15 @@ classdef Receiver < handle
                 if ~isempty(this.sat.cs.ant_pcv)
                     
                     % getting satellite reference frame for each epoch
-                    [i, j, k] = this.sat.cs.getSatFixFrame(this.time);
-                    sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
-                    sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
-                    sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-                    
+                    [x, y, z] = this.sat.cs.getSatFixFrame(this.time);                    
                     % transgform into satellite reference system
-                    XR_sat = cat(3,sum(XR_sat.*i,3),sum(XR_sat.*j,3),sum(XR_sat.*k,3));
+                    XR_sat = cat(3,sum(XR_sat.*x,3),sum(XR_sat.*y,3),sum(XR_sat.*z,3));
                     
                     % getting az and el
                     distances = sqrt(sum(XR_sat.^2,3));
                     XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
                     
-                    az = atan2(XR_sat_norm(:, :, 1),XR_sat_norm(:, :, 2));
+                    az = atan2(XR_sat_norm(:, :, 2),XR_sat_norm(:, :, 1)); % here azimuth is intended as angle from x axis
                     az(az<0) = az(az<0) + 2*pi;
                     el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
                     
