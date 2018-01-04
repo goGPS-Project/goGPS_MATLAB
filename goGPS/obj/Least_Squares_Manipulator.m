@@ -73,7 +73,7 @@ classdef Least_Squares_Manipulator < handle
         state 
     end
     methods
-        function this = Least_Square_Manipulator()
+        function this = Least_Squares_Manipulator()
             this.state = Go_State.getCurrentSettings();
         end
         function regularize(this, reg_opt)
@@ -188,7 +188,7 @@ classdef Least_Squares_Manipulator < handle
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
-            w(:) = this.state.std_phase;
+            w(:) = 1;%this.state.std_phase;
             %---------------------
             
             this.A_ep = A;

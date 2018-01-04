@@ -1253,7 +1253,7 @@ classdef Receiver < handle
                     idx(i) = find(sys_idx & this.prn == prn(i) & sum(this.obs_code == repmat(flags(i,:) ,size(this.obs_code,1) ,1),2) == 3);
                 end
             else
-                this.log.addError(['Invalide length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
+                this.log.addError(['Invalid length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
             end
         end
         function [obs_set] = getIonoFree(this, flag1, flag2, system, max_obs_type)
@@ -1387,7 +1387,7 @@ classdef Receiver < handle
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
             is_present = zeros(size(iono_pref,1),1) < 1;
             for i = size(iono_pref,1)
-                % check if there are onservation for the selected channel
+                % check if there are observation for the selected channel
                 if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
                     is_present(i) = true;
                 end
@@ -2246,7 +2246,7 @@ classdef Receiver < handle
         
         function shiftToNominal(this)
             % DESCRIPTION: translate receiver observations to nominal epochs
-            nominal_time = getNominalTime(this)
+            nominal_time = getNominalTime(this);
             tt = nominal_time - this.time;
             this.timeShiftObs(tt)            
         end
