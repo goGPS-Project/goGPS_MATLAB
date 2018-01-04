@@ -1395,6 +1395,7 @@ classdef Receiver < handle
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
     end
+    
     % ==================================================================================================================================================
     % SETTER
     % ==================================================================================================================================================
@@ -2251,64 +2252,7 @@ classdef Receiver < handle
         end
         
     end
-    
-    % ==================================================================================================================================================
-    %  STATIC FUNCTIONS used as utilities
-    % ==================================================================================================================================================
-    methods (Static, Access = public)
         
-        function syncronize2receivers(rec1, rec2)
-            % remove all the observations that are not present for both phase and pseudo-range between two receivers
-            if (rec1.n_freq == 2) && (rec2.n_freq == 2)
-                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.pr(:,:,2)) & ~isnan(rec1.ph(:,:,1)) & ~isnan(rec1.ph(:,:,2)) & ...
-                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.pr(:,:,2)) & ~isnan(rec2.ph(:,:,1)) & ~isnan(rec2.ph(:,:,2));
-            else
-                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.ph(:,:,1)) & ...
-                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.ph(:,:,1));
-            end
-            rec1.pr(~sat) = nan;
-            rec1.ph(~sat) = nan;
-            rec2.pr(~sat) = nan;
-            rec2.ph(~sat) = nan;
-        end
-        
-        function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
-            % prepare y0 and pivot_correction arrays (phase only)
-            % SYNTAX: [y0, pc] = prepareY0(trg, mst, lambda, pivot)
-            % WARNING: y0 contains also the pivot observations and must be reduced by the pivot corrections
-            %          use composeY0 to do it
-            y0 = [];
-            wl = [];
-            pc = [];
-            i = 0;
-            for t = 1 : trg.n_epo
-                for f = 1 : trg.n_freq
-                    sat_pr = trg.p_range(t,:,f) & mst.p_range(t,:,f);
-                    sat_ph = trg.phase(t,:,f) & mst.phase(t,:,f);
-                    sat = sat_pr & sat_ph;
-                    pc_epo = (trg.phase(t, pivot(t), f) - mst.phase(t, pivot(t), f));
-                    y0_epo = ((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
-                    ref = median((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
-                    wl_epo = lambda(sat, 1);
-                    
-                    idx = i + (1 : numel(y0_epo))';
-                    y0(idx) = y0_epo;
-                    pc(idx) = pc_epo;
-                    wl(idx) = wl_epo;
-                    i = idx(end);
-                end
-            end
-        end
-        
-        function y0 = composeY0(y0, pc, wl)
-            % SYNTAX: y0 = composeY0(y0, pc, wl)
-            y0 = serialize((y0 - pc) .* wl);
-            y0(y0 == 0) = []; % remove pivots
-        end
-        
-        
-    end
-    
     % ==================================================================================================================================================
     %  FUNCTIONS TO GET SATELLITE POSITION AT RIGHT TIME
     % ==================================================================================================================================================
@@ -3504,7 +3448,6 @@ classdef Receiver < handle
         
     end
     
-    
     % ==================================================================================================================================================
     %  PLOTTING FUNCTIONS
     % ==================================================================================================================================================
@@ -4007,6 +3950,10 @@ classdef Receiver < handle
         
         
     end
+    
+    % ==================================================================================================================================================
+    %  PRIVATE FUNCTIONS
+    % ==================================================================================================================================================
     
     methods (Access = private)
         function parseRin2Data(this, txt, lim, eoh)
@@ -4637,4 +4584,112 @@ classdef Receiver < handle
         end
     end
     
+        % ==================================================================================================================================================
+    %  STATIC FUNCTIONS used as utilities
+    % ==================================================================================================================================================
+    methods (Static, Access = public)
+        
+        function syncronize2receivers(rec1, rec2)
+            % remove all the observations that are not present for both phase and pseudo-range between two receivers
+            if (rec1.n_freq == 2) && (rec2.n_freq == 2)
+                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.pr(:,:,2)) & ~isnan(rec1.ph(:,:,1)) & ~isnan(rec1.ph(:,:,2)) & ...
+                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.pr(:,:,2)) & ~isnan(rec2.ph(:,:,1)) & ~isnan(rec2.ph(:,:,2));
+            else
+                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.ph(:,:,1)) & ...
+                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.ph(:,:,1));
+            end
+            rec1.pr(~sat) = nan;
+            rec1.ph(~sat) = nan;
+            rec2.pr(~sat) = nan;
+            rec2.ph(~sat) = nan;
+        end
+        
+        function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
+            % prepare y0 and pivot_correction arrays (phase only)
+            % SYNTAX: [y0, pc] = prepareY0(trg, mst, lambda, pivot)
+            % WARNING: y0 contains also the pivot observations and must be reduced by the pivot corrections
+            %          use composeY0 to do it
+            y0 = [];
+            wl = [];
+            pc = [];
+            i = 0;
+            for t = 1 : trg.n_epo
+                for f = 1 : trg.n_freq
+                    sat_pr = trg.p_range(t,:,f) & mst.p_range(t,:,f);
+                    sat_ph = trg.phase(t,:,f) & mst.phase(t,:,f);
+                    sat = sat_pr & sat_ph;
+                    pc_epo = (trg.phase(t, pivot(t), f) - mst.phase(t, pivot(t), f));
+                    y0_epo = ((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
+                    ref = median((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
+                    wl_epo = lambda(sat, 1);
+                    
+                    idx = i + (1 : numel(y0_epo))';
+                    y0(idx) = y0_epo;
+                    pc(idx) = pc_epo;
+                    wl(idx) = wl_epo;
+                    i = idx(end);
+                end
+            end
+        end
+        
+        function y0 = composeY0(y0, pc, wl)
+            % SYNTAX: y0 = composeY0(y0, pc, wl)
+            y0 = serialize((y0 - pc) .* wl);
+            y0(y0 == 0) = []; % remove pivots
+        end
+        
+        function [p_time] = getSyncTime(rec, obs_type, p_rate)
+            % Get the common time among alle the used receivers and the target(s)
+            %
+            % SYNTAX: 
+            %   p_time = Receiver.getSyncTime(rec, obs_type, <p_rate>);
+            %
+            % EXAMPLE:
+            %   p_time = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
+
+            if nargin < 3
+                p_rate = 1e-6;
+            end
+            % Do the target(s) as last
+            [~, id] = sort(obs_type, 'descend');
+            
+            % prepare reference time
+            % processing time will start with the receiver with the last first epoch
+            %          and it will stop  with the receiver with the first last epoch
+            p_time_zero = round(rec(1).time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = rec(1).time.first.getRefTime(p_time_zero);
+            p_time_stop = rec(1).time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(rec(1).time.getRate * 1e6)) * 1e-6;
+            
+            p_time = GPS_Time(); % empty initialization
+            
+            i = 0;
+            for r = id
+                if obs_type(r) > 0 % if it's not a target
+                    p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                else
+                    % It's a target
+                    
+                    % recompute the parameters for the ref_time estimation
+                    % not that in principle I can have up to num_trg_rec ref_time
+                    % in case of multiple targets the reference times should be independent
+                    % so here I keep the temporary rt0 rt1 r_rate var
+                    % instead of ref_time_start, ref_time_stop, ref_rate
+                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = ceil(pt0 / pr) * pr;
+                    pt1 = floor(pt1 / pr) * pr;
+                    
+                    % return one p_time for each target
+                    i = i + 1;
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
+                    p_time(i).toUnixTime();
+                end
+            end           
+        end
+    end
+
 end

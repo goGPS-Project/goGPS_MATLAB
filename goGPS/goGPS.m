@@ -171,16 +171,7 @@ for s = 1 : num_session
     cur_date_start = fr.first_epoch.last();
     cur_date_stop = fr.last_epoch.first();
     sky.initSession(cur_date_start, cur_date_stop);
-    
-    % prepare reference time
-    % processing time will start with the receiver with the last first epoch
-    %          and it will stop  with the receiver with the first last epoch
-    clear p_time;
-    p_time_zero = round(cur_date_start.getMatlabTime() * 24)/24; % get the reference time
-    p_time_start = -inf;
-    p_time_stop = inf;
-    p_rate = 1e-6;
-    
+        
     clear rec;  % handle to all the receivers
     clear mst;
     r = 0;
@@ -192,12 +183,7 @@ for s = 1 : num_session
         r = r + 1;
         mst(i) = Receiver(cc, f_mst_rec{i}{s}); %#ok<SAGROW>
         mst(i).preProcessing();
-        rec(r) = mst(i);
-        
-        % recompute the parameters for the ref_time estimation
-        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+        rec(r) = mst(i);        
     end
     
     clear ref;
@@ -209,12 +195,7 @@ for s = 1 : num_session
         r = r + 1;
         ref(i) = Receiver(cc, f_ref_rec{i}{s}); %#ok<SAGROW>
         ref(i).preProcessing();
-        rec(r) = ref(i);
-        
-        % recompute the parameters for the ref_time estimation
-        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+        rec(r) = ref(i);        
     end
     
     clear trg;
@@ -226,25 +207,11 @@ for s = 1 : num_session
         r = r + 1;
         trg(i) = Receiver(cc, f_trg_rec{i}{s}); %#ok<SAGROW>        
         trg(i).preProcessing();
-        rec(r) = trg(i);
-        
-        % recompute the parameters for the ref_time estimation
-        % not that in principle I can have up to num_trg_rec ref_time
-        % in case of multiple targets the reference times should be independent
-        % so here I keep the temporary rt0 rt1 r_rate var
-        % instead of ref_time_start, ref_time_stop, ref_rate
-        pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-        pr = lcm(lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)), state.getProcessingRate() * 1e6) * 1e-6;
-        pt0 = ceil(pt0 / pr) * pr;
-        pt1 = floor(pt1 / pr) * pr;
-        
-        p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
-        p_time(i).toUnixTime();
-        clear pt0 pt1 pr;
+        rec(r) = trg(i);        
     end
-    clear p_time_start p_time_stop p_rate r i;
+    
     fprintf('--------------------------------------------------------------------------\n');
     log.newLine();
     log.addMarkedMessage('Syncing times, computing reference time');
+    p_time = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
 end
