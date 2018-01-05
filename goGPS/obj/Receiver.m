@@ -36,32 +36,16 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Receiver < handle
-    
-    properties (SetAccess = private, GetAccess = public)
-        cc = Constellation_Collector('GRECJ'); % local cc
-        w_bar                                  % handle to waitbar
-        state                                  % local handle of state;
-        log                                 % handle to log
-    end
-    
+classdef Receiver < Exportable_Object
+        
     properties (SetAccess = public, GetAccess = public)
         file           % file rinex object
         rin_type       % rinex version format
         rinex_ss       % flag containing the satellite system of the rinex file, G: GPS, R: GLONASS, E: Galileo, J: QZSS, C: BDS, I: IRNSS, S: SBAS payload, M: Mixed
         
-        ant            % antenna number
-        ant_type       % antenna type
-        ant_delta_h    % antenna height from the ground [m]
-        ant_delta_en   % antenna east/north offset from the ground [m]
-        
         name           % marker name
         type           % marker type
-        rin_obs_code   % list of types per constellation
-        ph_shift       % phase shift as read from RINEX files
-        
-        xyz_approx     % approximate position of the receiver (XYZ geocentric)
-        xyz            % position of the receiver (XYZ geocentric)
+                
         rid            % receiver interobservation biases
         flag_rid       % clock error for each obs code {num_obs_code}
         
@@ -69,8 +53,101 @@ classdef Receiver < handle
         
         n_sat = 0;     % number of satellites
         n_freq = 0;    % number of stored frequencies
-        n_spe = [];    % number of observations per epoch
+        n_spe = [];    % number of observations per epoch                
+    end
+    
+    % ==================================================================================================================================================
+    %  OBSERVATIONS
+    % ==================================================================================================================================================
+
+    properties (SetAccess = public, GetAccess = public)
+        active_ids     % rows of active satellites
+        wl             % wave-lenght of each row of row_id
+        f_id           % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
+        prn            % pseudo-range number of the satellite
+        go_id          % internal id for a certain satellite
+        system         % char id of the satellite system corresponding to the row_id
+                
+        %obs_validity   % validity of the row (does it contains usable values?)
         
+        obs_code       % obs code for each line of the data matrix obs
+        obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
+        synt_ph;       % syntetic phases
+                
+        % ANTENNA ----------------------------------
+
+        ant            % antenna number
+        ant_type       % antenna type
+        ant_delta_h    % antenna height from the ground [m]
+        ant_delta_en   % antenna east/north offset from the ground [m]
+        
+        % CORRECTIONS ------------------------------
+        
+        rin_obs_code   % list of types per constellation
+        ph_shift       % phase shift as read from RINEX files
+
+        ocean_load_disp = [];        % ocean loading displacemnet for the station
+        clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true        
+        pcv = []       % phase center corrections for the receiver
+        
+        group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
+        dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
+        sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
+        pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
+        ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
+        pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
+        pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
+        et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
+
+        % FLAGS ------------------------------
+        
+        outlier_idx_ph;
+        cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
+        ph_idx             % idx of outlier and cycle slip in obs 
+    end
+    
+    % ==================================================================================================================================================
+    %  CELESTIAL INFORMATIONS
+    % ==================================================================================================================================================
+
+    properties (SetAccess = public, GetAccess = public)
+        sat = struct( ...
+            'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
+            'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
+            'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
+            'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
+            'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
+            'rel_clk_corr',     [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
+            'tot',              [], ...    % double  [n_epoch x n_sat] time of travel
+            'az',               [], ...    % double  [n_epoch x n_sat] azimuth
+            'el',               [], ...    % double  [n_epoch x n_sat] elevation
+            'cs',               [], ...    % Core_Sky
+            'XS_tx',            [], ...    % compute Satellite postion a t transmission time
+            'crx',              [], ...    % bad epochs based on crx file
+            'slant_td',         [] ...     % slant total delay
+            )
+    end
+   
+    % ==================================================================================================================================================
+    %  POSITION
+    % ==================================================================================================================================================
+
+    properties (SetAccess = public, GetAccess = public)
+        xyz_approx     % approximate position of the receiver (XYZ geocentric)
+        xyz            % position of the receiver (XYZ geocentric)
+        enu            % position of the receiver (ENU local UTM)
+        
+        lat            % ellipsoidal latitude
+        lon            % ellipsoidal longitude
+        h_ellips       % ellipsoidal height
+        h_ortho        % hortometric height        
+    end    
+    
+    % ==================================================================================================================================================
+    %  TIME
+    % ==================================================================================================================================================
+    
+    properties (SetAccess = public, GetAccess = public)
         time = [];     % internal time ref of the stored epochs
         rate;          % observations rate;
         desync         % receiver clock desync (difference between nominal time and the time of the observation)
@@ -78,62 +155,51 @@ classdef Receiver < handle
         dt_pr          % clock error for the pseudo-ranges generated by the de-sync process
         dt_ip          % clock error correction estimated during init positioning
         dt             % reference clock error of the receiver [n_epochs x num_obs_code]
-        
-        active_ids     % rows of active satellites
-        wl             % wave-lenght of each row of row_id
-        f_id           % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
-        prn            % pseudo-range number of the satellite
-        go_id          % internal id for a certain satellite
-        system         % char id of the satellite system corresponding to the row_id
-        
-        pcv = []       % phase center corrections for the receiver
-        
-        %obs_validity   % validity of the row (does it contains usable values?)
-        
-        obs_code       % obs code for each line of the data matrix obs
-        obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
-        
-        clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
-        
-        ocean_load_disp = [];%ocean loading displacemnet for the station
-        
-        group_delay_status = 0;% flag to indicate if code measurement have been corrected using group delays (0: not corrected , 1: corrected)
-        dts_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for the clock of the satellite(0: not corrected , 1: corrected)
-        sh_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for shapiro delay(0: not corrected , 1: corrected)
-        pcv_delay_status   = 0;% flag to indicate if code and phase measurement have been corrected for pcv variations(0: not corrected , 1: corrected)
-        ol_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for ocean loading(0: not corrected , 1: corrected)
-        pt_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for pole tides(0: not corrected , 1: corrected)
-        pw_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for phase wind up(0: not corrected , 1: corrected)
-        et_delay_status    = 0;% flag to indicate if code and phase measurement have been corrected for solid earth tide(0: not corrected , 1: corrected)
-        
-        outlier_idx_ph;
-        cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
-        ph_idx % idx of outlier and cycle slip in obs 
-        synt_ph;           % syntetic phases
-        
-        sat = struct( ...
-            'avail_index', [], ...    % boolean [n_epoch x n_sat] availability of satellites
-            'err_tropo',   [], ...    % double  [n_epoch x n_sat] tropo error
-            'err_iono',    [], ...    % double  [n_epoch x n_sat] iono error
-            'solid_earth_corr', [],...% double  [n_epoch x n_sat] solid earth corrections
-            'dtS',         [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
-            'rel_clk_corr',[], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
-            'tot',         [], ...    % double  [n_epoch x n_sat] time of travel
-            'az',          [], ...    % double  [n_epoch x n_sat] azimuth
-            'el',          [], ...    % double  [n_epoch x n_sat] elevation
-            'cs',          [], ...    % Core_Sky
-            'XS_tx',       [], ...    % compute Satellite postion a t transmission time
-            'crx',         [] ...     % bad epochs based on crx file
-            )
     end
     
+    % ==================================================================================================================================================
+    %  TROPO
+    % ==================================================================================================================================================
+    
+    properties (SetAccess = public, GetAccess = public)
+        zhd      % zenital hydrostatic delay           double   [n_epoch x 1]
+        ztd      % zenital tropospheric delay          double   [n_epoch x 1]
+        zwd      % zenital wet delay                   double   [n_epoch x 1]
+        pwv      % precipitable water vapour           double   [n_epoch x 1]
+        
+        tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
+        tge      % tropospheric gradient east          double   [n_epoch x n_sat]
+    end
+    
+    % ==================================================================================================================================================
+    %  QUALITY INDEXES
+    % ==================================================================================================================================================
+    
+    properties
+        hdop
+        khdop
+        a_fix
+        s_rate
+    end
+
+    % ==================================================================================================================================================
+    %  USEFUL HANDLES
+    % ==================================================================================================================================================
+    
+    properties (SetAccess = private, GetAccess = public)
+        cc = Constellation_Collector('GRECJ'); % local cc
+        w_bar                                  % handle to waitbar
+        state                                  % local handle of state;
+        log                                    % handle to log
+    end
+
     % ==================================================================================================================================================
     %  PUBLIC METHODS
     % ==================================================================================================================================================
     
     methods
         function this = Receiver(cc, rinex_file_name)
-            % SYNTAX  this = Receiver(<cc>)
+            % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
             this.initObs();
             this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
