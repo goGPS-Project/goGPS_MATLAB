@@ -36,7 +36,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Exportable_Object
+classdef Exportable_Object < handle
 
     methods (Access = public)
     end
