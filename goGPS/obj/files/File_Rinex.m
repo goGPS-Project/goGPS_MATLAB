@@ -40,7 +40,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef File_Rinex < handle
+classdef File_Rinex < Exportable_Object
 
     properties (SetAccess = protected, GetAccess = protected)
         log = Logger.getInstance(); % Handler to the log object

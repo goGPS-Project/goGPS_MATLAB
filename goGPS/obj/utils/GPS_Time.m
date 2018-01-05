@@ -53,7 +53,7 @@
 %--------------------------------------------------------------------------
 
 
-classdef GPS_Time < handle
+classdef GPS_Time < Exportable_Object & handle
     
     properties (Constant, GetAccess = public)
         DAYS_IN_WEEK = uint32(7);               % Number of days in a week

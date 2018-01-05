@@ -1,4 +1,4 @@
-classdef Tropo < handle
+classdef Tropo < Exportable_Object & handle
         
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
@@ -194,8 +194,7 @@ classdef Tropo < handle
             end
         end
     end
-    
-    
+        
     methods (Static)
         function tropo = loadBatch(file_name, run_start, run_stop)
             % Load all the tropo files of a session

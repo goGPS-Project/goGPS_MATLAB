@@ -1,4 +1,4 @@
-classdef Position < handle
+classdef Position < Exportable_Object & handle
         
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
@@ -31,6 +31,10 @@ classdef Position < handle
     % 01100111 01101111 01000111 01010000 01010011
     %--------------------------------------------------------------------------
     
+    properties (Access = private)
+        log     % logger
+    end
+
     properties
         time     % time as GPS_Time                    GPS_Time [1 x 1] stores n_epoch
         
@@ -48,15 +52,11 @@ classdef Position < handle
         a_fix
         s_rate
     end
-    
-    properties (Access = private)
-        log     % logger
-    end
-    
+        
     methods
         % Creator
-        function this = Position(file_name)
-            % Core object creator
+        function this = Position(file_name)            
+            % Core object creator            
             this.log = Logger.getInstance();
             this.reset();
             if nargin == 1

@@ -47,7 +47,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Settings_Interface < handle
+classdef Settings_Interface < Exportable_Object & handle
     properties (SetAccess = protected, GetAccess = protected)
         log; % Handler to the log object
     end
