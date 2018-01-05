@@ -144,6 +144,9 @@ classdef Observation_Set < handle
             this.time = this.time.getSubSet(~idx_rem);
 
         end
+        function idx = getTimeIdx(this,time_st, rate)
+            idx = round((this.time -time_st)/rate) +1;
+        end
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];
             this.az(:,idx_col) = [];

@@ -64,7 +64,8 @@ classdef Least_Squares_Manipulator < handle
         %     9 : tropo inclination east ]
         param_flag % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
         time_regularization %[ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
-        
+        true_epoch % true epoch of the epochwise paramters
+        sat_go_id  % go id of the satindeces
     end
     properties(Access = private)
         Ncc % part of the normal matrix with costant paramters
@@ -111,7 +112,7 @@ classdef Least_Squares_Manipulator < handle
             n_clocks = n_epochs;
             n_tropo = n_clocks;
             ep_p_idx = [1 : n_clocks];
-            
+            this.true_epoch = obs_set.getTimeIdx(rec.time.getSubSet(1),rec.rate);
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             iob_idx = zeros(size(obs_set.wl));
             for c = 1:size(u_obs_code, 1)
@@ -151,6 +152,7 @@ classdef Least_Squares_Manipulator < handle
             y = zeros(n_obs, 1);
             w = zeros(n_obs, 1);
             obs_count = 1;
+            this.sat_go_id = obs_set.go_id;
             for s = 1:n_stream
                 vaild_ep_stream = diff_obs(:, s) ~= 0;
                 
@@ -230,12 +232,12 @@ classdef Least_Squares_Manipulator < handle
                 res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             end
             n_epochs = max(this.epoch);
-            n_sat = max(this.sat);
+            n_sat = max(this.sat_go_id);
             res = zeros(n_epochs, n_sat);
-            for i = 1:n_sat
+            for i = 1:length(this.sat_go_id)
                 idx = this.sat == i;
                 ep = this.epoch(idx);
-                res(ep, i) = res_l(idx);
+                res(ep, this.sat_go_id(i)) = res_l(idx);
             end
         end
         function [x, res, s02, Cxx] = solve(this)
@@ -278,8 +280,8 @@ classdef Least_Squares_Manipulator < handle
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
-            reg_diag0 = ones(n_epochs, 1) + [0; ones(n_epochs-2, 1); 0];
-            reg_diag1 = -ones(n_epochs-1, 1);
+            reg_diag0 = [double(diff(this.true_epoch) == 1); 0 ] + [0; double(diff(this.true_epoch) == 1)];
+            reg_diag1 = -double(diff(this.true_epoch) == 1);
             Ndiags = permute(Ndiags, [3, 1, 2]);
             for i = 1:n_ep_class
                 N_col = [];
