@@ -708,7 +708,7 @@ classdef Core_Sky < handle
                         
                         % initilize matrix
                         if isempty(clk_rate)
-                            clk_rate = mean(diff(sat_time.getGpsTime()));
+                            clk_rate = median(diff(sat_time.getGpsTime()));
                             if not(empty_clk) & clk_rate ~= this.clock_rate
                                 this.log.addWarning('Clock rate in file different from one in Core_Sky\n Discarding old data\n');
                                 thic.clearClock();
@@ -720,7 +720,7 @@ classdef Core_Sky < handle
                                 this.time_ref_clock = file_first_ep;
                                 [ref_week, ref_sow] =this.time_ref_clock.getGpsWeek();
                                 
-                                this.clock = zeros(86400 / this.clock_rate,this.cc.getNumSat());
+                                this.clock = zeros(86400 / this.clock_rate, this.cc.getNumSat());
                             else
                                 
                                 c_ep_idx = round((file_first_ep - this.time_ref_clock) / this.clock_rate) +1; % epoch index
