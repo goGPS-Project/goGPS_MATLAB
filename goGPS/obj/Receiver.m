@@ -1716,7 +1716,10 @@ classdef Receiver < handle
             gntropo = x(x(:,2) == 8,1);
             getropo = x(x(:,2) == 9,1);
             this.log.addMessage(sprintf('DEBUG: s02 = %f',mean(abs(res(res~=0)))));
-            this.log.addMessage(sprintf('DEBUG: distance from rine pos = %.3f %.3f %.3f',this.xyz + coo'-this.xyz_approx));
+            new_pos = this.xyz + coo';
+            diff_from_rin = (new_pos  -this.xyz_approx)';
+            this.log.addMessage(sprintf('DEBUG: distance from rine pos = %.3f %.3f %.3f',diff_from_rin));
+            this.log.addMessage(sprintf('DEBUG: distance from rine pos enu = %.3f %.3f %.3f',global2localVel(diff_from_rin,this.xyz')));
         end
         
         function initPositioning(this, sys_c)
@@ -2492,6 +2495,28 @@ classdef Receiver < handle
             XS_r(:,1) = sum(xR .* XS(:,1:2),2); % X
             XS_r(:,2) = sum(yR .* XS(:,1:2),2); % Y
             XS_r(:,3) = XS(:,3); % Z
+        end
+        
+        function removeAllCorrections(this)
+            this.removeDtSat();
+            this.removeGroupDelay();
+            this.removePCV();
+            this.removePoleTide();
+            this.removePhaseWindUpCorr();
+            this.removeSolidEarthTide();
+            this.removeShDelay();
+            this.removeOceanLoading();
+        end
+        
+        function applyAllCorrections(this)
+            this.applyDtSat();
+            this.applyGroupDelay();
+            this.applyPCV();
+            this.applyPoleTide();
+            this.applyPhaseWindUpCorr();
+            this.applySolidEarthTide();
+            this.applyShDelay();
+            this.applyOceanLoading();
         end
     end
     
