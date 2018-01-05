@@ -2215,6 +2215,7 @@ classdef Receiver < handle
             % receiver as to be the same
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
+            idx_ep_obs = obs_set.getTimeIdx(this.time.getSubSet(1),this.rate);
             for i = 1 : size(synt_obs,2)
                 go_id = this.cc.getIndex(obs_set.obs_code(i,1),obs_set.prn(i));
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
@@ -2223,10 +2224,14 @@ classdef Receiver < handle
                     f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
                     [range, xs_loc_t] = this.computeSyntObs(f, go_id);
                 end
+                
                 idx_obs = obs_set.obs(:,i) ~= 0;
+                idx_obs_r = idx_ep_obs(idx_obs); % <- to wihic epoch in the receiver the observation of the satellites in obesrvation set corresponds?
+                idx_obs_r_l = false(size(range)); % get the logical equivalent
+                idx_obs_r_l(idx_obs_r) = true;
                 range_idx = range ~= 0;
-                xs_idx = idx_obs(range_idx);
-                synt_obs(idx_obs, i) = range(idx_obs);
+                xs_idx = idx_obs_r_l(range_idx);
+                synt_obs(idx_obs, i) = range(idx_obs_r);
                 xs_loc(idx_obs, i,:) = permute(xs_loc_t(xs_idx,:),[1 3 2]);
             end
             
@@ -2291,11 +2296,17 @@ classdef Receiver < handle
             %
             % OUTPUT:
             % DESCRIPTION:
-            %   Compute the signal time of travel.
+            %   Update the signal time of travel based on range observations.
+            % NOTE: to have satellite orbits at 1mm sysncrnonization time of
+            % travel has to be know with a precision of ~100m
+            %    0.001m * (3 km/s  +         2 km/s)   /       300000 km/s   ~ 100m
+            %              ^                 ^                    ^
+            %              |                 |                    |
+            %         (sat speed) (earth rot at sat orbit) (speed of light)
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, sat) =  ( obs' + this.sat.err_tropo(:, sat) + this.sat.err_iono(:, sat) )/ goGNSS.V_LIGHT + this.dt(:, 1);
+            this.sat.tot(:, sat) =  ( obs' )/ goGNSS.V_LIGHT + this.dt(:, 1);
         end
         
         function updateAvailIndex(this, obs, sat)
@@ -3776,7 +3787,7 @@ classdef Receiver < handle
             this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
-            this.removeShortArch(this.state.getMinArc);
+            %this.removeShortArch(this.state.getMinArc);
         end
         
         function tryCycleSlipRepair(this)
