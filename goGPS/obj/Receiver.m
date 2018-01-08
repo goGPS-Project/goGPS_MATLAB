@@ -483,13 +483,13 @@ classdef Receiver < Exportable_Object
         end
         
         function loadAntModel(this)
-            % Load and arse the antenna (ATX) file as specified into settings
+            % Load and parse the antenna (ATX) file as specified into settings
             % SYNTAX: 
             %   this.loadAntModel
             filename_pcv = this.state.getAtxFile;
             fnp = File_Name_Processor();
             this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
-            this.pcv = read_antenna_PCV(filename_pcv, {this.ant_type});
+            this.pcv = Core_Utils.readAntennaPCV(filename_pcv, {this.ant_type});
         end
         
         function preProcessing(this, is_static)
@@ -3829,7 +3829,7 @@ classdef Receiver < Exportable_Object
         % PCV
         % -------------------------------------------------------
         
-        function PCV(this,sgn)
+        function applyRemovePCV(this, sgn)
             % DESCRIPTION: correct measurement for PCV both of receiver
             % antenna and satellite antenna
             if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
@@ -3927,8 +3927,8 @@ classdef Receiver < Exportable_Object
             % DESCRIPTION: get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
-             pcv_delay = zeros(size(el));
-
+            pcv_delay = zeros(size(el));
+            
             pcv = this.pcv;
             
             %tranform el in zen
@@ -3946,15 +3946,15 @@ classdef Receiver < Exportable_Object
                 
                 pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
             else
-               pcv_val = pcv.tablePCV(:,:,idx); %etract the right frequency
-               
-               %find azimuth indexes
-               az_pcv = pcv.tablePCV_azi;
+                pcv_val = pcv.tablePCV(:,:,idx); %etract the right frequency
+                
+                %find azimuth indexes
+                az_pcv = pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
                 d_az = (max_az - min_az)/(length(az_pcv)-1);
                 az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1); 
+                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1);
                 
                 %interpolate along zenital angle
                 idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
@@ -3971,7 +3971,7 @@ classdef Receiver < Exportable_Object
         function applyPCV(this)
             if this.pcv_delay_status == 0
                 this.log.addMarkedMessage('Applying PCV corrections');
-                this.PCV(1);
+                this.applyRemovePCV(1);
                 this.pcv_delay_status = 1; %applied
             end
         end
@@ -3979,7 +3979,7 @@ classdef Receiver < Exportable_Object
         function removePCV(this)
             if this.pcv_delay_status == 1
                 this.log.addMarkedMessage('Removing PCV corrections');
-                this.PCV(-1);
+                this.applyRemovePCV(-1);
                 this.pcv_delay_status = 0; %applied
             end
         end
@@ -4228,7 +4228,8 @@ classdef Receiver < Exportable_Object
                 xyz = this.getMedianPosXYZ();
             end
             txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', txt, xyz(1), xyz(2), xyz(3));
-            txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.ant_delta_h, this.ant_delta_en);            
+            txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.ant_delta_h, this.ant_delta_en);
+            
             for s = 1 : length(sys)
                 txt = sprintf('%s%-1s    4 C%c%c L%c%c S%c%c D%c%c                                      SYS / # / OBS TYPES \n', txt,sys(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s));
             end
