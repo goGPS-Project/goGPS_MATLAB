@@ -511,6 +511,7 @@ classdef Receiver < Exportable_Object
             this.dt(:) = 0;
             % set all availability index
             this.updateAllAvailIndex();
+            this.updateAllTOT();
             % update azimuth elevation
             this.updateAzimuthElevation();
             % Add a model correction for time desync -> observations are now referred to nominal time            
@@ -1513,7 +1514,7 @@ classdef Receiver < Exportable_Object
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
-            ph(this.outlier_idx_ph') = nan;
+            ph(this.outlier_idx_ph(id_ph, :)') = nan;
             wl = this.wl(id_ph);
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
@@ -2668,14 +2669,14 @@ classdef Receiver < Exportable_Object
                     [range, xs_loc_t] = this.computeSyntObs(f, go_id);
                 end
                 
-                idx_obs = obs_set.obs(:,i) ~= 0;
+                idx_obs = obs_set.obs(:, i) ~= 0;
                 idx_obs_r = idx_ep_obs(idx_obs); % <- to wihic epoch in the receiver the observation of the satellites in obesrvation set corresponds?
                 idx_obs_r_l = false(size(range)); % get the logical equivalent
                 idx_obs_r_l(idx_obs_r) = true;
                 range_idx = range ~= 0;
                 xs_idx = idx_obs_r_l(range_idx);
                 synt_obs(idx_obs, i) = range(idx_obs_r);
-                xs_loc(idx_obs, i,:) = permute(xs_loc_t(xs_idx,:),[1 3 2]);
+                xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
             end
             
         end
@@ -2750,6 +2751,22 @@ classdef Receiver < Exportable_Object
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
             this.sat.tot(:, sat) =  ( obs' )/ goGNSS.V_LIGHT + this.dt(:, 1);
+        end
+        
+        function updateAllTOT(this)
+            % upate time of travel for all satellites
+            for i = 1 : this.cc.getNumSat()
+                c_sys = this.cc.system(i);
+                c_prn = this.cc.prn(i);
+                idx_sat = this.system' == c_sys & this.prn == c_prn & this.obs_code(:,1) == 'C';
+                if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                    c_obs = this.obs(idx_sat,:);
+                    
+                    c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                    %update time of flight times
+                    this.updateTOT(c_l_obs,i); % update time of travel
+                end
+            end
         end
         
         function updateAvailIndex(this, obs, sat)
