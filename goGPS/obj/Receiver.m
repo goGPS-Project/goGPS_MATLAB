@@ -124,7 +124,7 @@ classdef Receiver < Exportable_Object
             'cs',               [], ...    % Core_Sky
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
-            'slant_td',         [] ...     % slant total delay
+            'slant_td',         [] ...    % slant total delay
             )
     end
    
@@ -140,7 +140,7 @@ classdef Receiver < Exportable_Object
         lat            % ellipsoidal latitude
         lon            % ellipsoidal longitude
         h_ellips       % ellipsoidal height
-        h_ortho        % hortometric height        
+        h_ortho        % orthometric height        
     end    
     
     % ==================================================================================================================================================
@@ -263,6 +263,50 @@ classdef Receiver < Exportable_Object
             
         end
         
+        function reset(this)
+            this.time = GPS_Time();
+            this.enu = [];
+            this.lat = [];
+            this.lon = [];
+            
+            this.h_ellips = [];
+            this.h_ortho = [];
+            
+            this.n_sat = [];
+            this.hdop =  [];
+            this.khdop = [];
+            this.a_fix = [];
+            this.s_rate = [];
+            
+            this.initObs;
+            this.xyz = [];
+            
+            this.zhd  = [];
+            this.zwd  = [];
+            this.ztd  = [];
+            this.pwv  = [];
+            
+            this.tgn = [];
+            this.tge = [];
+            
+            this.sat = struct( ...
+                'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
+                'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
+                'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
+                'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
+                'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
+                'rel_clk_corr',     [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
+                'tot',              [], ...    % double  [n_epoch x n_sat] time of travel
+                'az',               [], ...    % double  [n_epoch x n_sat] azimuth
+                'el',               [], ...    % double  [n_epoch x n_sat] elevation
+                'cs',               [], ...    % Core_Sky
+                'XS_tx',            [], ...    % compute Satellite postion a t transmission time
+                'crx',              [], ...    % bad epochs based on crx file
+                'slant_td',         [] ...     % slant total delay
+                );
+            this.initR2S;
+        end
+        
         function initObs(this)
             % Reset the content of the receiver obj
             % SYNTAX:
@@ -289,7 +333,6 @@ classdef Receiver < Exportable_Object
             this.n_freq = 0;              % number of stored frequencies
             this.n_spe = [];              % number of sat per epoch
             
-            this.time = [];               % internal time ref of the stored epochs
             this.rate = 0;                % observations rate;
 
             this.desync = 0;              % clock offset of the receiver
@@ -1028,11 +1071,249 @@ classdef Receiver < Exportable_Object
             end
         end
         
+        function removeOutlierMarkCycleSlip(this)
+            this.log.addMarkedMessage('Cleaning observations');
+            
+            % PARAMETRS
+            ol_thr = 0.5; % outlier threshold
+            cs_thr = 0.5; % CYCLE SLIP THR
+            sa_thr = 10;  % short arc threshold
+            
+            %----------------------------
+            % Outlier Detection
+            %----------------------------
+            
+            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
+            mask = this.sat.el > this.state.cut_off;
+            this.obs = this.obs .* mask(:, this.go_id)';
+            
+            % mark all as outlier and interpolate
+            % get observed values
+            [ph, wl, id_ph_l] = this.getPhases;
+            
+            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
+            % first time derivative
+            synt_ph = this.getSyntPhases;
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
+            % subtract median (clock error)
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > ol_thr;
+            % take them off
+            ph2 = ph;
+            ph2(poss_out_idx) = nan;
+            
+            %----------------------------
+            % Cycle slip detection
+            %----------------------------
+            
+            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
+            % join the nan
+            sensor_ph_cs = nan(size(sensor_ph));
+            for o = 1 : size(ph2,2)
+                tmp_ph = ph2(:,o);
+                ph_idx = not(isnan(tmp_ph));
+                tmp_ph = tmp_ph(ph_idx);
+                if ~isempty(tmp_ph)
+                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
+                end
+            end
+            
+            % subtract median
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
+            
+            % find possible cycle slip
+            % cycle slip when they exceed threhsold cycle
+            poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
+            
+            % check if epoch before cycle slip can be restored
+            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
+            poss_rest = poss_rest & poss_out_idx;
+            poss_rest_line = sum(poss_rest,2);
+            poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
+            ph_rest_lines = ph(poss_rest_line,:);
+            synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+            
+            sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+            % subtract median
+            sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
+            for i = 1:size(sensor_rst,2)
+                for c = find(poss_rest(:,i))'
+                    if ~isempty(c)
+                        idx = sum(poss_rest_line(1:c));
+                        if abs(sensor_rst(idx,i)) < cs_thr
+                            poss_out_idx(c,i) = false; %is not outlier
+                            %move 1 step before the cycle slip index
+                            poss_slip_idx(c+1,i) = false;
+                            poss_slip_idx(c,i) = true;
+                        end
+                    end
+                end
+            end
+            
+            no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
+            no_out_ph(poss_out_idx) = nan;
+            this.ph_idx = find(id_ph_l);
+            
+            % remove too short possible arc
+            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
+            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
+            to_short_idx(poss_slip_idx) =false;
+            poss_out_idx(to_short_idx) = true;
+            
+            n_out = sum(sum(poss_out_idx));
+            this.outlier_idx_ph = sparse(poss_out_idx);
+            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
+            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
+            
+            %this.removeShortArch(this.state.getMinArc);
+        end
+        
+        function tryCycleSlipRepair(this)
+            %----------------------------
+            % Cycle slip repair
+            %----------------------------
+            
+            % window used to estimate cycle slip
+            % linear time
+            lin_time = 900; %single diffrence is linear in 15 minutes
+            max_window = 600; %maximum windows allowed (for computational reason)
+            win_size = min(max_window,ceil(lin_time / this.rate/2)*2); %force even
+            
+            poss_out_idx = this.outlier_idx_ph;
+            poss_slip_idx = this.cycle_slip_idx_ph;
+            
+            [ph, ~, id_ph_l] = this.getPhases();
+            id_ph = find(id_ph_l);
+            synt_ph = this.getSyntPhases();
+            d_no_out = (ph - synt_ph )./ repmat(this.wl(id_ph_l)',size(ph,1),1);
+            n_ep = this.time.length;
+            poss_slip_idx = double(poss_slip_idx);
+            n_cycleslip = 0;
+            n_repaired = 0;
+            jmps = [];
+            for p = 1:size(poss_slip_idx,2)
+                c_slip = find(poss_slip_idx(:,p)' == 1);
+                for c = c_slip
+                    n_cycleslip = n_cycleslip + 1;
+                    slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
+                    if isempty(slip_bf)
+                        slip_bf = 0;
+                    end
+                    st_wind_idx = max(1,c - win_size /2 + slip_bf);
+                    slip_aft = find(poss_slip_idx(c :min( c + win_size / 2,n_ep), p),1,'first');
+                    if isempty(slip_aft)
+                        slip_aft = 0;
+                    end
+                    end_wind_idx = min(c + win_size /2 - slip_bf -1,n_ep);
+                    jmp_idx =  win_size /2 - slip_bf +1;
+                    
+                    % find best master before
+                    idx_other_l = 1:size(poss_slip_idx,2) ~= p;
+                    idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
+                    best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst_bf =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst_bf(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_bf = sum(poss_mst_bf); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_bf,'descend');
+                    [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
+                    
+                    % find best master after
+                    idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
+                    best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst_aft =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst_aft(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_aft = sum(poss_mst_aft); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_aft,'descend');
+                    [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
+                    
+                    
+                    idx_other = find(idx_other_l);
+                    
+                    %decide which arc to use
+                    bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
+                    if isempty(bst_1)
+                        bst_1 = find(rnk_bf == 1 ,1,'first');
+                        bst_2 = find(rnk_aft == 1,1,'first');
+                        same_slope = false;
+                    else
+                        bst_2 = bst_1;
+                        same_slope = true;
+                    end
+                    
+                    s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
+                    jmp = nan;
+                    if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
+                        jmp = estimateJump(s_diff, jmp_idx,same_slope,'median');
+                        jmps= [jmps ; jmp];
+                    end
+                    
+                    %{
+                    ph_piv = d_no_out(st_wind_idx : end_wind_idx,p);
+                    usable_s = sum(poss_mst_bf) > 0 & sum(poss_mst_aft);
+                    ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
+                    ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
+                    ph_other(:, ~usable_s) = [];
+                    %}
+                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
+                    
+                    % repair
+                    % TO DO half cycle
+                    if ~isnan(jmp)
+                        this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
+                    end
+                    if abs(jmp -round(jmp)) < 0.1
+                        poss_slip_idx(c, p) = - 1;
+                        n_repaired = n_repaired +1;
+                    else
+                        poss_slip_idx(c, p) =   1;
+                    end
+                end
+            end
+            
+            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
+            
+            this.cycle_slip_idx_ph = poss_slip_idx;
+            
+            % save index into object
+            
+        end
+        
+        function removeShortArch(this, min_arc)
+            % removes arch shorter than
+            % SYNTAX:
+            %   this.removeShortArch()
+            if min_arc > 1
+                this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
+                [ph, wl, id_ph]= this.getPhases();
+                idx = ~isnan(ph);
+                idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
+                idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
+                el_idx = xor(idx,idx_e);
+                this.outlier_idx_ph(el_idx) =  true;
+                this.cycle_slip_idx_ph(el_idx) = 0;
+                ph(this.outlier_idx_ph) = 0;
+                this.setPhases(ph, wl, id_ph);
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
+            end
+        end
+ 
     end
     
     % ==================================================================================================================================================
     %  GETTER
     % ==================================================================================================================================================
+    
     methods
         function n_obs = getNumObservables(this)
             % get the number of observables stored in the object
@@ -1079,6 +1360,88 @@ classdef Receiver < Exportable_Object
             end
         end
         
+        function xyz = getMedianPosXYZ(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   xyz = this.getAPrioriPos()
+            
+            xyz = this.xyz;
+            xyz = median(this.xyz, 1);
+        end
+        
+        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   lat         latitude  [deg]
+            %   lon         longitude [deg]
+            %   h_ellips    ellipsoidical heigth [m]
+            %   h_ortho     orthometric heigth [m]
+            %
+            % SYNTAX: 
+            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
+            
+            xyz = this.xyz;
+            xyz = median(this.xyz, 1);
+            [lat, lon, h_ellips] = cart2geod(xyz);
+            if nargout == 4
+                gs = Go_State.getInstance;
+                gs.initGeoid();
+                ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                h_ortho = h_ellips + ondu;
+            end
+            lat = lat / pi * 180;
+            lon = lon / pi * 180;
+        end
+        
+        function [mfh, mfw] = getSlantMF(this)
+            % Get Mapping function for the satellite slant
+            % 
+            % OUTPUT:
+            %   mfh: hydrostatic mapping function
+            %   mfw: wet mapping function
+            %
+            % SYNTAX:
+            %   [mfh, mfw] = this.getSlantMF()
+
+            [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic();
+            [gmfh, gmfw] = gmf(this.time.first, lat./180*pi, lon./180*pi, h_ortho, (90 - this.sat.el(:))./180*pi);
+            mfh = reshape(gmfh, size(this.sat.el, 1), size(this.sat.el, 2));
+            mfw = reshape(gmfw, size(this.sat.el, 1), size(this.sat.el, 2));
+        end
+        
+        function sztd = getSlantZTD(this, smooth_win_size)
+            % Get the "zenithalized" total delay
+            % SYNTAX:
+            %   sztd = this.getSlantZenithalizedTotalDelay(<flag_smooth_data = 0>)
+            [mfh, mfw] = this.getSlantMF();
+            sztd = bsxfun(@plus, (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw, this.zhd);            
+            sztd(sztd <= 0) = nan;
+
+            if nargin == 2 && smooth_win_size > 0
+                t = this.time.getRefTime;
+                for s = 1 : size(sztd,2)
+                    id_ok = ~isnan(sztd(:, s));
+                    if sum(id_ok) > 3
+                        lim = getOutliers(id_ok);
+                        lim = limMerge(lim, 2*smooth_win_size);
+                        
+                        lim = [lim(1) lim(end)];
+                        for l = 1 : size(lim, 1)
+                            if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                id_ok = lim(l, 1) : lim(l, 2);
+                                sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
         function [pos] = getXR(this)
             % get xyz or the same repeated by the number of epoch
             % SYNTAX: [XR] = getXR(this)
@@ -1088,7 +1451,6 @@ classdef Receiver < Exportable_Object
                 pos = this.xyz;
             end
         end
-        
         
         function pr = pr1(this, sys_c)
             % get p_range 1 (Legacy)
@@ -1167,8 +1529,7 @@ classdef Receiver < Exportable_Object
                 id_pr = id_pr & (this.system == sys_c)';
             end
             pr = zero2nan(this.obs(id_pr, :)');
-        end
-        
+        end        
         
         function [dop, wl, id_dop] = getDoppler(this, sys_c)
             % get the doppler observations
@@ -1321,6 +1682,7 @@ classdef Receiver < Exportable_Object
                 this.log.addError(['Invalid length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
             end
         end
+        
         function [obs_set] = getIonoFree(this, flag1, flag2, system, max_obs_type)
             % get Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
@@ -1446,6 +1808,7 @@ classdef Receiver < Exportable_Object
                obs_set.cycle_slip = (cs1 | cs2)';
             end
         end
+        
         function [obs_set]  = getPrefIonoFree(this, obs_type, system)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
@@ -1466,6 +1829,20 @@ classdef Receiver < Exportable_Object
     % SETTER
     % ==================================================================================================================================================
     methods
+        function setStatic(this)
+            % Set the internal status of the Receiver as static
+            % SYNTAX: 
+            %   this.setStatic()
+            this.static = true;
+        end
+        
+        function setDynamic(this)
+            % Set the internal status of the Receiver as dynamic
+            % SYNTAX: 
+            %   this.setDynamic()
+            this.static = false;
+        end
+        
         function setDoppler(this, dop, wl, id_dop)
             % set the snr observations
             % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
@@ -3554,6 +3931,225 @@ classdef Receiver < Exportable_Object
     end
     
     % ==================================================================================================================================================
+    %  LEGACY IMPORTER of goGPS 5.x RESULTS
+    % ==================================================================================================================================================
+    methods
+        function legacyImportResults(this, file_prefix, run_start, run_stop)
+            % Import after reset a position and tropo file (if present)
+            %
+            % SYNTAX:  
+            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
+            %
+            % INPUT:
+            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
+            %   run_start     number of the first run to load
+            %   run_stop      number of the last run to load
+            %            
+            if (nargin == 1) || isempty(file_prefix)
+                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
+                file_prefix = [file_path file_prefix];
+            end
+            this.reset();            
+            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
+                file_prefix = file_prefix(1 : end - 13);
+            end
+            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
+                file_prefix = file_prefix(1 : end - 10);
+            end
+            
+            if nargin < 4
+                run_start = 0;
+                run_stop = 0;
+            end
+            
+            GPS_RUN = '${RUN}';
+            r = 0;
+            for run = run_start : run_stop
+                r = r + 1;
+                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
+                this.log.addMessage(sprintf('Importing %s', file_name));
+                if exist(file_name, 'file')
+                    this.legacyAppendPosition(file_name);
+                    
+                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
+                    if exist(file_name, 'file')
+                        this.log.addMessage(sprintf('Importing %s', file_name));
+                        this.legacyAppendTropo(file_name)
+                    else
+                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
+                    end
+                else
+                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
+                end                
+            end
+        end
+        
+        function legacyAppendPosition (this, file)
+            % import and append from a position file
+            
+            % Open position file as a string stream
+            fid = fopen(file);
+            txt = fread(fid,'*char')';
+            txt(txt == 13) = [];
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  numel(txt)
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+            lim = [lim lim(:,2) - lim(:,1)];
+            
+            % corrupted lines
+            ko_lines = find(lim(:, 3) ~= median(lim(:,3)));
+            for l = numel(ko_lines) : -1 : 1
+                txt(lim(ko_lines(l), 1) : lim(ko_lines(l), 2) + 1) = [];
+            end
+            
+            % importing header informations
+            eoh = 1; % end of header (the header of position files contains only 1 line)
+            % File example:
+            %    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV
+            %2017/04/03    00:00:00.000             1943        86400.000      45.80216141       9.09562643         291.5094     4398305.8406      704150.1081     4550153.9697     5072071.0952      507430.9212         244.4506             32 T               10            0.870            0.472           0.0000           0.0000           0.0000                0           0.0000          2.30187          0.04934          0.00000
+            data = sscanf(txt(lim(2,1):end)','%4d/%2d/%2d    %2d:%2d:%6f             %4d %16f %16f %16f %16f %16f %16f %16f %16f %16f %16f %14d %c %16d %16f %16f %16f %16f %16f %16d %16f %16f %16f %16f\n');
+            data = reshape(data, 30, numel(data)/30)';
+            % import it as a GPS_Time obj
+            if this.time.length() == 0
+                this.time = GPS_Time(data(:,1:6));
+            else
+                this.time.append6ColDate(data(:,1:6));
+            end
+            
+            lat = data(:,9);
+            lon = data(:,10);
+            h_ellips = data(:,11);
+            h_ortho = data(:,17);
+            
+            xyz = data(:,12:14);
+            enu = data(:,[16 15 17]);
+            n_sat = data(:,20);
+            hdop =  data(:,21);
+            khdop = data(:,22);
+            a_fix = data(:,26); 
+            s_rate = data(:,27);
+            
+            % Append in obj
+            this.xyz = [this.xyz; xyz];
+            this.enu = [this.enu; enu];
+            
+            this.lat = [this.lat; lat];
+            this.lon = [this.lon; lon];
+            this.h_ellips = [this.h_ellips; h_ellips];
+            this.h_ortho = [this.h_ortho; h_ortho];
+            
+            this.n_sat = [this.n_sat; n_sat];
+            this.hdop = [this.hdop; hdop];
+            this.khdop = [this.khdop; khdop];
+            this.a_fix = [this.a_fix; a_fix];
+            this.s_rate = [this.s_rate; s_rate];
+            
+            clear data;
+        end
+        
+        function legacyAppendTropo (this, file)
+            % import and append from a tropo file
+            
+            % Open tropo file as a string stream
+            fid = fopen(file);
+            txt = fread(fid,'*char')';
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  numel(txt)
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+            lim = [lim lim(:,2) - lim(:,1)];
+            
+            % importing header informations
+            eoh = 1; % end of header (the header of tropo files contains only 1 line)
+            
+            % list and count satellites in view and not in view
+            s = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d(?=-az)', 'match');
+            num_sat = length(s);
+            this.sat.id = reshape(cell2mat(s), 3, num_sat)';
+
+            % extract all the epoch lines
+            string_time = txt(repmat(lim(2:end,1),1,26) + repmat(0:25, size(lim,1)-1, 1))';
+            % convert the times into a 6 col time
+            date = cell2mat(textscan(string_time,'%4f/%2f/%2f    %2f:%2f:%6.3f'));
+            
+            % import it as a GPS_Time obj 
+            % it should be imported from the _position file
+            time = GPS_Time(date, [], 1);
+            [~, id_int, id_ext] = intersect(round(this.time.getMatlabTime() * 86400 * 1e3), round(time.getMatlabTime() * 86400 * 1e3));
+            n_epo = length(id_int);
+            
+            % extract all the ZHD lines
+            string_zhd = txt(repmat(lim(2:end,1),1,17) + repmat(62:78, size(lim,1)-1, 1))';
+            tmp = sscanf(string_zhd,'%f')'; clear string_zhd
+            this.zhd(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.zhd(id_int, 1) = tmp(id_ext);
+            
+            % extract all the ZTD lines
+            string_ztd = txt(repmat(lim(2:end,1),1,17) + repmat(78:94, size(lim,1)-1, 1))';
+            tmp = sscanf(string_ztd,'%f'); clear string_ztd
+            this.ztd(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.ztd(id_int, 1) = tmp(id_ext);
+            
+            % extract all the TGN lines
+            string_tgn = txt(repmat(lim(2:end,1),1,17) + repmat(95:111, size(lim,1)-1, 1))';
+            tmp = sscanf(string_tgn,'%f'); clear string_tgn
+            this.tgn(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.tgn(id_int, 1) = tmp(id_ext);
+            
+            % extract all the TGE lines
+            string_tge = txt(repmat(lim(2:end,1),1,17) + repmat(112:128, size(lim,1)-1, 1))';
+            tmp = sscanf(string_tge,'%f'); clear string_tge
+            this.tge(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.tge(id_int, 1) = tmp(id_ext);
+            
+            % extract all the ZWD lines
+            string_zwd = txt(repmat(lim(2:end,1),1,17) + repmat(129:145, size(lim,1)-1, 1))';
+            tmp = sscanf(string_zwd,'%f'); clear string_zwd
+            this.zwd(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.zwd(id_int, 1) = tmp(id_ext);
+            
+            % extract all the PWV lines
+            string_pwv = txt(repmat(lim(2:end,1),1,17) + repmat(146:162, size(lim,1)-1, 1))';
+            tmp = sscanf(string_pwv,'%f'); clear string_pwv
+            this.pwv(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.pwv(id_int, 1) = tmp(id_ext);
+            
+            %  extract all STD values if present
+            slant_start = regexp(txt(lim(1,1) : lim(1,2)),'STD') - 6;
+            num_sat = numel(slant_start);
+            this.sat.slant_td(end + 1 : size(this.xyz, 1), 1 : num_sat) = nan;
+            for s = 1 : numel(slant_start)
+                tmp = sscanf(txt(bsxfun(@plus, repmat(slant_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1) - 1))', '%f');
+                this.sat.slant_td(id_int, s) = tmp(id_ext);
+            end
+            
+            % extract all azimuth and elevation lines in a matrix with 2 layers -
+            % 1st is azimuth, 2nd is elevation 
+            az_start = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d-az') - 6;
+            el_start = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d-el') - 6;
+            num_sat = numel(az_start);
+            this.sat.az = [this.sat.az; zeros(n_epo, num_sat)];
+            this.sat.el = [this.sat.el; zeros(n_epo, num_sat)];
+            for s = 1 : num_sat
+                az = sscanf(txt(bsxfun(@plus, repmat(az_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1)))', '%f');;
+                el = sscanf(txt(bsxfun(@plus, repmat(el_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1)))', '%f');;
+                this.sat.az(id_int, s) = az(id_ext);
+                this.sat.el(id_int, s) = el(id_ext);
+            end
+        end
+
+    end
+    
+    % ==================================================================================================================================================
     %  PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -3751,244 +4347,7 @@ classdef Receiver < Exportable_Object
                 dockAllFigures
             end
         end
-        
-        function removeOutlierMarkCycleSlip(this)
-            this.log.addMarkedMessage('Cleaning observations');
-            
-            % PARAMETRS
-            ol_thr = 0.5; % outlier threshold
-            cs_thr = 0.5; % CYCLE SLIP THR
-            sa_thr = 10;  % short arc threshold            
-            
-            %----------------------------
-            % Outlier Detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
-            mask = this.sat.el > this.state.cut_off;
-            this.obs = this.obs .* mask(:, this.go_id)';
-            
-            % mark all as outlier and interpolate
-            % get observed values
-            [ph, wl, id_ph_l] = this.getPhases;
-            
-            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
-            % first time derivative
-            synt_ph = this.getSyntPhases;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
-            % subtract median (clock error)
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > ol_thr;
-            % take them off
-            ph2 = ph;
-            ph2(poss_out_idx) = nan;
-            
-            %----------------------------
-            % Cycle slip detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
-            % join the nan
-            sensor_ph_cs = nan(size(sensor_ph));
-            for o = 1 : size(ph2,2)
-                tmp_ph = ph2(:,o);
-                ph_idx = not(isnan(tmp_ph));
-                tmp_ph = tmp_ph(ph_idx);
-                if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
-                end
-            end
-            
-            % subtract median
-            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
-
-            % find possible cycle slip
-            % cycle slip when they exceed threhsold cycle
-            poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;            
-
-            % check if epoch before cycle slip can be restored
-            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
-            poss_rest = poss_rest & poss_out_idx;
-            poss_rest_line = sum(poss_rest,2);
-            poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
-            ph_rest_lines = ph(poss_rest_line,:);
-            synt_ph_rest_lines = synt_ph(poss_rest_line,:);
-            
-            sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
-            % subtract median
-            sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
-            for i = 1:size(sensor_rst,2)
-                for c = find(poss_rest(:,i))'
-                    if ~isempty(c)
-                        idx = sum(poss_rest_line(1:c));
-                        if abs(sensor_rst(idx,i)) < cs_thr
-                            poss_out_idx(c,i) = false; %is not outlier
-                            %move 1 step before the cycle slip index
-                            poss_slip_idx(c+1,i) = false;
-                            poss_slip_idx(c,i) = true;
-                        end
-                    end
-                end
-            end
-            
-            no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
-            no_out_ph(poss_out_idx) = nan;
-            this.ph_idx = find(id_ph_l);
-            
-            % remove too short possible arc
-            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
-            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
-            to_short_idx(poss_slip_idx) =false;
-            poss_out_idx(to_short_idx) = true;
-            
-            n_out = sum(sum(poss_out_idx));
-            this.outlier_idx_ph = sparse(poss_out_idx);
-            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
-            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
-            
-            %this.removeShortArch(this.state.getMinArc);
-        end
-        
-        function tryCycleSlipRepair(this)
-            %----------------------------
-            % Cycle slip repair
-            %----------------------------
-            
-            % window used to estimate cycle slip
-            % linear time
-            lin_time = 900; %single diffrence is linear in 15 minutes
-            max_window = 600; %maximum windows allowed (for computational reason)
-            win_size = min(max_window,ceil(lin_time / this.rate/2)*2); %force even
-            
-            poss_out_idx = this.outlier_idx_ph;
-            poss_slip_idx = this.cycle_slip_idx_ph;
-            
-            [ph, ~, id_ph_l] = this.getPhases();
-            id_ph = find(id_ph_l);
-            synt_ph = this.getSyntPhases();
-            d_no_out = (ph - synt_ph )./ repmat(this.wl(id_ph_l)',size(ph,1),1);
-            n_ep = this.time.length;
-            poss_slip_idx = double(poss_slip_idx);
-            n_cycleslip = 0;
-            n_repaired = 0;
-            jmps = [];
-            for p = 1:size(poss_slip_idx,2)
-                c_slip = find(poss_slip_idx(:,p)' == 1);
-                for c = c_slip
-                    n_cycleslip = n_cycleslip + 1;
-                    slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
-                    if isempty(slip_bf)
-                        slip_bf = 0;
-                    end
-                    st_wind_idx = max(1,c - win_size /2 + slip_bf);
-                    slip_aft = find(poss_slip_idx(c :min( c + win_size / 2,n_ep), p),1,'first');
-                    if isempty(slip_aft)
-                        slip_aft = 0;
-                    end
-                    end_wind_idx = min(c + win_size /2 - slip_bf -1,n_ep);
-                    jmp_idx =  win_size /2 - slip_bf +1;
-                    
-                    % find best master before
-                    idx_other_l = 1:size(poss_slip_idx,2) ~= p;
-                    idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
-                    best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst_bf =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
-                    for j = 1 : length(best_cs)
-                        poss_mst_bf(1:best_cs(j),j) = false;
-                    end
-                    num_us_ep_bf = sum(poss_mst_bf); % number of usable epoch befor
-                    data_sorted = sort(num_us_ep_bf,'descend');
-                    [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
-                    
-                    % find best master after
-                    idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
-                    best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst_aft =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
-                    for j = 1 : length(best_cs)
-                        poss_mst_aft(1:best_cs(j),j) = false;
-                    end
-                    num_us_ep_aft = sum(poss_mst_aft); % number of usable epoch befor
-                    data_sorted = sort(num_us_ep_aft,'descend');
-                    [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
-                    
-                    
-                    idx_other = find(idx_other_l);
-                    
-                    %decide which arc to use
-                    bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
-                    if isempty(bst_1)
-                        bst_1 = find(rnk_bf == 1 ,1,'first');
-                        bst_2 = find(rnk_aft == 1,1,'first');
-                        same_slope = false;
-                    else
-                        bst_2 = bst_1;
-                        same_slope = true;
-                    end
-                    
-                    s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
-                    jmp = nan;
-                    if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
-                        jmp = estimateJump(s_diff, jmp_idx,same_slope,'median');
-                        jmps= [jmps ; jmp];
-                    end
-                    
-                    %{
-                    ph_piv = d_no_out(st_wind_idx : end_wind_idx,p);
-                    usable_s = sum(poss_mst_bf) > 0 & sum(poss_mst_aft);
-                    ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
-                    ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
-                    ph_other(:, ~usable_s) = [];
-                    %}
-                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
-                    
-                    % repair
-                    % TO DO half cycle
-                    if ~isnan(jmp)
-                        this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
-                    end
-                    if abs(jmp -round(jmp)) < 0.1
-                        poss_slip_idx(c, p) = - 1;
-                        n_repaired = n_repaired +1;
-                    else
-                        poss_slip_idx(c, p) =   1;
-                    end                    
-                end                
-            end
-            
-            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
-            
-            this.cycle_slip_idx_ph = poss_slip_idx;
-            
-            % save index into object
-            
-            %
-        end
-        function removeShortArch(this, min_arc)
-            % removes arch shorter than
-            % SYNTAX:
-            %   this.removeShortArch()
-            if min_arc > 1
-                this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
-                [ph, wl, id_ph]= this.getPhases();
-                idx = ~isnan(ph);
-                idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
-                idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
-                el_idx = xor(idx,idx_e);
-                this.outlier_idx_ph(el_idx) =  true;
-                this.cycle_slip_idx_ph(el_idx) = 0;
-                ph(this.outlier_idx_ph) = 0;
-                this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
-            end
-        end
-        
+               
         function plotCycleSlip(this)
             if ~isempty(this.cycle_slip_idx_ph)
                 ph = this.getPhases();
@@ -4051,9 +4410,121 @@ classdef Receiver < Exportable_Object
             scatter(ep(this.cycle_slip_idx_ph~=0),r_ph(this.cycle_slip_idx_ph~=0))
         end
         
+        function plotAniZtdSlant(this, time_start, time_stop, show_map)
+            clf;            
+            t = this.time.getMatlabTime;
+            
+            sztd = this.getSlantZTD(900);
+            if nargin >= 3
+                if isa(time_start, 'GPS_Time')
+                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
+                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
+                end
+                time_start = max(1, time_start);
+                time_stop = min(size(sztd,1), time_stop);
+            else
+                time_start = 1;
+                time_stop = size(sztd,1);
+            end
+           
+            if nargin < 4
+                show_map = true;
+            end
+            win_size = (t(time_stop) - t(time_start)) * 86400;
+            
+            yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+
+            subplot(3,1,3);            
+            plot(t, sztd,'.'); hold on;
+            plot(t, this.ztd,'k', 'LineWidth', 4);
+            ylim(yl);
+            hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
+            xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+            grid on;
+            
+            % polar plot "true" Limits
+            e_grid = [-1 : 0.1 : 1];
+            n_grid = [-1 : 0.1 : 1];
+            [ep, np] = meshgrid(e_grid, n_grid);
+            fun = @(dist) exp(-((dist*1e5)/3e4).^2);
+            
+            ax_sky = subplot(3,1,1:2); i = time_start;
+            az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+            el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+            
+            if show_map
+                td = nan(size(ep));
+                hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
+                hm.AlphaData = 0.5;   
+                ax_sky.YDir = 'normal';
+            end
+            hs = polarScatter(az, el, 250, sztd(i,:), 'filled');
+            xlim([-1 1]); ylim([-1 1]);
+            caxis(yl); colormap(jet); colorbar;                        
+            
+            subplot(3,1,3); 
+            for i = time_start + 1 : time_stop
+                % Move scattered points
+                az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+                el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+                decl_n = el/(pi/2);
+                x = sin(az) .* decl_n;
+                y = cos(az) .* decl_n;
+                
+                id_ok = not(isnan(zero2nan(sztd(i,:))));
+                if show_map
+                    td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)', fun);
+                    hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                end
+                
+                hs.XData = x;
+                hs.YData = y;
+                hs.CData = sztd(i,:);
+                
+                % Move time line
+                hl.XData = t(i) * [1 1];
+                if nargin > 4
+                    xlim(t(i) + [-win_size/2 win_size/2] ./ 86400);
+                end
+                drawnow;
+            end
+            
+        end
         
-        
-        
+        function plotZtdSlant(this, time_start, time_stop, win_size)
+            clf;
+            t = this.time.getMatlabTime;
+            
+            sztd = this.getSlantZTD(900);
+            if nargin >= 3
+                if isa(time_start, 'GPS_Time')
+                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
+                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
+                end
+                time_start = max(1, time_start);
+                time_stop = min(size(sztd,1), time_stop);
+            else
+                time_start = 1;
+                time_stop = size(sztd,1);
+            end
+            
+            if nargin < 4
+                win_size = (t(time_stop) - t(time_start)) * 86400;
+            end
+            
+            %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+
+            plot(t, sztd,'.'); hold on;
+            plot(t, this.ztd,'k', 'LineWidth', 4);
+            %ylim(yl);
+            xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+            grid on;
+            h = title(sprintf('Receiver %s ZTD', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+        end
     end
     
     % ==================================================================================================================================================
@@ -4689,7 +5160,7 @@ classdef Receiver < Exportable_Object
         end
     end
     
-        % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)

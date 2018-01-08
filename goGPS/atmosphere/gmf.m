@@ -1,4 +1,4 @@
-function [gmfh,gmfw] = gmf(time, dlat, dlon, dhgt, zd)
+function [gmfh, gmfw] = gmf(time, dlat, dlon, dhgt, zd)
 
 % This subroutine determines the Global Mapping Functions GMF
 % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
