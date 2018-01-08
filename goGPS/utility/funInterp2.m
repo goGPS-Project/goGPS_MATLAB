@@ -80,10 +80,11 @@ function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
     for i = 1 : numel(x_pred)
         d_pred = sqrt(x2(:,xi(i)) + y2(:,yi(i)));
         c_mat = q_fun_obs .* repmat(fun(d_pred)', size(q_fun_obs,1),1);
+        %c_mat = bsxfun(@times, q_fun_obs, fun(d_pred)');
         c_mat = triu(c_mat) + triu(c_mat, 1)';
 
         trans = sum(c_mat);
-        w = sum(trans)\trans;
+        w = trans / sum(trans);
         data(:, i) = (w * data_obs)';
     end
 end
