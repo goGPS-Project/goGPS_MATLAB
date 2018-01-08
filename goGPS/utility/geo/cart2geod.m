@@ -2,6 +2,7 @@ function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
 
 % SYNTAX:
 %   [phi, lam, h, phiC] = cart2geod(X, Y, Z);
+%   [phi, lam, h, phiC] = cart2geod(xyz);
 %
 % INPUT:
 %   X = X axis cartesian coordinate
@@ -49,6 +50,12 @@ function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
 %--------------------------------------------------------------------------
 
 %global a_GPS e_GPS
+
+if nargin == 1
+    Z = X(:, 3);
+    Y = X(:, 2);
+    X = X(:, 1);
+end
 
 a = goGNSS.ELL_A_GPS;
 e = goGNSS.ELL_E_GPS;
