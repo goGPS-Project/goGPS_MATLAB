@@ -1754,7 +1754,7 @@ classdef Core_Sky < handle
             fnp = File_Name_Processor();
             this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
 
-            this.ant_pcv = read_antenna_PCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord.getMatlabTime());
+            this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
             this.ant_pco = zeros(1,this.cc.getNumSat(),3);
             %this.satType = cell(1,size(this.ant_pcv,2));
             if isempty(this.avail)

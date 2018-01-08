@@ -3198,7 +3198,7 @@ classdef Receiver < Exportable_Object
                                 this.log.addWarning('Geoid not found = using undulation = 0');
                                 undu = 0;
                             end
-                            this.sat.err_tropo(idx, s) = atmo.saastamoinen_model(h, undu, el);
+                            this.sat.err_tropo(idx, s) = atmo.saastamoinenModel(h, undu, el);
                             
                         case 2 % Saastamoinen with GPT
                             gps_time = this.time.getGpsTime();
@@ -3206,7 +3206,7 @@ classdef Receiver < Exportable_Object
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = 1 : size(idx,1)
                                 if idx(e) > 0
-                                    this.sat.err_tropo(e, s) = atmo.saastamoinen_model_GPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
+                                    this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                                 end
                             end
                     end
@@ -3251,7 +3251,7 @@ classdef Receiver < Exportable_Object
                         case 2 %Klobuchar model
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
                             if ~isempty(this.sat.cs.iono )
-                                this.sat.err_iono(idx,sat) = Atmosphere.klobuchar_model(lat, lon, az, el, sow, this.sat.cs.iono);
+                                this.sat.err_iono(idx,sat) = Atmosphere.klobucharModel(lat, lon, az, el, sow, this.sat.cs.iono);
                             else
                                 this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                             end

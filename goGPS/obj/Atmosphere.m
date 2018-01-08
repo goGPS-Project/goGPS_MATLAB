@@ -82,7 +82,7 @@ classdef Atmosphere < handle
         %-----------------------------------------------------------
         % TROPO
         %-----------------------------------------------------------
-        function [delay] = saastamoinen_model(this, h, undu, el)
+        function [delay] = saastamoinenModel (this, h, undu, el)
             % SYNTAX:
             %   [delay] = Atmosphere.tropo_error_correction(lat, lon, h, el);
             %
@@ -161,7 +161,7 @@ classdef Atmosphere < handle
             end
         end
         
-        function [delay] = saastamoinen_model_GPT(this, gps_time, lat, lon, h, undu, el)
+        function [delay] = saastamoinenModelGPT (this, gps_time, lat, lon, h, undu, el)
             % SYNTAX:
             %   [delay] = Atmosphere.saastamoinen_model_GPT(time_rx, lat, lon, h, undu, el)
             %
@@ -463,7 +463,7 @@ classdef Atmosphere < handle
             temp = temp0 - 0.0065d0 * h_ort;            
         end
         
-        function [gmfh,gmfw] = gmf (this, gps_time, dlat, dlon, dhgt, zd)
+        function [gmfh, gmfw] = gmf (this, gps_time, dlat, dlon, dhgt, zd)
             % This subroutine determines the Global Mapping Functions GMF
             % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
             % Global Mapping Functions (GMF): A new empirical mapping function based on numerical weather model data,
@@ -731,7 +731,7 @@ classdef Atmosphere < handle
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
-        function [delay] = klobuchar_model(lat, lon, az, el, sow, ionoparams)
+        function [delay] = klobucharModel(lat, lon, az, el, sow, ionoparams)
             % SYNTAX:
             %   [delay] = Atmosphere. klobuchar_model(lat, lon, az, el, sow, ionoparams)
             %
