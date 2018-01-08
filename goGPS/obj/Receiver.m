@@ -43,8 +43,11 @@ classdef Receiver < Exportable_Object
         rin_type       % rinex version format
         rinex_ss       % flag containing the satellite system of the rinex file, G: GPS, R: GLONASS, E: Galileo, J: QZSS, C: BDS, I: IRNSS, S: SBAS payload, M: Mixed
         
-        name           % marker name
-        type           % marker type
+        marker_name    % marker name
+        marker_type    % marker type
+        number         % receiver number
+        type           % receiver type
+        version        % receiver version
                 
         rid            % receiver interobservation biases
         flag_rid       % clock error for each obs code {num_obs_code}
@@ -200,7 +203,7 @@ classdef Receiver < Exportable_Object
     methods
         function this = Receiver(cc, rinex_file_name)
             % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
-            this.initObs();
+            this.reset();
             this.log = Logger.getInstance();
             this.state = Go_State.getCurrentSettings();
             if nargin >= 1 && ~isempty(cc)
@@ -220,7 +223,7 @@ classdef Receiver < Exportable_Object
             % SYNTAX: this.toString();
             
             fprintf('----------------------------------------------------------------------------------\n')
-            this.log.addMarkedMessage(sprintf('Receiver %s', this.name));
+            this.log.addMarkedMessage(sprintf('Receiver %s', this.marker_name));
             fprintf('----------------------------------------------------------------------------------\n')
             this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
             this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
@@ -264,6 +267,12 @@ classdef Receiver < Exportable_Object
         end
         
         function reset(this)
+            this.marker_name  = 'unknown';  % marker name
+            this.marker_type  = '';       % marker type
+            this.number   = '000';
+            this.type     = 'unknown';
+            this.version  = '000';
+            
             this.time = GPS_Time();
             this.enu = [];
             this.lat = [];
@@ -320,8 +329,6 @@ classdef Receiver < Exportable_Object
             this.ant_delta_h  = 0;       % antenna height from the ground [m]
             this.ant_delta_en = [0 0];   % antenna east/north offset from the ground [m]
             
-            this.name         = 'empty';  % marker name
-            this.type         = '';       % marker type
             this.rin_obs_code = '';       % list of types per constellation
             this.ph_shift     = [];
             
@@ -352,9 +359,7 @@ classdef Receiver < Exportable_Object
             this.obs_code   = [];         % obs code for each line of the data matrix obs
             this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
             
-            this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
-            
-            this.initR2S();
+            this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true            
         end
         
         function initR2S(this)
@@ -847,13 +852,23 @@ classdef Receiver < Exportable_Object
             % 3) 'MARKER NAME'
             fln = find(line2head == 3, 1, 'first'); % get field line
             if isempty(fln)
-                this.name = 'NO_NAME';
+                this.marker_name = 'NO_NAME';
             else
-                this.name = strtrim(txt(lim(fln, 1) + (0:59)));
+                this.marker_name = strtrim(txt(lim(fln, 1) + (0:59)));
             end
             % 4) 'OBSERVER / AGENCY'
             % ignoring
             % 5) 'REC # / TYPE / VERS'
+            fln = find(line2head == 5, 1, 'first'); % get field line
+            if isempty(fln)
+                this.number   = '000';
+                this.type     = 'unknown';
+                this.version  = '000';
+            else
+                this.number = strtrim(txt(lim(fln, 1) + (0:19)));
+                this.type = strtrim(txt(lim(fln, 1) + (20:39)));                
+                this.version = strtrim(txt(lim(fln, 1) + (40:59)));                
+            end
             % ignoring
             % 6) 'ANT # / TYPE'
             fln = find(line2head == 6, 1, 'first'); % get field line
@@ -861,8 +876,8 @@ classdef Receiver < Exportable_Object
                 this.ant = '';
                 this.ant_type = '';
             else
-                this.ant = strtrim(txt(lim(fln, 1) + (0:20)));
-                this.ant_type = strtrim(txt(lim(fln, 1) + (20:40)));
+                this.ant = strtrim(txt(lim(fln, 1) + (0:19)));
+                this.ant_type = strtrim(txt(lim(fln, 1) + (20:39)));
             end
             % 7) 'APPROX POSITION XYZ'
             fln = find(line2head == 7, 1, 'first'); % get field line
@@ -943,10 +958,10 @@ classdef Receiver < Exportable_Object
             % ignoring
             % 18) MARKER TYPE
             % Assuming non geodetic type as default
-            this.type = 'NON-GEODETIC';
+            this.marker_type = 'NON-GEODETIC';
             fln = find(line2head == 18, 1, 'first'); % get field line
             if ~isempty(fln)
-                this.type = strtrim(txt(lim(fln, 1) + (0:19)));
+                this.marker_type = strtrim(txt(lim(fln, 1) + (0:19)));
             end
             
             % 19) SYS / # / OBS TYPES
@@ -1914,7 +1929,6 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        
         function applyGroupDelay(this)
             if this.group_delay_status == 0
                 this.GroupDelay(1);
@@ -1980,9 +1994,7 @@ classdef Receiver < Exportable_Object
             ph = bsxfun(@minus, ph, dt_ph * 299792458);
             this.setPhases(ph, wl, id_ph);
             this.time.addSeconds( - dt_pr);
-        end
-        
-        
+        end                
         
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT:
@@ -3975,7 +3987,7 @@ classdef Receiver < Exportable_Object
     end
     
     % ==================================================================================================================================================
-    %  LEGACY IMPORTER of goGPS 5.x RESULTS
+    %  IMPORT EXPORT
     % ==================================================================================================================================================
     methods
         function legacyImportResults(this, file_prefix, run_start, run_stop)
@@ -4191,6 +4203,47 @@ classdef Receiver < Exportable_Object
             end
         end
 
+        function exportRinex3(this)
+            % Export the content of the object as RINEX 3
+            txt = [];
+            
+            program = 'goGPS';
+            agency = 'GReD s.r.l.';
+            observer = program;
+            
+            date_str_UTC = local_time_to_utc(now, 30);
+            [date_str_UTC, time_str_UTC] = strtok(date_str_UTC,'T');
+            time_str_UTC = time_str_UTC(2:end-1);
+            
+            %write header
+            txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, 'O');
+            txt = sprintf('%s%-20s%-20s%-20sPGM / RUN BY / DATE \n', txt, program, agency, [date_str_UTC ' ' time_str_UTC ' UTC']);
+            txt = sprintf('%s%-60sMARKER NAME         \n', txt, this.marker_name);
+            txt = sprintf('%s%-20s                                        MARKER TYPE         \n', txt, this.marker_type);
+            txt = sprintf('%s%-20s%-40sOBSERVER / AGENCY   \n', txt, observer, agency);
+            txt = sprintf('%s%-20s%-20s%-20sREC # / TYPE / VERS \n', txt, this.number, this.type, this.version);
+            txt = sprintf('%s%-20s%-20s                    ANT # / TYPE        \n', txt, this.ant, this.ant_type);
+            xyz = this.getAPrioriPos();
+            if ~any(xyz)
+                xyz = this.getMedianPosXYZ();
+            end
+            txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', txt, xyz(1), xyz(2), xyz(3));
+            txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.ant_delta_h, this.ant_delta_en);            
+            for s = 1 : length(sys)
+                txt = sprintf('%s%-1s    4 C%c%c L%c%c S%c%c D%c%c                                      SYS / # / OBS TYPES \n', txt,sys(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s));
+            end
+            txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
+            txt = sprintf('%s%10.3f                                                  INTERVAL            \n', txt, interval);
+            txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', txt, ...
+                date(first_epoch+t-1,1), date(first_epoch+t-1,2), date(first_epoch+t-1,3), date(first_epoch+t-1,4), date(first_epoch+t-1,5), date(first_epoch+t-1,6));
+            if (rin_ver_id == 3)
+                for s = 1 : length(sys)
+                    txt = sprintf('%s%c                                                           SYS / PHASE SHIFTS  \n', txt,sys(s));
+                end
+            end
+            txt = sprintf('%s                                                            END OF HEADER       \n', txt);
+        end
+
     end
     
     % ==================================================================================================================================================
@@ -4217,7 +4270,7 @@ classdef Receiver < Exportable_Object
                 plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
                 plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
@@ -4254,7 +4307,7 @@ classdef Receiver < Exportable_Object
                 plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
                 plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
@@ -4320,7 +4373,7 @@ classdef Receiver < Exportable_Object
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
             
-            h = title(sprintf('dt - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
         function plotSNR(this, sys_c)
@@ -4341,7 +4394,7 @@ classdef Receiver < Exportable_Object
             el = this.sat.el(:,this.go_id(snr_id));
             polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
             colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-            h = title(sprintf('SNR - receiver %s', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            h = title(sprintf('SNR - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
         end
         
         function plotDataAvailability(this, sys_c)
@@ -4567,7 +4620,7 @@ classdef Receiver < Exportable_Object
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
             h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
             grid on;
-            h = title(sprintf('Receiver %s ZTD', this.name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            h = title(sprintf('Receiver %s ZTD', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
     end
     
@@ -5174,8 +5227,7 @@ classdef Receiver < Exportable_Object
                 end
             end
         end
-        
-        
+                
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)
