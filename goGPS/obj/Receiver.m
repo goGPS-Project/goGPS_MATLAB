@@ -124,7 +124,7 @@ classdef Receiver < Exportable_Object
             'cs',               [], ...    % Core_Sky
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
-            'slant_td',         [] ...    % slant total delay
+            'slant_td',         []  ...    % slant total delay (except ionosphere delay)
             )
     end
    
@@ -2160,6 +2160,7 @@ classdef Receiver < Exportable_Object
             [x, res] = ls.solve();
             
             coo    = x(1:3,1);
+            
             clock = x(x(:,2) == 6,1);
             tropo = x(x(:,2) == 7,1);
             amb = x(x(:,2) == 5,1);
@@ -2170,6 +2171,26 @@ classdef Receiver < Exportable_Object
             diff_from_rin = (new_pos  -this.xyz_approx)';
             this.log.addMessage(sprintf('DEBUG: distance from rine pos = %.3f %.3f %.3f',diff_from_rin));
             this.log.addMessage(sprintf('DEBUG: distance from rine pos enu = %.3f %.3f %.3f',global2localVel(diff_from_rin,this.xyz')));
+            this.xyz = this.xyz + coo';
+            valid_ep = ls.true_epoch;
+            this.dt(valid_ep,1) = clock;
+            if isempty(this.zwd)
+                this.zwd = zeros(this.time.length,1);
+            end
+            this.zwd(valid_ep) = tropo;
+            if isempty(this.tgn)
+                this.tgn = zeros(this.time.length,1);
+            end
+            this.tgn(valid_ep) =  gntropo;
+            if isempty(this.tge)
+                this.tge = zeros(this.time.length,1);
+            end
+            this.tge(valid_ep) =  gntropo;
+            n_sat = this.cc.getNumSat();
+            mfw = 1 ./ (sin(this.sat.el) + 0.01);
+            mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
+            mfge = sin(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
+            this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw) + zero2nan(repmat(this.tgn,1,n_sat).*mfgn) + zero2nan(repmat(this.tge,1,n_sat).*mfge));
         end
         
         function initPositioning(this, sys_c)
