@@ -511,11 +511,12 @@ classdef Receiver < Exportable_Object
             this.dt(:) = 0;
             % set all availability index
             this.updateAllAvailIndex();
-            this.updateAllTOT();
+
             % update azimuth elevation
             this.updateAzimuthElevation();
             % Add a model correction for time desync -> observations are now referred to nominal time            
             this.shiftToNominal()
+            this.updateAllTOT();
             
             % apply various corrections
             this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to COM
@@ -1657,8 +1658,11 @@ classdef Receiver < Exportable_Object
                         snr_idx = idxCharLines(this.obs_code, ['S' complete_flags(i,2:3)]) & sat_idx;
                         if sum(c_idx)>0
                             obs((s-1)*n_opt+i,take_idx) = this.obs(c_idx,take_idx);
-                            
-                            snr((s-1)*n_opt+i,take_idx) = this.obs(snr_idx,take_idx);
+                            if sum(snr_idx)
+                                snr((s-1)*n_opt+i,take_idx) = this.obs(snr_idx,take_idx);
+                            else
+                               snr((s-1)*n_opt+i,take_idx) = 1;
+                            end
                             if ~isempty(this.outlier_idx_ph) && flag(1) == 'L'% take off outlier
                                 ph_idx = this.ph_idx == find(c_idx);
                                 obs((s-1)*n_opt+i,this.outlier_idx_ph(:,ph_idx)) = 0;
