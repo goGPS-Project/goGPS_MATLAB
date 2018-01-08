@@ -232,12 +232,16 @@ for file_pcv = 1 : size(filename, 1)
                                                         antenna_PCV(m(1)).sys(frequencies_found) = 2;
                                                     case 'E'
                                                         antenna_PCV(m(1)).sys(frequencies_found) = 3;
-                                                    case 'C'
-                                                        antenna_PCV(m(1)).sys(frequencies_found) = 4;
                                                     case 'J'
+                                                        antenna_PCV(m(1)).sys(frequencies_found) = 4;
+                                                    case 'C'
                                                         antenna_PCV(m(1)).sys(frequencies_found) = 5;
+                                                    case 'I'
+                                                        antenna_PCV(m(1)).sys(frequencies_found) = 6;
+                                                    case 'S'
+                                                        antenna_PCV(m(1)).sys(frequencies_found) = 7;
                                                 end
-                                                antenna_PCV(m(1)).sysfreq(frequencies_found)=antenna_PCV(m(1)).sys(frequencies_found)*10+antenna_PCV(m(1)).frequency(frequencies_found);
+                                                antenna_PCV(m(1)).sysfreq(frequencies_found) = antenna_PCV(m(1)).sys(frequencies_found) * 10 + antenna_PCV(m(1)).frequency(frequencies_found);
 
                                                 while (isempty(strfind(line,'NORTH / EAST / UP')))
                                                     l = l + 1; line = atx_file{l};
