@@ -1514,7 +1514,9 @@ classdef Receiver < Exportable_Object
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
-            ph(this.outlier_idx_ph(id_ph, :)') = nan;
+            if not(isempty(this.outlier_idx_ph))
+                ph(this.outlier_idx_ph(id_ph, :)') = nan;
+            end
             wl = this.wl(id_ph);
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
