@@ -931,6 +931,16 @@ classdef GPS_Time < Exportable_Object & handle
             end
         end
         
+        function [mjd] = getMJD(this, id)
+            % Get Modified julian date
+            % SYNTAX: [gps_time] = this.getGpsTime()
+            if nargin == 2
+                [gps_week, gps_sow, ~] = this.getGpsWeek(id);
+            end
+            [gps_week, gps_sow, ~] = this.getGpsWeek();
+             mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
+        end
+        
         function [year, doy] = getDOY(this)
             % get Reference Time, precision up to the ps precision
             % SYNTAX: [year, doy] = getDOY(this)
