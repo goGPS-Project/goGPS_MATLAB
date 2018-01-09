@@ -90,7 +90,7 @@ classdef Least_Squares_Manipulator < handle
             if sum(sum(snr_to_fill));
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-            obs_set.remUnderCutOff(15);
+            %obs_set.remUnderCutOff(7);
             % set up number of parametrs requires
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
@@ -153,6 +153,7 @@ classdef Least_Squares_Manipulator < handle
             w = zeros(n_obs, 1);
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
+            [~, mfw] = rec.getSlantMF();
             for s = 1:n_stream
                 vaild_ep_stream = diff_obs(:, s) ~= 0;
                 
@@ -160,6 +161,7 @@ classdef Least_Squares_Manipulator < handle
                 snr_stream = obs_set.snr(vaild_ep_stream, s);
                 el_stream = obs_set.el(vaild_ep_stream, s) / 180 * pi;
                 az_stream = obs_set.az(vaild_ep_stream, s) / 180 * pi;
+                mfw_stream = mfw(vaild_ep_stream, this.sat_go_id(s));
                 xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
                 n_obs_stream = length(obs_stream);
@@ -182,16 +184,16 @@ classdef Least_Squares_Manipulator < handle
                 cose = cos(el_stream);
                 not_inf_factor = 0.01;
                 if ppp_opt.tropo
-                A(lines_stream, n_coo+n_iob+3) = 1 ./ (sine + not_inf_factor);
-                A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A(lines_stream, n_coo+n_iob+3) = mfw_stream;
+                    A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 if ppp_opt.tropo_g
-                derivative_term = -cose ./ (sine + not_inf_factor).^2;
-                A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* derivative_term;
-                A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* derivative_term;
-                
-                A_idx(lines_stream, n_coo+n_iob+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
-                A_idx(lines_stream, n_coo+n_iob+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    cotan_term = cotd(el_stream) .* mfw_stream;
+                    A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* cotan_term; % noth gradient 
+                    A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* cotan_term; % east gradient
+                    
+                    A_idx(lines_stream, n_coo+n_iob+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A_idx(lines_stream, n_coo+n_iob+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 obs_count = obs_count + n_obs_stream;
             end

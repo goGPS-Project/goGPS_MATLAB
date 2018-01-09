@@ -127,6 +127,7 @@ classdef Receiver < Exportable_Object
             'cs',               [], ...    % Core_Sky
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
+            'res',              [], ...    % residual per staellite
             'slant_td',         []  ...    % slant total delay (except ionosphere delay)
             )
     end
@@ -525,12 +526,14 @@ classdef Receiver < Exportable_Object
             
             % apply various corrections
             this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to COM
+            
             this.applyPCV();
             this.applyPoleTide();
             this.applyPhaseWindUpCorr();
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
+            
             this.removeOutlierMarkCycleSlip();            
         end
         
@@ -1390,6 +1393,17 @@ classdef Receiver < Exportable_Object
             xyz = median(this.xyz, 1);
         end
         
+        function updateCoo(this)
+            % upadte lat lon e ortometric height
+            [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
+        end
+        
+        function setXYZ(this, xyz)
+            %description set xyz and upadte godetic coordinates
+            this.xyz = xyz;
+            this.updateCoo();
+        end
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
             % return the computed median position of the receiver
             %
@@ -1409,7 +1423,7 @@ classdef Receiver < Exportable_Object
                 gs = Go_State.getInstance;
                 gs.initGeoid();
                 ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
-                h_ortho = h_ellips + ondu;
+                h_ortho = h_ellips - ondu;
             end
             lat = lat / pi * 180;
             lon = lon / pi * 180;
@@ -1468,6 +1482,8 @@ classdef Receiver < Exportable_Object
                 pos = this.xyz;
             end
         end
+        
+        
         
         function pr = pr1(this, sys_c)
             % get p_range 1 (Legacy)
@@ -2158,17 +2174,38 @@ classdef Receiver < Exportable_Object
         function res = staticPPP(this)
             ls = Least_Squares_Manipulator();
             ppp_opt.tropo = true; %this.state.flag_tropo;
-            ppp_opt.tropo_g = true;%this.state.flag_tropo_gradient;
+            ppp_opt.tropo_g = false;%this.state.flag_tropo_gradient;
             ls.setUpPPP(this, ppp_opt);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients  
 %             ls.setTimeRegularization(1, 0.00001);
 %             ls.setTimeRegularization(2, 0.00001);
-%             ls.setTimeRegularization(3, 0.00001);
-            ls.setTimeRegularization(6, 1e-7*this.rate*Go_State.V_LIGHT/0.005);%
-            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * this.rate/0.003 * 10);
-            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * this.rate/0.005);
-            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * this.rate/0.005);
+%             ls.setTimeRegularization(3, 0.00001);  
+            this.updateCoo;
+            lat = this.lat;
+            lon = this.lon;
+            h_o = this.h_ortho;
+            gps_time = this.time.getMJD();
+            
+            atm = Atmosphere();
+            
+            if isempty(this.zwd)
+                this.zwd = zeros(this.time.length,1);
+            end
+            if isempty(this.zhd)
+                this.zhd = zeros(this.time.length,1);
+            end
+            
+            for i = 1 : this.time.length
+                [P, T, ~] = atm.gpt(gps_time(i), lat*180/pi, lon*180/pi, h_o,this.h_ellips - h_o);
+                this.zhd(i) = saast_dry(P,h_o, lat*180/pi);
+                this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_o);
+            end
+            
+            ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
+            ls.setTimeRegularization(7, this.state.std_tropo / sqrt(3600) * sqrt(this.rate) / 0.005 );
+            ls.setTimeRegularization(8, this.state.std_tropo_gradient / sqrt(3600) * sqrt(this.rate) / 0.005);
+            ls.setTimeRegularization(9, this.state.std_tropo_gradient / sqrt(3600) * sqrt(this.rate) / 0.005);
             [x, res] = ls.solve();
             
             coo    = x(1:3,1);
@@ -2186,23 +2223,25 @@ classdef Receiver < Exportable_Object
             this.xyz = this.xyz + coo';
             valid_ep = ls.true_epoch;
             this.dt(valid_ep,1) = clock;
-            if isempty(this.zwd)
-                this.zwd = zeros(this.time.length,1);
-            end
-            this.zwd(valid_ep) = tropo;
-            if isempty(this.tgn)
+            this.sat.res = res;
+            
+            this.zwd(valid_ep) = this.zwd(valid_ep) +tropo;
+            
+            if ppp_opt.tropo_g
+                if isempty(this.tgn)
                 this.tgn = zeros(this.time.length,1);
             end
-            this.tgn(valid_ep) =  gntropo;
-            if isempty(this.tge)
-                this.tge = zeros(this.time.length,1);
+                this.tgn(valid_ep) =  gntropo;
+                if isempty(this.tge)
+                    this.tge = zeros(this.time.length,1);
+                end
+                this.tge(valid_ep) =  gntropo;
+                n_sat = this.cc.getNumSat();
+                mfw = 1 ./ (sin(this.sat.el) + 0.01);
+                mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
+                mfge = sin(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
+                this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw) + zero2nan(repmat(this.tgn,1,n_sat).*mfgn) + zero2nan(repmat(this.tge,1,n_sat).*mfge));
             end
-            this.tge(valid_ep) =  gntropo;
-            n_sat = this.cc.getNumSat();
-            mfw = 1 ./ (sin(this.sat.el) + 0.01);
-            mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
-            mfge = sin(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
-            this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw) + zero2nan(repmat(this.tgn,1,n_sat).*mfgn) + zero2nan(repmat(this.tge,1,n_sat).*mfge));
         end
         
         function initPositioning(this, sys_c)
@@ -3382,13 +3421,14 @@ classdef Receiver < Exportable_Object
             r = r + repmat([radial*c + north*b]',time.length,1);
             
             %displacement along the receiver-satellite line-of-sight
-            
+            [XS] = this.getXSLoc();
             for i  = 1 : length(sat)
                 s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
-                az = this.getAz(s);
-                el = this.getEl(s);
-                LOSu = [cosd(el).*sind(az) cosd(el).*cosd(az) sind(el)];
+                %az = this.getAz(s);
+                %el = this.getEl(s);
+                XSs = permute(XS(sat_idx,s,:),[1 3 2]);
+                LOSu = -rowNormalize(XSs);%[cosd(el).*sind(az) cosd(el).*cosd(az) sind(el)];
                 % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
                 solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
             end
@@ -4573,8 +4613,10 @@ classdef Receiver < Exportable_Object
                 
                 id_ok = not(isnan(zero2nan(sztd(i,:))));
                 if show_map
+                    if any(id_ok(:))
                     td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)', fun);
                     hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                    end
                 end
                 
                 hs.XData = x;
