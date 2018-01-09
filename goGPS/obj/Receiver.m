@@ -1083,7 +1083,7 @@ classdef Receiver < Exportable_Object
                 
                 for c = 1 : numel(this.cc.SYS_C)
                     sys_c = char(this.cc.SYS_C(c));
-                    sys = char(this.cc.SYS_NAME{c});
+                    sys = char(this.cc.SYS_NAME{c} + 32);
                     
                     if ~isempty(this.rin_obs_code.G)
                         code = reshape(this.rin_obs_code.(sys_c), 3, numel(this.rin_obs_code.(sys_c)) / 3)';
@@ -3086,6 +3086,9 @@ classdef Receiver < Exportable_Object
         end
         
         function removeAllCorrections(this)
+            % Remove all the corrections
+            % SYNTAX:
+            %   this.removeAllCorrections();
             this.removeDtSat();
             this.removeGroupDelay();
             this.removePCV();
@@ -3097,6 +3100,9 @@ classdef Receiver < Exportable_Object
         end
         
         function applyAllCorrections(this)
+            % Apply all the corrections
+            % SYNTAX:
+            %   this.applyAllCorrections();
             this.applyDtSat();
             this.applyGroupDelay();
             this.applyPCV();
@@ -4288,6 +4294,8 @@ classdef Receiver < Exportable_Object
             % SYNTAX:
             %   this.exportRinex3(file_name);
             
+            this.removeAllCorrections();
+            
             % HEADER -------------------------------------------------------------------------------------------------------------------------------------------
             txt = [];
             this.updateRinObsCode();
@@ -4660,7 +4668,7 @@ classdef Receiver < Exportable_Object
         end
         
         function plotAniZtdSlant(this, time_start, time_stop, show_map)
-            clf;            
+            clf;
             t = this.time.getMatlabTime;
             
             sztd = this.getSlantZTD(900);
@@ -4675,15 +4683,15 @@ classdef Receiver < Exportable_Object
                 time_start = 1;
                 time_stop = size(sztd,1);
             end
-           
+            
             if nargin < 4
                 show_map = true;
             end
             win_size = (t(time_stop) - t(time_start)) * 86400;
             
             yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-
-            subplot(3,1,3);            
+            
+            subplot(3,1,3);
             plot(t, sztd,'.'); hold on;
             plot(t, this.ztd,'k', 'LineWidth', 4);
             ylim(yl);
@@ -4706,14 +4714,14 @@ classdef Receiver < Exportable_Object
             if show_map
                 td = nan(size(ep));
                 hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
-                hm.AlphaData = 0.5;   
+                hm.AlphaData = 0.5;
                 ax_sky.YDir = 'normal';
             end
             hs = polarScatter(az, el, 250, sztd(i,:), 'filled');
             xlim([-1 1]); ylim([-1 1]);
-            caxis(yl); colormap(jet); colorbar;                        
+            caxis(yl); colormap(jet); colorbar;
             
-            subplot(3,1,3); 
+            subplot(3,1,3);
             for i = time_start + 1 : time_stop
                 % Move scattered points
                 az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
@@ -4725,8 +4733,8 @@ classdef Receiver < Exportable_Object
                 id_ok = not(isnan(zero2nan(sztd(i,:))));
                 if show_map
                     if any(id_ok(:))
-                    td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)', fun);
-                    hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)', fun);
+                        hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
                     end
                 end
                 
@@ -4766,7 +4774,7 @@ classdef Receiver < Exportable_Object
             end
             
             %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-
+            
             plot(t, sztd,'.'); hold on;
             plot(t, this.ztd,'k', 'LineWidth', 4);
             %ylim(yl);
@@ -4864,7 +4872,7 @@ classdef Receiver < Exportable_Object
                 this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                 
                 f_id = obs_code(:,2);
-                ss = this.cc.(char((this.cc.SYS_NAME{s})));
+                ss = this.cc.(char(this.cc.SYS_NAME{s} + 32));
                 [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                 
                 ismember(this.system, this.cc.SYS_C);
