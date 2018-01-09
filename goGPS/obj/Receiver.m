@@ -3561,9 +3561,9 @@ classdef Receiver < Exportable_Object
             
             ocean_load_corr = zeros(this.time.length,length(sat));
             if isempty(this.ocean_load_disp)
-                this.importOceanLoading();
+                this.importOceanLoading();                
             end
-            if (~isstruct(this.ocean_load_disp) && this.ocean_load_disp == -1) || this.ocean_load_disp.available == 0
+            if isempty(this.ocean_load_disp) || ((~isstruct(this.ocean_load_disp) && this.ocean_load_disp == -1) || this.ocean_load_disp.available == 0)
                 return
             end
             
