@@ -1162,7 +1162,9 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 return %already ceneter of amss
             end
+            this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
             this.COMtoAPC(-1);
+            this.computeSatPolyCoeff();
             this.coord_type = 0;
         end
         
@@ -1185,7 +1187,9 @@ classdef Core_Sky < handle
             if this.coord_type == 1
                 return %already antennna phase center
             end
+            this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
             this.COMtoAPC(1);
+            this.computeSatPolyCoeff();
             this.coord_type = 1;
         end
         
@@ -1234,7 +1238,7 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 % if coordinates refers to center of mass apply also pco
                 sat_pco = permute(this.ant_pco(:,ant_idx,:),[ 3 1 2]);
-                neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                neu_los = -[cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                 pco_delay = neu_los*sat_pco;
             else
                 pco_delay = zeros(size(el));

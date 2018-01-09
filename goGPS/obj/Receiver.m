@@ -2238,10 +2238,10 @@ classdef Receiver < Exportable_Object
                 this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_o);
             end
             
-            ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
-            ls.setTimeRegularization(7, this.state.std_tropo / sqrt(3600) * sqrt(this.rate) / 0.005 );
-            ls.setTimeRegularization(8, this.state.std_tropo_gradient / sqrt(3600) * sqrt(this.rate) / 0.005);
-            ls.setTimeRegularization(9, this.state.std_tropo_gradient / sqrt(3600) * sqrt(this.rate) / 0.005);
+            %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
+            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * this.rate / 0.005 );
+            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
+            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
             [x, res] = ls.solve();
             
             coo    = x(1:3,1);
@@ -2262,7 +2262,7 @@ classdef Receiver < Exportable_Object
             this.sat.res = res;
             
             this.zwd(valid_ep) = this.zwd(valid_ep) +tropo;
-            
+            this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
             if ppp_opt.tropo_g
                 if isempty(this.tgn)
                 this.tgn = zeros(this.time.length,1);
@@ -2864,19 +2864,22 @@ classdef Receiver < Exportable_Object
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, sat) =  ( obs' )/ goGNSS.V_LIGHT + this.dt(:, 1);
+            this.sat.tot(:, sat) =  ( obs' )/ goGNSS.V_LIGHT + this.dt(:, 1);  %<---- check dt with all the new dts field
         end
         
-        function updateAllTOT(this)
+        function updateAllTOT(this, synt_based)
             % upate time of travel for all satellites
             for i = 1 : this.cc.getNumSat()
                 c_sys = this.cc.system(i);
                 c_prn = this.cc.prn(i);
                 idx_sat = this.system' == c_sys & this.prn == c_prn & this.obs_code(:,1) == 'C';
                 if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                    if nargin == 1 % obs based
                     c_obs = this.obs(idx_sat,:);
-                    
                     c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                    else  % 
+                    c_l_obs = this.computeSyntObs('I',i);
+                    end
                     %update time of flight times
                     this.updateTOT(c_l_obs,i); % update time of travel
                 end
@@ -3935,14 +3938,14 @@ classdef Receiver < Exportable_Object
                                 if sum(pco_idx)
                                     pco = this.pcv.offset(:,:,pco_idx)';
                                     pco_delays = neu_los*pco;
-                                    pcv_delays = pco_delays + this.getPCV(pco_idx,el,az);
+                                    pcv_delays = pco_delays - this.getPCV(pco_idx,el,az);
                                     for o = find(obs_idx_f)'
                                         pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                                         if  this.obs_code(o,1) == 'L'
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
                                         else
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)';
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
                                         end
                                     end
                                 else
