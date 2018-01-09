@@ -89,7 +89,7 @@ classdef Receiver < Exportable_Object
         rin_obs_code   % list of types per constellation
         ph_shift       % phase shift as read from RINEX files
 
-        ocean_load_disp = [];        % ocean loading displacemnet for the station
+        ocean_load_disp = [];        % ocean loading displacemnet for the station , -1 if not found
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true        
         pcv = []       % phase center corrections for the receiver
         
@@ -3425,11 +3425,8 @@ classdef Receiver < Exportable_Object
             for i  = 1 : length(sat)
                 s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
-                %az = this.getAz(s);
-                %el = this.getEl(s);
                 XSs = permute(XS(sat_idx,s,:),[1 3 2]);
-                LOSu = -rowNormalize(XSs);%[cosd(el).*sind(az) cosd(el).*cosd(az) sind(el)];
-                % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
+                LOSu = -rowNormalize(XSs);
                 solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
             end
             
@@ -3518,7 +3515,10 @@ classdef Receiver < Exportable_Object
             
             
             ocean_load_corr = zeros(this.time.length,length(sat));
-            if (isempty(this.ocean_load_disp)) || this.ocean_load_disp.available == 0
+            if isempty(this.ocean_load_disp)
+                this.importOceanLoading();
+            end
+            if (~isstruct(this.ocean_load_disp) && this.ocean_load_disp == -1) || this.ocean_load_disp.available == 0
                 return
             end
             
@@ -3570,24 +3570,23 @@ classdef Receiver < Exportable_Object
                 angle = tidal_waves(k,1)*fday + tidal_waves(k,2)*H0 + tidal_waves(k,3)*S0 + tidal_waves(k,4)*P0 + tidal_waves(k,5)*2*pi;
                 corr  = corr + repmat(fj*ol_disp.matrix(1:3,k)',this.time.length,1).*cos(repmat(angle,1,3) + uj - repmat(ol_disp.matrix(4:6,k)'*pi/180,this.time.length,1));
             end
-            corrENU(:,1) = -corr(:,1); %east
-            corrENU(:,2) = -corr(:,2); %north
-            corrENU(:,3) =  corr(:,3); %up
+            corrENU(:,1) = -corr(:,2); %east
+            corrENU(:,2) = -corr(:,3); %north
+            corrENU(:,3) =  corr(:,1); %up
             
             % get XR
             XR = this.getXR();
             %displacement along the receiver-satellite line-of-sight
             XRcorr = local2globalPos(corrENU', XR')';
             corrXYZ = XRcorr - XR;
-            
+            %displacement along the receiver-satellite line-of-sight
+            [XS] = this.getXSLoc();
             for i  = 1 : length(sat)
                 s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
-                az = this.getAz(s) / 180 *pi;
-                el = this.getEl(s) / 180 * pi;
-                LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
-                % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                ocean_load_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
+                XSs = permute(XS(sat_idx,s,:),[1 3 2]);
+                LOSu = -rowNormalize(XSs);
+                ocean_load_corr(sat_idx,i) = sum(conj(corrXYZ(sat_idx,:)).*LOSu,2);
             end
         end
         
@@ -3595,6 +3594,9 @@ classdef Receiver < Exportable_Object
             %DESCRIPTION: load ocean loading displcement matrix from
             %ocean_loading.blq if satation is present
             this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.getShortName()});
+            if isempty(this.ocean_load_disp)
+                this.ocean_load_disp == -1; %mean not found
+            end
         end
         
         %--------------------------------------------------------
@@ -3686,14 +3688,13 @@ classdef Receiver < Exportable_Object
                 %displacement along the receiver-satellite line-of-sight
                 XRcorr = local2globalPos(corrENU', XR')';
                 corrXYZ = XRcorr - XR;
+                [XS] = this.getXSLoc();
                 for i  = 1 : length(sat)
                     s = sat(i);
                     sat_idx = this.sat.avail_index(:,s);
-                    az = this.getAz(s) / 180 *pi;
-                    el = this.getEl(s) / 180 * pi;
-                    LOSu = [cos(el).*sin(az) cos(el).*cos(az) sin(el)];
-                    % oceanloadcorr(s,1) = dot(corrXYZ,LOSu);
-                    pole_tide_corr(sat_idx,i) = sum(corrXYZ(sat_idx,:).*LOSu, 2);
+                    XSs = permute(XS(sat_idx,s,:),[1 3 2]);
+                    LOSu = -rowNormalize(XSs);
+                    pole_tide_corr(sat_idx,i) = sum(conj(corrXYZ(sat_idx,:)).*LOSu,2);
                 end
             end
             
