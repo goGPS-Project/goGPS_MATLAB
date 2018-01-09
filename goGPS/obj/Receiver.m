@@ -3479,10 +3479,10 @@ classdef Receiver < Exportable_Object
                 this.sat.solid_earth_corr = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
-                
-                for s = 1 : size(this.sat.avail_index,2)
-                    this.updateSolidEarthCorr(s);
-                end
+                this.sat.solid_earth_corr = this.computeSolidTideCorr();
+%                 for s = 1 : size(this.sat.avail_index,2)
+%                     this.updateSolidEarthCorr(s);
+%                 end
             else
                 this.sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
             end
