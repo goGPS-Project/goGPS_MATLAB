@@ -855,7 +855,16 @@ classdef GPS_Time < Exportable_Object & handle
                     second_correction = - floor(unix_time_f);
                     unix_time = unix_time - uint32(second_correction);
                     unix_time_f = unix_time_f + second_correction;
-            end
+            end            
+        end
+        
+        function date6col = get6ColDate(this)
+            % get time, 6 column format
+            date6col = datevec(this.getMatlabTime);
+            date6col(:,6) = floor(date6col(:,6));
+            tmp = GPS_Time(date6col); tmp.toUnixTime;
+            fractional_part = round((tmp - this) * 1e10) * 1e-10;
+            date6col(:,6) = date6col(:,6)- fractional_part ;
         end
         
         function changeRef(this, new_time_mat_ref)
