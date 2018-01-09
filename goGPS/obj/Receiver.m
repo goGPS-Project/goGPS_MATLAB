@@ -48,6 +48,8 @@ classdef Receiver < Exportable_Object
         number         % receiver number
         type           % receiver type
         version        % receiver version
+        observer       % name of observer
+        agency         % name of agency
                 
         rid            % receiver interobservation biases
         flag_rid       % clock error for each obs code {num_obs_code}
@@ -576,6 +578,16 @@ classdef Receiver < Exportable_Object
             %this.sat.avail_index = false(this.time.length, this.cc.getNumSat());
         end
         
+        function updateRinObsCode(this)
+            % update the RINEX observation codes contained into the receiver
+            % SYNTAX: obs_code = this.getAvailableCode(sys_c)
+            this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
+            sys_c = this.getAvailableSys();
+            for ss = sys_c
+                this.rin_obs_code.(ss) = serialize(this.getAvailableCode(ss)')';
+            end
+        end
+        
         function remEpoch(this, id_epo)
             % remove epochs with a certain id
             % SYNTAX:   this.remObs(id_obs)
@@ -860,7 +872,14 @@ classdef Receiver < Exportable_Object
                 this.marker_name = strtrim(txt(lim(fln, 1) + (0:59)));
             end
             % 4) 'OBSERVER / AGENCY'
-            % ignoring
+            fln = find(line2head == 4, 1, 'first'); % get field line
+            if isempty(fln)
+                this.observer = 'goGPS';
+                this.agency = 'Unknown';
+            else
+                this.observer = strtrim(txt(lim(fln, 1) + (0:19)));
+                this.agency = strtrim(txt(lim(fln, 1) + (20:39)));
+            end
             % 5) 'REC # / TYPE / VERS'
             fln = find(line2head == 5, 1, 'first'); % get field line
             if isempty(fln)
@@ -954,7 +973,7 @@ classdef Receiver < Exportable_Object
                     end
                     rin_obs_code = serialize([reshape(rin_obs_code, 2, numel(rin_obs_code) / 2); ' ' * ones(1, numel(rin_obs_code) / 2)])';
                 end
-                this.rin_obs_code = struct('g', rin_obs_code, 'r', rin_obs_code, 'e', rin_obs_code, 'j', rin_obs_code, 'c', rin_obs_code, 'i', rin_obs_code, 's', rin_obs_code);
+                this.rin_obs_code = struct('G', rin_obs_code, 'R', rin_obs_code, 'E', rin_obs_code, 'J', rin_obs_code, 'C', rin_obs_code, 'I', rin_obs_code, 'S', rin_obs_code);
                 
             end
             % 17) WAVELENGTH FACT L1/2
@@ -970,11 +989,11 @@ classdef Receiver < Exportable_Object
             % 19) SYS / # / OBS TYPES
             if this.rin_type >= 3
                 fln = find(line2head == 19); % get field lines
-                this.rin_obs_code = struct('g',[],'r',[],'e',[],'j',[],'c',[],'i',[],'s',[]);
+                this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
                 if ~isempty(fln)
                     l = 1;
                     while l <= numel(fln)
-                        sys = char(txt(lim(fln(l), 1))+32);
+                        sys = char(txt(lim(fln(l), 1)));
                         n_obs = sscanf(txt(lim(fln(l), 1) + (3:5)),'%d');
                         n_line = ceil(n_obs / 13);
                         l_offset = 0;
@@ -991,20 +1010,20 @@ classdef Receiver < Exportable_Object
                         l = l + l_offset;
                     end
                 end
-                if ~isempty(strfind(this.rin_obs_code.c, '1'))
-                    this.rin_obs_code.c(this.rin_obs_code.c == '1') = '2';
+                if ~isempty(strfind(this.rin_obs_code.C, '1'))
+                    this.rin_obs_code.c(this.rin_obs_code.C == '1') = '2';
                     this.log.addWarning('BeiDou band 1 is now defined as 2 -> Automatically converting the observation codes of the RINEX!');
                 end
             end
             % 20) SYS / PHASE SHIFT
             fln = find(line2head == 20); % get field line
             if this.rin_type < 3
-                this.ph_shift = struct('g', zeros(numel(this.rin_obs_code.g) / 3, 1));
+                this.ph_shift = struct('g', zeros(numel(this.rin_obs_code.G) / 3, 1));
             else
-                this.ph_shift = struct('g',[],'r',[],'e',[],'j',[],'c',[],'i',[],'s',[]);
+                this.ph_shift = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
                 for l = 1 : numel(fln)
                     if txt(lim(fln(l), 1)) ~= ' ' % ignoring phase shif only on subset of satellites
-                        sys = char(txt(lim(fln(l), 1)) + 32);
+                        sys = char(txt(lim(fln(l), 1)));
                         
                         rin_obs_code = txt(lim(fln(l), 1) + (2:4));
                         obs_id = (strfind(this.rin_obs_code.(sys), rin_obs_code) - 1) / 3 + 1;
@@ -1052,21 +1071,21 @@ classdef Receiver < Exportable_Object
             % LEGACY????
             t_ok = 'CLDS'; % type
             
-            rin_obs_col = struct('g', zeros(4, numel(this.cc.gps.F_VEC)), ...
-                'r', zeros(4, size(this.cc.glo.F_VEC,2)), ...
-                'e', zeros(4, numel(this.cc.gal.F_VEC)), ...
-                'j', zeros(4, numel(this.cc.qzs.F_VEC)), ...
-                'c', zeros(4, numel(this.cc.bds.F_VEC)), ...
-                'i', zeros(4, numel(this.cc.irn.F_VEC)), ...
-                's', zeros(4, numel(this.cc.sbs.F_VEC)));
+            rin_obs_col = struct('G', zeros(4, numel(this.cc.gps.F_VEC)), ...
+                'R', zeros(4, size(this.cc.glo.F_VEC,2)), ...
+                'E', zeros(4, numel(this.cc.gal.F_VEC)), ...
+                'J', zeros(4, numel(this.cc.qzs.F_VEC)), ...
+                'C', zeros(4, numel(this.cc.bds.F_VEC)), ...
+                'I', zeros(4, numel(this.cc.irn.F_VEC)), ...
+                'S', zeros(4, numel(this.cc.sbs.F_VEC)));
             
             if this.rin_type >= 3
                 
                 for c = 1 : numel(this.cc.SYS_C)
-                    sys_c = char(this.cc.SYS_C(c) + 32);
-                    sys = char(this.cc.SYS_NAME{c} + 32);
+                    sys_c = char(this.cc.SYS_C(c));
+                    sys = char(this.cc.SYS_NAME{c});
                     
-                    if ~isempty(this.rin_obs_code.g)
+                    if ~isempty(this.rin_obs_code.G)
                         code = reshape(this.rin_obs_code.(sys_c), 3, numel(this.rin_obs_code.(sys_c)) / 3)';
                         b_ok = this.cc.(sys).CODE_RIN3_2BAND;  % band
                         a_ok = this.cc.(sys).CODE_RIN3_ATTRIB; % attribute
@@ -1359,6 +1378,23 @@ classdef Receiver < Exportable_Object
             n_sat = numel(unique(this.go_id));
         end
         
+        function sys_c = getAvailableSys(this)
+            % get the available system stored into the object
+            % SYNTAX: sys_c = this.getAvailableSys()
+            
+            % Select only the systems still present in the file
+            [~, sys_ok] = intersect(this.cc.sys_c, this.system);
+            sys_c = this.cc.sys_c(sort(sys_ok));            
+        end
+        
+        function obs_code = getAvailableCode(this, sys_c)
+            % get the available observation code for a specific sys
+            % SYNTAX: obs_code = this.getAvailableCode(sys_c)
+            tmp = this.obs_code(this.system == sys_c, :);
+            [~, code_ok] = unique(uint32(tmp * ([1 2^8 2^16]')));
+            obs_code = tmp(code_ok, :);
+        end
+                
         function s_name = getShortName(this)
             %DESCRIPTION: return the fisrt 4 character of the filename
             %corresponfing to the receiver short name
@@ -4244,13 +4280,17 @@ classdef Receiver < Exportable_Object
             end
         end
 
-        function exportRinex3(this)
+        function exportRinex3(this, file_name)
             % Export the content of the object as RINEX 3
+            % SYNTAX:
+            %   this.exportRinex3(file_name);
+            
+            % HEADER -------------------------------------------------------------------------------------------------------------------------------------------
             txt = [];
+            this.updateRinObsCode();
             
             program = 'goGPS';
             agency = 'GReD s.r.l.';
-            observer = program;
             
             date_str_UTC = local_time_to_utc(now, 30);
             [date_str_UTC, time_str_UTC] = strtok(date_str_UTC,'T');
@@ -4260,30 +4300,97 @@ classdef Receiver < Exportable_Object
             txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, 'O');
             txt = sprintf('%s%-20s%-20s%-20sPGM / RUN BY / DATE \n', txt, program, agency, [date_str_UTC ' ' time_str_UTC ' UTC']);
             txt = sprintf('%s%-60sMARKER NAME         \n', txt, this.marker_name);
-            txt = sprintf('%s%-20s                                        MARKER TYPE         \n', txt, this.marker_type);
-            txt = sprintf('%s%-20s%-40sOBSERVER / AGENCY   \n', txt, observer, agency);
-            txt = sprintf('%s%-20s%-20s%-20sREC # / TYPE / VERS \n', txt, this.number, this.type, this.version);
-            txt = sprintf('%s%-20s%-20s                    ANT # / TYPE        \n', txt, this.ant, this.ant_type);
+            txt = sprintf('%s%-20s                                        MARKER TYPE\n', txt, this.marker_type);
+            txt = sprintf('%s%-20s%-40sOBSERVER / AGENCY\n', txt, this.observer, this.agency);
+            txt = sprintf('%sRINEX FILE EXPORTED BY goGPS OPEN SOURCE SOFTWARE           COMMENT\n', txt);
+            txt = sprintf('%sREFERENCE DEV SITE: https://github.com/goGPS-Project        COMMENT\n', txt);
+            txt = sprintf('%s%-20s%-20s%-20sREC # / TYPE / VERS\n', txt, this.number, this.type, this.version);
+            txt = sprintf('%s%-20s%-20s                    ANT # / TYPE\n', txt, this.ant, this.ant_type);
             xyz = this.getAPrioriPos();
             if ~any(xyz)
                 xyz = this.getMedianPosXYZ();
             end
-            txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', txt, xyz(1), xyz(2), xyz(3));
+            txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ\n', txt, xyz(1), xyz(2), xyz(3));
             txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.ant_delta_h, this.ant_delta_en);
             
+            sys = this.getAvailableSys();
             for s = 1 : length(sys)
-                txt = sprintf('%s%-1s    4 C%c%c L%c%c S%c%c D%c%c                                      SYS / # / OBS TYPES \n', txt,sys(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s));
+                obs_type = this.getAvailableCode(sys(s));
+                n_type = length(obs_type);
+                n_line = ceil(n_type / 13);
+                tmp = char(32 * ones(n_line * 13, 4));
+                tmp(1 : n_type, 1:3) = obs_type;
+                tmp = reshape(tmp', 4*13, n_line)';
+                txt = sprintf('%s%-1s   %2d %s SYS / # / OBS TYPES\n', txt, char(sys(s)), n_type, tmp(1, :));
+                for l = 2 : n_line
+                    txt = sprintf('%s       %s SYS / # / OBS TYPES\n', txt, tmp(l, :));
+                end                    
             end
-            txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
-            txt = sprintf('%s%10.3f                                                  INTERVAL            \n', txt, interval);
-            txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', txt, ...
-                date(first_epoch+t-1,1), date(first_epoch+t-1,2), date(first_epoch+t-1,3), date(first_epoch+t-1,4), date(first_epoch+t-1,5), date(first_epoch+t-1,6));
-            if (rin_ver_id == 3)
-                for s = 1 : length(sys)
-                    txt = sprintf('%s%c                                                           SYS / PHASE SHIFTS  \n', txt,sys(s));
+            %txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
+            txt = sprintf('%s%10.3f                                                  INTERVAL\n', txt, this.time.getRate());
+            txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS\n', txt, this.time.first.get6ColDate());
+            txt = sprintf('%sCARRIER PHASE SHIFT REMOVED BY goGPS SOFTWARE.              COMMENT\n', txt);
+            for s = 1 : length(sys)
+                obs_type = this.getAvailableCode(sys(s));
+                obs_type = obs_type(obs_type(:,1) == 'L', :);
+                for l = 1 : size(obs_type, 1)
+                    txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys(s), obs_type(l, :), 0.0);
+                end                    
+            end
+            if ~isempty(intersect(sys, 'G'))
+                % If glonas is present
+                %txt = sprintf('%s C1C    0.000 C1P    0.000 C2C    0.000 C2P    0.000        GLONASS COD/PHS/BIS\n', txt);
+                txt = sprintf('%s C1C          C1P          C2C          C2P                 GLONASS COD/PHS/BIS\n', txt);
+            end
+            txt  = sprintf('%s                                                            END OF HEADER       \n', txt);
+            
+            fid = fopen(file_name, 'w');
+            fprintf(fid, '%s', txt);
+            txt = [];
+            
+            % DATA ---------------------------------------------------------------------------------------------------------------------------------------------
+            
+            date6col = this.time.get6ColDate();
+            flag_ok = 0;
+            clock_offset = 0;
+            
+            % rin_obs_code tu num;
+            obs_code = uint32(this.obs_code * [1 2^8 2^16]');
+            for ss = sys
+                rin_obs_code.(ss) = uint32(reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)' * [1 2^8 2^16]');
+                for t = 1 : numel(rin_obs_code.(ss))
+                    obs_code(obs_code == rin_obs_code.(ss)(t)) = t;
                 end
             end
-            txt = sprintf('%s                                                            END OF HEADER       \n', txt);
+            
+            n_epo = size(this.obs, 2);
+            this.w_bar.createNewBar(' Exporting Receiver as Rinex 3.03 file...');
+            this.w_bar.setBarLen(n_epo);
+            for e = 1 : n_epo
+                id_ok = ~isnan(zero2nan(this.obs(:, e)));
+                go_id = unique(this.go_id(id_ok));
+                if ~isempty(id_ok)
+                    %txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
+                    txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
+                    for ss = sys % for each satellite system in view at this epoch
+                        id_ss = id_ok & this.system' == ss;
+                        for prn = unique(this.prn(id_ss))' % for each satellite in view at this epoch (of the current ss)
+                            % find which obs type are present
+                            id_sat_obs = (id_ss & this.prn == prn);                            
+                            str_obs = char(32 * ones(16, numel(rin_obs_code.(ss))));                            
+                            id_rin_col = obs_code(id_sat_obs);
+                            str_obs(:, id_rin_col) = reshape(sprintf('%14.3f  ', this.obs(id_sat_obs, e)),16, numel(id_rin_col));
+                            txt = sprintf('%s%c%02d%s\n', txt, ss, prn, str_obs(:)');
+                        end
+                    end
+                end
+                fprintf(fid, '%s', txt);
+                txt = [];
+                this.w_bar.go(e);
+            end            
+            fclose(fid);
+            this.log.newLine()
+            this.log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
         end
 
     end
@@ -4713,19 +4820,19 @@ classdef Receiver < Exportable_Object
             prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
             
             % update the maximum number of rows to store
-            n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+            n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.G) / 3 + ...
+                this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.R) / 3 + ...
+                this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.E) / 3 + ...
+                this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.J) / 3 + ...
+                this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.C) / 3 + ...
+                this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.I) / 3 + ...
+                this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.S) / 3;
             
             clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
             
             % order of storage
             % sat_system / obs_code / satellite
-            sys_c = char(this.cc.sys_c + 32);
+            sys_c = char(this.cc.sys_c);
             n_ss = numel(sys_c); % number of satellite system
             
             % init datasets
@@ -4751,10 +4858,10 @@ classdef Receiver < Exportable_Object
                 this.obs_code = [this.obs_code; obs_code];
                 prn_ss = repmat(prn.(sys)', n_code, 1);
                 this.prn = [this.prn; prn_ss];
-                this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
+                this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                 
                 f_id = obs_code(:,2);
-                ss = this.cc.(char((this.cc.SYS_NAME{s} + 32)));
+                ss = this.cc.(char((this.cc.SYS_NAME{s})));
                 [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                 
                 ismember(this.system, this.cc.SYS_C);
@@ -4774,7 +4881,7 @@ classdef Receiver < Exportable_Object
             this.w_bar.createNewBar(' Parsing epochs...');
             this.w_bar.setBarLen(n_epo);
             
-            n_ops = numel(this.rin_obs_code.g)/3; % number of observations per satellite
+            n_ops = numel(this.rin_obs_code.G)/3; % number of observations per satellite
             n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
             
             mask = repmat('         0.00000',1 ,40);
@@ -4869,22 +4976,22 @@ classdef Receiver < Exportable_Object
             bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
             irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
             sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
-            prn = struct('g', gps_prn', 'r', glo_prn', 'e', gal_prn', 'j', qzs_prn', 'c', bds_prn', 'i', irn_prn', 's', sbs_prn');
+            prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
             
             % update the maximum number of rows to store
-            n_obs = this.cc.gps.isActive * numel(prn.g) * numel(this.rin_obs_code.g) / 3 + ...
-                this.cc.glo.isActive * numel(prn.r) * numel(this.rin_obs_code.r) / 3 + ...
-                this.cc.gal.isActive * numel(prn.e) * numel(this.rin_obs_code.e) / 3 + ...
-                this.cc.qzs.isActive * numel(prn.j) * numel(this.rin_obs_code.j) / 3 + ...
-                this.cc.bds.isActive * numel(prn.c) * numel(this.rin_obs_code.c) / 3 + ...
-                this.cc.irn.isActive * numel(prn.i) * numel(this.rin_obs_code.i) / 3 + ...
-                this.cc.sbs.isActive * numel(prn.s) * numel(this.rin_obs_code.s) / 3;
+            n_obs = this.cc.gps.isActive * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
+                this.cc.glo.isActive * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
+                this.cc.gal.isActive * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
+                this.cc.qzs.isActive * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
+                this.cc.bds.isActive * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
+                this.cc.irn.isActive * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
+                this.cc.sbs.isActive * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
             
             clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
             
             % order of storage
             % sat_system / obs_code / satellite
-            sys_c = char(this.cc.sys_c + 32);
+            sys_c = char(this.cc.sys_c);
             n_ss = numel(sys_c); % number of satellite system
             
             % init datasets
@@ -4910,16 +5017,16 @@ classdef Receiver < Exportable_Object
                 this.obs_code = [this.obs_code; obs_code];
                 prn_ss = repmat(prn.(sys)', n_code, 1);
                 this.prn = [this.prn; prn_ss];
-                this.system = [this.system repmat(char(sys - 32), 1, size(obs_code, 1))];
+                this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                 
                 f_id = obs_code(:,2);
-                ss = this.cc.getSys(sys - 32);
+                ss = this.cc.getSys(sys);
                 [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                 
                 ismember(this.system, this.cc.SYS_C);
                 this.f_id = [this.f_id; f_id];
                 
-                if sys == 'r'
+                if sys == 'R'
                     wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                     wl(prn_ss > ss.N_SAT) = NaN;
                     wl(f_id == 0) = NaN;
@@ -4960,8 +5067,7 @@ classdef Receiver < Exportable_Object
                 this.w_bar.go(e);
             end
             this.log.newLine();
-            this.obs = obs;
-            
+            this.obs = obs;            
         end
         
         function synt_pr_obs = computeSyntCurObs(this, phase, sys_c)
