@@ -168,7 +168,6 @@ classdef Core_Sky < handle
             
             this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
             % compute polynomials for ephemerids
-            this.computeSatPolyCoeff();
             this.computeSMPolyCoeff();
             
             % load PCV
@@ -1164,7 +1163,9 @@ classdef Core_Sky < handle
             end
             this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
             this.COMtoAPC(-1);
-            this.computeSatPolyCoeff();
+            if ~isempty(this.coord_pol_coeff)
+                this.computeSatPolyCoeff();
+            end
             this.coord_type = 0;
         end
         
@@ -1189,7 +1190,9 @@ classdef Core_Sky < handle
             end
             this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
             this.COMtoAPC(1);
-            this.computeSatPolyCoeff();
+            if ~isempty(this.coord_pol_coeff)
+                this.computeSatPolyCoeff();
+            end
             this.coord_type = 1;
         end
         

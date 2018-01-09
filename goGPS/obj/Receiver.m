@@ -639,6 +639,27 @@ classdef Receiver < Exportable_Object
                     this.obs(c_sat_idx,CRX(s,:)) = 0;
                 end
             end
+            this.log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
+            nan_coord = sum(isnan(this.sat.cs.coord) | this.sat.cs.coord == 0,3) > 0;
+            nan_clock = isnan(this.sat.cs.clock) | this.sat.cs.clock == 0;
+            first_epoch = this.time.getSubSet(1);
+            coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
+            clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
+            for s = 1 : this.cc.getNumSat()
+                o_idx = this.go_id == s;
+                for i = find(nan_coord(:,s) == 1)'
+                    c_rate = this.sat.cs.coord_rate;
+                    bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + i * c_rate - c_rate * 10)/this.rate)));
+                    bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.rate)));
+                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                end
+                for i = find(nan_clock(:,s) == 1)'
+                    c_rate = this.sat.cs.clock_rate;
+                    bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.rate)));
+                    bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + i*c_rate + c_rate * 1)/this.rate)));
+                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                end
+            end
             % check empty lines
             this.remEmptyObs();
         end
@@ -3993,8 +4014,8 @@ classdef Receiver < Exportable_Object
                                 el_tmp = el(el_idx,s) / pi * 180;
                                 pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
-                                    pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
-                                    o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                                    pcv_idx = this.obs(o, az_idx) ~=0; %find which correction to apply
+                                    o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
                                     if  this.obs_code(o,1) == 'L'
                                         this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
                                     else
