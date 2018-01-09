@@ -93,7 +93,7 @@ classdef Receiver < Exportable_Object
 
         ocean_load_disp = [];        % ocean loading displacemnet for the station , -1 if not found
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true        
-        pcv = []       % phase center corrections for the receiver
+        pcv = []                     % phase center corrections for the receiver
         
         group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
         dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
@@ -5471,7 +5471,7 @@ classdef Receiver < Exportable_Object
             y0(y0 == 0) = []; % remove pivots
         end
         
-        function [p_time] = getSyncTime(rec, obs_type, p_rate)
+        function [p_time, id_sync] = getSyncTime(rec, obs_type, p_rate)
             % Get the common time among alle the used receivers and the target(s)
             %
             % SYNTAX: 
@@ -5498,6 +5498,7 @@ classdef Receiver < Exportable_Object
             
             i = 0;
             for r = id
+                ref_t{r} = rec(r).time.getRefTime(p_time_zero);                
                 if obs_type(r) > 0 % if it's not a target
                     p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
                     p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
@@ -5520,8 +5521,16 @@ classdef Receiver < Exportable_Object
                     i = i + 1;
                     p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
                     p_time(i).toUnixTime();
-                end
-            end           
+                    
+                    id_sync{i} = nan(p_time(i).length, numel(id));
+                    for rs = id % for each rec to sync
+                        if ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
+                            id_sync{i}(id_rec, rs) = id_ref;
+                        end
+                    end
+                end               
+            end
         end
     end
 

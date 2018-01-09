@@ -213,5 +213,5 @@ for s = 1 : num_session
     fprintf('--------------------------------------------------------------------------\n');
     log.newLine();
     log.addMarkedMessage('Syncing times, computing reference time');
-    p_time = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
+    [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());    
 end
