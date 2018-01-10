@@ -2330,7 +2330,7 @@ classdef Receiver < Exportable_Object
                 if isempty(this.tge)
                     this.tge = zeros(this.time.length,1);
                 end
-                this.tge(valid_ep) =  gntropo;
+                this.tge(valid_ep) =  getropo;
                 
                 
                 mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
