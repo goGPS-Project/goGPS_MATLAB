@@ -610,7 +610,7 @@ classdef Core_Sky < handle
                 end
             end
             clear sp3_file;
-            this.coord = zero2nan(this.coord);
+            this.coord = zero2nan(this.coord);  %<--- nan is slow for the computation of the polynomial coefficents 
         end
         
         function fillClockGaps(this)
@@ -1241,7 +1241,7 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 % if coordinates refers to center of mass apply also pco
                 sat_pco = permute(this.ant_pco(:,ant_idx,:),[ 3 1 2]);
-                neu_los = -[cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
+                neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                 pco_delay = neu_los*sat_pco;
             else
                 pco_delay = zeros(size(el));
@@ -1259,7 +1259,7 @@ classdef Core_Sky < handle
             if nargin < 4 || isempty(sat_pcv.tablePCV_azi) %no azimuth change
                 pcv_val = sat_pcv.tableNOAZI(:,:,freq); %etract the right frequency
                 
-                pcv_delay = pco_delay +  d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
+                pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
             else
                pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
                
@@ -1279,7 +1279,7 @@ classdef Core_Sky < handle
                 idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
                 pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
                 %interpolate alogn azimtuh
-                pcv_delay = pco_delay + d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
+                pcv_delay = pco_delay - (d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg);
             end
         end
         
@@ -1452,6 +1452,7 @@ classdef Core_Sky < handle
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
                 %t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
                 t_fct =  (times -  c_times(idx+5))/this.coord_rate;
+                
                 %%%% compute position
                 t_fct2 = t_fct .* t_fct;
                 t_fct3 = t_fct2 .* t_fct;
