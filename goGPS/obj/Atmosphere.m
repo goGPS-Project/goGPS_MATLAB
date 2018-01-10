@@ -55,7 +55,9 @@ classdef Atmosphere < handle
     properties  (SetAccess = private, GetAccess = private)
         lat = 1e3;    % current values for lat
         lon = 1e3;    % current values for lon
+        undu;         % current values for undu
         
+        P       % value of legendre polynomial at the latitude
         V       % V   saved value for GMF computation
         W       % W   saved value for GMF computation
         ahm     % ahm saved value for GMF computation
@@ -180,7 +182,7 @@ classdef Atmosphere < handle
             %   Saastamoinen algorithm using P T from Global Pressure and Temperature
             %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
             %   --> single epoch                                                
-            [pres, temp, undu] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
+            [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
             
             t_h = h;
             t_h(undu > -300) = t_h(undu > -300) - undu(undu > -300);
@@ -207,6 +209,8 @@ classdef Atmosphere < handle
             % pres: pressure in hPa
             % temp: temperature in Celsius
             % undu: Geoid undulation in m (from a 9x9 EGM based model)
+            
+            
             %
             % Johannes Boehm, 2006 June 12
             % rev 2006 June 16: geoid undulation is accounted for
@@ -221,12 +225,14 @@ classdef Atmosphere < handle
             % this is taken from Niell (1996) to be consistent
             doy = (gps_time/86400 - 22) / 365.25d0;
             
-            cached = (dlon == this.lon) && ~isempty(undu);
-            if cached
+            cached = (dlon == this.lon) && (dlat == this.lat) && ~isempty(this.undu);
+            if cached % no cache (debugging purpouse)
                 apm = this.apm;
                 apa = this.apa;
                 atm = this.atm;
                 ata = this.ata;
+                P   = this.P;
+                undu= this.undu;
             else
                 a_geoid = [ ...
                     -5.6195d-001,-6.0794d-002,-2.0125d-001,-6.4180d-002,-3.6997d-002, ...
@@ -359,58 +365,46 @@ classdef Atmosphere < handle
                     +1.0387e-005,-1.9378e-006,-2.7327e-007,+7.5833e-009,-9.2323e-009];
                 
                 % Computing Legendre Polynomial
-                % parameter t
-                %t = sin(dlat);
+                %parameter t
+                t = sin(dlat);
                 
                 % degree n and order m
                 n = 9;
                 m = 9;
                 
-                %
-                % % determine n!  (faktorielle)  moved by 1
-                % dfac(1) = 1;
-                % for i = 1:(2*n + 1)
-                %   dfac(i+1) = dfac(i)*i;
-                % end
-                %
-                % % determine Legendre functions (Heiskanen and Moritz, Physical Geodesy, 1967, eq. 1-62)
-                % for i = 0:n
-                %     for j = 0:min(i,m)
-                %         ir = floor((i - j)/2);
-                %         sum = 0;
-                %         for k = 0:ir
-                %             sum = sum + (-1)^k*dfac(2*i - 2*k + 1)/dfac(k + 1)/dfac(i - k + 1)/dfac(i - j - 2*k + 1)*t^(i - j - 2*k);
-                %         end
-                % % Legendre functions moved by 1
-                %         P(i + 1,j + 1) = 1.d0/2^i*sqrt((1 - t^2)^(j))*sum;
-                %     end
-                % end
                 
-                % Using pre-computed P for speedup
-                P = [ 1                     0                      0                      0                     0                     0                     0                      0                   0                    0; ...
-                     +0.00281154029808156   0.99999604761276600    0                      0                     0                     0                     0                      0                   0                    0; ...
-                     -0.49998814286172800   0.00843458755735672    2.9999762857234600     0                     0                     0                     0                      0                   0                    0; ...
-                     -0.00421725488575222  -1.49993478596211000    0.0421727711030027    14.999822143277400     0                     0                     0                      0                   0                    0; ...
-                     +0.37497035742769400  -0.02108607996533820   -7.4995257177496100     0.295208230939163   104.99834000720300      0                     0                      0                   0                    0; ...
-                     +0.00527144359549099   1.87478509263465000   -0.1476011985218610   -52.495642547201700     2.65686357745728    944.9813251179380       0                      0                   0                    0; ...
-                     -0.31244812625023200   0.03689957040241250   13.1230287925882000    -1.328398535653290  -472.45144569783300     29.2253838415395   10394.753492043900         0                   0                    0; ...
-                     -0.00614980686387282  -2.18702449471056000    0.3320913207714180   118.103057481655000   -14.61224913154510  -5196.8631939100800     379.928488309571    135131.26130338800       0                    0; ...
-                     +0.27335969091303500  -0.05534716795940760  -19.6822089685548000     3.652951587615530  1299.08741469175000   -189.9574868326330  -67557.886316371000      5698.90480027596 2026960.9081847400         0; ...
-                     +0.00691822280975839   2.46007188361403000   -0.6088068157300290  -216.493172524681000    47.48768241397210  16887.5355694089000   -2849.336024490910  -1013348.26682115000   96880.9986919555  34458199.2464554]';
+                % determine n!  (faktorielle)  moved by 1
+                dfac(1) = 1;
+                for i = 1:(2*n + 1)
+                  dfac(i+1) = dfac(i)*i;
+                end
                 
+                % determine Legendre functions (Heiskanen and Moritz, Physical Geodesy, 1967, eq. 1-62)
+                for i = 0:n
+                    for j = 0:min(i,m)
+                        ir = floor((i - j)/2);
+                        sum_t = 0;
+                        for k = 0:ir
+                            sum_t = sum_t + (-1)^k*dfac(2*i - 2*k + 1)/dfac(k + 1)/dfac(i - k + 1)/dfac(i - j - 2*k + 1)*t^(i - j - 2*k);
+                        end
+                % Legendre functions moved by 1
+                        P(i + 1,j + 1) = 1.d0/2^i*sqrt((1 - t^2)^(j))*sum_t;
+                    end
+                end
+                           
                 % spherical harmonics
-                % i = 0;
-                % for n = 0:9
-                %     for m = 0:n
-                %         i = i + 1;
-                %         aP(i) = P(n+1,m+1)*cos(m*dlon);
-                %         bP(i) = P(n+1,m+1)*sin(m*dlon);
-                %     end
-                % end
+                i = 0;
+                for n = 0:9
+                    for m = 0:n
+                        i = i + 1;
+                        aP(i) = P(n+1,m+1)*cos(m*dlon);
+                        bP(i) = P(n+1,m+1)*sin(m*dlon);
+                    end
+                end
                 % vectorial computation
-                md = (0 : 9)' * dlon;
-                aP = bsxfun(@times, P, cos(md)); aP = aP(triu(true(10)))';
-                bP = bsxfun(@times, P, sin(md)); bP = bP(triu(true(10)))';
+%                 md = (0 : 9)' * dlon;
+%                 aP = bsxfun(@times, P, cos(md)); aP = aP(triu(true(10)))';
+%                 bP = bsxfun(@times, P, sin(md)); bP = bP(triu(true(10)))';
                 
                 % Geoidal height
                 % undu = 0.d0;
@@ -418,8 +412,9 @@ classdef Atmosphere < handle
                 %    undu = undu + (a_geoid(i)*aP(i) + b_geoid(i)*bP(i));
                 % end
                 % vectorial computation
-                if isempty(undu)
-                    undu = sum(a_geoid .* aP + b_geoid .* bP);
+                
+                if nargin < 6 || isempty(undu)
+                    undu = sum(a_geoid .* aP + b_geoid .* bP); 
                 end
                 % now this function get directly the orthometric height from input                
                 
@@ -449,6 +444,10 @@ classdef Atmosphere < handle
                 this.apa = apa;
                 this.atm = atm;
                 this.ata = ata;
+                this.P = P;
+                this.lon = dlon;
+                this.lat = dlat;
+                this.undu = undu;
             end
             
             % orthometric height
@@ -489,11 +488,11 @@ classdef Atmosphere < handle
             
             % reference day is 28 January
             % this is taken from Niell (1996) to be consistent
-            doy = (gps_time/86400 - 22) / 365.25d0;
+            doy = (gps_time/86400 - 22) / 365.25d0; % years from 28 jan 1980
             
             pi = 3.14159265359d0;
             
-            cached = (dlon == this.lon) && (dlat == this.lat);
+            cached = (dlon == this.lon) && (dlat == this.lat) && ~isempty(this.ahm) && ~isempty(this.aha);
             if cached
                 V = this.V;
                 W = this.W;

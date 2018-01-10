@@ -2270,8 +2270,9 @@ classdef Receiver < Exportable_Object
             this.updateCoo;
             lat = this.lat;
             lon = this.lon;
-            h_o = this.h_ortho;
-            gps_time = this.time.getMJD();
+            h_orto = this.h_ortho;
+            h_ellips = this.h_ellips;
+            gps_time = this.time.getGpsTime();
             
             atm = Atmosphere();
             
@@ -2283,9 +2284,9 @@ classdef Receiver < Exportable_Object
             end
             
             for i = 1 : this.time.length
-                [P, T, ~] = atm.gpt(gps_time(i), lat*180/pi, lon*180/pi, h_o,this.h_ellips - h_o);
-                this.zhd(i) = saast_dry(P,h_o, lat*180/pi);
-                this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_o);
+                 [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                this.zhd(i) = saast_dry(P,h_orto, lat);
+                 this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_orto);
             end
             
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
@@ -3289,6 +3290,9 @@ classdef Receiver < Exportable_Object
             % sat : number of sat
             % flag: flag of the tropo model
             %DESCRIPTION: update the tropospheric correction
+            
+            
+            
             atmo = Atmosphere();
             
             if isempty(this.sat.err_tropo)
@@ -3357,6 +3361,7 @@ classdef Receiver < Exportable_Object
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = 1 : size(idx,1)
                                 if idx(e) > 0
+                                    
                                     this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                                 end
                             end
