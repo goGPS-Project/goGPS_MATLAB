@@ -53,5 +53,5 @@ else
    year = c - 4715;
 end
 
-mat_time = datenum([year month day 00 00 00]);
+mat_time = datenum(year, month, day, 0, 0, 0);
 
