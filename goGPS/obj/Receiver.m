@@ -1530,7 +1530,35 @@ classdef Receiver < Exportable_Object
                 end
             end
         end
-        
+
+        function swtd = getSlantZWD(this, smooth_win_size)
+            % Get the "zenithalized" wet delay
+            % SYNTAX:
+            %   sztd = this.getSlantZWD(<flag_smooth_data = 0>)
+            [mfh, mfw] = this.getSlantMF();
+            swtd = (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw;
+            swtd(swtd <= 0) = nan;
+
+            if nargin == 2 && smooth_win_size > 0
+                t = this.time.getRefTime;
+                for s = 1 : size(swtd,2)
+                    id_ok = ~isnan(swtd(:, s));
+                    if sum(id_ok) > 3
+                        lim = getOutliers(id_ok);
+                        lim = limMerge(lim, 2*smooth_win_size);
+                        
+                        lim = [lim(1) lim(end)];
+                        for l = 1 : size(lim, 1)
+                            if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                id_ok = lim(l, 1) : lim(l, 2);
+                                swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
         function [pos] = getXR(this)
             % get xyz or the same repeated by the number of epoch
             % SYNTAX: [XR] = getXR(this)
@@ -4780,6 +4808,91 @@ classdef Receiver < Exportable_Object
                 hs.XData = x;
                 hs.YData = y;
                 hs.CData = sztd(i,:);
+                
+                % Move time line
+                hl.XData = t(i) * [1 1];
+                if nargin > 4
+                    xlim(t(i) + [-win_size/2 win_size/2] ./ 86400);
+                end
+                drawnow;
+            end
+            
+        end
+        
+        function plotAniZwdSlant(this, time_start, time_stop, show_map)
+            clf;
+            t = this.time.getMatlabTime;
+            
+            szwd = this.getSlantZWD(900);
+            if nargin >= 3
+                if isa(time_start, 'GPS_Time')
+                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
+                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
+                end
+                time_start = max(1, time_start);
+                time_stop = min(size(szwd,1), time_stop);
+            else
+                time_start = 1;
+                time_stop = size(szwd,1);
+            end
+            
+            if nargin < 4
+                show_map = true;
+            end
+            win_size = (t(time_stop) - t(time_start)) * 86400;
+            
+            yl = (median(median(szwd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(szwd(time_start:time_stop, :), 'omitnan'), 'omitnan')) * 1e2;
+            
+            subplot(3,1,3);
+            plot(t, szwd * 1e2,'.'); hold on;
+            plot(t, this.zwd * 1e2,'k', 'LineWidth', 4);
+            ylim(yl);
+            hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
+            xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel('ZWD [cm]'); h.FontWeight = 'bold';
+            grid on;
+            
+            % polar plot "true" Limits
+            e_grid = [-1 : 0.1 : 1];
+            n_grid = [-1 : 0.1 : 1];
+            [ep, np] = meshgrid(e_grid, n_grid);
+            fun = @(dist) exp(-((dist*1e5)/3e4).^2);
+            
+            ax_sky = subplot(3,1,1:2); i = time_start;
+            az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+            el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+            
+            if show_map
+                td = nan(size(ep));
+                hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
+                hm.AlphaData = 0.5;
+                ax_sky.YDir = 'normal';
+            end
+            hs = polarScatter(az, el, 250, szwd(i,:) * 1e2, 'filled');
+            xlim([-1 1]); ylim([-1 1]);
+            caxis(yl); colormap(jet); colorbar;
+            
+            subplot(3,1,3);
+            for i = time_start + 1 : time_stop
+                % Move scattered points
+                az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+                el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+                decl_n = el/(pi/2);
+                x = sin(az) .* decl_n;
+                y = cos(az) .* decl_n;
+                
+                id_ok = not(isnan(zero2nan(szwd(i,:))));
+                if show_map
+                    if any(id_ok(:))
+                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', szwd(i, id_ok)' * 1e2, fun);
+                        hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                    end
+                end
+                
+                hs.XData = x;
+                hs.YData = y;
+                hs.CData = szwd(i,:) * 1e2;
                 
                 % Move time line
                 hl.XData = t(i) * [1 1];
