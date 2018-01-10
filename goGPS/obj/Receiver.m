@@ -2281,11 +2281,14 @@ classdef Receiver < Exportable_Object
             if isempty(this.zhd)
                 this.zhd = zeros(this.time.length,1);
             end
+            if isempty(this.ztd)
+                this.ztd = zeros(this.time.length,1);
+            end
             
             for i = 1 : this.time.length
-                 [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
                 this.zhd(i) = saast_dry(P,h_orto, lat);
-                 this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_orto);
+                this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_orto);
             end
             
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
@@ -2318,7 +2321,7 @@ classdef Receiver < Exportable_Object
             
             n_sat = this.cc.getNumSat();
             [mfh, mfw] = getSlantMF(this);
-            this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
+            this.sat.slant_td = nan2zero(zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
             if ppp_opt.tropo_g
                 if isempty(this.tgn)
                     this.tgn = zeros(this.time.length,1);

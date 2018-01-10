@@ -47,7 +47,7 @@ function [ocean_load_disp] = load_BLQ(filename, marker)
 % ocean_load_disp struct definition
 % ocean_load_disp.marker : marker name
 % ocean_load_disp.matrix : ocean loading displacement matrix
-
+log = Logger.getInstance();
 ocean_load_disp=[];
 for m = 1 : length(marker)
     ocean_load_disp(m).name = marker{m}; %#ok<*AGROW>
@@ -61,7 +61,7 @@ for file_blq=1:size(filename,1)
         fid = fopen(char(filename(file_blq,:)),'r');
         if (fid ~= -1)
             if (file_blq == 1)
-                fprintf('%s', ['Reading ocean loading file ', char(filename(file_blq,:)), '...']); fprintf('\n');
+                log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...'], 6));
             end
             while (~feof(fid) && found < length(marker))
                 line = fgetl(fid);
@@ -86,15 +86,15 @@ for file_blq=1:size(filename,1)
             fclose(fid);
         else
             ocean_load_disp=[];
-            fprintf('%s', ['... WARNING: Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); fprintf('\n');
+            log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']);
         end
     else
         ocean_load_disp=[];
-        fprintf('%s', ['... WARNING: Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); fprintf('\n');
+        log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); 
     end
 end
 
 if (found == 0)
     ocean_load_disp=[];
-    fprintf('%s', '... WARNING: Ocean loading parameters not found.'); fprintf('\n');
+    log.addWarning('Ocean loading parameters not found.');
 end

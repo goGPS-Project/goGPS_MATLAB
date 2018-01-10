@@ -462,6 +462,27 @@ classdef Atmosphere < handle
             temp = temp0 - 0.0065d0 * h_ort;            
         end
         
+        function [iono_2_phase, iono_2_code, iono_3_phase, iono_3_code] = HOI_corrections(xyz,az,el,lambda)
+
+            % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
+            % 2005. doi: 10.1029/2005GL024342.
+            c = Go_State.V_LIGHT;
+            BG = 3.12*10^(-5);% T magnetic field magnitude near the equator at surface height
+            RE = 6370 %Km earth radius
+            H = 400; %height of ionopheric thin shell above earth surface
+            % X_m Y_m Z_m : direction of the magnetic north
+            %tetha_m : colatitude of the ionopsheric intersatcion point (ehich frame)
+            B0 = BG * (RE / (RE + H)) * (sin(theta_m) * Y_m - 2 * cos(theta_m) * Z_m); % [3x1] geomagnetic vector, equation (8) in [1]
+            B0K = B0 * k; % equation (9) in [1]
+            
+            iono_2_phase = 7527 / c^2 * lambda^3 * B0K * TEC; % equation (10) in [1]
+            iono_2_code = - 1/2 * iono_2_phase;
+            
+            iono_3_phase = 2437 / c^4 * lambda ^ 4 * Nmax  * ni * TEC;
+            iono_3_code = - 1/3 * iono_3_phase;
+        end
+        
         function [gmfh, gmfw] = gmf (this, gps_time, dlat, dlon, dhgt, zd)
             % This subroutine determines the Global Mapping Functions GMF
             % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
