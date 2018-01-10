@@ -1497,7 +1497,8 @@ classdef Receiver < Exportable_Object
             %   [mfh, mfw] = this.getSlantMF()
 
             [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic();
-            [gmfh, gmfw] = gmf(this.time.first, lat./180*pi, lon./180*pi, h_ortho, (90 - this.sat.el(:))./180*pi);
+            atmo = Atmosphere();
+            [gmfh, gmfw] = atmo.gmf(this.time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this.sat.el(:))./180*pi);
             mfh = reshape(gmfh, size(this.sat.el, 1), size(this.sat.el, 2));
             mfw = reshape(gmfw, size(this.sat.el, 1), size(this.sat.el, 2));
         end
@@ -1505,7 +1506,7 @@ classdef Receiver < Exportable_Object
         function sztd = getSlantZTD(this, smooth_win_size)
             % Get the "zenithalized" total delay
             % SYNTAX:
-            %   sztd = this.getSlantZenithalizedTotalDelay(<flag_smooth_data = 0>)
+            %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)
             [mfh, mfw] = this.getSlantMF();
             sztd = bsxfun(@plus, (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw, this.zhd);            
             sztd(sztd <= 0) = nan;
