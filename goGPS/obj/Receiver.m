@@ -2264,6 +2264,8 @@ classdef Receiver < Exportable_Object
             ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
             ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
             [x, res] = ls.solve();
+            s02 = mean(abs(res(res~=0)));
+            %ls.reweight(
             
             coo    = x(1:3,1);
             
@@ -2272,7 +2274,7 @@ classdef Receiver < Exportable_Object
             amb = x(x(:,2) == 5,1);
             gntropo = x(x(:,2) == 8,1);
             getropo = x(x(:,2) == 9,1);
-            this.log.addMessage(sprintf('DEBUG: s02 = %f',mean(abs(res(res~=0)))));
+            this.log.addMessage(sprintf('DEBUG: s02 = %f',s02));
             new_pos = this.xyz + coo';
             diff_from_rin = (new_pos  -this.xyz_approx)';
             this.log.addMessage(sprintf('DEBUG: distance from rine pos = %.3f %.3f %.3f',diff_from_rin));
@@ -3145,6 +3147,21 @@ classdef Receiver < Exportable_Object
     %   - removeA : a wrapper of A to subtract the correction
     %   - computeA : does the numerical computation of A along the los
     %  where A is the name of the correction
+    %  NOTE ON THE SIGN:
+    %   Two type of corrections are presnts: real error on the range
+    %   measuremnts and correction needed to bring the a changing position
+    %   at the same coordinates. The first group will be subtracted from
+    %   the observation the second one added. More specifically:
+    %   "REAL" CORRECTIONS: (-)
+    %   - Shapiro Delay
+    %   - Phase wind up
+    %   - PCV
+    %   CHANGE OF COORDINATES (+)
+    %   + PCO
+    %   + Solid Earth tides
+    %   + Ocean Loading
+    %   + Pole tides
+    %
     % ==================================================================================================================================================
     methods
         %--------------------------------------------------------
@@ -3383,9 +3400,9 @@ classdef Receiver < Exportable_Object
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx,s)' ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* et_corr(o_idx,s)';
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* et_corr(o_idx,s)';
                         end
                     end
                 end
@@ -3492,7 +3509,7 @@ classdef Receiver < Exportable_Object
                 s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
                 XSs = permute(XS(sat_idx,s,:),[1 3 2]);
-                LOSu = -rowNormalize(XSs);
+                LOSu = rowNormalize(XSs);
                 solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
             end
             
@@ -3534,9 +3551,9 @@ classdef Receiver < Exportable_Object
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx,s)' ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* ol_corr(o_idx,s)';
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* ol_corr(o_idx,s)';
                         end
                     end
                 end
@@ -3651,7 +3668,7 @@ classdef Receiver < Exportable_Object
                 s = sat(i);
                 sat_idx = this.sat.avail_index(:,s);
                 XSs = permute(XS(sat_idx,s,:),[1 3 2]);
-                LOSu = -rowNormalize(XSs);
+                LOSu = rowNormalize(XSs);
                 ocean_load_corr(sat_idx,i) = sum(conj(corrXYZ(sat_idx,:)).*LOSu,2);
             end
         end
@@ -3685,9 +3702,9 @@ classdef Receiver < Exportable_Object
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx,s)' ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx,s)' ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pt_corr(o_idx,s)';
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pt_corr(o_idx,s)';
                         end
                     end
                 end
@@ -3759,7 +3776,7 @@ classdef Receiver < Exportable_Object
                     s = sat(i);
                     sat_idx = this.sat.avail_index(:,s);
                     XSs = permute(XS(sat_idx,s,:),[1 3 2]);
-                    LOSu = -rowNormalize(XSs);
+                    LOSu = rowNormalize(XSs);
                     pole_tide_corr(sat_idx,i) = sum(conj(corrXYZ(sat_idx,:)).*LOSu,2);
                 end
             end
@@ -4017,9 +4034,9 @@ classdef Receiver < Exportable_Object
                                     pcv_idx = this.obs(o, az_idx) ~=0; %find which correction to apply
                                     o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
                                     if  this.obs_code(o,1) == 'L'
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus 
                                     else
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* pcv_delays(pcv_idx)';
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
                                     end
                                 end
                             end
