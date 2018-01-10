@@ -209,6 +209,93 @@ classdef Radiometer < handle
             
             clear data;
         end
+        
+        function plotAniWD(this)
+            % get unique combinations of azimuth and elevation
+            temp = this.az*1e4 + this.el * 1e1;
+            [a, id_a] = unique(temp);
+            azel_unique = [this.az(id_a), this.el(id_a)];
+            
+            ref = cell(length(a),1);
+            zwd = cell(length(a),1);
+            wvr = cell(length(a),1);
+            
+            % elapsed time in seconds from the first observation (first obs in t = 0)
+            t = round(this.time.getRefTime(this.time.first.getMatlabTime)*1e5)/1e5;
+            
+            % prediction time
+            t_pred = [0:60:this.time.last-this.time.first];
+            
+            zwd_wvr = nan(length(t_pred), length(a));
+            s = 300;
+            
+            for i = 1 : length(a)
+                ref{i,1} = find(temp == a(i));
+                zwd{i,1} = this.zwd(ref{i,1});
+                [~,~,~, zwd_wvr(:,i)] = splinerMat(t(ref{i,1}), zwd{i,1}, s, 0.1, t_pred);
+                t_obs = t(ref{i,1});
+                id = find(diff(t_obs) > 1000);
+                
+                id_ko = false(size(t_pred));
+                for j = 1 : length(id)
+                    id_ko = id_ko | t_pred > t_obs(id(j))-s/2 & t_pred <= t_obs(id(j) + 1)+s/2;
+                end
+                id_ko(t_pred < t_obs(1) | t_pred > t_obs(end)) = 1;
+                
+                zwd_wvr(id_ko,i) = nan;
+                %plot(t_pred, zwd_wvr(:,i),'.'); hold on;
+                t_obs = [];                
+            end
+            %hold on; plot(t, rad.zwd,'.k','LineWidth', 0.5);
+            
+            %try
+            xaxis_grid = [-1 : 0.1 : 1];
+            yaxis_grid = [-1 : 0.1 : 1];
+            [xp, yp] = meshgrid(xaxis_grid, yaxis_grid);
+            
+            decl = deg2rad(azel_unique(:,2))/(pi/2);
+            az = -deg2rad(azel_unique(:,1)) + pi/2;
+            x = cos(az) .* decl;
+            y = sin(az) .* decl;
+            
+            max_delta = max(abs(yaxis_grid(end)-yaxis_grid(1)),abs(xaxis_grid(end)-xaxis_grid(1)))/2;
+            fun = @(dist) exp(-((dist/max_delta)*1e5/5e3).^2);
+            
+            for i = 1 : 5: size(zwd_wvr,1)
+                id_ok = not(isnan(zero2nan(zwd_wvr(i,:))));
+                delay = funInterp2(xp(:), yp(:), x(id_ok), y(id_ok), zwd_wvr(i,id_ok)', fun);
+                if i == 1
+                    figure;
+                    subplot(3,1,3); plot(t_pred,zwd_wvr(:,:),'LineWidth', 1.5); hold on; plot(t, this.zwd,'.k','MarkerSize',4); yl = ylim;
+                    hl = line('XData', t_pred(1) * [1 1],'YData', yl); ylim(yl); xlim([t_pred(1) t_pred(end)]);
+                    subplot(3,1,1:2);
+                    hm = imagesc(xaxis_grid, yaxis_grid, reshape(delay(:), numel(yaxis_grid), numel(xaxis_grid)));
+                    hold on;
+                    fh = gcf; fh.Children(2).YDir = 'normal'; ax = gca; ax.YDir = 'normal';
+                    hm.AlphaData = 0.5;
+                    h = polarScatter(deg2rad(azel_unique(:,1)), deg2rad(azel_unique(:,2)), 120, ones(size(azel_unique,1),1), 'filled'); hold on;
+                    x_data = h.XData;
+                    %focus of the polarscatter
+                    caxis([min(this.zwd) max(this.zwd)]);
+                    colormap(jet); colorbar();
+                    xlim(xlim());
+                    ylim(ylim());
+                    h.CData = serialize(zwd_wvr(i,:));
+                    h.XData = x_data + 1e10 .* isnan(serialize(zwd_wvr(i,:)))'; %don't show nan values
+                    hold on;
+                    colormap(jet); colorbar;
+                    hl.XData = t_pred(i) * [1 1];
+                    colormap(jet); colorbar();
+                else
+                    h.CData = serialize(zwd_wvr(i,:));
+                    h.XData = x_data + 1e10 .* isnan(serialize(zwd_wvr(i,:)))'; %don't show nan values
+                    hold on;
+                    hl.XData = t_pred(i) * [1 1];
+                    hm.CData = reshape(delay(:), numel(yaxis_grid), numel(xaxis_grid));
+                end
+                drawnow
+            end
+        end
     end   
     
     methods (Static)
