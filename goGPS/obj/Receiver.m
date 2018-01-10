@@ -1484,8 +1484,7 @@ classdef Receiver < Exportable_Object
             end
             lat = lat / pi * 180;
             lon = lon / pi * 180;
-        end
-        
+        end        
         function [mfh, mfw] = getSlantMF(this)
             % Get Mapping function for the satellite slant
             % 
@@ -2257,10 +2256,10 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        function res = staticPPP(this)
+        function  staticPPP(this)
             ls = Least_Squares_Manipulator();
             ppp_opt.tropo = true; %this.state.flag_tropo;
-            ppp_opt.tropo_g = false;%this.state.flag_tropo_gradient;
+            ppp_opt.tropo_g = true;%this.state.flag_tropo_gradient;
             ls.setUpPPP(this, ppp_opt);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients  
@@ -2316,20 +2315,25 @@ classdef Receiver < Exportable_Object
             
             this.zwd(valid_ep) = this.zwd(valid_ep) +tropo;
             this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+            
+            n_sat = this.cc.getNumSat();
+            [mfh, mfw] = getSlantMF(this);
+            this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
             if ppp_opt.tropo_g
                 if isempty(this.tgn)
-                this.tgn = zeros(this.time.length,1);
-            end
+                    this.tgn = zeros(this.time.length,1);
+                end
                 this.tgn(valid_ep) =  gntropo;
                 if isempty(this.tge)
                     this.tge = zeros(this.time.length,1);
                 end
                 this.tge(valid_ep) =  gntropo;
-                n_sat = this.cc.getNumSat();
-                mfw = 1 ./ (sin(this.sat.el) + 0.01);
+                
+                
                 mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
                 mfge = sin(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
-                this.sat.slant_td = nan2zero(zero2nan(this.sat.err_tropo) + zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw) + zero2nan(repmat(this.tgn,1,n_sat).*mfgn) + zero2nan(repmat(this.tge,1,n_sat).*mfge));
+                cotel = zero2nan(cotd(this.sat.el));
+                this.sat.slant_td = nan2zero(zero2nan(this.sat.slant_td) + zero2nan(repmat(this.tgn,1,n_sat).*mfw.*cotel) + zero2nan(repmat(this.tge,1,n_sat).*mfw.*cotel));
             end
         end
         
