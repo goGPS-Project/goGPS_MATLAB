@@ -729,7 +729,11 @@ classdef Receiver < Exportable_Object
                 jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock                
                 d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
                 jmp = [jmp_reset; jmp_fit];
-                drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
+                if numel(d_points) < 3
+                    drifting = zeros(size(drifting));
+                else
+                    drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
+                end
                 
                 dt_ph = drifting + dt_ph_dj;
                 dt_pr = drifting + dt_pr_dj;
