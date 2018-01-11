@@ -264,6 +264,8 @@ classdef Receiver < Exportable_Object
                 this.log.addMessage(' Correction of the a-priori position:');
                 this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
                                             xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+                this.log.newLine();
+                this.log.addMessage(sprintf('     3D distance = %+16.4f m', sqrt(sum((xyz_m - xyz0).^2))));
             end
             fprintf(' ----------------------------------------------------------\n')
             
