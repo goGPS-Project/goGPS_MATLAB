@@ -159,12 +159,12 @@ classdef Radiometer < handle
                 this.time.append6ColDate(data(:,1:6));
             end
                         
-            zwd = data(:,7);
-            sigma_zwd = data(:,8);
-            zwd_21 = data(:,9);
-            sigma_zwd_21 = data(:,10);
-            zwd_saast = data(:,11);
-            air_mass = data(:,12);
+            zwd = data(:,7) * 1e-2;
+            sigma_zwd = data(:,8) * 1e-2;
+            zwd_21 = data(:,9) * 1e-2;
+            sigma_zwd_21 = data(:,10) * 1e-2;
+            zwd_saast = data(:,11) * 1e-2;
+            air_mass = data(:,12) * 1e-2;
             el = data(:,13);
             az = data(:,14);
             az = az + 180 * ((90-el) < 0);
@@ -210,7 +210,11 @@ classdef Radiometer < handle
             clear data;
         end
         
-        function plotAniWD(this)
+        function plotAniWD(this, spline_base)
+            if nargin == 1
+                spline_base = 2400;
+            end
+            
             % get unique combinations of azimuth and elevation
             temp = this.az*1e4 + this.el * 1e1;
             [a, id_a] = unique(temp);
@@ -227,18 +231,17 @@ classdef Radiometer < handle
             t_pred = [0:60:this.time.last-this.time.first];
             
             zwd_wvr = nan(length(t_pred), length(a));
-            s = 300;
             
             for i = 1 : length(a)
                 ref{i,1} = find(temp == a(i));
                 zwd{i,1} = this.zwd(ref{i,1});
-                [~,~,~, zwd_wvr(:,i)] = splinerMat(t(ref{i,1}), zwd{i,1}, s, 0.1, t_pred);
+                [~,~,~, zwd_wvr(:,i)] = splinerMat(t(ref{i,1}), zwd{i,1}, spline_base, 0.1, t_pred);
                 t_obs = t(ref{i,1});
                 id = find(diff(t_obs) > 1000);
                 
                 id_ko = false(size(t_pred));
                 for j = 1 : length(id)
-                    id_ko = id_ko | t_pred > t_obs(id(j))-s/2 & t_pred <= t_obs(id(j) + 1)+s/2;
+                    id_ko = id_ko | t_pred > t_obs(id(j))-spline_base/2 & t_pred <= t_obs(id(j) + 1)+spline_base/2;
                 end
                 id_ko(t_pred < t_obs(1) | t_pred > t_obs(end)) = 1;
                 
