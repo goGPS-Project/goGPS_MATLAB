@@ -321,7 +321,7 @@ for f = 1 : nFiles
 end
 
 % Find when all the dataset have at least one good observations in common
-resync_flag_ok = any(pr1,1) & any(pr1,1) & any(pr1,1) & any(ph1,1);
+resync_flag_ok = any(pr1,1) & any(ph1,1);
 max_sync = find(sum(resync_flag_ok,3) == size(resync_flag_ok,3), 1, 'last');
 
 pr1 = pr1(:,(1 : max_sync),:);
