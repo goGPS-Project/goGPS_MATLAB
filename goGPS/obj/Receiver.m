@@ -4016,7 +4016,7 @@ classdef Receiver < Exportable_Object
                         neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
-                        if sum(obs_idx) > 0
+                        if sum(obs_idx) > 0 && (this.pcv.n_frequency > 0)
                             freqs = unique(str2num(this.obs_code(obs_idx,2)));
                             for f = freqs'
                                 obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
