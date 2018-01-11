@@ -68,6 +68,7 @@ classdef Observation_Set < handle
             this.go_id = cc.getIndex(this.obs_code(:,1), this.prn);
             
         end
+        
         function merge(this, obs_set)
             % DESCRIPTION: merge observation with same time stamps
             %cases empty object
@@ -104,14 +105,17 @@ classdef Observation_Set < handle
             end
             this.cycle_slip = [this.cycle_slip cycle_slip2];
         end
+        
         function obs = getUnderCutOff(this, cut_off)
             obs = this.obs;
             obs(this.el < cut_off) = 0;
         end
+        
         function remUnderCutOff(this, cut_off)
             idx = this.el < cut_off;
             this.remObs(idx);
         end
+        
         function remObs(this,idx)
             this.obs(idx) = 0;
             this.snr(idx) = 0;
@@ -151,14 +155,7 @@ classdef Observation_Set < handle
                     this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
                 end
                 this.cycle_slip(idx_rem,:) = [];
-                
-%                 eps = find(idx_rem);
-%                 eps(eps == this.time.length) =[];
-%                 for e = 1: eps
-%                    this.cycle_slip(e+1,:) = double(this.cycle_slip(e+1,:)~=0 | this.cycle_slip(e,:)~=0);% bring cycle slips to next epochs
-%                 end
-%                 this.cycle_slip(idx_rem,:) = [];
-                
+                                
                 this.time = this.time.getSubSet(~idx_rem);
             end
         end

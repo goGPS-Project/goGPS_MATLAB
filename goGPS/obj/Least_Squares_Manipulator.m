@@ -77,8 +77,10 @@ classdef Least_Squares_Manipulator < handle
         function this = Least_Squares_Manipulator()
             this.state = Go_State.getCurrentSettings();
         end
+        
         function regularize(this, reg_opt)
         end
+        
         function setUpPPP(this, rec, id_sync)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
@@ -217,6 +219,7 @@ classdef Least_Squares_Manipulator < handle
             this.param_flag = [0, 0, 0, -1*ones(n_iob), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
             this.param_class = [1, 2, 3, 4*ones(n_iob), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
         end
+        
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;
             if sum(idx_param) > 0
@@ -225,6 +228,7 @@ classdef Least_Squares_Manipulator < handle
                 this.time_regularization = [this.time_regularization; [param_class, time_variability]];
             end
         end
+        
         function Astack2Nstack(this)
             %DESCRIPTION: generate N stack A'*A
             n_obs = size(this.A_ep, 1);
@@ -235,6 +239,7 @@ classdef Least_Squares_Manipulator < handle
                 this.N_ep(:, :, i) = (w * A_l)' * A_l;
             end
         end
+        
         function res = getResiduals(this, x)
             res_l = zeros(size(this.y));
             for o = 1:size(this.A_ep, 1)
@@ -249,6 +254,7 @@ classdef Least_Squares_Manipulator < handle
                 res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
             end
         end
+        
         function [x, res, s02, Cxx] = solve(this)
             idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
             idx_constant = find(idx_constant_l);
