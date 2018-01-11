@@ -623,6 +623,24 @@ classdef File_Wizard < handle
                                 this.state.updateNavFileName();
 
                                 eph_ok = this.state.checkNavEphFiles();
+                                
+                                n_skip = 0;
+                                while (~eph_ok && strcmp(eph_type,'ultra') && n_skip < 4)
+                                    tmp_date_start.addIntSeconds(-6*3600);
+                                    tmp_date_stop.addIntSeconds(-6*3600);
+                                    file_list = flipud(fnp.dateKeyRepBatch(nav_name, tmp_date_start, tmp_date_stop));
+                                    
+                                    this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavEphDir());
+                                    [~, name, ext] = fileparts(nav_name);
+                                    this.state.setNavEphFile(strcat(name, ext));
+                                    
+                                    % match the name of the ephemeris to use with what I've just downloaded
+                                    this.state.updateNavFileName();
+                                    
+                                    eph_ok = this.state.checkNavEphFiles();
+                                    
+                                    n_skip = n_skip + 1;
+                                end
 
                                 % if nav_ok try to download clocks
                                 if (eph_ok && (~strcmp(eph_type,'ultra') && ~strcmp(eph_type,'broadcast')))
