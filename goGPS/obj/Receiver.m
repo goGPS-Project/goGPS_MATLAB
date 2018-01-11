@@ -594,7 +594,7 @@ classdef Receiver < Exportable_Object
             % remove epochs with a certain id
             % SYNTAX:   this.remObs(id_obs)
             
-            this.obs(:,epo) = 0;
+            this.obs(:,id_epo) = 0;
             this.active_ids = any(this.obs, 2);
         end
         
@@ -1141,8 +1141,8 @@ classdef Receiver < Exportable_Object
             this.log.addMarkedMessage('Cleaning observations');
             
             % PARAMETRS
-            ol_thr = 0.3; % outlier threshold
-            cs_thr = 0.3; % CYCLE SLIP THR
+            ol_thr = 0.5; % outlier threshold
+            cs_thr = 0.5; % CYCLE SLIP THR
             sa_thr = 10;  % short arc threshold
             
             %----------------------------
@@ -2271,7 +2271,7 @@ classdef Receiver < Exportable_Object
         function  staticPPP(this, id_sync)
             ls = Least_Squares_Manipulator();
             if nargin < 2
-                id_sync = [];
+                id_sync = 1 : this.time.length();
             end
             ls.setUpPPP(this, id_sync);
             ls.Astack2Nstack();
@@ -2279,35 +2279,31 @@ classdef Receiver < Exportable_Object
 %             ls.setTimeRegularization(1, 0.00001);
 %             ls.setTimeRegularization(2, 0.00001);
 %             ls.setTimeRegularization(3, 0.00001);  
-            this.updateCoo;
-            lat = this.lat;
-            lon = this.lon;
-            h_orto = this.h_ortho;
-            h_ellips = this.h_ellips;
-            gps_time = this.time.getGpsTime();
+            [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
+            time = this.time.getSubSet(id_sync);
+            gps_time = time.getGpsTime();
+            n_epoch = time.length;
             
             atm = Atmosphere();
             
             if isempty(this.zwd)
-                this.zwd = zeros(this.time.length,1);
+                this.zwd = zeros(this.time.length(), 1);
             end
             if isempty(this.zhd)
-                this.zhd = zeros(this.time.length,1);
+                this.zhd = zeros(this.time.length(),1);
             end
             if isempty(this.ztd)
-                this.ztd = zeros(this.time.length,1);
+                this.ztd = zeros(this.time.length(),1);
             end
             
-            for i = 1 : this.time.length
+            for i = 1 : n_epoch
                 [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
-                this.zhd(i) = saast_dry(P,h_orto, lat);
-                this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_orto);
+                this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
+                this.zwd(id_sync(i)) = saast_wet(T, goGNSS.STD_HUMI, h_orto);
             end
-            if isempty(id_sync)
-                rate = this.rate;
-            else
-                rate = median(diff(id_sync));
-            end
+            
+            rate = time.getRate();
+            
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
             ls.setTimeRegularization(7, this.state.std_tropo / 3600 * rate / 0.005 );
             ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * rate / 0.005);
@@ -2330,15 +2326,15 @@ classdef Receiver < Exportable_Object
             this.log.addMessage(sprintf('DEBUG: distance from rine pos enu = %.3f %.3f %.3f',global2localVel(diff_from_rin,this.xyz')));
             this.xyz = this.xyz + coo';
             valid_ep = ls.true_epoch;
-            this.dt(valid_ep,1) = clock;
+            this.dt(valid_ep, 1) = clock;
             this.sat.res = res;
             
-            this.zwd(valid_ep) = this.zwd(valid_ep) +tropo;
+            this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
             this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
             this.sat.amb = amb;
             n_sat = this.cc.getNumSat();
             [mfh, mfw] = getSlantMF(this);
-            this.sat.slant_td = nan2zero(zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
+            this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
             if this.state.flag_tropo_gradient
                 if isempty(this.tgn)
                     this.tgn = zeros(this.time.length,1);
@@ -2350,10 +2346,8 @@ classdef Receiver < Exportable_Object
                 this.tge(valid_ep) =  getropo;
                 
                 
-                mfgn = cos(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
-                mfge = sin(this.sat.az) .* cos(this.sat.el) ./ (sin(this.sat.el) + 0.01).^2;
-                cotel = zero2nan(cotd(this.sat.el));
-                this.sat.slant_td = nan2zero(zero2nan(this.sat.slant_td) + zero2nan(repmat(this.tgn,1,n_sat).*mfw.*cotel) + zero2nan(repmat(this.tge,1,n_sat).*mfw.*cotel));
+                cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
+                this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel));
             end
         end
         

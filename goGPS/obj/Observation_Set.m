@@ -125,32 +125,54 @@ classdef Observation_Set < handle
             this.cycle_slip(idx) = 0;
             this.sanitizeEmpty();
         end
+        
         function sanitizeEmpty(this)
             %remove empty lines
             idx_e = sum(this.obs,2) == 0;
             this.remEpochs(idx_e);
             %remove empty column
             idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
-            this.removeColumn(idx_rem_c);
+            this.removeColumn(idx_rem_c);            
         end
+        
         function remEpochs(this, idx_rem)
-            this.obs(idx_rem,:) = [];
-            this.snr(idx_rem,:) = [];
-            this.el(idx_rem,:) = [];
-            this.az(idx_rem,:) = [];
-            idx_rem_n = find(idx_rem);
-            idx_rem_n(idx_rem_n == this.time.length) =[];
-            eps = find(idx_rem);
-            for e = 1: eps
-                this.cycle_slip(e+1,:) = this.cycle_slip(e+1,:) |this.cycle_slip(e,:) ;% bring cycle slips to next epochs
+            if sum(idx_rem) > 0
+                this.obs(idx_rem,:) = [];
+                this.el(idx_rem,:) = [];
+                this.az(idx_rem,:) = [];
+                this.snr(idx_rem,:) = [];
+                
+                lim = getOutliers(idx_rem);
+                if lim(end) == numel(idx_rem)
+                    lim(end,:) = [];
+                end
+                lim(:,2) = lim(:,2) + 1;
+                for l = 1 : size(lim, 1) 
+                    this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
+                end
+                this.cycle_slip(idx_rem,:) = [];
+                
+%                 eps = find(idx_rem);
+%                 eps(eps == this.time.length) =[];
+%                 for e = 1: eps
+%                    this.cycle_slip(e+1,:) = double(this.cycle_slip(e+1,:)~=0 | this.cycle_slip(e,:)~=0);% bring cycle slips to next epochs
+%                 end
+%                 this.cycle_slip(idx_rem,:) = [];
+                
+                this.time = this.time.getSubSet(~idx_rem);
             end
-            this.cycle_slip(idx_rem,:) = [];
-            this.time = this.time.getSubSet(~idx_rem);
-
         end
+        
+        function keepEpochs(this, idx)
+            idx_rem = true(this.time.length, 1);
+            idx_rem(idx) = false;
+            this.remEpochs(idx_rem);
+        end
+        
         function idx = getTimeIdx(this,time_st, rate)
             idx = round((this.time -time_st)/rate) +1;
         end
+        
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];
             this.az(:,idx_col) = [];
@@ -162,6 +184,7 @@ classdef Observation_Set < handle
             this.prn(idx_col) = [];
             this.go_id(idx_col) = [];
         end
+        
         function plotCycleSlip(this, rec)
             if ~isempty(this.cycle_slip)
                 synt_ph = rec.getSyntTwin(this);

@@ -87,32 +87,34 @@ classdef Least_Squares_Manipulator < handle
             end
             tropo = this.state.flag_tropo;
             tropo_g = this.state.flag_tropo_gradient;
-            if nargin > 2  && ~isempty(id_sync)
-                %%% remove epochs based on desired sampling
-                idx_rem= zeros(obs_set.time.length, 1);
-                idx_rem(id_sync) = 1;
-                idx_rem = ~idx_rem;
-                obs_set.remEpochs(idx_rem);
-            end
+            
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
             if sum(sum(snr_to_fill));
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-            %obs_set.remUnderCutOff(7);
-            % set up number of parametrs requires
+    
+            if nargin > 2
+                %%% remove epochs based on desired sampling
+                obs_set.keepEpochs(id_sync);
+            end
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
-            % remove not valid empty epoch or with only one satellite (too
+            % remove not valid empty epoch or with only one satellite (probably too
             % bad conditioned)
-            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 1;
+            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 3;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
+            
+            % removing possible empty column
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
             diff_obs(:, ~idx_valid_stream) = [];
             xs_loc(:, ~idx_valid_stream, :) = [];
             
+            % removing non valid epochs also from obs_set
             obs_set.remEpochs(~idx_valid_ep_l);
             obs_set.sanitizeEmpty();
+            
+            % set up number of parametrs requires
             n_epochs = size(obs_set.obs, 1);
             this.n_epochs = n_epochs;
             n_stream = size(obs_set.obs, 2);
@@ -120,7 +122,7 @@ classdef Least_Squares_Manipulator < handle
             n_clocks = n_epochs;
             n_tropo = n_clocks;
             ep_p_idx = [1 : n_clocks];
-            this.true_epoch = obs_set.getTimeIdx(rec.time.getSubSet(1),rec.rate);
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first,rec.rate);
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             iob_idx = zeros(size(obs_set.wl));
             for c = 1:size(u_obs_code, 1)
@@ -145,7 +147,6 @@ classdef Least_Squares_Manipulator < handle
                 end
             end
             
-            
             n_iob = size(u_obs_code, 1) - 1;
             
             n_obs = sum(sum(diff_obs ~= 0));
@@ -162,6 +163,7 @@ classdef Least_Squares_Manipulator < handle
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
             [~, mfw] = rec.getSlantMF();
+            mfw = mfw(id_sync,:); %getting only the desampled values
             for s = 1:n_stream
                 vaild_ep_stream = diff_obs(:, s) ~= 0;
                 
@@ -188,9 +190,6 @@ classdef Least_Squares_Manipulator < handle
                 A_idx(lines_stream, n_coo+n_iob+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
                 A(lines_stream, n_coo+n_iob+2) = 1;
                 A_idx(lines_stream, n_coo+n_iob+2) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
-                sine = sin(el_stream);
-                cose = cos(el_stream);
-                not_inf_factor = 0.01;
                 if tropo
                     A(lines_stream, n_coo+n_iob+3) = mfw_stream;
                     A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
@@ -241,7 +240,7 @@ classdef Least_Squares_Manipulator < handle
             for o = 1:size(this.A_ep, 1)
                 res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             end
-            n_epochs = max(this.epoch);
+            n_epochs = max(this.true_epoch);
             n_sat = max(this.sat_go_id);
             res = zeros(n_epochs, n_sat);
             for i = 1:length(this.sat_go_id)
@@ -290,8 +289,12 @@ classdef Least_Squares_Manipulator < handle
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
-            reg_diag0 = [double(diff(this.true_epoch) == 1); 0 ] + [0; double(diff(this.true_epoch) == 1)];
-            reg_diag1 = -double(diff(this.true_epoch) == 1);
+            %IMPORTANT: understand how to manege holes: which amount of
+            %regularization must be setted between 2 epochs with an hole
+            %inside??
+            rate = median(diff(this.true_epoch));
+            reg_diag0 = [double(diff(this.true_epoch) == rate); 0 ] + [0; double(diff(this.true_epoch) == rate)];
+            reg_diag1 = -double(diff(this.true_epoch) == rate);
             Ndiags = permute(Ndiags, [3, 1, 2]);
             for i = 1:n_ep_class
                 N_col = [];
