@@ -1190,6 +1190,14 @@ classdef Receiver < Exportable_Object
             % cycle slip when they exceed threhsold cycle
             poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
             
+            % if majority of satellites jump set cycle slip on all
+            n_obs_ep = sum(~isnan(ph2),2);
+            all_but_one = n_obs_ep - sum(poss_slip_idx,2) < n_obs_ep-1;%(0.5 * n_obs_ep);
+            for c = find(all_but_one')
+                poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
+            end
+            
+            
             % check if epoch before cycle slip can be restored
             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
             poss_rest = poss_rest & poss_out_idx;
@@ -1217,8 +1225,6 @@ classdef Receiver < Exportable_Object
                     end
                 end
             end
-            %no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
-            %no_out_ph(poss_out_idx) = nan;
             this.ph_idx = find(id_ph_l);
             
             % remove too short possible arc
@@ -2256,10 +2262,8 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        function  staticPPP(this)
+        function  staticPPP(this, ppp_opt)
             ls = Least_Squares_Manipulator();
-            ppp_opt.tropo = true; %this.state.flag_tropo;
-            ppp_opt.tropo_g = true;%this.state.flag_tropo_gradient;
             ls.setUpPPP(this, ppp_opt);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients  
@@ -2318,7 +2322,7 @@ classdef Receiver < Exportable_Object
             
             this.zwd(valid_ep) = this.zwd(valid_ep) +tropo;
             this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
-            
+            this.sat.amb = amb;
             n_sat = this.cc.getNumSat();
             [mfh, mfw] = getSlantMF(this);
             this.sat.slant_td = nan2zero(zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
@@ -4506,16 +4510,16 @@ classdef Receiver < Exportable_Object
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
                 if ~one_plot, subplot(3,1,1); end
-                plot(t, 1e0 * (enu(:,1) - enu0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                plot(t, zero2nan(1e0 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
                 grid on;
                 h = title(sprintf('Receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
-                plot(t, 1e0 * (enu(:,2) - enu0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                plot(t, zero2nan(1e0 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
                 grid on;
                 if ~one_plot, subplot(3,1,3); end
-                plot(t, 1e0 * (enu(:,3) - enu0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                plot(t, zero2nan(1e0 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
                 grid on;
                 if one_plot
@@ -4684,16 +4688,16 @@ classdef Receiver < Exportable_Object
             end
         end
                
-        function plotCycleSlip(this)
+        function plotCycleSlip(this, obs)
             if ~isempty(this.cycle_slip_idx_ph)
                 ph = this.getPhases();
                 synt_ph = this.getSyntPhases();
-                d_ph = ph - synt_ph;
+                obs = ph - synt_ph;
                 figure;
-                plot(d_ph);
-                ep = repmat([1: this.time.length]',1,size(d_ph,2));
+                plot(obs);
+                ep = repmat([1: this.time.length]',1,size(obs,2));
                 hold on
-                scatter(ep(this.cycle_slip_idx_ph~=0),d_ph(this.cycle_slip_idx_ph~=0))
+                scatter(ep(this.cycle_slip_idx_ph~=0),obs(this.cycle_slip_idx_ph~=0))
             end
         end
         

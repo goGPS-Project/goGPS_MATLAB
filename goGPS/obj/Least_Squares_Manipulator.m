@@ -245,7 +245,7 @@ classdef Least_Squares_Manipulator < handle
             for i = 1:length(this.sat_go_id)
                 idx = this.sat == i;
                 ep = this.epoch(idx);
-                res(ep, this.sat_go_id(i)) = res_l(idx);
+                res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
             end
         end
         function [x, res, s02, Cxx] = solve(this)

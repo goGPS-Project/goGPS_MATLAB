@@ -139,6 +139,7 @@ classdef Observation_Set < handle
             this.el(idx_rem,:) = [];
             this.az(idx_rem,:) = [];
             idx_rem_n = find(idx_rem);
+            idx_rem_n(idx_rem_n == this.time.length) =[];
             this.cycle_slip(idx_rem_n+1,:) = this.cycle_slip(idx_rem_n+1,:) |this.cycle_slip(idx_rem_n,:) ;% bring cycle slips to next epochs
             this.cycle_slip(idx_rem,:) = [];
             this.time = this.time.getSubSet(~idx_rem);
@@ -157,6 +158,17 @@ classdef Observation_Set < handle
             this.wl(idx_col) = [];
             this.prn(idx_col) = [];
             this.go_id(idx_col) = [];
+        end
+        function plotCycleSlip(this, rec)
+            if ~isempty(this.cycle_slip)
+                synt_ph = rec.getSyntTwin(this);
+                obs = this.obs - synt_ph;
+                figure;
+                plot(zero2nan(obs));
+                ep = repmat([1: this.time.length]',1,size(obs,2));
+                hold on
+                scatter(ep(this.cycle_slip~=0),obs(this.cycle_slip~=0))
+            end
         end
     end
 end
