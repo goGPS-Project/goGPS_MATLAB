@@ -140,7 +140,10 @@ classdef Observation_Set < handle
             this.az(idx_rem,:) = [];
             idx_rem_n = find(idx_rem);
             idx_rem_n(idx_rem_n == this.time.length) =[];
-            this.cycle_slip(idx_rem_n+1,:) = this.cycle_slip(idx_rem_n+1,:) |this.cycle_slip(idx_rem_n,:) ;% bring cycle slips to next epochs
+            eps = find(idx_rem);
+            for e = 1: eps
+                this.cycle_slip(e+1,:) = this.cycle_slip(e+1,:) |this.cycle_slip(e,:) ;% bring cycle slips to next epochs
+            end
             this.cycle_slip(idx_rem,:) = [];
             this.time = this.time.getSubSet(~idx_rem);
 

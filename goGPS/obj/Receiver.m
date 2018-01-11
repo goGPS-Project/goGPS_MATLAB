@@ -1139,8 +1139,8 @@ classdef Receiver < Exportable_Object
             this.log.addMarkedMessage('Cleaning observations');
             
             % PARAMETRS
-            ol_thr = 0.5; % outlier threshold
-            cs_thr = 0.5; % CYCLE SLIP THR
+            ol_thr = 0.3; % outlier threshold
+            cs_thr = 0.3; % CYCLE SLIP THR
             sa_thr = 10;  % short arc threshold
             
             %----------------------------
@@ -1196,7 +1196,7 @@ classdef Receiver < Exportable_Object
             
             % if majority of satellites jump set cycle slip on all
             n_obs_ep = sum(~isnan(ph2),2);
-            all_but_one = n_obs_ep - sum(poss_slip_idx,2) < n_obs_ep-1;%(0.5 * n_obs_ep);
+            all_but_one = n_obs_ep - sum(poss_slip_idx,2) < (0.5 * n_obs_ep);
             for c = find(all_but_one')
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
@@ -2266,9 +2266,12 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        function  staticPPP(this, ppp_opt)
+        function  staticPPP(this, id_sync)
             ls = Least_Squares_Manipulator();
-            ls.setUpPPP(this, ppp_opt);
+            if nargin < 2
+                id_sync = [];
+            end
+            ls.setUpPPP(this, id_sync);
             ls.Astack2Nstack();
             % set time regularization for the troposphere and its gradients  
 %             ls.setTimeRegularization(1, 0.00001);
@@ -2298,11 +2301,15 @@ classdef Receiver < Exportable_Object
                 this.zhd(i) = saast_dry(P,h_orto, lat);
                 this.zwd(i) = saast_wet(T, goGNSS.STD_HUMI,h_orto);
             end
-            
+            if isempty(id_sync)
+                rate = this.rate;
+            else
+                rate = median(diff(id_sync));
+            end
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
-            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * this.rate / 0.005 );
-            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
-            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * this.rate / 0.005);
+            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * rate / 0.005 );
+            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * rate / 0.005);
+            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * rate / 0.005);
             [x, res] = ls.solve();
             s02 = mean(abs(res(res~=0)));
             %ls.reweight(
@@ -2330,7 +2337,7 @@ classdef Receiver < Exportable_Object
             n_sat = this.cc.getNumSat();
             [mfh, mfw] = getSlantMF(this);
             this.sat.slant_td = nan2zero(zero2nan(res) + zero2nan(repmat(this.zwd,1,n_sat).*mfw)  + zero2nan(repmat(this.zhd,1,n_sat).*mfh)) ;
-            if ppp_opt.tropo_g
+            if this.state.flag_tropo_gradient
                 if isempty(this.tgn)
                     this.tgn = zeros(this.time.length,1);
                 end

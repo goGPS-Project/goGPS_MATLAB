@@ -79,16 +79,18 @@ classdef Least_Squares_Manipulator < handle
         end
         function regularize(this, reg_opt)
         end
-        function setUpPPP(this, rec, ppp_opt)
+        function setUpPPP(this, rec, id_sync)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
             for s = rec.cc.sys_c
                 obs_set.merge(rec.getPrefIonoFree('L', s));
             end
-            if isfield(ppp_opt,'idx_epochs') && ~isempty(ppp_opt.idx_epochs)
+            tropo = this.state.flag_tropo;
+            tropo_g = this.state.flag_tropo_gradient;
+            if nargin > 2  && ~isempty(id_sync)
                 %%% remove epochs based on desired sampling
                 idx_rem= zeros(obs_set.time.length, 1);
-                idx_rem(ppp_opt.idx_epochs) = 1;
+                idx_rem(id_sync) = 1;
                 idx_rem = ~idx_rem;
                 obs_set.remEpochs(idx_rem);
             end
@@ -189,11 +191,11 @@ classdef Least_Squares_Manipulator < handle
                 sine = sin(el_stream);
                 cose = cos(el_stream);
                 not_inf_factor = 0.01;
-                if ppp_opt.tropo
+                if tropo
                     A(lines_stream, n_coo+n_iob+3) = mfw_stream;
                     A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
-                if ppp_opt.tropo_g
+                if tropo_g
                     cotan_term = cotd(el_stream) .* mfw_stream;
                     A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* cotan_term; % noth gradient 
                     A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* cotan_term; % east gradient
@@ -213,8 +215,8 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
-            this.param_flag = [0, 0, 0, -1*ones(n_iob), -1, 1, 1*ones(ppp_opt.tropo), 1*ones(ppp_opt.tropo_g), 1*ones(ppp_opt.tropo_g)];
-            this.param_class = [1, 2, 3, 4*ones(n_iob), 5, 6, 7*ones(ppp_opt.tropo), 8*ones(ppp_opt.tropo_g), 9*ones(ppp_opt.tropo_g)];
+            this.param_flag = [0, 0, 0, -1*ones(n_iob), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            this.param_class = [1, 2, 3, 4*ones(n_iob), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
         end
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;
