@@ -216,7 +216,10 @@ for s = 1 : num_session
     [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
     for i = 1 : num_trg_rec
-        trg(i).staticPPP();
+        ppp_opt.tropo = state.flag_tropo; %this.state.flag_tropo;
+        ppp_opt.tropo_g = state.flag_tropo_gradient;%this.state.flag_tropo_gradient;
+        %ppp_opt.idx_epochs = id_sync{i};
+        trg(i).staticPPP(ppp_opt);
     end
 end
     

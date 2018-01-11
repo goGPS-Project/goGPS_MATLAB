@@ -85,7 +85,13 @@ classdef Least_Squares_Manipulator < handle
             for s = rec.cc.sys_c
                 obs_set.merge(rec.getPrefIonoFree('L', s));
             end
-            
+            if isfield(ppp_opt,'idx_epochs') && ~isempty(ppp_opt.idx_epochs)
+                %%% remove epochs based on desired sampling
+                idx_rem= zeros(obs_set.time.length, 1);
+                idx_rem(ppp_opt.idx_epochs) = 1;
+                idx_rem = ~idx_rem;
+                obs_set.remEpochs(idx_rem);
+            end
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
             if sum(sum(snr_to_fill));
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
