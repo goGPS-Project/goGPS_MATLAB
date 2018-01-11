@@ -1194,31 +1194,31 @@ classdef Receiver < Exportable_Object
             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
             poss_rest = poss_rest & poss_out_idx;
             poss_rest_line = sum(poss_rest,2);
-            poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
-            ph_rest_lines = ph(poss_rest_line,:);
-            synt_ph_rest_lines = synt_ph(poss_rest_line,:);
-            
-            sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
-            % subtract median
-            sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
-            for i = 1:size(sensor_rst,2)
-                for c = find(poss_rest(:,i))'
-                    if ~isempty(c)
-                        idx = sum(poss_rest_line(1:c));
-                        if abs(sensor_rst(idx,i)) < cs_thr
-                            poss_out_idx(c,i) = false; %is not outlier
-                            %move 1 step before the cycle slip index
-                            poss_slip_idx(c+1,i) = false;
-                            poss_slip_idx(c,i) = true;
+            if sum(poss_rest_line) > 0
+                poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
+                ph_rest_lines = ph(poss_rest_line,:);
+                synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+                sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+                % subtract median
+                sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
+                % divide for wavelenght
+                sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
+                for i = 1:size(sensor_rst,2)
+                    for c = find(poss_rest(:,i))'
+                        if ~isempty(c)
+                            idx = sum(poss_rest_line(1:c));
+                            if abs(sensor_rst(idx,i)) < cs_thr
+                                poss_out_idx(c,i) = false; %is not outlier
+                                %move 1 step before the cycle slip index
+                                poss_slip_idx(c+1,i) = false;
+                                poss_slip_idx(c,i) = true;
+                            end
                         end
                     end
                 end
             end
-            
-            no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
-            no_out_ph(poss_out_idx) = nan;
+            %no_out_ph = ph./repmat(this.wl(id_ph_l)',size(ph,1),1);
+            %no_out_ph(poss_out_idx) = nan;
             this.ph_idx = find(id_ph_l);
             
             % remove too short possible arc
