@@ -2317,7 +2317,8 @@ classdef Receiver < Exportable_Object
             ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * rate / 0.005);
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res] = ls.solve();
-            this.id_sync = unique([this.id_sync id_sync]);                        
+            %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);                        
+            this.id_sync = id_sync;
             s02 = mean(abs(res(res~=0)));
             %ls.reweight(
             
@@ -2354,7 +2355,8 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        function extrapolateResults(this)
+        function interpResults(this)
+            % When computing a solution with subsampling not all the epochs have an estimation 
             id_rem = true(this.time.length, 1);
             id_rem(this.id_sync) = false;
             
@@ -2374,7 +2376,30 @@ classdef Receiver < Exportable_Object
                 this.zwd(id_rem) = nan;
                 this.zwd(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.zwd(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
             end
-
+            if ~(isempty(this.pwv))
+                this.pwv(id_rem) = nan;
+                this.pwv(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.pwv(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
+            end
+            if ~(isempty(this.tgn))
+                this.tgn(id_rem) = nan;
+                this.tgn(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.tgn(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
+            end
+            if ~(isempty(this.tge))
+                this.tge(id_rem) = nan;
+                this.tge(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.tge(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
+            end
+            % slant cannot be interpolated easyle, it's better to interpolate slant_std and reconvert them to slant_td
+            % not yet implemented
+            %if ~(isempty(this.sat.slant_td))
+            %    for s = 1 : size(this.sat.slant_td, 2)
+            %        this.sat.slant_td(id_rem, s) = nan;
+            %        id_ok = ~id_rem & this.sat.el(:, s) > 0 & this.sat.slant_td(:, s) > 0;
+            %        id_interp = id_rem & this.sat.el(:, s) > 0;
+            %        if sum(id_ok) > 3                        
+            %            this.sat.slant_td(id_interp, s) = interp1(this.time.getEpoch(id_ok).getRefTime, zero2nan(this.sat.slant_td(id_ok, s)), this.time.getEpoch(id_interp).getRefTime, 'pchip');
+            %        end
+            %    end
+            %end            
         end
         
         function initPositioning(this, sys_c)
@@ -3865,9 +3890,6 @@ classdef Receiver < Exportable_Object
         % Phase Wind up
         % -------------------------------------------------------
         
-        
-        
-        
         function phaseWindUpCorr(this,sgn)
             % DESCRIPTION: add or subtract ocean loading from observations
             ph_wind_up = this.computePhaseWindUp();
@@ -4646,7 +4668,12 @@ classdef Receiver < Exportable_Object
             plot(t, this.dt_ph, ':', 'LineWidth', 2);
             plot(t, this.dt_ip, '-', 'LineWidth', 2);
             plot(t, this.dt_ip + this.dt_pr, '-', 'LineWidth', 2);
+            if any(this.dt)
+                plot(t(this.id_sync), this.dt(this.id_sync)/299792458, '-', 'LineWidth', 2);
+                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'Location', 'northeastoutside');
+            else
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
+            end
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
             
             h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
@@ -4785,9 +4812,8 @@ classdef Receiver < Exportable_Object
         
         function plotAniZtdSlant(this, time_start, time_stop, show_map)
             clf;
-            sztd = this.getSlantZTD(900);            
-            t = this.time.getMatlabTime;
-            
+            sztd = this.getSlantZTD(1800);
+
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
                     time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
@@ -4800,21 +4826,23 @@ classdef Receiver < Exportable_Object
                 time_stop = size(sztd,1);
             end
             
+            id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
+            t = this.time.getEpoch(id_ok).getMatlabTime;
+            sztd = sztd(id_ok, :);
+            
             if nargin < 4
                 show_map = true;
-            end
-            win_size = (t(time_stop) - t(time_start)) * 86400;
-            
-            yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+            end            
+            yl = (median(median(sztd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd, 'omitnan'), 'omitnan')) * 1e2;
             
             subplot(3,1,3);
-            plot(t, sztd,'.'); hold on;
-            plot(t, this.ztd,'k', 'LineWidth', 4);
+            plot(t, sztd * 1e2,'.'); hold on;
+            plot(t, this.ztd(id_ok) * 1e2,'k', 'LineWidth', 4);
             ylim(yl);
             hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
-            xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            xlim([t(1) t(end)]);
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+            h = ylabel('ZTD [cm]'); h.FontWeight = 'bold';
             grid on;
             
             % polar plot "true" Limits
@@ -4824,8 +4852,8 @@ classdef Receiver < Exportable_Object
             fun = @(dist) exp(-((dist*1e5)/3e4).^2);
             
             ax_sky = subplot(3,1,1:2); i = time_start;
-            az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
-            el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+            az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+            el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
             
             if show_map
                 td = nan(size(ep));
@@ -4833,15 +4861,15 @@ classdef Receiver < Exportable_Object
                 hm.AlphaData = 0.5;
                 ax_sky.YDir = 'normal';
             end
-            hs = polarScatter(az, el, 250, sztd(i,:), 'filled');
+            hs = polarScatter(az, el, 250, sztd(i,:) * 1e2, 'filled');
             xlim([-1 1]); ylim([-1 1]);
-            caxis(yl); colormap(jet); colorbar;
+            caxis(yl); colormap(jet(1024)); colorbar;
             
             subplot(3,1,3);
-            for i = time_start + 1 : time_stop
+            for i = 2 : numel(id_ok)
                 % Move scattered points
-                az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
-                el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+                az = (mod(this.sat.az(this.id_sync(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+                el = (90 - this.sat.el(this.id_sync(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
                 decl_n = el/(pi/2);
                 x = sin(az) .* decl_n;
                 y = cos(az) .* decl_n;
@@ -4849,20 +4877,17 @@ classdef Receiver < Exportable_Object
                 id_ok = not(isnan(zero2nan(sztd(i,:))));
                 if show_map
                     if any(id_ok(:))
-                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)', fun);
+                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)' * 1e2, fun);
                         hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
                     end
                 end
                 
                 hs.XData = x;
                 hs.YData = y;
-                hs.CData = sztd(i,:);
+                hs.CData = sztd(i,:) * 1e2;
                 
                 % Move time line
                 hl.XData = t(i) * [1 1];
-                if nargin > 4
-                    xlim(t(i) + [-win_size/2 win_size/2] ./ 86400);
-                end
                 drawnow;
             end
             
@@ -4870,9 +4895,8 @@ classdef Receiver < Exportable_Object
         
         function plotAniZwdSlant(this, time_start, time_stop, show_map)
             clf;
-            t = this.time.getMatlabTime;
-            
-            szwd = this.getSlantZWD(900);
+            szwd = this.getSlantZWD(1800);
+
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
                     time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
@@ -4885,19 +4909,21 @@ classdef Receiver < Exportable_Object
                 time_stop = size(szwd,1);
             end
             
+            id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
+            t = this.time.getEpoch(id_ok).getMatlabTime;
+            szwd = szwd(id_ok, :);
+            
             if nargin < 4
                 show_map = true;
-            end
-            win_size = (t(time_stop) - t(time_start)) * 86400;
-            
-            yl = (median(median(szwd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(szwd(time_start:time_stop, :), 'omitnan'), 'omitnan')) * 1e2;
+            end            
+            yl = (median(median(szwd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(szwd, 'omitnan'), 'omitnan')) * 1e2;
             
             subplot(3,1,3);
             plot(t, szwd * 1e2,'.'); hold on;
-            plot(t, this.zwd * 1e2,'k', 'LineWidth', 4);
+            plot(t, this.zwd(id_ok) * 1e2,'k', 'LineWidth', 4);
             ylim(yl);
             hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
-            xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            xlim([t(1) t(end)]);
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
             h = ylabel('ZWD [cm]'); h.FontWeight = 'bold';
             grid on;
@@ -4909,8 +4935,8 @@ classdef Receiver < Exportable_Object
             fun = @(dist) exp(-((dist*1e5)/3e4).^2);
             
             ax_sky = subplot(3,1,1:2); i = time_start;
-            az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
-            el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+            az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+            el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
             
             if show_map
                 td = nan(size(ep));
@@ -4920,13 +4946,13 @@ classdef Receiver < Exportable_Object
             end
             hs = polarScatter(az, el, 250, szwd(i,:) * 1e2, 'filled');
             xlim([-1 1]); ylim([-1 1]);
-            caxis(yl); colormap(jet); colorbar;
+            caxis(yl); colormap(jet(1024)); colorbar;
             
             subplot(3,1,3);
-            for i = time_start + 1 : time_stop
+            for i = 2 : numel(id_ok)
                 % Move scattered points
-                az = (mod(this.sat.az(i,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
-                el = (90 - this.sat.el(i,:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+                az = (mod(this.sat.az(this.id_sync(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+                el = (90 - this.sat.el(this.id_sync(i),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
                 decl_n = el/(pi/2);
                 x = sin(az) .* decl_n;
                 y = cos(az) .* decl_n;
@@ -4945,9 +4971,6 @@ classdef Receiver < Exportable_Object
                 
                 % Move time line
                 hl.XData = t(i) * [1 1];
-                if nargin > 4
-                    xlim(t(i) + [-win_size/2 win_size/2] ./ 86400);
-                end
                 drawnow;
             end
             
@@ -4955,13 +4978,14 @@ classdef Receiver < Exportable_Object
         
         function plotZtdSlant(this, time_start, time_stop, win_size)
             clf;
-            t = this.time.getMatlabTime;
+            t = this.time.getEpoch(this.id_sync).getMatlabTime;
             
             sztd = this.getSlantZTD(900);
+            sztd = sztd(this.id_sync, :);
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
-                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
-                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
+                    time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                    time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
                 end
                 time_start = max(1, time_start);
                 time_stop = min(size(sztd,1), time_stop);
@@ -4977,7 +5001,7 @@ classdef Receiver < Exportable_Object
             %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
             
             plot(t, sztd,'.'); hold on;
-            plot(t, this.ztd,'k', 'LineWidth', 4);
+            plot(t, this.ztd(this.id_sync),'k', 'LineWidth', 4);
             %ylim(yl);
             xlim(t(time_start) + [0 win_size-1] ./ 86400);
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
