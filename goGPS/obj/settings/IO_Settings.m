@@ -120,6 +120,8 @@ classdef IO_Settings < Settings_Interface
         ERP_NAME = ''; % Name of ERP files
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
+        IGRF_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        IGRF_NAME = 'igrf12coeff.txt';
 
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
@@ -287,6 +289,11 @@ classdef IO_Settings < Settings_Interface
         geoid_dir = IO_Settings.GEOID_DIR;
         % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
         geoid_name = IO_Settings.GEOID_NAME;
+        
+        % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        igrf_dir = IO_Settings.IGRF_DIR;
+        % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
+        igrf_name = IO_Settings.IGRF_NAME;
 
         % Location of the ocean loading file
         ocean_name =  IO_Settings.OCEAN_NAME;
@@ -1171,6 +1178,12 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: file_path = this.getGeoidFile()
             file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
         end
+        
+        function igrf_file = getIGRFFile(this)
+            % Get the file name of the Mg
+            % SYNTAX: erp_path = this.getErpPath()
+            igrf_file = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
+        end
 
 
         function out_dir = getOutDir(this)
@@ -1349,6 +1362,11 @@ classdef IO_Settings < Settings_Interface
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
             this.dcb_name = dcb_name;
+        end
+        function setIGRFFile(this, igrf_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.igrf_name = igrf_name;
         end
 
         function setOutPrefix(this, out_prefix)

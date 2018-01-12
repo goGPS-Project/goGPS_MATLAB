@@ -59,6 +59,7 @@ classdef Earth_Magnetic_Field < handle
             this.importIGRFModel(this.state.getIGRFFile());
         end
         function importIGRFModel(this, fname)
+            % IMPORTANT TODO - tranform secular varaitions in coefficients
             fid = fopen(fname);
             
             tline = fgetl(fid);

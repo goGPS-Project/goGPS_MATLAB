@@ -327,6 +327,7 @@ classdef Least_Squares_Manipulator < handle
             if nargout > 3
                 %inverse by partitioning, taken from:
                 % Mikhail, Edward M., and Friedrich E. Ackermann. "Observations and least squares." (1976). pp 447
+                %{
                 Ncc = sparse(Ncc);
                 Nce = sparse(Nce);
                 invNcc = (Ncc)^(-1);
@@ -337,7 +338,10 @@ classdef Least_Squares_Manipulator < handle
                 invN21 = invN12';
                 invN22 = invNee - a22ia21 * invN12;
                 Cxx = [[invN11; invN21], [invN12; invN22]];
+                %}
+                Cxx = inv(N);
                 x = Cxx * B;
+                
             else
                 x = N \ B;
             end
@@ -347,6 +351,10 @@ classdef Least_Squares_Manipulator < handle
             end
             if nargout > 1
                 res = this.getResiduals(x);
+                s02 = mean(abs(res(res~=0)));
+                if nargout > 3
+                Cxx = s02 * Cxx;
+                end
             end
             x = [x, x_class];
             

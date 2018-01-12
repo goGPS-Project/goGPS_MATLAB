@@ -2316,7 +2316,7 @@ classdef Receiver < Exportable_Object
             ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * rate / 0.005);
             ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * rate / 0.005);
             this.log.addMessage(this.log.indent('Solving the system', 6));
-            [x, res] = ls.solve();
+            [x, res, s02] = ls.solve();
             %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);                        
             this.id_sync = id_sync;
             s02 = mean(abs(res(res~=0)));
@@ -5010,7 +5010,32 @@ classdef Receiver < Exportable_Object
             h = title(sprintf('Receiver %s ZTD', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
     end
-    
+    % ==================================================================================================================================================
+    %  EXPORTS
+    % ==================================================================================================================================================
+    methods
+        function exportTropoSINEX(this)
+            now = GPS_Time.now();
+            [year, doy] = now.getDOY();
+            yy = num2str(year);
+            yy = yy(3:4);
+            sess_str = '0'; %think how to get the ricgt one from sss_id_list
+            fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'zpd'], doy);
+            snx_wrt = SINEX_Writer(fname);
+            snx_wrt.writeTroSinexHeader( this.time.getSubSet(1), this.time.getSubSet(this.time.length), this.marker_name)
+            snx_wrt.writeFileReference()
+            snx_wrt.writeAcknoledgments()
+            smpl_tropo = median(diff(this.id_sync)) * this.time.getRate;
+            val_flags = {'TROTOT','TGNTOT','TGETOT'};
+            snx_wrt.writeTropoDescription(this.state.cut_off, this.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1))
+            snx_wrt.writeSTACoo( this.marker_name, this.xyz(1,1), this.xyz(1,2), this.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
+            snx_wrt.writeTropoSolutionSt()
+            snx_wrt.writeTropoSolutionStation(  this.marker_name, this.time.getSubSet(this.id_sync), [this.ztd(this.id_sync,:) this.tgn(this.id_sync,:) this.tge(this.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
+            snx_wrt.writeTropoSolutionEnd()
+            %snr_wrt.writeTroSinexEnd();
+            snx_wrt.close()
+        end
+    end
     % ==================================================================================================================================================
     %  PRIVATE FUNCTIONS
     % ==================================================================================================================================================
