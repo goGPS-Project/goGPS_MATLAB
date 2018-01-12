@@ -71,7 +71,8 @@ classdef IRNSS_SS < Satellite_System
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'XCBA ', 'XCBA '}; % last letter of the observation code e.g. C5A - C5B - C5C - C5X
         CODE_RIN3_2BAND  = '59';             % id for the freq as stored in F_VEC e.g. L5 -> C5A, S -> C9A
-    end
+        IONO_FREE_PREF  = ['59'];  % to be evaluated which combination is really better
+end
 
     properties (Constant, Access = 'private')
         % IRNSS (GRS80) Ellipsoid semi-major axis [m]

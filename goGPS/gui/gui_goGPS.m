@@ -682,6 +682,16 @@ function cGalileo_Callback(hObject, eventdata, handles)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.cGalileo);
 
+% --- Executes on button press in cQZSS.
+function cQZSS_Callback(hObject, eventdata, handles)
+% hObject    handle to cQZSS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cQZSS
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cQZSS);
+
 % --- Executes on button press in cBeiDou.
 function cBeiDou_Callback(hObject, eventdata, handles)
 % hObject    handle to cBeiDou (see GCBO)
@@ -692,15 +702,15 @@ function cBeiDou_Callback(hObject, eventdata, handles)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.cBeiDou);
 
-% --- Executes on button press in cQZSS.
-function cQZSS_Callback(hObject, eventdata, handles)
-% hObject    handle to cQZSS (see GCBO)
+% --- Executes on button press in cIRNSS.
+function cIRNSS_Callback(hObject, eventdata, handles)
+% hObject    handle to cIRNSS (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cQZSS
+% Hint: get(hObject,'Value') returns toggle state of cIRNSS
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.cQZSS);
+    goGUI.syncFromGUI(goGUI.idUI.cIRNSS);
 
 % --- Executes on button press in cSBAS.
 function cSBAS_Callback(hObject, eventdata, handles)
@@ -2059,11 +2069,3 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-% --- Executes on button press in cIRNSS.
-function cIRNSS_Callback(hObject, eventdata, handles)
-% hObject    handle to cIRNSS (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of cIRNSS
