@@ -2205,7 +2205,7 @@ for session = 1 : num_session
                         end
                         
                         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
-                            Xhat_t_t_dummy = [zeros(o3,1); zeros(nN,1)];
+                            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
                             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
                             fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
                             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
