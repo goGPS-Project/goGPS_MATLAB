@@ -5446,7 +5446,7 @@ classdef Receiver < Exportable_Object
         
         function plotAniZwdSlant(this, time_start, time_stop, show_map)
             clf;
-            szwd = this.getSlantZWD();
+            szwd = this.getSlantZWD(900);
 
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
