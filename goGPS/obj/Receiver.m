@@ -2779,13 +2779,13 @@ classdef Receiver < Exportable_Object
             this.timeShiftObs(tt)            
         end
         
-        function timeShiftObs(this, tt)
+        function timeShiftObs(this, seconds)
             % DESCRIPTION: translate observations at different epoch based on linear modeling of the satellite
             % copute the sat postion at the current epoch
             XS = this.getXSLoc();
             
             % translate the time
-            this.time.addSeconds(tt);
+            this.time.addSeconds(seconds);
             % compute the sat postion at epoch traslated
             XS_t = this.getXSLoc();
             
@@ -4793,57 +4793,7 @@ classdef Receiver < Exportable_Object
     %% METHODS IMPORT / EXPORT
     % ==================================================================================================================================================
     
-    methods
-        function legacyImportResults(this, file_prefix, run_start, run_stop)
-            % Import after reset a position and tropo file (if present)
-            %
-            % SYNTAX:  
-            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
-            %
-            % INPUT:
-            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
-            %   run_start     number of the first run to load
-            %   run_stop      number of the last run to load
-            %            
-            if (nargin == 1) || isempty(file_prefix)
-                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
-                file_prefix = [file_path file_prefix];
-            end
-            this.reset();            
-            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
-                file_prefix = file_prefix(1 : end - 13);
-            end
-            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
-                file_prefix = file_prefix(1 : end - 10);
-            end
-            
-            if nargin < 4
-                run_start = 0;
-                run_stop = 0;
-            end
-            
-            GPS_RUN = '${RUN}';
-            r = 0;
-            for run = run_start : run_stop
-                r = r + 1;
-                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
-                this.log.addMessage(sprintf('Importing %s', file_name));
-                if exist(file_name, 'file')
-                    this.legacyAppendPosition(file_name);
-                    
-                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
-                    if exist(file_name, 'file')
-                        this.log.addMessage(sprintf('Importing %s', file_name));
-                        this.legacyAppendTropo(file_name)
-                    else
-                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
-                    end
-                else
-                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
-                end                
-            end
-        end
-        
+    methods        
         function legacyAppendPosition (this, file)
             % import and append from a position file
             
@@ -5006,7 +4956,7 @@ classdef Receiver < Exportable_Object
                 this.sat.el(id_int, s) = el(id_ext);
             end
         end
-
+        
         function exportRinex3(this, file_name)
             % Export the content of the object as RINEX 3
             % SYNTAX:
@@ -5613,25 +5563,10 @@ classdef Receiver < Exportable_Object
     end
         
     % ==================================================================================================================================================
-    %  STATIC FUNCTIONS used as utilities
+    %%  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        
-        function syncronize2receivers(rec1, rec2)
-            % remove all the observations that are not present for both phase and pseudo-range between two receivers
-            if (rec1.n_freq == 2) && (rec2.n_freq == 2)
-                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.pr(:,:,2)) & ~isnan(rec1.ph(:,:,1)) & ~isnan(rec1.ph(:,:,2)) & ...
-                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.pr(:,:,2)) & ~isnan(rec2.ph(:,:,1)) & ~isnan(rec2.ph(:,:,2));
-            else
-                sat = ~isnan(rec1.pr(:,:,1)) & ~isnan(rec1.ph(:,:,1)) & ...
-                    ~isnan(rec2.pr(:,:,1)) & ~isnan(rec2.ph(:,:,1));
-            end
-            rec1.pr(~sat) = nan;
-            rec1.ph(~sat) = nan;
-            rec2.pr(~sat) = nan;
-            rec2.ph(~sat) = nan;
-        end
-        
+                
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
             % prepare y0 and pivot_correction arrays (phase only)
             % SYNTAX: [y0, pc] = prepareY0(trg, mst, lambda, pivot)
@@ -5726,6 +5661,113 @@ classdef Receiver < Exportable_Object
                     end
                 end               
             end
+        end
+        
+        function legacyImportResults(this, file_prefix, run_start, run_stop)
+            % Import after reset a position and tropo file (if present)
+            %
+            % SYNTAX:  
+            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
+            %
+            % INPUT:
+            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
+            %   run_start     number of the first run to load
+            %   run_stop      number of the last run to load
+            %            
+            if (nargin == 1) || isempty(file_prefix)
+                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
+                file_prefix = [file_path file_prefix];
+            end
+            this.reset();            
+            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
+                file_prefix = file_prefix(1 : end - 13);
+            end
+            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
+                file_prefix = file_prefix(1 : end - 10);
+            end
+            
+            if nargin < 4
+                run_start = 0;
+                run_stop = 0;
+            end
+            
+            GPS_RUN = '${RUN}';
+            r = 0;
+            for run = run_start : run_stop
+                r = r + 1;
+                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
+                this.log.addMessage(sprintf('Importing %s', file_name));
+                if exist(file_name, 'file')
+                    this.legacyAppendPosition(file_name);
+                    
+                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
+                    if exist(file_name, 'file')
+                        this.log.addMessage(sprintf('Importing %s', file_name));
+                        this.legacyAppendTropo(file_name)
+                    else
+                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
+                    end
+                else
+                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
+                end                
+            end
+        end
+
+        function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
+            %res_code1_fix  = [];                      % double differences code residuals (fixed solution)
+            %res_code2_fix  = [];                      % double differences code residuals (fixed solution)
+            %res_phase1_fix = [];                      % phase differences phase residuals (fixed solution)
+            %res_phase2_fix = [];                      % phase differences phase residuals (fixed solution)
+            %res_code1_float  = [];                    % double differences code residuals (float solution)
+            %res_code2_float  = [];                    % double differences code residuals (float solution)
+            res_phase1_float = [];                     % phase differences phase residuals (float solution)
+            %res_phase2_float = [];                    % phase differences phase residuals (float solution)
+            %outliers_code1 = [];                      % code double difference outlier? (fixed solution)
+            %outliers_code2 = [];                      % code double difference outlier? (fixed solution)
+            %outliers_phase1 = [];                     % phase double difference outlier? (fixed solution)
+            %outliers_phase2 = [];                     % phase double difference outlier? (fixed solution)
+            % observations reading
+            log = Logger.getInstance();
+            log.addMessage(['Reading: ' File_Name_Processor.getFileName(res_bin_file_name)]);
+            d = dir(res_bin_file_name);
+            fid_sat = fopen(res_bin_file_name,'r+');       % file opening
+            num_sat = fread(fid_sat, 1, 'int8');                            % read number of satellites
+            num_bytes = d.bytes-1;                                          % file size (number of bytes)
+            num_words = num_bytes / 8;                                      % file size (number of words)
+            num_packs = num_words / (2*num_sat*6);                          % file size (number of packets)
+            buf_sat = fread(fid_sat,num_words,'double');                    % file reading
+            fclose(fid_sat);                                                % file closing
+            %res_code1_fix    = [res_code1_fix    zeros(num_sat,num_packs)]; % observations concatenation
+            %res_code2_fix    = [res_code2_fix    zeros(num_sat,num_packs)];
+            %res_phase1_fix   = [res_phase1_fix   zeros(num_sat,num_packs)];
+            %res_phase2_fix   = [res_phase2_fix   zeros(num_sat,num_packs)];
+            %res_code1_float  = [res_code1_float  zeros(num_sat,num_packs)];
+            %res_code2_float  = [res_code2_float  zeros(num_sat,num_packs)];
+            res_phase1_float = [res_phase1_float zeros(num_sat,num_packs)];
+            %res_phase2_float = [res_phase2_float zeros(num_sat,num_packs)];
+            %outliers_code1   = [outliers_code1   zeros(num_sat,num_packs)];
+            %outliers_code2   = [outliers_code2   zeros(num_sat,num_packs)];
+            %outliers_phase1  = [outliers_phase1  zeros(num_sat,num_packs)];
+            %outliers_phase2  = [outliers_phase2  zeros(num_sat,num_packs)];
+            i = 0;                                                           % epoch counter
+            for j = 0 : (2*num_sat*6) : num_words-1
+                i = i+1;                                                     % epoch counter increase
+                %res_code1_fix(:,i)    = buf_sat(j + [1:num_sat]);            % observations logging
+                %res_code2_fix(:,i)    = buf_sat(j + [1*num_sat+1:2*num_sat]);
+                %res_phase1_fix(:,i)   = buf_sat(j + [2*num_sat+1:3*num_sat]);
+                %res_phase2_fix(:,i)   = buf_sat(j + [3*num_sat+1:4*num_sat]);
+                %res_code1_float(:,i)  = buf_sat(j + [4*num_sat+1:5*num_sat]);
+                %res_code2_float(:,i)  = buf_sat(j + [5*num_sat+1:6*num_sat]);
+                res_phase1_float(:,i) = buf_sat(j + (6*num_sat+1:7*num_sat));
+                %res_phase2_float(:,i) = buf_sat(j + [7*num_sat+1:8*num_sat]);
+                %outliers_code1(:,i)   = buf_sat(j + [8*num_sat+1:9*num_sat]);
+                %outliers_code2(:,i)   = buf_sat(j + [9*num_sat+1:10*num_sat]);
+                %outliers_phase1(:,i)  = buf_sat(j + [10*num_sat+1:11*num_sat]);
+                %outliers_phase2(:,i)  = buf_sat(j + [11*num_sat+1:12*num_sat]);
+            end
+            res_ph1 = res_phase1_float';            
+            mean_res = mean(mean(zero2nan(res_ph1'), 'omitnan'), 'omitnan');
+            var_res = max(var(zero2nan(res_ph1'), 'omitnan'));
         end
     end
 
