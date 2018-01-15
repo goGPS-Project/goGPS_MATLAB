@@ -61,7 +61,9 @@ classdef Receiver < Exportable_Object
         
         n_sat = 0;     % number of satellites
         n_freq = 0;    % number of stored frequencies
-        n_spe = [];    % number of observations per epoch                
+        n_spe = [];    % number of observations per epoch 
+        
+        rec_settings;  % receiver settings
     end
     
     % ==================================================================================================================================================
@@ -224,6 +226,7 @@ classdef Receiver < Exportable_Object
                 this.loadRinex(rinex_file_name);
                 this.loadAntModel();
             end  
+            this.rec_settings = Receiver_Settings();
         end
                 
         function reset(this)
@@ -2322,7 +2325,128 @@ classdef Receiver < Exportable_Object
                obs_set.cycle_slip = (cs1 | cs2)';
             end
         end
+        function [obs_set] = getTwoFreqComb(this,flag1,flag2, fun1, fun2)
+            %INPUT: flag1 : either observation code (e.g. GL1) or observation set
+            %       flag1 : either observation code (e.g. GL2) or observation set
+            %       fun1  : function of the two wavelegnth to be applied to
+            %       computehr the first frequncy coefficient
+            %       fun2  : function of the two wavelegnth to be applied to
+            %       computehr the second frequency frequncy coefficient
+            
+            if ischar(flag1)
+                system = flag1(1);
+                [o1, i1, s1, cs1] = this.getPrefObsCh(flag1(2:3), system, 1);
+                o1 = o1';
+                s1 = s1';
+                cs1 = cs1';
+                [o2, i2, s2, cs2] = this.getPrefObsCh(flag2(2:3), system, 1);
+                o2 = o2';
+                s2 = s2';
+                cs2 = cs2';
+                % get prn for both frequency
+                p1 =  this.prn(i1);
+                p2 =  this.prn(i2);
+                w1 =  this.wl(i1);
+                w2 =  this.wl(i2);
+                if flag1(2) == 'L'
+                    o1 = o1.*repmat(w1',size(o1,1),1);
+                end
+                if flag2(2) == 'L'
+                    o2 = o2.*repmat(w2',size(o2,1),1);
+                end
+                sigma1 = repmat(this.rec_settings.getStd(system,this.obs_code(i1(1),:)),size(o1,2),1);
+                sigma2 = repmat(this.rec_settings.getStd(system,this.obs_code(i2(2),:)),size(o2,2),1);
+            elseif strcmp(class(flag1),'Observation_Set') %observation set
+                o1 = flag1.obs;
+                o2 = flag2.obs;
+                s1 = flag1.snr;
+                s2 = flag2.snr;
+                sigma1 = flag1.sigma;
+                sigma2 = flag2.sigma;
+                cs1 = flag1.cycle_slip;
+                cs2 = flag2.cycle_slip;
+                p1 =  flag1.prn;
+                p2 =  flag2.prn;
+                w1 =  flag1.wl;
+                w2 =  flag2.wl;
+                obs_code = [];
+                system = flag1.obs_code(1,1);
+                flag1 = '   ';
+                flag2 = '   ';
+            end
+            common_prns = intersect(p1, p2);
+            goids = this.cc.getIndex(system,common_prns);
+            obs_out = zeros(size(o1,1), length(common_prns));
+            snr_out = zeros(size(o1,1), length(common_prns));
+            cs_out = zeros(size(o1,1), length(common_prns));
+            az = zeros(size(o1,1), length(common_prns));
+            el = zeros(size(o1,1), length(common_prns));
+            obs_code = repmat([system flag1(2:3) flag2(2:3)],length(common_prns),1);
+            wl = zeros(length(common_prns),1);
+            sigma = zeros(length(common_prns),1);
+            for p = 1 : length(common_prns)
+                ii1 = p1 == common_prns(p);
+                ii2 = p2 == common_prns(p);
+                alpha1 = fun1(w1(ii1), w2(ii2));
+                alpha2 = fun2(w1(ii1), w2(ii2));
+                obs_out(:, p) = nan2zero(alpha1 * zero2nan(o1(:,ii1)) + alpha2 * zero2nan(o2(:,ii2)));
+                idx_obs = obs_out(:, p) ~=0;
+                az(idx_obs, p) = this.sat.az(idx_obs, goids(p));
+                el(idx_obs, p) = this.sat.el(idx_obs, goids(p));
+                snr_out(:, p) = nan2zero(sqrt((alpha1.* zero2nan(s1(:, ii1))).^2 + (alpha2 .* zero2nan(s2(:, ii2))).^2));
+                sigma(p) = sqrt((alpha1*sigma1(ii1))^2 + (alpha2*sigma1(ii2))^2);
+                if isempty(cs1) && isempty(cs2) % cycle slips only if there is at least one phase observables
+                    cs_out = [];
+                    wl(p) = -1;
+                elseif isempty(cs1)
+                    cs_out = cs2;
+                    wl(p) = alpha2 * w2(ii2);
+                elseif isempty(cs2)
+                    cs_out = cs1;
+                    wl(p) = alpha1 * w1(ii1);
+                else
+                    cs_out(:, p) = cs2(:, ii2) | cs1(:, ii1);
+                    wl(p) = 1;%abs(alpha1 * alpha2); % to be understood
+                end
+                
+                
+            end
+            obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, az, el, common_prns);
+            obs_set.cycle_slip = cs_out;
+            obs_set.snr = snr_out;
+            obs_set.sigma = sigma;
+        end
+        %----------------------------------
+        % Two Frequency observation combination
+        % Warppers of getTwoFreqComb function
+        %------------------------------------
+        function [obs_set] = getNarrowLane(this,flag1,flag2,system)
+            fun1 = @(wl1,wl2) wl2/(wl2+wl1);
+            fun2 = @(wl1,wl2) wl1/(wl2+wl1);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+        end
         
+        function [obs_set] = getWideLane(this,flag1,flag2,system)
+            fun1 = @(wl1,wl2) wl2/(wl2-wl1);
+            fun2 = @(wl1,wl2) - wl1/(wl2-wl1);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+        end
+        
+        function [obs_set] = getGeometryFree(this,flag1,flag2,system)
+            fun1 = @(wl1,wl2) 1;
+            fun2 = @(wl1,wl2) -1;
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+        end
+        
+        function [obs_set] = getMelWub(this, freq1, freq2, system)
+            
+            fun1 = @(wl1,wl2) 1;
+            fun2 = @(wl1,wl2) -1;
+            [obs_set1] = this.getWideLane(['L' freq1],['L' freq2],system) %widelane phase
+            [obs_set2] = this.getNarrowLane(['C' freq1],['C' freq2],system) %narrowlane code
+            [obs_set] =  this.getTwoFreqComb(obs_set1, obs_set2, fun1, fun2);
+        end
+        %----------------------------------------------------------
         function [obs_set]  = getPrefIonoFree(this, obs_type, system)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
@@ -2337,6 +2461,22 @@ classdef Receiver < Exportable_Object
             iono_pref = iono_pref(is_present,:);
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
+        
+        function [obs_set]  = getPrefMelWub(this, obs_type, system)
+            % get Preferred Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
+            is_present = zeros(size(iono_pref,1),1) < 1;
+            for i = size(iono_pref,1)
+                % check if there are observation for the selected channel
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
+                    is_present(i) = true;
+                end
+            end
+            iono_pref = iono_pref(is_present,:);
+            [obs_set]  = this.getMelWub([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+        end
+        
         
         function [range, XS_loc] = getSyntObs(this, obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
