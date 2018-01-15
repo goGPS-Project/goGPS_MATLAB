@@ -58,7 +58,9 @@ classdef File_Name_Processor < handle
         GPS_YY = '${YY}';
         GPS_YYYY = '${YYYY}';
         GPS_DOY = '${DOY}';
-        GPS_SESSION = '${S}'
+        GPS_SESSION = '${S}';
+        GPS_MM = '${MM}';
+        GPS_DD = '${DD}';        
     end
 
     properties (SetAccess = private, GetAccess = public)
@@ -94,6 +96,9 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
             file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
             file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
+            [date] = datevec(date.getMatlabTime());
+            file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
+            file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));            
         end
 
         function step_sec = getStepSec(this, file_name)
@@ -333,8 +338,10 @@ classdef File_Name_Processor < handle
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 1 char day of the week', File_Name_Processor.GPS_DOW), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS hour', File_Name_Processor.GPS_HH), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS year', File_Name_Processor.GPS_YY), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4 char GPS year', File_Name_Processor.GPS_YYYY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS year', File_Name_Processor.GPS_YY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS month', File_Name_Processor.GPS_MM), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS day', File_Name_Processor.GPS_DD), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 3 char GPS day of the year', File_Name_Processor.GPS_DOY), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 1 char session', File_Name_Processor.GPS_SESSION), str_cell);
         end
