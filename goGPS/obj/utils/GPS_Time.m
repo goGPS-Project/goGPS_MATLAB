@@ -551,7 +551,7 @@ classdef GPS_Time < Exportable_Object & handle
                         end
                     end
                 case 1 % I'm in UNIX TIME
-                    if (numel(this.mat_time) == 1)
+                    if (numel(this.unix_time) == 1)
                         leap_seconds = find((double(this.unix_time)) / 86400 > (LEAP_DATES - 719529), 1, 'last');
                     else
                         leap_seconds = [ find((double(this.unix_time(1))) / 86400 > (LEAP_DATES - 719529), 1, 'last'); ...
@@ -565,16 +565,16 @@ classdef GPS_Time < Exportable_Object & handle
                         else % there are multiple leaps in the dataset
                             lp = length(length(this.unix_time));
                             lp(1) = leap_seconds(1);
-                            lp(end) = leap_seconds(2);
+                            lp(length(this.unix_time)) = leap_seconds(2);
                             for i = 2:length(this.unix_time)-1
                                 lp(i) = find((double(this.unix_time(i))) / 86400 > (LEAP_DATES - 719529), 1, 'last');
                             end
-                            leap_seconds = lp;
+                            leap_seconds = lp(:);
                         end
                     end
                     
                 case 2 % I'm in REF TIME
-                    if (numel(this.mat_time) == 1)
+                    if (numel(this.time_diff) == 1)
                         leap_seconds = find(this.time_ref + this.time_diff  > LEAP_DATES, 1, 'last');
                     else
                         leap_seconds = [find((this.time_ref + this.time_diff(1)) > LEAP_DATES, 1, 'last'); ...
@@ -687,25 +687,33 @@ classdef GPS_Time < Exportable_Object & handle
         
         function toUtc(this)
             % Transform the internal allocation in UTF format (corrects for cycle-slip
-            if (this.is_gps == true)
-                if (this.leap_seconds >= 999)
-                    this.leap_seconds = this.computeLeapSeconds();
-                end
-                this.addSeconds(-this.leap_seconds);
+            if this.isempty()
                 this.is_gps = false;
-                this.leap_seconds = -this.leap_seconds;
+            else
+                if (this.is_gps == true)
+                    if (this.leap_seconds(1) >= 999) || (length(this.leap_seconds) ~= this.length) 
+                        this.leap_seconds = this.computeLeapSeconds();
+                    end
+                    this.addSeconds(-this.leap_seconds);
+                    this.is_gps = false;
+                    this.leap_seconds = -this.leap_seconds;
+                end
             end
         end
         
         function toGps(this)
             % Transform the internal allocation in GPS format (corrects for cycle-slips)
-            if (this.is_gps == false)
-                if (this.leap_seconds >= 999)
-                    this.leap_seconds = this.computeLeapSeconds();
-                end
-                this.addSeconds(-this.leap_seconds);
+            if this.isempty()
                 this.is_gps = true;
-                this.leap_seconds = -this.leap_seconds;
+            else
+                if (this.is_gps == false)
+                    if (this.leap_seconds >= 999)
+                        this.leap_seconds = this.computeLeapSeconds();
+                    end
+                    this.addSeconds(-this.leap_seconds);
+                    this.is_gps = true;
+                    this.leap_seconds = -this.leap_seconds;
+                end
             end
         end
         
