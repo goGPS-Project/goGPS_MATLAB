@@ -2200,131 +2200,7 @@ classdef Receiver < Exportable_Object
             end
         end
         
-        function [obs_set] = getIonoFree(this, flag1, flag2, system, max_obs_type)
-            % get Iono free combination for the two selcted measurements
-            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
-            if not(flag1(1)=='C' | flag1(1)=='L' | flag2(1)=='C' | flag2(1)=='L')
-                this.log.addWarning('Can not produce IONO free combination for the selcted observation')
-                return
-            end
-            if flag1(1)~=flag2(1)
-                this.log.addWarning('Incompatible observation type')
-                return
-            end
-            if nargin <5
-                max_obs_type = 1;
-            end
-            [obs1, idx1, snr1, cs1] = this.getPrefObsCh(flag1, system, max_obs_type);
-            [obs2, idx2, snr2, cs2] = this.getPrefObsCh(flag2, system, max_obs_type);
-            
-            prn1 = this.prn(idx1);
-            prn2 = this.prn(idx2);
-            
-            common_prn = intersect(prn1, prn2);
-            sset_idx1 = ismember(prn1 , common_prn);
-            sset_idx2 = ismember(prn2 , common_prn);
-            prn1 = prn1(sset_idx1);
-            prn2 = prn2(sset_idx2);
-            idx1 = idx1(sset_idx1);
-            idx2 = idx2(sset_idx2);
-            obs1 = obs1(sset_idx1,:);
-            obs2 = obs2(sset_idx2,:);
-            snr1 = snr1(sset_idx1,:);
-            snr2 = snr2(sset_idx2,:);
-            if flag1(1)=='L'
-                cs1 = cs1(sset_idx1,:);
-                cs2 = cs2(sset_idx2,:);
-            end
-            
-            %%% find the longer idx and replicate th other one to match the
-            %%% prn
-            if length(idx1) > length(idx2)
-                idx_tmp = zeros(size(idx1));
-                obs_tmp = zeros(size(obs1));
-                snr_tmp = zeros(size(snr1));
-                duplicate = prn1(1:end-1) == prn1(2:end);
-                idx_tmp(~duplicate) = idx2;
-                obs_tmp(~duplicate,:) = obs2;
-                snr_tmp(~duplicate,:) = snr2;
-                idx_tmp(duplicate) = idx_tmp(find(duplicate)+1);
-                obs_tmp(duplicate,:) = obs_tmp(find(duplicate)+1,:);
-                snr_tmp(duplicate,:) = snr_tmp(find(duplicate)+1,:);
-                idx2 = idx_tmp;
-                obs2 = obs_tmp;
-                snr2 = snr_tmp;
-                if flag1(1)=='L'
-                    cs_tmp = zeros(size(cs1));
-                    cs_tmp(~duplicate,:) = cs2;
-                    cs_tmp(duplicate,:) = cs_tmp(find(duplicate)+1,:);
-                    cs2 = cs_tmp;
-                end
-            else
-                idx_tmp = zeros(size(idx2));
-                obs_tmp = zeros(size(obs2));
-                snr_tmp = zeros(size(snr2));
-                duplicate = [prn2(1:end-1) == prn2(2:end); false];
-                idx_tmp(~duplicate) = idx1;
-                obs_tmp(~duplicate,:) = obs1;
-                snr_tmp(~duplicate,:) = snr1;
-                idx_tmp(duplicate) = idx_tmp(find(duplicate)+1);
-                obs_tmp(duplicate,:) = obs_tmp(find(duplicate)+1,:);
-                snr_tmp(duplicate,:) = snr_tmp(find(duplicate)+1,:);
-                idx1 = idx_tmp;
-                obs1 = obs_tmp;
-                snr1 = snr_tmp;
-                if flag1(1)=='L'
-                    cs_tmp = zeros(size(cs2));
-                    cs_tmp(~duplicate,:) = cs1;
-                    cs_tmp(duplicate,:) = cs_tmp(find(duplicate)+1,:);
-                    cs1 = cs_tmp;
-                end
-            end
-            %             obs1 = this.obs(idx1,:);
-            %             obs2 = this.obs(idx2,:);
-            prn = this.prn(idx1);
-            
-            wl1 = this.wl(idx1);
-            wl2 = this.wl(idx2);
-            
-            if isempty(obs1)|isempty(obs2)
-                obs = [];
-                prn = [];
-                return
-            end
-            
-            
-            % put zeros to NaN
-            obs1(obs1 == 0) = NaN;
-            obs2(obs2 == 0) = NaN;
-            snr1(snr1 == 0) = NaN;
-            snr2(snr2 == 0) = NaN;
-            
-            %gte wavelenghts
-            n_ep = size(obs1,2);
-            inv_wl1 = repmat(1./this.wl(idx1),1,n_ep); %1/wl1;
-            inv_wl2 = repmat(1./this.wl(idx2),1,n_ep); % 1/wl2;%
-            alpha1 = ((inv_wl1).^2 )./ ( (inv_wl1).^2 - (inv_wl2).^2 );
-            alpha2 = ((inv_wl2).^2)./ ( (inv_wl1).^2 - (inv_wl2).^2 );
-            obs = alpha1 .* repmat(wl1,1,n_ep) .* obs1 - alpha2.* repmat(wl2,1,n_ep) .* obs2;
-            snr = sqrt((alpha1.* snr1).^2 + (-alpha2 .* snr2).^2); % snr trated as std
-            wl = alpha2(:,1)./alpha1(:,2) .* wl2;%alpha2 ./ alpha1 .* repmat(wl2,1,n_ep);
-            % set NaN to 0
-            nanidx = isnan(obs);
-            obs(nanidx) = 0;
-            snr(nanidx) = 0;
-            snr(isnan(snr)) = 0;
-            obs_code = [repmat(system,length(idx2),1) this.obs_code(idx1,:) this.obs_code(idx2,:) repmat('I',length(idx2),1)];
-            go_id = this.cc.getIndex(system, prn);
-            el = this.sat.el(:,go_id);
-            el(obs' ==  0) = 0;
-            az = this.sat.az(:,go_id);
-            az(obs' ==  0) = 0;
-            obs_set = Observation_Set(this.time.getCopy(), obs' ,obs_code, wl', el, az, prn');
-            obs_set.snr = snr';
-            if flag1(1)=='L'
-               obs_set.cycle_slip = (cs1 | cs2)';
-            end
-        end
+        
         function [obs_set] = getTwoFreqComb(this,flag1,flag2, fun1, fun2)
             %INPUT: flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
@@ -2348,6 +2224,8 @@ classdef Receiver < Exportable_Object
                 p2 =  this.prn(i2);
                 w1 =  this.wl(i1);
                 w2 =  this.wl(i2);
+                oc1 = this.obs_code(i1(1),:);
+                oc2 = this.obs_code(i2(2),:);
                 if flag1(2) == 'L'
                     o1 = o1.*repmat(w1',size(o1,1),1);
                 end
@@ -2371,19 +2249,19 @@ classdef Receiver < Exportable_Object
                 w2 =  flag2.wl;
                 obs_code = [];
                 system = flag1.obs_code(1,1);
-                flag1 = '   ';
-                flag2 = '   ';
+                oc1 = '   ';
+                oc2 = '   ';
             end
-            common_prns = intersect(p1, p2);
+            common_prns = intersect(p1, p2)';
             goids = this.cc.getIndex(system,common_prns);
             obs_out = zeros(size(o1,1), length(common_prns));
             snr_out = zeros(size(o1,1), length(common_prns));
             cs_out = zeros(size(o1,1), length(common_prns));
             az = zeros(size(o1,1), length(common_prns));
             el = zeros(size(o1,1), length(common_prns));
-            obs_code = repmat([system flag1(2:3) flag2(2:3)],length(common_prns),1);
-            wl = zeros(length(common_prns),1);
-            sigma = zeros(length(common_prns),1);
+            obs_code = repmat([system oc1 oc2],length(common_prns),1);
+            wl = zeros(1,length(common_prns),1);
+            sigma = zeros(1,length(common_prns));
             for p = 1 : length(common_prns)
                 ii1 = p1 == common_prns(p);
                 ii2 = p2 == common_prns(p);
@@ -2411,7 +2289,7 @@ classdef Receiver < Exportable_Object
                 
                 
             end
-            obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, az, el, common_prns);
+            obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, el, az, common_prns);
             obs_set.cycle_slip = cs_out;
             obs_set.snr = snr_out;
             obs_set.sigma = sigma;
@@ -2420,6 +2298,13 @@ classdef Receiver < Exportable_Object
         % Two Frequency observation combination
         % Warppers of getTwoFreqComb function
         %------------------------------------
+        function [obs_set] = getIonoFree(this,flag1,flag2,system)
+            fun1 = @(wl1,wl2) wl2^2/(wl2^2-wl1^2);
+            fun2 = @(wl1,wl2) -wl1^2/(wl2^2-wl1^2);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+            obs_set.obs_code = [obs_set.obs_code repmat('I',size(obs_set.obs_code,1),1)];
+            obs_set.wl(:) = 0.148280783998726;
+        end
         function [obs_set] = getNarrowLane(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2/(wl2+wl1);
             fun2 = @(wl1,wl2) wl1/(wl2+wl1);
