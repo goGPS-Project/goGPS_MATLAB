@@ -1281,7 +1281,16 @@ classdef GPS_Time < Exportable_Object & handle
             end
         end
     end
-    
+    % =========================================================================
+    %    STATIC CONSTRUCTOR
+    % =========================================================================
+    methods (Static, Access = 'public')
+        function this = now()
+            % Static constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
+            mat_time = now();
+            this = GPS_Time(mat_time, true);
+        end
+    end
     % =========================================================================
     %    STATIC UNIX TIME
     % =========================================================================
