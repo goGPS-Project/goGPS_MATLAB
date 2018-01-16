@@ -5213,8 +5213,7 @@ classdef Receiver < Exportable_Object
         end
         
         function exportTropoSINEX(this) 
-            now = GPS_Time.now(); 
-            [year, doy] = now.getDOY(); 
+            [year, doy] = this.time.getSubSet(1).getDOY(); 
             yy = num2str(year); 
             yy = yy(3:4); 
             sess_str = '0'; %think how to get the ricgt one from sss_id_list 
@@ -5230,9 +5229,28 @@ classdef Receiver < Exportable_Object
             snx_wrt.writeTropoSolutionSt() 
             snx_wrt.writeTropoSolutionStation(  this.marker_name, this.time.getSubSet(this.id_sync), [this.ztd(this.id_sync,:) this.tgn(this.id_sync,:) this.tge(this.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'}) 
             snx_wrt.writeTropoSolutionEnd() 
-            %snr_wrt.writeTroSinexEnd(); 
+            snr_wrt.writeTroSinexEnd(); 
             snx_wrt.close() 
         end 
+        
+        function exportGPSZTD(this)
+             [year, doy] = this.time.getSubSet(1).getDOY(); 
+            yy = num2str(year); 
+            yy = yy(3:4); 
+            sess_str = '0'; %think how to get the ricgt one from sss_id_list 
+            fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy); 
+            fid = fopen(fname,'w');
+            this.updateCoo();
+            meas_time = this.time.getSubSet(this.id_sync);
+            meas_time.toUnixTime();
+            [~, doy]  = meas_time.getDOY();
+            for i = 1 : length(this.id_sync)
+          fprintf(fid,['%20.5f%20.5f%40s%40s%40s%40s%20.5f         0         0         0         0         0         F         F         F         0%10d%10d-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888%13.6f      0-888888.00000-888888', ...
+ '101180.00000      0%20.5f      0-888888.0000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000     0', ...
+'-777777.00000      0-777777.00000      0      1.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],this.lat, this.lon, this.marker_name, this.marker_type, this.ant_type,'goGPS software',this.h_ortho,doy(i),meas_time.unix_time(i),this.ztd(this.id_sync(i))*100, this.h_ortho);
+            end            
+fclose(fid);
+        end
     end
     
     % ==================================================================================================================================================
