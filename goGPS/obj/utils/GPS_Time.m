@@ -958,7 +958,7 @@ classdef GPS_Time < Exportable_Object & handle
              mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
         end
         
-        function [year, doy] = getDOY(this)
+        function [year, doy, sod] = getDOY(this)
             % get Reference Time, precision up to the ps precision
             % SYNTAX: [year, doy] = getDOY(this)
             utc_time = this.getCopy();
@@ -967,6 +967,7 @@ classdef GPS_Time < Exportable_Object & handle
             
             [year, ~] = datevec(utc_time.mat_time);
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
+            sod = floor((utc_time.mat_time - datenum(year,1,1) - doy +1)*86400) ; % days from the beginning of the year
         end
         
         function [year, month, day, hour, minute, second] = getCalEpoch(this,idx)
@@ -1015,6 +1016,15 @@ classdef GPS_Time < Exportable_Object & handle
                     end
                 end
             end
+        end
+        
+        function sinex_str = toSinexStrDate(this)
+            [year , doy, sod] = this.getDOY();
+            yy = year;
+            yy(year>= 2000) = year(year>= 2000) - 2000;
+            yy(year< 2000)  = year(year< 2000)  - 1900;
+            n_ep = length(year);
+            sinex_str = reshape(sprintf('%2d:%03d:%05d',[yy,doy,sod]'),12,n_ep)';
         end
         
         function date_string = toStringGpsWeek(this)

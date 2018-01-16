@@ -43,7 +43,7 @@
 %--------------------------------------------------------------------------
 classdef SINEX_Writer < handle
     properties
-        TROPO_VERSION_HEADER = '%=TRO 1.00 GRD ${DATEPRODUCED} GRD ${STARTOFDATA} ${ENDOFDATA} P ${MARKERNAME}' 
+        TROPO_VERSION_HEADER = '%=TRO 1.00 GRD ${DATEPRODUCED} GRD ${STARTOFDATA} ${ENDOFDATA} P ${MARKERNAME}'
         
         
         DESCRIPTION = 'GReD Geomatic Research and Development, Lomazzo Italy';
@@ -64,7 +64,7 @@ classdef SINEX_Writer < handle
         tropo_fields;
         std_fields;
     end
-     methods (Static)
+    methods (Static)
         % Concrete implementation.  See Singleton superclass.
     end
     methods
@@ -84,10 +84,6 @@ classdef SINEX_Writer < handle
             en_date = date_en.toSinexStrDate();
             head_line = strrep(strrep(strrep(strrep(this.TROPO_VERSION_HEADER,'${DATEPRODUCED}',exp_date),'${ENDOFDATA}',en_date),'${STARTOFDATA}',st_date),'${MARKERNAME}',mark_name);
             fprintf(fid, ['%' head_line '\n']);
-        end
-        function writeTroSinexEnd(this)
-            fid = this.fid;
-            fprintf(fid,'%%=ENDTRO');
         end
         function writeFileReference(this)
             fid = this.fid;
@@ -109,10 +105,10 @@ classdef SINEX_Writer < handle
             fprintf(fid,'-FILE/REFERENCE\n\n');
         end
         function writeAcknoledgments(this)
-             fid = this.fid;
-             fprintf(fid,'+INPUT/ACKNOWLEDGMENTS\n');
-             fprintf(fid,' %s\n',this.ACKNOWLEDGMENTS);
-             fprintf(fid,'-INPUT/ACKNOWLEDGMENTS\n\n');
+            fid = this.fid;
+            fprintf(fid,'+INPUT/ACKNOWLEDGMENTS\n');
+            fprintf(fid,' %s\n',this.ACKNOWLEDGMENTS);
+            fprintf(fid,'-INPUT/ACKNOWLEDGMENTS\n\n');
         end
         function writeSTACoo(this, mrk_name, x, y, z, ref_sys, rmrk)
             fid = this.fid;
@@ -143,7 +139,7 @@ classdef SINEX_Writer < handle
             sol_field_string = '';
             for i = 1 : length(this.tropo_fields)
                 sol_field_string = [sol_field_string ' ' this.tropo_fields{i}];
-                if std_fields(i) 
+                if std_fields(i)
                     sol_field_string = [sol_field_string ' STDDEV'];
                 end
                 
@@ -153,16 +149,16 @@ classdef SINEX_Writer < handle
         end
         function writeTropoSolutionSt(this)
             fid = this.fid;
-             fprintf(fid,'+TROP/SOLUTION\n');
-             sol_field_string = '';
-             for i = 1 : length(this.tropo_fields)
-                 if strfind(this.tropo_fields{i},'STDEV')
+            fprintf(fid,'+TROP/SOLUTION\n');
+            sol_field_string = '';
+            for i = 1 : length(this.tropo_fields)
+                if strfind(this.tropo_fields{i},'STDEV')
                     sol_field_string = [sol_field_string sprintf('%-5s',this.tropo_fields{i})];
-                 else
+                else
                     sol_field_string = [sol_field_string sprintf('%-8s',this.tropo_fields{i})];
-                 end
-             end
-             fprintf(fid,['*SITE EPOCH_______ ' sol_field_string '\n']);
+                end
+            end
+            fprintf(fid,['*SITE EPOCH_______ ' sol_field_string '\n']);
         end
         function writeTropoSolutionStation(this, mrk_mame, gps_time, vals, stds, vals_flag)
             % IMPRTANT: vals_flags has to be consistent with the one passed
@@ -192,8 +188,12 @@ classdef SINEX_Writer < handle
         end
         function writeTropoSolutionEnd(this)
             fid = this.fid;
-             fprintf(fid,'-TROP/SOLUTION\n\n');
+            fprintf(fid,'-TROP/SOLUTION\n');
         end
-
+        function writeTroSinexEnd(this)
+            fid = this.fid;
+            fprintf(fid,'%%=ENDTRO');
+        end
+        
     end
 end

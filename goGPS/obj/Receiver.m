@@ -5229,7 +5229,7 @@ classdef Receiver < Exportable_Object
             snx_wrt.writeTropoSolutionSt() 
             snx_wrt.writeTropoSolutionStation(  this.marker_name, this.time.getSubSet(this.id_sync), [this.ztd(this.id_sync,:) this.tgn(this.id_sync,:) this.tge(this.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'}) 
             snx_wrt.writeTropoSolutionEnd() 
-            snr_wrt.writeTroSinexEnd(); 
+            snx_wrt.writeTroSinexEnd(); 
             snx_wrt.close() 
         end 
         
