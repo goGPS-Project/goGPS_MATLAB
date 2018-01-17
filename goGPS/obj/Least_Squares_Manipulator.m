@@ -48,7 +48,7 @@ classdef Least_Squares_Manipulator < handle
         out_idx % index to tell if observation is outlier [ n_obs x 1]
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         y % observations  [ n_obs x 1]
-        w % observation weight [ n_obs x 1]
+        w % observation variance [ n_obs x 1]
         epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
         sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
@@ -173,7 +173,7 @@ classdef Least_Squares_Manipulator < handle
                 snr_stream = obs_set.snr(vaild_ep_stream, s);
                 el_stream = obs_set.el(vaild_ep_stream, s) / 180 * pi;
                 az_stream = obs_set.az(vaild_ep_stream, s) / 180 * pi;
-                mfw_stream = mfw(vaild_ep_stream, this.sat_go_id(s));
+                mfw_stream = mfw(vaild_ep_stream, this.sat_go_id(s)); % 1./sin(el_stream);
                 xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
                 n_obs_stream = length(obs_stream);
@@ -198,7 +198,7 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 if tropo_g
-                    cotan_term = cotd(el_stream) .* mfw_stream;
+                    cotan_term = cot(el_stream) .* mfw_stream;
                     A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* cotan_term; % noth gradient 
                     A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* cotan_term; % east gradient
                     
@@ -236,7 +236,7 @@ classdef Least_Squares_Manipulator < handle
             this.N_ep = zeros(size(this.A_ep, 2), size(this.A_ep, 2), n_obs);
             for i = 1:n_obs
                 A_l = this.A_ep(i, :);
-                w = 1 / this.w(i);
+                w = 1 / this.w(i) ;
                 this.N_ep(:, :, i) = A_l' * w * A_l;
             end
         end
@@ -292,16 +292,14 @@ classdef Least_Squares_Manipulator < handle
                 
                 Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
                 %fill B
-                B(p_idx) = B(p_idx) + A_ep' * 1 ./ w * y;
+                B(p_idx) = B(p_idx) + A_ep' * (1 ./ w) * y;
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
-            %IMPORTANT: understand how to manege holes: which amount of
-            %regularization must be setted between 2 epochs with an hole
-            %inside??
+            
             rate = median(diff(this.true_epoch));
             reg_diag0 = [double(diff(this.true_epoch) ); 0 ] + [0; double(diff(this.true_epoch) )];
-            reg_diag1 = -double(diff(this.true_epoch) );
+            reg_diag1 = -double(diff(this.true_epoch) ) ;
             Ndiags = permute(Ndiags, [3, 1, 2]);
             for i = 1:n_ep_class
                 N_col = [];
@@ -311,13 +309,14 @@ classdef Least_Squares_Manipulator < handle
                     if j == i
                         cur_class = class_ep_wise(i);
                         idx_c = this.time_regularization(:, 1) == cur_class;
-                        w = 1 ./ this.time_regularization(idx_c, 2);
+                        w = 1 ./ this.time_regularization(idx_c, 2) ;
                         if sum(idx_c)
                             diag0 = diag0 + reg_diag0 * w;
                             diag1 = reg_diag1 * w;
                             N_el = spdiags([0; diag1], 1, N_el);
                             N_el = spdiags(diag1, -1, N_el);
                         end
+                        
                     end
                     N_el = spdiags(diag0, 0, N_el);
                     N_col = [N_col; N_el];
