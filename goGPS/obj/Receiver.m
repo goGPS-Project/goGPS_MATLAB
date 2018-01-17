@@ -4734,7 +4734,7 @@ classdef Receiver < Exportable_Object
         end
 
         function staticPPP(this, id_sync)
-            this.log.addMarkedMessage('Computing PPP solution');            
+            this.log.addMarkedMessage('Computing PPP solution');
             this.log.addMessage(this.log.indent('Preparing the system', 6));
             ls = Least_Squares_Manipulator();
             if nargin < 2
@@ -4742,10 +4742,7 @@ classdef Receiver < Exportable_Object
             end
             ls.setUpPPP(this, id_sync);
             ls.Astack2Nstack();
-            % set time regularization for the troposphere and its gradients  
-%             ls.setTimeRegularization(1, 0.00001);
-%             ls.setTimeRegularization(2, 0.00001);
-%             ls.setTimeRegularization(3, 0.00001);  
+            
             [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
             time = this.time.getSubSet(id_sync);
             gps_time = time.getGpsTime();
@@ -4767,7 +4764,7 @@ classdef Receiver < Exportable_Object
             if isempty(this.sat.slant_td)
                 this.sat.slant_td = zeros(this.time.length(), n_sat);
             end
-
+            
             for i = 1 : n_epoch
                 [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
                 this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
@@ -4779,47 +4776,48 @@ classdef Receiver < Exportable_Object
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
             ls.setTimeRegularization(7,this.state.std_tropo^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
             if this.state.flag_tropo_gradient
-            ls.setTimeRegularization(8,this.state.std_tropo_gradient^2 / 3600 * rate  );%this.state.std_tropo / 3600 * rate );
-            ls.setTimeRegularization(9,this.state.std_tropo_gradient^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                ls.setTimeRegularization(8,this.state.std_tropo_gradient^2 / 3600 * rate  );%this.state.std_tropo / 3600 * rate );
+                ls.setTimeRegularization(9,this.state.std_tropo_gradient^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
-            if s02 < 0.01
-            %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);                        
-            this.id_sync = id_sync;
-            %ls.reweight(
-            
-            coo    = x(1:3,1);
-            
-            clock = x(x(:,2) == 6,1);
-            tropo = x(x(:,2) == 7,1);
-            amb = x(x(:,2) == 5,1);
-            gntropo = x(x(:,2) == 8,1);
-            getropo = x(x(:,2) == 9,1);
-            this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
-            this.xyz = this.xyz + coo';
-            valid_ep = ls.true_epoch;
-            this.dt(valid_ep, 1) = clock;
             this.sat.res = res;
-            
-            this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
-            this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
-            this.sat.amb = amb;
-            [mfh, mfw] = getSlantMF(this);
-            this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
-            if this.state.flag_tropo_gradient
-                if isempty(this.tgn)
-                    this.tgn = zeros(this.time.length,1);
+            if s02 < 0.01
+                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+                this.id_sync = id_sync;
+                %ls.reweight(
+                
+                coo    = x(1:3,1);
+                
+                clock = x(x(:,2) == 6,1);
+                tropo = x(x(:,2) == 7,1);
+                amb = x(x(:,2) == 5,1);
+                gntropo = x(x(:,2) == 8,1);
+                getropo = x(x(:,2) == 9,1);
+                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
+                this.xyz = this.xyz + coo';
+                valid_ep = ls.true_epoch;
+                this.dt(valid_ep, 1) = clock;
+                
+                
+                this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
+                this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                this.sat.amb = amb;
+                [mfh, mfw] = getSlantMF(this);
+                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
+                if this.state.flag_tropo_gradient
+                    if isempty(this.tgn)
+                        this.tgn = zeros(this.time.length,1);
+                    end
+                    this.tgn(valid_ep) =  gntropo;
+                    if isempty(this.tge)
+                        this.tge = zeros(this.time.length,1);
+                    end
+                    this.tge(valid_ep) =  getropo;
+                    
+                    cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
+                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel));
                 end
-                this.tgn(valid_ep) =  gntropo;
-                if isempty(this.tge)
-                    this.tge = zeros(this.time.length,1);
-                end
-                this.tge(valid_ep) =  getropo;
-                                
-                cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
-                this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel));
-            end
             else
                 this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
             end
@@ -5665,7 +5663,7 @@ fclose(fid);
         function plotResidual(this)
             figure
             t = 1:this.time.length;
-            for i =1 : size(this.sat.res)
+            for i =1 : size(this.sat.res,2)
                 idx = this.sat.res(:,i) ~= 0;
                 scatter(t(idx), this.sat.res(idx,i),5,'filled');
                 hold on

@@ -150,15 +150,15 @@ classdef Least_Squares_Manipulator < handle
             end
             
             n_iob = size(u_obs_code, 1) - 1;
-            
+            iob_flag = double(n_iob > 0);
             n_obs = sum(sum(diff_obs ~= 0));
             n_amb = max(max(amb_idx));
             clocks_idx = n_coo + n_iob + n_amb + ep_p_idx;
             
-            A = zeros(n_obs, n_coo+n_iob+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A = zeros(n_obs, n_coo+iob_flag+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             epoch = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
-            A_idx = zeros(n_obs, n_coo+n_iob+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A_idx = zeros(n_obs, n_coo+iob_flag+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
             y = zeros(n_obs, 1);
             w = zeros(n_obs, 1);
@@ -189,21 +189,21 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(s));
                 end
                 
-                A(lines_stream, n_coo+n_iob+1) = obs_set.wl(s);
-                A_idx(lines_stream, n_coo+n_iob+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
-                A(lines_stream, n_coo+n_iob+2) = 1;
-                A_idx(lines_stream, n_coo+n_iob+2) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                A(lines_stream, n_coo+iob_flag+1) = obs_set.wl(s);
+                A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
+                A(lines_stream, n_coo+iob_flag+2) = 1;
+                A_idx(lines_stream, n_coo+iob_flag+2) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 if tropo
-                    A(lines_stream, n_coo+n_iob+3) = mfw_stream;
-                    A_idx(lines_stream, n_coo+n_iob+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A(lines_stream, n_coo+iob_flag+3) = mfw_stream;
+                    A_idx(lines_stream, n_coo+iob_flag+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 if tropo_g
                     cotan_term = cot(el_stream) .* mfw_stream;
-                    A(lines_stream, n_coo+n_iob+4) = cos(az_stream) .* cotan_term; % noth gradient 
-                    A(lines_stream, n_coo+n_iob+5) = sin(az_stream) .* cotan_term; % east gradient
+                    A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient 
+                    A(lines_stream, n_coo+iob_flag+5) = sin(az_stream) .* cotan_term; % east gradient
                     
-                    A_idx(lines_stream, n_coo+n_iob+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
-                    A_idx(lines_stream, n_coo+n_iob+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A_idx(lines_stream, n_coo+iob_flag+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A_idx(lines_stream, n_coo+iob_flag+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -217,8 +217,8 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
-            this.param_flag = [0, 0, 0, -1*ones(min(n_iob,1)), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
-            this.param_class = [1, 2, 3, 4*ones(min(n_iob,1)), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
+            this.param_flag = [0, 0, 0, -1*ones(iob_flag), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            this.param_class = [1, 2, 3, 4*ones(iob_flag), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
         end
         
         function setTimeRegularization(this, param_class, time_variability)
