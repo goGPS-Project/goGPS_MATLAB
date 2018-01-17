@@ -44,6 +44,6 @@ function flag = flagExpand(flag, expand_size)
     % compute a moving window median to filter the data in input
     
     for c = 1 : size(flag, 2)
-        flag(:, c) = conv(flag(:, c), ones(2 * expand_size + 1, 1)', 'same') > 0;
+        flag(:, c) = conv(double(flag(:, c)), ones(2 * expand_size + 1, 1)', 'same') > 0;
     end
 end

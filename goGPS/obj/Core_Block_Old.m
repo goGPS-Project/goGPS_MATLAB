@@ -1494,10 +1494,10 @@ classdef Core_Block_Old < handle
         function [pos, pos_cov] = getFixPos(this)
             if ~(this.is_fixed)
                 pos = this.getFloatPos();
-                pos_cov = this.pos_cov;
+                pos_cov = full(this.pos_cov);
             else
                 pos = (repmat(this.pos0(:), 1, this.n_pos) + reshape(this.x_fix(1:this.n_pos * 3), 3, this.n_pos))';
-                pos_cov = this.pos_cov_fix;
+                pos_cov = full(this.pos_cov_fix);
             end
         end
 
