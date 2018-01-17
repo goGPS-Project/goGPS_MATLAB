@@ -4777,14 +4777,14 @@ classdef Receiver < Exportable_Object
             rate = time.getRate();
             
             %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
-            ls.setTimeRegularization(7, this.state.std_tropo / 3600 * rate / 0.005 );
-            ls.setTimeRegularization(8, this.state.std_tropo_gradient / 3600 * rate / 0.005);
-            ls.setTimeRegularization(9, this.state.std_tropo_gradient / 3600 * rate / 0.005);
+            ls.setTimeRegularization(7,this.state.std_tropo / 3600 * rate);% this.state.std_tropo / 3600 * rate  );
+            ls.setTimeRegularization(8,this.state.std_tropo_gradient / 3600 * rate);%this.state.std_tropo / 3600 * rate );
+            ls.setTimeRegularization(9,this.state.std_tropo_gradient / 3600 * rate);%this.state.std_tropo  / 3600 * rate );
             this.log.addMessage(this.log.indent('Solving the system', 6));
-            [x, res] = ls.solve();
+            [x, res, s02] = ls.solve();
+            if s02 < 0.01
             %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);                        
             this.id_sync = id_sync;
-            s02 = mean(abs(res(res~=0)));
             %ls.reweight(
             
             coo    = x(1:3,1);
@@ -4817,6 +4817,9 @@ classdef Receiver < Exportable_Object
                                 
                 cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
                 this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel));
+            end
+            else
+                this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
             end
         end
 

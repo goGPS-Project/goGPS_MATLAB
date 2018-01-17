@@ -181,7 +181,8 @@ classdef Least_Squares_Manipulator < handle
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
-                w(lines_stream) = snr_stream;
+                w(lines_stream) =  obs_set.sigma(s)^2;
+                %w(lines_stream) = snr_stream;
                 A(lines_stream, 1:3) = - los_stream;
                 if n_iob > 0
                     A(lines_stream, 4) = iob_idx(s) > 0;
@@ -207,7 +208,7 @@ classdef Least_Squares_Manipulator < handle
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
-            w(:) = 1;%0.005;%this.state.std_phase;
+            %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
             
             this.A_ep = A;
@@ -216,8 +217,8 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
-            this.param_flag = [0, 0, 0, -1*ones(n_iob), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
-            this.param_class = [1, 2, 3, 4*ones(n_iob), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
+            this.param_flag = [0, 0, 0, -1*ones(min(n_iob,1)), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            this.param_class = [1, 2, 3, 4*ones(min(n_iob,1)), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
         end
         
         function setTimeRegularization(this, param_class, time_variability)
@@ -235,8 +236,8 @@ classdef Least_Squares_Manipulator < handle
             this.N_ep = zeros(size(this.A_ep, 2), size(this.A_ep, 2), n_obs);
             for i = 1:n_obs
                 A_l = this.A_ep(i, :);
-                w = this.w(i).^2;
-                this.N_ep(:, :, i) = (w * A_l)' * A_l;
+                w = 1 / this.w(i);
+                this.N_ep(:, :, i) = A_l' * w * A_l;
             end
         end
         
@@ -291,7 +292,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
                 %fill B
-                B(p_idx) = B(p_idx) + A_ep' * w * y;
+                B(p_idx) = B(p_idx) + A_ep' * 1 ./ w * y;
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
@@ -299,8 +300,8 @@ classdef Least_Squares_Manipulator < handle
             %regularization must be setted between 2 epochs with an hole
             %inside??
             rate = median(diff(this.true_epoch));
-            reg_diag0 = [double(diff(this.true_epoch) == rate); 0 ] + [0; double(diff(this.true_epoch) == rate)];
-            reg_diag1 = -double(diff(this.true_epoch) == rate);
+            reg_diag0 = [double(diff(this.true_epoch) ); 0 ] + [0; double(diff(this.true_epoch) )];
+            reg_diag1 = -double(diff(this.true_epoch) );
             Ndiags = permute(Ndiags, [3, 1, 2]);
             for i = 1:n_ep_class
                 N_col = [];
@@ -310,7 +311,7 @@ classdef Least_Squares_Manipulator < handle
                     if j == i
                         cur_class = class_ep_wise(i);
                         idx_c = this.time_regularization(:, 1) == cur_class;
-                        w = (1 ./ this.time_regularization(idx_c, 2)).^2;
+                        w = 1 ./ this.time_regularization(idx_c, 2);
                         if sum(idx_c)
                             diag0 = diag0 + reg_diag0 * w;
                             diag1 = reg_diag1 * w;
