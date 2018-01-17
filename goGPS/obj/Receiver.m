@@ -1285,15 +1285,10 @@ classdef Receiver < Exportable_Object
             % cycle slip when they exceed threhsold cycle
             poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
             
-            % if majority of satellites jump set cycle slip on all
-            n_obs_ep = sum(~isnan(ph2),2);
-            all_but_one = n_obs_ep - sum(poss_slip_idx,2) < (0.5 * n_obs_ep);
-            for c = find(all_but_one')
-                poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
-            end
+           
             
             
-            % check if epoch before cycle slip can be restored
+            %check if epoch before cycle slip can be restored
             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
             poss_rest = poss_rest & poss_out_idx;
             poss_rest_line = sum(poss_rest,2);
@@ -1321,6 +1316,39 @@ classdef Receiver < Exportable_Object
                 end
             end
             this.ph_idx = find(id_ph_l);
+            %-------------------------------------------------------
+            % MELBOURNE WUBBENA based cycle slip detection
+            %--------------------------------------------------------
+%             mw = this.getMelWub('1','2','G');
+%             omw = mw.obs./repmat(mw.wl,size(mw.obs,1),1);
+%             %m_omw = reshape(medfilt_mat(omw,10),size(omw));
+%             omw1 = Core_Pre_Processing.diffAndPred(zero2nan(omw),1);
+%             omw2 = Core_Pre_Processing.diffAndPred(zero2nan(omw),2);
+%             omw3 = Core_Pre_Processing.diffAndPred(zero2nan(omw),3);
+%             omw4 = Core_Pre_Processing.diffAndPred(zero2nan(omw),4);
+%             omw5 = Core_Pre_Processing.diffAndPred(zero2nan(omw),5);
+%             m_omw = (omw1 + omw2/2 + omw3/3 + omw4/4 + omw5/5) / 5;
+%             for o = 1 : length(mw.go_id)
+%                 go_id = mw.go_id(o);
+%                 idx_gi = this.go_id(id_ph_l) == go_id;
+%                 poss_slip_idx(abs(m_omw(:,o)) > 0.5,idx_gi) = 1;
+%             end
+            %-------------------------------------------------------
+            % SAFE CHOICE: if there is an hole put a cycle slip
+            %--------------------------------------------------------
+            for o = 1 : size(ph2,2)
+                tmp_ph = ph2(:,o);
+                ph_idx = isnan(tmp_ph);
+                c_idx = [false ;diff(ph_idx) == -1];
+                poss_slip_idx(c_idx,o) = 1;
+            end
+            
+            % if majority of satellites jump set cycle slip on all
+            n_obs_ep = sum(~isnan(ph2),2);
+            all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
+            for c = find(all_but_one')
+                poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
+            end
             
             % remove too short possible arc
             to_short_idx = flagMerge(poss_slip_idx,sa_thr);
@@ -1334,6 +1362,16 @@ classdef Receiver < Exportable_Object
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
             %this.removeShortArch(this.state.getMinArc);
+        end
+        
+        function cycleSlipPPPres(this)
+            sensor = Core_Pre_Processing.diffAndPred(this.sat.res);
+            ph_idx =  this.obs_code(:,1) == 'L';
+            idx = abs(sensor) > 0.03;
+            for i = 1 : size(sensor,2)
+                sat_idx = this.go_id(ph_idx) == i;
+                this.cycle_slip_idx_ph(idx(:,i), :) = 1;
+            end
         end
         
         function tryCycleSlipRepair(this)
@@ -1450,6 +1488,8 @@ classdef Receiver < Exportable_Object
             
         end         
     end
+    
+    
     
     % ==================================================================================================================================================
     %% METHODS GETTER - TIME
@@ -2201,14 +2241,16 @@ classdef Receiver < Exportable_Object
         end
         
         
-        function [obs_set] = getTwoFreqComb(this,flag1,flag2, fun1, fun2)
+        function [obs_set] = getTwoFreqComb(this,flag1,flag2, fun1, fun2,know_comb)
             %INPUT: flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
             %       fun1  : function of the two wavelegnth to be applied to
             %       computehr the first frequncy coefficient
             %       fun2  : function of the two wavelegnth to be applied to
             %       computehr the second frequency frequncy coefficient
-            
+            if nargin  < 6
+                know_comb = 'none';
+            end
             if ischar(flag1)
                 system = flag1(1);
                 [o1, i1, s1, cs1] = this.getPrefObsCh(flag1(2:3), system, 1);
@@ -2284,7 +2326,20 @@ classdef Receiver < Exportable_Object
                     wl(p) = alpha1 * w1(ii1);
                 else
                     cs_out(:, p) = cs2(:, ii2) | cs1(:, ii1);
-                    wl(p) = 1;%abs(alpha1 * alpha2); % to be understood
+                    if strcmp(know_comb,'IF')
+                        [i,j] = rat(w2(ii2)/w1(ii1),0.001);
+                        j= -j;
+                    elseif strcmp(know_comb,'NL')
+                       i = 1;
+                       j = 1;
+                    elseif strcmp(know_comb,'WL')
+                       i = 1;
+                       j = -1;
+                    else
+                        i = -w2(ii2)/2;
+                        j = -w1(ii1)/2; %so wavelength is -1
+                    end
+                    wl(p) = w1(ii1)*w2(ii2)/(i*w2(ii2) + j*w1(ii1)); % see: https://www.tekmon.gr/online-gps-tutorial/1-4-1-linear-combinations-of-simultaneous-observations-between-frequencies
                 end
                 
                 
@@ -2301,20 +2356,19 @@ classdef Receiver < Exportable_Object
         function [obs_set] = getIonoFree(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2^2/(wl2^2-wl1^2);
             fun2 = @(wl1,wl2) -wl1^2/(wl2^2-wl1^2);
-            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2,'IF');
             obs_set.obs_code = [obs_set.obs_code repmat('I',size(obs_set.obs_code,1),1)];
-            obs_set.wl(:) = 0.148280783998726;
         end
         function [obs_set] = getNarrowLane(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2/(wl2+wl1);
             fun2 = @(wl1,wl2) wl1/(wl2+wl1);
-            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2,'NL');
         end
         
         function [obs_set] = getWideLane(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2/(wl2-wl1);
             fun2 = @(wl1,wl2) - wl1/(wl2-wl1);
-            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
+            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2,'WL');
         end
         
         function [obs_set] = getGeometryFree(this,flag1,flag2,system)
@@ -2327,8 +2381,8 @@ classdef Receiver < Exportable_Object
             
             fun1 = @(wl1,wl2) 1;
             fun2 = @(wl1,wl2) -1;
-            [obs_set1] = this.getWideLane(['L' freq1],['L' freq2],system) %widelane phase
-            [obs_set2] = this.getNarrowLane(['C' freq1],['C' freq2],system) %narrowlane code
+            [obs_set1] = this.getWideLane(['L' freq1],['L' freq2], system); %widelane phase
+            [obs_set2] = this.getNarrowLane(['C' freq1],['C' freq2], system); %narrowlane code
             [obs_set] =  this.getTwoFreqComb(obs_set1, obs_set2, fun1, fun2);
         end
         %----------------------------------------------------------
@@ -5600,8 +5654,17 @@ fclose(fid);
             xlim(t(time_start) + [0 win_size-1] ./ 86400);
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
             h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-            grid on;
+            grid on;repmat([1:2880]',31)
             h = title(sprintf('Receiver %s ZTD', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+        end
+        function plotResidual(this)
+            figure
+            t = 1:this.time.length;
+            for i =1 : size(this.sat.res)
+                idx = this.sat.res(:,i) ~= 0;
+                scatter(t(idx), this.sat.res(idx,i),5,'filled');
+                hold on
+            end
         end
     end
         
