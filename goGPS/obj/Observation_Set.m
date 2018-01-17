@@ -51,6 +51,7 @@ classdef Observation_Set < handle
         cycle_slip
         time
         go_id
+        sigma
     end
     methods 
         function this = Observation_Set(time, obs, obs_code, wl, el, az, prn)
@@ -90,6 +91,7 @@ classdef Observation_Set < handle
             this.az = [this.az obs_set.az];
             this.prn = [this.prn obs_set.prn];
             this.go_id = [this.go_id obs_set.go_id];
+            this.sigma = [this.sigma obs_set.sigma];
             
             if isempty(obs_set.snr)
                 snr2 = nan(size(obs_set.obs));
@@ -180,6 +182,7 @@ classdef Observation_Set < handle
             this.wl(idx_col) = [];
             this.prn(idx_col) = [];
             this.go_id(idx_col) = [];
+            this.sigma(idx_col) = [];
         end
         
         function plotCycleSlip(this, rec)
