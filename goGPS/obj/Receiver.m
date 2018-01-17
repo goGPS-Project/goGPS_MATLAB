@@ -2267,7 +2267,7 @@ classdef Receiver < Exportable_Object
                 w1 =  this.wl(i1);
                 w2 =  this.wl(i2);
                 oc1 = this.obs_code(i1(1),:);
-                oc2 = this.obs_code(i2(2),:);
+                oc2 = this.obs_code(i2(1),:);
                 if flag1(2) == 'L'
                     o1 = o1.*repmat(w1',size(o1,1),1);
                 end
@@ -2275,7 +2275,7 @@ classdef Receiver < Exportable_Object
                     o2 = o2.*repmat(w2',size(o2,1),1);
                 end
                 sigma1 = repmat(this.rec_settings.getStd(system,this.obs_code(i1(1),:)),size(o1,2),1);
-                sigma2 = repmat(this.rec_settings.getStd(system,this.obs_code(i2(2),:)),size(o2,2),1);
+                sigma2 = repmat(this.rec_settings.getStd(system,this.obs_code(i2(1),:)),size(o2,2),1);
             elseif strcmp(class(flag1),'Observation_Set') %observation set
                 o1 = flag1.obs;
                 o2 = flag2.obs;
