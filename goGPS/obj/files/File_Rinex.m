@@ -48,7 +48,7 @@ classdef File_Rinex < handle
 
     properties (SetAccess = protected, GetAccess = public)
         is_valid = false;                            % flag, if true it means that the object contains at least one valid rinex file
-        base_dir = '../data/project/default_DD/RINEX/';                  % directory containing all the files
+        base_dir = {'../data/project/default_DD/RINEX/'};                  % directory containing all the files
         file_name_list = {'yamatogawa_rover', 'yamatogawa_master'};      % file names (they can be multiple files for different days)
         ext = {'.obs', '.obs'};                                          % file names extension (they can be multiple files for different days)
         is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
@@ -78,7 +78,7 @@ classdef File_Rinex < handle
             this.file_name_list = {};
             this.ext = {};
             for f = 1 : numel(file_name)
-                [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
             end
 
             if nargin == 2
@@ -101,14 +101,14 @@ classdef File_Rinex < handle
             this.last_epoch = GPS_Time();
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
-                full_path = fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]);
+                full_path = fullfile(this.base_dir{f}, [this.file_name_list{f} this.ext{f}]);
 
                 % check the existence
                 this.is_valid_list(f) = exist(full_path, 'file');
                 if this.is_valid_list(f)
                     % try to find the first and the last epoch stored in the file
                     try
-                        fid = fopen(fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]));
+                        fid = fopen(fullfile(this.base_dir{f}, [this.file_name_list{f} this.ext{f}]));
                         l = 1;
                         line = fgetl(fid);
                         while isempty(strfind(line,'END OF HEADER')) && ischar(line) %#ok<*STREMP>
@@ -176,7 +176,7 @@ classdef File_Rinex < handle
             if nargin == 1
                 file_number = 1;
             end
-            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext{file_number}]);
+            file_name = fullfile(this.base_dir{file_number}, [this.file_name_list{file_number} this.ext{file_number}]);
         end
 
         function line_num = getEOH(this, file_number)
