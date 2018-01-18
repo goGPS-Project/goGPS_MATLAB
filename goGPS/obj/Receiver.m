@@ -2402,10 +2402,10 @@ classdef Receiver < Exportable_Object
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
-            is_present = zeros(size(iono_pref,1),1) < 1;
-            for i = size(iono_pref,1)
+            is_present = false(size(iono_pref,1),1);
+            for i = 1 : size(iono_pref,1)
                 % check if there are observation for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
                     is_present(i) = true;
                 end
             end
@@ -3173,7 +3173,9 @@ classdef Receiver < Exportable_Object
             
             %%% compute lat lon
             [~, lon_full, h_full, lat_full] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
-            
+            if abs(h_full) > 1e4
+                this.log.addWarning('Height out of reasonable height for terrestrial postioning skipping tropo update')
+            end
             if nargin < 3
                 flag = this.state.tropo_model;
             end
@@ -4923,7 +4925,7 @@ classdef Receiver < Exportable_Object
             this.sat.res = res;
              
             
-            if s02 < 0.01
+            if s02 < 0.02
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 this.id_sync = id_sync;
                 %ls.reweight(
