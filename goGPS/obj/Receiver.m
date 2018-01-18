@@ -4084,10 +4084,11 @@ classdef Receiver < Exportable_Object
                 
                 dt_ph = drifting + dt_ph_dj;
                 dt_pr = drifting + dt_pr_dj;
-                
-                t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
-                dt_ph = dt_ph - t_offset;
-                dt_pr = dt_pr - t_offset;
+                if ~isempty(jmp)
+                    t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
+                    dt_ph = dt_ph - t_offset;
+                    dt_pr = dt_pr - t_offset;
+                end
                 
                 ph = bsxfun(@minus, ph, dt_ph .* 299792458);
                 pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
@@ -4835,7 +4836,7 @@ classdef Receiver < Exportable_Object
             
             rate = time.getRate();
             
-            %ls.setTimeRegularization(6, 1e-7 * this.rate * Go_State.V_LIGHT / 0.005);
+            %ls.setTimeRegularization(6, (0.1)^2);
             ls.setTimeRegularization(7,this.state.std_tropo^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
             if this.state.flag_tropo_gradient
                 ls.setTimeRegularization(8,this.state.std_tropo_gradient^2 / 3600 * rate  );%this.state.std_tropo / 3600 * rate );
@@ -4843,7 +4844,15 @@ classdef Receiver < Exportable_Object
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
+            clock = x(x(:,2) == 6,1);
+            mean_clock = mean(clock);
+            ls.y = ls.y - mean_clock;
+            this.log.addMessage(this.log.indent('Regularizing mean of clock',6));
+            ls.setMeanRegularization(6, 0.0001);
+            [x, res, s02] = ls.solve();
             this.sat.res = res;
+             
+            
             if s02 < 0.01
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 this.id_sync = id_sync;
@@ -4859,7 +4868,7 @@ classdef Receiver < Exportable_Object
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
                 this.xyz = this.xyz + coo';
                 valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = clock;
+                this.dt(valid_ep, 1) = mean_clock + clock;
                 
                 
                 this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;

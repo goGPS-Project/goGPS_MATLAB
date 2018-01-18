@@ -64,6 +64,7 @@ classdef Least_Squares_Manipulator < handle
         %     9 : tropo inclination east ]
         param_flag % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
         time_regularization %[ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
+        mean_regularization 
         true_epoch % true epoch of the epochwise paramters
         sat_go_id  % go id of the satindeces
     end
@@ -230,6 +231,15 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
+        function setMeanRegularization(this, param_class, var)
+            idx_param = this.time_regularization == param_class;
+            if sum(idx_param) > 0
+                this.mean_regularization(idx_param, 2) = var;
+            else %if not prestn add it
+                this.mean_regularization = [this.mean_regularization; [param_class, var]];
+            end
+        end
+        
         function Astack2Nstack(this)
             %DESCRIPTION: generate N stack A'*A
             n_obs = size(this.A_ep, 1);
@@ -301,6 +311,7 @@ classdef Least_Squares_Manipulator < handle
             reg_diag0 = [double(diff(this.true_epoch) ); 0 ] + [0; double(diff(this.true_epoch) )];
             reg_diag1 = -double(diff(this.true_epoch) ) ;
             Ndiags = permute(Ndiags, [3, 1, 2]);
+            tik_reg = ones(n_epochs,1)/n_epochs; %%% TIkhonov on ZTD and gradients
             for i = 1:n_ep_class
                 N_col = [];
                 for j = 1:n_ep_class
@@ -308,13 +319,24 @@ classdef Least_Squares_Manipulator < handle
                     N_el = sparse(n_epochs, n_epochs);
                     if j == i
                         cur_class = class_ep_wise(i);
-                        idx_c = this.time_regularization(:, 1) == cur_class;
-                        w = 1 ./ this.time_regularization(idx_c, 2) ;
-                        if sum(idx_c)
-                            diag0 = diag0 + reg_diag0 * w;
-                            diag1 = reg_diag1 * w;
-                            N_el = spdiags([0; diag1], 1, N_el);
-                            N_el = spdiags(diag1, -1, N_el);
+                        % Time Regularization
+                        if ~isempty(this.time_regularization)
+                            idx_c = this.time_regularization(:, 1) == cur_class;
+                            w = 1 ./ this.time_regularization(idx_c, 2) ;
+                            if sum(idx_c)
+                                diag0 = diag0 + reg_diag0 * w;
+                                diag1 = reg_diag1 * w;
+                                N_el = spdiags([0; diag1], 1, N_el);
+                                N_el = spdiags(diag1, -1, N_el);
+                            end
+                        end
+                        % Mean zero regularization - same as tikhonov
+                        if ~isempty(this.mean_regularization)
+                            idx_t = this.mean_regularization(:, 1) == cur_class;
+                            if sum(idx_t)
+                                w = 1 ./ this.mean_regularization(idx_t, 2) ;
+                                diag0 = diag0 + tik_reg * w;
+                            end
                         end
                         
                     end
