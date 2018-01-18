@@ -144,7 +144,7 @@ classdef File_Rinex < Exportable_Object
                                 % Check that the read epoch is within 30 days from the first epoch
                                 % (if it's further in time it's probably a misleading false epoch line)
                                 time = GPS_Time(line(this.id_date), [], true);                                
-                                time_diff = ((time - this.first_epoch)/86400);
+                                time_diff = ((time - this.first_epoch.last())/86400);
                                 if (time_diff < 30) && (time_diff > 0)
                                     epoch_line = line;
                                 end
@@ -156,10 +156,10 @@ classdef File_Rinex < Exportable_Object
                         this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         this.is_valid_list(f) = true;
                     catch ex
-                        if this.first_epoch.lenght < f
+                        if this.first_epoch.length < f
                             this.first_epoch.addEpoch(0);
                         end
-                        if this.last_epoch.lenght < f
+                        if this.last_epoch.length < f
                             this.last_epoch.addEpoch(0);
                         end
                         this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
