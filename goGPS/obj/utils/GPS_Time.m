@@ -1264,8 +1264,7 @@ classdef GPS_Time < Exportable_Object & handle
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             sec_i = int64(unix_time1) - int64(unix_time2);
-            sec_f = unix_time_f1 - unix_time_f2;
-            
+            sec_f = unix_time_f1 - unix_time_f2;            
             
             % make the two values consistent
             idx_sec = sec_i > 0;

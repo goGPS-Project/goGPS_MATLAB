@@ -1,14 +1,7 @@
 function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
-% SYNTAX:
-%   data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
-
 %
 % SINTAX:
 %   data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
-%
-% EXAMPLE:
-%   setLastLineWidth(gca,2);
-%   setLastLineWidth(2);
 %
 % INPUT:
 %   x_pred , y_pred     coordinates of the prediction point (arrays [n x 1])

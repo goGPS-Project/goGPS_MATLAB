@@ -198,14 +198,17 @@ classdef Receiver < Exportable_Object
     % ==================================================================================================================================================
     %% PROPERTIES USEFUL HANDLES
     % ==================================================================================================================================================
-    
     properties (SetAccess = private, GetAccess = public)
         cc = Constellation_Collector('G');      % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         log                                    % handle to log
     end
-
+    %% PREPERTIES PLOTS
+    % ==================================================================================================================================================
+    properties
+        slant_filter_win = 900;
+    end
     % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM
     % ==================================================================================================================================================
@@ -1971,7 +1974,7 @@ classdef Receiver < Exportable_Object
             lat = lat / pi * 180;
             lon = lon / pi * 180;
         end
-        
+
         function [mfh, mfw] = getSlantMF(this)
             % Get Mapping function for the satellite slant
             % 
@@ -2239,8 +2242,7 @@ classdef Receiver < Exportable_Object
                 this.log.addError(['Invalid length of obs code(' num2str(length(flag)) ') can not determine preferred observation'])
             end
         end
-        
-        
+                
         function [obs_set] = getTwoFreqComb(this,flag1,flag2, fun1, fun2,know_comb)
             %INPUT: flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
@@ -2349,16 +2351,18 @@ classdef Receiver < Exportable_Object
             obs_set.snr = snr_out;
             obs_set.sigma = sigma;
         end
+        
         %----------------------------------
         % Two Frequency observation combination
         % Warppers of getTwoFreqComb function
         %------------------------------------
         function [obs_set] = getIonoFree(this,flag1,flag2,system)
-            fun1 = @(wl1,wl2) wl2^2/(wl2^2-wl1^2);
-            fun2 = @(wl1,wl2) -wl1^2/(wl2^2-wl1^2);
-            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2,'IF');
-            obs_set.obs_code = [obs_set.obs_code repmat('I',size(obs_set.obs_code,1),1)];
+            fun1 = @(wl1, wl2) wl2 ^ 2 / (wl2 ^ 2 - wl1 ^ 2);
+            fun2 = @(wl1, wl2) - wl1^2/(wl2 ^ 2 - wl1 ^ 2);
+            [obs_set] =  this.getTwoFreqComb([system flag1], [system flag2], fun1, fun2,'IF');
+            obs_set.obs_code = [obs_set.obs_code repmat('I', size(obs_set.obs_code,1), 1)];
         end
+        
         function [obs_set] = getNarrowLane(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2/(wl2+wl1);
             fun2 = @(wl1,wl2) wl1/(wl2+wl1);
@@ -2385,7 +2389,7 @@ classdef Receiver < Exportable_Object
             [obs_set2] = this.getNarrowLane(['C' freq1],['C' freq2], system); %narrowlane code
             [obs_set] =  this.getTwoFreqComb(obs_set1, obs_set2, fun1, fun2);
         end
-        %----------------------------------------------------------
+        
         function [obs_set]  = getPrefIonoFree(this, obs_type, system)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
@@ -2415,8 +2419,7 @@ classdef Receiver < Exportable_Object
             iono_pref = iono_pref(is_present,:);
             [obs_set]  = this.getMelWub([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
-        
-        
+                
         function [range, XS_loc] = getSyntObs(this, obs_type, sat)
             % DESCRIPTION: get the estimate of one measurmenet based on the
             % current postion
@@ -2552,7 +2555,66 @@ classdef Receiver < Exportable_Object
                 xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
             end
             
-        end                                
+        end  
+        
+        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
+            % return the computed median position of the receiver
+            % MultiRec: works on an array of receivers
+            %
+            % OUTPUT:
+            %   lat         latitude  [deg]
+            %   lon         longitude [deg]
+            %   h_ellips    ellipsoidical heigth [m]
+            %   h_ortho     orthometric heigth [m]
+            %
+            % SYNTAX:
+            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
+            
+            lat = nan(numel(this), 1);
+            lon = nan(numel(this), 1);
+            h_ellips = nan(numel(this), 1);
+                        
+            for r = 1 : numel(this)
+                xyz = this(r).xyz;
+                xyz = median(this(r).xyz, 1);
+                [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
+                if nargout == 4
+                    gs = Go_State.getInstance;
+                    gs.initGeoid();
+                    ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
+                    h_ortho(r) = h_ellips(r) - ondu;
+                end
+                lat(r) = lat(r) / pi * 180;
+                lon(r) = lon(r) / pi * 180;
+            end
+        end
+
+        function [ztd, p_time] = getZTD_mr(this)
+            % MultiRec: works on an array of receivers
+            % SYNTAX:
+            %  [ztd, p_time, id_sync] = this.getZTD_mr()
+            [p_time, id_sync] = Receiver.getSyncTime(this);
+            n_rec = numel(this);
+            ztd = nan(size(id_sync{1}));
+            for r = 1 : n_rec
+                id_rec = id_sync{1}(:,r);
+                ztd(~isnan(id_rec),r) = this(r).ztd(id_rec(~isnan(id_rec)));
+            end
+        end
+        
+        function [zwd, p_time] = getZWD_mr(this)
+            % MultiRec: works on an array of receivers
+            % SYNTAX:
+            %  [zwd, p_time, id_sync] = this.getZWD_mr()
+            [p_time, id_sync] = Receiver.getSyncTime(this);
+            n_rec = numel(this);
+            zwd = nan(size(id_sync{1}));
+            for r = 1 : n_rec
+                id_rec = id_sync{1}(:,r);
+                zwd(~isnan(id_rec),r) = this(r).zwd(id_rec(~isnan(id_rec)));
+            end
+        end
+        
     end
     
     % ==================================================================================================================================================
@@ -4876,6 +4938,62 @@ classdef Receiver < Exportable_Object
     % ==================================================================================================================================================
     
     methods        
+        function legacyImportResults(this, file_prefix, run_start, run_stop)
+            % Import after reset a position and tropo file (if present)
+            %
+            % SYNTAX:  
+            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
+            %
+            % INPUT:
+            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
+            %   run_start     number of the first run to load
+            %   run_stop      number of the last run to load
+            %            
+            if (nargin == 1) || isempty(file_prefix)
+                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
+                file_prefix = [file_path file_prefix];
+            end
+            this.reset();
+            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
+                file_prefix = file_prefix(1 : end - 13);
+            end
+            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
+                file_prefix = file_prefix(1 : end - 10);
+            end
+            
+            if nargin < 4
+                run_start = 0;
+                run_stop = 0;
+            end
+            
+            GPS_RUN = '${RUN}';
+            r = 0;
+            for run = run_start : run_stop
+                r = r + 1;
+                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
+                marker_name = File_Name_Processor.getFileName(file_name);
+                this.marker_name = marker_name(1:4);
+                this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name)), 6));
+                if exist(file_name, 'file')
+                    this.legacyAppendPosition(file_name);
+                    
+                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
+                    if exist(file_name, 'file')
+                        this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name)), 6));
+                        this.legacyAppendTropo(file_name)
+                    else
+                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
+                    end
+                else
+                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
+                end                
+            end
+            
+            if isempty(this.id_sync)
+                this.id_sync = 1 : this.time.length();
+            end
+        end
+
         function legacyAppendPosition (this, file)
             % import and append from a position file
             
@@ -4894,7 +5012,7 @@ classdef Receiver < Exportable_Object
             lim = [lim lim(:,2) - lim(:,1)];
             
             % corrupted lines
-            ko_lines = find(lim(:, 3) ~= median(lim(:,3)));
+            ko_lines = find(lim(:, 3) ~= median(lim(lim(:,3)>400,3)));
             for l = numel(ko_lines) : -1 : 1
                 txt(lim(ko_lines(l), 1) : lim(ko_lines(l), 2) + 1) = [];
             end
@@ -5037,7 +5155,7 @@ classdef Receiver < Exportable_Object
                 this.sat.az(id_int, s) = az(id_ext);
                 this.sat.el(id_int, s) = el(id_ext);
             end
-        end
+        end        
         
         function exportRinex3(this, file_name)
             % Export the content of the object as RINEX 3
@@ -5175,23 +5293,32 @@ classdef Receiver < Exportable_Object
             snx_wrt.close() 
         end 
         
-        function exportGPSZTD(this)
-             [year, doy] = this.time.getSubSet(1).getDOY(); 
-            yy = num2str(year); 
-            yy = yy(3:4); 
-            sess_str = '0'; %think how to get the ricgt one from sss_id_list 
-            fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy); 
-            fid = fopen(fname,'w');
+        function txt = exportGPSZTD(this, save_on_disk)
+            if nargin == 1
+                save_on_disk = true;
+            end
+            [year, doy] = this.time.getSubSet(1).getDOY();
+            yy = num2str(year);
+            yy = yy(3:4);
+            sess_str = '0'; % think how to get the right one from sss_id_list
+            if save_on_disk
+                fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
+                fid = fopen(fname,'w');
+            end
             this.updateCoo();
             meas_time = this.time.getSubSet(this.id_sync);
             meas_time.toUnixTime();
             [~, doy]  = meas_time.getDOY();
+            txt = '';
             for i = 1 : length(this.id_sync)
-          fprintf(fid,['%20.5f%20.5f%40s%40s%40s%40s%20.5f         0         0         0         0         0         F         F         F         0%10d%10d-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888%13.6f      0-888888.00000-888888', ...
- '101180.00000      0%20.5f      0-888888.0000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000     0', ...
-'-777777.00000      0-777777.00000      0      1.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],this.lat, this.lon, this.marker_name, this.marker_type, this.ant_type,'goGPS software',this.h_ortho,doy(i),meas_time.unix_time(i),this.ztd(this.id_sync(i))*100, this.h_ortho);
-            end            
-fclose(fid);
+                txt = sprintf(['%s%20.5f%20.5f%40s%40s%40s%40s%20.5f         0         0         0         0         0         F         F         F         0%10d%10d-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888%13.6f      0-888888.00000-888888', ...
+                    '101180.00000      0%20.5f      0-888888.0000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000     0', ...
+                    '-777777.00000      0-777777.00000      0      1.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],txt, this.lat, this.lon, this.marker_name, this.marker_type, this.ant_type,'goGPS software',this.h_ortho,doy(i),meas_time.unix_time(i),this.ztd(this.id_sync(i))*100, this.h_ortho);
+            end
+            if save_on_disk
+                fprintf(fid,'%s', tmp);
+                fclose(fid);
+            end
         end
     end
     
@@ -5463,7 +5590,7 @@ fclose(fid);
         
         function plotAniZtdSlant(this, time_start, time_stop, show_map)
             clf;
-            sztd = this.getSlantZTD(1800);
+            sztd = this.getSlantZTD(this.slant_filter_win);
 
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
@@ -5477,6 +5604,9 @@ fclose(fid);
                 time_stop = size(sztd,1);
             end
             
+            if isempty(this.id_sync)
+                this.id_sync = 1 : this.time.length();
+            end
             id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
             t = this.time.getEpoch(id_ok).getMatlabTime;
             sztd = sztd(id_ok, :);
@@ -5546,7 +5676,7 @@ fclose(fid);
         
         function plotAniZwdSlant(this, time_start, time_stop, show_map)
             clf;
-            szwd = this.getSlantZWD(900);
+            szwd = this.getSlantZWD(this.slant_filter_win);
 
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
@@ -5560,7 +5690,11 @@ fclose(fid);
                 time_stop = size(szwd,1);
             end
             
+            if isempty(this.id_sync)
+                this.id_sync = 1 : this.time.length();
+            end
             id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
+            
             t = this.time.getEpoch(id_ok).getMatlabTime;
             szwd = szwd(id_ok, :);
             
@@ -5629,9 +5763,13 @@ fclose(fid);
         
         function plotZtdSlant(this, time_start, time_stop, win_size)
             clf;
+            if isempty(this.id_sync)
+                this.id_sync = 1 : this.time.length();
+            end
+
             t = this.time.getEpoch(this.id_sync).getMatlabTime;
             
-            sztd = this.getSlantZTD(900);
+            sztd = this.getSlantZTD(this.slant_filter_win);
             sztd = sztd(this.id_sync, :);
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
@@ -5675,6 +5813,28 @@ fclose(fid);
     %%  STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
+        
+        function marker_num = markerName2Num(marker_name)
+            % Convert a 4 char name into a numeric value (float)
+            % SYNTAX:
+            %   marker_num = markerName2Num(marker_name);
+            
+            marker_num = marker_name(:,1:4) * [2^24 2^16 2^8 1]';
+        end
+        
+        function marker_name = markerNum2Name(marker_num)
+            % Convert a numeric value (float) of a station into a 4 char marker
+            % SYNTAX:
+            %   marker_name = markerNum2Name(marker_num)
+            marker_name = char(zeros(numel(marker_num), 4));
+            marker_name(:,1) = char(floor(marker_num / 2^24));
+            marker_num = marker_num - marker_name(:,1) * 2^24;
+            marker_name(:,2) = char(floor(marker_num / 2^16));
+            marker_num = marker_num - marker_name(:,2) * 2^16;
+            marker_name(:,3) = char(floor(marker_num / 2^8));
+            marker_num = marker_num - marker_name(:,3) * 2^8;
+            marker_name(:,4) = char(marker_num);            
+        end
                 
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
             % prepare y0 and pivot_correction arrays (phase only)
@@ -5722,6 +5882,11 @@ fclose(fid);
             if nargin < 3
                 p_rate = 1e-6;
             end
+            if nargin < 2
+                obs_type = ones(1, numel(rec));
+                obs_type(end) = 0;
+            end
+            
             % Do the target(s) as last
             [~, id] = sort(obs_type, 'descend');
             
@@ -5737,7 +5902,7 @@ fclose(fid);
             
             i = 0;
             for r = id
-                ref_t{r} = rec(r).time.getRefTime(p_time_zero);                
+                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
                 if obs_type(r) > 0 % if it's not a target
                     p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
                     p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
@@ -5772,56 +5937,6 @@ fclose(fid);
             end
         end
         
-        function legacyImportResults(this, file_prefix, run_start, run_stop)
-            % Import after reset a position and tropo file (if present)
-            %
-            % SYNTAX:  
-            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
-            %
-            % INPUT:
-            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
-            %   run_start     number of the first run to load
-            %   run_stop      number of the last run to load
-            %            
-            if (nargin == 1) || isempty(file_prefix)
-                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
-                file_prefix = [file_path file_prefix];
-            end
-            this.reset();            
-            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
-                file_prefix = file_prefix(1 : end - 13);
-            end
-            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
-                file_prefix = file_prefix(1 : end - 10);
-            end
-            
-            if nargin < 4
-                run_start = 0;
-                run_stop = 0;
-            end
-            
-            GPS_RUN = '${RUN}';
-            r = 0;
-            for run = run_start : run_stop
-                r = r + 1;
-                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
-                this.log.addMessage(sprintf('Importing %s', file_name));
-                if exist(file_name, 'file')
-                    this.legacyAppendPosition(file_name);
-                    
-                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
-                    if exist(file_name, 'file')
-                        this.log.addMessage(sprintf('Importing %s', file_name));
-                        this.legacyAppendTropo(file_name)
-                    else
-                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
-                    end
-                else
-                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
-                end                
-            end
-        end
-
         function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
             %res_code1_fix  = [];                      % double differences code residuals (fixed solution)
             %res_code2_fix  = [];                      % double differences code residuals (fixed solution)
