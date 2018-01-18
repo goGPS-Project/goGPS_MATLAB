@@ -81,7 +81,104 @@ classdef Least_Squares_Manipulator < handle
         
         function regularize(this, reg_opt)
         end
-        
+         function setUpCodeSatic(this, rec, id_sync, cut_off)
+            % get double frequency iono_free for all the systems
+            obs_set = Observation_Set();
+            for s = rec.cc.sys_c
+                obs_set.merge(rec.getPrefIonoFree('C', s));
+            end
+            snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
+            if sum(sum(snr_to_fill));
+                obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
+            end
+    
+            if nargin > 2
+                %%% remove epochs based on desired sampling
+                obs_set.keepEpochs(id_sync);
+            end
+            if nargin > 3 && ~isempty(cut_off)
+                obs_set.remUnderCutOff(cut_off);
+            end
+            [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
+            diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
+            % remove not valid empty epoch or with only one satellite (probably too
+            % bad conditioned)
+            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 1;
+            diff_obs(~idx_valid_ep_l, :) = [];
+            xs_loc(~idx_valid_ep_l, :, :) = [];
+            
+            % removing possible empty column
+            idx_valid_stream = sum(diff_obs, 1) ~= 0;
+            diff_obs(:, ~idx_valid_stream) = [];
+            xs_loc(:, ~idx_valid_stream, :) = [];
+            
+            % removing non valid epochs also from obs_set
+            obs_set.remEpochs(~idx_valid_ep_l);
+            obs_set.sanitizeEmpty();
+            
+            % set up number of parametrs requires
+            n_epochs = size(obs_set.obs, 1);
+            this.n_epochs = n_epochs;
+            n_stream = size(obs_set.obs, 2);
+            n_coo = 3;
+            n_clocks = n_epochs;
+            ep_p_idx = [1 : n_clocks];
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first,rec.rate);
+            u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
+            iob_idx = zeros(size(obs_set.wl));
+            for c = 1:size(u_obs_code, 1)
+                idx_b = idxCharLines(obs_set.obs_code, u_obs_code(c, :));
+                iob_idx(idx_b) = c - 1;
+            end
+            iob_p_idx = iob_idx + n_coo;
+            
+            n_iob = size(u_obs_code, 1) - 1;
+            iob_flag = double(n_iob > 0);
+            n_obs = sum(sum(diff_obs ~= 0));
+            clocks_idx = n_coo + n_iob + ep_p_idx;
+            
+            A = zeros(n_obs, n_coo+iob_flag+1); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            epoch = zeros(n_obs, 1);
+            sat = zeros(n_obs, 1);
+            A_idx = zeros(n_obs, n_coo+iob_flag+1); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
+            y = zeros(n_obs, 1);
+            w = zeros(n_obs, 1);
+            obs_count = 1;
+            this.sat_go_id = obs_set.go_id;
+            for s = 1:n_stream
+                vaild_ep_stream = diff_obs(:, s) ~= 0;
+                
+                obs_stream = diff_obs(vaild_ep_stream, s);
+                snr_stream = obs_set.snr(vaild_ep_stream, s);
+                xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
+                los_stream = rowNormalize(xs_loc_stream);
+                n_obs_stream = length(obs_stream);
+                lines_stream = obs_count + (0:(n_obs_stream - 1));
+                epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
+                sat(lines_stream) = s;
+                y(lines_stream) = obs_stream;
+                w(lines_stream) =  obs_set.sigma(s)^2;
+                %w(lines_stream) = snr_stream;
+                A(lines_stream, 1:3) = - los_stream;
+                if n_iob > 0
+                    A(lines_stream, 4) = iob_idx(s) > 0;
+                    A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(s));
+                end
+                A(lines_stream, n_coo+iob_flag+1) = 1;
+                A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + ep_p_idx(vaild_ep_stream);
+                obs_count = obs_count + n_obs_stream;
+            end
+            
+            this.A_ep = A;
+            this.A_idx = A_idx;
+            this.w = w;
+            this.y = y;
+            this.epoch = epoch;
+            this.sat = sat;
+            this.param_flag = [0, 0, 0, -1*ones(iob_flag), 1 ];
+            this.param_class = [1, 2, 3, 4*ones(iob_flag),5];
+        end
         function setUpPPP(this, rec, id_sync)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
@@ -273,6 +370,9 @@ classdef Least_Squares_Manipulator < handle
             n_constant = max(max(this.A_idx(:, idx_constant_l)));
             n_class = size(this.A_ep, 2);
             n_ep_wise = max(max(this.A_idx(:, ~idx_constant_l))) - n_constant;
+            if isempty(n_ep_wise)
+                n_ep_wise = 0;
+            end
             n_epochs = this.n_epochs;
             n_obs = size(this.A_ep, 1);
             n_ep_class = n_ep_wise / n_epochs;

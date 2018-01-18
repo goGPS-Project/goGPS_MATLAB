@@ -144,8 +144,12 @@ classdef Observation_Set < handle
         function remEpochs(this, idx_rem)
             if sum(idx_rem) > 0
                 this.obs(idx_rem,:) = [];
-                this.el(idx_rem,:) = [];
-                this.az(idx_rem,:) = [];
+                if ~isempty(this.el)
+                    this.el(idx_rem,:) = [];
+                end
+                if ~isempty(this.az)
+                    this.az(idx_rem,:) = [];
+                end
                 this.snr(idx_rem,:) = [];
                 
                 lim = getOutliers(idx_rem);
@@ -174,8 +178,12 @@ classdef Observation_Set < handle
         
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];
-            this.az(:,idx_col) = [];
-            this.el(:,idx_col) = [];
+            if ~isempty(this.el)
+                this.el(idx_col,:) = [];
+            end
+            if ~isempty(this.az)
+                this.az(idx_col,:) = [];
+            end
             this.cycle_slip(:,idx_col) = [];
             this.snr(:,idx_col) = [];
             this.obs_code(idx_col,:) = [];
