@@ -957,9 +957,10 @@ classdef GPS_Time < Exportable_Object & handle
             % SYNTAX: [gps_time] = this.getGpsTime()
             if nargin == 2
                 [gps_week, gps_sow, ~] = this.getGpsWeek(id);
+            else
+                [gps_week, gps_sow, ~] = this.getGpsWeek();
             end
-            [gps_week, gps_sow, ~] = this.getGpsWeek();
-             mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
+            mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
         end
         
         function [year, doy, sod] = getDOY(this)
@@ -1252,10 +1253,9 @@ classdef GPS_Time < Exportable_Object & handle
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
             
-            [~, sec, sec_f] = gt_1 -gt_2;
+            [~, sec, sec_f] = GPS_Time.minus(gt_1, gt_2);
             prec = max(gt_1.getPrecision, gt_2.getPrecision);
-            res = abs(sec+sec_f) < prec;
-            
+            res = abs(sec+sec_f) < prec;            
         end
         
         function [sec, sec_i, sec_f] = minus(gt_1, gt_2)
