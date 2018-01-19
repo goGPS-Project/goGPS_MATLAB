@@ -2621,7 +2621,7 @@ classdef Receiver < Exportable_Object
             end
         end
 
-        function [ztd, p_time] = getZTD_mr(this)
+        function [ztd, p_time, id_sync] = getZTD_mr(this)
             % MultiRec: works on an array of receivers
             % SYNTAX:
             %  [ztd, p_time, id_sync] = this.getZTD_mr()
@@ -2630,7 +2630,7 @@ classdef Receiver < Exportable_Object
             ztd = nan(size(id_sync{1}));
             for r = 1 : n_rec
                 id_rec = id_sync{1}(:,r);
-                ztd(~isnan(id_rec),r) = this(r).ztd(id_rec(~isnan(id_rec)));
+                ztd(~isnan(id_rec), r) = this(r).ztd(id_rec(~isnan(id_rec)));
             end
         end
         
@@ -5379,15 +5379,15 @@ classdef Receiver < Exportable_Object
         
         function exportTropoSINEX(this) 
             [year, doy] = this.time.getSubSet(1).getDOY(); 
-            yy = num2str(year); 
-            yy = yy(3:4); 
-            sess_str = '0'; %think how to get the ricgt one from sss_id_list 
-            fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'zpd'], doy); 
-            snx_wrt = SINEX_Writer(fname); 
-            snx_wrt.writeTroSinexHeader( this.time.getSubSet(1), this.time.getSubSet(this.time.length), this.marker_name) 
-            snx_wrt.writeFileReference() 
-            snx_wrt.writeAcknoledgments() 
-            smpl_tropo = median(diff(this.id_sync)) * this.time.getRate; 
+            yy = num2str(year);
+            yy = yy(3:4);
+            sess_str = '0'; %think how to get the ricgt one from sss_id_list
+            fname = sprintf('%s',[this.state.getOutDir() '/' this.marker_name sprintf('%03d',doy) sess_str '.' yy 'zpd']);
+            snx_wrt = SINEX_Writer(fname);
+            snx_wrt.writeTroSinexHeader( this.time.getSubSet(1), this.time.getSubSet(this.time.length), this.marker_name)
+            snx_wrt.writeFileReference()
+            snx_wrt.writeAcknoledgments()
+            smpl_tropo = median(diff(this.id_sync)) * this.time.getRate;
             val_flags = {'TROTOT','TGNTOT','TGETOT'}; 
             snx_wrt.writeTropoDescription(this.state.cut_off, this.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1)) 
             snx_wrt.writeSTACoo( this.marker_name, this.xyz(1,1), this.xyz(1,2), this.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented 
@@ -5402,23 +5402,36 @@ classdef Receiver < Exportable_Object
             if nargin == 1
                 save_on_disk = true;
             end
-            [year, doy] = this.time.getSubSet(1).getDOY();
-            yy = num2str(year);
-            yy = yy(3:4);
-            sess_str = '0'; % think how to get the right one from sss_id_list
             if save_on_disk
+                [year, doy] = this.time.getSubSet(1).getDOY();
+                yy = num2str(year);
+                yy = yy(3:4);
+                sess_str = '0'; % think how to get the right one from sss_id_list
                 fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
                 fid = fopen(fname,'w');
             end
             this.updateCoo();
             meas_time = this.time.getSubSet(this.id_sync);
             meas_time.toUnixTime();
-            [~, doy]  = meas_time.getDOY();
             txt = '';
             for i = 1 : length(this.id_sync)
-                txt = sprintf(['%s%20.5f%20.5f%40s%40s%40s%40s%20.5f         0         0         0         0         0         F         F         F         0%10d%10d-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888%13.6f      0-888888.00000-888888', ...
-                    '101180.00000      0%20.5f      0-888888.0000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000     0', ...
-                    '-777777.00000      0-777777.00000      0      1.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],txt, this.lat, this.lon, this.marker_name, this.marker_type, this.ant_type,'goGPS software',this.h_ortho,doy(i),meas_time.unix_time(i),this.ztd(this.id_sync(i))*100, this.h_ortho);
+                txt = sprintf(['%20.5f%20.5f%40s%40s%40s%40s%20.5f         0         0         0         0         0         F         F         F         0    ' ...
+                               '     0%20s-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888' ...
+                               '-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-'...
+                               '888888.00000-888888%13.5f      0-888888.00000-888888-888888.00000      0%13.5f      0-888888.00000      0-888888.00000-888888' ...
+                               '-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888-888888.00000-888888', ...
+                               '-777777.00000      0-777777.00000      0-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0' ...
+                               '-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],...
+                               this.lat, ...
+                               this.lon, ...
+                               this.marker_name, ...
+                               this.marker_type, ...
+                               'FM-114 GPSZTD', ...
+                               'goGPS software', ...
+                               this.h_ortho, ...
+                               this.time.toString('yyyymmddHHMMSS'), ...
+                               this.ztd(this.id_sync(i))*100, ...
+                               this.h_ortho);
             end
             if save_on_disk
                 fprintf(fid,'%s', tmp);
@@ -5974,9 +5987,9 @@ classdef Receiver < Exportable_Object
             y0 = serialize((y0 - pc) .* wl);
             y0(y0 == 0) = []; % remove pivots
         end
-        
+                
         function [p_time, id_sync] = getSyncTime(rec, obs_type, p_rate)
-            % Get the common time among alle the used receivers and the target(s)
+            % Get the common (shortest) time among all the used receivers and the target(s)
             %
             % SYNTAX: 
             %   p_time = Receiver.getSyncTime(rec, obs_type, <p_rate>);
@@ -6014,6 +6027,77 @@ classdef Receiver < Exportable_Object
                     if ~rec(r).isempty
                         p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
                         p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    end
+                else
+                    % It's a target
+                    
+                    % recompute the parameters for the ref_time estimation
+                    % not that in principle I can have up to num_trg_rec ref_time
+                    % in case of multiple targets the reference times should be independent
+                    % so here I keep the temporary rt0 rt1 r_rate var
+                    % instead of ref_time_start, ref_time_stop, ref_rate
+                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = ceil(pt0 / pr) * pr;
+                    pt1 = floor(pt1 / pr) * pr;
+                    
+                    % return one p_time for each target
+                    i = i + 1;
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
+                    p_time(i).toUnixTime();
+                    
+                    id_sync{i} = nan(p_time(i).length, numel(id));
+                    for rs = id % for each rec to sync
+                        if ~rec(rs).isempty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
+                            id_sync{i}(id_rec, rs) = id_ref;
+                        end
+                    end
+                end               
+            end
+        end
+        
+        function [p_time, id_sync] = getSyncTimeExpanded(rec, obs_type, p_rate)
+            % Get the common (shor) time among alle the used receivers and the target(s)
+            %
+            % SYNTAX: 
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, obs_type, <p_rate>);
+            %
+            % EXAMPLE:
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, state.obs_type, state.getProcessingRate());
+
+            if nargin < 3
+                p_rate = 1e-6;
+            end
+            if nargin < 2
+                obs_type = ones(1, numel(rec));
+                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
+            end
+            
+            % Do the target(s) as last
+            [~, id] = sort(obs_type, 'descend');
+            
+            % prepare reference time
+            % processing time will start with the receiver with the last first epoch
+            %          and it will stop  with the receiver with the first last epoch
+            
+            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
+            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            
+            p_time = GPS_Time(); % empty initialization
+            
+            i = 0;
+            for r = id
+                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
+                if obs_type(r) > 0 % if it's not a target
+                    if ~rec(r).isempty
+                        p_time_start = min(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_time_stop = max(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
                         p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
                     end
                 else
