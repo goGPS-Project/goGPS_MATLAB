@@ -1,0 +1,1000 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=iso-8859-1">
+  <meta name="generator" content="Bluefish 2.2.10-2" >
+ 
+<link rel="stylesheet" type="text/css" href="./doc/map.css">
+ 
+  <title>M_Map: A Mapping package for Matlab</title>
+</head>
+
+
+<body>
+
+
+
+ 
+<div class="row">
+  <div class="column left">
+   
+  
+  <a href="#1._M_Map_Logo" ><img  class="menu" src="./doc/mlogo.png" alt=""      > </a> 
+  
+  <ul class="menu">
+ <li><a href="./map.html">Introduction</a>   </li>
+ <li><a href="./map.html#gallery">Gallery</a></li>
+ <li><a href="./map.html#download">Getting M_Map</a>   </li>
+ <li><a href="./map.html#relnotes">Release Notes</a></li>
+ <li><a href="./mapug.html">Users Guide</a></li>
+ <li><a href="./map.html#examples">Example Code<a></li>
+ <li><a href="./map.html#ack">Acknowledgements</a></li>
+</ul>   
+
+<p class="menu"> Last changed 15/Dec/2017. Questions and comments to <a
+ href="mailto:rich@eos.ubc.ca">rich@eos.ubc.ca</a></p> 
+  
+  </div>
+   
+  <div class="column right">
+  <a name="intro"></a>
+       <h1> <a > M_Map:</a></h1>      
+      <h2> A mapping package for <a href="http://www.mathworks.com">Matlab</a> </h2>
+
+<hr>
+
+<p> You have collected your data, loaded it into</a> <a href="http://www.mathworks.com">Matlab</a>, analyzed everything to
+death, and now you want to make a simple map showing how it relates to the world. </p>
+
+<p>But you can't. </p>
+
+<p>Instead you have to figure out how to save all your data, and then
+read it into another program (like, for example <a href="http://gmt.soest.hawaii.edu">GMT</a>), and then spend all that
+extra time figuring out why it doesn't give you what you expected it
+would...or you can invest in Matlab's own mapping toolbox (with a similarly steep learning curve)... or not! </p>
+
+
+
+
+<h2> Announcing M_Map v1.4i! <br> (released Dec/2017)</h2>
+
+
+
+<p>M_Map is a set of mapping tools written for Matlab (it also works under <a href="https://www.gnu.org/software/octave/" >Octave</a>). M_Map includes:</p>
+<ol>
+  <li> Routines to project data in 19 different projections
+(and determine inverse mappings), using spherical and ellipsoidal earth-models.</li>
+  <li> A grid generation routine to make nice axes with limits either
+in lat/long terms or in planar X/Y terms.</li>
+  <li> A coastline database (with 1/4 degree resolution).</li>
+  <li> A global elevation database (1 degree resolution).</li>
+  <li> Hooks into freely available high-resolution coastline and
+bathymetry databases.</li>
+ <li> Other useful stuff.</li>
+</ol>
+
+<hr>
+
+<h2><a name="gallery"> Gallery </a></h2>
+
+<table align="center" border="1" cellpadding="0" cellspacing="0"
+ width="100%"  name="galtab">
+  <tbody>
+    <tr>
+      <td align="center" valign="middle"><a href="#1._M_Map_Logo"><img
+ src="./doc/mlogo.png" alt=""   width="125" class="click"> </a> 
+      </td>
+      <td align="center" valign="middle"><a
+ href="#2._Lambert_Conformal_Conic_projection_of"><img
+ src="./doc/exlamber.png" alt=""   width="125" class="click"> </a> 
+      </td>
+      <td align="center" valign="middle"><a
+ href="#3._Stereographic_projection_of_North"><img
+ src="./doc/exster.png" alt=""   width="125" class="click"> </a> 
+      </td>
+      <td align="center" valign="middle"><a
+ href="#4._Two_Interrupted_Projections_of_the"><img
+ src="./doc/exsinus.png" alt=""   width="125" class="click"> </a> 
+      </td>
+      <td align="center" valign="middle"><a
+ href="#5._Oblique_Mercator_Projection_with"><img
+ src="./doc/exquiv.png" alt=""   width="125" class="click"> </a> 
+      </td>
+    </tr>
+    <tr>
+      <td align="center" valign="middle"><a
+ href="#6._Miller_Projection_with_Great_Circle"><img
+ src="./doc/exmiller.png" alt=""   width="125" class="click"> </a> 
+      </td>
+      <td align="center" valign="middle"><a
+ href="#7._Lambert_Conformal_Projection_with_Med"><img
+ src="./doc/extbase.png" alt=""   width="125" class="click"> </a>
+      </td>
+      <td align="center" valign="middle"><a
+ href="#8._Demonstration_of_fancy_vectors"><img
+ src="./doc/exvec.png" alt=""   width="125" class="click"> </a>
+      </td>
+   <td align="center" valign="middle"><a 
+ href="#9._Zoom_in_on_Prince_Edward_Island_to_co"><img
+ src="./doc/exgshhs.png" alt=""   width="125" class="click"> </a>
+      </td>
+      <td align="center" valign="middle"><a
+ href="#10._Tracklines_and_UTM_projection"><img
+ src="./doc/extrack1.png" alt=""   width="125" class="click"> </a>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" valign="middle"><a href="#11._Range_rings" ><img
+ src="./doc/exrring.png" alt=""  width="125" class="click"> </a>
+      </td>
+      <td align="center" valign="middle"><a href="#12._Speckle"><img
+ src="./doc/exspeckle.png"   width="125" class="click"> </a>
+      </td>
+      <td align="center" valign="middle"><a href="#13._Blueocean"><img
+ src="./doc/exblueocean.png" alt=""  width="125" class="click"> </a> 
+      </td>
+ <td align="center" valign="middle"><a href="#14._stepjet"><img
+ src="./doc/exstepjet.png" alt=""   width="125" class="click"> </a>  
+      </td>
+      <td align="center" valign="middle"><a href="#15._bathym"><img
+ src="./doc/exbathym.png" alt=""   width="125" class="click"> </a> 
+      </td>
+    </tr>
+    <tr>
+      <td align="center" valign="middle"><a href="map.html#1._Global_SST"><img src="./doc/exsst.png"
+ alt=""   width="125" class="click"></a>
+      <td align="center" valign="middle"> <a
+ href="map.html#2._SSMI_Ice_cover"><img src="./doc/ex_ssmi2.png"
+ alt=""   width="125" class="click"></a>
+      <a href="map.html#2._SSMI_Ice_cover" > </a></td>
+      <td align="center" valign="middle"><a
+ href="map.html#3._Aerial_photos"><img src="./doc/exterra.png"
+ alt=""   width="125" class="click"> </td>
+      <td align="center" valign="middle"><a
+ href="map.html#4._A_subset_of_a_global_dataset"><img src="./doc/exmodis.png" 
+ alt=""   width="125" class="click"></a> 
+ </td>
+      <td align="center" valign="middle"><a
+ href="map.html#5._ncread"><img src="./doc/exncread.png" 
+ alt=""   width="125" class="click"></a> 
+      </td>
+    </tr>
+    <tr>
+   <td align="center" valign="middle"><a href="map.html#6._argo"><img
+ src="./doc/exargo.png" alt=""   width="125" class="click"> </a>  </td>
+  <td align="center" valign="middle"><a href="map.html#7._SAR"><img
+ src="./doc/exSAR.png" alt=""   width="125" class="click"> </a>  </td>
+  <td></td>
+  <td></td>
+   <td></td>
+  
+
+    </tr>
+  </tbody>
+</table>
+<br>
+<br>
+
+ <hr>
+
+
+
+<h2> <a name="download"></a>How to get M_Map</h2>
+
+<p>You can download the M_Map toolbox either as a <a
+ href="http://www.eos.ubc.ca/%7Erich/m_map1.4.tar.gz">gzipped tar-file </a>,
+or as <a href="http://www.eos.ubc.ca/%7Erich/m_map1.4.zip">zip archive
+</a>(Click on these links to download). If you are unpacking the zip
+file MAKE SURE YOU
+ALSO UNPACK SUBDIRECTORIES! Both are around 650k in size. Once you have
+this
+archive, read the <a href="./mapug.html#p1">Getting started </a>section
+of the <a href="./mapug.html#intro">User's guide </a>to correctly
+install this toolbox, and sections <a href="./mapug.html#p8.6">8.6</a>
+and <a href="./mapug.html#p9.3">9.3</a> to install ETOPO1
+and GSHHS respectively.
+<p>A number of <a href="#examples">examples</a> are available to
+highlight the various capabilities of M_Map (thumbnails are shown
+above). </p>
+
+<p>M_Map is a programming toolbox. However, you can also explore
+mapping using <a href="http://www.dimitriospiretzidis.com/maplab_home.html" >MAP-LAB</a>,
+a a MATLAB-based Graphical User Interface (GUI) designed to produce maps and visualize data sets 
+related to geodetic, geophysical and oceanographic applications, which is built on top of M_Map.
+MAP_Lab is available <a href="http://www.dimitriospiretzidis.com/maplab_home.html" >here</a>.</p>
+
+<!--
+<p>You can also get <b>m_namebox </b>(a set of utilities for
+automatically adding names to your map), through its home page at
+<a href="http://www.nersc.no/%7Eeven/matlab/m_namebox/m_namebox.html">http://www.nersc.no/~even/
+.</a> </p>
+-->
+
+
+<hr>
+<h2> <a name="relnotes"> Release Notes</a></h2>
+
+<p>New in release 1.4i:<img
+ src="././doc/new.gif" align="left"></p>
+<ol> 
+<li> Finally sorted out the major "2014b and later matlab graphics engine" related problems with <code>m_grid</code>, as well as many
+minor graphics improvements.
+<li> <code>m_windbarb</code> and <code>m_streamline</code> for meteorologists, also <code>m_scatter</code>.
+<li> A set of useful colourmaps in <code>m_colmap</code>, including a perceptually uniform "jet-like" colourmap.
+<li> A colourbar function <code>m_contfbar</code> made to work with <code>contourf</code> plots.
+<li> <code>m_annotation</code> and <code>wysiwyg</code> to help you add arrows and things.</li>
+<li>Updated the documentation so it doesn't have that "1990s" look.</li>
+<li> Added link to a Chinese translation of the Users Guide, as well as to the mapping GUI MAP-LAB which is built on top of M_Map.</li>
+<li> List of coded examples updated, and a few new ones added.</li>
+</ol>
+<p>New in release 1.4h are</p>  
+<ol>
+  <li> ETOPO2v2 and ETOPO1 support.
+  <li> Handled some warnings about BITMAX that arise in Matlab 2014b. Note - I have only been able to
+  fix or workaround SOME of the really bad bugs in 2014b. Use with caution (or better yet don't use). EPS
+  output in particular is really awful, even if the screen plot looks "nice". Fortunately mathworks
+  "may consider fixing this in future releases".
+  <li> Added option to output national+state or national borders only in <code>m_gshhs</code>.
+</ol>
+<p>  New in release 1.4g are</p>
+<ol>
+  <li><code>m_ellipse.m</code> to plot tidal ellipses (say, from <a href="http://www.eos.ubc.ca/~rich/index.html#T_Tide"> T_Tide </a>)
+  <li>Option to use either decimal-degrees or degrees/decimal-minutes in grid axis labels
+  <li> Matlab 2013b has a bad bug in the <code>dataaspectratio</code> axes property that affects pretty much everything graphical. This version of
+  M_Map has a workaround that MOSTLY works, but it would
+  be better to avoid using 2013b.
+  </ol>
+<p>New in release 1.4f are</p>
+<ol>
+  <li><code>m_shaperead.m </code>to read SHAPEFILES! (so <a href="http://www.naturalearthdata.com/">Natural Earth</a> can be
+  used for political boundaries instead of DCW, among other opportunities) </li>
+  <li>gshhs version 2 support</li>
+  <li> partial OCTAVE compatibility </li>
+ </ol>
+<p>New in release 1.4e are</p>
+<ol>
+  <li>GSHHS Now comes with the WDB rivers and borders database, and
+      links to them have been added via <code>m_gshhs.m </code></li>
+  <li>Ellipsoidal Albers and Lambert conic projections included </li>
+ </ol>
+<p>New in release 1.4d are</p>
+<ol>
+  <li>Modifications to work around bugs in matlab7 <code>contourf</code> </li>
+  <li>Robinson projection</li>
+  <li>A few compatibility issues with current matlab versions
+  <li>Upgraded hooks into some databases.
+ </ol>
+<p>New in release 1.4b are</p>
+<ol>
+  <li>m_hatch for hatched and speckled patches</li>
+  <li>old-fashioned speckled coastlines (good for B&amp;W pics - see <a
+ href="#12._Speckle">Example 13</a>). 
+  </li>
+  <li>m_lldist now also returns points on great circle geodesics.</li>
+  <li><code>m_fdist, m_idist</code>, and <code>m_geodesic</code> for geodesics on an ellipsoidal
+earth.<br>
+  </li>
+</ol>
+<p>New in release 1.4 are</p>
+<ol>
+  <li><code>m_pcolor</code></li>
+  <li><code>m_coord</code> (to allow for geographic and geomagnetic coordinate
+systems)</li>
+  <li>A very few minor bug fixes.</li>
+  <li>Some hints about and examples of adding satellite image data to
+your maps.  </li>
+</ol>
+
+
+<hr>
+ 
+
+<h2> <a name="examples"></a>Example Code</h2>
+
+<h4><a name="1._M_Map_Logo"></a> 1. M_Map Logo</h4>
+
+<pre>
+m_proj('ortho','lat',48','long',-123');
+m_coast('patch','r');
+m_grid('linest','-','xticklabels',[],'yticklabels',[]);
+
+patch(.55*[-1 1 1 -1],.25*[-1 -1 1 1]-.55,'w'); 
+text(0,-.55,'M\_Map','fontsize',25,'color','b',...
+    'vertical','middle','horizontal','center');
+<!-- set(gcf,'units','inches','position',[2 2 3 3]);
+set(gcf,'paperposition',[3 3 3 3]); -->
+ </pre>
+ <img src="././doc/mlogo.png">  
+
+<h4><a name="2._Lambert_Conformal_Conic_projection_of"></a> <a  name="e2"></a>2. Lambert Conformal Conic projection of North American Topography</h4>
+ 
+<pre>
+m_proj('lambert','long',[-160 -40],'lat',[30 80]);
+m_coast('patch',[1 .85 .7]);
+m_elev('contourf',[500:500:6000]);
+m_grid('box','fancy','tickdir','in');
+colormap(flipud(copper));
+</pre>
+<img src="././doc/exlamber.png" width=70%> 
+
+<h4><a name="3._Stereographic_projection_of_North"></a> 3. Stereographic projection of North Polar regions</h4>
+
+<pre>
+% Note that coastline is drawn OVER the grid because of the order in which
+% the two routines are called
+
+m_proj('stereographic','lat',90,'long',30,'radius',25);
+m_elev('contour',[-3500:1000:-500],'edgecolor','b');
+m_grid('xtick',12,'tickdir','out','ytick',[70 80],'linest','-');
+m_coast('patch',[.7 .7 .7],'edgecolor','r');
+</pre>
+<img src="././doc/exster.png" width=50%> 
+
+<h4><a name="4._Two_Interrupted_Projections_of_the"></a> <a name="e4"></a>4. Two Interrupted Projections of the World's Oceans</h4>
+
+<pre>
+subplot(211);
+Slongs=[-100 0;-75 25;-5 45; 25 145;45 100;145 295;100 290];
+Slats= [   8 80;-80  8;  8  80;-80   8; 8   80;-80   0; 0 80];
+for l=1:7
+    m_proj('sinusoidal','long',Slongs(l,:),'lat',Slats(l,:));
+    m_grid('fontsize',6,'xticklabels',[],'xtick',[-180:30:360],...
+                'ytick',[-80:20:80],'yticklabels',[],'linest','-','color',[.7 .7 .7]);
+    m_coast('patch','g');
+end
+xlabel('Interrupted Sinusoidal Projection of World Oceans');
+
+% In order to see all the maps we must undo the axis limits set by m_grid calls:
+set(gca,'xlimmode','auto','ylimmode','auto');
+subplot(212);
+Slongs=[-100 43;-75 20; 20 145;43 100;145 295;100 295];
+Slats= [&nbsp; 0&nbsp; 90;-90&nbsp; 0;-90&nbsp;&nbsp; 0; 0&nbsp; 90;-90&nbsp;&nbsp; 0;&nbsp; 0&nbsp; 90];
+for l=1:6
+    m_proj('mollweide','long',Slongs(l,:),'lat',Slats(l,:));
+    m_grid('fontsize',6,'xticklabels',[],'xtick',[-180:30:360],...
+                'ytick',[-80:20:80],'yticklabels',[],'linest','-','color','k')
+    m_coast('patch',[.6 .6 .6]);
+end
+xlabel('Interrupted Mollweide Projection of World Oceans');
+set(gca,'xlimmode','auto','ylimmode','auto');
+</pre>
+<img src="././doc/exsinus.png" width=50%> 
+
+<h4><a name="5._Oblique_Mercator_Projection_with"></a> 5. Oblique Mercator Projection with quiver and contour data</h4>
+
+<pre>
+%% Nice looking data
+[lon,lat]=meshgrid([-136:2:-114],[36:2:54]);
+u=sin(lat/6);<br>v=sin(lon/6);
+
+m_proj('oblique','lat',[56 30],'lon',[-132 -120],'aspect',.8);
+subplot(121);
+m_coast('patch',[.9 .9 .9],'edgecolor','none');
+m_grid('tickdir','out','yaxislocation','right',...
+            'xaxislocation','top','xlabeldir','end','ticklen',.02);
+hold on;
+m_quiver(lon,lat,u,v);
+xlabel('Simulated surface winds');
+subplot(122);
+m_coast('patch',[.9 .9 .9],'edgecolor','none');<br>m_grid('tickdir','out','yticklabels',[],...
+              'xticklabels',[],'linestyle','none','ticklen',.02);
+hold on;
+[cs,h]=m_contour(lon,lat,sqrt(u.*u+v.*v));
+clabel(cs,h,'fontsize',8);
+xlabel('Simulated something else');
+</pre>
+<img src="././doc/exquiv.png" width=50%> 
+
+
+<h4><a name="6._Miller_Projection_with_Great_Circle"></a> <a name="e6"></a>6. Miller Projection with Great Circle</h4>
+
+<pre>
+% Plot a circular orbit
+lon=[-180:180];
+lat=atan(tan(60*pi/180)*cos((lon-30)*pi/180))*180/pi;
+m_proj('miller','lat',82);
+m_coast('color',[0 .6 0]);
+m_line(lon,lat,'linewi',3,'color','r');
+m_grid('linestyle','none','box','fancy','tickdir','out');
+</pre>
+<img src="././doc/exmiller.png" width=50%> 
+
+<h4><a name="7._Lambert_Conformal_Projection_with_Med"></a> 7. Lambert Conformal Projection with high-resolution bathymetry of Western Mediterranean</h4>
+
+<pre>
+m_proj('lambert','lon',[-10 20],'lat',[33 48]); 
+[CS,CH]=m_tbase('contourf',[-5000:500:3000],'edgecolor','none');
+m_grid('linestyle','none','tickdir','out','linewidth',3);
+
+colormap([ m_colmap('blues',40); m_colmap('greens',24)]);
+brighten(.5);
+
+ax=m_contfbar(1,[.5 .8],CS,CH);
+title(ax,{'Level/m',''}); % Move up by inserting a blank line
+</pre>
+<img src="././doc/extbase.png" width=50%> 
+
+<h4><a name="8._Demonstration_of_fancy_vectors"></a> <a name="e8"></a>8. Demonstration of fancy vectors</h4>
+<pre>m_vec; % See code in m_vec.m for details</pre>
+<img src="././doc/exvec.png" width=50%> 
+
+<h4><a name="9._Zoom_in_on_Prince_Edward_Island_to_co"></a> <a name="e9"></a>9. Zoom in on Prince Edward Island to show different coastline resolutions</h4>
+<pre>
+% Example showing the default coastline and all of the different resolutions
+% of GSHHS coastlines as we zoom in on a section of Prince Edward Island.
+
+    clf
+    axes('position',[.35 .6 .37 .37]);
+    m_proj('albers equal-area','lat',[40 60],'long',[-90 -50],'rect','on');
+    m_coast('patch',[0 1 0]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out',...
+           'xaxisloc','top','yaxisloc','right','fontsize',6);
+    m_text(-69,51,'Standard coastline','color','r','fontweight','bold');
+    m_ruler([.5 .9],.8,3,'fontsize',8)
+    
+    axes('position',[.09 .5 .37 .37]);
+    m_proj('albers equal-area','lat',[40 54],'long',[-80 -55],'rect','on');
+    m_gshhs_c('patch',[.2 .8 .2]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out',...
+           'xaxisloc','top','fontsize',6);
+    m_text(-80,52.5,'GSHHS\_C (crude)','color','m','fontweight','bold');
+    m_ruler([.5 .9],.8,2,'fontsize',8);
+      
+    axes('position',[.13 .2 .37 .37]);
+    m_proj('albers equal-area','lat',[43 48],'long',[-67 -58],'rect','on');
+    m_gshhs_l('patch',[.4 .6 .4]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out','fontsize',6);
+    m_text(-66.5,43.5,'GSHHS\_L (low)','color','m','fontweight','bold');
+    m_ruler([.5 .9],.8,3,'fontsize',8);
+     
+    axes('position',[.35 .05 .37 .37]);
+    m_proj('albers equal-area','lat',[45.8 47.2],'long',[-64.5 -62],'rect','on');
+    m_gshhs_i('patch',[.5 .6 .5]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out',...
+           'yaxisloc','right','fontsize',6);
+    m_text(-64.4,45.9,'GSHHS\_I (intermediate)   ','color','m',...
+          'fontweight','bold','horizontalalignment','right');
+    m_ruler([.5 .8],.1,3,'fontsize',8);
+     
+    axes('position',[.5 .1 .37 .37]);
+    m_proj('albers equal-area','lat',[46.375 46.6],'long',[-64.2 -63.7],'rect','on');
+    m_gshhs_h('patch',[.6 .7 .6]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out',...
+           'xaxisloc','top','yaxisloc','right','fontsize',6);
+    m_text(-64.18,46.4,'GSHHS\_H (high)','color','m','fontweight','bold');
+    m_ruler([.5 .8],.2,3,'fontsize',8);
+     
+    axes('position',[.55 .35 .37 .37]);
+    m_proj('albers equal-area','lat',[46.55 46.65],'long',[-63.97 -63.77],'rect','on');
+    m_gshhs_f('patch',[.7 .9 .7]);
+    m_grid('linestyle','none','linewidth',2,'tickdir','out',...
+           'xaxisloc','top','yaxisloc','right','fontsize',6);
+    m_text(-63.95,46.56,'GSHHS\_F (full)','color','m','fontweight','bold');
+    m_ruler([.5 .8],.2,3,'fontsize',8);
+</pre>
+<img src="./doc/exgshhs.png" width=50%> 
+
+<h4><a name="10._Tracklines_and_UTM_projection"></a> <a name="e10"></a>10. Tracklines and UTM projection</h4>
+
+<pre>
+    m_proj('UTM','long',[-72 -68],'lat',[40 44]);
+    m_gshhs_i('color','k');
+    m_grid('box','fancy','tickdir','in');
+    m_ruler(1.2,[.5 .8]);
+    
+    % fake up a trackline
+    lons=[-71:.1:-67];
+    lats=60*cos((lons+115)*pi/180);
+    dates=datenum(1997,10,23,15,1:41,zeros(1,41));
+
+    m_track(lons,lats,dates,'ticks',0,'times',4,'dates',8,...
+           'clip','off','color','r','orient','upright');  
+ </pre>
+<img src="././doc/extrack1.png" width=50%> 
+
+<h4><a name="11._Range_rings"></a> <a name="e11"></a>11. Range rings</h4>
+
+<pre>
+m_proj('hammer','clong',170);
+m_grid('xtick',[],'ytick',[],'linestyle','-');
+m_coast('patch','g');
+m_line(100.5,13.5,'marker','square','color','r');
+m_range_ring(100.5,13.5,[1000:1000:15000],'color','b','linewi',2);
+xlabel('1000km range rings from Bangkok');
+</pre>
+<img src="./doc/exrring.png" width=50%>
+
+<h4><a name="12._Speckle"></a> <a name="e12"></a>12. Speckled boundary</h4>
+
+<pre>
+    bndry_lon=[-128.8 -128.8 -128.3 -128 -126.8 -126.6 -128.8];
+    bndry_lat=[49      50.33  50.33  50   49.5   49     49];
+    
+    clf;
+    m_proj('lambert','long',[-130 -121.5],'lat',[47 51.5],'rectbox','on');
+
+    m_gshhs_i('color','k');              % Coastline...
+    m_gshhs_i('speckle','color','k');    % with speckle added
+
+    m_line(bndry_lon,bndry_lat,'linewi',2,'color','k');     % Area outline ...
+    m_hatch(bndry_lon,bndry_lat,'single',30,5,'color','k'); % ...with hatching added.
+
+    m_grid('linewi',2,'linest','none','tickdir','out','fontsize',12);
+    title('Speckled Boundaries for nice B&amp;W presentation','fontsize',14);
+    m_text(-128,48,5,{'Pacific','Ocean'},'fontsize',18);
+</pre>
+<img src="./doc/exspeckle.png" width=60%>
+
+
+<h4><a name="13._Blueocean"></a> <a name="e13"></a>13. Blue Ocean</h4>
+
+<pre>    
+    m_proj('miller','lat',[-77 77]);   
+    m_coast('patch',[.7 1 .7],'edgecolor','none'); 
+    m_grid('box','fancy','linestyle','-','gridcolor','w','backcolor',[.2 .65 1]);
+    
+    cities={'Cairo','Washington','Buenos Aires'}; 
+    lons=[ 30+2/60  -77-2/60   -58-22/60];
+    lats=[ 31+21/60  38+53/60  -34-45/60]; 
+    for k=1:3
+      [range,ln,lt]=m_lldist([-123-6/60 lons(k)],[49+13/60  lats(k)],40); 
+      m_line(ln,lt,'color','r','linewi',2); 
+      m_text(ln(end),lt(end),sprintf('%s - %d km',cities{k},round(range)));
+    end;
+    title('Great Circle Routes','fontsize',14,'fontweight','bold');
+    
+    set(gcf,'color','w');   % Need to do this otherwise 'print' turns the lakes black
+    </pre>
+    
+<img src="./doc/exblueocean.png" width=65%>
+
+<h4><a name="14._stepjet"></a> <a name="e14"></a>14. Stepped jet colormap</h4>
+
+<pre>    
+    % get delta-SA data from the TEOS-10 gsw atlas at 2500 dbar
+
+    [LG,LT]=meshgrid(0:360,-86:89);
+    dSA=ones(size(LG));
+    dSA(:)=gsw_deltaSA_atlas(3000*dSA(:),LG(:),LT(:));
+
+
+    % Rearrange data to lie in the longitude limits I give for the
+    % projection
+
+    ind=[31:361 1:30]; % Move left side to right
+    dSA=dSA(:,ind);
+    LT=LT(:,ind);
+    LG=LG(:,ind);LG(LG<30)=LG(LG<30)+360; %...and add 360 to some longitudes
+
+    clf;
+    m_proj('robinson','lon',[30 390]);
+
+    m_pcolor(LG,LT,dSA*1000);
+
+    m_coast('patch',[.7 .7 .7],'edgecolor','none');
+    m_grid('tickdir','out','linewi',2);
+
+    % This is a perceptually uniform jet-like color scale, but in m_colmap
+    % we can add some simple graduated steps to make the pcolor look a little
+    % more like a contourf
+    colormap(m_colmap('jet','step',10));
+
+    h=colorbar('northoutside');
+    title(h,'\deltaSA/(g/kg) at 2000 dbar','fontsize',14);
+    set(h,'pos',get(h,'pos')+[.2 .05 -.4 0],'tickdir','out')
+
+    set(gcf,'color','w');   % Need to do this otherwise 'print' turns the lakes black
+ </pre>
+<img src="./doc/exstepjet.png"  width=65%>
+
+<h4><a name="15._bathym"></a> <a name="e15"></a>15. Bathymetry</h4>
+
+<pre> 
+load /ocean/rich/home/dens14/VENTS
+lp=load('/ocean/rich/home/dens14/Linep_201402');
+addpath /ocean/rich/home/matlab/cbrewer    % The colorbrewer (from MATLAB File Exchange)
+
+m_proj('lambert','long',[-160 -115],'lat',[32 60]);
+[CS,CH]=m_etopo2('contourf',[-7000:1000:-1000 -500 -200 0 ],'edgecolor','none');
+m_gshhs_f('patch',[.7 .7 .7],'edgecolor','none');
+h1=m_line(vents.lon,vents.lat,'marker','s','color',[0 .5 0],...
+          'linest','none','markerfacecolor','w','clip','point');
+h2=m_line(lp.POS(:,2),lp.POS(:,1),'marker','o','color','r','linewi',2,...
+          'linest','none','markersize',8,'markerfacecolor','w');
+m_grid('linest','none','tickdir','out','box','fancy','fontsize',16);
+legend([h1(1),h2(1)],'Known Hydrothermal vents','Line-P Stations','location','southwest');
+
+
+colormap(m_colmap('blues'));  
+caxis([-7000 000]);
+
+[ax,h]=m_contfbar([.55 .75],.8,CS,CH,'endpiece','no','axfrac',.05);
+title(ax,'meters')
+
+set(gcf,'color','w');  % otherwise 'print' turns lakes black
+</pre>
+<img src="./doc/exbathym.png"  width=65%>
+
+
+<h2><a name="satellite_examples"></a>Examples of satellite data manipulation</h2>
+
+<h4><a name="1._Global_SST"></a>1. Global SST (or any variable on a global Lat/Long grid)</h4>
+
+<pre>
+ % NOAA/NASA Pathfinder AVHRR SST product
+ % http://podaac.jpl.nasa.gov/sst/
+ 
+ [P,map]=imread('../m_mapWK/199911h54ma-gdm.hdf');
+ 
+ % Documentation for the 54km dataset gives
+ % this formula for temperature
+ P=0.15*double(P)-3; % deg C
+ 
+ %...and defines this Lat/Long grid for the data
+ Plat=90-.25-[0:359]*.5;Plon=-180+.25+[0:719]*.5;
+ 
+ % Since the grid is rectangluar in lat/long (i.e. not
+ % really a projection at all, although it is included in
+ % m_map under the name 'equidistant cyldindrical'), we 
+ % don't want to use the 'image' technique. Instead... 
+ % Create a grid, offsetting by half a grid point to account
+ % for the flat pcolor
+ [Plg,Plt]=meshgrid(Plon-0.25,Plat+0.25);
+ 
+ m_proj('hammer-aitoff','clongitude',-150);
+  
+ % Rather than rearranging the data so its limits match the
+ % plot I just draw it twice (you can see the join at 180W
+ % because of the quirks of flat pcolor) (Note that 
+ % all the global projections have 360 deg ambiguities)
+ m_pcolor(Plg,Plt,P);shading flat;colormap(map);
+ hold on;
+ m_pcolor(Plg-360,Plt,P);shading flat;colormap(map);
+ 
+ m_coast('patch',[.6 1 .6]);
+ m_grid('xaxis','middle');
+
+ % add a standard colorbar.
+ h=colorbar('h');
+ set(get(h,'xlabel'),'string','AVHRR SST Nov 1999');
+</pre>
+
+<img src="./doc/exsst.png" alt="SST pic"   width=65%>
+
+<h4><a name="2._SSMI_Ice_cover"></a>2. SSM/I Ice cover (data provided 
+on a fixed grid) (HDF format)</h4>
+<pre>
+%Near-Real-Time SSM/I-SSMIS EASE-Grid Daily Global Ice Concentration and 
+% Snow Extent, Version 5
+%
+% Brodzik, M. J. and J. S. Stewart. 2016. Near-Real-Time SSM/I-SSMIS EASE-Grid 
+% Daily Global Ice Concentration and Snow Extent, Version 5. Boulder, Colorado 
+% USA. NASA National Snow and Ice Data Center Distributed Active Archive Center. 
+% doi: http://dx.doi.org/10.5067/3KB2JPLFPK3R.
+
+Q=hdfinfo('NISE_SSMISF18_20171124.HDFEOS')
+%  Q.Attributes(2).Value says
+%                UpperLeftPointMtrs=(-9036842.762500,9036842.762500)
+%                LowerRightMtrs=(9036842.762500,-9036842.762500)
+%                 ProjParams=(6371228,0,0,0,0,90000000,0,0,0,0,0,0,0)
+%  and
+%  Q.Attributes(3).Value says
+%  'Data Value     Parameter
+%     0              snow-free land
+%     1-100          sea ice concentration percentage
+%     101            permanent ice (Greenland, Antarctica)
+%     102            not used
+%     103            dry snow
+%     104            wet snow
+%     105-251        not used
+%     252            mixed pixels at coastlines (unable to reliably apply microwave algorithm)
+%     253            suspect ice value
+%     254            corners(undefined)
+%     255            ocean
+
+
+P=hdfread('NISE_SSMISF18_20171124.HDFEOS','Northern Hemisphere','fields','Extent');
+P(P==255)=105;   % Put ocean at top of indices
+P(P>105)=0;
+
+% According to web site this is is the projection info. I make te radius
+% of my map less than the actual data field though.
+m_proj('azimuthal equal-area','latitude',90,'radius',47,'rectbox','on');
+
+ clf
+% Plot data as an image
+offs=9036842.762500/6371228; % Convert projection coords to units of earth radii
+image([-offs offs],[offs -offs],P); set(gca,'ydir','normal');
+colormap([.2 .5 .2;  % 0
+           jet(100); % 1-100
+           1 1 1;    % Greenland
+           0 0 0  ;
+           .9 .9 .9; % dry snow
+           .8 .8 .8; % wet snow
+           0 0 .5]); % 105 - now ocean
+caxis([0 105]);
+
+m_coast('color','k');
+m_grid('linewi',2,'tickdir','out');
+title({'SSM/I Ice cover Nov 24, 2017',''},'fontsize',14,'fontweight','bold');
+
+hh=colorbar('h');
+set(hh,'tickdir','out');
+xlabel(hh,'% Ice cover');
+
+</pre>
+<img src="./doc/ex_ssmi2.png" alt="SSMI Ice"   width=50%>
+
+<h4><a name="3._Aerial_photos"></a>3. Aerial photos on an UTM grid</h4>
+
+<pre>
+ % This image comes from the TerraServer
+ % (http://terraserver.microsoft.com/ - now greatly altered)
+ % and has been georeferenced to UTM coords. The UTM projection
+ % uses UTM coordinates on the screen (as long as the ellipse
+ % parameter is set to something other than the default),
+ [P,map]=imread('../m_mapWK/oncehome.jpeg');
+ 
+ % Set the projection limits to the lat/long of image
+ % corners.
+ m_proj('UTM','long',[-71-6/60-30/3600 -71-4/60-43/3600],...
+             'lat',[42+21/60+13/3600&nbsp; 42+22/60+7/3600],'ellipse','wgs84');
+ 
+ clf;
+ image([326400 328800],[4692800 4691200],P);set(gca,'ydir','normal');
+ m_grid('tickdir','out','linewi',2,'fontsize',14);
+ title('A home for certain nerds','fontsize',16);
+</pre>
+<img src="./doc/exterra.png" alt="nerdhome"   width=65%>
+
+
+<h4><a name="4._A_subset_of_a_global_dataset"></a>4. ;A subset of a global dataset (HDF format)</h4>
+<pre>
+  % Ocean colour data from http://seawifs.gsfc.nasa.gov/SEAWIFS.html
+  %
+  % Take a 4km weakly average dataset and plot a map for the Strait of
+  % Georgia and outer coast. Note that most of this code is used
+  % for reading in and subsetting the data.
+  
+  LATLIMS=[47 51];
+  LONLIMS=[-130 -121];
+ 
+  % Note - This is probably not the most efficient way to read and
+  % handle HDF data, but I don't usually do this...
+  %
+  % First, get the attribute data
+  PI=hdfinfo('../m_mapWK/A20040972004104.L3m_8D_CHLO_4KM');
+  % And write it into a structure
+  pin=[];
+  for k=1:59
+     nm=PI.Attributes(k).Name;nm(nm==' ')='_';
+     if isstr(PI.Attributes(k).Value),
+          pin=setfield(pin,nm,PI.Attributes(k).Value);
+      else
+         pin=setfield(pin,nm,double(PI.Attributes(k).Value));
+      end
+  end;
+  
+  % lon/lat of grid corners
+  lon=[pin.Westernmost_Longitude:pin.Longitude_Step:pin.Easternmost_Longitude];
+  lat=[pin.Northernmost_Latitude:-pin.Latitude_Step:pin.Southernmost_Latitude];
+  
+  % Get the indices needed for the area of interest
+  [mn,ilt]=min(abs(lat-max(LATLIMS)));
+  [mn,ilg]=min(abs(lon-min(LONLIMS)));
+  ltlm=fix(diff(LATLIMS)/pin.Latitude_Step);
+  lglm=fix(diff(LONLIMS)/pin.Longitude_Step);
+  
+  % load the subset of data needed for the map limits given  
+  P=hdfread('../m_mapWKA20040972004104.L3m_8D_CHLO_4KM','l3m_data',...
+            'Index',{[ilt ilg],[],[ltlm lglm]});
+  
+  % Convert data into log(Chla) using the equations given. Blank no-data.
+  P=double(P);
+  P(P==255)=NaN;
+  P=(pin.Slope*P+pin.Intercept);   % log_10 of chla
+ 
+  LT=lat(ilt+[0:ltlm-1]);LG=lon(ilg+[0:lglm-1]);
+  [Plg,Plt]=meshgrid(LG,LT);
+ 
+  % FINALLY....Draw the map...
+  
+  clf;
+  m_proj('lambert','lon',LONLIMS,'lat',LATLIMS);
+  m_pcolor(Plg,Plt,P);shading flat;
+  m_gshhs_i('color','k');;
+  m_grid('linewi',2,'tickdir','out');;
+  h=colorbar;
+  set(get(h,'ylabel'),'String','Chla (\mug/l)');
+  set(h,'ytick',log10([.5 1 2 3 5 10 20 30]),'yticklabel',[.5 1 2 3 5 10 20 30],...
+        'tickdir','out');
+  title(['MODIS Chla ' ...
+         datestr(datenum(pin.Period_Start_Year,1,0)+pin.Period_Start_Day) ...
+         ' -> ' ...
+         datestr(datenum(pin.Period_Start_Year,1,0)+pin.Period_End_Day) ],...
+         'fontsize',14,'fontweight','bold');
+</pre>
+
+<img src="./doc/exmodis.png" alt="modis"   width=70%>
+
+<h4><a name="5._ncread"></a>5. Meteorological data (netCDF format)</h4>
+
+<pre>
+iday=156;   % the day to show
+
+% use ncdisp(filename) to discover file contents...
+
+lat=ncread('uwnd.10m.gauss.2017.nc','lat');
+lon=ncread('uwnd.10m.gauss.2017.nc','lon');
+[LN,LT]=meshgrid(lon,lat);
+
+mtime=ncread('uwnd.10m.gauss.2017.nc','time')/24+datenum(1800,1,1,0,0,0);
+u=ncread('uwnd.10m.gauss.2017.nc','uwnd',[1,1,iday],[192,94,1]);
+v=ncread('vwnd.10m.gauss.2017.nc','vwnd',[1,1,iday],[192,94,1]);
+prate=ncread('prate.sfc.gauss.2017.nc','prate',[1,1,iday],[192,94,1]);
+
+m_proj('miller','lon',[100 260],'lat',[0 65]);
+m_coast('patch',[.8 .8 .8]);
+hold on 
+[CS,CH]=m_contourf(LN,LT,prate'*1e3,[0.05:.05:.7],'edgecolor','none');
+m_windbarb(LN,LT,u' ,v',2,'units','m/s','linewi',1,'color','r');
+hold off;
+m_grid('box','fancy','tickdir','out');
+
+ax=m_contfbar([.3 .7],.05,CS,CH);
+set(ax,'fontsize',12)
+xlabel(ax,'Mean Daily Precipitation Rate/(kg/m^2/s)');
+
+title(['North Pacific Surface Winds : ' datestr(mtime(iday))],'fontsize',16);
+
+colormap(flipud(m_colmap('Blues')))
+</pre>
+
+
+<img src="./doc/exncread.png" alt="modis"   width=70%>
+
+
+<h4><a name="6._argo"></a>6. ARGO drifter tracks (netCDF format)</h4>
+
+<pre>
+% Argo stuff
+% Go to:
+%         http://www.usgodae.org/cgi-bin/argo_select.pl
+% Select area you want and date range, download all profiles
+% tar -xvzf them into directory...
+basname='./argo';
+
+% base map
+m_proj('lambert','lons',[-150 -124],'lat',[40 60],'rectbox','on');
+[cs,h]=m_etopo2('contourf',[-7000:500:0],'edgecolor','none');
+m_gshhs_l('patch',[.5 .8 0],'edgecolor','none');
+m_grid('linewi',2,'layer','top');
+caxis([-7000 000]);
+m_contfbar(.92,[.2 .5],cs,h,'endpiece','no','axfrac',.02);
+colormap(m_colmap('blue'));   
+title('Argo float trajectories NE Pacific (2017)');
+
+% Add ARGO float trajectories
+%  1) draw a scale arrow
+vecscl=0.015;
+m_vec(vecscl ,-126,58,-0.01,0,'r','shaftwidth',2,'headlength',10,...
+      'key',{'1 cm/s','Mean Drift'},'centered','yes');
+ 
+dirs=dir(basname);
+m=0;
+for k=3:length(dirs)
+   profname=dir([dirs(k).folder '/' dirs(k).name]);
+   for l=3:length(profname)
+       fname=[profname(l).folder '/' profname(l).name '/' profname(l).name '_Rtraj.nc'];
+       %ncdisp(fname);
+       
+       argo.id=ncread(fname,'PLATFORM_NUMBER');
+       argo.mtime=ncread(fname,'JULD')+datenum(1950,1,1);
+       argo.lat=ncread(fname,'LATITUDE');
+       argo.lon=ncread(fname,'LONGITUDE');
+        
+       % Long are stored between -180 and +180; this removes artificial
+       % jumps which might happen just left of the map limits.
+       argo.lon(argo.lon>0)=argo.lon(argo.lon>0)-360;
+       
+        
+       ii=find(isfinite(argo.lon));
+       if any(ii )
+          m_line(argo.lon(ii),argo.lat(ii),'color',[0 0 0]);
+          
+          % Sometimes first point is an error of some sort so skip it
+          Dlon=argo.lon(ii([2 end]));
+          Dlat=argo.lat(ii([2 end]));
+          t=diff(argo.mtime(ii([2 end]))); % time between the points
+         
+          % Distance between the points
+          [d,a12]=m_idist(Dlon(1),Dlat(1),Dlon(2),Dlat(2));
+          
+          % Store stuff
+          m=m+1;
+          spd(m)=d/(t*86400) ;% m/s 
+                   
+          % Find midpoint on geodesic and store as well
+          [Clon(m),Clat(m),a21(m)]=m_fdist(Dlon(1),Dlat(1),a12,d/2);
+        end
+   end
+          
+end
+Clon=rem(Clon-360,360); % Get it into the right range
+a21=rem(a21-180,360);   % I need the opposite direction
+
+% Draw all the 'mean speed' arrows, centered at the midpoint of the
+% geodesic between first and last points.
+m_vec(vecscl ,Clon,Clat,spd.*sind(a21),spd.*cosd(a21),'r',...
+           'centered','yes','shaftwidth',2,'headlength',10);
+</pre>
+<img src="./doc/exargo.png" alt="argo"   width=70%>
+
+<h4><a name="7._SAR"></a>7. SAR image of internal waves (HDF-5 format)</h4>
+
+
+<pre> 
+fname='SAR_IMP_1PNESA19920724_190439_00000018C086_00199_05354_0000.h5';
+%h5disp(fname)   % See the structure
+
+titlestr=h5readatt(fname,'/metadata/MPH','STATE_VECTOR_TIME');
+datsize=double([ h5readatt(fname,'/bands/Amplitude','raster_width') ...
+                 h5readatt(fname,'/bands/Amplitude','raster_height')]);
+
+tielat=h5read(fname,'/tie_point_grids/latitude');
+tielon=h5read(fname,'/tie_point_grids/longitude');
+stp=[h5readatt(fname,'/tie_point_grids/latitude','sub_sampling_x') ...
+     h5readatt(fname,'/tie_point_grids/latitude','sub_sampling_y') ];
+
+% Pull out a subsection in by [2000 2500] from one corner and in 
+%  [600 2000] from the opposite corner
+istart=[2000 2500];
+strd=[3 3];
+cnt=fix([(datsize(1)-istart(1)-600)/strd(1) (datsize(2)-istart(2)-2000)/strd(2)]);
+% ...and read.
+subimg=h5read(fname,'/bands/Amplitude',istart,cnt,strd);
+
+% ....smooth it a bit...
+subf=filter2(ones(3,3)/9,subimg);
+
+% Now generate lat/lon for all pixels by interpolating from
+% the tie points.
+Ty=[0:size(tielat,2)-1]*stp(2)+1;
+Tx=[0:size(tielat,1)-1]*stp(1)+1;
+Iy=istart(2)+[0:size(subimg,2)-1]*strd(2);
+Ix=istart(1)+[0:size(subimg,1)-1]*strd(1);
+sublat=interp2(Ty',Tx,tielat,Iy',Ix);
+sublon=interp2(Ty',Tx,tielon,Iy',Ix);
+
+
+% Now make the map
+
+m_proj('lambert','lon',[-123-25/60 -122-40/60],'lat',[48+42/60 49+9/60]);
+m_pcolor(sublon,sublat,subf);shading flat;
+m_grid('box','fancy','tickdir','out');
+m_ruler(1.03,[.15 .5],'ticklen',[.01]);
+caxis([0 450]);
+title(titlestr)
+</pre>
+
+
+<img src="./doc/exSAR.png" alt="SAR"   width=70%>
+
+
+
+<hr>
+
+<h2> <a name="ack"> Acknowledgements</a></h2>
+ <p>A number of people have helped out with suggestions, code fixes,
+etc. I am especially grateful for the work done by E. Firing, D.
+Byrne, M. Mann, J. Pringle,  J. E. Nilsen,  M.Halverson, Jamie Tsoa, and Shi Weiheng  who have all
+contributed code. </p>
+
+ 
+
+  </div>
+</div>
+
+</body>
+</html>
