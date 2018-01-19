@@ -4557,7 +4557,7 @@ classdef Receiver < Exportable_Object
             this.updateAllTOT();
             this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
             
-            while max(dpos) > 10
+            while max(abs(dpos)) > 10
                 dpos = this.codeStaticPositioning(ep_coarse);
                 
             end
@@ -4582,6 +4582,9 @@ classdef Receiver < Exportable_Object
         
         function [dpos ] = codeStaticPositioning(this,id_epoch, cut_off)
             ls = Least_Squares_Manipulator();
+            if nargin < 2
+                id_epoch = 1:this.time.length();
+            end
             if nargin < 3
                 cut_off = [];
             end
@@ -4949,7 +4952,7 @@ classdef Receiver < Exportable_Object
             this.sat.res = res;
              
             
-            if s02 < 0.02
+            if s02 < 0.03
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 this.id_sync = id_sync;
                 %ls.reweight(
