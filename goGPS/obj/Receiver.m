@@ -1499,6 +1499,30 @@ classdef Receiver < Exportable_Object
     % ==================================================================================================================================================
     
     methods
+        function is_empty = isEmpty(this)
+            % Return if the object does not cantains any observation
+            % SYNTAX:
+            %   is_empty = this.isEmpty();
+            is_empty =  this.time.length() == 0;
+        end
+        
+        function is_empty = isempty(this)
+            % Return if the object does not cantains any observation
+            % SYNTAX:
+            %   is_empty = this.isempty();
+            is_empty =  this.time.length() == 0;
+        end
+        
+        function is_empty = isEmpty_mr(this)
+            % Return if the object does not cantains any observation
+            % SYNTAX:
+            %   is_empty = this.isEmpty();
+            is_empty =  zeros(numel(this), 1);
+            for r = 1 : numel(this)
+                is_empty(r) =  this(r).time.length() == 0;
+            end
+        end
+        
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX:   this.getChalmersString();
