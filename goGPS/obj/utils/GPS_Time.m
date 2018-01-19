@@ -886,40 +886,44 @@ classdef GPS_Time < Exportable_Object & handle
         function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
             % get Reference Time, precision up to the ps precision
             % SYNTAX: [time_diff, time_ref] = this.getRefTime(new_time_mat_ref)
-            switch this.time_type
-                case 0 % I'm in MAT TIME
-                    time_ref = fix(this.mat_time(1));
-                    % due to numerical error propagation I can keep only 4 decimal digits
-                    time_diff = (this.mat_time - time_ref) * 86400;
-                    if (nargin == 2)
-                        % optional change of reference
-                        time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
-                        time_ref = new_time_mat_ref;
-                    end
-                case 1 % I'm in UNIX TIME
-                    % constants in matlab are slower than copied values :-( switching to values                    
-                    % this.UNIX_ZERO == 719529; 
-                    if nargin == 2
-                        time_ref = fix((new_time_mat_ref(1)  - 719529.0) * 86400);
-                        rounding = 10.^(round(16 - max(0,log10(ceil(new_time_mat_ref(1)) * 86400 + eps(new_time_mat_ref(1) * 86400))))); % 52 bits of mantissa
-                        time_ref_f = round(rem((new_time_mat_ref(1)  - 719529.0) * 86400, 1) * rounding) / rounding;
-                    else
-                        time_ref = this.unix_time(1);
-                        time_ref_f = 0;
-                    end
-                    time_diff = double(int64(this.unix_time) - int64(time_ref)) + this.unix_time_f - time_ref_f;
-                    time_ref = (time_ref / 86400 + 719529.0) + time_ref_f / 86400;
-                case 2 % I'm in REF TIME
-                    if (nargin == 2)
-                        % optional change of reference
-                        time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
-                        time_ref = new_time_mat_ref;
-                    else
-                        time_ref = this.time_ref;
-                        time_diff = this.time_diff;
-                    end
+            if this.length == 0
+                time_diff = [];
+                time_ref = [];
+            else
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        time_ref = fix(this.mat_time(1));
+                        % due to numerical error propagation I can keep only 4 decimal digits
+                        time_diff = (this.mat_time - time_ref) * 86400;
+                        if (nargin == 2)
+                            % optional change of reference
+                            time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+                            time_ref = new_time_mat_ref;
+                        end
+                    case 1 % I'm in UNIX TIME
+                        % constants in matlab are slower than copied values :-( switching to values
+                        % this.UNIX_ZERO == 719529;
+                        if nargin == 2
+                            time_ref = fix((new_time_mat_ref(1)  - 719529.0) * 86400);
+                            rounding = 10.^(round(16 - max(0,log10(ceil(new_time_mat_ref(1)) * 86400 + eps(new_time_mat_ref(1) * 86400))))); % 52 bits of mantissa
+                            time_ref_f = round(rem((new_time_mat_ref(1)  - 719529.0) * 86400, 1) * rounding) / rounding;
+                        else
+                            time_ref = this.unix_time(1);
+                            time_ref_f = 0;
+                        end
+                        time_diff = double(int64(this.unix_time) - int64(time_ref)) + this.unix_time_f - time_ref_f;
+                        time_ref = (time_ref / 86400 + 719529.0) + time_ref_f / 86400;
+                    case 2 % I'm in REF TIME
+                        if (nargin == 2)
+                            % optional change of reference
+                            time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+                            time_ref = new_time_mat_ref;
+                        else
+                            time_ref = this.time_ref;
+                            time_diff = this.time_diff;
+                        end
+                end
             end
-            
         end
         
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this,id)
