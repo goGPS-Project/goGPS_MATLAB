@@ -1542,7 +1542,7 @@ classdef Receiver < Exportable_Object
             this.log.newLine();
             this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
             this.log.newLine();
-            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', this.n_sat));
+            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this.n_sat)));
             this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
             this.log.newLine();
             this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
@@ -5900,7 +5900,7 @@ classdef Receiver < Exportable_Object
             xlim(t(time_start) + [0 win_size-1] ./ 86400);
             setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
             h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-            grid on;repmat([1:2880]',31)
+            grid on;
             h = title(sprintf('Receiver %s ZTD', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         function plotResidual(this)
@@ -5989,7 +5989,7 @@ classdef Receiver < Exportable_Object
             end
             if nargin < 2
                 obs_type = ones(1, numel(rec));
-                obs_type(end) = 0;
+                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
             end
             
             % Do the target(s) as last
@@ -5998,10 +5998,12 @@ classdef Receiver < Exportable_Object
             % prepare reference time
             % processing time will start with the receiver with the last first epoch
             %          and it will stop  with the receiver with the first last epoch
-            p_time_zero = round(rec(1).time.first.getMatlabTime() * 24)/24; % get the reference time
-            p_time_start = rec(1).time.first.getRefTime(p_time_zero);
-            p_time_stop = rec(1).time.last.getRefTime(p_time_zero);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(1).time.getRate * 1e6)) * 1e-6;
+            
+            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
+            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
             
             p_time = GPS_Time(); % empty initialization
             
@@ -6009,9 +6011,11 @@ classdef Receiver < Exportable_Object
             for r = id
                 ref_t{r} = rec(r).time.getRefTime(p_time_zero);
                 if obs_type(r) > 0 % if it's not a target
-                    p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    if ~rec(r).isempty
+                        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    end
                 else
                     % It's a target
                     
@@ -6033,7 +6037,7 @@ classdef Receiver < Exportable_Object
                     
                     id_sync{i} = nan(p_time(i).length, numel(id));
                     for rs = id % for each rec to sync
-                        if ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                        if ~rec(rs).isempty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
                             [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
                             id_sync{i}(id_rec, rs) = id_ref;
                         end
