@@ -1071,20 +1071,20 @@ classdef Core_Sky < handle
                 this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.nt);
             end
             n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80)
-            n_lat = size(this.ionex.data,1)+1;
-            n_lon = size(this.ionex.data,2)+1;
+            n_lat = size(this.ionex.data,1);
+            n_lon = size(this.ionex.data,2);
             nt = this.ionex.nt;
             lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
             st_l  = lim(lines, 1);
             cols = [0:(n_lon*5+n_line_1_lat-2)];
             idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
             idx(:,81:81:length(cols))   = [];
+            idx(:,366:end) = []; %% trial and fix bug fix
             vals = txt(serialize(idx'));
             %vals = serialize(vals');
             vals = reshape(vals,5,length(vals)/5);
-            vals = sscanf(vals,'%f');
-            this.ionex.data = reshape(vals,n_lat,n_lon,nt);
-            keyboard
+            nums = sscanf(vals,'%f');
+            this.ionex.data = reshape(nums,n_lat,n_lon,nt);
         end
         
         function idx = getGroupDelayIdx(this,flag)
