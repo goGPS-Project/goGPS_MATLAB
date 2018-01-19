@@ -79,10 +79,12 @@ classdef Core_Sky < handle
         
         ionex = struct( ...
             'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'lat_lim',    [], ...    % latitude limits
-            'lon_lim',    [], ...    % longitude limits
+            'first_lat',    [], ...    % first latitude
+            'first_lon',    [], ...    % first longitude
             'd_lat',      [], ...    %lat spacing
             'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
             'first_time', [], ...    % times [time] of the maps
             'dt',         [], ...    % time spacing
             'n_t',        [], ...    % num of epocvhs
@@ -1061,19 +1063,21 @@ classdef Core_Sky < handle
             lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
             if isempty(this.ionex.data)
                 this.ionex.first_time = first_epoch;
-                this.ionex.dt = interval;
-                this.ionex.nt =  round((last_epoch - first_epoch) / interval);
-                this.ionex.lat_lim = lats(1:2);
-                this.ionex.dlat = lats(3);
-                this.ionex.lon_lim = lons(1:2);
-                this.ionex.dlon = lons(3);
+                this.ionex.d_t = interval;
+                this.ionex.n_t =  round((last_epoch - first_epoch) / interval);
+                this.ionex.first_lat= lats(1);
+                this.ionex.d_lat = lats(3);
+                this.ionex.n_lat = round((lats(2)-lats(1))/lats(3))+1;
+                this.ionex.first_lon= lons(1);
+                this.ionex.d_lon = lons(3);
+                this.ionex.n_lon = round((lons(2)-lons(1))/lons(3))+1;
                 this.ionex.height = height;
-                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.nt);
+                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.n_t);
             end
-            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80)
+            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80);
             n_lat = size(this.ionex.data,1);
             n_lon = size(this.ionex.data,2);
-            nt = this.ionex.nt;
+            nt = this.ionex.n_t;
             lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
             st_l  = lim(lines, 1);
             cols = [0:(n_lon*5+n_line_1_lat-2)];
@@ -1085,6 +1089,43 @@ classdef Core_Sky < handle
             vals = reshape(vals,5,length(vals)/5);
             nums = sscanf(vals,'%f');
             this.ionex.data = reshape(nums,n_lat,n_lon,nt);
+        end
+        
+        function TEC = interpolateTEC(this, gps_time, lat, lon)
+            % find indexes and interpolating length
+            %time
+            dt = this.ionex.d_t;
+            nt = this.ionex.n_t;
+            it = max(min(floor((gps_time - this.ionex.first_time)/ dt)+1,nt-1),1);
+            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt,dt),0)/dt;
+            
+            %lat
+            dlat = this.ionex.d_lat;
+            nlat = this.ionex.n_lat;
+            ilat = max(min(floor((lat - this.ionex.first_lat)/ dlat)+1,nlat-1),1);
+            slat = max(min(this.ionex.first_lat - lat - (it-1)*dlat,dlat),0)/dlat;
+            %lon
+            dlon = this.ionex.d_lon;
+            nlon = this.ionex.n_lon;
+            ilon = max(min(floor((lon - this.ionex.first_lon)/ dlon)+1,nlon-1),1);
+            slon = max(min(lon - this.ionex.first_lon - (it-1)*dlon,dlon),0)/dlon;
+            
+            % interpolate along time
+            % [ 1 2  <- index of the cell at the smae time
+            %   3 4]
+            tec1 = this.ionex.data(ilat,ilon,it)*(1-st) + this.ionex.data(ilat,ilon,it+1)*st;
+            tec2 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
+            tec3 = this.ionex.data(ilat+1,ilon,it)*(1-st) + this.ionex.data(ilat+1,ilon,it+1)*st;
+            tec4 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
+            
+            %interpolate along long
+            tecn = tec1*(1-slon) + tec2*slon;
+            tecs = tec3*(1-slon) + tec4*slon;
+            
+            %interpolate along lat
+            TEC = tecn*(1-slat) + tecs*slat;
+            
+            
         end
         
         function idx = getGroupDelayIdx(this,flag)
