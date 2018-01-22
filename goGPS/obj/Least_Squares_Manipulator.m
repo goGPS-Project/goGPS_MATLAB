@@ -84,8 +84,15 @@ classdef Least_Squares_Manipulator < handle
          function setUpCodeSatic(this, rec, id_sync, cut_off)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
-            for s = rec.cc.sys_c
-                obs_set.merge(rec.getPrefIonoFree('C', s));
+            if rec.isMultiFreq() %% case multi frequency
+                for s = rec.cc.sys_c
+                    obs_set.merge(rec.getPrefIonoFree('C', s));
+                end
+            else
+                for s = rec.cc.sys_c
+                    f = rec.getFreqs(s);
+                    obs_set.merge(rec.getPrefObsSetCh(['C' num2str(f(1))], s));
+                end
             end
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
             if sum(sum(snr_to_fill));

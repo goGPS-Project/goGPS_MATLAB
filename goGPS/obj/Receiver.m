@@ -1253,6 +1253,7 @@ classdef Receiver < Exportable_Object
             % first time derivative
             synt_ph = this.getSyntPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
+            
             % subtract median (clock error)
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             % divide for wavelenght
@@ -1284,6 +1285,7 @@ classdef Receiver < Exportable_Object
             % divide for wavelenght
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
             
+            
             % find possible cycle slip
             % cycle slip when they exceed threhsold cycle
             poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
@@ -1291,33 +1293,33 @@ classdef Receiver < Exportable_Object
            
             
             
-            %check if epoch before cycle slip can be restored
-            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
-            poss_rest = poss_rest & poss_out_idx;
-            poss_rest_line = sum(poss_rest,2);
-            if sum(poss_rest_line) > 0
-                poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
-                ph_rest_lines = ph(poss_rest_line,:);
-                synt_ph_rest_lines = synt_ph(poss_rest_line,:);
-                sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
-                % subtract median
-                sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-                % divide for wavelenght
-                sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
-                for i = 1:size(sensor_rst,2)
-                    for c = find(poss_rest(:,i))'
-                        if ~isempty(c)
-                            idx = sum(poss_rest_line(1:c));
-                            if abs(sensor_rst(idx,i)) < cs_thr
-                                poss_out_idx(c,i) = false; %is not outlier
-                                %move 1 step before the cycle slip index
-                                poss_slip_idx(c+1,i) = false;
-                                poss_slip_idx(c,i) = true;
-                            end
-                        end
-                    end
-                end
-            end
+%             %check if epoch before cycle slip can be restored
+%             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
+%             poss_rest = poss_rest & poss_out_idx;
+%             poss_rest_line = sum(poss_rest,2);
+%             if sum(poss_rest_line) > 0
+%                 poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
+%                 ph_rest_lines = ph(poss_rest_line,:);
+%                 synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+%                 sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+%                 % subtract median
+%                 sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
+%                 % divide for wavelenght
+%                 sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
+%                 for i = 1:size(sensor_rst,2)
+%                     for c = find(poss_rest(:,i))'
+%                         if ~isempty(c)
+%                             idx = sum(poss_rest_line(1:c));
+%                             if abs(sensor_rst(idx,i)) < cs_thr
+%                                 poss_out_idx(c,i) = false; %is not outlier
+%                                 %move 1 step before the cycle slip index
+%                                 poss_slip_idx(c+1,i) = false;
+%                                 poss_slip_idx(c,i) = true;
+%                             end
+%                         end
+%                     end
+%                 end
+%             end
             this.ph_idx = find(id_ph_l);
             %-------------------------------------------------------
             % MELBOURNE WUBBENA based cycle slip detection
@@ -1523,6 +1525,29 @@ classdef Receiver < Exportable_Object
             end
         end
         
+        function is_mf = isMultiFreq(this)
+            is_mf = false;
+             for i=1:this.cc.getNumSat()
+                sat_idx = this.getObsIdx('C',this.cc.system(i),this.cc.prn(i));
+                sat_idx = sat_idx(this.active_ids(sat_idx));
+                if ~isempty(sat_idx)
+                    % get epoch for which iono free is possible
+                    freq = str2num(this.obs_code(sat_idx,2)); %#ok<ST2NM>
+                    u_freq = unique(freq);
+                    if length(u_freq)>1
+                        is_mf = true;
+                        return
+                    end
+                end
+             end
+        end
+        
+        function freqs = getFreqs(this, sys)
+            % get presnt frequencies for system 
+            idx = this.system == sys;
+            freq = str2num(this.obs_code(idx,2)); %#ok<ST2NM>
+            freqs = unique(freq);
+        end
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX:   this.getChalmersString();
@@ -2164,7 +2189,15 @@ classdef Receiver < Exportable_Object
             idx = find(idx);
             idx(idx == 0) = [];
         end
-        
+        function obs_set = getPrefObsSetCh(this, flag, system)
+            [obs, idx, snr, cycle_slips] = this.getPrefObsCh(flag, system, 1);
+            obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', [], [], this.prn(idx)');
+            obs_set.cycle_slip = cycle_slips';
+            obs_set.snr = snr';
+            sigma = this.rec_settings.getStd(system, obs_set.obs_code(1,2:4));
+            obs_set.sigma = sigma*ones(size(obs_set.prn));
+            
+        end
         function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
             % channel according to the feinition in GPS_SS, GLONASS_SS
