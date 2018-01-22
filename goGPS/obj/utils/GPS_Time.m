@@ -956,11 +956,22 @@ classdef GPS_Time < Exportable_Object & handle
             % Get Modified julian date
             % SYNTAX: [gps_time] = this.getGpsTime()
             if nargin == 2
-                [gps_week, gps_sow, ~] = this.getGpsWeek(id);
+                date = this.getEpoch(id).get6ColDate;
             else
-                [gps_week, gps_sow, ~] = this.getGpsWeek();
+                date = this.get6ColDate;
             end
-            mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
+            [~, mjd] = date2jd(date);
+        end
+        
+        function [jd] = getJD(this, id)
+            % Get  julian date
+            % SYNTAX: [gps_time] = this.getGpsTime()
+            if nargin == 2
+                date = this.getEpoch(id).get6ColDate;
+            else
+                date = this.get6ColDate;
+            end
+            jd = date2jd(date);
         end
         
         function [year, doy, sod] = getDOY(this)
