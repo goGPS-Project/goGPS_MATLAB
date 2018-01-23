@@ -38,7 +38,12 @@ classdef Earth_Magnetic_Field < handle
         years;
     end
     properties (Access = private)
+        cache = false;
         state;
+        c_doy;
+        c_year;
+        Hcache;
+        Gcache;
     end
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
@@ -164,10 +169,25 @@ classdef Earth_Magnetic_Field < handle
             % interpolate H at G at presetn epoch
             [y, doy] = gps_time.getDOY;
             re = GPS_SS.ELL_A/1000;
-            iy = max(min(floor(y-1900)/5+1,24),1);
-            int_time = ((y - this.years(iy))*365.25 + doy-1)/(365.25*5);
-            H = this.H(:,:,iy) * (1 - int_time) + int_time *  this.H(:,:,iy+1);
-            G = this.G(:,:,iy) * (1 - int_time) + int_time *  this.G(:,:,iy+1);
+            if this.cache
+                if this.c_year == y || this.c_doy == doy
+                    H = this.Hcache;
+                    G = this.Gcache;
+                else
+                    this.cache = false;
+                end
+            end
+            if ~this.cache
+                iy = max(min(floor(y-1900)/5+1,24),1);
+                int_time = ((y - this.years(iy))*365.25 + doy-1)/(365.25*5);
+                H = this.H(:,:,iy) * (1 - int_time) + int_time *  this.H(:,:,iy+1);
+                G = this.G(:,:,iy) * (1 - int_time) + int_time *  this.G(:,:,iy+1);
+                this.Hcache = H;
+                this.Gcache = G;
+                this.c_year = y;
+                this.c_doy = doy
+                this.cache = true;
+            end
             n = size(H,1);
             P = zeros(n,n);
             % co to colatitude

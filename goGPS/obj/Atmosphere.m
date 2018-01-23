@@ -82,6 +82,9 @@ classdef Atmosphere < handle
         apa     % apa saved value for GPT computation
         atm     % atm saved value for GPT computation
         ata     % ata saved value for GPT computation
+        
+        emf     % current Earth geomagnetic field object 
+        log
     end
     
     methods
@@ -90,6 +93,7 @@ classdef Atmosphere < handle
             gs = Go_State.getInstance;
             this.geoid = gs.getRefGeoid;
             this.state = gs.getCurrentSettings();
+            this.log = Logger.getInstance();
         end
         function importIonex(this, filename)
             fid = fopen([filename],'r');
@@ -203,11 +207,11 @@ classdef Atmosphere < handle
             % get slant total electron component
             
             
-            thin_shell_height = this.ionex.height(1);       %ionopshere thin shell height [km]
+            thin_shell_height = this.ionex.height(1)*1000;       %ionopshere thin shell height [km]
             % get piercing point and mapping function
-            [latpp, lonpp, mfpp, k] = getPiercePoint( lat, lon, h, az, el, thin_shell_height)
+            [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az/180*pi, el/180*pi, thin_shell_height);
             %inetrpolate TEC at piercing point
-            tec = this.interpolateTEC( time, latpp, lonpp)
+            tec = this.interpolateTEC( time, latpp, lonpp);
             
             %apply mapping function
             stec = tec .* mfpp;
@@ -224,9 +228,20 @@ classdef Atmosphere < handle
             foi_delay = 40.3 * 1e16/ f^2 .* stec;
         end
         
-        function getHOIdelay(this)
-            % get High order ionophere delays
-            [stec, pp, k] = getSTEC(this,lat,lon, az,el,h, time);
+        function [hoi_delay2, hoi_delay3] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
+            % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
+            % 2005. doi: 10.1029/2005GL024342.
+            % get High order ionophere delays -- Return phase group 
+            [stec, pp, k] = this.getSTEC(lat,lon, az,el,h, time);
+            if isempty(this.emf) % do not reaload the model each time
+                this.emf = Earth_Magnetic_Field();
+            end
+            b = this.emf.getB(time, GPS_SS.ELL_A/1000 + this.ionex.height(1), pp(2), pp(1));
+            bok = b'*k / 1e9; %to Tesla
+            c = Go_State.V_LIGHT ;
+            hoi_delay2 = - 1 / 2 * 7527 / c^2 * lambda^3 * bok * stec * 1e16;% Eq (10) (11) in [1]
+            hoi_delay3 = - 1 / 3 * 2437 / c^4 * lambda^4 * ((20 -6) * 1e12)/((4.55 - 1.38) * 1e18) * 0.66 * (stec  * 1e16)^2;% Eq (1g) (15) (14) in [1]
         end
     end
     
@@ -524,7 +539,8 @@ classdef Atmosphere < handle
                 
                 
                 % determine n!  (faktorielle)  moved by 1
-                dfac(1) = 1;
+                dfac(1) = 1;            az = az/180*pi;
+            el = el/180*pi;
                 for i = 1:(2*n + 1)
                     dfac(i+1) = dfac(i)*i;
                 end
@@ -571,7 +587,7 @@ classdef Atmosphere < handle
                 % Surface pressure on the geoid
                 % apm = 0.d0;
                 % apa = 0.d0;
-                % for i = 1:55
+                % for i = 1:55getPiercePoint
                 %     apm = apm + (ap_mean(i)*aP(i) + bp_mean(i)*bP(i));
                 %     apa = apa + (ap_amp(i) *aP(i) + bp_amp(i) *bP(i));
                 % end
@@ -592,7 +608,7 @@ classdef Atmosphere < handle
                 
                 this.apm = apm;
                 this.apa = apa;
-                this.atm = atm;
+                this.atm = atm;getPiercePoint
                 this.ata = ata;
                 this.P = P;
                 this.lon = dlon;
@@ -610,27 +626,6 @@ classdef Atmosphere < handle
             % height correction for temperature
             temp0 =  atm + ata*cos(doy*2*pi);
             temp = temp0 - 0.0065d0 * h_ort;
-        end
-        
-        function [iono_2_phase, iono_2_code, iono_3_phase, iono_3_code] = HOI_corrections(xyz,az,el,lambda)
-            
-            % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
-            % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
-            % 2005. doi: 10.1029/2005GL024342.
-            c = Go_State.V_LIGHT;
-            BG = 3.12*10^(-5);% T magnetic field magnitude near the equator at surface height
-            RE = 6370 %Km earth radius
-            H = 400; %height of ionopheric thin shell above earth surface
-            % X_m Y_m Z_m : direction of the magnetic north
-            %tetha_m : colatitude of the ionopsheric intersatcion point (ehich frame)
-            B0 = BG * (RE / (RE + H)) * (sin(theta_m) * Y_m - 2 * cos(theta_m) * Z_m); % [3x1] geomagnetic vector, equation (8) in [1]
-            B0K = B0 * k; % equation (9) in [1]
-            
-            iono_2_phase = 7527 / c^2 * lambda^3 * B0K * TEC; % equation (10) in [1]
-            iono_2_code = - 1/2 * iono_2_phase;
-            
-            iono_3_phase = 2437 / c^4 * lambda ^ 4 * Nmax  * ni * TEC;
-            iono_3_code = - 1/3 * iono_3_phase;
         end
         
         function [gmfh, gmfw] = gmf (this, gps_time, dlat, dlon, dhgt, zd)
@@ -979,25 +974,25 @@ classdef Atmosphere < handle
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
         end
         
-        function [latpp, lonpp, mfpp] = getPiercePoint(lat, lon, h_ortho, az, el, thin_shell_height)
+        function [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height)
             % Get radius of curvature at lat
-            rcm = getMeridianRadiusCurvature(lat);
-            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height))*cos(el);
-            phipp = (pi/2) - el - asin(k);
+            rcm = getMeridianRadiusCurvature(lat_rad);
+            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height))*cos(el_rad);
+            phipp = (pi/2) - el_rad - asin(k);
             
             %set azimuth from -180 to 180
-            az = mod((az+pi),2*pi)-pi;
+            az_rad = mod((az_rad+pi),2*pi)-pi;
             
             %latitude of the ionosphere piercing point
-            latpp = asin(sin(lat)*cos(phipp) + cos(lat)*sin(phipp)*cos(az));
+            latpp = asin(sin(lat_rad)*cos(phipp) + cos(lat_rad)*sin(phipp)*cos(az_rad));
             
             %longitude of the ionosphere piercing point
-            if ((latpp >  70*pi/180) && (tan(phipp)*cos(az)      > tan((pi/2) - lat))) || ...
-                    ((latpp < -70*pi/180) && (tan(phipp)*cos(az + pi) > tan((pi/2) + lat)))
+            if ((latpp >  70*pi/180) && (tan(phipp)*cos(az_rad)      > tan((pi/2) - lat_rad))) || ...
+                    ((latpp < -70*pi/180) && (tan(phipp)*cos(az_rad + pi) > tan((pi/2) + lat_rad)))
                 
-                lonpp = lon + pi - asin(sin(phipp)*sin(az/cos(latpp)));
+                lonpp = lon_rad + pi - asin(sin(phipp)*sin(az_rad/cos(latpp)));
             else
-                lonpp = lon + asin(sin(phipp)*sin(az/cos(latpp)));
+                lonpp = lon_rad + asin(sin(phipp)*sin(az_rad/cos(latpp)));
             end
             
             % using thin shell layer mapping function (Handbook of Global
@@ -1006,11 +1001,11 @@ classdef Atmosphere < handle
                 mfpp = (1-(k)^2)^(-1/2);
             end
             if nargout > 3
-                neu = [cos(az).*cos(el);
-                    sin(az).*cos(el);
-                    sin(el)];
-                [X,Y,Z] = geod2cart(lat, lon, h_ortho);
-                [k] = local2globalVel(neu, [X Y Z]);
+                az_l = az_rad; %azimuth at layer;
+                el_l = acos(1/mfpp); %elevation at layer;
+                k = [cos(az_l).*cos(el_l);
+                    -sin(az_l).*cos(el_l);
+                    sin(el_l)];
             end
         end
     end
