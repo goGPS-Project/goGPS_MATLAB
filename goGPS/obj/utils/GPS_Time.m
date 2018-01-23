@@ -128,9 +128,15 @@ classdef GPS_Time < Exportable_Object & handle
                     is_gps = true;
                 end
                 this.is_gps = is_gps;
+            else
+               is_gps = true;
             end
             date = sscanf(string_time,'%f%f%f%f%f%f')';
-            if (date(1) < 80), date(1) = date(1) + 2000; end
+            if numel(date) < 3
+                date = string_time;
+            else
+                if (date(1) < 80), date(1) = date(1) + 2000; end
+            end
             this.GPS_Time_mat(datenum(date), is_gps);
         end
         
