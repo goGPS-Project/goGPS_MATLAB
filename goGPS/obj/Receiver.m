@@ -4697,7 +4697,7 @@ classdef Receiver < Exportable_Object
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
                 this.xyz = this.xyz + coo';
                 valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = mean_clock + clock;
+                this.dt(valid_ep, 1) = (mean_clock + clock) / Go_State.V_LIGHT;
                 
                 
                 this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
