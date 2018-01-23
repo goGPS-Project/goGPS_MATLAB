@@ -4678,6 +4678,8 @@ classdef Receiver < Exportable_Object
             ls.y = ls.y - mean_clock;
             this.log.addMessage(this.log.indent('Regularizing mean of clock',6));
             ls.setMeanRegularization(6, 0.0001);
+            ls.reweightHuber();
+            ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
             this.sat.res = res;
              

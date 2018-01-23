@@ -48,7 +48,8 @@ classdef Least_Squares_Manipulator < handle
         out_idx % index to tell if observation is outlier [ n_obs x 1]
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         y % observations  [ n_obs x 1]
-        w % observation variance [ n_obs x 1]
+        variance % observation variance [ n_obs x 1]
+        res % observations residuals
         epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
         sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
@@ -150,7 +151,7 @@ classdef Least_Squares_Manipulator < handle
             A_idx = zeros(n_obs, n_coo+iob_flag+1); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
             y = zeros(n_obs, 1);
-            w = zeros(n_obs, 1);
+            variance = zeros(n_obs, 1);
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
             for s = 1:n_stream
@@ -165,7 +166,7 @@ classdef Least_Squares_Manipulator < handle
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
-                w(lines_stream) =  obs_set.sigma(s)^2;
+                variance(lines_stream) =  obs_set.sigma(s)^2;
                 %w(lines_stream) = snr_stream;
                 A(lines_stream, 1:3) = - los_stream;
                 if n_iob > 0
@@ -179,7 +180,7 @@ classdef Least_Squares_Manipulator < handle
             
             this.A_ep = A;
             this.A_idx = A_idx;
-            this.w = w;
+            this.variance = variance;
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
@@ -266,7 +267,7 @@ classdef Least_Squares_Manipulator < handle
             A_idx = zeros(n_obs, n_coo+iob_flag+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
             y = zeros(n_obs, 1);
-            w = zeros(n_obs, 1);
+            variance = zeros(n_obs, 1);
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
             [~, mfw] = rec.getSlantMF();
@@ -286,7 +287,7 @@ classdef Least_Squares_Manipulator < handle
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
-                w(lines_stream) =  obs_set.sigma(s)^2;
+                variance(lines_stream) =  obs_set.sigma(s)^2;
                 %w(lines_stream) = snr_stream;
                 A(lines_stream, 1:3) = - los_stream;
                 if n_iob > 0
@@ -318,7 +319,7 @@ classdef Least_Squares_Manipulator < handle
             
             this.A_ep = A;
             this.A_idx = A_idx;
-            this.w = w;
+            this.variance = variance;
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
@@ -350,7 +351,7 @@ classdef Least_Squares_Manipulator < handle
             this.N_ep = zeros(size(this.A_ep, 2), size(this.A_ep, 2), n_obs);
             for i = 1:n_obs
                 A_l = this.A_ep(i, :);
-                w = 1 / this.w(i) ;
+                w = 1 / this.variance(i) ;
                 this.N_ep(:, :, i) = A_l' * w * A_l;
             end
         end
@@ -360,6 +361,7 @@ classdef Least_Squares_Manipulator < handle
             for o = 1:size(this.A_ep, 1)
                 res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             end
+            this.res = res_l;
             n_epochs = max(this.true_epoch);
             n_sat = max(this.sat_go_id);
             res = zeros(n_epochs, n_sat);
@@ -369,7 +371,31 @@ classdef Least_Squares_Manipulator < handle
                 res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
             end
         end
-        
+        function weightOnResidual(this, wfun, threshold)
+            s02 = mean(abs(this.res));
+            res_n = this.res/s02;
+            if nargin > 2
+                idx_rw = abs(res_n) > threshold; 
+            else
+                idx_rw = true(size(res));
+            end
+            this.variance(idx_rw) = this.variance(idx_rw) ./ wfun(res_n(idx_rw));
+        end
+        function reweightHuber(this)
+            threshold = 2;
+            wfun = @(x) threshold ./ abs(x);
+            this.weightOnResidual(wfun, threshold);
+        end
+        function reweightDanish(this)
+            threshold = 2;
+            wfun = @(x) - exp(x.^2 ./threshold.^2);
+            this.weightOnResidual(wfun, threshold);
+        end
+        function reweightTukey(this)
+            threshold = 2;
+            wfun = @(x) (1 - (x ./threshold).^2).^2;
+            this.weightOnResidual(wfun, threshold);
+        end
         function [x, res, s02, Cxx] = solve(this)
             idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
             idx_constant = find(idx_constant_l);
@@ -393,7 +419,7 @@ classdef Least_Squares_Manipulator < handle
                 p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
                 N_ep = this.N_ep(:, :, i);
                 A_ep = this.A_ep(i, :);
-                w = this.w(i);
+                variance = this.variance(i);
                 y = this.y(i);
                 e = this.epoch(i);
                 p_c_idx = p_idx(idx_constant_l);
@@ -409,7 +435,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
                 %fill B
-                B(p_idx) = B(p_idx) + A_ep' * (1 ./ w) * y;
+                B(p_idx) = B(p_idx) + A_ep' * (1 ./ variance) * y;
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
