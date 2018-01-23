@@ -198,14 +198,16 @@ classdef Receiver < Exportable_Object
     % ==================================================================================================================================================
     %% PROPERTIES USEFUL HANDLES
     % ==================================================================================================================================================
+    
     properties (SetAccess = private, GetAccess = public)
         cc = Constellation_Collector('G');      % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         log                                    % handle to log
-    end
+    end    
     %% PREPERTIES PLOTS
     % ==================================================================================================================================================
+    
     properties
         slant_filter_win = 900;
     end
@@ -1493,8 +1495,6 @@ classdef Receiver < Exportable_Object
             
         end         
     end
-    
-    
     
     % ==================================================================================================================================================
     %% METHODS GETTER - TIME
@@ -4629,7 +4629,7 @@ classdef Receiver < Exportable_Object
             ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
             dpos = x(1:3);
-            this.xyz = this.xyz + dpos;
+            this.xyz = this.getMedianPosXYZ() + dpos;
             dt = x(x(:,2) == 5,1);
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ goGNSS.V_LIGHT;
@@ -5957,6 +5957,7 @@ classdef Receiver < Exportable_Object
             grid on;
             h = title(sprintf('Receiver %s ZTD', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
+        
         function plotResidual(this)
             figure
             t = 1:this.time.length;
