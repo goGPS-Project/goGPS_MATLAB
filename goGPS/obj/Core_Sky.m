@@ -77,19 +77,7 @@ classdef Core_Sky < handle
         avail                 % availability flag
         coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
         
-        ionex = struct( ...
-            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'first_lat',    [], ...    % first latitude
-            'first_lon',    [], ...    % first longitude
-            'd_lat',      [], ...    %lat spacing
-            'd_lon',      [], ...    % lon_spacing
-            'n_lat',      [], ...    % num lat
-            'n_lon',      [], ...    % num lon
-            'first_time', [], ...    % times [time] of the maps
-            'dt',         [], ...    % time spacing
-            'n_t',        [], ...    % num of epocvhs
-            'heigth',     []  ...    % heigh of the layer
-            )                 
+                        
 
     end
     
@@ -1019,114 +1007,6 @@ classdef Core_Sky < handle
             
         end
         
-        function importIonex(this, filename)
-            fid = fopen([filename],'r');
-            if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', filename));
-                return
-            end
-            this.log.addMessage(sprintf('      Opening file %s for reading', filename));
-            txt = fread(fid,'*char')';
-            fclose(fid);
-            
-            % get new line separators
-            nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            if lim(end,3) < 3
-                lim(end,:) = [];
-            end
-            % read header
-            for l = 1:size(lim,1)
-                line = txt(lim(l,1):lim(l,2));
-                if strfind(line,'END OF HEADER')
-                    break
-                elseif strfind(line,'EPOCH OF FIRST MAP')
-                    first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
-                elseif strfind(line,'EPOCH OF LAST MAP')
-                    last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
-                elseif strfind(line,'INTERVAL')
-                    interval = sscanf(line(1:60),'%f')';
-                elseif strfind(line,'HGT1 / HGT2 / DHGT')
-                    height = sscanf(line(1:60),'%f %f %f')';
-                elseif strfind(line,'LAT1 / LAT2 / DLAT')
-                    lats = sscanf(line(1:60),'%f %f %f')';
-                elseif strfind(line,'LON1 / LON2 / DLON')
-                    lons = sscanf(line(1:60),'%f %f %f')';
-                end 
-            end
-            lim(1:l,:) = [];
-            txt(1:(lim(1,1)-1)) = [];
-            lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
-            if isempty(this.ionex.data)
-                this.ionex.first_time = first_epoch;
-                this.ionex.d_t = interval;
-                this.ionex.n_t =  round((last_epoch - first_epoch) / interval);
-                this.ionex.first_lat= lats(1);
-                this.ionex.d_lat = lats(3);
-                this.ionex.n_lat = round((lats(2)-lats(1))/lats(3))+1;
-                this.ionex.first_lon= lons(1);
-                this.ionex.d_lon = lons(3);
-                this.ionex.n_lon = round((lons(2)-lons(1))/lons(3))+1;
-                this.ionex.height = height;
-                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.n_t);
-            end
-            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80);
-            n_lat = size(this.ionex.data,1);
-            n_lon = size(this.ionex.data,2);
-            nt = this.ionex.n_t;
-            lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
-            st_l  = lim(lines, 1);
-            cols = [0:(n_lon*5+n_line_1_lat-2)];
-            idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
-            idx(:,81:81:length(cols))   = [];
-            idx(:,366:end) = []; %% trial and fix bug fix
-            vals = txt(serialize(idx'));
-            %vals = serialize(vals');
-            vals = reshape(vals,5,length(vals)/5);
-            nums = sscanf(vals,'%f');
-            this.ionex.data = reshape(nums,n_lat,n_lon,nt);
-        end
-        
-        function TEC = interpolateTEC(this, gps_time, lat, lon)
-            % find indexes and interpolating length
-            %time
-            dt = this.ionex.d_t;
-            nt = this.ionex.n_t;
-            it = max(min(floor((gps_time - this.ionex.first_time)/ dt)+1,nt-1),1);
-            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt,dt),0)/dt;
-            
-            %lat
-            dlat = this.ionex.d_lat;
-            nlat = this.ionex.n_lat;
-            ilat = max(min(floor((lat - this.ionex.first_lat)/ dlat)+1,nlat-1),1);
-            slat = max(min(this.ionex.first_lat - lat - (it-1)*dlat,dlat),0)/dlat;
-            %lon
-            dlon = this.ionex.d_lon;
-            nlon = this.ionex.n_lon;
-            ilon = max(min(floor((lon - this.ionex.first_lon)/ dlon)+1,nlon-1),1);
-            slon = max(min(lon - this.ionex.first_lon - (it-1)*dlon,dlon),0)/dlon;
-            
-            % interpolate along time
-            % [ 1 2  <- index of the cell at the smae time
-            %   3 4]
-            tec1 = this.ionex.data(ilat,ilon,it)*(1-st) + this.ionex.data(ilat,ilon,it+1)*st;
-            tec2 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
-            tec3 = this.ionex.data(ilat+1,ilon,it)*(1-st) + this.ionex.data(ilat+1,ilon,it+1)*st;
-            tec4 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
-            
-            %interpolate along long
-            tecn = tec1*(1-slon) + tec2*slon;
-            tecs = tec3*(1-slon) + tec4*slon;
-            
-            %interpolate along lat
-            TEC = tecn*(1-slat) + tecs*slat;
-            
-            
-        end
         
         function idx = getGroupDelayIdx(this,flag)
             %DESCRIPTION: get the index of the gorup delay for the given

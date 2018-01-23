@@ -44,14 +44,27 @@ classdef Atmosphere < handle
     properties  (Constant)
         STD_TEMP =  291.15;
         STD_PRES = 1013.25;
-        STD_HUMI = 50;        
+        STD_HUMI = 50;
     end
     
     properties  (SetAccess = private, GetAccess = public)
         state
         geoid
+        ionex = struct( ...
+            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'first_lat',    [], ...    % first latitude
+            'first_lon',    [], ...    % first longitude
+            'd_lat',      [], ...    %lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'dt',         [], ...    % time spacing
+            'n_t',        [], ...    % num of epocvhs
+            'heigth',     []  ...    % heigh of the layer
+            )
     end
-        
+    
     properties  (SetAccess = private, GetAccess = private)
         lat = 1e3;    % current values for lat
         lon = 1e3;    % current values for lon
@@ -71,12 +84,149 @@ classdef Atmosphere < handle
         ata     % ata saved value for GPT computation
     end
     
-     methods
+    methods
         function this = Atmosphere()
             % Initialisation of the variables
             gs = Go_State.getInstance;
             this.geoid = gs.getRefGeoid;
             this.state = gs.getCurrentSettings();
+        end
+        function importIonex(this, filename)
+            fid = fopen([filename],'r');
+            if fid == -1
+                this.log.addWarning(sprintf('      File %s not found', filename));
+                return
+            end
+            this.log.addMessage(sprintf('      Opening file %s for reading', filename));
+            txt = fread(fid,'*char')';
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  numel(txt)
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+            lim = [lim lim(:,2) - lim(:,1)];
+            if lim(end,3) < 3
+                lim(end,:) = [];
+            end
+            % read header
+            for l = 1:size(lim,1)
+                line = txt(lim(l,1):lim(l,2));
+                if strfind(line,'END OF HEADER')
+                    break
+                elseif strfind(line,'EPOCH OF FIRST MAP')
+                    first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                elseif strfind(line,'EPOCH OF LAST MAP')
+                    last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                elseif strfind(line,'INTERVAL')
+                    interval = sscanf(line(1:60),'%f')';
+                elseif strfind(line,'HGT1 / HGT2 / DHGT')
+                    height = sscanf(line(1:60),'%f %f %f')';
+                elseif strfind(line,'LAT1 / LAT2 / DLAT')
+                    lats = sscanf(line(1:60),'%f %f %f')';
+                elseif strfind(line,'LON1 / LON2 / DLON')
+                    lons = sscanf(line(1:60),'%f %f %f')';
+                end
+            end
+            lim(1:l,:) = [];
+            txt(1:(lim(1,1)-1)) = [];
+            lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
+            if isempty(this.ionex.data)
+                this.ionex.first_time = first_epoch;
+                this.ionex.d_t = interval;
+                this.ionex.n_t =  round((last_epoch - first_epoch) / interval);
+                this.ionex.first_lat= lats(1);
+                this.ionex.d_lat = lats(3);
+                this.ionex.n_lat = round((lats(2)-lats(1))/lats(3))+1;
+                this.ionex.first_lon= lons(1);
+                this.ionex.d_lon = lons(3);
+                this.ionex.n_lon = round((lons(2)-lons(1))/lons(3))+1;
+                this.ionex.height = height;
+                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.n_t);
+            end
+            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80);
+            n_lat = size(this.ionex.data,1);
+            n_lon = size(this.ionex.data,2);
+            nt = this.ionex.n_t;
+            lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
+            st_l  = lim(lines, 1);
+            cols = [0:(n_lon*5+n_line_1_lat-2)];
+            idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
+            idx(:,81:81:length(cols))   = [];
+            idx(:,366:end) = []; %% trial and error fix bug fix
+            vals = txt(serialize(idx'));
+            %vals = serialize(vals');
+            vals = reshape(vals,5,length(vals)/5);
+            nums = sscanf(vals,'%f');
+            this.ionex.data = reshape(nums,n_lat,n_lon,nt);
+        end
+        
+        function tec = interpolateTEC(this, gps_time, lat, lon)
+            % find indexes and interpolating length
+            %time
+            dt = this.ionex.d_t;
+            nt = this.ionex.n_t;
+            it = max(min(floor((gps_time - this.ionex.first_time)/ dt)+1,nt-1),1);
+            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt,dt),0)/dt;
+            
+            %lat
+            dlat = this.ionex.d_lat;
+            nlat = this.ionex.n_lat;
+            ilat = max(min(floor((lat - this.ionex.first_lat)/ dlat)+1,nlat-1),1);
+            slat = max(min(this.ionex.first_lat - lat - (it-1)*dlat,dlat),0)/dlat;
+            %lon
+            dlon = this.ionex.d_lon;
+            nlon = this.ionex.n_lon;
+            ilon = max(min(floor((lon - this.ionex.first_lon)/ dlon)+1,nlon-1),1);
+            slon = max(min(lon - this.ionex.first_lon - (it-1)*dlon,dlon),0)/dlon;
+            
+            % interpolate along time
+            % [ 1 2  <- index of the cell at the smae time
+            %   3 4]
+            tec1 = this.ionex.data(ilat,ilon,it)*(1-st) + this.ionex.data(ilat,ilon,it+1)*st;
+            tec2 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
+            tec3 = this.ionex.data(ilat+1,ilon,it)*(1-st) + this.ionex.data(ilat+1,ilon,it+1)*st;
+            tec4 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
+            
+            %interpolate along long
+            tecn = tec1*(1-slon) + tec2*slon;
+            tecs = tec3*(1-slon) + tec4*slon;
+            
+            %interpolate along lat
+            tec = tecn*(1-slat) + tecs*slat;
+            
+            
+        end
+        function [stec, pp, k] = getSTEC(this,lat,lon, az,el,h, time)
+            % get slant total electron component
+            
+            
+            thin_shell_height = this.ionex.height(1);       %ionopshere thin shell height [km]
+            % get piercing point and mapping function
+            [latpp, lonpp, mfpp, k] = getPiercePoint( lat, lon, h, az, el, thin_shell_height)
+            %inetrpolate TEC at piercing point
+            tec = this.interpolateTEC( time, latpp, lonpp)
+            
+            %apply mapping function
+            stec = tec .* mfpp;
+            if nargout > 1
+                pp = [latpp , lonpp];
+            end
+            
+            
+        end
+        
+        function foi_delay = getFOIdelay(this,lat,lon, az,el,h,time,f)
+            %get first horder ionosphere delay
+            [stec] = getSTEC(this,lat,lon, az,el,h, time);
+            foi_delay = 40.3 * 1e16/ f^2 .* stec;
+        end
+        
+        function getHOIdelay(this)
+            % get High order ionophere delays
+            [stec, pp, k] = getSTEC(this,lat,lon, az,el,h, time);
         end
     end
     
@@ -157,7 +307,7 @@ classdef Atmosphere < handle
                 % tropospheric delay
                 w_fun = (1-tan(el).^2./(tan(el).^2+tan(el+2).^2));
                 %delay = ((0.002277 ./ sin(el)) .* (P - (B ./ tan(el).^2)) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e);
-                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el).^2+ 0.01.*w_fun))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0                
+                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el).^2+ 0.01.*w_fun))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0
             else
                 delay = zeros(size(el));
             end
@@ -181,7 +331,7 @@ classdef Atmosphere < handle
             %   Computation of the pseudorange correction due to tropospheric refraction.
             %   Saastamoinen algorithm using P T from Global Pressure and Temperature
             %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
-            %   --> single epoch                                                
+            %   --> single epoch
             [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
             
             t_h = h;
@@ -376,7 +526,7 @@ classdef Atmosphere < handle
                 % determine n!  (faktorielle)  moved by 1
                 dfac(1) = 1;
                 for i = 1:(2*n + 1)
-                  dfac(i+1) = dfac(i)*i;
+                    dfac(i+1) = dfac(i)*i;
                 end
                 
                 % determine Legendre functions (Heiskanen and Moritz, Physical Geodesy, 1967, eq. 1-62)
@@ -387,11 +537,11 @@ classdef Atmosphere < handle
                         for k = 0:ir
                             sum_t = sum_t + (-1)^k*dfac(2*i - 2*k + 1)/dfac(k + 1)/dfac(i - k + 1)/dfac(i - j - 2*k + 1)*t^(i - j - 2*k);
                         end
-                % Legendre functions moved by 1
+                        % Legendre functions moved by 1
                         P(i + 1,j + 1) = 1.d0/2^i*sqrt((1 - t^2)^(j))*sum_t;
                     end
                 end
-                           
+                
                 % spherical harmonics
                 i = 0;
                 for n = 0:9
@@ -402,9 +552,9 @@ classdef Atmosphere < handle
                     end
                 end
                 % vectorial computation
-%                 md = (0 : 9)' * dlon;
-%                 aP = bsxfun(@times, P, cos(md)); aP = aP(triu(true(10)))';
-%                 bP = bsxfun(@times, P, sin(md)); bP = bP(triu(true(10)))';
+                %                 md = (0 : 9)' * dlon;
+                %                 aP = bsxfun(@times, P, cos(md)); aP = aP(triu(true(10)))';
+                %                 bP = bsxfun(@times, P, sin(md)); bP = bP(triu(true(10)))';
                 
                 % Geoidal height
                 % undu = 0.d0;
@@ -414,9 +564,9 @@ classdef Atmosphere < handle
                 % vectorial computation
                 
                 if nargin < 6 || isempty(undu)
-                    undu = sum(a_geoid .* aP + b_geoid .* bP); 
+                    undu = sum(a_geoid .* aP + b_geoid .* bP);
                 end
-                % now this function get directly the orthometric height from input                
+                % now this function get directly the orthometric height from input
                 
                 % Surface pressure on the geoid
                 % apm = 0.d0;
@@ -455,15 +605,15 @@ classdef Atmosphere < handle
             
             % height correction for pressure
             pres0  = apm + apa*cos(doy*2.d0*pi);
-            pres = pres0*(1.d0-0.0000226d0*h_ort)^5.225d0;                        
+            pres = pres0*(1.d0-0.0000226d0*h_ort)^5.225d0;
             
             % height correction for temperature
             temp0 =  atm + ata*cos(doy*2*pi);
-            temp = temp0 - 0.0065d0 * h_ort;            
+            temp = temp0 - 0.0065d0 * h_ort;
         end
         
         function [iono_2_phase, iono_2_code, iono_3_phase, iono_3_code] = HOI_corrections(xyz,az,el,lambda)
-
+            
             % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
@@ -622,7 +772,7 @@ classdef Atmosphere < handle
                     -3.861d-05, -2.268d-05, +1.454d-06, +3.860d-07, -1.068d-07, ...
                     +0.000d+00, -2.658d-02, -1.947d-03, +7.131d-04, -3.506d-05, ...
                     +1.885d-07, +5.792d-07, +3.990d-08, +2.000d-08, -5.700d-09];
-                                
+                
                 % degree n and order m
                 nmax = 9;
                 % mmax = 9;
@@ -827,6 +977,41 @@ classdef Atmosphere < handle
             
             index = find(abs(x) >= 1.57);
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
+        end
+        
+        function [latpp, lonpp, mfpp] = getPiercePoint(lat, lon, h_ortho, az, el, thin_shell_height)
+            % Get radius of curvature at lat
+            rcm = getMeridianRadiusCurvature(lat);
+            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height))*cos(el);
+            phipp = (pi/2) - el - asin(k);
+            
+            %set azimuth from -180 to 180
+            az = mod((az+pi),2*pi)-pi;
+            
+            %latitude of the ionosphere piercing point
+            latpp = asin(sin(lat)*cos(phipp) + cos(lat)*sin(phipp)*cos(az));
+            
+            %longitude of the ionosphere piercing point
+            if ((latpp >  70*pi/180) && (tan(phipp)*cos(az)      > tan((pi/2) - lat))) || ...
+                    ((latpp < -70*pi/180) && (tan(phipp)*cos(az + pi) > tan((pi/2) + lat)))
+                
+                lonpp = lon + pi - asin(sin(phipp)*sin(az/cos(latpp)));
+            else
+                lonpp = lon + asin(sin(phipp)*sin(az/cos(latpp)));
+            end
+            
+            % using thin shell layer mapping function (Handbook of Global
+            % Navigation System pp 185)
+            if nargout > 2
+                mfpp = (1-(k)^2)^(-1/2);
+            end
+            if nargout > 3
+                neu = [cos(az).*cos(el);
+                    sin(az).*cos(el);
+                    sin(el)];
+                [X,Y,Z] = geod2cart(lat, lon, h_ortho);
+                [k] = local2globalVel(neu, [X Y Z]);
+            end
         end
     end
 end

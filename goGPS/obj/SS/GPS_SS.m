@@ -75,7 +75,7 @@ classdef GPS_SS < Satellite_System
         IONO_FREE_PREF  = ['12';'15';'25'];
     end
 
-    properties (Constant, Access = 'private')
+    properties (Constant, Access = 'public')
         % GPS (WGS84) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
         % GPS (WGS84) Ellipsoid flattening

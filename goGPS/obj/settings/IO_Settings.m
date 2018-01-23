@@ -118,10 +118,10 @@ classdef IO_Settings < Settings_Interface
         REF_GRAPH_FILE = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ref_path' filesep 'ref_path.mat']; % Reference path constraints
         ERP_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
         ERP_NAME = ''; % Name of ERP files
-        GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
-        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
         IGRF_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         IGRF_NAME = 'igrf12coeff.txt';
+        GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
 
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
@@ -247,10 +247,6 @@ classdef IO_Settings < Settings_Interface
         clk_name = IO_Settings.CLK_NAME;  % File name of clock offsets
         clk_full_name;                    % Full name of the clock offsets generated during runtime from the provided parameters
 
-        erp_dir = IO_Settings.ERP_DIR;    % Path to ERP files folder
-        erp_name = IO_Settings.ERP_NAME;  % File name of ERP
-        erp_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
-
         % Path to CRX folder containing files of Satellites problems
         crx_dir = IO_Settings.CRX_DIR;
         % Path to DCB folder containing files of Differential Code Biases
@@ -285,16 +281,18 @@ classdef IO_Settings < Settings_Interface
         % Path to file containing the reference path
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
 
+        erp_dir = IO_Settings.ERP_DIR;    % Path to ERP files folder
+        erp_name = IO_Settings.ERP_NAME;  % File name of ERP
+        erp_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
+        
+        igrf_dir = IO_Settings.IGRF_DIR;  % Path to IGRF files folder
+        igrf_name = IO_Settings.IGRF_NAME;
+       
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         geoid_dir = IO_Settings.GEOID_DIR;
         % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
         geoid_name = IO_Settings.GEOID_NAME;
         
-        % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
-        igrf_dir = IO_Settings.IGRF_DIR;
-        % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
-        igrf_name = IO_Settings.IGRF_NAME;
-
         % Location of the ocean loading file
         ocean_name =  IO_Settings.OCEAN_NAME;
 
@@ -438,6 +436,8 @@ classdef IO_Settings < Settings_Interface
                 this.ref_graph_file  = fnp.getFullDirPath(settings.getData('ref_graph_file'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ref_graph_file')), this.prj_home));
                 this.erp_dir    = fnp.getFullDirPath(settings.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
                 this.erp_name   = fnp.checkPath(settings.getData('erp_name'));
+                this.igrf_dir    = fnp.getFullDirPath(settings.getData('igrf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('igrf_dir')), this.prj_home));
+                this.igrf_name   = fnp.checkPath(settings.getData('igrf_name'));
                 this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
                 this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir')), this.prj_home));
@@ -517,6 +517,8 @@ classdef IO_Settings < Settings_Interface
                 this.ocean_name  = settings.ocean_name;
                 % REFERENCE
                 this.ref_graph_file = settings.ref_graph_file;
+                this.igrf_dir  = settings.igrf_dir;
+                this.igrf_name = settings.igrf_name;
                 this.geoid_dir  = settings.geoid_dir;
                 this.geoid_name = settings.geoid_name;
                 this.dtm_dir    = settings.dtm_dir;
@@ -617,6 +619,8 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' File contraining the reference graph:             %s\n', this.ref_graph_file)];
             str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
             str = [str sprintf(' Name of ERP files:                                %s\n', this.erp_name)];
+            str = [str sprintf(' Directory of IGRF files:                          %s\n', fnp.getRelDirPath(this.igrf_dir, this.prj_home))];
+            str = [str sprintf(' Name of IGRF files:                               %s\n', this.igrf_name)];
             str = [str sprintf(' Directory of Geoid models:                        %s\n', fnp.getRelDirPath(this.geoid_dir, this.prj_home))];
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', fnp.getRelDirPath(this.dtm_dir, this.prj_home))];
@@ -795,6 +799,10 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of ERP files - special keywords can be used', str_cell);
             str_cell = Ini_Manager.toIniString('erp_name', this.erp_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of International Geomagnetic Reference Frame (IGRF) files', str_cell);
+            str_cell = Ini_Manager.toIniString('igrf_dir', fnp.getRelDirPath(this.igrf_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of IGRF file', str_cell);
+            str_cell = Ini_Manager.toIniString('igrf_name', this.igrf_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_dir', fnp.getRelDirPath(this.geoid_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
@@ -1173,19 +1181,18 @@ classdef IO_Settings < Settings_Interface
             out = File_Name_Processor.checkPath(this.ref_graph_file);
         end
 
+        function file_path = getIgrfFile(this)
+            % Get the file name of the Mg
+            % SYNTAX: erp_path = this.getErpPath()
+            file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
+        end
+        
         function file_path = getGeoidFile(this)
             % Get the path of the geoid file
             % SYNTAX: file_path = this.getGeoidFile()
             file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
         end
         
-        function igrf_file = getIGRFFile(this)
-            % Get the file name of the Mg
-            % SYNTAX: erp_path = this.getErpPath()
-            igrf_file = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
-        end
-
-
         function out_dir = getOutDir(this)
             % Get the path of the out folder
             % SYNTAX: out_dir = this.getOutDir()
@@ -1980,6 +1987,8 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('ocean_dir', false);
 
             this.checkStringField('ref_graph_file', true);
+            this.checkPathField('igrf_dir', false);
+            this.checkStringField('igrf_name', false);
             this.checkPathField('geoid_dir', false);
             this.checkStringField('geoid_name', false);
             this.checkPathField('dtm_dir', true);
