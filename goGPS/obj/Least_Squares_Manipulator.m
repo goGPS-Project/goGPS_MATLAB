@@ -278,7 +278,7 @@ classdef Least_Squares_Manipulator < handle
                 snr_stream = obs_set.snr(vaild_ep_stream, s);
                 el_stream = obs_set.el(vaild_ep_stream, s) / 180 * pi;
                 az_stream = obs_set.az(vaild_ep_stream, s) / 180 * pi;
-                mfw_stream = mfw(vaild_ep_stream, this.sat_go_id(s)); % 1./sin(el_stream);
+                mfw_stream = mfw(vaild_ep_stream, obs_set.go_id(s)); % 1./sin(el_stream);
                 xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
                 n_obs_stream = length(obs_stream);
@@ -303,7 +303,7 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, n_coo+iob_flag+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 if tropo_g
-                    cotan_term = cot(el_stream).^4 .* mfw_stream;
+                    cotan_term = cot(el_stream) .* mfw_stream;
                     A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient 
                     A(lines_stream, n_coo+iob_flag+5) = sin(az_stream) .* cotan_term; % east gradient
                     

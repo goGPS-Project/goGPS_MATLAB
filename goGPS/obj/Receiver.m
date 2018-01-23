@@ -4716,7 +4716,9 @@ classdef Receiver < Exportable_Object
                     this.tge(valid_ep) =  getropo;
                     
                     cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
-                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel));
+                    cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
+                    sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
+                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel.*cosaz) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel.*sinaz));
                 end
             else
                 this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
