@@ -4584,7 +4584,7 @@ classdef Receiver < Exportable_Object
             
             this.remBad();
             % correct for raw estimate of clock error based on the phase measure
-            %this.correctTimeDesync();
+            this.correctTimeDesync();
             % set to static or dynamic
             if (nargin == 2)
                 this.static = is_static;
