@@ -371,6 +371,11 @@ classdef Least_Squares_Manipulator < handle
                 res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
             end
         end
+        %-----------------------------------------------
+        % Implemenation of M-estimators
+        % Note: after reweighting the function Astackt2Nstack have to be
+        % called again
+        %----------------------------------------------------------------
         function weightOnResidual(this, wfun, threshold)
             s02 = mean(abs(this.res));
             res_n = this.res/s02;
@@ -396,6 +401,7 @@ classdef Least_Squares_Manipulator < handle
             wfun = @(x) (1 - (x ./threshold).^2).^2;
             this.weightOnResidual(wfun, threshold);
         end
+        %------------------------------------------------------------------------
         function [x, res, s02, Cxx] = solve(this)
             idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
             idx_constant = find(idx_constant_l);

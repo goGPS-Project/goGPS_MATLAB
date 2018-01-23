@@ -121,6 +121,45 @@ classdef Earth_Magnetic_Field < handle
             this.years = years_n;
 
         end
+        function V = getV(this, gps_time, r, phi, theta)
+             % interpolate H at G at presetn epoch
+            [y, doy] = gps_time.getDOY;
+            re = GPS_SS.ELL_A/1000;
+            iy = max(min(floor(y-1900)/5+1,24),1);
+            int_time = ((y - this.years(iy))*365.25 + doy-1)/(365.25*5);
+            H = this.H(:,:,iy) * (1 - int_time) + int_time *  this.H(:,:,iy+1);
+            G = this.G(:,:,iy) * (1 - int_time) + int_time *  this.G(:,:,iy+1);
+            n = size(H,1);
+            P = zeros(n,n);
+            % co to colatitude
+            theta = pi/2 - theta;
+            for i = 0:n-1;
+                P(1:i+1,i+1) = legendre(i,cos(theta),'sch');
+            end
+            mphi = repmat((0:n-1)',1,n)*phi;
+            cosm = cos(mphi); %some unnecesaary calculations
+            sinm = sin(mphi); %some unnecesaary calculations
+            arn = repmat((re/r).^(1:n),n,1);
+            V =  re * sum(sum(arn .* (G .* cosm + H .* sinm) .* P));
+        end
+        function B = getBnum(this, gps_time, r, phi, theta)
+            % X 
+            dtheta = 0.1/180*pi;
+            V2 = this.getV( gps_time, r, phi, theta-dtheta/2);
+            V1 = this.getV( gps_time, r, phi, theta+dtheta/2);
+            X = (V2 - V1)/dtheta * 1 / r;
+            % Y 
+            dphi = 0.1/180*pi;
+            V2 = this.getV( gps_time, r, phi+dphi/2, theta);
+            V1 = this.getV( gps_time, r, phi-dphi/2, theta);
+            Y = -(V2 - V1)/dphi * 1 / (r * sin(pi/2 -theta));
+            %Z
+            dr = 1;
+            V2 = this.getV( gps_time, r+dr/2, phi, theta);
+            V1 = this.getV( gps_time, r-dr/2, phi, theta);
+            Z = (V2 - V1)/dr;
+            B = [X;Y;Z];
+        end
         function B = getB(this, gps_time, r, phi, theta)
             % interpolate H at G at presetn epoch
             [y, doy] = gps_time.getDOY;
@@ -133,30 +172,34 @@ classdef Earth_Magnetic_Field < handle
             P = zeros(n,n);
             % co to colatitude
             theta = pi/2 - theta;
-            cos(theta);
             for i = 0:n-1;
                 P(1:i+1,i+1) = legendre(i,cos(theta),'sch');
             end
-            mphi = repmat((0:n-1)*phi,n,1);
+            mphi = repmat((0:n-1)',1,n)*phi;
             cosm = cos(mphi); %some unnecesaary calculations
             sinm = sin(mphi); %some unnecesaary calculations
             arn = repmat((re/r).^(1:n),n,1);
             
+            
+            
+            
             N = repmat((0:n-1),n,1);
             M = N';
             % X dV/dtheta
-            dP = [zeros(size(P,1),1) ((N(:,1:end-1) + M(:,1:end-1)) .* P(:,1:end-1) - N(:,2:end) .* cos(theta) .* P(:,2:end))/(1-cos(theta)^2)]; % http://www.autodiff.org/ad16/Oral/Buecker_Legendre.pdf
+            %dP = [zeros(size(P,1),1) ((N(:,1:end-1) + M(:,1:end-1)) .* P(:,1:end-1) - N(:,2:end) .* cos(theta) .* P(:,2:end))/(1-cos(theta)^2)]; % http://www.autodiff.org/ad16/Oral/Buecker_Legendre.pdf
             dP = zeros(n,n);
+            dtheta = 0.1/180*pi;
             for i = 0:n-1;
-                dP(1:i+1,i+1) = (legendre(i,cos(theta)+0.00001,'sch') - legendre(i,cos(theta)-0.00001,'sch'))/0.00002;
+                dP(1:i+1,i+1) = (legendre(i,cos(theta+dtheta/2),'sch') - legendre(i,cos(theta-dtheta/2),'sch'))/dtheta;
             end
-            X = re / r * sum(sum(arn .* (G .* (cosm + H .* sinm) .* dP))); 
+            X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP)); 
             % Y dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
             Y = - re / (r * sin(theta)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             % Z dV/dr
             darn = repmat((1:n) .* (re/r).^(1:n),n,1);
-             Z = re/r * sum(sum(darn .* (G .* (cosm + H .* sinm) .* P)));
+            Z = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
+            
             B = [X;Y;Z];
         end
         
