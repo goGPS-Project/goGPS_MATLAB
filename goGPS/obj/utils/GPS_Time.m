@@ -809,16 +809,20 @@ classdef GPS_Time < Exportable_Object & handle
         
         function [rate]  = getRate(this)
             % get observation rate approximated at 3 digits
-            switch this.time_type
-                case 0 % I'm already in MAT TIME
-                    rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
-                case 1 % I'm in UNIX TIME
-                    % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
-                    tmp_time = double(this.unix_time) + this.unix_time_f;
-                    rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
-                case 2 % I'm in REF TIME
-                    rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+            if (this.length() == 1)
+                rate = 1;
+            else
+                switch this.time_type
+                    case 0 % I'm already in MAT TIME
+                        rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
+                    case 1 % I'm in UNIX TIME
+                        % constants in matlab are slower than copied values :-( switching to values
+                        % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
+                        tmp_time = double(this.unix_time) + this.unix_time_f;
+                        rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
+                    case 2 % I'm in REF TIME
+                        rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+                end
             end
         end
         
