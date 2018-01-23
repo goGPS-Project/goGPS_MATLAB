@@ -303,7 +303,7 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, n_coo+iob_flag+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 if tropo_g
-                    cotan_term = cot(el_stream) .* mfw_stream;
+                    cotan_term = cot(el_stream).^4 .* mfw_stream;
                     A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient 
                     A(lines_stream, n_coo+iob_flag+5) = sin(az_stream) .* cotan_term; % east gradient
                     
@@ -415,8 +415,8 @@ classdef Least_Squares_Manipulator < handle
             class_ep_wise = this.param_class(idx_non_constant);
             
             rate = median(diff(this.true_epoch));
-            reg_diag0 = [double(diff(this.true_epoch) ); 0 ] + [0; double(diff(this.true_epoch) )];
-            reg_diag1 = -double(diff(this.true_epoch) ) ;
+            reg_diag0 = [1./double(diff(this.true_epoch) ); 0 ] + [0; 1./double(diff(this.true_epoch) )];
+            reg_diag1 = -1./double(diff(this.true_epoch) ) ;
             Ndiags = permute(Ndiags, [3, 1, 2]);
             tik_reg = ones(n_epochs,1)/n_epochs; %%% TIkhonov on ZTD and gradients
             for i = 1:n_ep_class
