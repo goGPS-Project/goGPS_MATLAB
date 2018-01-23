@@ -809,16 +809,20 @@ classdef GPS_Time < Exportable_Object & handle
         
         function [rate]  = getRate(this)
             % get observation rate approximated at 3 digits
-            switch this.time_type
-                case 0 % I'm already in MAT TIME
-                    rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
-                case 1 % I'm in UNIX TIME
-                    % constants in matlab are slower than copied values :-( switching to values
-                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
-                    tmp_time = double(this.unix_time) + this.unix_time_f;
-                    rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
-                case 2 % I'm in REF TIME
-                    rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+            if (this.length() == 1)
+                rate = 1;
+            else
+                switch this.time_type
+                    case 0 % I'm already in MAT TIME
+                        rate = round(median(diff(this.mat_time*86400)) * 1e3) / 1e3;
+                    case 1 % I'm in UNIX TIME
+                        % constants in matlab are slower than copied values :-( switching to values
+                        % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_ZERO + this.unix_time_f;
+                        tmp_time = double(this.unix_time) + this.unix_time_f;
+                        rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
+                    case 2 % I'm in REF TIME
+                        rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+                end
             end
         end
         
@@ -956,11 +960,22 @@ classdef GPS_Time < Exportable_Object & handle
             % Get Modified julian date
             % SYNTAX: [gps_time] = this.getGpsTime()
             if nargin == 2
-                [gps_week, gps_sow, ~] = this.getGpsWeek(id);
+                date = this.getEpoch(id).get6ColDate;
             else
-                [gps_week, gps_sow, ~] = this.getGpsWeek();
+                date = this.get6ColDate;
             end
-            mjd=jd2mjd(gps2jd(double(gps_week), gps_sow));
+            [~, mjd] = date2jd(date);
+        end
+        
+        function [jd] = getJD(this, id)
+            % Get  julian date
+            % SYNTAX: [gps_time] = this.getGpsTime()
+            if nargin == 2
+                date = this.getEpoch(id).get6ColDate;
+            else
+                date = this.get6ColDate;
+            end
+            jd = date2jd(date);
         end
         
         function [year, doy, sod] = getDOY(this)
