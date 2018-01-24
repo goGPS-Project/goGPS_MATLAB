@@ -2537,6 +2537,7 @@ classdef Receiver < Exportable
                         iono_factor = 1;
                     otherwise
                         % TO BE IMPLEMENTED
+                        this.log.addWarning('Receiver.getSyntObs obs_type unkonwn -> to be implemented')
 %                         wl_ref = this.cc.getGPS.F_VEC(1);
 %                         wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
 %                         iono_factor= wl_ref^2/ wl^2;
@@ -2600,14 +2601,14 @@ classdef Receiver < Exportable
             end
         end
         
-        function synt_ph = getSyntPhases(this)
-            % DESCRIPTION: get current value of syntetic phase, in case not
-            % present update it
+        function synt_ph = getSyntPhases(this, sys_c)
+            % get current value of syntetic phase, in case not present update it
             if isempty(this.synt_ph)
                 this.updateSyntPhases();
             end
             synt_ph = this.synt_ph;
             synt_ph(this.outlier_idx_ph) = nan;
+            synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -2845,12 +2846,12 @@ classdef Receiver < Exportable
                 c_sys = this.cc.system(i);
                 c_prn = this.cc.prn(i);
                 idx_sat = this.system' == c_sys & this.prn == c_prn & this.obs_code(:,1) == 'C';
-                if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
+                if sum(idx_sat) > 0 % if we have an observation for the satellite
                     if nargin == 1 % obs based
-                    c_obs = this.obs(idx_sat,:);
-                    c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
-                    else  % 
-                    c_l_obs = this.getSyntObs('I',i);
+                        c_obs = this.obs(idx_sat,:);
+                        c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
+                    else
+                        c_l_obs = this.getSyntObs('I', i);
                     end
                     %update time of flight times
                     this.updateTOT(c_l_obs,i); % update time of travel
@@ -2971,20 +2972,23 @@ classdef Receiver < Exportable
             if nargin == 1
                 smoothing_win = 3;
             end
-            if smoothing_win == 0
-                this.log.addMessage(this.log.indent('Apply the clock error of the receiver', 6));
-            else
+            if any(smoothing_win)
                 this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6));
+            else
+                this.log.addMessage(this.log.indent('Apply the clock error of the receiver', 6));
             end
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);            
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
-            if smoothing_win > 0
+            if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if lim(i,2) - lim(i,1) > 5
-                        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), smoothing_win);
+                        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), smoothing_win(1));
                     end
                 end
+            end
+            if length(smoothing_win) == 2
+                dt = splinerMat([], dt, smoothing_win(2));
             end
             this.dt = simpleFill1D(zero2nan(dt), id_ko, 'spline');
             this.applyDtRec(dt)
