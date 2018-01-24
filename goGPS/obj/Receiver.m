@@ -1233,7 +1233,8 @@ classdef Receiver < Exportable
         
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
-            
+            this.updateAllAvailIndex();
+            this.updateAllTOT();
             % PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
@@ -2971,11 +2972,11 @@ classdef Receiver < Exportable
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);            
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
-            for i = 1 : size(lim, 1)
-                if lim(i,2) - lim(i,1) > 5
-                    dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
-                end
-            end
+            %for i = 1 : size(lim, 1)
+            %    if lim(i,2) - lim(i,1) > 5
+            %        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
+            %    end
+            %end
             this.dt = simpleFill1D(zero2nan(dt), id_ko, 'spline');
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
