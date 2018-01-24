@@ -162,7 +162,7 @@ classdef File_Wizard < handle
             this.conjureNavFiles(date_start, date_stop);
             this.conjureErpFiles(date_start, date_stop);
             this.conjureDCBFiles(date_start, date_stop);
-            %this.conjureCRXFiles(date_start, date_stop);
+            this.conjureCRXFiles(date_start, date_stop);
         end
 
         function [first_epoch, last_epoch] = conjureObsFile(this)
@@ -421,7 +421,7 @@ classdef File_Wizard < handle
             for y = 1 : length(year)
                 
                 %target directory
-                s = '/aiub/BSWUSER52/GEN';
+                s = '/BSWUSER52/GEN';
                 
                 cd(ftp_server, '/');
                 cd(ftp_server, s);
