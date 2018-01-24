@@ -36,7 +36,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Receiver < Exportable_Object
+classdef Receiver < Exportable
         
     %% PROPERTIES RECEIVER
     % ==================================================================================================================================================
@@ -3557,7 +3557,7 @@ classdef Receiver < Exportable_Object
             %   oceanloadcorr = ocean loading correction terms (along the satellite-receiver line-of-sight)
             %
             % DESCRIPTION:
-            %   Computation of the ocean loading displacement terms.ù
+            %   Computation of the ocean loading displacement terms.
             % NOTES:
             %  Inefficent to compute them separate by staellites always call
             %  as a block
@@ -5815,7 +5815,8 @@ classdef Receiver < Exportable_Object
         end
         
         function [p_time, id_sync] = getSyncTimeExpanded(rec, obs_type, p_rate)
-            % Get the common (shor) time among alle the used receivers and the target(s)
+            % Get the common (shorter) time among alle the used receivers and the target(s)
+            % Consider most of the receiver to be regularly sampled
             %
             % SYNTAX: 
             %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, obs_type, <p_rate>);
@@ -5828,7 +5829,8 @@ classdef Receiver < Exportable_Object
             end
             if nargin < 2
                 obs_type = ones(1, numel(rec));
-                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
+                len = rec.length_mr();                
+                obs_type(find(len == max(len), 1, 'last')) = 0;
             end
             
             % Do the target(s) as last
@@ -5848,12 +5850,15 @@ classdef Receiver < Exportable_Object
             
             i = 0;
             for r = id
+                rec_rate = min(1, rec(r).time.getRate);
                 ref_t{r} = rec(r).time.getRefTime(p_time_zero);
                 if obs_type(r) > 0 % if it's not a target
                     if ~rec(r).isempty
-                        p_time_start = min(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_time_stop = max(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                        p_time_start = min(p_time_start,  floor(rec(r).time.first.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                        p_time_stop = max(p_time_stop,  ceil(rec(r).time.last.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                        if rec(r).length > 1
+                            p_rate = min(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                        end
                     end
                 else
                     % It's a target
@@ -5863,15 +5868,15 @@ classdef Receiver < Exportable_Object
                     % in case of multiple targets the reference times should be independent
                     % so here I keep the temporary rt0 rt1 r_rate var
                     % instead of ref_time_start, ref_time_stop, ref_rate
-                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
-                    pt0 = ceil(pt0 / pr) * pr;
-                    pt1 = floor(pt1 / pr) * pr;
+                    pt0 = max(p_time_start, floor(rec(r).time.first.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    pt1 = min(p_time_stop, ceil(rec(r).time.last.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    pr = gcd(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = floor(pt0 / rec_rate) * rec_rate;
+                    pt1 = ceil(pt1 / rec_rate) * rec_rate;
                     
                     % return one p_time for each target
                     i = i + 1;
-                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1));
                     p_time(i).toUnixTime();
                     
                     id_sync{i} = nan(p_time(i).length, numel(id));
