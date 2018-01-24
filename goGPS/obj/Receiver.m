@@ -2209,6 +2209,7 @@ classdef Receiver < Exportable
             idx = find(idx);
             idx(idx == 0) = [];
         end
+        
         function obs_set = getPrefObsSetCh(this, flag, system)
             [obs, idx, snr, cycle_slips] = this.getPrefObsCh(flag, system, 1);
             obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', [], [], this.prn(idx)');
@@ -2218,6 +2219,7 @@ classdef Receiver < Exportable
             obs_set.sigma = sigma*ones(size(obs_set.prn));
             
         end
+        
         function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
             % channel according to the feinition in GPS_SS, GLONASS_SS
@@ -2835,7 +2837,7 @@ classdef Receiver < Exportable
             this.sat.tot(:, sat) =  ( obs' )/ goGNSS.V_LIGHT + this.dt(:, 1);  %<---- check dt with all the new dts field
         end
         
-        function updateAllTOT(this, synt_based)
+        function updateAllTOT(this)
             % upate time of travel for all satellites
             for i = 1 : this.cc.getNumSat()
                 c_sys = this.cc.system(i);
@@ -4277,8 +4279,6 @@ classdef Receiver < Exportable
             
         end
         
- 
-        
         function initStaticPositioning(this)
             % SYNTAX:
             %   this.StaticPositioning(obs, prn, sys, flag)
@@ -4324,7 +4324,7 @@ classdef Receiver < Exportable
             
         end
         
-        function [dpos ] = codeStaticPositioning(this,id_epoch, cut_off)
+        function dpos = codeStaticPositioning(this,id_epoch, cut_off)
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 id_epoch = 1:this.time.length();
@@ -5354,8 +5354,8 @@ classdef Receiver < Exportable
         end
         
         function plotResSkyPolar(this)
-            % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX: this.plotSNR(sys_c)
+            % Plot residuals of the solution on polar scatter
+            % SYNTAX: this.plotResSkyPolar(sys_c)
             
             % SNRs
             res = this.sat.res;
@@ -5371,8 +5371,8 @@ classdef Receiver < Exportable
         end
         
         function plotResSkyCart(this)
-            % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX: this.plotSNR(sys_c)
+            % Plot residuals of the solution on cartesian axes
+            % SYNTAX: this.plotResSkyCart()
             
             % SNRs
             res = this.sat.res;
@@ -5385,6 +5385,7 @@ classdef Receiver < Exportable
             scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
             colormap(jet); colorbar();
             h = title(sprintf('Residuals - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            h = ylabel('Satellites residuals [m]','interpreter', 'none'); h.FontWeight = 'bold'; 
         end
         
         function plotDataAvailability(this, sys_c)
@@ -5435,7 +5436,7 @@ classdef Receiver < Exportable
             end
         end
                
-        function plotCycleSlip(this, obs)
+        function plotCycleSlip(this)
             if ~isempty(this.cycle_slip_idx_ph)
                 ph = this.getPhases();
                 synt_ph = this.getSyntPhases();
