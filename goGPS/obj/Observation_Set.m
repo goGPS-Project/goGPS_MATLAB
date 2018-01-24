@@ -135,10 +135,14 @@ classdef Observation_Set < handle
         function sanitizeEmpty(this)
             %remove empty lines
             idx_e = sum(this.obs,2) == 0;
-            this.remEpochs(idx_e);
+            if sum(idx_e)
+                this.remEpochs(idx_e);
+            end
             %remove empty column
             idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
-            this.removeColumn(idx_rem_c);            
+            if sum(idx_rem_c)
+                this.removeColumn(idx_rem_c);
+            end
         end
         
         function remEpochs(this, idx_rem)
@@ -179,10 +183,10 @@ classdef Observation_Set < handle
         function removeColumn(this, idx_col)
             this.obs(:,idx_col) = [];
             if ~isempty(this.el)
-                this.el(idx_col,:) = [];
+                this.el(:,idx_col) = [];
             end
             if ~isempty(this.az)
-                this.az(idx_col,:) = [];
+                this.az(:,idx_col) = [];
             end
             this.cycle_slip(:,idx_col) = [];
             this.snr(:,idx_col) = [];

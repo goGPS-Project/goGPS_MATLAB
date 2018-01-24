@@ -112,7 +112,7 @@ classdef Least_Squares_Manipulator < handle
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
             % remove not valid empty epoch or with only one satellite (probably too
             % bad conditioned)
-            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 1;
+            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
             

@@ -2535,9 +2535,10 @@ classdef Receiver < Exportable
                     case '1'
                         iono_factor = 1;
                     otherwise
-                        wl_ref = this.cc.getGPS.F_VEC(1);
-                        wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
-                        iono_factor= wl_ref^2/ wl^2;
+                        % TO BE IMPLEMENTED
+%                         wl_ref = this.cc.getGPS.F_VEC(1);
+%                         wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
+%                         iono_factor= wl_ref^2/ wl^2;
                         
                 end
                 range = range + this.sat.err_tropo(:,sat) + iono_factor * this.sat.err_iono(:,sat);
@@ -2624,7 +2625,7 @@ classdef Receiver < Exportable
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
             idx_ep_obs = obs_set.getTimeIdx(this.time.getSubSet(1),this.rate);
             for i = 1 : size(synt_obs,2)
-                go_id = this.cc.getIndex(obs_set.obs_code(i,1),obs_set.prn(i));
+                go_id = obs_set.go_id(i);
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
                     [range, xs_loc_t] = this.getSyntObs('I', go_id);
                 else
@@ -4321,7 +4322,9 @@ classdef Receiver < Exportable
             this.updateAllTOT();
             this.log.addMessage(this.log.indent('Final estimation',6))
             this.codeStaticPositioning(1:this.time.length, 15);
-            
+            % final estimation of time of flight
+            this.updateAllAvailIndex
+            this.updateAllTOT
         end
         
         function dpos = codeStaticPositioning(this,id_epoch, cut_off)
@@ -4341,7 +4344,8 @@ classdef Receiver < Exportable
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ goGNSS.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = res;
+            this.sat.res = zeros(this.length, this.cc.getNumSat());
+            this.sat.res(id_epoch,1:size(res,2)) = res;
         end
         
         function initDynamicPositioning(this, obs, prn, sys, flag)
@@ -4643,6 +4647,8 @@ classdef Receiver < Exportable
         function staticPPP(this, id_sync)
             this.log.addMarkedMessage('Computing PPP solution');
             this.log.addMessage(this.log.indent('Preparing the system', 6));
+            this.updateAllAvailIndex
+            this.updateAllTOT
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 id_sync = 1 : this.time.length();
@@ -4701,7 +4707,8 @@ classdef Receiver < Exportable
             ls.reweightHuber();
             ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
-            this.sat.res = res;
+            this.sat.res = zeros(this.length, this.cc.getNumSat());
+            this.sat.res(:,1:size(res,2)) = res;
              
             
             if s02 < 0.03
@@ -4726,7 +4733,7 @@ classdef Receiver < Exportable
                 this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
                 this.sat.amb = amb;
                 [mfh, mfw] = getSlantMF(this);
-                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
+                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
                 if this.state.flag_tropo_gradient
                     if isempty(this.tgn)
                         this.tgn = zeros(this.time.length,1);
