@@ -42,6 +42,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 classdef Least_Squares_Manipulator < handle
+    
     properties
         A_ep % Stacked epochwise design matrices [n_obs x n_param_per_epoch]
         A_idx % index of the paramter [n_obs x n_param_per_epoch]
@@ -54,36 +55,36 @@ classdef Least_Squares_Manipulator < handle
         epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
         sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
-        param_class % [n_param_per_epoch x 1] each paramter can be part of a class 
+        param_class % [n_param_per_epoch x 1] each paramter can be part of a class
         %   [ 1 : x
         %     2 : y
         %     3 : z
         %     4 : inter channel/frequency/system biases,
-        %     5 : ambiguity, 
+        %     5 : ambiguity,
         %     6 : clock
         %     7 : tropo
         %     8 : tropo inclination north
         %     9 : tropo inclination east ]
         param_flag % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
         time_regularization %[ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
-        mean_regularization 
+        mean_regularization
         true_epoch % true epoch of the epochwise paramters
         sat_go_id  % go id of the satindeces
     end
+    
     properties(Access = private)
         Ncc % part of the normal matrix with costant paramters
         Nee % diagonal part of the normal matrix with epoch wise or multi epoch wise paramters
         Nce % cross element between constant and epoch varying paramters
-        state 
+        state
     end
+    
     methods
         function this = Least_Squares_Manipulator()
             this.state = Go_State.getCurrentSettings();
         end
-        
-        function regularize(this, reg_opt)
-        end
-         function setUpCodeSatic(this, rec, id_sync, cut_off)
+                
+        function setUpCodeSatic(this, rec, id_sync, cut_off)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
             if rec.isMultiFreq() %% case multi frequency
@@ -97,10 +98,10 @@ classdef Least_Squares_Manipulator < handle
                 end
             end
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
-            if sum(sum(snr_to_fill));
+            if sum(sum(snr_to_fill))
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-    
+            
             if nargin > 2
                 %%% remove epochs based on desired sampling
                 obs_set.keepEpochs(id_sync);
@@ -186,8 +187,9 @@ classdef Least_Squares_Manipulator < handle
             this.epoch = epoch;
             this.sat = sat;
             this.param_flag = [0, 0, 0, -1*ones(iob_flag), 1 ];
-            this.param_class = [1, 2, 3, 4*ones(iob_flag),5];
+            this.param_class = [1, 2, 3, 4*ones(iob_flag), 6];
         end
+        
         function setUpPPP(this, rec, id_sync)
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
@@ -201,7 +203,7 @@ classdef Least_Squares_Manipulator < handle
             if sum(sum(snr_to_fill));
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-    
+            
             if nargin > 2
                 %%% remove epochs based on desired sampling
                 obs_set.keepEpochs(id_sync);
@@ -306,7 +308,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 if tropo_g
                     cotan_term = cot(el_stream) .* mfw_stream;
-                    A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient 
+                    A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient
                     A(lines_stream, n_coo+iob_flag+5) = sin(az_stream) .* cotan_term; % east gradient
                     
                     A_idx(lines_stream, n_coo+iob_flag+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
@@ -388,7 +390,7 @@ classdef Least_Squares_Manipulator < handle
             s02 = mean(abs(this.res).*this.rw);
             res_n = this.res/s02;
             if nargin > 2
-                idx_rw = abs(res_n) > threshold; 
+                idx_rw = abs(res_n) > threshold;
             else
                 idx_rw = true(size(res));
             end
@@ -531,7 +533,7 @@ classdef Least_Squares_Manipulator < handle
                 res = this.getResiduals(x);
                 s02 = mean(abs(res(res~=0)));
                 if nargout > 3
-                Cxx = s02 * Cxx;
+                    Cxx = s02 * Cxx;
                 end
             end
             x = [x, x_class];
