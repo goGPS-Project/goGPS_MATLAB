@@ -5353,6 +5353,40 @@ classdef Receiver < Exportable
             h = title(sprintf('SNR - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
         end
         
+        function plotResSkyPolar(this)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX: this.plotSNR(sys_c)
+            
+            % SNRs
+            res = this.sat.res;
+            
+            figure;
+            this.updateAzimuthElevation()
+            id_ok = (res~=0);
+            az = this.sat.az;
+            el = this.sat.el;
+            polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
+            colormap(jet); colorbar();
+            h = title(sprintf('Residuals - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+        end
+        
+        function plotResSkyCart(this)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX: this.plotSNR(sys_c)
+            
+            % SNRs
+            res = this.sat.res;
+            
+            figure;
+            this.updateAzimuthElevation()
+            id_ok = (res~=0);
+            az = this.sat.az;
+            el = this.sat.el;
+            scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
+            colormap(jet); colorbar();
+            h = title(sprintf('Residuals - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+        end
+        
         function plotDataAvailability(this, sys_c)
             % Plot all the satellite seen by the system
             % SYNTAX: this.plotDataAvailability(sys_c)

@@ -49,6 +49,7 @@ classdef Least_Squares_Manipulator < handle
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         y % observations  [ n_obs x 1]
         variance % observation variance [ n_obs x 1]
+        rw % reweight factor
         res % observations residuals
         epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
         sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
@@ -209,7 +210,7 @@ classdef Least_Squares_Manipulator < handle
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
             % remove not valid empty epoch or with only one satellite (probably too
             % bad conditioned)
-            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 3;
+            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
             
@@ -349,9 +350,13 @@ classdef Least_Squares_Manipulator < handle
             %DESCRIPTION: generate N stack A'*A
             n_obs = size(this.A_ep, 1);
             this.N_ep = zeros(size(this.A_ep, 2), size(this.A_ep, 2), n_obs);
+            if isempty(this.rw)
+                this.rw = ones(size(this.variance));
+            end
             for i = 1:n_obs
                 A_l = this.A_ep(i, :);
-                w = 1 / this.variance(i) ;
+                
+                w = 1 / this.variance(i) * this.rw(i);
                 this.N_ep(:, :, i) = A_l' * w * A_l;
             end
         end
@@ -377,14 +382,17 @@ classdef Least_Squares_Manipulator < handle
         % called again
         %----------------------------------------------------------------
         function weightOnResidual(this, wfun, threshold)
-            s02 = mean(abs(this.res));
+            if isempty(this.rw)
+                this.rw = ones(size(this.variance))
+            end
+            s02 = mean(abs(this.res).*this.rw);
             res_n = this.res/s02;
             if nargin > 2
                 idx_rw = abs(res_n) > threshold; 
             else
                 idx_rw = true(size(res));
             end
-            this.variance(idx_rw) = this.variance(idx_rw) ./ wfun(res_n(idx_rw));
+            this.rw(idx_rw) =  wfun(res_n(idx_rw));
         end
         function reweightHuber(this)
             threshold = 2;
@@ -399,6 +407,11 @@ classdef Least_Squares_Manipulator < handle
         function reweightTukey(this)
             threshold = 2;
             wfun = @(x) (1 - (x ./threshold).^2).^2;
+            this.weightOnResidual(wfun, threshold);
+        end
+        function reweightSnooping(this)
+            threshold = 2.5;
+            wfun = @(x) 0;
             this.weightOnResidual(wfun, threshold);
         end
         %------------------------------------------------------------------------
@@ -420,12 +433,16 @@ classdef Least_Squares_Manipulator < handle
             n_class_ep_wise = length(idx_non_constant);
             Ndiags = zeros(n_class_ep_wise, n_class_ep_wise, n_epochs); %permute(this.N_ep(~idx_constant_l,~idx_constant_l,:),[3,1,2]);
             B = zeros(n_constant+n_ep_wise, 1);
+            if isempty(this.rw)
+                this.rw = ones(size(this.variance))
+            end
             for i = 1:n_obs
                 p_idx = this.A_idx(i, :);
                 p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
                 N_ep = this.N_ep(:, :, i);
                 A_ep = this.A_ep(i, :);
                 variance = this.variance(i);
+                rw = this.rw(i);
                 y = this.y(i);
                 e = this.epoch(i);
                 p_c_idx = p_idx(idx_constant_l);
@@ -441,7 +458,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
                 %fill B
-                B(p_idx) = B(p_idx) + A_ep' * (1 ./ variance) * y;
+                B(p_idx) = B(p_idx) + A_ep' * (1 ./ variance) * rw * y;
             end
             Nee = [];
             class_ep_wise = this.param_class(idx_non_constant);
