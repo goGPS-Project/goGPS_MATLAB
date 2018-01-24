@@ -1524,6 +1524,23 @@ classdef Receiver < Exportable_Object
                 is_empty(r) =  this(r).time.length() == 0;
             end
         end
+                
+        function len = length(this)
+            % Return the time span of the receiver
+            % SYNTAX:
+            %   len = this.length();
+            len = this.time.length();
+        end
+        
+        function len = length_mr(this)
+            % Return the time span of the receiver
+            % SYNTAX:
+            %   len = this.length();
+            len =  zeros(numel(this), 1);
+            for r = 1 : numel(this)
+                len(r) =  this(r).time.length();
+            end
+        end
         
         function is_mf = isMultiFreq(this)
             is_mf = false;
