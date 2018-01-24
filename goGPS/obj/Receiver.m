@@ -1997,7 +1997,8 @@ classdef Receiver < Exportable
             end
             %%% Remove obs for which coordinates of satellite are non
             %%% available
-            for o = 1:length(prn)
+            o = 1;
+            while (o <= length(prn))
                 s = this.cc.getIndex(sys(o),prn(o));
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
@@ -2012,6 +2013,8 @@ classdef Receiver < Exportable
                     prn(o) = [];
                     sys(o) = [];
                     flag(o,:) = [];
+                else
+                    o = o + 1;
                 end
             end
         end
@@ -4246,28 +4249,28 @@ classdef Receiver < Exportable
             this.applyGroupDelay();
             this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
             this.applyDtSat();
-            
-            % get best observation for all satellites and all epochs
-            this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
-            [obs, prn, sys, flag] = this.getBestCodeObs;
-            % remove unwanted system
-            if nargin < 2
-                sys_c = this.cc.sys_c;
-            end
-            sys_idx = false(size(sys));
-            for s = 1:length(sys_c)
-                sys_idx = sys_idx | sys == sys_c(s);
-            end
-            obs(~sys_idx,:) = [];
-            prn(~sys_idx,:) = [];
-            sys(~sys_idx,:) = [];
-            flag(~sys_idx,:) = [];
-            
+                        
             %this.static = 0;
             if this.isStatic()
                 %this.initStaticPositioningOld(obs, prn, sys, flag)
                 this.initStaticPositioning();
             else
+                % get best observation for all satellites and all epochs
+                this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
+                [obs, prn, sys, flag] = this.getBestCodeObs;
+                % remove unwanted system
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
+                sys_idx = false(size(sys));
+                for s = 1:length(sys_c)
+                    sys_idx = sys_idx | sys == sys_c(s);
+                end
+                obs(~sys_idx,:) = [];
+                prn(~sys_idx,:) = [];
+                sys(~sys_idx,:) = [];
+                flag(~sys_idx,:) = [];
+                
                 this.initDynamicPositioning(obs, prn, sys, flag)
             end
             
