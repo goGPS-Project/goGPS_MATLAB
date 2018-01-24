@@ -2963,20 +2963,29 @@ classdef Receiver < Exportable
             end
         end
         
-        function smoothAndApplyDt(this)
+        function smoothAndApplyDt(this, smoothing_win)
             % Smooth dt * c correction computed from init-positioning with a spline with base 3 * rate,
             % apply the smoothed dt to pseudo-ranges and phases
             % SYNTAX:
-            %   this.smoothAndApplyDt()
-            this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6))            
+            %   this.smoothAndApplyDt(smoothing_win)
+            if nargin == 1
+                smoothing_win = 3;
+            end
+            if smoothing_win == 0
+                this.log.addMessage(this.log.indent('Apply the clock error of the receiver', 6));
+            else
+                this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6));
+            end
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);            
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
-            %for i = 1 : size(lim, 1)
-            %    if lim(i,2) - lim(i,1) > 5
-            %        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), 3);
-            %    end
-            %end
+            if smoothing_win > 0
+                for i = 1 : size(lim, 1)
+                    if lim(i,2) - lim(i,1) > 5
+                        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), smoothing_win);
+                    end
+                end
+            end
             this.dt = simpleFill1D(zero2nan(dt), id_ko, 'spline');
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
@@ -4338,10 +4347,11 @@ classdef Receiver < Exportable
             end
             ls.setUpCodeSatic( this, id_epoch, cut_off);
             ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+            [x, res, s02] = ls.solve();                                   
+            
             dpos = x(1:3);
             this.xyz = this.getMedianPosXYZ() + dpos;
-            dt = x(x(:,2) == 5,1);
+            dt = x(x(:,2) == 6,1);
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ goGNSS.V_LIGHT;
             isb = x(x(:,2) == 4,1);
@@ -4620,9 +4630,9 @@ classdef Receiver < Exportable
             % code only solution
             this.initPositioning();
             % smooth clock estimation
-            this.smoothAndApplyDt();
-            this.dt_ip = this.dt;
-            this.dt(:) = 0;
+            this.smoothAndApplyDt(0);
+            this.dt_ip = this.dt; % save init_positioning clock
+            this.dt(:) = 0; % reset dt field
             % set all availability index
             this.updateAllAvailIndex();
 
@@ -5330,8 +5340,9 @@ classdef Receiver < Exportable
             plot(t, this.dt_ip, '-', 'LineWidth', 2);
             plot(t, this.dt_ip + this.dt_pr, '-', 'LineWidth', 2);
             if any(this.dt)
-                plot(t(this.id_sync), this.dt(this.id_sync)/299792458, '-', 'LineWidth', 2);
-                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'Location', 'northeastoutside');
+                plot(t(this.id_sync), this.dt(this.id_sync), '-', 'LineWidth', 2);
+                plot(t(this.id_sync), this.dt(this.id_sync) + this.dt_ip(this.id_sync) + this.dt_pr(this.id_sync), '-', 'LineWidth', 2);
+                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'northeastoutside');
             else
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
             end
