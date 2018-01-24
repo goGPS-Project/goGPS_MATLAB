@@ -5686,7 +5686,7 @@ classdef Receiver < Exportable
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        
+                
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)
             % SYNTAX:

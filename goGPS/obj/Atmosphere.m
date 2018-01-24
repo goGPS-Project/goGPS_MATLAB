@@ -539,8 +539,7 @@ classdef Atmosphere < handle
                 
                 
                 % determine n!  (faktorielle)  moved by 1
-                dfac(1) = 1;            az = az/180*pi;
-            el = el/180*pi;
+                dfac(1) = 1;
                 for i = 1:(2*n + 1)
                     dfac(i+1) = dfac(i)*i;
                 end
@@ -587,7 +586,7 @@ classdef Atmosphere < handle
                 % Surface pressure on the geoid
                 % apm = 0.d0;
                 % apa = 0.d0;
-                % for i = 1:55getPiercePoint
+                % for i = 1:55
                 %     apm = apm + (ap_mean(i)*aP(i) + bp_mean(i)*bP(i));
                 %     apa = apa + (ap_amp(i) *aP(i) + bp_amp(i) *bP(i));
                 % end
@@ -608,7 +607,7 @@ classdef Atmosphere < handle
                 
                 this.apm = apm;
                 this.apa = apa;
-                this.atm = atm;getPiercePoint
+                this.atm = atm;
                 this.ata = ata;
                 this.P = P;
                 this.lon = dlon;

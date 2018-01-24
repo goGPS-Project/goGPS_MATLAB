@@ -911,102 +911,109 @@ classdef Core_Sky < handle
             % IMPORTANT WARNING: considering only daily dcb, some
             % assumpotion on the structure of the file are maded, based on
             % CAS MGEX DCB files
-                
-                % open SINEX dcb file
-                filename = this.state.getDcbFile();
-                filename = filename{1};
-                if isempty(filename)
-                    this.log.addWarning('No dcb file found');
-                    return
-                end
-                fid = fopen([this.state.getDcbDir() '/' filename],'r');
-                if fid == -1
-                    this.log.addWarning(sprintf('      File %s not found', filename));
-                    return
-                end
-                this.log.addMessage(sprintf('      Opening file %s for reading', filename));
-                txt = fread(fid,'*char')';
-                fclose(fid);
-                
-                % get new line separators
-                nl = regexp(txt, '\n')';
-                if nl(end) <  numel(txt)
-                    nl = [nl; numel(txt)];
-                end
-                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-                lim = [lim lim(:,2) - lim(:,1)];
-                if lim(end,3) < 3
-                    lim(end,:) = [];
-                end
-                % get end of header
-                eoh = strfind(txt,'*BIAS SVN_ PRN ');
-                eoh = find(lim(:,1) > eoh);
-                eoh = eoh(1) - 1;
-                % removing header lines from lim
-                lim(1:eoh, :) = [];
-                % removing last two lines (check if it is a standrad) from lim
-                lim((end-1):end, :) = [];
-                %removing sations lines from lim
-                sta_lin = txt(lim(:,1)+19) ~= ' ';
-                lim(sta_lin,:) = [];
-                % TODO -> remove dcb of epoch different from the current one
-                % find dcb names presents
-                fl = lim(:,1);
-                
-                filename = [txt(fl+6)' txt(fl+12)' txt(fl+13)' txt(fl+25)' txt(fl+26)' txt(fl+27)' txt(fl+30)' txt(fl+31)' txt(fl+32)'];
-                idx = repmat(fl,1,8) + repmat([85:92],length(fl),1);
-                dcb = sscanf(txt(idx)','%f');
-                idx = repmat(fl,1,8) + repmat([97:104],length(fl),1);
-                dcb_std = sscanf(txt(idx)','%f');
-                for s = 1 : this.cc.getNumSat()
-                    sys = this.cc.system(s);
-                    prn = this.cc.prn(s);
-                    ant_id = this.cc.getAntennaId(s);
-                    sat_idx = sum(filename(:,1:3) == repmat(ant_id,size(filename,1),1),2) == 3;
-                    sat_dcb_name = filename(sat_idx,4:end);
+            
+            % open SINEX dcb file
+            file_name = this.state.getDcbFile();
+            file_name = file_name{1};
+            if isempty(file_name)
+                this.log.addWarning('No dcb file found');
+                return
+            end
+            fid = fopen([this.state.getDcbDir() filesep file_name],'r');
+            if fid == -1
+                this.log.addWarning(sprintf('      File %s not found', file_name));
+                return
+            end
+            this.log.addMessage(sprintf('      Opening file %s for reading', file_name));
+            txt = fread(fid,'*char')';
+            fclose(fid);
+            
+            % get new line separators
+            nl = regexp(txt, '\n')';
+            if nl(end) <  numel(txt)
+                nl = [nl; numel(txt)];
+            end
+            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+            lim = [lim lim(:,2) - lim(:,1)];
+            if lim(end,3) < 3
+                lim(end,:) = [];
+            end
+            
+            % get end of header
+            eoh = strfind(txt,'*BIAS SVN_ PRN ');
+            eoh = find(lim(:,1) > eoh);
+            eoh = eoh(1) - 1;
+            
+            % removing header lines from lim
+            lim(1:eoh, :) = [];
+            
+            % removing last two lines (check if it is a standard) from lim
+            lim((end-1):end, :) = [];
+            
+            % removing non satellites related lines from lim
+            sta_lin = txt(lim(:,1)+13) > 57 | txt(lim(:,1)+13) < 48; % Satellites have numeric PRNs
+            lim(sta_lin,:) = [];
+            
+            % TODO -> remove dcb of epoch different from the current one
+            % find dcb names presents
+            fl = lim(:,1);
+            
+            tmp = [txt(fl+11)' txt(fl+12)' txt(fl+13)' txt(fl+30)' txt(fl+31)' txt(fl+32)' txt(fl+35)' txt(fl+36)' txt(fl+37)'];
+            idx = repmat(fl,1,12) + repmat([80:91],length(fl),1);
+            dcb = sscanf(txt(idx)','%f');
+            idx = repmat(fl,1,12) + repmat([92:103],length(fl),1);
+            dcb_std = sscanf(txt(idx)','%f');
+            % between C2C C2W the std are 0 -> unestimated
+            % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
+            dcb_std(dcb_std == 0) = mean(dcb_std(dcb_std ~= 0));
+            for s = 1 : this.cc.getNumSat()
+                sys = this.cc.system(s);
+                prn = this.cc.prn(s);
+                ant_id = this.cc.getAntennaId(s);
+                sat_idx = this.prnName2Num(tmp(:,1:3)) == this.prnName2Num(ant_id);
+                if sum(sat_idx) == 0
+                    this.log.addWarning(sprintf('Satellite %s not found in the DCB file', ant_id));
+                else
+                    sat_dcb_name = tmp(sat_idx,4:end);
                     sat_dcb = dcb(sat_idx);
                     sat_dcb_std = dcb_std(sat_idx);
                     ref_dcb_name = this.cc.getRefDCB(s);
                     %check if there is the reference dcb in the one
                     %provided by the external source
-
+                    
                     
                     % Set up the desing matrix
                     sys_gd = this.group_delays_flags(this.group_delays_flags(:,1) == sys,2:4);
                     A = zeros(size(sat_dcb_name,1),size(sys_gd,1));
                     for d = 1 : size(sat_dcb_name,1)
-                        idx1 = idxCharLines(sys_gd, sat_dcb_name(d,1:3));
+                        idx1 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,1:3));
                         A(d,idx1) =  1;
-                        idx2 = idxCharLines(sys_gd, sat_dcb_name(d,4:6));
+                        idx2 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,4:6));
                         A(d,idx2) = -1;
                     end
                     % find not present gd
                     connected = sum(abs(A)) > 0;
                     A = A(:,connected);
                     W = diag(1./sat_dcb_std.^2);
-                    % set the refernce ionoifree combination to zero using lagrange multiplier
+                    % set the refernce iono-free combination to zero using lagrange multiplier
                     const = zeros(1,size(A,2));
                     iono_free = this.cc.getSys(sys).getIonoFree();
-                    ref_col1 = idxCharLines(sys_gd(connected,:),ref_dcb_name(1:3));
+                    ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
                     const(ref_col1) = iono_free.alpha1;
-                    ref_col2 = idxCharLines(sys_gd(connected,:),ref_dcb_name(4:6));
+                    ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
                     const(ref_col2) = - iono_free.alpha2;
-                    N = [ A'*W*A  const';const 0];
-                    gd = N\([A'*W*sat_dcb; 0]);
+                    N = [ A'*W*A  const'; const 0];
+                    gd = N \ ([A'* W * sat_dcb; 0]);
                     if isnan(gd)
                         this.log.addWarning('Invalid set of DCB ignoring them')
                     else
-                        gd(end) = []; %taking off lagrange multiplier
+                        gd(end) = []; %t aking off lagrange multiplier
                         dcb_col   = idxCharLines(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
                         this.group_delays(prn, dcb_col) = - gd * goGNSS.V_LIGHT * 1e-9;
                     end
-                   
                 end
-                
-           
-            
+            end
         end
-        
         
         function idx = getGroupDelayIdx(this,flag)
             %DESCRIPTION: get the index of the gorup delay for the given
@@ -1833,7 +1840,30 @@ classdef Core_Sky < handle
         
     end
     
-    methods (Static)
+    % ==================================================================================================================================================
+    %% STATIC FUNCTIONS used as utilities
+    % ==================================================================================================================================================
+    methods (Static, Access = public)
+        
+        function prn_num = prnName2Num(prn_name)
+            % Convert a 4 char name into a numeric value (float)
+            % SYNTAX:
+            %   marker_num = markerName2Num(marker_name);
+            
+            prn_num = prn_name(:,1:3) * [2^16 2^8 1]';
+        end
+        
+        function prn_name = prnNum2Name(prn_num)
+            % Convert a numeric value (float) of a station into a 4 char marker
+            % SYNTAX:
+            %   marker_name = markerNum2Name(marker_num)
+            prn_name = char(zeros(numel(prn_num), 3));
+            prn_name(:,1) = char(floor(prn_num / 2^16));
+            prn_num = prn_num - prn_name(:,1) * 2^16;
+            prn_name(:,2) = char(floor(prn_num / 2^8));
+            prn_num = prn_num - prn_name(:,2) * 2^8;
+            prn_name(:,3) = char(prn_num);            
+        end
         
         function [ant_pcv] = readAntennaPCV(filename, antmod, date)
             % SYNTAX:
@@ -2140,4 +2170,6 @@ classdef Core_Sky < handle
         end
         
     end
+    
+    
 end
