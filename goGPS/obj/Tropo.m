@@ -1,4 +1,4 @@
-classdef Tropo < Exportable_Object
+classdef Tropo < Exportable
         
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___

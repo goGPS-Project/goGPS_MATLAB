@@ -1,4 +1,4 @@
-classdef Position < Exportable_Object
+classdef Position < Exportable
         
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___

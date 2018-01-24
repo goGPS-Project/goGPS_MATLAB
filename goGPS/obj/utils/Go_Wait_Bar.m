@@ -61,7 +61,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Go_Wait_Bar < Exportable_Object
+classdef Go_Wait_Bar < Exportable
 
     properties (Constant, GetAccess = 'private')
         MAX_BAR_LEN = 54;               % Dimension of the text bar

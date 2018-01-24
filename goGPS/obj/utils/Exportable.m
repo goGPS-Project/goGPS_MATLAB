@@ -1,4 +1,4 @@
-%   CLASS Exportable_Object
+%   CLASS Exportable
 % =========================================================================
 %
 % DESCRIPTION
@@ -36,7 +36,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Exportable_Object < handle
+classdef Exportable < handle
 
     methods (Access = public)
     end
@@ -55,23 +55,33 @@ classdef Exportable_Object < handle
     methods
         function out = toStruct(this)
             log = Logger.getInstance();
-            
-            out = struct(this);
-            if isfield(out, 'PreviousInstance__')
-                out = rmfield(out,'PreviousInstance__');
+            cm = log.getColorMode();
+            log.setColorMode(false);
+            warning off
+            if (numel(this) == 0) 
+                out = [];
             end
-            prp = fieldnames(out);
-            
-            for p = 1 : numel(prp)
-                if isobject(out.(prp{p}))
-                    % Manage goGPS singletons
-                    try
-                        out.(prp{p}) = this.(prp{p}).toStruct;
-                    catch ex
-                        log.addWarning(ex.message)
+            for i = 1 : numel(this)
+                tmp = struct(this(i));
+                if isfield(tmp, 'PreviousInstance__')
+                    tmp = rmfield(tmp,'PreviousInstance__');
+                end
+                prp = fieldnames(tmp);
+                out(i) = tmp;
+                
+                for p = 1 : numel(prp)
+                    if isobject(out(i).(prp{p}))
+                        % Manage goGPS singletons
+                        try
+                            out(i).(prp{p}) = this(i).(prp{p}).toStruct;
+                        catch ex
+                            log.addWarning(ex.message)
+                        end
                     end
                 end
             end
+            warning on
+            log.setColorMode(cm);
         end
         
         function importFromStruct(this, fields)
