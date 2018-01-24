@@ -2608,7 +2608,9 @@ classdef Receiver < Exportable
             end
             synt_ph = this.synt_ph;
             synt_ph(this.outlier_idx_ph) = nan;
-            synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
+            if nargin == 2
+                synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
+            end
         end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
@@ -3247,8 +3249,6 @@ classdef Receiver < Exportable
             % flag: flag of the tropo model
             %DESCRIPTION: update the tropospheric correction
             
-            
-            
             atmo = Atmosphere();
             
             if isempty(this.sat.err_tropo)
@@ -3318,8 +3318,7 @@ classdef Receiver < Exportable
                             lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = 1 : size(idx,1)
-                                if idx(e) > 0
-                                    
+                                if idx(e) > 0                                    
                                     this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                                 end
                             end
@@ -4262,7 +4261,7 @@ classdef Receiver < Exportable
             this.sat.err_iono  = zeros(this.time.length, this.cc.getNumSat());
             this.sat.solid_earth_corr  = zeros(this.time.length, this.cc.getNumSat());
             this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
-            % if not applied apply gruop delay
+            % if not applied apply group delay
             this.applyGroupDelay();
             this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
             this.applyDtSat();
@@ -4634,7 +4633,8 @@ classdef Receiver < Exportable
             % code only solution
             this.initPositioning();
             % smooth clock estimation
-            this.smoothAndApplyDt(0);
+            this.smoothAndApplyDt(3);
+            % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
             this.dt_ip = this.dt; % save init_positioning clock
             this.dt(:) = 0; % reset dt field
             % set all availability index
