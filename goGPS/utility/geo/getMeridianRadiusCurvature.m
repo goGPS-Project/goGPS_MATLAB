@@ -39,5 +39,5 @@ function rcm = getMeridianRadiusCurvature(lat_rad)
 
 a = GPS_SS.ELL_A;
 e2 = GPS_SS.ELL_E2;
-rcm = a * (1 - e2) / (1 - e2*sin(lat)^2)^(3/2);
+rcm = a * (1 - e2) / (1 - e2*sin(lat_rad)^2)^(3/2);
 end
