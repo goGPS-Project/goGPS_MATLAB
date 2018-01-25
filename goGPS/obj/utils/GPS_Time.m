@@ -1226,7 +1226,7 @@ classdef GPS_Time < Exportable & handle
     % =========================================================================
     
     methods (Access = 'public')
-        function addIntSeconds(this, n_seconds)
+        function this = addIntSeconds(this, n_seconds)
             % Add an integer number of seconds to all the times
             switch this.time_type
                 case 0 % I'm in MAT TIME
@@ -1238,7 +1238,7 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-        function addSeconds(this, n_seconds)
+        function this = addSeconds(this, n_seconds)
             % Add a floating point number of seconds to all the times
             switch this.time_type
                 case 0 % I'm in MAT TIME
