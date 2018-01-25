@@ -173,26 +173,26 @@ classdef Atmosphere < handle
             dt = this.ionex.d_t;
             nt = this.ionex.n_t;
             it = max(min(floor((gps_time - this.ionex.first_time)/ dt)+1,nt-1),1);
-            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt,dt),0)/dt;
+            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt, dt), 0) / dt;
             
             %lat
             dlat = this.ionex.d_lat;
             nlat = this.ionex.n_lat;
             ilat = max(min(floor((lat - this.ionex.first_lat)/ dlat)+1,nlat-1),1);
-            slat = max(min(this.ionex.first_lat - lat - (it-1)*dlat,dlat),0)/dlat;
+            slat = min(max(lat - this.ionex.first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
             %lon
             dlon = this.ionex.d_lon;
             nlon = this.ionex.n_lon;
             ilon = max(min(floor((lon - this.ionex.first_lon)/ dlon)+1,nlon-1),1);
-            slon = max(min(lon - this.ionex.first_lon - (it-1)*dlon,dlon),0)/dlon;
+            slon = max(min(lon - this.ionex.first_lon - (ilon-1)*dlon, dlon), 0) / dlon;
             
             % interpolate along time
             % [ 1 2  <- index of the cell at the smae time
             %   3 4]
-            tec1 = this.ionex.data(ilat,ilon,it)*(1-st) + this.ionex.data(ilat,ilon,it+1)*st;
-            tec2 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
-            tec3 = this.ionex.data(ilat+1,ilon,it)*(1-st) + this.ionex.data(ilat+1,ilon,it+1)*st;
-            tec4 = this.ionex.data(ilat,ilon+1,it)*(1-st) + this.ionex.data(ilat,ilon+1,it+1)*st;
+            tec1 = this.ionex.data(ilat   , ilon   , it)*(1-st) + this.ionex.data(ilat   , ilon   , it+1)*st;
+            tec2 = this.ionex.data(ilat   , ilon+1 , it)*(1-st) + this.ionex.data(ilat   , ilon+1 , it+1)*st;
+            tec3 = this.ionex.data(ilat+1 , ilon   , it)*(1-st) + this.ionex.data(ilat+1 , ilon   , it+1)*st;
+            tec4 = this.ionex.data(ilat+1 , ilon+1 , it)*(1-st) + this.ionex.data(ilat+1 , ilon+1 , it+1)*st;
             
             %interpolate along long
             tecn = tec1*(1-slon) + tec2*slon;
@@ -203,18 +203,18 @@ classdef Atmosphere < handle
             
             
         end
-        function [stec, pp, k] = getSTEC(this,lat,lon, az,el,h, time)
+        function [stec, pp,mfpp, k] = getSTEC(this,lat,lon, az,el,h, time)
             % get slant total electron component
             
             
             thin_shell_height = this.ionex.height(1)*1000;       %ionopshere thin shell height [km]
             % get piercing point and mapping function
-            [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az/180*pi, el/180*pi, thin_shell_height);
+            [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az/180*pi, el/180*pi, thin_shell_height,6371000);
             %inetrpolate TEC at piercing point
-            tec = this.interpolateTEC( time, latpp, lonpp);
+            tec = this.interpolateTEC( time, latpp*180/pi, lonpp*180/pi);
             
             %apply mapping function
-            stec = tec .* mfpp;
+            stec = tec.* mfpp;
             if nargout > 1
                 pp = [latpp , lonpp];
             end
@@ -228,20 +228,39 @@ classdef Atmosphere < handle
             foi_delay = 40.3 * 1e16/ f^2 .* stec;
         end
         
-        function [hoi_delay2, hoi_delay3] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
+        function [hoi_delay2, hoi_delay3, bending, ppo] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
             % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
+            % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
             % get High order ionophere delays -- Return phase group 
-            [stec, pp, k] = this.getSTEC(lat,lon, az,el,h, time);
-            if isempty(this.emf) % do not reaload the model each time
-                this.emf = Earth_Magnetic_Field();
+            hoi_delay2 = zeros(size(el));
+            hoi_delay3 = zeros(size(el));
+            bending = zeros(size(el));
+            ppo = zeros([size(el)]);
+            for t = 1: size(el,1)
+                idx_ep = find(el(t,:) ~= 0);
+                t_time= time.getSubSet(t);
+                for s = idx_ep
+                    A = 80.6;
+                    [stec, pp,mfpp, k] = this.getSTEC(lat,lon, az(t,s),el(t,s),h, t_time);
+                    if isempty(this.emf) % do not reaload the model each time
+                        this.emf = Earth_Magnetic_Field();
+                    end
+                    b = this.emf.getB(t_time, GPS_SS.ELL_A/1000 + this.ionex.height(1), pp(2), pp(1));
+                    bok = b'*k; %to Tesla
+                    c = Go_State.V_LIGHT ;
+                    Nemax = (3* 1e12);
+                    vtec =  1e18;
+                    ni = 0.66;
+                    zi = acos(1/mfpp);
+                    hoi_delay2(t,s) = - 1 / 2 * 7527 / c^2 * lambda(s)^3 * bok * stec * 1e16;% Eq (10) (11) in [1]
+                    hoi_delay3(t,s) = - 1 / 3 * 2437 / c^4 * lambda(s)^4 * Nemax/vtec * ni * (stec  * 1e16)^2;% Eq (1g) (15) (14) in [1]
+                    bending(t,s) = A^2 / (8 * c^4) *lambda(s)^4 * tan(zi)^2 * ni * Nemax * stec * 1e16;% Eq(4.34) in [2]
+                    ppo(t,s) = stec;
+                end
+                t
             end
-            b = this.emf.getB(time, GPS_SS.ELL_A/1000 + this.ionex.height(1), pp(2), pp(1));
-            bok = b'*k / 1e9; %to Tesla
-            c = Go_State.V_LIGHT ;
-            hoi_delay2 = - 1 / 2 * 7527 / c^2 * lambda^3 * bok * stec * 1e16;% Eq (10) (11) in [1]
-            hoi_delay3 = - 1 / 3 * 2437 / c^4 * lambda^4 * ((20 -6) * 1e12)/((4.55 - 1.38) * 1e18) * 0.66 * (stec  * 1e16)^2;% Eq (1g) (15) (14) in [1]
         end
     end
     
@@ -973,9 +992,11 @@ classdef Atmosphere < handle
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
         end
         
-        function [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height)
+        function [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
             % Get radius of curvature at lat
-            rcm = getMeridianRadiusCurvature(lat_rad);
+            if nargin < 7
+                rcm = getMeridianRadiusCurvature(lat_rad);
+            end
             k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height))*cos(el_rad);
             phipp = (pi/2) - el_rad - asin(k);
             
@@ -1000,11 +1021,14 @@ classdef Atmosphere < handle
                 mfpp = (1-(k)^2)^(-1/2);
             end
             if nargout > 3
-                az_l = az_rad; %azimuth at layer;
-                el_l = acos(1/mfpp); %elevation at layer;
-                k = [cos(az_l).*cos(el_l);
-                    -sin(az_l).*cos(el_l);
-                    sin(el_l)];
+                k = [cos(az_rad).*cos(el_rad);
+                    -sin(az_rad).*cos(el_rad);
+                    sin(el_rad)];
+                % go to global system
+                R = [-sin(lat_rad) cos(lon_rad) 0;
+                    -sin(lat_rad)*cos(lon_rad) -sin(lat_rad)*sin(lon_rad) cos(lat_rad);
+                    +cos(lat_rad)*cos(lon_rad) +cos(lat_rad)*sin(lon_rad) sin(lat_rad)];
+                [k] = R'*k;
             end
         end
     end
