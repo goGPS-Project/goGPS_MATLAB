@@ -108,6 +108,7 @@ classdef Receiver < Exportable
         pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
         pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
         et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
+        hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected) 
 
         % FLAGS ------------------------------
         
@@ -3771,6 +3772,65 @@ classdef Receiver < Exportable
         end
         
         %--------------------------------------------------------
+        % High Order Ionospheric effect + bending
+        % -------------------------------------------------------
+        
+        function HOI(this,sgn)
+            % DESCRIPTION: add or subtract ocean loading from observations
+            [hoi2, hoi3, bending] = this.computeHOI();
+            
+            for s = 1 : this.cc.getNumSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        if  this.obs_code(o,1) == 'L'
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* hoi2(o_idx,s)' - sign(sgn)* hoi3(o_idx,s)' - sign(sgn)* bending(o_idx,s)';
+                        else
+                           this.obs(o,o_idx) = this.obs(o,o_idx) + 2 * sign(sgn)* hoi2(o_idx,s)' +3 * sign(sgn)* hoi3(o_idx,s)' - sign(sgn)* bending(o_idx,s)';
+                        end
+                    end
+                end
+            end
+        end
+        
+        function applyHOI(this)
+            if this.hoi_delay_status == 0
+                this.log.addMarkedMessage('Applying High Order Ionospheric Effect');
+                this.HOI(1);
+                this.hoi_delay_status = 1; %applied
+            end
+        end
+        
+        function removeHOI(this)
+            if this.hoi_delay_status == 1
+                this.log.addMarkedMessage('Removing High Order Ionospheric Effect');
+                this.HOI(-1);
+                this.hoi_delay_status = 0; %not applied
+            end
+        end
+              
+        function [hoi_delay2, hoi_delay3, bending] =  computeHOI(this)
+            
+            % SYNTAX:
+            %
+            % INPUT:
+            %
+            % OUTPUT:
+            %  
+            %
+            % DESCRIPTION:
+            %   Computation of thigh order ionospheric effect
+            
+            this.updateCoo();
+            atmo = Atmosphere();
+            atmo.importIonex('/media/utente/5A7A700750D93945/goGPS_MATLAB_nightly/data/satellite/IONO/corg2350.15i');
+            [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
+            
+        end
+        
+        %--------------------------------------------------------
         % Phase Wind up
         % -------------------------------------------------------
         
@@ -4655,6 +4715,7 @@ classdef Receiver < Exportable
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
+            %this.applyHOI();
             
             this.removeOutlierMarkCycleSlip();            
         end

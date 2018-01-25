@@ -165,7 +165,7 @@ classdef Earth_Magnetic_Field < handle
             Z = (V2 - V1)/dr;
             B = [X;Y;Z];
         end
-        function B = getB(this, gps_time, r, phi, theta)
+        function B = getB(this, gps_time, r, lon, lat)
             % interpolate H at G at presetn epoch
             [y, doy] = gps_time.getDOY;
             re = GPS_SS.ELL_A/1000;
@@ -191,11 +191,11 @@ classdef Earth_Magnetic_Field < handle
             n = size(H,1);
             P = zeros(n,n);
             % co to colatitude
-            theta = pi/2 - theta;
+            lat = pi/2 - lat;
             for i = 0:n-1;
-                P(1:i+1,i+1) = legendre(i,cos(theta),'sch');
+                P(1:i+1,i+1) = legendre(i,cos(lat),'sch');
             end
-            mphi = repmat((0:n-1)',1,n)*phi;
+            mphi = repmat((0:n-1)',1,n)*lon;
             cosm = cos(mphi); %some unnecesaary calculations
             sinm = sin(mphi); %some unnecesaary calculations
             arn = repmat((re/r).^(1:n),n,1);
@@ -210,17 +210,22 @@ classdef Earth_Magnetic_Field < handle
             dP = zeros(n,n);
             dtheta = 0.1/180*pi;
             for i = 0:n-1;
-                dP(1:i+1,i+1) = (legendre(i,cos(theta+dtheta/2),'sch') - legendre(i,cos(theta-dtheta/2),'sch'))/dtheta;
+                dP(1:i+1,i+1) = (legendre(i,cos(lat+dtheta/2),'sch') - legendre(i,cos(lat-dtheta/2),'sch'))/dtheta;
             end
             X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP)); 
             % Y dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
-            Y = - re / (r * sin(theta)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
+            Y = - re / (r * sin(lat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             % Z dV/dr
             darn = repmat((1:n) .* (re/r).^(1:n),n,1);
             Z = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
             
-            B = [X;Y;Z];
+            B = [X;Y;Z] / 1e9; %nT to T
+            %%% rotate B into cartesian
+            R = [-sin(lon) cos(lon) 0;
+                -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
+                +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
+            [B] = R'*B;
         end
         
     end
