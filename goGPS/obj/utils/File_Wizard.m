@@ -428,12 +428,19 @@ classdef File_Wizard < handle
                 
                 %target file
                 s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
-                %if not(exist([down_dir, '/', s2]) == 2)
-                    mget(ftp_server,s2,down_dir);
-
-                    
                 
-                %cell array with the paths to the downloaded files
+                % read the last modification of the CRX
+                d = dir([down_dir, '/', s2]);
+                t = GPS_Time(d.date);
+                
+                % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
+                % do not do
+                if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
+                    %if not(exist([down_dir, '/', s2]) == 2)
+                    mget(ftp_server,s2,down_dir);
+                end
+
+                % cell array with the paths to the downloaded files
                 file_crx{y} = [down_dir, '/', s2];
                 
                 fprintf(['Downloaded CRX file: ' s2 '\n']);
