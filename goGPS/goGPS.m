@@ -217,10 +217,12 @@ for s = 1 : num_session
     
     for i = 1 : num_trg_rec
         trg(i).staticPPP(id_sync{i});
-        dt_i0 = trg(i).dt;
-        trg(i).applyDtRec(dt_i0);        
-        trg(i).staticPPP(id_sync{i});        
-        trg(i).dt = trg(i).dt + dt_i0;
+%         dt_i0 = trg(i).dt;
+%         trg(i).applyDtRec(dt_i0);        
+%         trg(i).staticPPP(id_sync{i});        
+%         trg(i).dt = trg(i).dt + dt_i0;
     end
+    
+    trg_list(:,s) = trg;
 end
     
