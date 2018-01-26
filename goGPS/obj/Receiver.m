@@ -5582,8 +5582,8 @@ classdef Receiver < Exportable
             scatter(ep(this.cycle_slip_idx_ph~=0),r_ph(this.cycle_slip_idx_ph~=0))
         end
         
-        function plotAniZtdSlant(this, time_start, time_stop, show_map)
-            clf;
+        function plotAniZtdSlant(this, time_start, time_stop, show_map, write_video)
+            fig_h = clf;
             sztd = this.getSlantZTD(this.slant_filter_win);
 
             if nargin >= 3
@@ -5607,7 +5607,17 @@ classdef Receiver < Exportable
             
             if nargin < 4
                 show_map = true;
-            end            
+            end
+            if nargin < 5
+                write_video = false;
+            else
+                if write_video
+                    vidObj = VideoWriter('./out.avi');
+                    vidObj.FrameRate = 30;
+                    vidObj.Quality = 100;
+                    open(vidObj);
+                end
+            end
             yl = (median(median(sztd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd, 'omitnan'), 'omitnan')) * 1e2;
             
             subplot(3,1,3);
@@ -5616,7 +5626,7 @@ classdef Receiver < Exportable
             ylim(yl);
             hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
             xlim([t(1) t(end)]);
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            setTimeTicks(4,'dd/mm/yy HH:MM');
             h = ylabel('ZTD [cm]'); h.FontWeight = 'bold';
             grid on;
             
@@ -5664,8 +5674,15 @@ classdef Receiver < Exportable
                 % Move time line
                 hl.XData = t(i) * [1 1];
                 drawnow;
+                
+                if write_video
+                    currFrame = export_fig(fig_h, '-nocrop', '-a1');
+                    writeVideo(vidObj,currFrame);
+                end
             end
-            
+            if write_video
+                close(vidObj);
+            end
         end
         
         function plotAniZwdSlant(this, time_start, time_stop, show_map)
