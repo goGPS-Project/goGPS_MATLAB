@@ -90,7 +90,7 @@ classdef Observation_Set < handle
             this.el = [this.el obs_set.el];
             this.az = [this.az obs_set.az];
             this.prn = [this.prn obs_set.prn];
-            this.go_id = [this.go_id obs_set.go_id];
+            this.go_id = [this.go_id; obs_set.go_id];
             this.sigma = [this.sigma obs_set.sigma];
             
             if isempty(obs_set.snr)
