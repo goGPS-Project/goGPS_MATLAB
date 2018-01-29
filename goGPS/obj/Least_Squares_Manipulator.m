@@ -48,6 +48,8 @@ classdef Least_Squares_Manipulator < handle
         A_idx % index of the paramter [n_obs x n_param_per_epoch]
         out_idx % index to tell if observation is outlier [ n_obs x 1]
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
+        G % hard constraints (Lagrange multiplier)
+        D % known term of the hard constraints 
         y % observations  [ n_obs x 1]
         variance % observation variance [ n_obs x 1]
         rw % reweight factor
@@ -320,6 +322,17 @@ classdef Least_Squares_Manipulator < handle
             %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
             
+            %----Set up the date defecrum constraint problems --------------
+            G = [zeros(1, n_coo + n_iob) ones(1, n_amb) -ones(1, n_clocks)];
+            if tropo
+                G = [G zeros(1, n_clocks)];
+            end
+            if tropo_g
+                G = [G zeros(1, 2*n_clocks)];
+            end
+            D = [0];
+            this.G = G;
+            this.D = D;
             this.A_ep = A;
             this.A_idx = A_idx;
             this.variance = variance;
@@ -504,6 +517,11 @@ classdef Least_Squares_Manipulator < handle
                 Nee = [Nee, N_col];
             end
             N = [[Ncc, Nce']; [Nce, Nee]];
+            if ~ isempty(this.G)
+                G = this.G;
+                N =  [[N, G']; [G, zeros(size(G,1))]];
+                B = [B; this.D];
+            end
             if nargout > 3
                 %inverse by partitioning, taken from:
                 % Mikhail, Edward M., and Friedrich E. Ackermann. "Observations and least squares." (1976). pp 447

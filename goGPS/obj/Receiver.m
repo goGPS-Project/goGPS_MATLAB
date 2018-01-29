@@ -4810,14 +4810,14 @@ classdef Receiver < Exportable
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
-            clock = x(x(:,2) == 6,1);
-            mean_clock = mean(clock);
-            ls.y = ls.y - mean_clock;
-            this.log.addMessage(this.log.indent('Regularizing mean of clock',6));
-            ls.setMeanRegularization(6, 0.0001);
-            ls.reweightHuber();
-            ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+%             clock = x(x(:,2) == 6,1);
+%             mean_clock = mean(clock);
+%             ls.y = ls.y - mean_clock;
+%             this.log.addMessage(this.log.indent('Regularizing mean of clock',6));
+%             ls.setMeanRegularization(6, 0.0001);
+%             ls.reweightHuber();
+%             ls.Astack2Nstack();
+%             [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
             this.sat.res(:,ls.sat_go_id) = res(:, ls.sat_go_id);
             
@@ -4836,7 +4836,7 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
                 this.xyz = this.xyz + coo';
                 valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = (mean_clock + clock) / Go_State.V_LIGHT;
+                this.dt(valid_ep, 1) = clock / Go_State.V_LIGHT;
                 
                 
                 this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
