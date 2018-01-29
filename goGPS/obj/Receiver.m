@@ -4838,7 +4838,7 @@ classdef Receiver < Exportable
             end
             this.sat.res(id_sync,ls.sat_go_id) = res(:, ls.sat_go_id);
             
-            if true; %s02 < 0.03
+            if s02 < 0.03
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 this.id_sync = id_sync;
                 %ls.reweight(
