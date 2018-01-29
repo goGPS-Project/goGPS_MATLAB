@@ -903,7 +903,10 @@ classdef Receiver < Exportable
         function parseRin2Data(this, txt, lim, eoh)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
             % SYNTAX: this.parseRin2Data(txt, lim, eoh)
-            
+            % remove comment line from lim
+            comment_line = sum(txt(repmat(lim(1:end-1,1),1,7) + repmat(60:66, size(lim,1)-1, 1)) == repmat('COMMENT', size(lim,1)-1, 1),2) == 7;
+            comment_line(1:eoh) = false;
+            lim(comment_line,:) = [];
             % find all the observation lines
             t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
             n_epo = numel(t_line);
@@ -4454,6 +4457,10 @@ classdef Receiver < Exportable
             this.sat.res = zeros(this.length, this.getMaxSat());
             % LS does not know the max number of satellite stored
             % make dimensions consistent
+            dsz = length(id_epoch) - size(res,1);
+            if dsz > 0
+                res = [res; zeros(dsz, this.getMaxSat())];
+            end
             this.sat.res(id_epoch,1:size(res,2)) = res;
         end
         
@@ -4805,8 +4812,8 @@ classdef Receiver < Exportable
             %             end
             ls.setTimeRegularization(7,(this.state.std_tropo/5)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
             if this.state.flag_tropo_gradient
-                ls.setTimeRegularization(8,(this.state.std_tropo_gradient/5)^2 / 3600 * rate  );%this.state.std_tropo / 3600 * rate );
-                ls.setTimeRegularization(9,(this.state.std_tropo_gradient/5)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                ls.setTimeRegularization(8,(this.state.std_tropo_gradient/5)^2 / 3600 * rate /10);%this.state.std_tropo / 3600 * rate );
+                ls.setTimeRegularization(9,(this.state.std_tropo_gradient/5)^2 / 3600 * rate /10);%this.state.std_tropo  / 3600 * rate );
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
@@ -4819,9 +4826,13 @@ classdef Receiver < Exportable
 %             ls.Astack2Nstack();
 %             [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
-            this.sat.res(:,ls.sat_go_id) = res(:, ls.sat_go_id);
+            dsz = length(id_sync) - size(res,1);
+            if dsz > 0
+                res = [res; zeros(dsz, this.getMaxSat())];
+            end
+            this.sat.res(id_sync,ls.sat_go_id) = res(:, ls.sat_go_id);
             
-            if s02 < 0.03
+            if true; %s02 < 0.03
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 this.id_sync = id_sync;
                 %ls.reweight(
@@ -4843,7 +4854,9 @@ classdef Receiver < Exportable
                 this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
                 this.sat.amb = amb;
                 [mfh, mfw] = getSlantMF(this);
-                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :))  + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :))) ;
+                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
+                                              + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
+                                              + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
                 if this.state.flag_tropo_gradient
                     if isempty(this.tgn)
                         this.tgn = zeros(this.time.length,1);
@@ -4857,7 +4870,9 @@ classdef Receiver < Exportable
                     cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
                     cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
                     sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel.*cosaz) + zero2nan(repmat(this.tge(id_sync, :),1,n_sat).*mfw(id_sync, :).*cotel.*sinaz));
+                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
+                                                          + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
+                                                          + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));
                 end
             else
                 this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
