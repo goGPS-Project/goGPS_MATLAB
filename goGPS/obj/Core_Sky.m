@@ -75,10 +75,7 @@ classdef Core_Sky < handle
         ant_pcv               % satellites antenna phase center variations
         
         avail                 % availability flag
-        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
-        
-                        
-
+        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]     
     end
     
     properties (Access = private)
@@ -1028,8 +1025,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [sx ,sy, sz] = getSatFixFrame(this,time,sat)
-            
+        function [sx ,sy, sz] = getSatFixFrame(this, time, go_id)            
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
             %
@@ -1048,7 +1044,7 @@ classdef Core_Sky < handle
             t_sun = time;
             X_sun = this.sunMoonInterpolate(t_sun, true);
             if nargin > 2
-                X_sat = this.coordInterpolate(time,sat);
+                X_sat = this.coordInterpolate(time, go_id);
                 X_sat = permute(X_sat,[1 3 2]);
             else
                 X_sat = this.coordInterpolate(time);
@@ -1143,27 +1139,29 @@ classdef Core_Sky < handle
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
             sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
             sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sx , 3) ...
+            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco, size(this.coord,1), 1, 1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
-            
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));            
         end
         
-        function pcv_delay = getPCV(this, band, sat, el, az)
+        function pcv_delay = getPCV(this, band, ant_id, el, az)
             % DESCRIPTION: get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
              pcv_delay = zeros(size(el));
           
             ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
-            ant_idx = sum(ant_names == repmat(this.cc.getAntennaId(sat),size(ant_names,1),1),2) == 3;
+            
+            ant_idx = sum(ant_names == repmat(ant_id,size(ant_names,1),1),2) == 3;
             sat_pcv = this.ant_pcv(ant_idx);
             
-            freq = find(this.cc.getSys(this.cc.system(sat)).CODE_RIN3_2BAND == num2str(band));
-            freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
+            freq = find(this.cc.getSys(ant_id(:,1)).CODE_RIN3_2BAND == num2str(band));
+            if ~isempty(freq)
+                freq = find(sat_pcv.frequency == freq); %%% check wether frequency in sat pcv are rinex 3 band or progressive number
+            end
             
             if isempty(freq)
-                this.log.addWarning(sprintf('No PCV model for %s frequency',[this.cc.system(sat) band]),100);
+                this.log.addWarning(sprintf('No PCV model for %s frequency',[ant_id(:,1) band]),100);
                 return
             end
             if this.coord_type == 0
@@ -1293,13 +1291,13 @@ classdef Core_Sky < handle
             for i=1:10
                 A(:,i+1)=(x.^i)';
             end
-            n_coeff_set= size(this.coord,1)-10;%86400/this.coord_rate+1;
-            %this.coord_pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
-            this.coord_pol_coeff=zeros(n_coeff,3,this.cc.getNumSat,n_coeff_set);
-            for s=1:this.cc.getNumSat
-                for i=1:n_coeff_set
-                    for j=1:3
-                        this.coord_pol_coeff(:,j,s,i)=A\squeeze(this.coord(i:i+10,s,j));
+            n_coeff_set= size(this.coord,1)-10; %86400/this.coord_rate+1;
+            n_sat = size(this.coord, 2);
+            this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
+            for s = 1 : n_sat
+                for i = 1 : n_coeff_set
+                    for j = 1 : 3
+                        this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + 10, s, j));
                     end
                 end
             end
@@ -1323,9 +1321,8 @@ classdef Core_Sky < handle
                 A(:,i+1)=(x.^i)';
             end
             n_coeff_set= size(this.X_sun,1)-10;%86400/this.coord_rate+1;
-            %this.coord_pol_coeff=zeros(this.cc.getNumSat,n_coeff_set,n_coeff,3)
-            this.sun_pol_coeff=zeros(n_coeff,3,n_coeff_set);
-            this.moon_pol_coeff=zeros(n_coeff,3,n_coeff_set);
+            this.sun_pol_coeff=zeros(n_coeff, 3, n_coeff_set);
+            this.moon_pol_coeff=zeros(n_coeff, 3, n_coeff_set);
             for i=1:n_coeff_set
                 for j=1:3
                     this.sun_pol_coeff(:,j,i)=A\squeeze(this.X_sun(i:i+10,j));
@@ -1344,11 +1341,11 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: interpolate coordinates of staellites
-            n_sat = this.cc.getNumSat;
+            n_sat = size(this.coord, 2);
             if nargin <3
-                sat_idx=ones(n_sat,1)>0;
+                sat_idx = ones(n_sat, 1) > 0;
             else
-                sat_idx=sat;
+                sat_idx = sat;
             end
             
             if isempty(this.coord_pol_coeff)
@@ -1691,7 +1688,7 @@ classdef Core_Sky < handle
             this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
 
             this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
-            this.ant_pco = zeros(1,this.cc.getNumSat(),3);
+            this.ant_pco = zeros(1, this.cc.getNumSat(),3);
             %this.satType = cell(1,size(this.ant_pcv,2));
             if isempty(this.avail)
                 this.avail = zeros(size(this.ant_pcv,2),1);

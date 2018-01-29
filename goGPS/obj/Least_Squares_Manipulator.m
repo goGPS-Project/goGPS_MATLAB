@@ -90,13 +90,13 @@ classdef Least_Squares_Manipulator < handle
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
             if rec.isMultiFreq() %% case multi frequency
-                for s = rec.cc.sys_c
-                    obs_set.merge(rec.getPrefIonoFree('C', s));
+                for sys_c = rec.cc.sys_c
+                    obs_set.merge(rec.getPrefIonoFree('C', sys_c));
                 end
             else
-                for s = rec.cc.sys_c
-                    f = rec.getFreqs(s);
-                    obs_set.merge(rec.getPrefObsSetCh(['C' num2str(f(1))], s));
+                for sys_c = rec.cc.sys_c
+                    f = rec.getFreqs(sys_c);
+                    obs_set.merge(rec.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
                 end
             end
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
@@ -158,24 +158,24 @@ classdef Least_Squares_Manipulator < handle
             variance = zeros(n_obs, 1);
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
-            for s = 1:n_stream
-                vaild_ep_stream = diff_obs(:, s) ~= 0;
+            for sys_c = 1:n_stream
+                vaild_ep_stream = diff_obs(:, sys_c) ~= 0;
                 
-                obs_stream = diff_obs(vaild_ep_stream, s);
-                snr_stream = obs_set.snr(vaild_ep_stream, s);
-                xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
+                obs_stream = diff_obs(vaild_ep_stream, sys_c);
+                snr_stream = obs_set.snr(vaild_ep_stream, sys_c);
+                xs_loc_stream = permute(xs_loc(vaild_ep_stream, sys_c, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
                 n_obs_stream = length(obs_stream);
                 lines_stream = obs_count + (0:(n_obs_stream - 1));
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
-                sat(lines_stream) = s;
+                sat(lines_stream) = sys_c;
                 y(lines_stream) = obs_stream;
-                variance(lines_stream) =  obs_set.sigma(s)^2;
+                variance(lines_stream) =  obs_set.sigma(sys_c)^2;
                 %w(lines_stream) = snr_stream;
                 A(lines_stream, 1:3) = - los_stream;
                 if n_iob > 0
-                    A(lines_stream, 4) = iob_idx(s) > 0;
-                    A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(s));
+                    A(lines_stream, 4) = iob_idx(sys_c) > 0;
+                    A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(sys_c));
                 end
                 A(lines_stream, n_coo+iob_flag+1) = 1;
                 A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + ep_p_idx(vaild_ep_stream);
@@ -449,7 +449,7 @@ classdef Least_Squares_Manipulator < handle
             Ndiags = zeros(n_class_ep_wise, n_class_ep_wise, n_epochs); %permute(this.N_ep(~idx_constant_l,~idx_constant_l,:),[3,1,2]);
             B = zeros(n_constant+n_ep_wise, 1);
             if isempty(this.rw)
-                this.rw = ones(size(this.variance))
+                this.rw = ones(size(this.variance));
             end
             for i = 1:n_obs
                 p_idx = this.A_idx(i, :);

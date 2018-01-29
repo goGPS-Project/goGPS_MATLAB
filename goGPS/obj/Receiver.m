@@ -1551,8 +1551,9 @@ classdef Receiver < Exportable
         
         function is_mf = isMultiFreq(this)
             is_mf = false;
-             for i=1:this.getMaxSat()
-                sat_idx = this.getObsIdx('C',this.cc.system(i),this.cc.prn(i));
+             for i = 1 : this.getMaxSat()
+                cur_sat_id = find(this.go_id == i, 1, 'first');
+                sat_idx = this.getObsIdx('C', this.system(cur_sat_id), this.cc.prn(cur_sat_id));
                 sat_idx = sat_idx(this.active_ids(sat_idx));
                 if ~isempty(sat_idx)
                     % get epoch for which iono free is possible
@@ -1732,11 +1733,10 @@ classdef Receiver < Exportable
             %   [XS_tx_r ,XS_tx] = this.getXSLoc( sat)
             %
             % INPUT:
-            % sat = go-id of the satellite
+            %   sat = go-id of the satellite
             % OUTPUT:
-            % XS_tx = satellite position computed at trasmission time
-            % XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured
-            % during time of travel
+            %   XS_tx = satellite position computed at trasmission time
+            %   XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured during time of travel
             % DESCRIPTION:
             %   Compute satellite positions at transmission time and rotate them by the earth rotation
             %   occured during time of travel of the signal and subtract
@@ -1876,6 +1876,12 @@ classdef Receiver < Exportable
             if ~any(xyz) && ~isempty(this.xyz)
                 xyz = median(this.xyz, 1);
             end
+        end
+        
+        function go_id = getActiveGoIds(this)
+            % return go_id present in the receiver of the active constellations
+            % SYNTAX: go_id = this.getActiveGoIds()
+            go_id = unique(this.go_id(regexp(this.system, ['[' this.cc.sys_c ']?'])));
         end
         
         function xyz = getMedianPosXYZ(this)
@@ -2356,7 +2362,7 @@ classdef Receiver < Exportable
             end
         end
                 
-        function [obs_set] = getTwoFreqComb(this, flag1, flag2, fun1, fun2,know_comb)
+        function [obs_set] = getTwoFreqComb(this, flag1, flag2, fun1, fun2, know_comb)
             %INPUT: flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
             %       fun1  : function of the two wavelegnth to be applied to
@@ -2410,7 +2416,7 @@ classdef Receiver < Exportable
                 oc2 = '   ';
             end
             common_prns = intersect(p1, p2)';
-            goids = this.cc.getIndex(system,common_prns);
+            go_id = this.getActiveGoIds()';
             obs_out = zeros(size(o1,1), length(common_prns));
             snr_out = zeros(size(o1,1), length(common_prns));
             cs_out = zeros(size(o1,1), length(common_prns));
@@ -2427,12 +2433,12 @@ classdef Receiver < Exportable
                 obs_out(:, p) = nan2zero(alpha1 * zero2nan(o1(:,ii1)) + alpha2 * zero2nan(o2(:,ii2)));
                 idx_obs = obs_out(:, p) ~=0;
                 if ~isempty(this.sat.az)
-                    az(idx_obs, p) = this.sat.az(idx_obs, goids(p));
+                    az(idx_obs, p) = this.sat.az(idx_obs, go_id(p));
                 else
                     az = [];
                 end
                 if ~isempty(this.sat.el)
-                    el(idx_obs, p) = this.sat.el(idx_obs, goids(p));
+                    el(idx_obs, p) = this.sat.el(idx_obs, go_id(p));
                 else
                     el = [];
                 end
@@ -2519,7 +2525,7 @@ classdef Receiver < Exportable
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
                 % check if there are observation for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
                     is_present(i) = true;
                 end
             end
@@ -2561,8 +2567,6 @@ classdef Receiver < Exportable
                 end
                 XS_loc = [];
             else
-                XS_loc = this.getXSLoc(go_id);
-                range = sqrt(sum(XS_loc.^2,2));
                 switch obs_type
                     case 'I'
                         iono_factor = 0;
@@ -2576,6 +2580,8 @@ classdef Receiver < Exportable
 %                         iono_factor= wl_ref^2/ wl^2;
                         
                 end
+                XS_loc = this.getXSLoc(go_id);
+                range = sqrt(sum(XS_loc.^2,2));
                 range = range + this.sat.err_tropo(:,go_id) + iono_factor * this.sat.err_iono(:,go_id);
                 
                 XS_loc(isnan(range),:) = [];
@@ -2611,12 +2617,11 @@ classdef Receiver < Exportable
             this.updateErrTropo();
             
             % for each unique go_id
-            for i = u_sat'
-                sat_idx = find(go_id == i);
-                
-                this.updateTOT(colFirstNonZero(this.obs(sat_idx,:)),i);
+            for i = u_sat'                
+                this.updateTOT(colFirstNonZero(this.obs(this.go_id == i,:)),i);
                 range = this.getSyntObs('I', i);
                 
+                sat_idx = find(go_id == i);
                 % for all the obs with the same go_id
                 for j = sat_idx'
                     o = (idx_obs == idx_obs(j));
@@ -2635,6 +2640,7 @@ classdef Receiver < Exportable
                 
             end
         end
+        
         function synt_ph = getSyntPhases(this, sys_c)
             % get current value of syntetic phase, in case not present update it
             if isempty(this.synt_ph)
@@ -2679,8 +2685,7 @@ classdef Receiver < Exportable
                 xs_idx = idx_obs_r_l(range_idx);
                 synt_obs(idx_obs, i) = range(idx_obs_r);
                 xs_loc(idx_obs, i, :) = permute(xs_loc_t(xs_idx, :),[1 3 2]);
-            end
-            
+            end            
         end  
         
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
@@ -2980,8 +2985,6 @@ classdef Receiver < Exportable
             % for each receiver
             [~, id] = unique(this.go_id);
             for i = id'
-                prn = this.prn(i);
-                sys = this.system(i);
                 go_id = this.go_id(i);
                 sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0));
@@ -3139,7 +3142,7 @@ classdef Receiver < Exportable
         % Earth rotation parameters
         %--------------------------------------------------------
 
-        function [XS_r] = earthRotationCorrection(this, XS, sat)
+        function [XS_r] = earthRotationCorrection(this, XS, go_id)
             % SYNTAX:
             %   [XS_r] = this.earthRotationCorrection(XS)
             %
@@ -3158,9 +3161,9 @@ classdef Receiver < Exportable
             %%% TBD -> consider the case XS and travel_time does not match
             XS_r = zeros(size(XS));
             
-            idx = this.sat.avail_index(:,sat) > 0;
-            travel_time = this.sat.tot(idx,sat);
-            sys = this.system(sat);
+            idx = this.sat.avail_index(:,go_id) > 0;
+            travel_time = this.sat.tot(idx,go_id);
+            sys = this.system(find(this.go_id == go_id, 1, 'first'));
             switch char(sys)
                 case 'G'
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
@@ -4022,9 +4025,9 @@ classdef Receiver < Exportable
             
             GM = 3.986005e14;
             
-            corr = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
+            %corr = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
-            sh_delay = 2*GM/(goGNSS.V_LIGHT^2)*log((distR + distS + distSR)./(distR + distS - distSR));
+            sh_delay = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
             
         end
         
@@ -4043,10 +4046,10 @@ classdef Receiver < Exportable
                 if ~isempty(this.pcv) && ~isempty(this.pcv.name)
                     %TODO correct for receiver pcv
                     f_code_history = []; % save f_code checked to print only one time the warning message
-                    for s = 1 : size(this.sat.el,2)
-                        sat_idx = this.sat.avail_index(:,s);
-                        el = this.sat.el(sat_idx,s);
-                        az = this.sat.el(sat_idx,s);
+                    for s = unique(this.go_id)'
+                        sat_idx = this.sat.avail_index(:, s);
+                        el = this.sat.el(sat_idx, s);
+                        az = this.sat.el(sat_idx, s);
                         neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
@@ -4057,22 +4060,22 @@ classdef Receiver < Exportable
                                 sys = this.system(obs_idx_f);
                                 f_code = [sys(1) sprintf('%02d',f)];
                                 
-                                pco_idx = idxCharLines(this.pcv.frequency_name,f_code);
+                                pco_idx = idxCharLines(this.pcv.frequency_name, f_code);
                                 if sum(pco_idx)
-                                    pco = this.pcv.offset(:,:,pco_idx)';
-                                    pco_delays = neu_los*pco;
-                                    pcv_delays = pco_delays - this.getPCV(pco_idx,el,az);
+                                    pco = this.pcv.offset(:, :, pco_idx)';
+                                    pco_delays = neu_los * pco;
+                                    pcv_delays = pco_delays - this.getPCV(pco_idx, el, az);
                                     for o = find(obs_idx_f)'
-                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
-                                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                                        if  this.obs_code(o,1) == 'L'
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o);
+                                        pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~= 0; % find which correction to apply
+                                        o_idx = this.obs(o, :) ~= 0; % find where apply corrections
+                                        if  this.obs_code(o, 1) == 'L'
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o);
                                         else
-                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
                                         end
                                     end
                                 else
-                                    if isempty(f_code_history) || ~sum(idxCharLines(f_code_history,f_code))
+                                    if isempty(f_code_history) || ~sum(idxCharLines(f_code_history, f_code))
                                         this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s and frequency %s',this.ant_type,f_code),6));
                                         f_code_history = [f_code_history;f_code];
                                     end
@@ -4085,20 +4088,20 @@ classdef Receiver < Exportable
                     
                     % getting satellite reference frame for each epoch
                     [x, y, z] = this.sat.cs.getSatFixFrame(this.time);
-                    sat_ok = 1 : this.getMaxSat;
-                    % transgform into satellite reference system
+                    sat_ok = unique(this.go_id)';
+                    % transform into satellite reference system
                     XR_sat(:, sat_ok, :) = cat(3,sum(XR_sat(:, sat_ok, :) .* x(:, sat_ok, :),3), sum(XR_sat(:, sat_ok, :) .* y(:, sat_ok, :), 3), sum(XR_sat(:, sat_ok, :) .* z(:, sat_ok, :), 3));
                     
                     % getting az and el
                     distances = sqrt(sum(XR_sat.^2,3));
-                    XR_sat_norm = XR_sat ./ repmat(distances,1,1,3);
+                    XR_sat_norm = XR_sat ./ repmat(distances, 1, 1, 3);
                     
-                    az = atan2(XR_sat_norm(:, :, 2),XR_sat_norm(:, :, 1)); % here azimuth is intended as angle from x axis
+                    az = atan2(XR_sat_norm(:, :, 2), XR_sat_norm(:, :, 1)); % here azimuth is intended as angle from x axis
                     az(az<0) = az(az<0) + 2*pi;
                     el = atan2(XR_sat_norm(:, :, 3), sqrt(sum(XR_sat_norm(:, :, 1:2).^2, 3)));
                     
                     % getting pscv and applying it to the obs
-                    for s = 1 : size(el,2)
+                    for s = unique(this.go_id)'
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
                         if sum(obs_idx) > 0
@@ -4108,15 +4111,17 @@ classdef Receiver < Exportable
                                 az_idx = ~isnan(az(:,s));
                                 az_tmp = az(az_idx,s) / pi * 180;
                                 el_idx = ~isnan(el(:,s));
-                                el_tmp = el(el_idx,s) / pi * 180;
-                                pcv_delays = this.sat.cs.getPCV( f, s, el_tmp, az_tmp);
+                                el_tmp = el(el_idx,s) / pi * 180;                                
+                                tmp_id = find(this.go_id == s, 1, 'first');
+                                ant_id = sprintf('%c%02d', this.system(tmp_id), this.prn(tmp_id));
+                                pcv_delays = this.sat.cs.getPCV( f, ant_id, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
-                                    pcv_idx = this.obs(o, az_idx) ~=0; %find which correction to apply
+                                    pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
                                     o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
                                     if  this.obs_code(o,1) == 'L'
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus 
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus 
                                     else
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* pcv_delays(pcv_idx)';
+                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
                                     end
                                 end
                             end
@@ -4352,7 +4357,7 @@ classdef Receiver < Exportable
             %   this.initPositioning();
             % INPUT:
             %   sys_c = wanted system
-            % Init "errors"
+            % Init "errors"            
             this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
             this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
             this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
@@ -4387,7 +4392,6 @@ classdef Receiver < Exportable
                 this.initDynamicPositioning(obs, prn, sys, flag)
             end
             
-            
         end
         
         function initStaticPositioning(this)
@@ -4400,7 +4404,7 @@ classdef Receiver < Exportable
             % sys : sys of observations
             % flag : name of obsevation [obs_code1 obs_code2 comb_code]
             %        comb_code --> Iono Free = I
-            % OUTPUT:
+            % OUTPUT:t_glo11.
             %
             % DESCRIPTION:
             %   Get postioning using code observables
@@ -4428,11 +4432,13 @@ classdef Receiver < Exportable
             this.updateErrIono();
             this.log.addMessage(this.log.indent('improving estimation',6))
             this.codeStaticPositioning(1:this.time.length, 15);
+            
             this.updateAllTOT();
             this.log.addMessage(this.log.indent('Final estimation',6))
             this.codeStaticPositioning(1:this.time.length, 15);
+            
             % final estimation of time of flight
-            this.updateAllAvailIndex
+            this.updateAllAvailIndex()
             this.updateAllTOT
         end
         
@@ -4446,7 +4452,7 @@ classdef Receiver < Exportable
             end
             ls.setUpCodeSatic( this, id_epoch, cut_off);
             ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();                                   
+            [x, res, s02] = ls.solve();
             
             dpos = x(1:3);
             this.xyz = this.getMedianPosXYZ() + dpos;
@@ -4744,13 +4750,13 @@ classdef Receiver < Exportable
 
             % update azimuth elevation
             this.updateAzimuthElevation();
-            % Add a model correction for time desync -> observations are now referred to nominal time            
+            % Add a model correction for time desync -> observations are now referred to nominal time  #14          
             this.shiftToNominal()
             this.updateAllTOT();
             
             % apply various corrections
-            this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to COM
-            
+            this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+            % #15
             this.applyPCV();
             this.applyPoleTide();
             this.applyPhaseWindUpCorr();
