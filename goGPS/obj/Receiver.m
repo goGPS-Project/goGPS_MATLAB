@@ -1553,15 +1553,17 @@ classdef Receiver < Exportable
             is_mf = false;
              for i = 1 : this.getMaxSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
-                sat_idx = this.getObsIdx('C', this.system(cur_sat_id), this.cc.prn(cur_sat_id));
-                sat_idx = sat_idx(this.active_ids(sat_idx));
-                if ~isempty(sat_idx)
-                    % get epoch for which iono free is possible
-                    freq = str2num(this.obs_code(sat_idx,2)); %#ok<ST2NM>
-                    u_freq = unique(freq);
-                    if length(u_freq)>1
-                        is_mf = true;
-                        return
+                if not(isempty(cur_sat_id))
+                    sat_idx = this.getObsIdx('C', this.system(cur_sat_id), this.cc.prn(cur_sat_id));
+                    sat_idx = sat_idx(this.active_ids(sat_idx));
+                    if ~isempty(sat_idx)
+                        % get epoch for which iono free is possible
+                        freq = str2num(this.obs_code(sat_idx,2)); %#ok<ST2NM>
+                        u_freq = unique(freq);
+                        if length(u_freq)>1
+                            is_mf = true;
+                            return
+                        end
                     end
                 end
              end
