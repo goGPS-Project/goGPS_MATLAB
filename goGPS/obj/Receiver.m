@@ -5295,6 +5295,7 @@ classdef Receiver < Exportable
             snx_wrt.close() 
         end 
         
+        %export WRF-compatible file (LITTLE_R)
         function txt = exportGPSZTD(this, save_on_disk)
             if nargin == 1
                 save_on_disk = true;
