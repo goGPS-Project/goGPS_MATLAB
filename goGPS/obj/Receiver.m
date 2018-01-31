@@ -4779,7 +4779,7 @@ classdef Receiver < Exportable
             if nargin < 2
                 id_sync = 1 : this.time.length();
             end
-            ls.setUpPPP(this, id_sync);
+            id_sync = ls.setUpPPP(this, id_sync);
             ls.Astack2Nstack();
             
             [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
