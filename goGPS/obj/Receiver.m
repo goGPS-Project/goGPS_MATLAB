@@ -39,7 +39,6 @@
 classdef Receiver < Exportable
         
     %% PROPERTIES RECEIVER
-    % ==================================================================================================================================================
 
     properties (SetAccess = public, GetAccess = public)
         file           % file rinex object
@@ -207,7 +206,7 @@ classdef Receiver < Exportable
         log                                    % handle to log
     end    
     % ==================================================================================================================================================
-    %% PREPERTIES PLOTS
+    %% PROPERTIES PLOTS
     % ==================================================================================================================================================
     
     properties
@@ -1575,6 +1574,7 @@ classdef Receiver < Exportable
             freq = str2num(this.obs_code(idx,2)); %#ok<ST2NM>
             freqs = unique(freq);
         end
+        
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX:   this.getChalmersString();
@@ -4825,9 +4825,9 @@ classdef Receiver < Exportable
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = length(id_sync) - size(res,1);
             if dsz > 0
-                res = [res; zeros(dsz, this.getMaxSat())];
+                id_sync(1 : end - dsz);
             end
-            this.sat.res(id_sync,ls.sat_go_id) = res(:, ls.sat_go_id);
+            this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             
             if s02 < 0.03
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
