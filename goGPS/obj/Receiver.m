@@ -786,7 +786,7 @@ classdef Receiver < Exportable
                 this.n_sat = this.cc.getNumSat(); % If it's zero it'll be necessary to compute it
             else
                 tmp = sscanf(txt(lim(fln, 1) + (0:5)),'%f')';                                  % read value
-                this.n_sat = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 1), this.getMaxSat(), tmp);  % check value integrity
+                this.n_sat = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 1), this.cc.getNumSat(), tmp);  % check value integrity
             end
             % 15) PRN / # OF OBS            % ignoring
             % 16) # / TYPES OF OBSERV
