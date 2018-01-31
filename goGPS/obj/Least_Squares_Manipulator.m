@@ -192,7 +192,8 @@ classdef Least_Squares_Manipulator < handle
             this.param_class = [1, 2, 3, 4*ones(iob_flag), 6];
         end
         
-        function setUpPPP(this, rec, id_sync)
+        function id_sync = setUpPPP(this, rec, id_sync)
+            % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
             obs_set = Observation_Set();
             for s = rec.cc.sys_c
@@ -202,10 +203,9 @@ classdef Least_Squares_Manipulator < handle
             tropo_g = this.state.flag_tropo_gradient;
             
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
-            if sum(sum(snr_to_fill));
+            if sum(sum(snr_to_fill))
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-            
             if nargin > 2
                 %%% remove epochs based on desired sampling
                 obs_set.keepEpochs(id_sync);
@@ -217,6 +217,7 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
+            id_sync(~idx_valid_ep_l) = [];
             
             % removing possible empty column
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
@@ -276,7 +277,7 @@ classdef Least_Squares_Manipulator < handle
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
             [~, mfw] = rec.getSlantMF();
-            mfw = mfw(id_sync,:); %getting only the desampled values
+            mfw = mfw(id_sync,:); % getting only the desampled values
             for s = 1:n_stream
                 vaild_ep_stream = diff_obs(:, s) ~= 0;
                 
