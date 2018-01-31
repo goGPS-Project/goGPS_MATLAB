@@ -5338,6 +5338,9 @@ classdef Receiver < Exportable
             if nargin == 1
                 one_plot = false;
             end
+            
+            figure;
+            
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 enu = zero2nan(this.xyz);
@@ -5377,6 +5380,9 @@ classdef Receiver < Exportable
             if nargin == 1
                 one_plot = false;
             end
+            
+            figure;
+            
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 xyz0 = this.getAPrioriPos();
@@ -5409,6 +5415,8 @@ classdef Receiver < Exportable
         function plotVsSynt(this)
             % Plots phases and pseudo-ranges aginst their synthesised values
             % SYNTAX: this.plotVsSynt
+            
+            figure;
             
             % Phases
             [ph, ~, id_ph] = this.getPhases;
@@ -5568,6 +5576,7 @@ classdef Receiver < Exportable
         end
                
         function plotCycleSlip(this)
+            figure;
             if ~isempty(this.cycle_slip_idx_ph)
                 ph = this.getPhases();
                 synt_ph = this.getSyntPhases();
@@ -5581,6 +5590,7 @@ classdef Receiver < Exportable
         end
         
         function plotSmoothRef(this)
+            figure;
             ph = this.getPhases();
             synt_ph = this.getSyntPhases();
             d_ph = ph - synt_ph;
@@ -5630,7 +5640,7 @@ classdef Receiver < Exportable
         end
         
         function plotAniZtdSlant(this, time_start, time_stop, show_map, write_video)
-            fig_h = clf;
+            fig_h = figure;
             sztd = this.getSlantZTD(this.slant_filter_win);
 
             if nargin >= 3
@@ -5733,9 +5743,9 @@ classdef Receiver < Exportable
         end
         
         function plotAniZwdSlant(this, time_start, time_stop, show_map)
-            clf;
+            figure;
             szwd = this.getSlantZWD(this.slant_filter_win);
-
+            
             if nargin >= 3
                 if isa(time_start, 'GPS_Time')
                     time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
@@ -5820,7 +5830,7 @@ classdef Receiver < Exportable
         end
         
         function plotZtdSlant(this, time_start, time_stop, win_size)
-            clf;
+            figure;
             for s = 1 : size(this,2)
                 if isempty(this(s).id_sync)
                     this(s).id_sync = 1 : this(s).time.length();
