@@ -431,7 +431,7 @@ classdef File_Wizard < handle
                 
                 % read the last modification of the CRX
                 d = dir([down_dir, '/', s2]);
-                t = GPS_Time(d.date);
+                t = GPS_Time(d.datenum);
                 
                 % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
                 % do not do
