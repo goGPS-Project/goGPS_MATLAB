@@ -144,9 +144,9 @@ if (o1 > 1)
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
 if (flag_tropo)
-    Cvv(o3+nN+1,o3+nN+1) = sigmaq_tropo / (3600 / interval) ^ 2;
+    Cvv(o3+nN+1,o3+nN+1) = sigmaq_tropo / (3600 / interval);
     if (flag_tropo_gradient)
-        Cvv(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = (sigmaq_tropo_gradient / (3600 / interval) ^ 2) * eye(nT-1);
+        Cvv(o3+nN+2:o3+nN+nT,o3+nN+2:o3+nN+nT) = (sigmaq_tropo_gradient / (3600 / interval)) * eye(nT-1);
     end
 end
 Cvv(o3+nN+nT+1,o3+nN+nT+1) = sigmaq_rclock;
