@@ -382,13 +382,13 @@ classdef Least_Squares_Manipulator < handle
                 res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             end
             this.res = res_l;
-            n_epochs = max(this.true_epoch);
+            n_epochs = max(this.true_epoch) - min(this.true_epoch);
             n_sat = max(this.sat_go_id);
             res = zeros(n_epochs, n_sat);
             for i = 1:length(this.sat_go_id)
                 idx = this.sat == i;
                 ep = this.epoch(idx);
-                res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
+                res(this.true_epoch(ep)-min(this.true_epoch)+1, this.sat_go_id(i)) = res_l(idx);
             end
         end
         %-----------------------------------------------
@@ -405,7 +405,7 @@ classdef Least_Squares_Manipulator < handle
             if nargin > 2
                 idx_rw = abs(res_n) > threshold;
             else
-                idx_rw = true(size(res));
+                idx_rw = true(size(res_n));
             end
             this.rw(idx_rw) =  wfun(res_n(idx_rw));
         end
@@ -418,6 +418,10 @@ classdef Least_Squares_Manipulator < handle
             threshold = 2;
             wfun = @(x) - exp(x.^2 ./threshold.^2);
             this.weightOnResidual(wfun, threshold);
+        end
+        function reweightHubNoThr(this)
+             wfun = @(x) 1 ./ abs(x);
+             this.weightOnResidual(wfun);
         end
         function reweightTukey(this)
             threshold = 2;

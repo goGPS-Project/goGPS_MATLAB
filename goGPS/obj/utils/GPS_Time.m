@@ -1118,6 +1118,7 @@ classdef GPS_Time < Exportable & handle
                     end
             end
         end
+        
         function remEpoch(this, id)
             %DESCRIPTION: remove epochs by index
                     % SYNTAX this.remEpoch(id)

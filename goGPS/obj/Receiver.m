@@ -5861,12 +5861,7 @@ classdef Receiver < Exportable
         
         function plotResidual(this)
             figure
-            t = 1:this.time.length;
-            for i =1 : size(this.sat.res,2)
-                idx = this.sat.res(:,i) ~= 0;
-                scatter(t(idx), this.sat.res(idx,i),5,'filled');
-                hold on
-            end
+            plot(zero2nan(this.sat.res),'.');
         end
     end
         
