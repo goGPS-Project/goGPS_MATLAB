@@ -4812,12 +4812,6 @@ classdef Receiver < Exportable
             
             rate = time.getRate();
             
-            %ls.setTimeRegularization(6, (0.1)^2);
-            %             ls.setTimeRegularization(7, (this.state.std_tropo / 3600 * rate / 0.005)^2 );
-            %             if this.state.flag_tropo_gradient
-            %                 ls.setTimeRegularization(8, (this.state.std_tropo_gradient / 3600 * rate / 0.005)^2);
-            %                 ls.setTimeRegularization(9, (this.state.std_tropo_gradient / 3600 * rate / 0.005)^2);
-            %             end
             ls.setTimeRegularization(7,(this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
             if this.state.flag_tropo_gradient
                 ls.setTimeRegularization(8,(this.state.std_tropo_gradient)^2 / 3600 * rate);%this.state.std_tropo / 3600 * rate );
@@ -4825,14 +4819,9 @@ classdef Receiver < Exportable
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
-%             clock = x(x(:,2) == 6,1);
-%             mean_clock = mean(clock);
-%             ls.y = ls.y - mean_clock;
-%             this.log.addMessage(this.log.indent('Regularizing mean of clock',6));
-%             ls.setMeanRegularization(6, 0.0001);
-%             ls.reweightHuber();
-%             ls.Astack2Nstack();
-%             [x, res, s02] = ls.solve();
+            ls.reweightHuber();
+            ls.Astack2Nstack();
+            [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = length(id_sync) - size(res,1);
             if dsz > 0
