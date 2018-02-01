@@ -1507,6 +1507,8 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods
+        % size 
+        
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
             % SYNTAX:
@@ -1547,6 +1549,63 @@ classdef Receiver < Exportable
                 len(r) =  this(r).time.length();
             end
         end
+        
+        % times 
+        
+        function mat_time = getMatlabTime(this)
+            mat_time = [];
+            for r = 1 : numel(this)
+                mat_time = [mat_time; this(r).time.getMatlabTime];
+            end
+        end
+        
+        function dt = getDt(this)
+            dt = [];
+            for r = 1 : numel(this)
+                dt = [dt; this(r).dt];
+            end
+        end
+        
+        function desync = getDesync(this)
+            desync = [];
+            for r = 1 : numel(this)
+                desync = [desync; this(r).desync];
+            end
+        end
+        
+        function dt_pr = getDtPr(this)
+            dt_pr = [];
+            for r = 1 : numel(this)
+                dt_pr = [dt_pr; this(r).dt_pr];
+            end
+        end
+        
+        function dt_ph = getDtPh(this)
+            dt_ph = [];
+            for r = 1 : numel(this)
+                dt_ph = [dt_ph; this(r).dt_ph];
+            end
+        end
+        
+        function dt_ip = getDtIP(this)
+            dt_ip = [];
+            for r = 1 : numel(this)
+                dt_ip = [dt_ip; this(r).dt_ip];
+            end
+        end
+        
+        function dt_pp = getDtPrePro(this)
+            dt_pp = [];
+            for r = 1 : numel(this)
+                dt_pp = [dt_pp; this(r).dt_ip + this(r).dt_pr];
+            end
+        end
+        
+        function dt = getTotalDt(this)
+            dt = this.getDt + this.getDtPrePro;            
+        end
+        
+        % frequencies 
         
         function is_mf = isMultiFreq(this)
             is_mf = false;
@@ -4824,10 +4883,14 @@ classdef Receiver < Exportable
             [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = length(id_sync) - size(res,1);
-            if dsz > 0
-                id_sync(1 : end - dsz);
+            if dsz == 0
+                this.sat.res(id_sync, ls.sat_go_id) = res(:, ls.sat_go_id);
+            else
+                if dsz > 0
+                    id_sync(1 : end - dsz);
+                end
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
-            this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             
             if s02 < 0.03
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
@@ -5452,16 +5515,16 @@ classdef Receiver < Exportable
             % SYNTAX: this.plotDt
             
             figure;
-            t = this.time.getMatlabTime;
-            plot(t, this.desync, '-k', 'LineWidth', 2);
+            t = this.getMatlabTime();
+            plot(t, this.getDesync, '-k', 'LineWidth', 2);
             hold on;
-            plot(t, this.dt_pr, ':', 'LineWidth', 2);
-            plot(t, this.dt_ph, ':', 'LineWidth', 2);
-            plot(t, this.dt_ip, '-', 'LineWidth', 2);
-            plot(t, this.dt_ip + this.dt_pr, '-', 'LineWidth', 2);
-            if any(this.dt)
-                plot(t(this.id_sync), this.dt(this.id_sync), '-', 'LineWidth', 2);
-                plot(t(this.id_sync), this.dt(this.id_sync) + this.dt_ip(this.id_sync) + this.dt_pr(this.id_sync), '-', 'LineWidth', 2);
+            plot(t, this.getDtPr, ':', 'LineWidth', 2);
+            plot(t, this.getDtPh, ':', 'LineWidth', 2);
+            plot(t, this.getDtIP, '-', 'LineWidth', 2);
+            plot(t, this.getDtPrePro, '-', 'LineWidth', 2);
+            if any(this.getDt)
+                plot(t, this.getDt, '-', 'LineWidth', 2);
+                plot(t, this.getTotalDt, '-', 'LineWidth', 2);
                 legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'northeastoutside');
             else
             legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
