@@ -324,7 +324,7 @@ classdef Least_Squares_Manipulator < handle
             %---------------------
             
             %----Set up the date defecrum constraint problems --------------
-            G = [zeros(1, n_coo + n_iob) ones(1, n_amb) -ones(1, n_clocks)];
+            G = [zeros(1, n_coo + n_iob) zeros(1, n_amb) +ones(1, n_clocks)];
             if tropo
                 G = [G zeros(1, n_clocks)];
             end

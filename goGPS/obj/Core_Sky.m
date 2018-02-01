@@ -151,8 +151,7 @@ classdef Core_Sky < handle
                     this.addClk(clock_f_name{i});
                 end
             end
-            
-            
+                        
             this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
             % compute polynomials for ephemerids
             this.computeSMPolyCoeff();
