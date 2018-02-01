@@ -146,8 +146,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
         SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
         
-        STD_TROPO = 0.04;                               % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.01;                      % Std of tropospheric gradient [m/h]
+        STD_TROPO = 0.0015;                             % Std of tropospheric delay [m/h]
+        STD_TROPO_GRADIENT = 0.0004;                    % Std of tropospheric gradient [m/h]
         IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 0: no model
                                                         % - iono_model = 1: Geckle and Feen model
