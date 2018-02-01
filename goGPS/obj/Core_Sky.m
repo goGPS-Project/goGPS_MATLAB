@@ -39,7 +39,7 @@ classdef Core_Sky < handle
         coord                  % Ephemerides [times x num_sat x 3]
         coord_type             % 0: Center of Mass 1: Antenna Phase Center
         clock                  % clocks of ephemerides [times x num_sat]
-
+        
         coord_rate = 900;
         clock_rate = 900;
         
@@ -115,12 +115,12 @@ classdef Core_Sky < handle
     % =========================================================================
     
     methods % Public Access
-                
+        
         function initSession(this, start_date, stop_time)
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
-                        
+            
             
             %%% load Epehemerids
             eph_f_name   = this.state.getEphFileName(start_date, stop_time);
@@ -128,7 +128,7 @@ classdef Core_Sky < handle
             clock_is_present = true;
             for i = 1:length(clock_f_name)
                 clock_is_present = clock_is_present && exist(clock_f_name{i});
-            end  
+            end
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
             this.clearOrbit();
             
@@ -151,7 +151,7 @@ classdef Core_Sky < handle
                     this.addClk(clock_f_name{i});
                 end
             end
-                        
+            
             this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
             % compute polynomials for ephemerids
             this.computeSMPolyCoeff();
@@ -412,7 +412,7 @@ classdef Core_Sky < handle
                     end
                 end
             end
-                
+            
             
         end
         
@@ -596,7 +596,7 @@ classdef Core_Sky < handle
                 end
             end
             clear sp3_file;
-            this.coord = zero2nan(this.coord);  %<--- nan is slow for the computation of the polynomial coefficents 
+            this.coord = zero2nan(this.coord);  %<--- nan is slow for the computation of the polynomial coefficents
         end
         
         function fillClockGaps(this)
@@ -866,6 +866,7 @@ classdef Core_Sky < handle
             erp.m1 =   erp.Xpole*1e-6 - erp.meanXpole*1e-3;
             erp.m2 = -(erp.Ypole*1e-6 - erp.meanYpole*1e-3);
         end
+        
         function importDCB(this)
             dcb_names = this.state.getDcbFile();
             dcb_name = dcb_names{1};
@@ -875,8 +876,7 @@ classdef Core_Sky < handle
                 this.importCODEDCB();
             end
         end
-            
-
+        
         function importCODEDCB(this)
             [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
             %%% assume that CODE dcb contains only GPS and GLONASS
@@ -1024,7 +1024,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [sx ,sy, sz] = getSatFixFrame(this, time, go_id)            
+        function [sx ,sy, sz] = getSatFixFrame(this, time, go_id)
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
             %
@@ -1119,7 +1119,7 @@ classdef Core_Sky < handle
             this.coord_type = 1;
         end
         
-         function coord = getAPC(this)
+        function coord = getAPC(this)
             if this.coord_type == 1
                 coord = this.coord; %already antennna phase center
             end
@@ -1131,24 +1131,24 @@ classdef Core_Sky < handle
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
             
-         end
+        end
         
-         function COMtoAPC(this, direction)
+        function COMtoAPC(this, direction)
             [i, j, k] = this.getSatFixFrame(this.getCoordTime());
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
             sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
             sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
             this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco, size(this.coord,1), 1, 1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
-                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));            
+                , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
         end
         
         function pcv_delay = getPCV(this, band, ant_id, el, az)
             % DESCRIPTION: get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
-             pcv_delay = zeros(size(el));
-          
+            pcv_delay = zeros(size(el));
+            
             ant_names = reshape([this.ant_pcv.name]',3,size(this.ant_pcv,2))';
             
             ant_idx = sum(ant_names == repmat(ant_id,size(ant_names,1),1),2) == 3;
@@ -1186,15 +1186,15 @@ classdef Core_Sky < handle
                 
                 pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
             else
-               pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
-               
-               %find azimuth indexes
-               az_pcv = sat_pcv.tablePCV_azi;
+                pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
+                
+                %find azimuth indexes
+                az_pcv = sat_pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
                 d_az = (max_az - min_az)/(length(az_pcv)-1);
                 az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1); 
+                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1);
                 
                 %interpolate along zenital angle
                 idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
@@ -1207,8 +1207,6 @@ classdef Core_Sky < handle
                 pcv_delay = pco_delay - (d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg);
             end
         end
-        
-       
         
         function [dt_S] = clockInterpolate(this,time, sat)
             
@@ -1465,7 +1463,7 @@ classdef Core_Sky < handle
                 moon_ECEF=zeros(nt,3);
             end
             
-             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
+            % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
             t = t - this.time_ref_coord;
             c_times = c_times - this.time_ref_coord;
             
@@ -1658,34 +1656,12 @@ classdef Core_Sky < handle
             
             
         end
-%         function importSP3Struct(this, sp3) % to be reimplemented
-%         matching right sysy and prn
-%             %
-%             this.time = sp3.time;
-%             this.coord =permute(sp3.coord,[3 2 1]);
-%             this.clock = sp3.clock',
-%              this.prn = sp3.prn;
-%             this.sys = sp3.sys;
-%             this.time_hr = sp3.time_hr;
-%             this.clock_hr = sp3.clock_hr;
-%             this.coord_rate = sp3.coord_rate;
-%             this.clock_rate = sp3.clock_rate;
-%             this.t_sun = sp3.t_sun;
-%             this.X_sun = sp3.X_sun';
-%             this.X_moon = sp3.X_moon';
-%             this.erp = sp3.erp;
-%             this.dcb = sp3.dcb;
-%             this.ant_pco = sp3.antPCO;
-%             this.start_time_idx = find(this.time == 1);
-%
-%
-%         end
-
+        
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
             this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
-
+            
             this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
             this.ant_pco = zeros(1, this.cc.getNumSat(),3);
             %this.satType = cell(1,size(this.ant_pcv,2));
@@ -1833,7 +1809,6 @@ classdef Core_Sky < handle
             end
             
         end
-        
     end
     
     % ==================================================================================================================================================
@@ -1858,7 +1833,7 @@ classdef Core_Sky < handle
             prn_num = prn_num - prn_name(:,1) * 2^16;
             prn_name(:,2) = char(floor(prn_num / 2^8));
             prn_num = prn_num - prn_name(:,2) * 2^8;
-            prn_name(:,3) = char(prn_num);            
+            prn_name(:,3) = char(prn_num);
         end
         
         function [ant_pcv] = readAntennaPCV(filename, antmod, date)
@@ -2166,6 +2141,5 @@ classdef Core_Sky < handle
         end
         
     end
-    
     
 end
