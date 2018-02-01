@@ -127,7 +127,7 @@ classdef Core_Sky < handle
             clock_f_name = this.state.getClkFileName(start_date, stop_time);
             clock_is_present = true;
             for i = 1:length(clock_f_name)
-                clock_is_present = clock_is_present && exist(clock_f_name{i});
+                clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
             end
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
             this.clearOrbit();
@@ -143,19 +143,13 @@ classdef Core_Sky < handle
                 this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
             end
             
-            %this.coord_type = 1;
             if not(clock_in_eph)
                 this.log.addMarkedMessage('Importing satellite clock files...');
                 for i = 1:length(clock_f_name)
-                    [~,~,ext] = fileparts(clock_f_name{i});
                     this.addClk(clock_f_name{i});
                 end
             end
-            
-            this.log.addMarkedMessage('Pre-computing polynomials for orbital interpolation...');
-            % compute polynomials for ephemerids
-            this.computeSMPolyCoeff();
-            
+                        
             % load PCV
             this.log.addMarkedMessage('Loading antennas phase center variations');
             this.loadAntPCV(this.state.getAtxFile);
@@ -163,7 +157,7 @@ classdef Core_Sky < handle
             if this.coord_type == 0
                 this.toAPC();
             end
-            this.computeSatPolyCoeff();
+            
             % load erp
             this.log.addMarkedMessage('Importing Earth Rotation Parameters');
             this.importERP(this.state.getErpFileName(start_date, stop_time),start_date);
@@ -1086,7 +1080,7 @@ classdef Core_Sky < handle
             end
             this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
             this.COMtoAPC(-1);
-            if ~isempty(this.coord_pol_coeff)
+            if isempty(this.coord_pol_coeff)
                 this.computeSatPolyCoeff();
             end
             this.coord_type = 0;
@@ -1113,7 +1107,7 @@ classdef Core_Sky < handle
             end
             this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
             this.COMtoAPC(1);
-            if ~isempty(this.coord_pol_coeff)
+            if isempty(this.coord_pol_coeff)
                 this.computeSatPolyCoeff();
             end
             this.coord_type = 1;
@@ -1227,8 +1221,6 @@ classdef Core_Sky < handle
                 sat= this.cc.index;
             end
             
-            
-            
             interval = this.clock_rate;
             
             %find the SP3 epoch closest to the interpolation time
@@ -1280,15 +1272,15 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
-            n_pol=10;
-            n_coeff=n_pol+1;
-            A=zeros(n_coeff,n_coeff);
-            A(:,1)=ones(n_coeff,1);
-            x=[-5:5]; % *this.coord_rat
-            for i=1:10
-                A(:,i+1)=(x.^i)';
+            n_pol = 10;
+            n_coeff = n_pol + 1;
+            A = zeros(n_coeff, n_coeff);
+            A(:, 1) = ones(n_coeff, 1);
+            x = -5 : 5; % *this.coord_rat
+            for i = 1 : 10
+                A(:, i + 1) = (x .^ i)';
             end
-            n_coeff_set= size(this.coord,1)-10; %86400/this.coord_rate+1;
+            n_coeff_set = size(this.coord, 1) - 10; %86400/this.coord_rate+1;
             n_sat = size(this.coord, 2);
             this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
             for s = 1 : n_sat
@@ -1309,21 +1301,21 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: Precompute the coefficient of the 10th poynomial for all the possible support sets
-            n_pol=10;
-            n_coeff=n_pol+1;
-            A=zeros(n_coeff,n_coeff);
-            A(:,1)=ones(n_coeff,1);
-            x=[-5:5]; % *this.coord_rat
-            for i=1:10
-                A(:,i+1)=(x.^i)';
+            n_pol = 10;
+            n_coeff = n_pol+1;
+            A = zeros(n_coeff, n_coeff);
+            A(:, 1) = ones(n_coeff, 1);
+            x = -5 : 5; % *this.coord_rat
+            for i = 1 : 10
+                A(:,i+1) = (x.^i)';
             end
-            n_coeff_set= size(this.X_sun,1)-10;%86400/this.coord_rate+1;
-            this.sun_pol_coeff=zeros(n_coeff, 3, n_coeff_set);
-            this.moon_pol_coeff=zeros(n_coeff, 3, n_coeff_set);
-            for i=1:n_coeff_set
-                for j=1:3
-                    this.sun_pol_coeff(:,j,i)=A\squeeze(this.X_sun(i:i+10,j));
-                    this.moon_pol_coeff(:,j,i)=A\squeeze(this.X_moon(i:i+10,j));
+            n_coeff_set = size(this.X_sun, 1) - 10;%86400/this.coord_rate+1;
+            this.sun_pol_coeff = zeros(n_coeff, 3, n_coeff_set);
+            this.moon_pol_coeff = zeros(n_coeff, 3, n_coeff_set);
+            for i = 1 : n_coeff_set
+                for j = 1 : 3
+                    this.sun_pol_coeff(:,j,i) = A \ squeeze(this.X_sun(i:i+10,j));
+                    this.moon_pol_coeff(:,j,i) = A \ squeeze(this.X_moon(i:i+10,j));
                 end
             end
         end

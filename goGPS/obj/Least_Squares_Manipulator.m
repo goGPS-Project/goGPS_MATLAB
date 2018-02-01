@@ -559,9 +559,9 @@ classdef Least_Squares_Manipulator < handle
                     Cxx = s02 * Cxx;
                 end
             end
-            x = [x, x_class];
-            
+            x = [x, x_class];            
         end
+        
         function reduceNormalEquation(this, keep_param)
             % reduce number of parmeters (STUB)
             N = this.N;
