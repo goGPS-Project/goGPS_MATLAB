@@ -502,11 +502,11 @@ classdef Receiver < Exportable
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)
-                sat = this.cc.getIndex(sys(i), prn(i)); % get go_id
+                go_id = this.getGoId(sys(i), prn(i)); % get go_id
                 
                 idx_obs = obs(i,:) ~= 0;
-                this.updateAvailIndex(idx_obs, sat);
-                XS = this.getXSTxRot(sat);
+                this.updateAvailIndex(idx_obs, go_id);
+                XS = this.getXSTxRot(go_id);
                 if size(this.xyz,1) == 1
                     [~ , el] = this.computeAzimuthElevationXS(XS);
                 else
@@ -1612,7 +1612,7 @@ classdef Receiver < Exportable
              for i = 1 : this.getMaxSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
                 if not(isempty(cur_sat_id))
-                    sat_idx = this.getObsIdx('C', this.system(cur_sat_id), this.cc.prn(cur_sat_id));
+                    sat_idx = this.getObsIdx('C',cur_sat_id);
                     sat_idx = sat_idx(this.active_ids(sat_idx));
                     if ~isempty(sat_idx)
                         % get epoch for which iono free is possible
@@ -1888,26 +1888,13 @@ classdef Receiver < Exportable
             end
         end
         
-        function index = getSatIndex(this, sys, prn)
-            % get progressive index for giving system and prns
-            index = zeros(size(prn));
-            if length(sys) == 1
-                sys = repmat(sys,length(prn),1);
-            end
-            for i = 1:length(prn)
-                p = prn(i);
-                s = sys(i);
-                index(i) = this.go_id(find((this.system == s)' & (this.prn == p), 1, 'first'));
-            end
-        end
-        
-        function sys_c = getAvailableSys(this)
+        function sys_c = getActiveSys(this)
             % get the available system stored into the object
-            % SYNTAX: sys_c = this.getAvailableSys()
+            % SYNTAX: sys_c = this.getActiveSys()
             
             % Select only the systems still present in the file
-            [~, sys_ok] = intersect(this.cc.sys_c, this.system);
-            sys_c = this.cc.sys_c(sort(sys_ok));            
+            go_id = this.getActiveGoIds();
+            sys_c = unique(this.getSysPrn(go_id));
         end
         
         function obs_code = getAvailableCode(this, sys_c)
@@ -1945,6 +1932,42 @@ classdef Receiver < Exportable
             go_id = unique(this.go_id(regexp(this.system, ['[' this.cc.sys_c ']?'])));
         end
         
+        function go_id = getGoId(this, sys, prn)
+            % return go_id for a given system and prn
+            % SYNTAX: go_id = this.getGoId(sys, prn)
+            go_id = zeros(size(prn));
+            if length(sys) == 1
+                sys = repmat(sys,length(prn),1);
+            end
+            for i = 1:length(prn)
+                p = prn(i);
+                s = sys(i);
+                go_id(i) = this.go_id(find((this.system == s)' & (this.prn == p), 1, 'first'));
+            end
+        end
+        
+        function [sys_c, prn] = getSysPrn(this, go_id)
+            % return sys_c and prn for a given go_id
+            % SYNTAX: [sys_c, prn] = this.getSysPrn(go_id)
+            sys_c = char(ones(size(go_id))*32);
+            prn = zeros(size(go_id));
+            for i = 1:length(prn)
+                tmp_id = find(this.go_id == go_id(i), 1, 'first');
+                if ~isempty(tmp_id)
+                    sys_c(i) = this.system(tmp_id);
+                    prn(i) = this.prn(tmp_id);
+                end
+                    
+            end
+        end
+        
+        function ant_id = getAntennaId(this, go_id)
+            % return ant id given a go_id
+            % SYNTAX: ant_id = this.getAntennaId(go_id)
+            [sys_c, prn] = this.getSysPrn(go_id);
+            ant_id = reshape(sprintf('%c%02d', serialize([sys_c; prn]))',3, numel(go_id))';
+        end
+        
         function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
             %
@@ -1957,169 +1980,7 @@ classdef Receiver < Exportable
             xyz = this.xyz;
             xyz = median(this.xyz, 1);
         end
-        
-        function [obs, prn, sys, flag] = getBestCodeObs(this)
-            % INPUT:
-            % OUPUT:
-            %    obs = observations [n_obs x n_epoch];
-            %    prn = satellite prn [n_obs x 1];
-            %    sys = system [n_obs x 1];
-            %    flag = flag of the observation [ n_obs x 7] iono free
-            %    combination are labeled with the obs code of both observations
-            % DESCRIPTION: get "best" avaliable code or code combination for the given system
-            n_epoch = size(this.obs,2);
-            obs = [];
-            sys = [];
-            prn = [];
-            flag = [];
-            for i = unique(this.go_id)'
-                sat_idx = this.getObsIdx('C',this.cc.system(i),this.cc.prn(i));
-                sat_idx = sat_idx(this.active_ids(sat_idx));
-                if ~isempty(sat_idx)
-                    % get epoch for which iono free is possible
-                    sat_obs = this.obs(sat_idx,:);
-                    av_idx = sum((sat_obs > 0),1)>0;
-                    freq = str2num(this.obs_code(sat_idx,2)); %#ok<ST2NM>
-                    u_freq = unique(freq);
-                    if length(u_freq)>1
-                        sat_freq = (sat_obs > 0) .*repmat(freq,1,n_epoch);
-                        u_freq_sat = zeros(length(u_freq),n_epoch);
-                        for e = 1 : length(u_freq)
-                            u_freq_sat(e,:) = sum(sat_freq == u_freq(e))>0;
-                        end
-                        iono_free = sum(u_freq_sat)>1;
-                    else
-                        iono_free = false(1,n_epoch);
-                    end
-                    freq_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_2BAND;
-                    track_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_ATTRIB;
-                    if sum(iono_free > 0)
-                        %this.sat.avail_index(:,i) = iono_free; % epoch for which observation is present
-                        % find first freq obs
-                        to_fill_epoch = iono_free;
-                        first_freq = [];
-                        f_obs_code = [];
-                        ff_idx = zeros(n_epoch,1);
-                        for f = 1 :length(freq_list)
-                            track_prior = track_list{f};
-                            for c = 1:length(track_prior)
-                                if sum(to_fill_epoch) > 0
-                                    [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
-                                    %obs_tmp(obs_tmp==0) = nan;
-                                    if ~isempty(obs_tmp)
-                                        first_freq = [first_freq; zeros(1,n_epoch)];
-                                        first_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
-                                        ff_idx(to_fill_epoch) = size(first_freq,1);
-                                        f_obs_code = [f_obs_code; this.obs_code(idx_tmp,:)];
-                                        to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
-                                    end
-                                end
-                            end
-                        end
-                        % find second freq obs
-                        to_fill_epoch = iono_free;
-                        second_freq = [];
-                        s_obs_code = [];
-                        sf_idx = zeros(n_epoch,1);
-                        for f = 1 :length(freq_list)
-                            track_prior = track_list{f};
-                            for c = 1:length(track_prior)
-                                if sum(to_fill_epoch) > 0
-                                    [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
-                                    %obs_tmp = zero2nan(obs_tmp);
-                                    
-                                    % check if obs has been used already as first frequency
-                                    if ~isempty(obs_tmp)
-                                        
-                                        ff_ot_i = find(sum(f_obs_code(:,1:2) == repmat(this.obs_code(idx_tmp,1:2),size(f_obs_code,1),1),2)==2);
-                                        if ~isempty(ff_ot_i)
-                                            obs_tmp(sum(first_freq(ff_ot_i,:),1)>0) = 0; % delete epoch where the obs has already been used for the first frequency
-                                            
-                                        end
-                                        
-                                        if sum(obs_tmp(to_fill_epoch)>0)>0 % if there is some new observation
-                                            second_freq = [second_freq; zeros(1,n_epoch)];
-                                            second_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
-                                            sf_idx(to_fill_epoch) = size(second_freq,1);
-                                            s_obs_code = [s_obs_code; this.obs_code(idx_tmp,:)];
-                                            to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        first_freq  = zero2nan(first_freq);
-                        second_freq = zero2nan(second_freq);
-                        % combine the two frequencies
-                        for k = 1 : size(f_obs_code,1)
-                            for y = 1 : size(s_obs_code,1)
-                                inv_wl1 = 1/this.wl(this.getObsIdx(f_obs_code(k,:),this.cc.system(i),this.cc.prn(i)));
-                                inv_wl2 = 1/this.wl(this.getObsIdx(s_obs_code(y,:),this.cc.system(i),this.cc.prn(i)));
-                                %                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
-                                %                                     keyboard
-                                %                                 end
-                                
-                                obs_tmp = ((inv_wl1).^2 .* first_freq(k,:) - (inv_wl2).^2 .* second_freq(y,:))./ ( (inv_wl1).^2 - (inv_wl2).^2 );
-                                obs_tmp(isnan(obs_tmp)) = 0;
-                                if sum(obs_tmp>0)>0
-                                    obs = [obs; obs_tmp];
-                                    prn = [prn; this.cc.prn(i)];
-                                    sys = [sys; this.cc.system(i)];
-                                    flag = [flag; [f_obs_code(k,:) s_obs_code(y,:) 'I' ]];
-                                end
-                            end
-                        end
-                        %                     end
-                        %                     if sum(xor(av_idx, iono_free))>0
-                    else % do not mix iono free and not combined observations
-                        % find best code
-                        to_fill_epoch = av_idx;
-                        %this.sat.avail_index(:,i) = av_idx; % epoch for which observation is present
-                        for f = 1 :length(freq_list)
-                            track_prior = track_list{f};
-                            for c = 1:length(track_prior)
-                                if sum(to_fill_epoch) > 0
-                                    [obs_tmp,idx_tmp] = this.getObs(['C' num2str(freq_list(f)) track_prior(c)],this.cc.system(i),this.cc.prn(i));
-                                    if ~isempty(obs_tmp)
-                                        obs = [obs; zeros(1,n_epoch)];
-                                        obs(end,to_fill_epoch) = obs_tmp(to_fill_epoch);
-                                        prn = [prn; this.cc.prn(i)];
-                                        sys = [sys; this.cc.system(i)];
-                                        flag = [flag; sprintf('%-7s',this.obs_code(idx_tmp,:))];
-                                        to_fill_epoch = to_fill_epoch & (obs_tmp < 0);
-                                    end
-                                end
-                            end
-                        end
-                        
-                    end
-                    
-                end
-            end
-            %%% Remove obs for which coordinates of satellite are non
-            %%% available
-            o = 1;
-            while (o <= length(prn))
-                s = this.cc.getIndex(sys(o),prn(o));
-                o_idx_l = obs(o,:)>0;
-                times = this.time.getSubSet(o_idx_l);
-                times.addSeconds(-obs(o,o_idx_l)'/Go_State.V_LIGHT); % add roucg time of flight
-                xs = this.sat.cs.coordInterpolate(times,s);
-                to_remove = isnan(xs(:,1));
-                o_idx = find(o_idx_l);
-                to_remove = o_idx(to_remove);
-                obs(o,to_remove) = 0;
-                if sum(obs(o,:)) == 0 % if line has no more observation
-                    obs(o,:) = [];
-                    prn(o) = [];
-                    sys(o) = [];
-                    flag(o,:) = [];
-                else
-                    o = o + 1;
-                end
-            end
-        end
-                
+           
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
             % return the computed median position of the receiver
             %
@@ -2300,11 +2161,18 @@ classdef Receiver < Exportable
         function [idx] = getObsIdx(this, flag, system, prn)
             % get observation index corresponfing to the flag
             % SYNTAX this.getObsIdx(flag, <system>)
+            %        this.getObsIdx(flag, <system>, <prn>)
+            %        this.getObsIdx(flag, <go_id>)
+            go_id_imp = false;
             idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
             if nargin > 2
+                if ~ischar(system) % if is not a character is a go_id
+                    [system, prn] = this.getSysPrn(system);
+                    go_id_imp = true;
+                end
                 idx = idx & (this.system == system)';
             end
-            if nargin > 3
+            if nargin > 3 || go_id_imp
                 idx = idx & reshape(this.prn == prn, length(this.prn),1);
             end
             idx = find(idx);
@@ -2494,7 +2362,7 @@ classdef Receiver < Exportable
                 obs_out(:, p) = nan2zero(alpha1 * zero2nan(o1(:,ii1)) + alpha2 * zero2nan(o2(:,ii2)));
                 idx_obs = obs_out(:, p) ~=0;
                 % get go id for the current sat
-                c_go_id = this.cc.getIndex(system, common_prns(p));
+                c_go_id = this.getGoId(system, common_prns(p));
                 go_id(p) = c_go_id;
                 if ~isempty(this.sat.az)
                     az(idx_obs, p) = this.sat.az(idx_obs, c_go_id);
@@ -2916,9 +2784,9 @@ classdef Receiver < Exportable
         
         function updateRinObsCode(this)
             % update the RINEX observation codes contained into the receiver
-            % SYNTAX: obs_code = this.getAvailableCode(sys_c)
+            % SYNTAX:  this.updateRinObsCode()
             this.rin_obs_code = struct('G',[],'R',[],'E',[],'J',[],'C',[],'I',[],'S',[]);
-            sys_c = this.getAvailableSys();
+            sys_c = this.getActiveSys();
             for ss = sys_c
                 this.rin_obs_code.(ss) = serialize(this.getAvailableCode(ss)')';
             end
@@ -3227,7 +3095,7 @@ classdef Receiver < Exportable
             
             idx = this.sat.avail_index(:,go_id) > 0;
             travel_time = this.sat.tot(idx,go_id);
-            sys = this.system(find(this.go_id == go_id, 1, 'first'));
+            sys = this.getSysPrn(go_id);
             switch char(sys)
                 case 'G'
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
@@ -4175,9 +4043,8 @@ classdef Receiver < Exportable
                                 az_idx = ~isnan(az(:,s));
                                 az_tmp = az(az_idx,s) / pi * 180;
                                 el_idx = ~isnan(el(:,s));
-                                el_tmp = el(el_idx,s) / pi * 180;                                
-                                tmp_id = find(this.go_id == s, 1, 'first');
-                                ant_id = sprintf('%c%02d', this.system(tmp_id), this.prn(tmp_id));
+                                el_tmp = el(el_idx,s) / pi * 180;
+                                ant_id = this.getAntennaId(s);
                                 pcv_delays = this.sat.cs.getPCV( f, ant_id, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
@@ -4591,7 +4458,7 @@ classdef Receiver < Exportable
             end
             sat = zeros(size(prn));
             for i = 1 : length(sat)
-                sat(i) = this.cc.getIndex(sys(i),prn(i));
+                sat(i) = this.getGoId(sys(i),prn(i));
             end
             
             this.dt = zeros(n_epochs,n_clocks);
@@ -4605,8 +4472,7 @@ classdef Receiver < Exportable
             XS = zeros(this.getMaxSat(), 3, n_epochs);
             % get Sat orbit correctiong ony for pseudorange
             for i = 1 : this.getMaxSat()
-                c_sys = this.cc.system(i);
-                c_prn = this.cc.prn(i);
+                [c_sys, c_prn] = this.getSysPrn(i);
                 idx_sat = sys == c_sys & prn == c_prn;
                 if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
                     c_obs = obs(idx_sat,:);
@@ -4712,14 +4578,13 @@ classdef Receiver < Exportable
             [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
             sat = zeros(size(prn));
             for i = 1 : length(sat)
-                sat(i) = this.cc.getIndex(sys(i),prn(i));
+                sat(i) = this.getGoId(sys(i),prn(i));
             end
             XS = zeros(this.getMaxSat(), 3, n_epochs);
             dist = zeros(n_epochs, this.getMaxSat());
             % get Sat orbit correctiong ony for pseudorange
             for i = 1 : this.getMaxSat();
-                c_sys = this.cc.system(i);
-                c_prn = this.cc.prn(i);
+                [c_sys, c_prn] = this.getSysPrn(i);
                 idx_sat = sys == c_sys & prn == c_prn;
                 if sum(idx_sat) > 0 % if we have an observation for the satellite
                     c_obs = obs(idx_sat,:);
@@ -4785,6 +4650,169 @@ classdef Receiver < Exportable
                 end
             end
         end
+                function [obs, prn, sys, flag] = getBestCodeObs(this)
+            % INPUT:
+            % OUPUT:
+            %    obs = observations [n_obs x n_epoch];
+            %    prn = satellite prn [n_obs x 1];
+            %    sys = system [n_obs x 1];
+            %    flag = flag of the observation [ n_obs x 7] iono free
+            %    combination are labeled with the obs code of both observations
+            % DESCRIPTION: get "best" avaliable code or code combination for the given system
+            n_epoch = size(this.obs,2);
+            obs = [];
+            sys = [];
+            prn = [];
+            flag = [];
+            for i = unique(this.go_id)'
+                
+                sat_idx = this.getObsIdx('C',i);
+                sat_idx = sat_idx(this.active_ids(sat_idx));
+                if ~isempty(sat_idx)
+                    % get epoch for which iono free is possible
+                    sat_obs = this.obs(sat_idx,:);
+                    av_idx = sum((sat_obs > 0),1)>0;
+                    freq = str2num(this.obs_code(sat_idx,2)); %#ok<ST2NM>
+                    u_freq = unique(freq);
+                    if length(u_freq)>1
+                        sat_freq = (sat_obs > 0) .*repmat(freq,1,n_epoch);
+                        u_freq_sat = zeros(length(u_freq),n_epoch);
+                        for e = 1 : length(u_freq)
+                            u_freq_sat(e,:) = sum(sat_freq == u_freq(e))>0;
+                        end
+                        iono_free = sum(u_freq_sat)>1;
+                    else
+                        iono_free = false(1,n_epoch);
+                    end
+                    freq_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_2BAND;
+                    track_list = this.cc.getSys(this.cc.system(i)).CODE_RIN3_ATTRIB;
+                    if sum(iono_free > 0)
+                        %this.sat.avail_index(:,i) = iono_free; % epoch for which observation is present
+                        % find first freq obs
+                        to_fill_epoch = iono_free;
+                        first_freq = [];
+                        f_obs_code = [];
+                        ff_idx = zeros(n_epoch,1);
+                        for f = 1 :length(freq_list)
+                            track_prior = track_list{f};
+                            for c = 1:length(track_prior)
+                                if sum(to_fill_epoch) > 0
+                                    [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
+                                    %obs_tmp(obs_tmp==0) = nan;
+                                    if ~isempty(obs_tmp)
+                                        first_freq = [first_freq; zeros(1,n_epoch)];
+                                        first_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
+                                        ff_idx(to_fill_epoch) = size(first_freq,1);
+                                        f_obs_code = [f_obs_code; this.obs_code(idx_tmp,:)];
+                                        to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
+                                    end
+                                end
+                            end
+                        end
+                        % find second freq obs
+                        to_fill_epoch = iono_free;
+                        second_freq = [];
+                        s_obs_code = [];
+                        sf_idx = zeros(n_epoch,1);
+                        for f = 1 :length(freq_list)
+                            track_prior = track_list{f};
+                            for c = 1:length(track_prior)
+                                if sum(to_fill_epoch) > 0
+                                    [obs_tmp,idx_tmp] = this.getObs(['C' freq_list(f) track_prior(c)],this.cc.system(i),this.cc.prn(i));
+                                    %obs_tmp = zero2nan(obs_tmp);
+                                    
+                                    % check if obs has been used already as first frequency
+                                    if ~isempty(obs_tmp)
+                                        
+                                        ff_ot_i = find(sum(f_obs_code(:,1:2) == repmat(this.obs_code(idx_tmp,1:2),size(f_obs_code,1),1),2)==2);
+                                        if ~isempty(ff_ot_i)
+                                            obs_tmp(sum(first_freq(ff_ot_i,:),1)>0) = 0; % delete epoch where the obs has already been used for the first frequency
+                                            
+                                        end
+                                        
+                                        if sum(obs_tmp(to_fill_epoch)>0)>0 % if there is some new observation
+                                            second_freq = [second_freq; zeros(1,n_epoch)];
+                                            second_freq(end, to_fill_epoch) = obs_tmp(to_fill_epoch);
+                                            sf_idx(to_fill_epoch) = size(second_freq,1);
+                                            s_obs_code = [s_obs_code; this.obs_code(idx_tmp,:)];
+                                            to_fill_epoch = to_fill_epoch & (obs_tmp == 0);
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        first_freq  = zero2nan(first_freq);
+                        second_freq = zero2nan(second_freq);
+                        % combine the two frequencies
+                        for k = 1 : size(f_obs_code,1)
+                            for y = 1 : size(s_obs_code,1)
+                                inv_wl1 = 1/this.wl(this.getObsIdx(f_obs_code(k,:),i));
+                                inv_wl2 = 1/this.wl(this.getObsIdx(s_obs_code(y,:),i));
+                                %                                 if ((inv_wl1).^2 - (inv_wl2).^2) == 0
+                                %                                     keyboard
+                                %                                 end
+                                
+                                obs_tmp = ((inv_wl1).^2 .* first_freq(k,:) - (inv_wl2).^2 .* second_freq(y,:))./ ( (inv_wl1).^2 - (inv_wl2).^2 );
+                                obs_tmp(isnan(obs_tmp)) = 0;
+                                if sum(obs_tmp>0)>0
+                                    obs = [obs; obs_tmp];
+                                    prn = [prn; this.cc.prn(i)];
+                                    sys = [sys; this.cc.system(i)];
+                                    flag = [flag; [f_obs_code(k,:) s_obs_code(y,:) 'I' ]];
+                                end
+                            end
+                        end
+                        %                     end
+                        %                     if sum(xor(av_idx, iono_free))>0
+                    else % do not mix iono free and not combined observations
+                        % find best code
+                        to_fill_epoch = av_idx;
+                        %this.sat.avail_index(:,i) = av_idx; % epoch for which observation is present
+                        for f = 1 :length(freq_list)
+                            track_prior = track_list{f};
+                            for c = 1:length(track_prior)
+                                if sum(to_fill_epoch) > 0
+                                    [obs_tmp,idx_tmp] = this.getObs(['C' num2str(freq_list(f)) track_prior(c)],this.cc.system(i),this.cc.prn(i));
+                                    if ~isempty(obs_tmp)
+                                        obs = [obs; zeros(1,n_epoch)];
+                                        obs(end,to_fill_epoch) = obs_tmp(to_fill_epoch);
+                                        prn = [prn; this.cc.prn(i)];
+                                        sys = [sys; this.cc.system(i)];
+                                        flag = [flag; sprintf('%-7s',this.obs_code(idx_tmp,:))];
+                                        to_fill_epoch = to_fill_epoch & (obs_tmp < 0);
+                                    end
+                                end
+                            end
+                        end
+                        
+                    end
+                    
+                end
+            end
+            %%% Remove obs for which coordinates of satellite are non
+            %%% available
+            o = 1;
+            while (o <= length(prn))
+                s = this.cc.getIndex(sys(o),prn(o));
+                o_idx_l = obs(o,:)>0;
+                times = this.time.getSubSet(o_idx_l);
+                times.addSeconds(-obs(o,o_idx_l)'/Go_State.V_LIGHT); % add roucg time of flight
+                xs = this.sat.cs.coordInterpolate(times,s);
+                to_remove = isnan(xs(:,1));
+                o_idx = find(o_idx_l);
+                to_remove = o_idx(to_remove);
+                obs(o,to_remove) = 0;
+                if sum(obs(o,:)) == 0 % if line has no more observation
+                    obs(o,:) = [];
+                    prn(o) = [];
+                    sys(o) = [];
+                    flag(o,:) = [];
+                else
+                    o = o + 1;
+                end
+            end
+        end
+             
         
         function preProcessing(this, is_static)
             % Do all operation needed in order to preprocess the data
@@ -5249,7 +5277,7 @@ classdef Receiver < Exportable
             txt = sprintf('%s%14.4f%14.4f%14.4f                  APPROX POSITION XYZ\n', txt, xyz(1), xyz(2), xyz(3));
             txt = sprintf('%s%14.4f%14.4f%14.4f                  ANTENNA: DELTA H/E/N\n', txt, this.ant_delta_h, this.ant_delta_en);
             
-            sys = this.getAvailableSys();
+            sys = this.getActiveSys();
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
                 n_type = length(obs_type);
