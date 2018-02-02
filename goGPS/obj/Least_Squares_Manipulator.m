@@ -288,27 +288,35 @@ classdef Least_Squares_Manipulator < handle
                 mfw_stream = mfw(vaild_ep_stream, obs_set.go_id(s)); % 1./sin(el_stream);
                 xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
+                
                 n_obs_stream = length(obs_stream);
                 lines_stream = obs_count + (0:(n_obs_stream - 1));
+                
+                %--- Observation related vectors------------
                 epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
                 variance(lines_stream) =  obs_set.sigma(s)^2;
-                %w(lines_stream) = snr_stream;
+                % ----------- FILL IMAGE MATRIX ------------
+                % ----------- coordinates ------------------
                 A(lines_stream, 1:3) = - los_stream;
+                % ----------- Inster observation bias ------------------
                 if n_iob > 0
                     A(lines_stream, 4) = iob_idx(s) > 0;
                     A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(s));
                 end
-                
+                % ----------- Abiguity ------------------
                 A(lines_stream, n_coo+iob_flag+1) = obs_set.wl(s);
                 A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
+                % ----------- Clock ------------------
                 A(lines_stream, n_coo+iob_flag+2) = 1;
                 A_idx(lines_stream, n_coo+iob_flag+2) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                % ----------- ZTD ------------------
                 if tropo
                     A(lines_stream, n_coo+iob_flag+3) = mfw_stream;
                     A_idx(lines_stream, n_coo+iob_flag+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
+                % ----------- ZTD gradients ------------------
                 if tropo_g
                     cotan_term = cot(el_stream) .* mfw_stream;
                     A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient
@@ -317,6 +325,7 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, n_coo+iob_flag+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                     A_idx(lines_stream, n_coo+iob_flag+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
+                
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested

@@ -499,6 +499,16 @@ classdef Receiver < Exportable
             this.system(id_obs) = [];
         end
         
+        function remSat(this, go_id, prn)
+            %remove satellites from receiver
+            if nargin >2 %interpreting as sys_c , orn
+                go_id = this.getGoId(go_id, prn);
+            end 
+                
+            idx = this.go_id == go_id;   
+            this.remObs(idx);
+        end
+        
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             % DESCRIPTION: remove obs under cut off
             for i = 1 : length(prn)
@@ -543,9 +553,11 @@ classdef Receiver < Exportable
             for s = 1 : length(this.cc.sys_c)
                 sys_idx = find(this.system == this.cc.sys_c(s));
                 prn = this.prn(sys_idx);
-                over_max_idx = prn > this.cc.n_sat(s);
-                to_remove = sys_idx(over_max_idx);
-                this.obs(to_remove, :) = 0;
+                for p = unique(prn)'
+                    if p > this.cc.n_sat(s)
+                        this.remSat(this.cc.sys_c(s),p);
+                    end
+                end
             end
             %remove bad epoch in crx
             this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
@@ -1476,15 +1488,15 @@ classdef Receiver < Exportable
                     ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
                     ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
                     ph_other(:, ~usable_s) = [];
-                    %}
-                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
                     
+                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
+                    %}
                     % repair
                     % TO DO half cycle
                     if ~isnan(jmp)
                         this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
                     end
-                    if abs(jmp -round(jmp)) < 0.1
+                    if false %abs(jmp -round(jmp)) < 0.01
                         poss_slip_idx(c, p) = - 1;
                         n_repaired = n_repaired +1;
                     else
@@ -4394,9 +4406,9 @@ classdef Receiver < Exportable
             this.sat.res = zeros(this.length, this.getMaxSat());
             % LS does not know the max number of satellite stored
             % make dimensions consistent
-            dsz = length(id_epoch) - size(res,1);
+             dsz = length(id_epoch) - size(res,1);
             if dsz > 0
-                res = [res; zeros(dsz, this.getMaxSat())];
+                res = [res; zeros(dsz, size(res,2))];
             end
             this.sat.res(id_epoch,1:size(res,2)) = res;
         end
@@ -4915,12 +4927,12 @@ classdef Receiver < Exportable
 %             ls.Astack2Nstack();
 %             [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
-            dsz = length(id_sync) - size(res,1);
+            dsz = max(id_sync) - size(res,1);
             if dsz == 0
-                this.sat.res(id_sync, ls.sat_go_id) = res(:, ls.sat_go_id);
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             else
                 if dsz > 0
-                    id_sync(1 : end - dsz);
+                    id_sync = id_sync(1 : end - dsz);
                 end
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
