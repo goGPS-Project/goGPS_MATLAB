@@ -484,8 +484,9 @@ classdef Least_Squares_Manipulator < handle
             class_ep_wise = this.param_class(idx_non_constant);
             
             rate = median(diff(this.true_epoch));
-            reg_diag0 = [1./double(diff(this.true_epoch) ); 0 ] + [0; 1./double(diff(this.true_epoch) )];
-            reg_diag1 = -1./double(diff(this.true_epoch) ) ;
+            diff_reg = 1./double(diff(this.true_epoch));
+            reg_diag0 = [diff_reg; 0 ] + [0; diff_reg];
+            reg_diag1 = -diff_reg ;
             Ndiags = permute(Ndiags, [3, 1, 2]);
             tik_reg = ones(n_epochs,1)/n_epochs; %%% TIkhonov on ZTD and gradients
             for i = 1:n_ep_class

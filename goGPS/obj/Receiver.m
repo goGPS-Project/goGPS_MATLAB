@@ -2477,7 +2477,7 @@ classdef Receiver < Exportable
                 oc2 = '   ';
             end
             common_prns = intersect(p1, p2)';
-            go_id = this.getActiveGoIds()';
+            go_id = zeros(size(common_prns))';
             obs_out = zeros(size(o1,1), length(common_prns));
             snr_out = zeros(size(o1,1), length(common_prns));
             cs_out = zeros(size(o1,1), length(common_prns));
@@ -2493,13 +2493,16 @@ classdef Receiver < Exportable
                 alpha2 = fun2(w1(ii1), w2(ii2));
                 obs_out(:, p) = nan2zero(alpha1 * zero2nan(o1(:,ii1)) + alpha2 * zero2nan(o2(:,ii2)));
                 idx_obs = obs_out(:, p) ~=0;
+                % get go id for the current sat
+                c_go_id = this.cc.getIndex(system, common_prns(p));
+                go_id(p) = c_go_id;
                 if ~isempty(this.sat.az)
-                    az(idx_obs, p) = this.sat.az(idx_obs, go_id(p));
+                    az(idx_obs, p) = this.sat.az(idx_obs, c_go_id);
                 else
                     az = [];
                 end
                 if ~isempty(this.sat.el)
-                    el(idx_obs, p) = this.sat.el(idx_obs, go_id(p));
+                    el(idx_obs, p) = this.sat.el(idx_obs, c_go_id);
                 else
                     el = [];
                 end
@@ -2535,7 +2538,7 @@ classdef Receiver < Exportable
                 
             end
             obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, el, az, common_prns);
-            obs_set.go_id = this.go_id(i1);
+            obs_set.go_id = go_id;
             obs_set.cycle_slip = cs_out;
             obs_set.snr = snr_out;
             obs_set.sigma = sigma;
@@ -4873,14 +4876,14 @@ classdef Receiver < Exportable
             
             ls.setTimeRegularization(7,(this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
             if this.state.flag_tropo_gradient
-                ls.setTimeRegularization(8,(this.state.std_tropo_gradient)^2 / 3600 * rate);%this.state.std_tropo / 3600 * rate );
-                ls.setTimeRegularization(9,(this.state.std_tropo_gradient)^2 / 3600 * rate);%this.state.std_tropo  / 3600 * rate );
+                ls.setTimeRegularization(8,(this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                ls.setTimeRegularization(9,(this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
-            ls.reweightHuber();
-            ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+%             ls.reweightHuber();
+%             ls.Astack2Nstack();
+%             [x, res, s02] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = length(id_sync) - size(res,1);
             if dsz == 0
