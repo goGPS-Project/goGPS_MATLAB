@@ -4650,7 +4650,8 @@ classdef Receiver < Exportable
                 end
             end
         end
-                function [obs, prn, sys, flag] = getBestCodeObs(this)
+        
+        function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT:
             % OUPUT:
             %    obs = observations [n_obs x n_epoch];
@@ -4756,8 +4757,9 @@ classdef Receiver < Exportable
                                 obs_tmp(isnan(obs_tmp)) = 0;
                                 if sum(obs_tmp>0)>0
                                     obs = [obs; obs_tmp];
-                                    prn = [prn; this.cc.prn(i)];
-                                    sys = [sys; this.cc.system(i)];
+                                    [t_sys , t_prn] = this.getSysPrn(i);
+                                    prn = [prn; t_prn];
+                                    sys = [sys; t_sys];
                                     flag = [flag; [f_obs_code(k,:) s_obs_code(y,:) 'I' ]];
                                 end
                             end
