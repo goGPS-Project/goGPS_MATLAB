@@ -3012,23 +3012,72 @@ classdef Receiver < Exportable
         function timeShiftObs(this, seconds)
             % DESCRIPTION: translate observations at different epoch based on linear modeling of the satellite
             % copute the sat postion at the current epoch
-            XS = this.getXSLoc();
-            
+
+                XS = this.getXSLoc();
+                
+                % translate the time
+                this.time.addSeconds(seconds);
+                % compute the sat postion at epoch traslated
+                XS_t = this.getXSLoc();
+                % compute the correction
+                range = sqrt(sum(XS.^2,3));
+                range_t = sqrt(sum(XS_t.^2,3));
+                
+                
+
+                
+                d_range = range_t - range;
+                % Correct phases
+                obs_idx = this.obs_code(:,1) == 'L' ;
+                this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + bsxfun(@rdivide, d_range(:,this.go_id(obs_idx))', this.wl(obs_idx)));
+                % Correct pseudo-ranges
+                obs_idx = this.obs_code(:,1) == 'C';
+                this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + d_range(:,this.go_id(obs_idx))');
+        end
+        
+        
+        % ----- shif to nominal at transmission time
+        function shiftObs(this, seconds, go_id)
+            XS = this.getXSLoc(go_id);
             % translate the time
             this.time.addSeconds(seconds);
             % compute the sat postion at epoch traslated
-            XS_t = this.getXSLoc();
-            
-            % compute the correction
-            range = sqrt(sum(XS.^2,3));
-            range_t = sqrt(sum(XS_t.^2,3));
-            d_range = range_t - range;
+            XS_t = this.getXSLoc(go_id);
+            this.time.addSeconds(-seconds);
+            range = sqrt(sum(XS.^2,2));
+            range_t = sqrt(sum(XS_t.^2,2));
+            idx_sat = this.sat.avail_index(:,go_id);
+            % compuet earth rotation correction
+            d_earth = zeros(size(XS,1),1);
+            [XS_tx_r ,XS_tx] = this.getXSTxRot(go_id);
+            XS_tx_r = XS_tx_r - repmat(this.xyz,sum(idx_sat),1);
+            XS_tx = XS_tx - repmat(this.xyz,sum(idx_sat),1);
+            range_e = sqrt(sum(XS_tx_r.^2,2));
+            range_ne = sqrt(sum(XS_tx.^2,2));
+            d_earth(idx_sat) = range_e - range_ne;
+            d_range = nan2zero(range_t - range - d_earth);
             % Correct phases
-            obs_idx = this.obs_code(:,1) == 'L';
-            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + bsxfun(@rdivide, d_range(:,this.go_id(obs_idx))', this.wl(obs_idx)));
+            obs_idx = this.obs_code(:,1) == 'L' & this.go_id == go_id ;
+            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + bsxfun(@rdivide, repmat(d_range',sum(obs_idx),1), this.wl(obs_idx)));
             % Correct pseudo-ranges
-            obs_idx = this.obs_code(:,1) == 'C';
-            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + d_range(:,this.go_id(obs_idx))');
+            obs_idx = this.obs_code(:,1) == 'C'  & this.go_id == go_id;
+            this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + repmat(d_range',sum(obs_idx),1));
+            
+        end
+            
+        function shiftToNominalTransmission(this)
+            % tranlate the obseravtion accounting for each travel time
+            % so all observations are trasmitted at nominal time
+            
+            %firstly shift to nominal
+            this.shiftToNominal();
+            % then shift each sta for its time of travel
+            go_ids = unique(this.go_id);
+            for g = go_ids'
+                tot = this.sat.tot(:,g);
+                this.shiftObs(tot, g);
+                this.sat.tot(:,g) = 0;
+            end
         end
                 
         %--------------------------------------------------------
@@ -4877,8 +4926,8 @@ classdef Receiver < Exportable
         function staticPPP(this, id_sync)
             this.log.addMarkedMessage('Computing PPP solution');
             this.log.addMessage(this.log.indent('Preparing the system', 6));
-            this.updateAllAvailIndex
-            this.updateAllTOT
+            %this.updateAllAvailIndex
+            %this.updateAllTOT
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 id_sync = 1 : this.time.length();
