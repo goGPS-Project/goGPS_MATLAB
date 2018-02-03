@@ -4954,14 +4954,15 @@ classdef Receiver < Exportable
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Go_State.V_LIGHT;
                 
-                
-                this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
-                this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
-                this.sat.amb = amb;
-                [mfh, mfw] = getSlantMF(this);
-                this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
-                                              + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
-                                              + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
+                if this.state.flag_tropo
+                    this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
+                    this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                    this.sat.amb = amb;
+                    [mfh, mfw] = getSlantMF(this);
+                    this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
+                        + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
+                        + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
+                end
                 if this.state.flag_tropo_gradient
                     if isempty(this.tgn)
                         this.tgn = zeros(this.time.length,1);
