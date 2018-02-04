@@ -1,6 +1,6 @@
 ## IGS14 reference frame coordinates and velocities
 ## Reference epoch 2010 01 01 00 00 00.0000
-## corrdinates and velocities taken from ftp://igs-rf.ign.fr/pub/IGS14/IGS14.ssc solution num: 1
+## coordinates and velocities taken from ftp://igs-rf.ign.fr/pub/IGS14/IGS14.ssc solution num: 1
 #name |      X [m]   |      Y [m]   |      Y [m]   | dY/dt [m/y]  | dY/dt [m/y]  | dY/dt [m/y]
 ABMF    2919785.71314 -5383745.05414  1774604.71410        0.00705        0.00967        0.01431
 ABPO    4097216.64181  4429119.03811 -2065771.32915       -0.01028        0.01600        0.01358
