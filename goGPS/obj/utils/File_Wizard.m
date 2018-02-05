@@ -401,6 +401,13 @@ classdef File_Wizard < handle
             down_dir = state.crx_dir;
             
             %convert GPS time to time-of-week
+            % SOLUTION of the probblem for Giulio (see commit 77d8871054961cea0a4496525182d12915934d67)
+            % cancella queste righe per eliminare la WARNING! ...certo meglio sarebbbe usare sempre le funzioni di GPS_Time per gestire i tempi
+            % anche quando integri vecchio codice! ;-)
+            %[~, start_sow] = date_start.getGpsWeek;
+            %[~, stop_sow] = date_stop.getGpsWeek;
+            %
+            %gps_tow = [start_sow; stop_sow];
             gps_tow = weektime2tow(gps_week, gps_time);
             
             % starting time
