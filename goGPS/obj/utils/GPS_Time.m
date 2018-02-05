@@ -547,11 +547,11 @@ classdef GPS_Time < Exportable & handle
                             id_leap = find(round(this.mat_time*1e9) >= round(LEAP_DATES(leap_seconds(2))*1e9),1, 'first') - 1;
                             leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.mat_time) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset
-                            lp = length(length(this.mat_time));
+                            lp = zeros(size(this.mat_time));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
                             for i = 2:length(this.mat_time)-1
-                                lp(i) = find(this.mat_time > LEAP_DATES, 1, 'last');
+                                lp(i) = find(this.mat_time(i) > LEAP_DATES, 1, 'last');
                             end
                             leap_seconds = lp;
                         end
@@ -569,7 +569,7 @@ classdef GPS_Time < Exportable & handle
                             id_leap = find((this.unix_time) >= uint32((LEAP_DATES(leap_seconds(2)) - 719529) * 86400),1, 'first') - 1;
                             leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.unix_time) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset
-                            lp = length(length(this.unix_time));
+                            lp = zeros(size(this.unix_time));
                             lp(1) = leap_seconds(1);
                             lp(length(this.unix_time)) = leap_seconds(2);
                             for i = 2:length(this.unix_time)-1
@@ -593,7 +593,7 @@ classdef GPS_Time < Exportable & handle
                             id_leap = find(round(this.time_diff*1e9) >= round((LEAP_DATES(leap_seconds(2)) - this.time_ref)*1e9),1, 'first') - 1;
                             leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.time_diff) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset
-                            lp = length(length(this.time_ref));
+                            lp = zeros(size(this.time_ref));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
                             for i = 2:length(this.time_ref)-1
@@ -1243,14 +1243,14 @@ classdef GPS_Time < Exportable & handle
             % Add a floating point number of seconds to all the times
             switch this.time_type
                 case 0 % I'm in MAT TIME
-                    this.mat_time = this.mat_time + n_seconds / 86400;
+                    this.mat_time = this.mat_time + n_seconds(:) / 86400;
                 case 1 % I'm in UNIX TIME
-                    this.unix_time = uint32(int64(this.unix_time)  + int64(fix(n_seconds)));
-                    this.unix_time_f = this.unix_time_f + rem(n_seconds,1);
+                    this.unix_time = uint32(int64(this.unix_time)  + int64(fix(n_seconds(:))));
+                    this.unix_time_f = this.unix_time_f + rem(n_seconds(:),1);
                     this.unix_time = uint32(int64(this.unix_time) + int64(floor(this.unix_time_f)));
                     this.unix_time_f = this.unix_time_f - floor(this.unix_time_f);
                 case 2 % I'm in REF TIME
-                    this.time_diff = this.time_diff + n_seconds;
+                    this.time_diff = this.time_diff + n_seconds(:);
             end
         end
         
