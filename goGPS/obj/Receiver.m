@@ -4918,7 +4918,7 @@ classdef Receiver < Exportable
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
-            this.applyHOI();
+            %this.applyHOI();
             
             this.removeOutlierMarkCycleSlip();            
         end
