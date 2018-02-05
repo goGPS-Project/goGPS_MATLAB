@@ -44,12 +44,15 @@ classdef Earth_Magnetic_Field < handle
         c_year;
         Hcache;
         Gcache;
+        P;
+        dP;
+        P_d_length = 0.001;
     end
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function this = getInstance()
             % Get the persistent instance of the class
-            persistent unique_instance_core_sky__
+            persistent unique_instance_core_sky__;
             
             if isempty(unique_instance_core_sky__)
                 this = Earth_Magnetic_Field();
@@ -63,6 +66,9 @@ classdef Earth_Magnetic_Field < handle
         function this = Earth_Magnetic_Field()
             this.state = Go_State.getCurrentSettings();
             this.importIGRFModel(this.state.getIgrfFile());
+            load(File_Name_Processor.checkPath([this.state.igrf_dir filesep 'P_dP_schimdt.mat']));
+            this.P = P;
+            this.dP = dP;
         end
         function importIGRFModel(this, fname)
             % IMPORTANT TODO - tranform secular varaitions in coefficients
@@ -167,8 +173,10 @@ classdef Earth_Magnetic_Field < handle
         end
         function B = getB(this, gps_time, r, lon, lat)
             % interpolate H at G at presetn epoch
-            [y, doy] = gps_time.getDOY;
-            re = GPS_SS.ELL_A/1000;
+            y = floor(gps_time/(86400*365.25));
+            doy = floor((gps_time - y*(86400*365.25))/86400); %% approximation, but magnetic field varies very slowly
+            y = y + 1980;
+            re = GPS_SS.ELL_A / 1000;
             if this.cache
                 if this.c_year == y || this.c_doy == doy
                     H = this.Hcache;
@@ -185,16 +193,13 @@ classdef Earth_Magnetic_Field < handle
                 this.Hcache = H;
                 this.Gcache = G;
                 this.c_year = y;
-                this.c_doy = doy
+                this.c_doy = doy;
                 this.cache = true;
             end
             n = size(H,1);
-            P = zeros(n,n);
             % co to colatitude
             lat = pi/2 - lat;
-            for i = 0:n-1;
-                P(1:i+1,i+1) = legendre(i,cos(lat),'sch');
-            end
+            P = this.interpolateP(cos(lat));
             mphi = repmat((0:n-1)',1,n)*lon;
             cosm = cos(mphi); %some unnecesaary calculations
             sinm = sin(mphi); %some unnecesaary calculations
@@ -206,18 +211,13 @@ classdef Earth_Magnetic_Field < handle
             N = repmat((0:n-1),n,1);
             M = N';
             % X dV/dtheta
-            %dP = [zeros(size(P,1),1) ((N(:,1:end-1) + M(:,1:end-1)) .* P(:,1:end-1) - N(:,2:end) .* cos(theta) .* P(:,2:end))/(1-cos(theta)^2)]; % http://www.autodiff.org/ad16/Oral/Buecker_Legendre.pdf
-            dP = zeros(n,n);
-            dtheta = 0.1/180*pi;
-            for i = 0:n-1;
-                dP(1:i+1,i+1) = (legendre(i,cos(lat+dtheta/2),'sch') - legendre(i,cos(lat-dtheta/2),'sch'))/dtheta;
-            end
+            dP = this.interpolatedP(cos(lat));
             X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP)); 
             % Y dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
             Y = - re / (r * sin(lat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             % Z dV/dr
-            darn = repmat((1:n) .* (re/r).^(1:n),n,1);
+            darn = repmat((1:n),n,1) .* arn;
             Z = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
             
             B = [X;Y;Z] / 1e9; %nT to T
@@ -226,6 +226,18 @@ classdef Earth_Magnetic_Field < handle
                 -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
                 +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
             [B] = R'*B;
+        end
+        function P = interpolateP(this, x)
+            n1 = floor((x +1) / this.P_d_length) + 1;
+            n2 = min(n1+1, 2/this.P_d_length + 1);
+            d = ((x +1) - (n1-1) * this.P_d_length) / this.P_d_length;
+            P = this.P(:,:,n1) * (1 - d) + this.P(:,:,n2) * d;
+        end
+        function dP = interpolatedP(this, x)
+            n1 = floor((x + 1 - this.P_d_length) / this.P_d_length) + 1;
+            n2 = min(n1+1, 2/this.P_d_length - 1);
+            d = ((x +1) - (n1) * this.P_d_length) / this.P_d_length;
+            dP = this.dP(:,:,n1) * (1 - d) + this.dP(:,:,n2) * d;
         end
         
     end

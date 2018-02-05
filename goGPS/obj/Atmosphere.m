@@ -59,6 +59,7 @@ classdef Atmosphere < handle
             'n_lat',      [], ...    % num lat
             'n_lon',      [], ...    % num lon
             'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
             'dt',         [], ...    % time spacing
             'n_t',        [], ...    % num of epocvhs
             'heigth',     []  ...    % heigh of the layer
@@ -139,6 +140,7 @@ classdef Atmosphere < handle
             lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
             if isempty(this.ionex.data)
                 this.ionex.first_time = first_epoch;
+                this.ionex.first_time_double = first_epoch.getGpsTime();
                 this.ionex.d_t = interval;
                 this.ionex.n_t =  round((last_epoch - first_epoch) / interval);
                 this.ionex.first_lat= lats(1);
@@ -172,8 +174,9 @@ classdef Atmosphere < handle
             %time
             dt = this.ionex.d_t;
             nt = this.ionex.n_t;
-            it = max(min(floor((gps_time - this.ionex.first_time)/ dt)+1,nt-1),1);
-            st = max(min(gps_time - this.ionex.first_time - (it-1)*dt, dt), 0) / dt;
+            ion_gps_time = this.ionex.first_time_double;
+            it = max(min(floor((gps_time - ion_gps_time)/ dt)+1,nt-1),1);
+            st = max(min(gps_time - ion_gps_time - (it-1)*dt, dt), 0) / dt;
             
             %lat
             dlat = this.ionex.d_lat;
@@ -189,10 +192,11 @@ classdef Atmosphere < handle
             % interpolate along time
             % [ 1 2  <- index of the cell at the smae time
             %   3 4]
-            tec1 = this.ionex.data(ilat   , ilon   , it)*(1-st) + this.ionex.data(ilat   , ilon   , it+1)*st;
-            tec2 = this.ionex.data(ilat   , ilon+1 , it)*(1-st) + this.ionex.data(ilat   , ilon+1 , it+1)*st;
-            tec3 = this.ionex.data(ilat+1 , ilon   , it)*(1-st) + this.ionex.data(ilat+1 , ilon   , it+1)*st;
-            tec4 = this.ionex.data(ilat+1 , ilon+1 , it)*(1-st) + this.ionex.data(ilat+1 , ilon+1 , it+1)*st;
+            data = this.ionex.data;
+            tec1 = data(ilat   , ilon   , it)*(1-st) + this.ionex.data(ilat   , ilon   , it+1)*st;
+            tec2 = data(ilat   , ilon+1 , it)*(1-st) + this.ionex.data(ilat   , ilon+1 , it+1)*st;
+            tec3 = data(ilat+1 , ilon   , it)*(1-st) + this.ionex.data(ilat+1 , ilon   , it+1)*st;
+            tec4 = data(ilat+1 , ilon+1 , it)*(1-st) + this.ionex.data(ilat+1 , ilon+1 , it+1)*st;
             
             %interpolate along long
             tecn = tec1*(1-slon) + tec2*slon;
@@ -238,9 +242,10 @@ classdef Atmosphere < handle
             hoi_delay3 = zeros(size(el));
             bending = zeros(size(el));
             ppo = zeros([size(el)]);
+            gps_time = time.getGpsTime();
             for t = 1: size(el,1)
                 idx_ep = find(el(t,:) ~= 0);
-                t_time= time.getSubSet(t);
+                t_time= gps_time(t);
                 for s = idx_ep
                     A = 80.6;
                     [stec, pp,mfpp, k] = this.getSTEC(lat,lon, az(t,s),el(t,s),h, t_time);
@@ -259,7 +264,6 @@ classdef Atmosphere < handle
                     bending(t,s) = A^2 / (8 * c^4) *lambda(s)^4 * tan(zi)^2 * ni * Nemax * stec * 1e16;% Eq(4.34) in [2]
                     ppo(t,s) = stec;
                 end
-                t
             end
         end
     end

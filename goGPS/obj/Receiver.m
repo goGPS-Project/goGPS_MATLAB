@@ -3818,7 +3818,7 @@ classdef Receiver < Exportable
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* hoi2(o_idx,s)' - sign(sgn)* hoi3(o_idx,s)' - sign(sgn)* bending(o_idx,s)';
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)' +  hoi3(o_idx,s)' +  bending(o_idx,s)') ./ this.wl(o);;
                         else
                            this.obs(o,o_idx) = this.obs(o,o_idx) + 2 * sign(sgn)* hoi2(o_idx,s)' +3 * sign(sgn)* hoi3(o_idx,s)' - sign(sgn)* bending(o_idx,s)';
                         end
@@ -4918,7 +4918,7 @@ classdef Receiver < Exportable
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
-            %this.applyHOI();
+            this.applyHOI();
             
             this.removeOutlierMarkCycleSlip();            
         end
