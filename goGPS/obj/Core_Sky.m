@@ -11,7 +11,7 @@ classdef Core_Sky < handle
     %--------------------------------------------------------------------------
     %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
     %  Written by: Giulio Tagliaferro
-    %  Contributors:     ...
+    %  Contributors:     Andrea Gatti
     %  A list of all the historical goGPS contributors is in CREDITS.nfo
     %--------------------------------------------------------------------------
     %
@@ -1081,7 +1081,7 @@ classdef Core_Sky < handle
             this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
             this.COMtoAPC(-1);
             if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff();
+                this.computeSatPolyCoeff(10, 11);
             end
             this.coord_type = 0;
         end
@@ -1108,7 +1108,7 @@ classdef Core_Sky < handle
             this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
             this.COMtoAPC(1);
             if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff();
+                this.computeSatPolyCoeff(10, 11);
             end
             this.coord_type = 1;
         end
@@ -1202,8 +1202,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [dt_S] = clockInterpolate(this,time, sat)
-            
+        function [dt_S] = clockInterpolate(this,time, sat)            
             % SYNTAX:
             %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
             %
@@ -1228,14 +1227,19 @@ classdef Core_Sky < handle
             % speed improvement of the above line
             % supposing SP3_time regularly sampled
             times = this.getClockTime();
-            p = max(0,min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
             
-            b =  (times.getSubSet(p)- time)';
+            % find day change
+            date = times.get6ColDate; 
+            day_change = find(diff(date(:,3)));
             
+            p = max(0, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
+            
+            b =  (times.getSubSet(p) - time)';            
             
             SP3_c = zeros(time.length,2);
             u = zeros(time.length,1);
-            %extract the SP3 clocks
+            
+            % extract the SP3 clocks
             b_pos_idx = b > 0;
             p_pos = p(b_pos_idx);
             SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));
@@ -1244,13 +1248,12 @@ classdef Core_Sky < handle
             b_neg_idx = not(b_pos_idx);
             p_neg = p(b_neg_idx);
             SP3_c( b_neg_idx,:) = cat(2, this.clock(p_neg,sat), this.clock(p_neg+1,sat));
-            u(b_neg_idx) = -b(b_neg_idx)/interval;
+            u(b_neg_idx) = -b(b_neg_idx) / interval;
             
-            
-            dt_S  = NaN*ones(size(SP3_c,1),size(SP3_c,2));
-            idx=(sum(SP3_c~=0,2) == 2 .* ~any(SP3_c >= 0.999,2))>0;
-            dt_S=(1-u).*SP3_c(:,1) + (u).*SP3_c(:,2);
-            dt_S(not(idx))=NaN;
+            dt_S = NaN * ones(size(SP3_c,1), size(SP3_c,2));
+            idx = (sum(SP3_c ~= 0,2) == 2 .* ~any(SP3_c >= 0.999,2)) > 0;
+            dt_S = (1-u) .* SP3_c(:,1) + (u) .* SP3_c(:,2);
+            dt_S(not(idx)) = NaN;
             
             %             dt_S_SP3=NaN;
             %             if (sum(SP3_c~=0) == 2 && ~any(SP3_c >= 0.999))
@@ -1263,7 +1266,44 @@ classdef Core_Sky < handle
             %             end
         end
         
-        function computeSatPolyCoeff(this)
+        function computeSatPolyCoeff(this, order, n_obs)
+            % SYNTAX:
+            %   this.computeSatPolyCoeff(degree, n_obs);
+            %
+            % INPUT:
+            %
+            % OUTPUT:
+            %
+            % DESCRIPTION: Precompute the coefficient of the N th poynomial for all the possible support sets
+            if nargin == 1
+                order = 10;
+                n_obs = 11;
+            end
+            order = order + mod(order, 2); % order needs to be even
+            n_obs = max(order + 1, n_obs); % minimum num of observations to use is == num of coefficients
+            n_obs = n_obs + mod(n_obs + 1, 2); % n_obs needs to be odd
+
+            n_coeff = order + 1;
+            A = zeros(n_obs, n_coeff);
+            A(:, 1) = ones(n_obs, 1);
+            x = -((n_obs - 1) / 2) : ((n_obs - 1) / 2); % * this.coord_rate
+            for i = 1 : order
+                A(:, i + 1) = (x .^ i)';         % y = a + b*x + c*x^2
+            end
+            n_coeff_set = size(this.coord, 1) - n_obs + 1; %86400/this.coord_rate+1;
+            n_sat = size(this.coord, 2);
+            this.coord_pol_coeff = zeros(n_coeff, 3, n_sat, n_coeff_set);
+            for s = 1 : n_sat
+                for i = 1 : n_coeff_set
+                    for j = 1 : 3
+                        % this.coord_pol_coeff(: , j, s, i) = (A' * A) \ A' * squeeze(this.coord(i : i + n_obs - 1, s, j));
+                        this.coord_pol_coeff(: , j, s, i) = A \ squeeze(this.coord(i : i + n_obs - 1, s, j));
+                    end
+                end
+            end
+        end
+        
+        function computeSat11PolyCoeff(this)
             % SYNTAX:
             %   this.computeSatPolyCoeff();
             %
@@ -1319,7 +1359,7 @@ classdef Core_Sky < handle
                 end
             end
         end
-        
+                
         function [X_sat, V_sat] = coordInterpolate(this, t, sat)
             % SYNTAX:
             %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
@@ -1337,21 +1377,99 @@ classdef Core_Sky < handle
                 sat_idx = sat;
             end
             
+            poly_order = 10;
+            n_poly_obs = poly_order + 1;
+            
             if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff();
+                this.computeSatPolyCoeff(poly_order, n_poly_obs);
+            end
+            
+            n_sat = length(sat_idx);
+            poly_order = size(this.coord_pol_coeff,1) - 1;
+            n_border = ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2);
+            
+            % Find the polynomial id at the interpolation time
+            pid_floor = floor((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
+            pid_floor(pid_floor < 1) = 1;
+            pid_floor(pid_floor > size(this.coord_pol_coeff, 4)) = size(this.coord_pol_coeff, 4);
+            pid_ceil = ceil((t - this.time_ref_coord) / this.coord_rate) + 1 - n_border;
+            pid_ceil(pid_ceil < 1) = 1;
+            pid_ceil(pid_ceil > size(this.coord_pol_coeff, 4)) = size(this.coord_pol_coeff, 4);
+            
+            c_times = this.getCoordTime();
+            c_times = c_times - this.time_ref_coord;
+            t_diff = t - this.time_ref_coord;
+
+            poly = permute(this.coord_pol_coeff(:,:,sat_idx, :),[1 3 2 4]);
+            
+            W_poly = zeros(t.length, 1);
+            w = zeros(t.length, 1);
+            X_sat = zeros(t.length, n_sat, 3);
+            V_sat = zeros(t.length, n_sat, 3);
+            for id = unique([pid_floor; pid_ceil])'
+                % find the epochs with the same poly
+                p_ids = find(pid_floor == id | pid_ceil == id);
+                n_epoch = numel(p_ids);
+                t_fct = ones(n_epoch, poly_order + 1);
+                t_fct(:,2) = (t_diff(p_ids) -  c_times(id + n_border))/this.coord_rate;
+                for o = 3 : poly_order + 1
+                    t_fct(:, o) = t_fct(:, o - 1) .* t_fct(:, 2);
+                end
+                w = 1 ./ t_fct(:,2) .^ 2;
+                w(t_fct(:, 2) == 0, 1) = 1;
+                W_poly(p_ids, 1) = W_poly(p_ids, 1) + w;
+                
+                X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + bsxfun(@times, reshape(t_fct * reshape(poly(:,:,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3), w);
+                for o = 2 : poly_order
+                    t_fct(:, o) = o * t_fct(:, o);
+                end
+                V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + bsxfun(@times, reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate, w);
+            end
+            X_sat = X_sat ./ repmat(W_poly, 1, n_sat, 3);
+            V_sat = V_sat ./ repmat(W_poly, 1, n_sat, 3);
+            
+            if size(X_sat,2)==1
+                X_sat = squeeze(X_sat);
+                V_sat = squeeze(V_sat);
+                if size(X_sat,2) == 1
+                    X_sat = X_sat';
+                    V_sat = V_sat';
+                end
+            end
+        end
+        
+        function [X_sat, V_sat] = coordInterpolate11(this, t, sat)
+            % SYNTAX:
+            %   [X_sat] = Eph_Tab.polInterpolate11(t, sat)
+            %
+            % INPUT:
+            %    t = vector of times where to interpolate
+            %    sat = satellite to be interpolated (optional)
+            % OUTPUT:
+            %
+            % DESCRIPTION: interpolate coordinates of staellites expressed with a Lagrange interpolator of degree 11
+            n_sat = size(this.coord, 2);
+            if nargin <3
+                sat_idx = ones(n_sat, 1) > 0;
+            else
+                sat_idx = sat;
+            end
+            
+            if isempty(this.coord_pol_coeff)
+                this.computeSat11PolyCoeff();
             end
             n_sat = length(sat_idx);
             nt = t.length();
             %c_idx=round(t_fd/this.coord_rate)+this.start_time_idx;%coefficient set  index
             
-            c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
+            c_idx = round((t - this.time_ref_coord) / this.coord_rate) + 1 - ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2);
             
-            c_idx(c_idx<1) = 1;
-            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
+            c_idx(c_idx < 1) = 1;
+            c_idx(c_idx > size(this.coord_pol_coeff,4)) = size(this.coord_pol_coeff, 4);
             
             c_times = this.getCoordTime();
             % convert to difference from 1st time of the tabulated ephemerids (precise enough in the span of few days and faster that calaling method inside the loop)
-            t = t - this.time_ref_coord;
+            t_diff = t - this.time_ref_coord;
             c_times = c_times - this.time_ref_coord;
             %l_idx=idx-5;
             %u_id=idx+10;
@@ -1359,13 +1477,13 @@ classdef Core_Sky < handle
             X_sat = zeros(nt,n_sat,3);
             V_sat = zeros(nt,n_sat,3);
             un_idx = unique(c_idx)';
-            for idx = un_idx
-                t_idx = c_idx == idx;
-                times = t(t_idx);
+            for id = un_idx
+                t_idx = c_idx == id;
+                times = t_diff(t_idx);
                 %times=t.getSubSet(t_idx);
                 %t_fct=((times-this.time(5+idx)))';%time from coefficient time
                 %t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
-                t_fct =  (times -  c_times(idx+5))/this.coord_rate;
+                t_fct =  (times -  c_times(id + ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2)))/this.coord_rate;
                 
                 %%%% compute position
                 t_fct2 = t_fct .* t_fct;
@@ -1388,7 +1506,7 @@ classdef Core_Sky < handle
                     t_fct8 ...
                     t_fct9 ...
                     t_fct10];
-                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(:,:,sat_idx,idx),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
+                X_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(:,:,sat_idx,id),[1 3 2 4]),11,3*n_sat),sum(t_idx),n_sat,3);
                 %%% compute velocity
                 eval_vec = [ ...
                     ones(size(t_fct))  ...
@@ -1401,8 +1519,7 @@ classdef Core_Sky < handle
                     8*t_fct7 ...
                     9*t_fct8 ...
                     10*t_fct9];
-                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,idx),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
-                
+                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,id),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;                
             end
             if size(X_sat,2)==1
                 X_sat = squeeze(X_sat);
