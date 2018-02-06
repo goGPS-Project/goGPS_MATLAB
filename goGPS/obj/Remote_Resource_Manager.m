@@ -33,8 +33,6 @@ end
             
             this.log = Logger.getInstance();
         end
-        function resources_name = getResourcesPath(this, resource_name)
-        end       
         function ip = getServerIp(this, name)
             % return the ip of a server given the server name
             ip = [];
@@ -126,6 +124,105 @@ end
                             
                         end
                     end
+                end
+            end
+        end
+        function file_structure = getFileStr(this, resource_name)
+            for i = 1 : length(this.remote_sources)
+                if strcmp(this.remote_sources{i}.name, resource_name)
+                    string = this.remote_sources{i}.key{1}.data;
+                    file_structure = this.parseLogicTree(string);
+                end
+            end
+        end
+    end
+    methods ( Access = private)
+        function file_structure = parseLogicTree(this, string)
+            [status, list] = this.findElements(string);
+            if status == 0
+                file_structure  = string;
+                return
+            else
+               if status == 1
+                   cond = 'or';
+               else
+                   cond = 'and';
+               end
+               for i = 1 : length(list)
+                   file_structure.(cond).(['f' num2str(i)]) = this.parseLogicTree(list{i});
+               end
+            end
+            
+        end
+        function [status, list] = findElements(this, string)
+            % OUTPUT:
+            % status: -1 and 0 nothing 1 or
+            % list: list of string parts
+            [matches] = regexp(string, '\&|\|', 'match');
+            if isempty(matches)
+                status = 0;
+                list = {};
+                return 
+            else
+                open = 0; %number if open pharentesis
+                status = '';
+                index = [];
+                for i = 1:length(string)
+                    if open == 0
+                        if string(i) == '&' | string(i) == '|'
+                            if isempty(status)
+                                status = string(i);
+                                index = [index; i];
+                            else
+                                if status ~= string(i)
+                                    this.log.addWarning('| and & can not exist at the same level, check parenthesis')
+                                    status = 0;
+                                    return
+                                else
+                                    index = [index; i];
+                                end
+                            end
+                        end
+                    end
+                    if string(i) == '('
+                        open = open + 1;
+                    end
+                    if string(i) == ')'
+                        open = open - 1;
+                    end
+                end
+                if status == '|'
+                    status = 1;
+                elseif status == '&'
+                    status = -1;
+                end
+                list = {};
+                for i = 1 : length(index)
+                    if i == 1
+                    list{end + 1} = this.removeTrailingPar(string(1:index(i)-1));
+                    else
+                        list{end + 1} = this.removeTrailingPar(string(index(i-1)+1: index(i)-1));
+                    end
+                end
+                 list{end + 1} = this.removeTrailingPar(string(index(end)+1 : end));
+                 
+            end
+        end
+        function string = removeTrailingPar(this,string)
+            for i =1 :length(string)
+                if string(i)~=' '
+                    if string(i)=='('
+                        string(1:i) = [];
+                    end
+                    break
+                end
+            end
+            for i =length(string) : -1:1
+                if string(i)~=' '
+                    if string(i)==')'
+                        string(i:end) = [];
+                    end
+                    break
                 end
             end
         end
