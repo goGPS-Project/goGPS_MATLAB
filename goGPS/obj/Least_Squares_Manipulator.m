@@ -85,130 +85,62 @@ classdef Least_Squares_Manipulator < handle
         function this = Least_Squares_Manipulator()
             this.state = Go_State.getCurrentSettings();
         end
-                
-        function setUpCodeSatic(this, rec, id_sync, cut_off)
+        
+        function id_sync = setUpPPP(this, rec, id_sync,  cut_off)
+            if nargin < 4
+                cut_off = [];
+            end
+            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off);
+        end
+        function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
+            if nargin < 4
+                cut_off = [];
+            end
+            id_sync = this.setUpSA(rec, id_sync, 'C', cut_off);
+        end
+        function id_sync = setUpSA(this, rec, id_sync, obs_type, cut_off)
+            % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
+            % INPUT:
+            %    rec : receiver
+            %    id_sync : epoch ti be used
+            %    obs_type : 'C' 'L' 'CL'
+            %    cut_off : cut off angle [optional]
+            % 
             obs_set = Observation_Set();
-            if rec.isMultiFreq() %% case multi frequency
+             if rec.isMultiFreq() %% case multi frequency
                 for sys_c = rec.cc.sys_c
-                    obs_set.merge(rec.getPrefIonoFree('C', sys_c));
+                    for i = 1 : length(obs_type)
+                        obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                    end
                 end
             else
                 for sys_c = rec.cc.sys_c
                     f = rec.getFreqs(sys_c);
-                    obs_set.merge(rec.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                    for i = 1 : length(obs_type)
+                        obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                    end
                 end
+             end
+            phase_present = strfind(obs_type, 'L');
+            if phase_present
+                tropo = this.state.flag_tropo;
+                tropo_g = this.state.flag_tropo_gradient;
+            else
+                tropo = false;
+                tropo_g = false;
             end
+            
             snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
             if sum(sum(snr_to_fill))
                 obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
             end
-            
             if nargin > 2
                 %%% remove epochs based on desired sampling
                 obs_set.keepEpochs(id_sync);
             end
-            if nargin > 3 && ~isempty(cut_off)
+            if nargin > 4 && ~isempty(cut_off)
                 obs_set.remUnderCutOff(cut_off);
-            end
-            [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
-            diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
-            % remove not valid empty epoch or with only one satellite (probably too
-            % bad conditioned)
-            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
-            diff_obs(~idx_valid_ep_l, :) = [];
-            xs_loc(~idx_valid_ep_l, :, :) = [];
-            
-            % removing possible empty column
-            idx_valid_stream = sum(diff_obs, 1) ~= 0;
-            diff_obs(:, ~idx_valid_stream) = [];
-            xs_loc(:, ~idx_valid_stream, :) = [];
-            
-            % removing non valid epochs also from obs_set
-            obs_set.remEpochs(~idx_valid_ep_l);
-            obs_set.sanitizeEmpty();
-            
-            % set up number of parametrs requires
-            n_epochs = size(obs_set.obs, 1);
-            this.n_epochs = n_epochs;
-            n_stream = size(obs_set.obs, 2);
-            n_coo = 3;
-            n_clocks = n_epochs;
-            ep_p_idx = [1 : n_clocks];
-            this.true_epoch = obs_set.getTimeIdx(rec.time.first,rec.rate);
-            u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
-            iob_idx = zeros(size(obs_set.wl));
-            for c = 1:size(u_obs_code, 1)
-                idx_b = idxCharLines(obs_set.obs_code, u_obs_code(c, :));
-                iob_idx(idx_b) = c - 1;
-            end
-            iob_p_idx = iob_idx + n_coo;
-            
-            n_iob = size(u_obs_code, 1) - 1;
-            iob_flag = double(n_iob > 0);
-            n_obs = sum(sum(diff_obs ~= 0));
-            clocks_idx = n_coo + n_iob + ep_p_idx;
-            
-            A = zeros(n_obs, n_coo+iob_flag+1); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
-            epoch = zeros(n_obs, 1);
-            sat = zeros(n_obs, 1);
-            A_idx = zeros(n_obs, n_coo+iob_flag+1); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
-            A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
-            y = zeros(n_obs, 1);
-            variance = zeros(n_obs, 1);
-            obs_count = 1;
-            this.sat_go_id = obs_set.go_id;
-            for sys_c = 1:n_stream
-                vaild_ep_stream = diff_obs(:, sys_c) ~= 0;
-                
-                obs_stream = diff_obs(vaild_ep_stream, sys_c);
-                snr_stream = obs_set.snr(vaild_ep_stream, sys_c);
-                xs_loc_stream = permute(xs_loc(vaild_ep_stream, sys_c, :), [1, 3, 2]);
-                los_stream = rowNormalize(xs_loc_stream);
-                n_obs_stream = length(obs_stream);
-                lines_stream = obs_count + (0:(n_obs_stream - 1));
-                epoch(lines_stream) = ep_p_idx(vaild_ep_stream);
-                sat(lines_stream) = sys_c;
-                y(lines_stream) = obs_stream;
-                variance(lines_stream) =  obs_set.sigma(sys_c)^2;
-                %w(lines_stream) = snr_stream;
-                A(lines_stream, 1:3) = - los_stream;
-                if n_iob > 0
-                    A(lines_stream, 4) = iob_idx(sys_c) > 0;
-                    A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(sys_c));
-                end
-                A(lines_stream, n_coo+iob_flag+1) = 1;
-                A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + ep_p_idx(vaild_ep_stream);
-                obs_count = obs_count + n_obs_stream;
-            end
-            
-            this.A_ep = A;
-            this.A_idx = A_idx;
-            this.variance = variance;
-            this.y = y;
-            this.epoch = epoch;
-            this.sat = sat;
-            this.param_flag = [0, 0, 0, -1*ones(iob_flag), 1 ];
-            this.param_class = [1, 2, 3, 4*ones(iob_flag), 6];
-        end
-        
-        function id_sync = setUpPPP(this, rec, id_sync)
-            % return the id_sync of the epochs to be computed
-            % get double frequency iono_free for all the systems
-            obs_set = Observation_Set();
-            for s = rec.cc.sys_c
-                obs_set.merge(rec.getPrefIonoFree('L', s));
-            end
-            tropo = this.state.flag_tropo;
-            tropo_g = this.state.flag_tropo_gradient;
-            
-            snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
-            if sum(sum(snr_to_fill))
-                obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
-            end
-            if nargin > 2
-                %%% remove epochs based on desired sampling
-                obs_set.keepEpochs(id_sync);
             end
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
@@ -246,46 +178,56 @@ classdef Least_Squares_Manipulator < handle
             iob_p_idx = iob_idx + n_coo;
             cycle_slip = obs_set.cycle_slip;
             cycle_slip(diff_obs == 0) = 0;
-            amb_idx = ones(size(cycle_slip));
-            for s = 1:n_stream
-                if s > 1
-                    amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
-                end
-                cs = find(cycle_slip(:, s) > 0)';
-                for c = cs
-                    %check if cycle slip is not marked at first epoch of
-                    %the stream
-                    if c ~= find(diff_obs(:, s) ~= 0, 1, 'first')
-                        amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
+            if phase_present
+                amb_idx = ones(size(cycle_slip));
+                for s = 1:n_stream
+                    if s > 1
+                        amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
+                    end
+                    cs = find(cycle_slip(:, s) > 0)';
+                    for c = cs
+                        %check if cycle slip is not marked at first epoch of
+                        %the stream
+                        if c ~= find(diff_obs(:, s) ~= 0, 1, 'first')
+                            amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
+                        end
                     end
                 end
+                n_amb = max(max(amb_idx));
+                amb_flag = 1;
+            else
+                n_amb = 0;
+                amb_flag = 0;
             end
-            
             n_iob = size(u_obs_code, 1) - 1;
             iob_flag = double(n_iob > 0);
             n_obs = sum(sum(diff_obs ~= 0));
-            n_amb = max(max(amb_idx));
+            
             clocks_idx = n_coo + n_iob + n_amb + ep_p_idx;
             
-            A = zeros(n_obs, n_coo+iob_flag+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A = zeros(n_obs, n_coo+iob_flag+amb_flag + double(tropo) + 2*double(tropo_g)); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             epoch = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
-            A_idx = zeros(n_obs, n_coo+iob_flag+2); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A_idx = zeros(n_obs, n_coo+iob_flag+amb_flag + double(tropo) + 2*double(tropo_g)); % three coordinates, 1 clock, 1 ineter obs bias(can be zero), 1 amb, 3 tropo paramters
             A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
             y = zeros(n_obs, 1);
             variance = zeros(n_obs, 1);
             obs_count = 1;
             this.sat_go_id = obs_set.go_id;
-            [~, mfw] = rec.getSlantMF();
-            mfw = mfw(id_sync,:); % getting only the desampled values
+            if tropo | tropo_g
+                [~, mfw] = rec.getSlantMF();
+                mfw = mfw(id_sync,:); % getting only the desampled values
+            end
             for s = 1:n_stream
                 vaild_ep_stream = diff_obs(:, s) ~= 0;
                 
                 obs_stream = diff_obs(vaild_ep_stream, s);
                 snr_stream = obs_set.snr(vaild_ep_stream, s);
-                el_stream = obs_set.el(vaild_ep_stream, s) / 180 * pi;
-                az_stream = obs_set.az(vaild_ep_stream, s) / 180 * pi;
-                mfw_stream = mfw(vaild_ep_stream, obs_set.go_id(s)); % 1./sin(el_stream);
+                if tropo | tropo_g
+                    el_stream = obs_set.el(vaild_ep_stream, s) / 180 * pi;
+                    az_stream = obs_set.az(vaild_ep_stream, s) / 180 * pi;
+                    mfw_stream = mfw(vaild_ep_stream, obs_set.go_id(s)); % 1./sin(el_stream);
+                end
                 xs_loc_stream = permute(xs_loc(vaild_ep_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
                 
@@ -306,26 +248,27 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, 4) = max(n_coo+1, iob_p_idx(s));
                 end
                 % ----------- Abiguity ------------------
-                A(lines_stream, n_coo+iob_flag+1) = obs_set.wl(s);
-                A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
+                if phase_present
+                    A(lines_stream, n_coo+iob_flag+1) = obs_set.wl(s);
+                    A_idx(lines_stream, n_coo+iob_flag+1) = n_coo + n_iob + amb_idx(vaild_ep_stream, s);
+                end
                 % ----------- Clock ------------------
-                A(lines_stream, n_coo+iob_flag+2) = 1;
-                A_idx(lines_stream, n_coo+iob_flag+2) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                A(lines_stream, n_coo+iob_flag+amb_flag + 1) = 1;
+                A_idx(lines_stream, n_coo+iob_flag+amb_flag + 1) = n_coo + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 % ----------- ZTD ------------------
                 if tropo
-                    A(lines_stream, n_coo+iob_flag+3) = mfw_stream;
-                    A_idx(lines_stream, n_coo+iob_flag+3) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A(lines_stream, n_coo+iob_flag+amb_flag + 2) = mfw_stream;
+                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 2) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     cotan_term = cot(el_stream) .* mfw_stream;
-                    A(lines_stream, n_coo+iob_flag+4) = cos(az_stream) .* cotan_term; % noth gradient
-                    A(lines_stream, n_coo+iob_flag+5) = sin(az_stream) .* cotan_term; % east gradient
+                    A(lines_stream, n_coo+iob_flag+amb_flag + 3) = cos(az_stream) .* cotan_term; % noth gradient
+                    A(lines_stream, n_coo+iob_flag+amb_flag + 4) = sin(az_stream) .* cotan_term; % east gradient
                     
-                    A_idx(lines_stream, n_coo+iob_flag+4) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
-                    A_idx(lines_stream, n_coo+iob_flag+5) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 3) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
+                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 4) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(vaild_ep_stream);
                 end
-                
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
@@ -333,24 +276,26 @@ classdef Least_Squares_Manipulator < handle
             %---------------------
             
             %----Set up the date defecrum constraint problems --------------
-            G = [zeros(1, n_coo + n_iob) zeros(1, n_amb) +ones(1, n_clocks)];
-            if tropo
-                G = [G zeros(1, n_clocks)];
+            if phase_present
+                G = [zeros(1, n_coo + n_iob) zeros(1, n_amb) +ones(1, n_clocks)];
+                if tropo
+                    G = [G zeros(1, n_clocks)];
+                end
+                if tropo_g
+                    G = [G zeros(1, 2*n_clocks)];
+                end
+                D = [0];
+                this.G = G;
+                this.D = D;
             end
-            if tropo_g
-                G = [G zeros(1, 2*n_clocks)];
-            end
-            D = [0];
-            this.G = G;
-            this.D = D;
             this.A_ep = A;
             this.A_idx = A_idx;
             this.variance = variance;
             this.y = y;
             this.epoch = epoch;
             this.sat = sat;
-            this.param_flag = [0, 0, 0, -1*ones(iob_flag), -1, 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
-            this.param_class = [1, 2, 3, 4*ones(iob_flag), 5, 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
+            this.param_flag = [0, 0, 0, -1*ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            this.param_class = [1, 2, 3, 4*ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
         end
         
         function setTimeRegularization(this, param_class, time_variability)
