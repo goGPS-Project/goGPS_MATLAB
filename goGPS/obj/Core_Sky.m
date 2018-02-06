@@ -132,7 +132,7 @@ classdef Core_Sky < handle
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
             this.clearOrbit();
             
-            if strfind(eph_f_name{1}, '.sp3') % assuming all files have the same endings
+            if  ~isempty(strfind(eph_f_name{1}, '.sp3')) || ~isempty(strfind(eph_f_name{1}, '.SP3')) % assuming all files have the same endings
                 this.log.addMarkedMessage('Importing ephemerides...');
                 for i = 1:length(eph_f_name)
                     this.addSp3(eph_f_name{i},clock_in_eph);
@@ -1217,7 +1217,7 @@ classdef Core_Sky < handle
             % DESCRIPTION:
             %   SP3 (precise ephemeris) clock correction linear interpolation.
             if nargin < 3
-                sat= this.cc.index;
+                sat = this.cc.index;
             end
             
             interval = this.clock_rate;
@@ -1239,7 +1239,7 @@ classdef Core_Sky < handle
             SP3_c = zeros(time.length,2);
             u = zeros(time.length,1);
             
-            % extract the SP3 clocks
+            % extract the SP3 clocks            
             b_pos_idx = b > 0;
             p_pos = p(b_pos_idx);
             SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));

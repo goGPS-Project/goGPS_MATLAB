@@ -344,6 +344,7 @@ classdef Constellation_Collector < Settings_Interface
             sat_ko = true(this.n_sat_tot, 1); sat_ko(sat_ok) = false;
             lambda(sat_ko, :) = 0;
         end
+        
         function is_ref = isRefFrequency(this,sys,freq)
             %DESCRIPTION: tell if the frequency is used as reference
             %frequency (also in combination with other one) for the
@@ -380,6 +381,7 @@ classdef Constellation_Collector < Settings_Interface
                     end
             end
         end
+        
         function ref_dcb = getRefDCB(this, goid)
             % consider to move change them on the base of the source of
             % precise orbit
@@ -679,7 +681,17 @@ classdef Constellation_Collector < Settings_Interface
             % SYNTAX: n_sat = this.getNumSat();
             n_sys = this.n_sys;
         end
+        
+        function name = getSysName(this, sys_c)
+            % get the 3 chars name of a constellation
+            name = this.SYS_NAME{this.SYS_C == sys_c};            
+        end
 
+        function name = getSysExtName(this, sys_c)
+            % get the name of a constellation
+            name = this.SYS_EXT_NAME{this.SYS_C == sys_c};            
+        end
+        
         function gps = getGPS(this)
             % return the GPS satellite system object
             gps = handle(this.gps);
