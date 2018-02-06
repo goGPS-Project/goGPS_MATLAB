@@ -1519,6 +1519,58 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods
+        % standard utility
+        
+        function toString(this)
+            % Display on screen information about the receiver
+            % SYNTAX: this.toString();
+            
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMarkedMessage(sprintf('Receiver %s', this.marker_name));
+            fprintf('----------------------------------------------------------------------------------\n')
+            this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
+            this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this.n_sat)));
+            this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
+            this.log.newLine();
+            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
+            this.log.newLine();
+            
+            xyz0 = this.getAPrioriPos();
+            [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+            static_dynamic = {'Dynamic', 'Static'};
+            this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
+            fprintf(' ----------------------------------------------------------\n')
+            this.log.addMessage(' Receiver a-priori position:');
+            this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
+            
+            if ~isempty(this.xyz)
+                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
+                enu_m = median(enu, 1, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Receiver median position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+                
+                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
+                enu_m = median(enu, 1, 'omitnan');
+                this.log.newLine();
+                this.log.addMessage(' Correction of the a-priori position:');
+                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+                this.log.newLine();
+                this.log.addMessage(sprintf('     3D distance = %+16.4f m', sqrt(sum((xyz_m - xyz0).^2))));
+            end
+            fprintf(' ----------------------------------------------------------\n')
+            
+        end
+
         % size 
         
         function is_empty = isEmpty(this)
@@ -1559,6 +1611,44 @@ classdef Receiver < Exportable
             len =  zeros(numel(this), 1);
             for r = 1 : numel(this)
                 len(r) =  this(r).time.length();
+            end
+        end
+        
+        function n_obs = getNumObservables(this)
+            % get the number of observables stored in the object
+            % SYNTAX: n_obs = this.getNumObservables()
+            n_obs = size(this.obs, 1);
+        end
+        
+        function n_epo = getNumEpochs(this)
+            % get the number of epochs stored in the object
+            % SYNTAX: n_obs = this.getNumEpochs()
+            n_epo = size(this.obs, 2);
+        end
+        
+        function n_pr = getNumPseudoRanges(this)
+            % get the number of epochs stored in the object
+            % SYNTAX: n_pr = this.getNumPseudoRanges()
+            n_pr = sum(this.obs_code(:,1) == 'C');
+        end
+        
+        function n_sat = getNumSat(this, sys_c)
+            % get the number of satellites stored in the object
+            % SYNTAX: n_sat = getNumSat(<sys_c>)
+            if nargin == 2
+                n_sat = numel(unique(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') )));
+            else
+                n_sat = numel(unique(this.go_id(this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L')));
+            end
+        end
+        
+        function n_sat = getMaxSat(this, sys_c)
+            % get the number of satellites stored in the object
+            % SYNTAX: n_sat = getNumSat(<sys_c>)
+            if nargin == 2
+                n_sat = max(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') ));
+            else
+                n_sat = max(this.go_id(this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L'));
             end
         end
         
@@ -1646,6 +1736,32 @@ classdef Receiver < Exportable
             freqs = unique(freq);
         end
         
+        function err4el = getErr4El(this, err, go_id)
+            % compute for each satellite, for each elevation the maximum of err
+            % SYNTAX: err4el = this.getErr4El(err, <go_id>)
+            el_lim = (0 : 1 : 90)';
+            n_el = size(el_lim, 1);
+            n_sat = size(this.sat.el, 2);
+            err4el = zeros(n_sat, n_el - 1);
+            
+            if nargin == 2
+                go_id = (1 : n_sat)';
+            end
+            
+            for s = unique(go_id)'
+                for e = 1 : n_el - 1
+                    id_el = (this.sat.el(:, s) > el_lim(e)) & (this.sat.el(:, s) <= el_lim(e + 1));
+                    if sum(id_el) > 0
+                        for id_s = find(go_id == s)'
+                            err4el(s, e) = max([err4el(s, e); nan2zero(err(id_el, id_s))]);
+                        end
+                    end
+                end
+            end
+            
+            err4el = zero2nan(err4el);
+        end
+        
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX:   this.getChalmersString();
@@ -1653,56 +1769,6 @@ classdef Receiver < Exportable
             fprintf('"%-24s %16.4f%16.4f%16.4f"\n', this.marker_name, xyz(1), xyz(2),xyz(3));
         end
         
-        function toString(this)
-            % Display on screen information about the receiver
-            % SYNTAX: this.toString();
-            
-            fprintf('----------------------------------------------------------------------------------\n')
-            this.log.addMarkedMessage(sprintf('Receiver %s', this.marker_name));
-            fprintf('----------------------------------------------------------------------------------\n')
-            this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
-            this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this.n_sat)));
-            this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
-            this.log.newLine();
-            
-            xyz0 = this.getAPrioriPos();
-            [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-            static_dynamic = {'Dynamic', 'Static'};
-            this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
-            fprintf(' ----------------------------------------------------------\n')
-            this.log.addMessage(' Receiver a-priori position:');
-            this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
-            
-            if ~isempty(this.xyz)
-                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
-                enu_m = median(enu, 1, 'omitnan');
-                this.log.newLine();
-                this.log.addMessage(' Receiver median position:');
-                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                                            xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
-                
-                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
-                enu_m = median(enu, 1, 'omitnan');
-                this.log.newLine();
-                this.log.addMessage(' Correction of the a-priori position:');
-                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                                            xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
-                this.log.newLine();
-                this.log.addMessage(sprintf('     3D distance = %+16.4f m', sqrt(sum((xyz_m - xyz0).^2))));
-            end
-            fprintf(' ----------------------------------------------------------\n')
-            
-        end
-
         function nominal_time = getNominalTime(this)
             % get the nominal time aka rounded time cosidering a  constant
             % sampling rate
@@ -1861,45 +1927,7 @@ classdef Receiver < Exportable
             %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
             %             end
         end
-                
-        function n_obs = getNumObservables(this)
-            % get the number of observables stored in the object
-            % SYNTAX: n_obs = this.getNumObservables()
-            n_obs = size(this.obs, 1);
-        end
-        
-        function n_epo = getNumEpochs(this)
-            % get the number of epochs stored in the object
-            % SYNTAX: n_obs = this.getNumEpochs()
-            n_epo = size(this.obs, 2);
-        end
-        
-        function n_pr = getNumPseudoRanges(this)
-            % get the number of epochs stored in the object
-            % SYNTAX: n_pr = this.getNumPseudoRanges()
-            n_pr = sum(rec.obs_code(:,1) == 'C');
-        end
-        
-        function n_sat = getNumSat(this, sys_c)
-            % get the number of satellites stored in the object
-            % SYNTAX: n_sat = getNumSat(<sys_c>)
-            if nargin == 2
-                n_sat = numel(unique(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') )));
-            else
-                n_sat = numel(unique(this.go_id(this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L')));
-            end
-        end
-        
-        function n_sat = getMaxSat(this, sys_c)
-            % get the number of satellites stored in the object
-            % SYNTAX: n_sat = getNumSat(<sys_c>)
-            if nargin == 2
-                n_sat = max(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') ));
-            else
-                n_sat = max(this.go_id(this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L'));
-            end
-        end
-        
+                        
         function sys_c = getActiveSys(this)
             % get the available system stored into the object
             % SYNTAX: sys_c = this.getActiveSys()
@@ -1954,7 +1982,12 @@ classdef Receiver < Exportable
             for i = 1:length(prn)
                 p = prn(i);
                 s = sys(i);
-                go_id(i) = this.go_id(find((this.system == s)' & (this.prn == p), 1, 'first'));
+                id = find((this.system == s)' & (this.prn == p), 1, 'first');
+                if isempty(id)
+                    go_id(i) = 0;
+                else
+                    go_id(i) = this.go_id(id);
+                end
             end
         end
         
@@ -2688,8 +2721,7 @@ classdef Receiver < Exportable
                 id_rec = id_sync{1}(:,r);
                 zwd(~isnan(id_rec),r) = this(r).zwd(id_rec(~isnan(id_rec)));
             end
-        end
-        
+        end        
     end
     
     % ==================================================================================================================================================
@@ -5489,15 +5521,20 @@ classdef Receiver < Exportable
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
+    % Various debug images
+    % name variant:
+    %   c cartesian
+    %   s scatter
+    %   p polar
+    %   m mixed    
     methods (Access = public)
-        function plotPositionENU(this, one_plot)
+        
+        function showPositionENU_c(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
             if nargin == 1
                 one_plot = false;
             end
-            
-            figure;
             
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
@@ -5505,7 +5542,8 @@ classdef Receiver < Exportable
                 xyz0 = this.getAPrioriPos;
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                 [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                figure;
+                
+                f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
                 if ~one_plot, subplot(3,1,1); end
@@ -5532,20 +5570,18 @@ classdef Receiver < Exportable
             grid on;
         end
         
-        function plotPositionXYZ(this, one_plot)
+        function showPositionXYZ_c(this, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if nargin == 1
                 one_plot = false;
             end
             
-            figure;
-            
             if size(this.xyz,1) > 1
                 this.log.addMessage('Plotting positions');
                 xyz0 = this.getAPrioriPos();
                 
-                figure;
+                f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
                 t = this.time.getMatlabTime();
                 if ~one_plot, subplot(3,1,1); end
@@ -5570,16 +5606,22 @@ classdef Receiver < Exportable
             end            
         end
         
-        function plotVsSynt(this)
+        function showObsVsSynt_m(this, sys_c)
             % Plots phases and pseudo-ranges aginst their synthesised values
             % SYNTAX: this.plotVsSynt
             
-            figure;
+            f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
             
             % Phases
-            [ph, ~, id_ph] = this.getPhases;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            figure; subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
+            if nargin == 1
+                [ph, ~, id_ph] = this.getPhases;
+                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            else
+                [ph, ~, id_ph] = this.getPhases(sys_c);
+                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            end
+            
+            subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
             
             this.updateAzimuthElevation()
             id_ok = (~isnan(sensor_ph));
@@ -5603,13 +5645,13 @@ classdef Receiver < Exportable
             caxis([-20 20]); colorbar();
             subplot(2,3,5); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]);
-        end
+        end        
         
-        function plotDt(this)
+        function showDt_c(this)
             % Plot Clock error
             % SYNTAX: this.plotDt
             
-            figure;
+            f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
             t = this.getMatlabTime();
             plot(t, this.getDesync, '-k', 'LineWidth', 2);
             hold on;
@@ -5629,70 +5671,86 @@ classdef Receiver < Exportable
             h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
-        function plotSNR(this, sys_c)
+        function showSNR_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX: this.plotSNR(sys_c)
             
             % SNRs
-            if nargin == 2
-                [snr, snr_id] = this.getSNR(sys_c);
-            else
-                [snr, snr_id] = this.getSNR();
+            if nargin == 1
+                sys_c_list = unique(this.system);
             end
             
-            figure;
-            this.updateAzimuthElevation()
-            id_ok = (~isnan(snr));
-            az = this.sat.az(:,this.go_id(snr_id));
-            el = this.sat.el(:,this.go_id(snr_id));
-            polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-            colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-            h = title(sprintf('SNR - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            for sys_c = sys_c_list
+                [snr, snr_id] = this.getSNR(sys_c);
+                f = figure; f.Name = sprintf('%03d: SNR %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+
+                this.updateAzimuthElevation()
+                id_ok = (~isnan(snr));
+                az = this.sat.az(:,this.go_id(snr_id));
+                el = this.sat.el(:,this.go_id(snr_id));
+                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                h = title(sprintf('SNR - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            end
+            
         end
         
-        function plotResSkyPolar(this)
+        function showResSky_p(this, sys_c_list)
             % Plot residuals of the solution on polar scatter
             % SYNTAX: this.plotResSkyPolar(sys_c)
             
-            % SNRs
-            res = this.sat.res;
+            if nargin == 1
+                sys_c_list = unique(this.cc.system);
+            end
             
-            figure;
-            this.updateAzimuthElevation()
-            id_ok = (res~=0);
-            az = this.sat.az;
-            el = this.sat.el;
-            polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
-            colormap(jet); colorbar();
-            h = title(sprintf('Residuals - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            for sys_c = sys_c_list
+                s = this.go_id(this.system == sys_c);
+                res = abs(this.sat.res(:, s));
+                
+                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                this.updateAzimuthElevation()
+                id_ok = (res~=0);
+                az = this.sat.az(:, s);
+                el = this.sat.el(:, s);
+                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
+                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
+                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            end
         end
         
-        function plotResSkyCart(this)
+        function showResSky_c(this, sys_c_list)
             % Plot residuals of the solution on cartesian axes
             % SYNTAX: this.plotResSkyCart()
             
-            % SNRs
-            res = this.sat.res;
+            if nargin == 1
+                sys_c_list = unique(this.cc.system);
+            end
             
-            figure;
-            this.updateAzimuthElevation()
-            id_ok = (res~=0);
-            az = this.sat.az;
-            el = this.sat.el;
-            scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
-            colormap(jet); colorbar();
-            h = title(sprintf('Residuals - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-            h = ylabel('Satellites residuals [m]','interpreter', 'none'); h.FontWeight = 'bold'; 
+            for sys_c = sys_c_list
+                s = this.go_id(this.system == sys_c);
+                res = abs(this.sat.res(:, s));
+                
+                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                this.updateAzimuthElevation()
+                id_ok = (res~=0);
+                az = this.sat.az(:, s);
+                el = this.sat.el(:, s);
+                scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
+                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
+                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+            end
         end
         
-        function plotDataAvailability(this, sys_c)
+        function showDataAvailability(this, sys_c)
             % Plot all the satellite seen by the system
             % SYNTAX: this.plotDataAvailability(sys_c)
             
             if (nargin == 1)
-                sys_c = 'GREJCIS';
+                sys_c = this.cc.sys_c;
             end
-            figure;
+            f = figure; f.Name = sprintf('%03d: DataAvail', f.Number); f.NumberTitle = 'off';
             ss_ok = intersect(this.cc.sys_c, sys_c);
             for ss = ss_ok
                 ss_id = find(this.cc.sys_c == ss);
@@ -5728,23 +5786,59 @@ classdef Receiver < Exportable
                 ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
-                title(this.cc.SYS_EXT_NAME{this.cc.SYS_C == ss});
-                dockAllFigures
+                title(this.cc.getSysName(ss));
             end
         end
-               
-        function plotCycleSlip(this)
-            figure;
-            if ~isempty(this.cycle_slip_idx_ph)
-                ph = this.getPhases();
-                synt_ph = this.getSyntPhases();
-                obs = ph - synt_ph;
-                figure;
-                plot(obs);
-                ep = repmat([1: this.time.length]',1,size(obs,2));
-                hold on
-                scatter(ep(this.cycle_slip_idx_ph~=0),obs(this.cycle_slip_idx_ph~=0))
+        
+        function showCycleSlip(this)
+            % Plot all the satellite seen by the system
+            % SYNTAX: this.showCycleSlip_m(sys_c)
+            
+            if (nargin == 1)
+                sys_c = this.cc.sys_c;
             end
+            f = figure; f.Name = sprintf('%03d: CS', f.Number); f.NumberTitle = 'off';
+            ss_ok = intersect(this.cc.sys_c, sys_c);
+            for ss = ss_ok
+                ss_id = find(this.cc.sys_c == ss);
+                switch numel(ss_ok)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                ep = repmat([1: this.time.length]',1, size(this.cycle_slip_idx_ph,2));
+
+                for prn = this.cc.prn(this.cc.system == ss)'
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :),1));
+                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                    hold on;
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
+                    plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', [0.7 0.7 0.7]);
+                    id_cs = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(ss, prn), 1, 'first');
+                    if any(id_cs)
+                        cs = ep(this.cycle_slip_idx_ph(:, id_cs) ~= 0);
+                        plot(cs,  prn * ones(size(cs)), 'ok')
+                    end
+                end
+                prn_ss = unique(this.prn(this.system == ss));
+                xlim([1 size(this.obs,2)]);
+                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                h = ylabel('PRN'); h.FontWeight = 'bold';
+                ax = gca(); ax.YTick = prn_ss;
+                grid on;
+                h = xlabel('epoch'); h.FontWeight = 'bold';
+                title(this.cc.getSysName(ss));
+            end           
         end
         
         function plotSmoothRef(this)
@@ -5956,7 +6050,6 @@ classdef Receiver < Exportable
                 ax_sky.YDir = 'normal';
             end
             hs = polarScatter(az, el, 250, szwd(i,:) * 1e2, 'filled');
-            xlim([-1 1]); ylim([-1 1]);
             caxis(yl); colormap(jet(1024)); colorbar;
             
             subplot(3,1,3);
@@ -6025,6 +6118,44 @@ classdef Receiver < Exportable
             h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
             grid on;
             h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+        end
+        
+        function polarScatterZtdSlantRes(this, time_start, time_stop, win_size)
+            for r = 1 : size(this, 2)
+                if isempty(this(r).id_sync)
+                    this(r).id_sync = 1 : this(r).time.length();
+                end
+                
+                t = this(r).time.getEpoch(this(r).id_sync).getMatlabTime;
+                
+                sztd = this(r).getSlantZTD(this(r).slant_filter_win);
+                sztd = sztd(this(r).id_sync, :) - this(r).ztd(this(r).id_sync);
+                if nargin >= 3
+                    if isa(time_start, 'GPS_Time')
+                        time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                        time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                    end
+                    time_start = max(1, time_start);
+                    time_stop = min(size(sztd,1), time_stop);
+                else
+                    time_start = 1;
+                    time_stop = size(sztd,1);
+                end
+                
+                if nargin < 4
+                    win_size = (t(time_stop) - t(time_start)) * 86400;
+                end
+                
+                %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                
+                az = (mod(this.sat.az(this(r).id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                el = (90 - this.sat.el(this(r).id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+    
+                figure;
+                polarScatter(az(:), el(:), 10, sztd(:), 'filled'); hold on;
+                colormap(hot); colorbar;
+                h = title(sprintf('Receiver %s ZTD', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
         end
         
         function plotResidual(this)
