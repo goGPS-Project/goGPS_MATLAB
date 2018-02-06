@@ -257,7 +257,7 @@ classdef Ini_Manager < handle
             end
         end
 
-        % Write File -------------------------------------------------------
+        % Write File ------------------------------------------------------
         function errStatus = writeFile(this)
             % Force reading of the File
             errStatus = false;
@@ -968,7 +968,7 @@ classdef Ini_Manager < handle
 
     methods (Static)
 
-        % cellStringtoString -----------------------------------------------------
+        % cellStringtoString ----------------------------------------------
         function str = strCell2Str(value)
             % Converta cell of string to string
             % SYNTAX:

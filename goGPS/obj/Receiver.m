@@ -5841,58 +5841,9 @@ classdef Receiver < Exportable
             end           
         end
         
-        function plotSmoothRef(this)
-            figure;
-            ph = this.getPhases();
-            synt_ph = this.getSyntPhases();
-            d_ph = ph - synt_ph;
-            d_ph(this.cycle_slip_idx_ph ~= 0) =nan;
-            filt_length = 1000;
-            idx = double(~isnan(d_ph));
-            idx_s = flagShrink(idx,filt_length/2);
-            idx_e = flagExpand(idx_s,filt_length/2);
-            el_idx = xor(idx,idx_e);
-            idx(el_idx) = 0;
-            filt_arm = floor(filt_length/2);
-            idx = flagShrink(idx,4);
-            
-            filt = (-filt_arm:filt_arm)/filt_length*5;
-            filt = exp(-(filt).^2);
-            filt = filt'./sum(filt);
-            sats = 1 : size(ph,2);
-            idx_f = zeros(size(idx));
-            d_ph2= zeros(size(d_ph));
-            for i = sats
-                idx_f(:,i) = conv(idx(:,i),filt,'same');
-                d_ph2(:,i) = d_ph(:,i) -mean(d_ph2(:,i),'omitnan');
-            end
-            idx1 = min(circshift(idx_f,filt_arm),circshift(idx_f,-filt_arm));
-            w_ph = d_ph2 .* idx1;
-            r_ph = nan(size(ph));
-            
-            for i = sats
-                w_ph_t = w_ph(:,sats~=i);
-                scale = sum(idx1(:,sats~=i),2,'omitnan');
-                to_diff = sum(w_ph_t,2,'omitnan')./scale;
-                x = (1:length(to_diff))';
-                valid_x = ~isnan(to_diff);
-                x = x(valid_x);
-                xx = 0:300:length(valid_x);
-                pp = spline(x,to_diff(valid_x),xx(8:end-7));
-                pp = [repmat(pp(1),1,7) pp repmat(pp(end),1,7)];
-                to_diff(valid_x) = to_diff(valid_x)- spline(xx,pp,x);%polyval(p,x);
-                
-                r_ph(:,i) = d_ph(:,i) - to_diff;
-            end
-            figure;
-            plot(r_ph);
-            ep = repmat([1: this.time.length]',1,size(r_ph,2));
-            hold on
-            scatter(ep(this.cycle_slip_idx_ph~=0),r_ph(this.cycle_slip_idx_ph~=0))
-        end
-        
-        function plotAniZtdSlant(this, time_start, time_stop, show_map, write_video)
-            fig_h = figure;
+        function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
+            f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
+
             sztd = this.getSlantZTD(this.slant_filter_win);
 
             if nargin >= 3
@@ -5940,8 +5891,8 @@ classdef Receiver < Exportable
             grid on;
             
             % polar plot "true" Limits
-            e_grid = [-1 : 0.1 : 1];
-            n_grid = [-1 : 0.1 : 1];
+            e_grid = [-1 : 0.2 : 1];
+            n_grid = [-1 : 0.2 : 1];
             [ep, np] = meshgrid(e_grid, n_grid);
             fun = @(dist) exp(-((dist*1e5)/3e4).^2);
             
@@ -5960,7 +5911,7 @@ classdef Receiver < Exportable
             caxis(yl); colormap(jet(1024)); colorbar;
             
             subplot(3,1,3);
-            for i = 2 : numel(id_ok)
+            for i = 2 : 2 : numel(id_ok)
                 % Move scattered points
                 az = (mod(this.sat.az(this.id_sync(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
                 el = (90 - this.sat.el(this.id_sync(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
@@ -5994,8 +5945,8 @@ classdef Receiver < Exportable
             end
         end
         
-        function plotAniZwdSlant(this, time_start, time_stop, show_map)
-            figure;
+        function showAniZwdSlant(this, time_start, time_stop, show_map)
+            f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
             szwd = this.getSlantZWD(this.slant_filter_win);
             
             if nargin >= 3
@@ -6080,8 +6031,8 @@ classdef Receiver < Exportable
             
         end
         
-        function plotZtdSlant(this, time_start, time_stop, win_size)
-            figure;
+        function showZtdSlant_c(this, time_start, time_stop)
+            f = figure; f.Name = sprintf('%03d: Ztd Slant', f.Number); f.NumberTitle = 'off';
             for s = 1 : size(this,2)
                 if isempty(this(s).id_sync)
                     this(s).id_sync = 1 : this(s).time.length();
@@ -6120,7 +6071,8 @@ classdef Receiver < Exportable
             h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
-        function polarScatterZtdSlantRes(this, time_start, time_stop, win_size)
+        function showZtdSlantRes_c(this, time_start, time_stop)
+            
             for r = 1 : size(this, 2)
                 if isempty(this(r).id_sync)
                     this(r).id_sync = 1 : this(r).time.length();
@@ -6141,20 +6093,16 @@ classdef Receiver < Exportable
                     time_start = 1;
                     time_stop = size(sztd,1);
                 end
-                
-                if nargin < 4
-                    win_size = (t(time_stop) - t(time_start)) * 86400;
-                end
-                
+                               
                 %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                 
                 az = (mod(this.sat.az(this(r).id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
                 el = (90 - this.sat.el(this(r).id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
     
-                figure;
+                f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
                 polarScatter(az(:), el(:), 10, sztd(:), 'filled'); hold on;
                 colormap(hot); colorbar;
-                h = title(sprintf('Receiver %s ZTD', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s ZTD - Slant difference', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         
