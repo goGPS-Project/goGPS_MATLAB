@@ -85,4 +85,6 @@ function h = polarScatter(az, decl, point_size, color, flag)
     axis off
     set(gcf,'color','w');
     hold off
+    xlim([-1 1]); ylim([-1 1]);
+
 end
