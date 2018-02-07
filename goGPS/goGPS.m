@@ -135,19 +135,12 @@ tic;
 %-------------------------------------------------------------------------------------------
 
 % Starting batch!!!
-f_ref_rec = state.getReferencePath();
-num_ref_rec = numel(f_ref_rec);
-f_trg_rec = state.getTargetPath();
-num_trg_rec = numel(f_trg_rec);
-num_session = numel(f_trg_rec{1});
-f_mst_rec = state.getMasterPath();
-num_mst_rec = numel(f_mst_rec);
 
 % get short name for File_Name_Processor
 fnp = File_Name_Processor();
 
 initial_mode = state.getMode();
-if num_session > 1
+if state.getSessionCount() > 1
     is_batch = true;
     w_bar.setOutputType(0);
     %log.setColorMode(0);
@@ -158,17 +151,17 @@ end
 state.showTextMode();
 
 sky = Core_Sky.getInstance();
-for s = 1 : num_session
+for s = 1 : state.getSessionCount()
     %-------------------------------------------------------------------------------------------
     % SESSION START
     %-------------------------------------------------------------------------------------------
     
     fprintf('\n--------------------------------------------------------------------------\n');
-    log.addMessage(sprintf('Starting session %d of %d', s, num_session));
+    log.addMessage(sprintf('Starting session %d of %d', s, state.getSessionCount()));
     fprintf('--------------------------------------------------------------------------\n');
     
     % Init sky
-    fr = File_Rinex(f_trg_rec{1}{s},100);
+    fr = File_Rinex(state.getTargetPath(1, s), 100);
     cur_date_start = fr.first_epoch.last();
     cur_date_stop = fr.last_epoch.first();
     sky.initSession(cur_date_start, cur_date_stop);
@@ -176,37 +169,37 @@ for s = 1 : num_session
     clear rec;  % handle to all the receivers
     clear mst;
     r = 0;
-    for i = 1 : num_mst_rec
+    for i = 1 : state.getMasterCount()
         log.newLine();
-        log.addMessage(sprintf('Reading master %d of %d', i, num_mst_rec));
+        log.addMessage(sprintf('Reading master %d of %d', i, state.getMasterCount()));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        mst(i) = Receiver(cc, f_mst_rec{i}{s}); %#ok<SAGROW>
+        mst(i) = Receiver(cc, state.getMasterPath(i, s)); %#ok<SAGROW>
         mst(i).preProcessing();
-        rec(r) = mst(i);        
+        rec(r) = mst(i); %#ok<SAGROW>
     end
     
     clear ref;
-    for i = 1 : num_ref_rec
+    for i = 1 : state.getReferenceCount()
         log.newLine();
-        log.addMessage(sprintf('Reading reference %d of %d', i, num_ref_rec));
+        log.addMessage(sprintf('Reading reference %d of %d', i, state.getReferenceCount));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        ref(i) = Receiver(cc, f_ref_rec{i}{s}); %#ok<SAGROW>
+        ref(i) = Receiver(cc, state.getReferencePath(i, s)); %#ok<SAGROW>
         ref(i).preProcessing();
         rec(r) = ref(i);        
     end
     
     clear trg;
-    for i = 1 : num_trg_rec
+    for i = 1 : state.getTargetCount()
         log.newLine();
-        log.addMessage(sprintf('Reading target %d of %d', i, num_trg_rec));
+        log.addMessage(sprintf('Reading target %d of %d', i, state.getTargetCount));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        trg(i) = Receiver(cc, f_trg_rec{i}{s}); %#ok<SAGROW>        
+        trg(i) = Receiver(cc, state.getTargetPath(i, s)); %#ok<SAGROW>        
         trg(i).preProcessing();
         rec(r) = trg(i);        
     end
@@ -216,14 +209,10 @@ for s = 1 : num_session
     log.addMarkedMessage('Syncing times, computing reference time');
     [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
-    for i = 1 : num_trg_rec
+    for i = 1 : state.getTargetCount()
         trg(i).staticPPP([], id_sync{i});
-%         dt_i0 = trg(i).dt;
-%         trg(i).applyDtRec(dt_i0);        
-%         trg(i).staticPPP(id_sync{i});        
-%         trg(i).dt = trg(i).dt + dt_i0;
     end
     
-    trg_list(:,s) = trg;
+    trg_list(:,s) = trg; %#ok<SAGROW>
 end
     

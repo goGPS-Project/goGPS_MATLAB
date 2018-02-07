@@ -584,6 +584,7 @@ classdef Receiver < Exportable
                     bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.rate)));
                     this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                 end
+                
                 for i = find(nan_clock(:,s) == 1)'
                     c_rate = this.sat.cs.clock_rate;
                     bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.rate)));

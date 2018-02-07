@@ -897,23 +897,29 @@ classdef IO_Settings < Settings_Interface
             % Get the base directory containing RINEX files
             base_rinex_dir = this.obs_dir();
         end
-
+        
         function num_receiver = getTargetCount(this)
             % Get the number of Target receivers
             num_receiver = sum(this.obs_type == this.REC_TARGET);
         end
-
+        
+        function num_receiver = getSessionCount(this)
+            % Get the number of Target receivers
+            file_name = this.obs_full_name(this.obs_type == this.REC_TARGET);
+            num_receiver = numel(file_name{1});
+        end
+        
         function num_receiver = getMasterCount(this)
             % Get the number of Master receivers
             num_receiver = sum(this.obs_type == this.REC_MASTER);
         end
-
+        
         function num_receiver = getReferenceCount(this)
             % Get the number of Reference receivers
             num_receiver = sum(this.obs_type == this.REC_REFERENCE);
         end
-
-        function file_name = getTargetPath(this, id)
+        
+        function file_name = getTargetPath(this, rec_num, session)
             % Get the file list of target receivers files
             % SYNTAX: file_name = this.getTargetPath()
             % A cell for each receiver containing the list of names as cell
@@ -921,27 +927,45 @@ classdef IO_Settings < Settings_Interface
                 this.updateObsFileName();
             end
             file_name = this.obs_full_name(this.obs_type == this.REC_TARGET);
-            if (nargin == 2)
-                file_name = file_name{id};
+            
+            if nargin >= 2
+                file_name = file_name{rec_num};
+                if nargin == 3
+                    file_name = file_name{session};
+                end
             end
         end
-
-        function file_name = getMasterPath(this)
+        
+        function file_name = getMasterPath(this, rec_num, session)
             % Get the file list of master receivers files
             % SYNTAX: file_name = this.getMasterPath()
             if isempty(this.obs_full_name)
                 this.updateObsFileName();
             end
             file_name = this.obs_full_name( this.obs_type == this.REC_MASTER);
+            
+            if nargin >= 2
+                file_name = file_name{rec_num};
+                if nargin == 3
+                    file_name = file_name{max(length(file_name), session)};
+                end
+            end
         end
-
-        function file_name = getReferencePath(this)
+        
+        function file_name = getReferencePath(this, rec_num, session)
             % Get the file list of the reference receivers files
             % SYNTAX: file_name = this.getReferencePath()
             if isempty(this.obs_full_name)
                 this.updateObsFileName();
             end
             file_name = this.obs_full_name(this.obs_type == this.REC_REFERENCE);
+            
+            if nargin >= 2
+                file_name = file_name{rec_num};
+                if nargin == 3
+                    file_name = file_name{session};
+                end
+            end
         end
 
         function [geometry, ev_point] = getGeometry(this)
@@ -1269,6 +1293,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: flag = this.isOutPosition()
             flag = this.flag_out_position;
         end
+        
         function flag = isOutReportPDF(this)
             % Get the export status for the PDF report
             % SYNTAX: flag = this.isOutReportPDF()

@@ -301,7 +301,7 @@ classdef Go_State < Settings_Interface
             go_dir = this.local_storage;
         end
 
-        function [ref_path, mat_path] = getReferencePath(this)
+        function [ref_path, mat_path] = getReferenceConstrainPath(this)
             % Get reference path
             if (nargout == 2)
                 ref_path = this.reference.path;
