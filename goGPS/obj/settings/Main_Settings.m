@@ -1749,6 +1749,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     %  GETTERS
     % =========================================================================
     methods (Access = 'public')
+        function name = getPrjName(this)
+            % get the project name
+            % SYNTAX:
+            %   name = this.getPrjName();
+            
+            name = this.prj_name;
+        end
+        
         function cc = getConstellationCollector(this)
             % Get the constellation collector object
             % SYNTAX: cc = this.getConstellationCollector()

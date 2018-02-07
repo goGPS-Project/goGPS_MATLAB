@@ -721,34 +721,34 @@ classdef Constellation_Collector < Settings_Interface
             gps = handle(this.gps);
         end
 
-        function gps = getGLONASS(this)
+        function glo = getGLONASS(this)
             % return the GLONASS satellite system object
-            gps = handle(this.glo);
+            glo = handle(this.glo);
         end
 
-        function gps = getGalileo(this)
+        function gal = getGalileo(this)
             % return the Galileo satellite system object
-            gps = handle(this.gal);
+            gal = handle(this.gal);
         end
 
-        function gps = getBeiDou(this)
+        function bds = getBeiDou(this)
             % return the BeiDou satellite system object
-            gps = handle(this.bds);
+            bds = handle(this.bds);
         end
 
-        function gps = getQZSS(this)
+        function qzs = getQZSS(this)
             % return the QZSS satellite system object
-            gps = handle(this.qzs);
+            qzs = handle(this.qzs);
         end
 
-        function gps = getIRNSS(this)
+        function irn = getIRNSS(this)
             % return the IRNSS satellite system object
-            gps = handle(this.irn);
+            irn = handle(this.irn);
         end
         
-        function gps = getSBAS(this)
+        function sbs = getSBAS(this)
             % return the SBAS satellite system object
-            gps = handle(this.sbs);
+            sbs = handle(this.sbs);
         end
         
         function sys = getSys(this, sys)
@@ -783,7 +783,7 @@ classdef Constellation_Collector < Settings_Interface
 %                 if s == 'J' %% WARNING PATCH FIX  --> consider set prn of QZSS as the others
 %                     p = p + 192;
 %                 end
-                index(i) = this.index( [this.system == s]' & this.prn == p);
+                index(i) = this.index((this.system == s)' & this.prn == p);
             end
             
         end

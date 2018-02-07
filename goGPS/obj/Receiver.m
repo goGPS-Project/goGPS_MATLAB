@@ -3091,9 +3091,8 @@ classdef Receiver < Exportable
                 obs_idx = this.obs_code(:,1) == 'C';
                 this.obs(obs_idx,:) = nan2zero(zero2nan(this.obs(obs_idx,:)) + d_range(:,this.go_id(obs_idx))');
         end
-        
-        
-        % ----- shif to nominal at transmission time
+                
+        % ----- shift to nominal at transmission time        
         function shiftObs(this, seconds, go_id)
             XS = this.getXSLoc(go_id);
             % translate the time
@@ -4134,6 +4133,7 @@ classdef Receiver < Exportable
                         end
                     end
                 end
+                
                 if ~isempty(this.sat.cs.ant_pcv)
                     
                     % getting satellite reference frame for each epoch
@@ -4272,6 +4272,7 @@ classdef Receiver < Exportable
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
+            %this.applyHOI();
         end
     end
     
@@ -4967,7 +4968,7 @@ classdef Receiver < Exportable
             
             % apply various corrections
             this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-            % #15
+            
             this.applyPCV();
             this.applyPoleTide();
             this.applyPhaseWindUpCorr();

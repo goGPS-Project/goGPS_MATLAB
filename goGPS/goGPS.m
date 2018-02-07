@@ -50,13 +50,15 @@ clearvars -except ini_settings_file use_gui; % exceptions for goGPSgo
 
 % close all the opened files
 fclose('all');
-flag_init_out = false;
-
 
 % add all the subdirectories to the search path
 if (~isdeployed)
     addpath(genpath(pwd));
 end
+
+%----------------------------------------------------------------------------------------------
+% INIT
+%----------------------------------------------------------------------------------------------
 
 % Init Core
 core = Core.getInstance();
@@ -67,7 +69,7 @@ log = Logger.getInstance();
 % Pointer to the global settings:
 gs = Go_State.getInstance();
 state = gs.getCurrentSettings();
-%settings_file = checkPath('..\data\project\default_PPP\config\settings.ini');
+
 if exist('ini_settings_file', 'var')
     state.importIniFile(ini_settings_file);
 end
@@ -93,9 +95,6 @@ w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', 0);  % 0 means text, 1 m
 w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
 %end
 
-% Kalman filter cannot be initialized when goGPS starts
-kalman_initialized = false;
-
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
@@ -119,6 +118,8 @@ end
 %% GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
 
+log.newLine();
+log.addMarkedMessage(sprintf('PROJECT: %s', state.getPrjName()));
 log.newLine();
 state.showTextMode();
 
@@ -216,7 +217,7 @@ for s = 1 : num_session
     [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
     for i = 1 : num_trg_rec
-        trg(i).staticPPP(id_sync{i});
+        trg(i).staticPPP([], id_sync{i});
 %         dt_i0 = trg(i).dt;
 %         trg(i).applyDtRec(dt_i0);        
 %         trg(i).staticPPP(id_sync{i});        
