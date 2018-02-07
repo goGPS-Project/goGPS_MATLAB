@@ -273,15 +273,11 @@ classdef FTP_Downloader < handle
 
     methods (Static)
         function flag = checkNet()
-            % Check whether internet connection is available
-            url =java.net.URL('http://igs.org');
-
-            % read the URL
-            try
-                link = openStream(url);
-                flag = ~isempty(link);
-            catch
-                flag = false;
+            % Check whether internet connection is available            
+            if ispc
+                flag = ~system('ping -n 1 www.fast.com > nul');
+            elseif isunix
+                flag = ~system('ping -c 1 www.fast.com > /dev/null');
             end
         end
 
