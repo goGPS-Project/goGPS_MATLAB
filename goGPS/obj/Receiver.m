@@ -6032,7 +6032,7 @@ classdef Receiver < Exportable
         end
         
         function showZtdSlant_c(this, time_start, time_stop)
-            f = figure; f.Name = sprintf('%03d: Ztd Slant', f.Number); f.NumberTitle = 'off';
+            f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
             for s = 1 : size(this,2)
                 if isempty(this(s).id_sync)
                     this(s).id_sync = 1 : this(s).time.length();
@@ -6070,7 +6070,28 @@ classdef Receiver < Exportable
             grid on;
             h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
-        
+
+        function showZtd_c(this)
+            f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
+            for s = 1 : size(this,2)
+                if isempty(this(s).id_sync)
+                    this(s).id_sync = 1 : this(s).time.length();
+                end
+                
+                t = this(s).time.getEpoch(this(s).id_sync).getMatlabTime;
+                
+                ztd = this(s).ztd(this(s).id_sync);
+                
+                plot(t, zero2nan(ztd), 'LineWidth', 4);
+            end
+            %ylim(yl);
+            %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+            grid on;
+            h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+        end
+
         function showZtdSlantRes_c(this, time_start, time_stop)
             
             for r = 1 : size(this, 2)
