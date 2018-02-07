@@ -450,7 +450,9 @@ classdef Receiver < Exportable
             this.active_ids = true(this.getNumObservables, 1);
             
             % remove empty observables
-            this.remObs(~this.active_ids)
+            this.remObs(~this.active_ids);
+            
+            this.setActiveSys(this.getAvailableSys);
         end
         
         function loadAntModel(this)
@@ -464,8 +466,8 @@ classdef Receiver < Exportable
         end
                 
         function TEST_smoothCodeWithDoppler(this, win_size)
-            % This function has been tested in particular cases on UBLOX single frequency
-            % In the future see: Optimal Doppler-aided smoothing strategy for GNSS navigation
+            % This function has been tested in particular cases on UBLOX single frequency receivers
+            % For the future see: Optimal Doppler-aided smoothing strategy for GNSS navigation
             [pr, id_pr] = this.getPseudoRanges;
             pr_corr = Core_Pre_Processing.diffAndPred(pr + cumsum(nan2zero(this.getDoppler * this.rate)));
             for s = 1 : size(pr_corr, 2)
@@ -561,7 +563,7 @@ classdef Receiver < Exportable
             end
             %remove bad epoch in crx
             this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
-            [CRX, found] = load_crx(this.state.crx_dir, double(this.time.getGpsWeek), this.time.getGpsTime, this.cc);
+            [CRX, found] = load_crx(this.state.crx_dir, this.time, this.cc);
             if found
                 for s = 1 : size(CRX,1)
                     c_sat_idx = this.go_id == s;
@@ -1652,6 +1654,71 @@ classdef Receiver < Exportable
             end
         end
         
+        % constellation systems
+
+        function sys_c = getAvailableSys(this)
+            % get the available system stored into the object
+            % SYNTAX: sys_c = this.getAvailableSys()
+            
+            % Select only the systems present in the file
+            sys_c = unique(this.system);
+        end
+
+        function sys_c = getActiveSys(this)
+            % get the active system stored into the object
+            % SYNTAX: sys_c = this.getActiveSys()
+            
+            % Select only the systems still present in the file
+            go_id = this.getActiveGoIds();
+            sys_c = unique(this.getSysPrn(go_id));
+        end
+        
+        function [sys_c, prn] = getSysPrn(this, go_id)
+            % return sys_c and prn for a given go_id
+            % SYNTAX: [sys_c, prn] = this.getSysPrn(go_id)
+            sys_c = char(ones(size(go_id))*32);
+            prn = zeros(size(go_id));
+            for i = 1:length(prn)
+                tmp_id = find(this.go_id == go_id(i), 1, 'first');
+                if ~isempty(tmp_id)
+                    sys_c(i) = this.system(tmp_id);
+                    prn(i) = this.prn(tmp_id);
+                end                
+            end
+        end        
+        
+        function go_id = getActiveGoIds(this)
+            % return go_id present in the receiver of the active constellations
+            % SYNTAX: go_id = this.getActiveGoIds()
+            go_id = unique(this.go_id(regexp(this.system, ['[' this.cc.sys_c ']?'])));
+        end
+        
+        function go_id = getGoId(this, sys, prn)
+            % return go_id for a given system and prn
+            % SYNTAX: go_id = this.getGoId(sys, prn)
+            go_id = zeros(size(prn));
+            if length(sys) == 1
+                sys = repmat(sys,length(prn),1);
+            end
+            for i = 1:length(prn)
+                p = prn(i);
+                s = sys(i);
+                id = find((this.system == s)' & (this.prn == p), 1, 'first');
+                if isempty(id)
+                    go_id(i) = 0;
+                else
+                    go_id(i) = this.go_id(id);
+                end
+            end
+        end
+        
+        function ant_id = getAntennaId(this, go_id)
+            % return ant id given a go_id
+            % SYNTAX: ant_id = this.getAntennaId(go_id)
+            [sys_c, prn] = this.getSysPrn(go_id);
+            ant_id = reshape(sprintf('%c%02d', serialize([sys_c; prn]))',3, numel(go_id))';
+        end
+
         % times 
         
         function mat_time = getMatlabTime(this)
@@ -1761,14 +1828,7 @@ classdef Receiver < Exportable
             
             err4el = zero2nan(err4el);
         end
-        
-        function getChalmersString(this)
-            % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
-            % SYNTAX:   this.getChalmersString();
-            xyz = this.getMedianPosXYZ();
-            fprintf('"%-24s %16.4f%16.4f%16.4f"\n', this.marker_name, xyz(1), xyz(2),xyz(3));
-        end
-        
+               
         function nominal_time = getNominalTime(this)
             % get the nominal time aka rounded time cosidering a  constant
             % sampling rate
@@ -1927,16 +1987,7 @@ classdef Receiver < Exportable
             %                 [XS_tx(idx,:,:), ~] = this.sat.cs.coordInterpolate(time_tx);
             %             end
         end
-                        
-        function sys_c = getActiveSys(this)
-            % get the available system stored into the object
-            % SYNTAX: sys_c = this.getActiveSys()
-            
-            % Select only the systems still present in the file
-            go_id = this.getActiveGoIds();
-            sys_c = unique(this.getSysPrn(go_id));
-        end
-        
+                                
         function obs_code = getAvailableCode(this, sys_c)
             % get the available observation code for a specific sys
             % SYNTAX: obs_code = this.getAvailableCode(sys_c)
@@ -1965,54 +2016,7 @@ classdef Receiver < Exportable
                 xyz = median(this.xyz, 1);
             end
         end
-        
-        function go_id = getActiveGoIds(this)
-            % return go_id present in the receiver of the active constellations
-            % SYNTAX: go_id = this.getActiveGoIds()
-            go_id = unique(this.go_id(regexp(this.system, ['[' this.cc.sys_c ']?'])));
-        end
-        
-        function go_id = getGoId(this, sys, prn)
-            % return go_id for a given system and prn
-            % SYNTAX: go_id = this.getGoId(sys, prn)
-            go_id = zeros(size(prn));
-            if length(sys) == 1
-                sys = repmat(sys,length(prn),1);
-            end
-            for i = 1:length(prn)
-                p = prn(i);
-                s = sys(i);
-                id = find((this.system == s)' & (this.prn == p), 1, 'first');
-                if isempty(id)
-                    go_id(i) = 0;
-                else
-                    go_id(i) = this.go_id(id);
-                end
-            end
-        end
-        
-        function [sys_c, prn] = getSysPrn(this, go_id)
-            % return sys_c and prn for a given go_id
-            % SYNTAX: [sys_c, prn] = this.getSysPrn(go_id)
-            sys_c = char(ones(size(go_id))*32);
-            prn = zeros(size(go_id));
-            for i = 1:length(prn)
-                tmp_id = find(this.go_id == go_id(i), 1, 'first');
-                if ~isempty(tmp_id)
-                    sys_c(i) = this.system(tmp_id);
-                    prn(i) = this.prn(tmp_id);
-                end
-                    
-            end
-        end
-        
-        function ant_id = getAntennaId(this, go_id)
-            % return ant id given a go_id
-            % SYNTAX: ant_id = this.getAntennaId(go_id)
-            [sys_c, prn] = this.getSysPrn(go_id);
-            ant_id = reshape(sprintf('%c%02d', serialize([sys_c; prn]))',3, numel(go_id))';
-        end
-        
+                       
         function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
             %
@@ -2457,10 +2461,11 @@ classdef Receiver < Exportable
             obs_set.sigma = sigma;
         end
         
-        %----------------------------------
-        % Two Frequency observation combination
-        % Warppers of getTwoFreqComb function
-        %------------------------------------
+        % ---------------------------------------
+        %  Two Frequency observation combination
+        %  Warppers of getTwoFreqComb function
+        % ---------------------------------------
+        
         function [obs_set] = getIonoFree(this,flag1,flag2,system)
             fun1 = @(wl1, wl2) wl2 ^ 2 / (wl2 ^ 2 - wl1 ^ 2);
             fun2 = @(wl1, wl2) - wl1^2/(wl2 ^ 2 - wl1 ^ 2);
@@ -2665,6 +2670,8 @@ classdef Receiver < Exportable
             end            
         end  
         
+        % Multi receivers
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
@@ -2721,7 +2728,17 @@ classdef Receiver < Exportable
                 id_rec = id_sync{1}(:,r);
                 zwd(~isnan(id_rec),r) = this(r).zwd(id_rec(~isnan(id_rec)));
             end
-        end        
+        end
+        
+        % Utilities
+        
+        function getChalmersString(this)
+            % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
+            % SYNTAX:   this.getChalmersString();
+            xyz = this.getMedianPosXYZ();
+            fprintf('"%-24s %16.4f%16.4f%16.4f"\n', this.marker_name, xyz(1), xyz(2),xyz(3));
+        end
+        
     end
     
     % ==================================================================================================================================================
@@ -2778,6 +2795,14 @@ classdef Receiver < Exportable
             this.xyz = xyz;
             this.updateCoo();
         end
+        
+        function setActiveSys(this, sys_list)
+            % set the active systems to bbe used for the computations
+            % SYNTAX: this.setActiveSys(sys_list)
+            
+            % Select only the systems still present in the file
+            this.cc.setActive(sys_list);
+        end        
     end
     
     % ==================================================================================================================================================
@@ -4906,8 +4931,7 @@ classdef Receiver < Exportable
                     o = o + 1;
                 end
             end
-        end
-             
+        end             
         
         function preProcessing(this, is_static)
             % Do all operation needed in order to preprocess the data
@@ -4955,15 +4979,39 @@ classdef Receiver < Exportable
             this.removeOutlierMarkCycleSlip();            
         end
 
-        function staticPPP(this, id_sync)
+        function staticPPP(this, sys_list, id_sync)
+            % compute a static PPP solution
+            %
+            % SYNTAX:
+            %   this.staticPPP(<sys_list>, <id_sync>)
+            %
+            % EXAMPLE:
+            %   Use the full dataset to compute a PPP solution
+            %    - this.staticPPP();
+            %
+            %   Use just GPS + GLONASS + Galileo to compute a PPP solution 
+            %   using epochs from 501 to 2380
+            %    - this.staticPPP('GRE', 501:2380);
+            %
+            %   Use all the available satellite system to compute a PPP solution
+            %   using epochs from 501 to 2380
+            %    - this.staticPPP([], 500:2380);
+            
+            if nargin >= 2
+                if ~isempty(sys_list)
+                    this.setActiveSys(sys_list);
+                end
+            end
+            
+            if nargin < 3
+                id_sync = 1 : this.time.length();
+            end
+            
             this.log.addMarkedMessage('Computing PPP solution');
             this.log.addMessage(this.log.indent('Preparing the system', 6));
             %this.updateAllAvailIndex
             %this.updateAllTOT
             ls = Least_Squares_Manipulator();
-            if nargin < 2
-                id_sync = 1 : this.time.length();
-            end
             id_sync = ls.setUpPPP(this, id_sync);
             ls.Astack2Nstack();
             
