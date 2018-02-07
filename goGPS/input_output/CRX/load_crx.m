@@ -1,4 +1,4 @@
-function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
+function [CRX, found] = load_crx(data_dir_crx, time, cc)
 
 % SYNTAX:
 %   [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations);
@@ -49,41 +49,38 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 
 %output initialization
 %CRX = sparse(false(cc.getNumSat, length(time_R)));
-CRX = sparse(false(cc.getNumSat, length(time_R)));
+CRX = sparse(false(cc.getNumSat, time.length));
 log = Logger.getInstance();
 
-%convert GPS time to time-of-week
-gps_tow = weektime2tow(gps_week, time_R);
-
 %detect starting and ending year/month
-date = gps2date(gps_week, gps_tow);
-year_start = date(1,1);
-year_end   = date(end,1);
-dnum = datenum(date);
-date_start = dnum(1);
-date_stop  = dnum(end);
+date6_start = time.first.get6ColDate();
+date6_stop = time.last.get6ColDate();
+year_start = date6_start(1);
+year_end   = date6_stop(1);
+date_start = time.first.getMatlabTime();
+date_stop  = time.last.getMatlabTime();
 
-%directory containing CRX files
+% directory containing CRX files
 data_dir = dir(data_dir_crx);
 
-%check the number of files contained in the directory
-nmax = size(data_dir,1);
+% check the number of files contained in the directory
+n_max = size(data_dir,1);
 
-%file counter
+% file counter
 n = 0;
 
-%CRX file found
+% CRX file found
 found = 0;
 
 log.addMarkedMessage('Reading CRX data');
 
-%find files with ".CRX" extension
-for j = 1 : nmax
+% find files with ".CRX" extension
+for j = 1 : n_max
 
-    %read the name of the j-th file
+    % read the name of the j-th file
     crx_file_name = getfield(data_dir,{j,1},'name');
 
-    %get the number of characters in the filename
+    % get the number of characters in the filename
     crx_fn_length = size(crx_file_name,2);
 
     if (crx_fn_length < 12)
@@ -92,7 +89,7 @@ for j = 1 : nmax
 
     year = str2num(crx_file_name(5:8)); %#ok<ST2NM>
 
-    %check if the filename corresponds to that expected from a standard CRX file required by goGPS
+    % check if the filename corresponds to that expected from a standard CRX file required by goGPS
     % (e.g. "SAT_yyyy.CRX", with 'yyyy' = four-digit year)
     if (crx_fn_length == 12  && (strcmpi(crx_file_name(1:4), 'SAT_') && ...
        (year >=  year_start && year  <=  year_end)  && ...
@@ -101,13 +98,13 @@ for j = 1 : nmax
         n = n + 1;
         log.addMessage(sprintf('       - %s', crx_file_name));
 
-        %full path to the target file
+        % full path to the target file
         crx_file_target  = strcat(data_dir_crx, '/', crx_file_name);
 
-        %open .crx file
+        % open .crx file
         fid_fd = fopen(crx_file_target,'r');
 
-        %warnings
+        % warnings
         if (fid_fd ~= -1)
             log.addStatusOk();
         else
@@ -134,7 +131,6 @@ for j = 1 : nmax
 
                     offset = -1;
                     if (prn < 100) % GPS
-                        prn = prn;
                         if cc.getGPS().isActive() && (prn < cc.getGPS().N_SAT)
                             offset = cc.getGPS().getFirstId(); % starting index in the total array for the various constellations
                         end
@@ -187,8 +183,8 @@ for j = 1 : nmax
 
                                 %(p == 4 &&           (s <= date_stop && e >= date_start))) % arc split <--> not needed by goGPS
 
-                            [~, idx_start] = min(abs(s - dnum));
-                            [~, idx_end]   = min(abs(e - dnum));
+                            [~, idx_start] = min(abs(s - time.getMatlabTime()));
+                            [~, idx_end]   = min(abs(e - time.getMatlabTime()));
                             CRX(index, idx_start:idx_end) = 1;
                         end
                     end
@@ -201,11 +197,11 @@ for j = 1 : nmax
     end
 end
 
-%if no .CRX files are available, return
+% if no .CRX files are available, return
 if (n == 0)
     log.addWarning(['The required (updated) CRX files were not found in ' data_dir_crx ' directory.\n']);
 else
-    %CRX file found
+    % CRX file found
     found = 1;
     bad_sat = find(any(CRX,2));
     if ~isempty(bad_sat)
