@@ -501,13 +501,37 @@ classdef Constellation_Collector < Settings_Interface
     % =========================================================================
     methods (Access = 'public')
         function setActive(this, active_list)
-            this.glo.enable(active_list(2));
-            this.gal.enable(active_list(3));
-            this.qzs.enable(active_list(4));
-            this.bds.enable(active_list(5));
-            this.irn.enable(active_list(6));
-            this.sbs.enable(active_list(7));
-            this.gps.enable(active_list(1));
+            if ischar(active_list)
+                sys_c = active_list;
+                active_list = false(1, 7);
+                for ss = sys_c
+                    switch ss
+                        case 'G'
+                            active_list(this.ID_GPS) = true;
+                        case 'R'
+                            active_list(this.ID_GLONASS) = true;
+                        case 'E'
+                            active_list(this.ID_GALILEO) = true;
+                        case 'C'
+                            active_list(this.ID_BEIDOU) = true;
+                        case 'J'
+                            active_list(this.ID_QZSS) = true;
+                        case 'I'
+                            active_list(this.ID_IRNSS) = true;
+                        case 'S'
+                            active_list(this.ID_SBAS) = true;
+                        otherwise
+                    end
+                end
+            end
+            
+            this.glo.enable(active_list(this.ID_GLONASS));
+            this.gal.enable(active_list(this.ID_GALILEO));
+            this.qzs.enable(active_list(this.ID_BEIDOU));
+            this.bds.enable(active_list(this.ID_QZSS));
+            this.irn.enable(active_list(this.ID_IRNSS));
+            this.sbs.enable(active_list(this.ID_SBAS));
+            this.gps.enable(active_list(this.ID_GPS));
             this.update();
         end
         
