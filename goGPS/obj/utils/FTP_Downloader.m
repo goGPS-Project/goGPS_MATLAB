@@ -52,15 +52,16 @@ classdef FTP_Downloader < handle
         ERR_FNF      = -4;   % at least one file not found
         ERR_FNV      = -5;   % at least one file not valid (it can not be uncompressed)
         W_FP         =  1    % Warning File Present - at least one file to be dowloaded is already present
+
     end
 
     properties (SetAccess = protected, GetAccess = protected)
-        addr;           % IP address of the FTP server, stored as string
         port = '21';    % PORT to access the FTP server, stored as number
         remote_dir;     % Base dir path on the remote server to locate the file to download
         file_name;      % name of the file
         local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded
         ftp_server;     % object containing the connector
+        addr;           % IP address of the FTP server, stored as string
     end
 
 
@@ -69,6 +70,9 @@ classdef FTP_Downloader < handle
     end
 
     methods
+        function addr = getAddress(this)
+            addr = this.addr;
+        end
         function this = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir)
             % Constructor
             % EXAMPLE: FTP_Downloader('')
@@ -112,6 +116,49 @@ classdef FTP_Downloader < handle
         function delete(this)
             % destructor close the connection with the server
             close(this.ftp_server);
+        end
+        
+        function [status]  = check(this, filepath)
+            try
+                status = ~isempty(dir(this.ftp_server, [filepath '.*']));
+            catch
+            end
+        end
+        
+        function [status]  = downloadUncompress(this, filepath, out_dir)
+            %try
+                path = File_Name_Processor.getPath(filepath);
+                fname = File_Name_Processor.getFileName(filepath);
+                cd(this.ftp_server, path);
+                this.log.addMessage(this.log.indent(sprintf('downloading %s ...',fname)));
+                
+                fpath = mget(this.ftp_server, [fname '*'], out_dir);
+                if isempty(fpath)
+                    status = false;
+                    return
+                else
+                    status = true;
+                    fprintf('\b');
+                    this.log.addMessage(' Done');
+                    [~, ~, fext] = fileparts(fpath{1});
+                    if strcmp(fext,'.Z') || strcmp(fext,'.gz')
+                    if (isunix())
+                        system(['gzip -d -f ' fpath{1} '&>2 /dev/null']);
+                    else
+                        try
+                            f_path = File_Name_Processor.getFullDirPath(fpath{1});
+                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' fpath{1} '"' ' -o' '"' f_path '"']); %#ok<ASGLU>
+                            delete([fpath{1}]);
+                        catch
+                            this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
+                            status = false;
+                        end
+                    end
+                    end
+                    
+                end
+%             catch
+%             end
         end
 
 

@@ -322,6 +322,11 @@ classdef File_Name_Processor < handle
             file_name = [name extension];
         end
         
+        function path = getPath(file_name)
+            % Get only the file name of a full path
+            [path, ~, ~] = fileparts(file_name);
+        end
+        
         function file_name = keyRep(file_name, key, substitution)
             % Substitute a key in the file_name with another value
             file_name = strrep(file_name,key, substitution);

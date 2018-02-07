@@ -33,12 +33,14 @@ end
             
             this.log = Logger.getInstance();
         end
-        function ip = getServerIp(this, name)
+        function [ip, port] = getServerIp(this, name)
             % return the ip of a server given the server name
             ip = [];
+            port = [];
             for i = 1 : length(this.servers)
                 if strcmp(this.servers{i}.name, name)
-                    ip = this.servers{i}.data;
+                    ip = this.servers{i}.data{1};
+                    port = this.servers{i}.data{2};
                 end
             end
         end
@@ -50,11 +52,11 @@ end
                 if length(name_part) > 1
                     const = name_part{2};
                 else
-                    const = '';
+                    const = 'GRECJIS';
                 end
                 cond_const = true;
                 if nargin > 2
-                    cond_const = strfind(const, sys_c);
+                    cond_const = ~isempty(strfind(const, sys_c));
                 end
                 if strcmp(name, fname) && cond_const
                     f_struct = struct();
@@ -63,26 +65,14 @@ end
                     for j = 1 : length(this.file_resources{i}.key)
                         name_k = this.file_resources{i}.key{j}.name;
                         f_struct.(name_k) = this.file_resources{i}.key{j}.data;
-                        if strcmp(name_k(1:3),'loc') && ~(name_k(4) == '_')
-                            % substitute server name with server address
-                            [matches] = regexp(f_struct.(name_k),'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
-                            for k = 1 : length(matches)
-                                s_ip = this.getServerIp(matches{k});
-                                if ~isempty(s_ip)
-                                    f_struct.(name_k) = strrep(f_struct.(name_k),['?{' matches{k} '}'], s_ip);
-                                else
-                                    this.log.addWarning(['No server called ' matches{k} ' found.'])
-                                end
-                            end
-                        end
                     end
                     
                 end
             end
         end
         function center_code = getCenterCode(this, center_name, resource_name, sys_c)
-            % return the cneter code given a resource name and desidered
-            % constalltion
+            % return the center code given a resource name and desired
+            % constelltion
             for i = 1 :length(this.computational_centers)
                 if strcmp(this.computational_centers{i}.name, center_name)
                     for j = 1 : length(this.computational_centers{i}.key)
@@ -91,6 +81,9 @@ end
                             idx = [];
                             if nargin > 3
                                 valid = [];
+                                if ~iscell(resource.data)
+                                    resource.data = {resource.data};
+                                end
                                 for k = 1:length(resource.data)
                                     center_code_part = strsplit(resource.data{k},'@');
                                     if length(center_code_part) > 1
@@ -100,7 +93,7 @@ end
                                             found = found && ~isempty(strfind(consts, sys_c(l)));
                                         end
                                         if found
-                                            valid = [valid ; [k, length(consts) -length(sys_c)]];
+                                            valid = [valid ; [k, (length(consts) -length(sys_c))]];
                                         end
                                     else
                                        valid = [valid; [k,Inf]];
@@ -140,7 +133,7 @@ end
         function file_structure = parseLogicTree(this, string)
             [status, list] = this.findElements(string);
             if status == 0
-                file_structure  = string;
+                file_structure  = {strtrim(string), false};
                 return
             else
                if status == 1

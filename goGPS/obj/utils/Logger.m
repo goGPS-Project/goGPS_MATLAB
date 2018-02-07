@@ -286,6 +286,9 @@ classdef Logger < handle
         function str = indent(str, n_spaces)
             % Add n_spaces at the beginning of each line
             % SYNTAX: str = indent(str, n_spaces)
+            if nargin < 2
+                n_spaces = 6;
+            end
             str = strrep([char(ones(1,n_spaces) * 32) str], char(10), char([10 ones(1, n_spaces) * 32]));
         end
     end

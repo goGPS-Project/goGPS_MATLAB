@@ -100,7 +100,7 @@ classdef IO_Settings < Settings_Interface
         CUSTOM_NAME_ERP = '${WWWW}/igs${WWWW}7.erp';
 
         % SATELLITES
-        EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep]; % Path to Ephemeris files folder
+        EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep ]; % Path to Ephemeris files folder
         EPH_NAME = ''; % Name for Ephemeris files
         CLK_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
         CLK_NAME = ''; % Name of Clock Offset files
@@ -122,6 +122,8 @@ classdef IO_Settings < Settings_Interface
         IGRF_NAME = 'igrf12coeff.txt';
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
+        IONO_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
+        REMOTE_RES_CONF_DIR = [IO_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
 
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
@@ -144,6 +146,11 @@ classdef IO_Settings < Settings_Interface
         FLAG_OUT_BLOCK_OBJ = false;         % Flag to export the Core_Block object used for the processing
         FLAG_OUT_KML = false;               % Flag to export the KML file
         FLAG_OUT_NMEA = false;              % Flag to export the NMEA file
+        
+        %CHECK REMOTE FALG
+        FLAG_CHECK_REMOTE = true;
+        
+        
         
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end
@@ -282,8 +289,10 @@ classdef IO_Settings < Settings_Interface
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
 
         erp_dir = IO_Settings.ERP_DIR;    % Path to ERP files folder
+        iono_dir = IO_Settings.IONO_DIR;  % Path to IONO files folder
         erp_name = IO_Settings.ERP_NAME;  % File name of ERP
         erp_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
+        remote_res_conf_dir = IO_Settings.REMOTE_RES_CONF_DIR;
         
         igrf_dir = IO_Settings.IGRF_DIR;  % Path to IGRF files folder
         igrf_name = IO_Settings.IGRF_NAME;
@@ -332,7 +341,7 @@ classdef IO_Settings < Settings_Interface
         flag_out_block_obj = IO_Settings.FLAG_OUT_BLOCK_OBJ;        % Flag to export the Core_Block object used for the processing
         flag_out_kml = IO_Settings.FLAG_OUT_KML;                    % Flag to export the KML file
         flag_out_nmea = IO_Settings.FLAG_OUT_NMEA;                  % Flag to export the NMEA file
-
+        flag_check_remote = IO_Settings.FLAG_CHECK_REMOTE;
         %------------------------------------------------------------------
         % EXTERNAL INFO as imported from INPUT FILE INI
         %------------------------------------------------------------------
@@ -441,6 +450,7 @@ classdef IO_Settings < Settings_Interface
                 this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
                 this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dtm_dir')), this.prj_home));
+                this.remote_res_conf_dir    = fnp.getFullDirPath(settings.getData('remote_res_conf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('remote_res_conf_dir')), this.prj_home));
                 % UI
                 this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('img_dir')), this.prj_home));
                 % OUTPUT
@@ -892,6 +902,31 @@ classdef IO_Settings < Settings_Interface
             % Get the base directory containing the project
             file_dir = this.prj_home;
         end
+        
+        function remote_source_file = getRemoteSourceFile(this)
+            remote_source_file = File_Name_Processor.checkPath([this.remote_res_conf_dir filesep 'remote_resource.ini']);
+        end
+        
+        function dir = getFileDir(this, filename)
+            if length(filename) < 1
+                dir = '';
+                return
+            end
+            [filepath,name,ext] = fileparts(filename);
+            if strcmp(ext,'.sp3') || strcmp(ext,'.eph')
+                dir = this.getNavEphDir();
+            elseif strcmp(ext,'.erp')
+                dir = this.getErpDir();
+            elseif strfind(ext,'.clk')
+                dir = this.getNavClkDir();
+            elseif strcmp(ext,'.CRX')
+                
+            elseif ~isempty(regexp(ext,'\.i\d\d')) || strcmp(ext,'.i${YY}')
+                dir = this.getIonoDir();
+            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.SNX') & strcmp(name(1:3),'DCB'))
+                dir = this.getDcbDir();
+            end
+        end
 
         function base_rinex_dir = getRinexBaseDir(this)
             % Get the base directory containing RINEX files
@@ -1110,6 +1145,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: dcb_path = this.getDcbPath()
             out = this.dcb_dir;
         end
+       
 
         function out = getNavEphPath(this)
             % Get the path to the navigational files

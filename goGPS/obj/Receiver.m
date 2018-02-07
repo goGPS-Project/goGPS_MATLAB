@@ -5057,6 +5057,8 @@ classdef Receiver < Exportable
 %             ls.reweightHuber();
 %             ls.Astack2Nstack();
 %             [x, res, s02] = ls.solve();
+%             ls.y = ls.res;
+%             [x1, res1, s021] = ls.solve();
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = max(id_sync) - size(res,1);
             if dsz == 0

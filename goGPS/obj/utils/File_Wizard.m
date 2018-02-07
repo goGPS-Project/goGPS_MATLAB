@@ -149,6 +149,9 @@ classdef File_Wizard < handle
                                            
     	date_start; % first epoch of common observations (among all the obs files)
         date_stop;  % last epoch of common observations (among all the obs files)
+        center_code;% center code
+        rm;         % resource manager
+        sys_c;      % system collector
     end
 
     properties (SetAccess = protected, GetAccess = protected)
@@ -157,7 +160,8 @@ classdef File_Wizard < handle
 
     properties (SetAccess = private, GetAccess = private)
         log = Logger.getInstance(); % Handler to the log object
-        ftp_downloader;
+        fnp = File_Name_Processor();
+        ftp_downloaders;
     end
 
     methods
@@ -171,6 +175,141 @@ classdef File_Wizard < handle
                 this.state = handle(state);
             else
                 this.state = Go_State.getCurrentSettings();
+            end
+            this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
+            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
+        end
+        
+        function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
+            file_tree = this.rm.getFileStr(resource_name);
+            if nargin < 3
+                date_start = this.date_start;
+                date_stop = this.date_stop;
+            else
+                this.date_start = date_start;
+                this.date_stop = date_stop;
+            end
+            if nargin < 5
+                center_code = this.center_code;
+            else
+                this.center_code = this.rm.getCenterCode( center_name, resource_name, this.sys_c);
+            end
+            % check local
+            [status, file_tree] = this.navigateTree(file_tree, 'local_check');
+            % check remote
+            if  this.state.flag_check_remote && not(status)
+                [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
+                if status 
+                    [status, ~] = this.navigateTree(file_tree, 'download');
+                    if not(status)
+                        this.log.addWarning('Not all file have been found or uncopress, processing might crash');
+                    end
+                end
+            end
+        end
+        function idx = getServerIdx(this, address , port)
+            % get idx of server if not present open the connection
+            if nargin < 3
+                port = 21;
+            end
+            idx = 0;
+            for i = 1 : length(this.ftp_downloaders)
+                if strcmp(this.ftp_downloaders{i}.getAddress , address)
+                    idx = i;
+                    return
+                end
+            end
+            if idx == 0
+               this.ftp_downloaders{end+1} = FTP_Downloader(address, port);
+               idx = length(this.ftp_downloaders);
+            end
+        end
+        
+        function [status, file_tree] = navigateTree(this, file_tree, mode);
+            status = false;
+            if iscell(file_tree)
+                if strcmp(file_tree{1},'null') || file_tree{2} 
+                    status = true;
+                    if strcmp(mode, 'download') && ~strcmp(file_tree{1},'null') && length(file_tree) > 2
+                        loc_n = file_tree{3};
+                        f_struct = this.rm.getFileLoc(file_tree{1}, this.sys_c);
+                        f_name = f_struct.filename;
+                        f_name = strrep(f_name, '${CCC}', this.center_code);
+                        f_path = [f_struct.(['loc' sprintf('%03d',loc_n)]) f_name];
+                        file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
+                        status = true;
+                        for i = 1 : length(file_name_lst)
+                            file_name = file_name_lst{i};
+                            [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
+                            server = server{1};
+                            file_name = strrep(file_name,['?{' server '}'],'');
+                            [s_ip, port] = this.rm.getServerIp(server);
+                            idx = this.getServerIdx(s_ip, port);
+                            out_dir = this.state.getFileDir(file_name);
+                            status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                        end
+                    end
+                elseif ~strcmp(mode,'download')
+                    f_struct = this.rm.getFileLoc(file_tree{1}, this.sys_c);
+                    f_name = f_struct.filename;
+                    f_name = strrep(f_name, '${CCC}', this.center_code);
+                    if strcmp(mode, 'local_check')
+                        f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
+                        file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
+                        status = true;
+                        for i = 1 : length(file_name_lst)
+                            status = status && exist(file_name_lst{i}, 'file') == 2;
+                        end
+                        if status
+                            this.log.addStatusOk(sprintf('%s have been found locally',file_name_lst{i}));
+                        end
+                    elseif strcmp(mode, 'remote_check')
+                        for i = 1 : f_struct.loc_number
+                            f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
+                            file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
+                            status = true;
+                            for i = 1 : length(file_name_lst)
+                                file_name = file_name_lst{i};
+                                [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
+                                server = server{1};
+                                file_name = strrep(file_name,['?{' server '}'],'');
+                                [s_ip, port] = this.rm.getServerIp(server);
+                                idx = this.getServerIdx(s_ip, port);
+                                status = status && this.ftp_downloaders{idx}.check(file_name);
+                            end
+                            if status
+                                file_tree{3} = i;
+                                break
+                            end
+                        end
+                    end
+                end
+                file_tree{2} = status;
+            else
+                b_name = fieldnames(file_tree);
+                b_name = b_name{1};
+                or_flag = strcmp(b_name, 'or');
+                and_flag = strcmp(b_name, 'and');
+                if or_flag
+                    status = false;
+                elseif and_flag
+                    status = true;
+                end
+                branch = fieldnames(file_tree.(b_name));
+                for i = 1 :length(branch)
+                    [status_b, file_tree_b] = this.navigateTree(file_tree.(b_name).(branch{i}), mode);
+                    if or_flag
+                        status  = status || status_b;
+                        if status
+                            file_tree.(b_name).(branch{i}) = file_tree_b;
+                            break
+                        end
+                    elseif and_flag
+                        status  = status && status_b;
+                    end
+                    file_tree.(b_name).(branch{i}) = file_tree_b;
+                end
+                
             end
         end
 
@@ -718,6 +857,7 @@ classdef File_Wizard < handle
                 this.log.newLine();
             end
         end
+        
     end
 
 end
