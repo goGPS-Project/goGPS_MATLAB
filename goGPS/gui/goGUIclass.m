@@ -2394,7 +2394,7 @@ classdef goGUIclass < handle
                 % Receivers file --------------------------------------
                 if this.isSEID()
                     status = this.state.checkReferenceFiles();
-                    set(this.goh.tNumRec, 'String', num2str(this.state.getReferenceCount()));
+                    set(this.goh.tNumRec, 'String', num2str(this.state.getRefCount()));
                 else
                     status = this.state.checkTargetFiles();
                     set(this.goh.tNumRec, 'String', num2str(this.state.getTrgCount()));

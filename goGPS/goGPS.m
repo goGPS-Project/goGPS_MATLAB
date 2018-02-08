@@ -210,7 +210,7 @@ for s = 1 : state.getSessionCount()
     [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
     for i = 1 : state.getTrgCount()
-        trg(i).staticPPP([], id_sync{i});
+        trg(i).staticPPP([], id_sync{i}(:,1));
     end
     
     trg_list(:,s) = trg; %#ok<SAGROW>

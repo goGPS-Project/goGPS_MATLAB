@@ -282,7 +282,8 @@ classdef Receiver < Exportable
                 'cs',               [], ...    % Core_Sky
                 'XS_tx',            [], ...    % compute Satellite postion a t transmission time
                 'crx',              [], ...    % bad epochs based on crx file
-                'slant_td',         [] ...     % slant total delay
+                'res',              [], ...    % residual per staellite
+                'slant_td',         []  ...    % slant total delay (except ionosphere delay)
                 );
             this.initR2S;
         end
@@ -2077,55 +2078,63 @@ classdef Receiver < Exportable
             % Get the "zenithalized" total delay
             % SYNTAX:
             %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)
-            [mfh, mfw] = this.getSlantMF();
-            sztd = bsxfun(@plus, (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw, this.zhd);            
-            sztd(sztd <= 0) = nan;
-
-            if nargin == 2 && smooth_win_size > 0
-                t = this.time.getRefTime;
-                for s = 1 : size(sztd,2)
-                    id_ok = ~isnan(sztd(:, s));
-                    if sum(id_ok) > 3
-                        lim = getOutliers(id_ok);
-                        lim = limMerge(lim, 2*smooth_win_size);
-                        
-                        lim = [lim(1) lim(end)];
-                        for l = 1 : size(lim, 1)
-                            if (lim(l, 2) - lim(l, 1) + 1) > 3
-                                id_ok = lim(l, 1) : lim(l, 2);
-                                sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+            if ~isempty(this.zhd)
+                [mfh, mfw] = this.getSlantMF();
+                sztd = bsxfun(@plus, (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw, this.zhd);
+                sztd(sztd <= 0) = nan;
+                
+                if nargin == 2 && smooth_win_size > 0
+                    t = this.time.getRefTime;
+                    for s = 1 : size(sztd,2)
+                        id_ok = ~isnan(sztd(:, s));
+                        if sum(id_ok) > 3
+                            lim = getOutliers(id_ok);
+                            lim = limMerge(lim, 2*smooth_win_size);
+                            
+                            lim = [lim(1) lim(end)];
+                            for l = 1 : size(lim, 1)
+                                if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                    id_ok = lim(l, 1) : lim(l, 2);
+                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                                end
                             end
                         end
                     end
                 end
+            else
+                this.log.addWarning('ZTD and slants have not been computed');
             end
         end
-
+        
         function swtd = getSlantZWD(this, smooth_win_size)
             % Get the "zenithalized" wet delay
             % SYNTAX:
             %   sztd = this.getSlantZWD(<flag_smooth_data = 0>)
-            [mfh, mfw] = this.getSlantMF();
-            swtd = (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw;
-            swtd(swtd <= 0) = nan;
-
-            if nargin == 2 && smooth_win_size > 0
-                t = this.time.getRefTime;
-                for s = 1 : size(swtd,2)
-                    id_ok = ~isnan(swtd(:, s));
-                    if sum(id_ok) > 3
-                        lim = getOutliers(id_ok);
-                        lim = limMerge(lim, 2*smooth_win_size);
-                        
-                        lim = [lim(1) lim(end)];
-                        for l = 1 : size(lim, 1)
-                            if (lim(l, 2) - lim(l, 1) + 1) > 3
-                                id_ok = lim(l, 1) : lim(l, 2);
-                                swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+            if ~isempty(this.zwd)
+                [mfh, mfw] = this.getSlantMF();
+                swtd = (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw;
+                swtd(swtd <= 0) = nan;
+                
+                if nargin == 2 && smooth_win_size > 0
+                    t = this.time.getRefTime;
+                    for s = 1 : size(swtd,2)
+                        id_ok = ~isnan(swtd(:, s));
+                        if sum(id_ok) > 3
+                            lim = getOutliers(id_ok);
+                            lim = limMerge(lim, 2*smooth_win_size);
+                            
+                            lim = [lim(1) lim(end)];
+                            for l = 1 : size(lim, 1)
+                                if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                    id_ok = lim(l, 1) : lim(l, 2);
+                                    swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                                end
                             end
                         end
                     end
                 end
+            else
+                this.log.addWarning('ZWD and slants have not been computed');
             end
         end
 
@@ -3376,8 +3385,7 @@ classdef Receiver < Exportable
             
             for s = go_id
                 idx = this.sat.avail_index(:, s) > 0;
-                if sum(idx)>0
-                    
+                if sum(idx) > 0                    
                     if size(this.xyz,1) > 1 % is dynamic
                         %                         XR = this.xyz(idx,:);
                         %                         [az, el] = this.computeAzimuthElevationXS(XS, XR);
@@ -5579,8 +5587,7 @@ classdef Receiver < Exportable
     %   s scatter
     %   p polar
     %   m mixed    
-    methods (Access = public)
-        
+    methods (Access = public)        
         function showAll(this)
             if size(this.xyz, 1) > 1
                 this.showPositionENU_c();
@@ -5594,7 +5601,7 @@ classdef Receiver < Exportable
             this.showResSky_p();
             this.showResSky_c();
             this.showZtdSlant_c();
-            this.showZtdSlantRes_c();
+            this.showZtdSlantRes_p();
             dockAllFigures();
         end
         
@@ -5829,9 +5836,9 @@ classdef Receiver < Exportable
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 plot(x, y, '.', 'Color', [0.3 0.3 0.3]);
-                decl_n = (serialize(90 - this.sat.el(this.id_sync, this.go_id(ph_id))) / 180*pi) / (pi/2);
-                x = sin(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) == 0) = [];
-                y = cos(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) == 0) = [];
+                decl_n = (serialize(90 - this.sat.el(this.id_sync(:, 1), this.go_id(ph_id))) / 180*pi) / (pi/2);
+                x = sin(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) == 0) = [];
                 plot(x, y, '.', 'Color', [0.4 0.4 0.4]);
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);                
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
@@ -5919,333 +5926,360 @@ classdef Receiver < Exportable
             % Plot residuals of the solution on polar scatter
             % SYNTAX: this.plotResSkyPolar(sys_c)
             
-            if nargin == 1
-                sys_c_list = unique(this.cc.system);
-            end
-            
-            for sys_c = sys_c_list
-                s = this.go_id(this.system == sys_c);
-                res = abs(this.sat.res(:, s));
+            if isempty(this.sat.res)
+                this.log.addWarning('Residuals have not been computed');
+            else
+                if nargin == 1
+                    sys_c_list = unique(this.cc.system);
+                end
                 
-                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                this.updateAzimuthElevation()
-                id_ok = (res~=0);
-                az = this.sat.az(:, s);
-                el = this.sat.el(:, s);
-                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
-                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                for sys_c = sys_c_list
+                    s = this.go_id(this.system == sys_c);
+                    res = abs(this.sat.res(:, s));
+                    
+                    f = figure; f.Name = sprintf('%03d: Res P %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    this.updateAzimuthElevation()
+                    id_ok = (res~=0);
+                    az = this.sat.az(:, s);
+                    el = this.sat.el(:, s);
+                    polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
+                    caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
+                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                end
             end
         end
         
         function showResSky_c(this, sys_c_list)
             % Plot residuals of the solution on cartesian axes
-            % SYNTAX: this.plotResSkyCart()
-            
-            if nargin == 1
-                sys_c_list = unique(this.cc.system);
-            end
-            
-            for sys_c = sys_c_list
-                s = this.go_id(this.system == sys_c);
-                res = abs(this.sat.res(:, s));
+            % SYNTAX: this.plotResSkyCart()            
+            if isempty(this.sat.res)
+                this.log.addWarning('Residuals have not been computed');
+            else
+                if nargin == 1
+                    sys_c_list = unique(this.cc.system);
+                end
                 
-                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                this.updateAzimuthElevation()
-                id_ok = (res~=0);
-                az = this.sat.az(:, s);
-                el = this.sat.el(:, s);
-                scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
-                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
-                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
-                hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                for sys_c = sys_c_list
+                    s = this.go_id(this.system == sys_c);
+                    res = abs(this.sat.res(:, s));
+                    
+                    f = figure; f.Name = sprintf('%03d: Res C %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                    this.updateAzimuthElevation()
+                    id_ok = (res~=0);
+                    az = this.sat.az(:, s);
+                    el = this.sat.el(:, s);
+                    scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
+                    caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
+                    colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                    hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+                end
             end
         end
                                 
         function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
-            f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
-
-            sztd = this.getSlantZTD(this.slant_filter_win);
-
-            if nargin >= 3
-                if isa(time_start, 'GPS_Time')
-                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
-                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
-                end
-                time_start = max(1, time_start);
-                time_stop = min(size(sztd,1), time_stop);
+            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
+                this.log.addWarning('ZTD and slants have not been computed');
             else
-                time_start = 1;
-                time_stop = size(sztd,1);
-            end
-            
-            if isempty(this.id_sync)
-                this.id_sync = 1 : this.time.length();
-            end
-            id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
-            t = this.time.getEpoch(id_ok).getMatlabTime;
-            sztd = sztd(id_ok, :);
-            
-            if nargin < 4
-                show_map = true;
-            end
-            if nargin < 5
-                write_video = false;
-            else
-                if write_video
-                    vidObj = VideoWriter('./out.avi');
-                    vidObj.FrameRate = 30;
-                    vidObj.Quality = 100;
-                    open(vidObj);
-                end
-            end
-            yl = (median(median(sztd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd, 'omitnan'), 'omitnan')) * 1e2;
-            
-            subplot(3,1,3);
-            plot(t, sztd * 1e2,'.'); hold on;
-            plot(t, this.ztd(id_ok) * 1e2,'k', 'LineWidth', 4);
-            ylim(yl);
-            hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
-            xlim([t(1) t(end)]);
-            setTimeTicks(4,'dd/mm/yy HH:MM');
-            h = ylabel('ZTD [cm]'); h.FontWeight = 'bold';
-            grid on;
-            
-            % polar plot "true" Limits
-            e_grid = [-1 : 0.2 : 1];
-            n_grid = [-1 : 0.2 : 1];
-            [ep, np] = meshgrid(e_grid, n_grid);
-            fun = @(dist) exp(-((dist*1e5)/3e4).^2);
-            
-            ax_sky = subplot(3,1,1:2); i = time_start;
-            az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
-            el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
-            
-            if show_map
-                td = nan(size(ep));
-                hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
-                hm.AlphaData = 0.5;
-                ax_sky.YDir = 'normal';
-            end
-            hs = polarScatter(az, el, 250, sztd(i,:) * 1e2, 'filled');
-            xlim([-1 1]); ylim([-1 1]);
-            caxis(yl); colormap(jet(1024)); colorbar;
-            
-            subplot(3,1,3);
-            for i = 2 : 2 : numel(id_ok)
-                % Move scattered points
-                az = (mod(this.sat.az(this.id_sync(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
-                el = (90 - this.sat.el(this.id_sync(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
-                decl_n = el/(pi/2);
-                x = sin(az) .* decl_n;
-                y = cos(az) .* decl_n;
+                f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
                 
-                id_ok = not(isnan(zero2nan(sztd(i,:))));
-                if show_map
-                    if any(id_ok(:))
-                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)' * 1e2, fun);
-                        hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                sztd = this.getSlantZTD(this.slant_filter_win);
+                
+                if nargin >= 3
+                    if isa(time_start, 'GPS_Time')
+                        time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
+                        time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
+                    end
+                    time_start = max(1, time_start);
+                    time_stop = min(size(sztd,1), time_stop);
+                else
+                    time_start = 1;
+                    time_stop = size(sztd,1);
+                end
+                
+                if isempty(this.id_sync(:, 1))
+                    this.id_sync(:, 1) = 1 : this.time.length();
+                end
+                id_ok = this.id_sync(this.id_sync(:, 1) > time_start & this.id_sync(:, 1) < time_stop);
+                t = this.time.getEpoch(id_ok).getMatlabTime;
+                sztd = sztd(id_ok, :);
+                
+                if nargin < 4
+                    show_map = true;
+                end
+                if nargin < 5
+                    write_video = false;
+                else
+                    if write_video
+                        vidObj = VideoWriter('./out.avi');
+                        vidObj.FrameRate = 30;
+                        vidObj.Quality = 100;
+                        open(vidObj);
                     end
                 end
+                yl = (median(median(sztd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd, 'omitnan'), 'omitnan')) * 1e2;
                 
-                hs.XData = x;
-                hs.YData = y;
-                hs.CData = sztd(i,:) * 1e2;
+                subplot(3,1,3);
+                plot(t, sztd * 1e2,'.'); hold on;
+                plot(t, this.ztd(id_ok) * 1e2,'k', 'LineWidth', 4);
+                ylim(yl);
+                hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
+                xlim([t(1) t(end)]);
+                setTimeTicks(4,'dd/mm/yy HH:MM');
+                h = ylabel('ZTD [cm]'); h.FontWeight = 'bold';
+                grid on;
                 
-                % Move time line
-                hl.XData = t(i) * [1 1];
-                drawnow;
+                % polar plot "true" Limits
+                e_grid = [-1 : 0.2 : 1];
+                n_grid = [-1 : 0.2 : 1];
+                [ep, np] = meshgrid(e_grid, n_grid);
+                fun = @(dist) exp(-((dist*1e5)/3e4).^2);
                 
-                if write_video
-                    currFrame = export_fig(fig_h, '-nocrop', '-a1');
-                    writeVideo(vidObj,currFrame);
+                ax_sky = subplot(3,1,1:2); i = time_start;
+                az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+                el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+                
+                if show_map
+                    td = nan(size(ep));
+                    hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
+                    hm.AlphaData = 0.5;
+                    ax_sky.YDir = 'normal';
                 end
-            end
-            if write_video
-                close(vidObj);
+                hs = polarScatter(az, el, 250, sztd(i,:) * 1e2, 'filled');
+                xlim([-1 1]); ylim([-1 1]);
+                caxis(yl); colormap(jet(1024)); colorbar;
+                
+                subplot(3,1,3);
+                for i = 2 : 2 : numel(id_ok)
+                    % Move scattered points
+                    az = (mod(this.sat.az(this.id_sync(i, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd(i,:))) = 1e10;
+                    el = (90 - this.sat.el(this.id_sync(i, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd(i,:))) = 1e10;
+                    decl_n = el/(pi/2);
+                    x = sin(az) .* decl_n;
+                    y = cos(az) .* decl_n;
+                    
+                    id_ok = not(isnan(zero2nan(sztd(i,:))));
+                    if show_map
+                        if any(id_ok(:))
+                            td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', sztd(i, id_ok)' * 1e2, fun);
+                            hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                        end
+                    end
+                    
+                    hs.XData = x;
+                    hs.YData = y;
+                    hs.CData = sztd(i,:) * 1e2;
+                    
+                    % Move time line
+                    hl.XData = t(i) * [1 1];
+                    drawnow;
+                    
+                    if write_video
+                        currFrame = export_fig(fig_h, '-nocrop', '-a1');
+                        writeVideo(vidObj,currFrame);
+                    end
+                end
+                if write_video
+                    close(vidObj);
+                end
             end
         end
         
         function showAniZwdSlant(this, time_start, time_stop, show_map)
-            f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
-            szwd = this.getSlantZWD(this.slant_filter_win);
-            
-            if nargin >= 3
-                if isa(time_start, 'GPS_Time')
-                    time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
-                    time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
-                end
-                time_start = max(1, time_start);
-                time_stop = min(size(szwd,1), time_stop);
+            if isempty(this.zwd) || ~any(this.sat.slant_td(:))
+                this.log.addWarning('ZWD and slants have not been computed');
             else
-                time_start = 1;
-                time_stop = size(szwd,1);
-            end
-            
-            if isempty(this.id_sync)
-                this.id_sync = 1 : this.time.length();
-            end
-            id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop);
-            
-            t = this.time.getEpoch(id_ok).getMatlabTime;
-            szwd = szwd(id_ok, :);
-            
-            if nargin < 4
-                show_map = true;
-            end            
-            yl = (median(median(szwd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(szwd, 'omitnan'), 'omitnan')) * 1e2;
-            
-            subplot(3,1,3);
-            plot(t, szwd * 1e2,'.'); hold on;
-            plot(t, this.zwd(id_ok) * 1e2,'k', 'LineWidth', 4);
-            ylim(yl);
-            hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
-            xlim([t(1) t(end)]);
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('ZWD [cm]'); h.FontWeight = 'bold';
-            grid on;
-            
-            % polar plot "true" Limits
-            e_grid = [-1 : 0.1 : 1];
-            n_grid = [-1 : 0.1 : 1];
-            [ep, np] = meshgrid(e_grid, n_grid);
-            fun = @(dist) exp(-((dist*1e5)/3e4).^2);
-            
-            ax_sky = subplot(3,1,1:2); i = time_start;
-            az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
-            el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
-            
-            if show_map
-                td = nan(size(ep));
-                hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
-                hm.AlphaData = 0.5;
-                ax_sky.YDir = 'normal';
-            end
-            hs = polarScatter(az, el, 250, szwd(i,:) * 1e2, 'filled');
-            caxis(yl); colormap(jet(1024)); colorbar;
-            
-            subplot(3,1,3);
-            for i = 2 : numel(id_ok)
-                % Move scattered points
-                az = (mod(this.sat.az(this.id_sync(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
-                el = (90 - this.sat.el(this.id_sync(i),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
-                decl_n = el/(pi/2);
-                x = sin(az) .* decl_n;
-                y = cos(az) .* decl_n;
+                f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
+                szwd = this.getSlantZWD(this.slant_filter_win);
                 
-                id_ok = not(isnan(zero2nan(szwd(i,:))));
-                if show_map
-                    if any(id_ok(:))
-                        td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', szwd(i, id_ok)' * 1e2, fun);
-                        hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                if nargin >= 3
+                    if isa(time_start, 'GPS_Time')
+                        time_start = find(this.time.getMatlabTime >= time_start.first.getMatlabTime(), 1, 'first');
+                        time_stop = find(this.time.getMatlabTime <= time_stop.last.getMatlabTime(), 1, 'last');
                     end
+                    time_start = max(1, time_start);
+                    time_stop = min(size(szwd,1), time_stop);
+                else
+                    time_start = 1;
+                    time_stop = size(szwd,1);
                 end
                 
-                hs.XData = x;
-                hs.YData = y;
-                hs.CData = szwd(i,:) * 1e2;
+                if isempty(this.id_sync(:, 1))
+                    this.id_sync = (1 : this.time.length())';
+                end
+                id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop, 1);
                 
-                % Move time line
-                hl.XData = t(i) * [1 1];
-                drawnow;
+                t = this.time.getEpoch(id_ok).getMatlabTime;
+                szwd = szwd(id_ok, :);
+                
+                if nargin < 4
+                    show_map = true;
+                end
+                yl = (median(median(szwd, 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(szwd, 'omitnan'), 'omitnan')) * 1e2;
+                
+                subplot(3,1,3);
+                plot(t, szwd * 1e2,'.'); hold on;
+                plot(t, this.zwd(id_ok) * 1e2,'k', 'LineWidth', 4);
+                ylim(yl);
+                hl = line('XData', t(1) * [1 1],'YData', yl, 'LineWidth', 2);
+                xlim([t(1) t(end)]);
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                h = ylabel('ZWD [cm]'); h.FontWeight = 'bold';
+                grid on;
+                
+                % polar plot "true" Limits
+                e_grid = [-1 : 0.1 : 1];
+                n_grid = [-1 : 0.1 : 1];
+                [ep, np] = meshgrid(e_grid, n_grid);
+                fun = @(dist) exp(-((dist*1e5)/3e4).^2);
+                
+                ax_sky = subplot(3,1,1:2); i = time_start;
+                az = (mod(this.sat.az(id_ok(i),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+                el = (90 - this.sat.el(id_ok(i),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+                
+                if show_map
+                    td = nan(size(ep));
+                    hm = imagesc(e_grid, n_grid, reshape(td(:), numel(n_grid), numel(e_grid))); hold on;
+                    hm.AlphaData = 0.5;
+                    ax_sky.YDir = 'normal';
+                end
+                hs = polarScatter(az, el, 250, szwd(i,:) * 1e2, 'filled');
+                caxis(yl); colormap(jet(1024)); colorbar;
+                
+                subplot(3,1,3);
+                for i = 2 : numel(id_ok)
+                    % Move scattered points
+                    az = (mod(this.sat.az(this.id_sync(i, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(szwd(i,:))) = 1e10;
+                    el = (90 - this.sat.el(this.id_sync(i, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(szwd(i,:))) = 1e10;
+                    decl_n = el/(pi/2);
+                    x = sin(az) .* decl_n;
+                    y = cos(az) .* decl_n;
+                    
+                    id_ok = not(isnan(zero2nan(szwd(i,:))));
+                    if show_map
+                        if any(id_ok(:))
+                            td = funInterp2(ep(:), np(:), x(1, id_ok)', y(1, id_ok)', szwd(i, id_ok)' * 1e2, fun);
+                            hm.CData = reshape(td(:), numel(n_grid), numel(e_grid));
+                        end
+                    end
+                    
+                    hs.XData = x;
+                    hs.YData = y;
+                    hs.CData = szwd(i,:) * 1e2;
+                    
+                    % Move time line
+                    hl.XData = t(i) * [1 1];
+                    drawnow;
+                end
             end
-            
         end
         
         function showZtdSlant_c(this, time_start, time_stop)
-            f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
-            for s = 1 : size(this,2)
-                if isempty(this(s).id_sync)
-                    this(s).id_sync = 1 : this(s).time.length();
-                end
-                
-                t = this(s).time.getEpoch(this(s).id_sync).getMatlabTime;
-                
-                sztd = this(s).getSlantZTD(this(s).slant_filter_win);
-                sztd = sztd(this(s).id_sync, :);
-                if nargin >= 3
-                    if isa(time_start, 'GPS_Time')
-                        time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                        time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
+                this.log.addWarning('ZTD and slants have not been computed');
+            else
+                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
+                for s = 1 : size(this,2)
+                    if isempty(this(s).id_sync(:, 1))
+                        this(s).id_sync(:, 1) = (1 : this(s).time.length())';
                     end
-                    time_start = max(1, time_start);
-                    time_stop = min(size(sztd,1), time_stop);
-                else
-                    time_start = 1;
-                    time_stop = size(sztd,1);
+                    
+                    t = this(s).time.getEpoch(this(s).id_sync(:, 1)).getMatlabTime;
+                    
+                    sztd = this(s).getSlantZTD(this(s).slant_filter_win);
+                    sztd = sztd(this(s).id_sync(:, 1), :);
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                        end
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
+                    end
+                    
+                    if nargin < 4
+                        win_size = (t(time_stop) - t(time_start)) * 86400;
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    plot(t, sztd,'.'); hold on;
+                    plot(t, zero2nan(this(s).ztd(this(s).id_sync(:, 1))),'k', 'LineWidth', 4);
                 end
-                
-                if nargin < 4
-                    win_size = (t(time_stop) - t(time_start)) * 86400;
-                end
-                
-                %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                
-                plot(t, sztd,'.'); hold on;
-                plot(t, zero2nan(this(s).ztd(this(s).id_sync)),'k', 'LineWidth', 4);
+                %ylim(yl);
+                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+                grid on;
+                h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
-            %ylim(yl);
-            %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-            grid on;
-            h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
 
         function showZtd_c(this)
-            f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
-            for s = 1 : size(this,2)
-                if isempty(this(s).id_sync)
-                    this(s).id_sync = 1 : this(s).time.length();
+            if isempty(this.ztd)
+                this.log.addWarning('ZTD and slants have not been computed');
+            else
+                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
+                for s = 1 : size(this,2)
+                    if isempty(this(s).id_sync(:, 1))
+                        this(s).id_sync = (1 : this(s).time.length())';
+                    end
+                    
+                    t = this(s).time.getEpoch(this(s).id_sync(:, 1)).getMatlabTime;
+                    
+                    ztd = this(s).ztd(this(s).id_sync(:, 1));
+                    
+                    plot(t, zero2nan(ztd), 'LineWidth', 4);
                 end
-                
-                t = this(s).time.getEpoch(this(s).id_sync).getMatlabTime;
-                
-                ztd = this(s).ztd(this(s).id_sync);
-                
-                plot(t, zero2nan(ztd), 'LineWidth', 4);
+                %ylim(yl);
+                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+                grid on;
+                h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
-            %ylim(yl);
-            %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-            setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-            h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-            grid on;
-            h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
 
-        function showZtdSlantRes_c(this, time_start, time_stop)
-            
-            for r = 1 : size(this, 2)
-                if isempty(this(r).id_sync)
-                    this(r).id_sync = 1 : this(r).time.length();
-                end
-                
-                t = this(r).time.getEpoch(this(r).id_sync).getMatlabTime;
-                
-                sztd = this(r).getSlantZTD(this(r).slant_filter_win);
-                sztd = sztd(this(r).id_sync, :) - this(r).ztd(this(r).id_sync);
-                if nargin >= 3
-                    if isa(time_start, 'GPS_Time')
-                        time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                        time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+        function showZtdSlantRes_p(this, time_start, time_stop)
+            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
+                this.log.addWarning('ZTD and slants have not been computed');
+            else                
+                for r = 1 : size(this, 2)
+                    if isempty(this(r).id_sync(:, 1))
+                        this(r).id_sync = (1 : this(r).time.length())';
                     end
-                    time_start = max(1, time_start);
-                    time_stop = min(size(sztd,1), time_stop);
-                else
-                    time_start = 1;
-                    time_stop = size(sztd,1);
+                    
+                    t = this(r).time.getEpoch(this(r).id_sync(:, 1)).getMatlabTime;
+                    
+                    sztd = this(r).getSlantZTD(this(r).slant_filter_win);
+                    sztd = sztd(this(r).id_sync(:, 1), :) - this(r).ztd(this(r).id_sync(:, 1));
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                        end
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    az = (mod(this.sat.az(this(r).id_sync(:, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                    el = (90 - this.sat.el(this(r).id_sync(:, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                    
+                    f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
+                    polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
+                    caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
+                    h = title(sprintf('Receiver %s ZTD - Slant difference', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 end
-                               
-                %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                
-                az = (mod(this.sat.az(this(r).id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                el = (90 - this.sat.el(this(r).id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
-    
-                f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
-                polarScatter(az(:), el(:), 10, sztd(:), 'filled'); hold on;
-                colormap(hot); colorbar;
-                h = title(sprintf('Receiver %s ZTD - Slant difference', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         

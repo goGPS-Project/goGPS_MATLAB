@@ -46,4 +46,3 @@ function [sow] = weektime2tow(week, time)
 %--------------------------------------------------------------------------
 
 sow = time - week*7*86400;
-fprintf('WARNING weektime2tow does not consider leap seconds!\n GIULIO NON USARE QUESTA FUNZIONE!\n ...cambiala pleaaaaase, se ti serve aggiungila in GPS_Time\n');
