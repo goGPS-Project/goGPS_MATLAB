@@ -415,8 +415,8 @@ classdef IO_Settings < Settings_Interface
                 this.atx_dir    = fnp.getFullDirPath(settings.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(settings.getData('atx_name'));
                 % GEOMETRY
-                tmp_xyz_ant = zeros(3, this.getTargetCount());
-                for r = 1 : this.getTargetCount()
+                tmp_xyz_ant = zeros(3, this.getTrgCount());
+                for r = 1 : this.getTrgCount()
                     tmp = settings.getData(sprintf('xyz_ant_%02d', r));
                     if (size(tmp,1) == 3) && (size(tmp,2) == 1)
                         tmp_xyz_ant(:,r) = tmp;
@@ -586,7 +586,7 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Array of observation types                        %s \n\n', strCell2Str(this.OBS_TYPE_LIST(this.obs_type + 1), ', '))];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
-            if this.getTargetCount() > 1
+            if this.getTrgCount() > 1
                 str = [str '---- GEOMETRY  ------------------------------------------------------------' 10 10];
                 str = [str sprintf(' When multiple antennas are in use the positions on the structure are here defined:\n')];
                 for r = 1 : size(this.xyz_ant, 2)
@@ -719,7 +719,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('receiver w.r.t. a local reference frame', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Positions are expressed in a XYZ RF as an array "xyz_ant_${NN}" where $NN is', str_cell);
             str_cell = Ini_Manager.toIniStringComment('the (target) receiver number (as ordered in obs_name) starting from 01', str_cell);
-            for r = 1 : this.getTargetCount()
+            for r = 1 : this.getTrgCount()
                 str_cell = Ini_Manager.toIniString(sprintf('xyz_ant_%02d', r), this.xyz_ant(:, r), str_cell);
             end
             str_cell = Ini_Manager.toIniStringComment('Indicate the "baricenter" of the structure -> evaluation point', str_cell);
@@ -933,7 +933,7 @@ classdef IO_Settings < Settings_Interface
             base_rinex_dir = this.obs_dir();
         end
         
-        function num_receiver = getTargetCount(this)
+        function num_receiver = getTrgCount(this)
             % Get the number of Target receivers
             num_receiver = sum(this.obs_type == this.REC_TARGET);
         end
@@ -944,19 +944,19 @@ classdef IO_Settings < Settings_Interface
             num_receiver = numel(file_name{1});
         end
         
-        function num_receiver = getMasterCount(this)
+        function num_receiver = getMstCount(this)
             % Get the number of Master receivers
             num_receiver = sum(this.obs_type == this.REC_MASTER);
         end
         
-        function num_receiver = getReferenceCount(this)
+        function num_receiver = getRefCount(this)
             % Get the number of Reference receivers
             num_receiver = sum(this.obs_type == this.REC_REFERENCE);
         end
         
-        function file_name = getTargetPath(this, rec_num, session)
+        function file_name = getTrgPath(this, rec_num, session)
             % Get the file list of target receivers files
-            % SYNTAX: file_name = this.getTargetPath()
+            % SYNTAX: file_name = this.getTrgPath()
             % A cell for each receiver containing the list of names as cell
             if isempty(this.obs_full_name)
                 this.updateObsFileName();
@@ -971,9 +971,9 @@ classdef IO_Settings < Settings_Interface
             end
         end
         
-        function file_name = getMasterPath(this, rec_num, session)
+        function file_name = getMstPath(this, rec_num, session)
             % Get the file list of master receivers files
-            % SYNTAX: file_name = this.getMasterPath()
+            % SYNTAX: file_name = this.getMstPath()
             if isempty(this.obs_full_name)
                 this.updateObsFileName();
             end
@@ -987,9 +987,9 @@ classdef IO_Settings < Settings_Interface
             end
         end
         
-        function file_name = getReferencePath(this, rec_num, session)
+        function file_name = getRefPath(this, rec_num, session)
             % Get the file list of the reference receivers files
-            % SYNTAX: file_name = this.getReferencePath()
+            % SYNTAX: file_name = this.getRefPath()
             if isempty(this.obs_full_name)
                 this.updateObsFileName();
             end
@@ -1636,9 +1636,9 @@ classdef IO_Settings < Settings_Interface
                     end
 
                     % import receivers position
-                    tmp_xyz_ant = zeros(3,this.getTargetCount());
+                    tmp_xyz_ant = zeros(3,this.getTrgCount());
                     ispresent = false;
-                    for r = 1:this.getTargetCount()
+                    for r = 1:this.getTrgCount()
                         tmp = this.ext_ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
                         if ~isempty(tmp)
                             ispresent = true;
@@ -2075,11 +2075,11 @@ classdef IO_Settings < Settings_Interface
 
 
             % Check size of xyz antenna
-            if (size(this.xyz_ant,2) ~= this.getTargetCount())
-                tmp_xyz_ant = zeros(3,this.getTargetCount());
+            if (size(this.xyz_ant,2) ~= this.getTrgCount())
+                tmp_xyz_ant = zeros(3,this.getTrgCount());
                 % check num of coordinates
                 if (size(this.xyz_ant, 1) == 3)
-                    tmp_xyz_ant(:, 1 : min(this.getTargetCount(), size(this.xyz_ant,2))) = this.xyz_ant(:, 1 : min(this.getTargetCount(), size(this.xyz_ant,2)));
+                    tmp_xyz_ant(:, 1 : min(this.getTrgCount(), size(this.xyz_ant,2))) = this.xyz_ant(:, 1 : min(this.getTrgCount(), size(this.xyz_ant,2)));
                     this.xyz_ant = tmp_xyz_ant;
                 else
                     this.xyz_ant = tmp_xyz_ant;
@@ -2159,16 +2159,16 @@ classdef IO_Settings < Settings_Interface
             switch obs_type
                 case this.REC_TARGET
                     obs_type_name = 'target';
-                    n_rec = this.getTargetCount();
-                    file_name_all = this.getTargetPath();
+                    n_rec = this.getTrgCount();
+                    file_name_all = this.getTrgPath();
                 case this.REC_MASTER
                     obs_type_name = 'master';
-                    n_rec = this.getMasterCount();
-                    file_name_all = this.getMasterPath();
+                    n_rec = this.getMstCount();
+                    file_name_all = this.getMstPath();
                 case this.REC_REFERENCE
                     obs_type_name = 'reference';
-                    n_rec = this.getReferenceCount();
-                    file_name_all = this.getReferencePath();
+                    n_rec = this.getRefCount();
+                    file_name_all = this.getRefPath();
             end
 
             fnp = File_Name_Processor();

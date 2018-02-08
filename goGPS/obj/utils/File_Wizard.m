@@ -336,7 +336,7 @@ classdef File_Wizard < handle
             % Prepare the extended file name of the files to be used in goGPS
             % In a future here I'll download the required navigational files of a station in a network
 
-            first_target_files = this.state.getTargetPath(1);
+            first_target_files = this.state.getTrgPath(1);
             fh = File_Rinex(first_target_files, 100);
             this.log.newLine();
             first_epoch = fh.first_epoch.first;

@@ -2397,7 +2397,7 @@ classdef goGUIclass < handle
                     set(this.goh.tNumRec, 'String', num2str(this.state.getReferenceCount()));
                 else
                     status = this.state.checkTargetFiles();
-                    set(this.goh.tNumRec, 'String', num2str(this.state.getTargetCount()));
+                    set(this.goh.tNumRec, 'String', num2str(this.state.getTrgCount()));
                 end
                 switch status
                     case -1

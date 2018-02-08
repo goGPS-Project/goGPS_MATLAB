@@ -161,7 +161,7 @@ for s = 1 : state.getSessionCount()
     fprintf('--------------------------------------------------------------------------\n');
     
     % Init sky
-    fr = File_Rinex(state.getTargetPath(1, s), 100);
+    fr = File_Rinex(state.getTrgPath(1, s), 100);
     cur_date_start = fr.first_epoch.last();
     cur_date_stop = fr.last_epoch.first();
     sky.initSession(cur_date_start, cur_date_stop);
@@ -169,37 +169,37 @@ for s = 1 : state.getSessionCount()
     clear rec;  % handle to all the receivers
     clear mst;
     r = 0;
-    for i = 1 : state.getMasterCount()
+    for i = 1 : state.getMstCount()
         log.newLine();
-        log.addMessage(sprintf('Reading master %d of %d', i, state.getMasterCount()));
+        log.addMessage(sprintf('Reading master %d of %d', i, state.getMstCount()));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        mst(i) = Receiver(cc, state.getMasterPath(i, s)); %#ok<SAGROW>
+        mst(i) = Receiver(cc, state.getMstPath(i, s)); %#ok<SAGROW>
         mst(i).preProcessing();
         rec(r) = mst(i); %#ok<SAGROW>
     end
     
     clear ref;
-    for i = 1 : state.getReferenceCount()
+    for i = 1 : state.getRefCount()
         log.newLine();
-        log.addMessage(sprintf('Reading reference %d of %d', i, state.getReferenceCount));
+        log.addMessage(sprintf('Reading reference %d of %d', i, state.getRefCount));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        ref(i) = Receiver(cc, state.getReferencePath(i, s)); %#ok<SAGROW>
+        ref(i) = Receiver(cc, state.getRefPath(i, s)); %#ok<SAGROW>
         ref(i).preProcessing();
         rec(r) = ref(i);        
     end
     
     clear trg;
-    for i = 1 : state.getTargetCount()
+    for i = 1 : state.getTrgCount()
         log.newLine();
-        log.addMessage(sprintf('Reading target %d of %d', i, state.getTargetCount));
+        log.addMessage(sprintf('Reading target %d of %d', i, state.getTrgCount));
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        trg(i) = Receiver(cc, state.getTargetPath(i, s)); %#ok<SAGROW>        
+        trg(i) = Receiver(cc, state.getTrgPath(i, s)); %#ok<SAGROW>        
         trg(i).preProcessing();
         rec(r) = trg(i);        
     end
@@ -209,7 +209,7 @@ for s = 1 : state.getSessionCount()
     log.addMarkedMessage('Syncing times, computing reference time');
     [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
-    for i = 1 : state.getTargetCount()
+    for i = 1 : state.getTrgCount()
         trg(i).staticPPP([], id_sync{i});
     end
     

@@ -1780,6 +1780,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: capture_rate = this.getCaptureRate();
             capture_rate = this.c_rate;
         end
+        
+        function cut_off = getCutOff(this)
+            % Get the cut off
+            % SYNTAX: cut_off = this.getCutOff();
+            cut_off = this.cut_off();
+        end
 
         function proc_rate = getProcessingRate(this)
             % Get the Processing Rate

@@ -289,7 +289,6 @@ classdef Go_State < Settings_Interface
                 this.reference.adj_mat = [];
             end
         end
-
     end
 
     % =========================================================================
@@ -301,7 +300,7 @@ classdef Go_State < Settings_Interface
             go_dir = this.local_storage;
         end
 
-        function [ref_path, mat_path] = getReferenceConstrainPath(this)
+        function [ref_path, mat_path] = getReferencePath(this)
             % Get reference path
             if (nargout == 2)
                 ref_path = this.reference.path;

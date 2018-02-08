@@ -1,4 +1,4 @@
-%%   CLASS Receiver
+%   CLASS Receiver
 % =========================================================================
 %
 % DESCRIPTION
@@ -5581,6 +5581,70 @@ classdef Receiver < Exportable
     %   m mixed    
     methods (Access = public)
         
+        function showAll(this)
+            if size(this.xyz, 1) > 1
+                this.showPositionENU_c();
+                this.showPositionXYZ_c();
+            end
+            this.showDataAvailability();
+            this.showSNR_p();
+            this.showDt_c();
+            this.showOutliersAndCycleSlip();
+            this.showOutliersAndCycleSlip_p();
+            this.showResSky_p();
+            this.showResSky_c();
+            this.showZtdSlant_c();
+            this.showZtdSlantRes_c();
+            dockAllFigures();
+        end
+        
+        function showDataAvailability(this, sys_c)
+            % Plot all the satellite seen by the system
+            % SYNTAX: this.plotDataAvailability(sys_c)
+            
+            if (nargin == 1)
+                sys_c = this.cc.sys_c;
+            end
+            f = figure; f.Name = sprintf('%03d: DataAvail', f.Number); f.NumberTitle = 'off';
+            ss_ok = intersect(this.cc.sys_c, sys_c);
+            for ss = ss_ok
+                ss_id = find(this.cc.sys_c == ss);
+                switch numel(ss_ok)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                for prn = this.cc.prn(this.cc.system == ss)'
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :),1));
+                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
+                    hold on;
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :),1));
+                    plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
+                    hold on;
+                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
+                    plot(id_ok, prn * ones(size(id_ok)), '.');
+                end
+                prn_ss = unique(this.prn(this.system == ss));
+                xlim([1 size(this.obs,2)]);
+                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                h = ylabel('PRN'); h.FontWeight = 'bold';
+                ax = gca(); ax.YTick = prn_ss;
+                grid on;
+                h = xlabel('epoch'); h.FontWeight = 'bold';
+                title(this.cc.getSysName(ss));
+            end
+        end
+
         function showPositionENU_c(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
@@ -5747,101 +5811,6 @@ classdef Receiver < Exportable
             
         end
         
-        function showResSky_p(this, sys_c_list)
-            % Plot residuals of the solution on polar scatter
-            % SYNTAX: this.plotResSkyPolar(sys_c)
-            
-            if nargin == 1
-                sys_c_list = unique(this.cc.system);
-            end
-            
-            for sys_c = sys_c_list
-                s = this.go_id(this.system == sys_c);
-                res = abs(this.sat.res(:, s));
-                
-                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                this.updateAzimuthElevation()
-                id_ok = (res~=0);
-                az = this.sat.az(:, s);
-                el = this.sat.el(:, s);
-                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
-                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
-                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-            end
-        end
-        
-        function showResSky_c(this, sys_c_list)
-            % Plot residuals of the solution on cartesian axes
-            % SYNTAX: this.plotResSkyCart()
-            
-            if nargin == 1
-                sys_c_list = unique(this.cc.system);
-            end
-            
-            for sys_c = sys_c_list
-                s = this.go_id(this.system == sys_c);
-                res = abs(this.sat.res(:, s));
-                
-                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                this.updateAzimuthElevation()
-                id_ok = (res~=0);
-                az = this.sat.az(:, s);
-                el = this.sat.el(:, s);
-                scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
-                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
-                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
-                hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
-            end
-        end
-        
-        function showDataAvailability(this, sys_c)
-            % Plot all the satellite seen by the system
-            % SYNTAX: this.plotDataAvailability(sys_c)
-            
-            if (nargin == 1)
-                sys_c = this.cc.sys_c;
-            end
-            f = figure; f.Name = sprintf('%03d: DataAvail', f.Number); f.NumberTitle = 'off';
-            ss_ok = intersect(this.cc.sys_c, sys_c);
-            for ss = ss_ok
-                ss_id = find(this.cc.sys_c == ss);
-                switch numel(ss_ok)
-                    case 2
-                        subplot(1,2, ss_id);
-                    case 3
-                        subplot(2,2, ss_id);
-                    case 4
-                        subplot(2,2, ss_id);
-                    case 5
-                        subplot(2,3, ss_id);
-                    case 6
-                        subplot(2,3, ss_id);
-                    case 7
-                        subplot(2,4, ss_id);
-                end
-                
-                for prn = this.cc.prn(this.cc.system == ss)'
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn, :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), 's', 'Color', [0.8 0.8 0.8]);
-                    hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'C', :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), 'o', 'Color', [0.2 0.2 0.2]);
-                    hold on;
-                    id_ok = find(any(this.obs((this.system == ss)' & this.prn == prn & this.obs_code(:,1) == 'L', :),1));
-                    plot(id_ok, prn * ones(size(id_ok)), '.');
-                end
-                prn_ss = unique(this.prn(this.system == ss));
-                xlim([1 size(this.obs,2)]);
-                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
-                h = ylabel('PRN'); h.FontWeight = 'bold';
-                ax = gca(); ax.YTick = prn_ss;
-                grid on;
-                h = xlabel('epoch'); h.FontWeight = 'bold';
-                title(this.cc.getSysName(ss));
-            end
-        end
-        
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX: this.plotSNR(sys_c)
@@ -5853,13 +5822,22 @@ classdef Receiver < Exportable
             
             for sys_c = sys_c_list
                 [~, ~, ph_id] = this.getPhases(sys_c);
-                f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
+                f = figure; f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
                 polarScatter([],[],1,[]);
                 hold on;
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                plot(x, y, '.', 'Color', [0.8 0.8 0.8]);
+                plot(x, y, '.', 'Color', [0.3 0.3 0.3]);
+                decl_n = (serialize(90 - this.sat.el(this.id_sync, this.go_id(ph_id))) / 180*pi) / (pi/2);
+                x = sin(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync, this.go_id(ph_id))) == 0) = [];
+                plot(x, y, '.', 'Color', [0.4 0.4 0.4]);
+                decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);                
+                x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
+                cut_offed = decl_n(serialize(this.sat.az(:, this.go_id(ph_id))) ~= 0) > ((90 - this.state.getCutOff) / 90);
+                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.9 0.9 0.9]);
                     
                 for s = unique(this.go_id(ph_id))'
                     az = this.sat.az(:,s);
@@ -5936,7 +5914,55 @@ classdef Receiver < Exportable
                 h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end           
         end
+        
+        function showResSky_p(this, sys_c_list)
+            % Plot residuals of the solution on polar scatter
+            % SYNTAX: this.plotResSkyPolar(sys_c)
+            
+            if nargin == 1
+                sys_c_list = unique(this.cc.system);
+            end
+            
+            for sys_c = sys_c_list
+                s = this.go_id(this.system == sys_c);
+                res = abs(this.sat.res(:, s));
                 
+                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                this.updateAzimuthElevation()
+                id_ok = (res~=0);
+                az = this.sat.az(:, s);
+                el = this.sat.el(:, s);
+                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
+                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
+                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+            end
+        end
+        
+        function showResSky_c(this, sys_c_list)
+            % Plot residuals of the solution on cartesian axes
+            % SYNTAX: this.plotResSkyCart()
+            
+            if nargin == 1
+                sys_c_list = unique(this.cc.system);
+            end
+            
+            for sys_c = sys_c_list
+                s = this.go_id(this.system == sys_c);
+                res = abs(this.sat.res(:, s));
+                
+                f = figure; f.Name = sprintf('%03d: Res%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                this.updateAzimuthElevation()
+                id_ok = (res~=0);
+                az = this.sat.az(:, s);
+                el = this.sat.el(:, s);
+                scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
+                caxis(minMax(abs(this.sat.res))); colormap(flipud(hot)); ax = gca; ax.Color = [.95 .95 .95]; colorbar();
+                h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
+                hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
+            end
+        end
+                                
         function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
 
