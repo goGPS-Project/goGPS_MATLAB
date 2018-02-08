@@ -181,7 +181,6 @@ classdef File_Wizard < handle
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
-            file_tree = this.rm.getFileStr(resource_name);
             if nargin < 3
                 date_start = this.date_start;
                 date_stop = this.date_stop;
@@ -192,8 +191,12 @@ classdef File_Wizard < handle
             if nargin < 5
                 center_code = this.center_code;
             else
-                this.center_code = this.rm.getCenterCode( center_name, resource_name, this.sys_c);
+                [this.center_code, t_sys_c] = this.rm.getCenterCode( center_name, resource_name, this.sys_c);
+                if ~isempty(t_sys_c)
+                    this.sys_c = t_sys_c;
+                end
             end
+            file_tree = this.rm.getFileStr(resource_name);
             % check local
             [status, file_tree] = this.navigateTree(file_tree, 'local_check');
             % check remote
@@ -206,6 +209,7 @@ classdef File_Wizard < handle
                     end
                 end
             end
+            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list); % set sys_c again from constellation collector
         end
         function idx = getServerIdx(this, address , port)
             % get idx of server if not present open the connection
@@ -268,8 +272,8 @@ classdef File_Wizard < handle
                             f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
                             file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
                             status = true;
-                            for i = 1 : length(file_name_lst)
-                                file_name = file_name_lst{i};
+                            for j = 1 : length(file_name_lst)
+                                file_name = file_name_lst{j};
                                 [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
                                 server = server{1};
                                 file_name = strrep(file_name,['?{' server '}'],'');

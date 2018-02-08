@@ -143,7 +143,7 @@ classdef FTP_Downloader < handle
                     [~, ~, fext] = fileparts(fpath{1});
                     if strcmp(fext,'.Z') || strcmp(fext,'.gz')
                     if (isunix())
-                        system(['gzip -d -f ' fpath{1} '&>2 /dev/null']);
+                        system(['gzip -d -f ' fpath{1} '&> /dev/null']);
                     else
                         try
                             f_path = File_Name_Processor.getFullDirPath(fpath{1});

@@ -97,6 +97,7 @@ classdef Remote_Resource_Manager < Ini_Manager
         
         function f_struct = getFileLoc(this, file_name, sys_c)
             % return the ip of a server given the server name
+            first = true;
             for i = 1 : length(this.file_resources)
                 name_part = strsplit(this.file_resources{i}.name,'@');
                 name = name_part{1};
@@ -110,19 +111,34 @@ classdef Remote_Resource_Manager < Ini_Manager
                     cond_const = ~isempty(strfind(const, sys_c));
                 end
                 if strcmp(name, file_name) && cond_const
-                    f_struct = struct();
-                    f_struct.name = file_name;
-                    f_struct.const = const;
-                    for j = 1 : length(this.file_resources{i}.key)
-                        name_k = this.file_resources{i}.key{j}.name;
-                        f_struct.(name_k) = this.file_resources{i}.key{j}.data;
+                    %%%%% add here the loactions
+                    if first
+                        f_struct.name = file_name;
+                        f_struct.const = const;
+                        for j = 1 : length(this.file_resources{i}.key)
+                            name_k = this.file_resources{i}.key{j}.name;
+                            f_struct.(name_k) = this.file_resources{i}.key{j}.data;
+                        end
+                        first = false;
+
+                    else
+                        new_loc = f_struct.loc_number +1;
+                        for j = 1 : length(this.file_resources{i}.key)
+                            name_k = this.file_resources{i}.key{j}.name;
+                            data_k = this.file_resources{i}.key{j}.data;
+                            if strcmp(name_k,'loc_number')
+                                f_struct.loc_number = f_struct.loc_number + data_k;
+                            elseif strcmp(name_k(1:3),'loc')
+                                f_struct.([name_k(1:3) sprintf('%03d',new_loc)]) = data_k;
+                                new_loc = new_loc + 1;
+                            end
+                        end
                     end
-                    
                 end
             end
         end
         
-        function center_code = getCenterCode(this, center_name, resource_name, sys_c)
+        function [center_code, const] = getCenterCode(this, center_name, resource_name, sys_c)
             % return the center code given a resource name and desired
             % constelltion
             for i = 1 :length(this.computational_centers)
@@ -163,8 +179,12 @@ classdef Remote_Resource_Manager < Ini_Manager
                             center_code_part = strsplit(resource.data{idx},'@');
                             if length(center_code_part) > 1
                                 center_code = center_code_part{2};
+                                const = center_code_part{1};
+                                
                             else
                                 center_code = center_code_part{1};
+                                const = '';
+                                
                             end
                             
                         end
