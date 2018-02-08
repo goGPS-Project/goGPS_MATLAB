@@ -251,6 +251,11 @@ classdef File_Wizard < handle
                             idx = this.getServerIdx(s_ip, port);
                             out_dir = this.state.getFileDir(file_name);
                             status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                            if status
+                                l_f_name = this.fnp.getFileName(file_name);
+%                                 local_f_name = this.fnp.checkPath([out_dir filesep l_f_name])
+%                                 this.state.addFile(local_f_name);
+                            end
                         end
                     end
                 elseif ~strcmp(mode,'download')

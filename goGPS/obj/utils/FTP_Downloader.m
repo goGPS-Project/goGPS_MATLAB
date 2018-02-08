@@ -62,11 +62,13 @@ classdef FTP_Downloader < handle
         local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded
         ftp_server;     % object containing the connector
         addr;           % IP address of the FTP server, stored as string
+        f_name_pool = {};    % list with checked folder ant its names
     end
 
 
     properties (SetAccess = private, GetAccess = public)
         log = Logger.getInstance(); % Handler to the log object
+        fnp = File_Name_Processor();
     end
 
     methods
@@ -119,10 +121,34 @@ classdef FTP_Downloader < handle
         end
         
         function [status]  = check(this, filepath)
-            try
-                status = ~isempty(dir(this.ftp_server, [filepath '.*']));
-            catch
+            folder = this.fnp.getPath(filepath);
+            f_name = this.fnp.getFileName(filepath);
+            not_in_cache = true;
+            for i = 1 : length(this.f_name_pool)
+                folder_c = this.f_name_pool{i};
+                if strcmp(folder, folder_c{1})
+                    idx = i;
+                    not_in_cache = false;
+                end
             end
+            if not_in_cache
+                try
+                    files = dir(this.ftp_server, folder);
+                    this.f_name_pool{end+1} = {folder , files};
+                    idx = length(this.f_name_pool);
+                catch
+                end
+            end
+            folder_s = this.f_name_pool{idx};
+            files = folder_s{2};
+            for i = 1 : length(files)
+                if ~isempty(strfind(files(i).name, f_name))
+                    status = true;
+                    return
+                end
+            end
+            status = false;
+            
         end
         
         function [status]  = downloadUncompress(this, filepath, out_dir)
@@ -143,11 +169,11 @@ classdef FTP_Downloader < handle
                     [~, ~, fext] = fileparts(fpath{1});
                     if strcmp(fext,'.Z') || strcmp(fext,'.gz')
                     if (isunix())
-                        system(['gzip -d -f ' fpath{1} '&> /dev/null']);
+                        system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
                     else
                         try
                             f_path = File_Name_Processor.getFullDirPath(fpath{1});
-                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' fpath{1} '"' ' -o' '"' f_path '"']); %#ok<ASGLU>
+                            [status, result] = system(['"START /B .\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' fpath{1} '"' ' -o' '"' f_path '"']); %#ok<ASGLU>
                             delete([fpath{1}]);
                         catch
                             this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
