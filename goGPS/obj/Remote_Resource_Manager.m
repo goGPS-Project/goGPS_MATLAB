@@ -83,6 +83,15 @@ classdef Remote_Resource_Manager < Ini_Manager
             this.log = Logger.getInstance();
         end
         
+        function center_names= getCenterNames(this)
+            % return the avaliable center name
+            center_names = {};
+            for i = 1 :length(this.computational_centers)
+                center_names{end + 1} = this.computational_centers{i}.name;
+            end
+            
+        end
+        
         function [ip, port] = getServerIp(this, name)
             % return the ip of a server given the server name
             ip = [];
@@ -141,6 +150,8 @@ classdef Remote_Resource_Manager < Ini_Manager
         function [center_code, const] = getCenterCode(this, center_name, resource_name, sys_c)
             % return the center code given a resource name and desired
             % constelltion
+            center_code = [];
+            const = [];
             for i = 1 :length(this.computational_centers)
                 if strcmp(this.computational_centers{i}.name, center_name)
                     for j = 1 : length(this.computational_centers{i}.key)

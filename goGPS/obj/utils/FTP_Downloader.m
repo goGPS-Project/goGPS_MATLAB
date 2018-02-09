@@ -137,6 +137,9 @@ classdef FTP_Downloader < handle
                     this.f_name_pool{end+1} = {folder , files};
                     idx = length(this.f_name_pool);
                 catch
+                    status = false;
+                    this.log.addWarning(['Could not connect to: ' this.addr]);
+                    return
                 end
             end
             folder_s = this.f_name_pool{idx};

@@ -84,20 +84,9 @@ classdef IO_Settings < Settings_Interface
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
-        PREFERRED_ARCHIVE = {'cddis', 'custom'}
-        PREFERRED_GPS = {'igs', 'cod', 'jpl', 'esa', 'emx', 'gbm'}
-        PREFERRED_GLO = {'igs', 'cod', 'esa', 'emx', 'gbm'}
-        PREFERRED_MXD = {'gbm', 'cod', 'emx'}
-        PREFERRED_CLK = {'clk_05s', 'clk_30s', 'clk'}
-        PREFERRED_ERP = {'final', 'rapid', 'ultra'}
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
-
-        CUSTOM_ADDR = 'cddis.gsfc.nasa.gov/'
-        CUSTOM_PORT = '21'
-        CUSTOM_PATH = 'pub/gps/products/'
-        CUSTOM_NAME_EPH = '${WWWW}/igs${WWWWD}.sp3';
-        CUSTOM_NAME_CLK = '${WWWW}/igs${WWWWD}.clk_30s';
-        CUSTOM_NAME_ERP = '${WWWW}/igs${WWWW}7.erp';
+        PREFERRED_CENTER = {'igs'}
+        PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
 
         % SATELLITES
         EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep ]; % Path to Ephemeris files folder
@@ -105,6 +94,7 @@ classdef IO_Settings < Settings_Interface
         CLK_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
         CLK_NAME = ''; % Name of Clock Offset files
         CRX_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep]; % Path to CRX folder containing files of Satellites problems
+        CRX_NAME = 'SAT_${YYYY}.CRX';
         DCB_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep]; % Path to DCB folder containing files of Differential Code Biases
         EMS_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep]; % Path to EMS folder containing files of EGNOS Message Server.
         % STATIONS
@@ -120,9 +110,11 @@ classdef IO_Settings < Settings_Interface
         ERP_NAME = ''; % Name of ERP files
         IGRF_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         IGRF_NAME = 'igrf12coeff.txt';
+        
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
         IONO_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
+        IONO_NAME = '';
         REMOTE_RES_CONF_DIR = [IO_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
 
         % DTM (SET PATH AND LOAD PARAMETER FILES)
@@ -181,23 +173,9 @@ classdef IO_Settings < Settings_Interface
         % COMPUTATION CENTERS
         %------------------------------------------------------------------
         % Centers for computation of orbits and other related parameters
-
-        preferred_archive = IO_Settings.PREFERRED_ARCHIVE ; % order of the ftpo serv3r to use
-        preferred_gps = IO_Settings.PREFERRED_GPS;          % order of products to use (the first found is used) for GPS only solutions
-        preferred_glo = IO_Settings.PREFERRED_GLO;          % order of products to use (the first found is used) for GLONASS-GPS only solutions
-        preferred_mxd = IO_Settings.PREFERRED_MXD;          % order of products to use (the first found is used) for MultiConstellation only solutions
         preferred_eph = IO_Settings.PREFERRED_EPH;          % kind of orbits to prefer
-        preferred_erp = IO_Settings.PREFERRED_ERP;          % kind of erp to prefer
-        preferred_clk = IO_Settings.PREFERRED_CLK;          % kind of clocks to prefer
-
-        % Custom entry for a server
-
-        custom_addr = IO_Settings.CUSTOM_ADDR; % ftp address for a custom server
-        custom_port = IO_Settings.CUSTOM_PORT; % ftp port for a custom server
-        custom_path = IO_Settings.CUSTOM_PATH; % remote path
-        custom_name_eph = IO_Settings.CUSTOM_NAME_EPH; % name of the ephemeris file in the remote dir
-        custom_name_clk = IO_Settings.CUSTOM_NAME_CLK; % name of the clock file in the remote dir
-        custom_name_erp = IO_Settings.CUSTOM_NAME_ERP; % name of the Earth Rotation Parameters file in the remote dir
+        preferred_iono = IO_Settings.PREFERRED_IONO;
+        preferred_center = IO_Settings.PREFERRED_CENTER;
 
         %------------------------------------------------------------------
         % DEPRECATE
@@ -256,6 +234,7 @@ classdef IO_Settings < Settings_Interface
 
         % Path to CRX folder containing files of Satellites problems
         crx_dir = IO_Settings.CRX_DIR;
+        crx_name = IO_Settings.CRX_NAME;
         % Path to DCB folder containing files of Differential Code Biases
         dcb_dir = IO_Settings.DCB_DIR;
         dcb_name = []; %setted in File_Wizard.ConjureDCB
@@ -289,13 +268,19 @@ classdef IO_Settings < Settings_Interface
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
 
         erp_dir = IO_Settings.ERP_DIR;    % Path to ERP files folder
-        iono_dir = IO_Settings.IONO_DIR;  % Path to IONO files folder
         erp_name = IO_Settings.ERP_NAME;  % File name of ERP
         erp_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
+        
+        iono_dir = IO_Settings.IONO_DIR;  % Path to IONO files folder
+        iono_name = IO_Settings.IONO_NAME;  % Path to IONO files folder
+        iono_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
         remote_res_conf_dir = IO_Settings.REMOTE_RES_CONF_DIR;
         
         igrf_dir = IO_Settings.IGRF_DIR;  % Path to IGRF files folder
         igrf_name = IO_Settings.IGRF_NAME;
+        
+       
+       
        
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         geoid_dir = IO_Settings.GEOID_DIR;
@@ -382,20 +367,9 @@ classdef IO_Settings < Settings_Interface
                     this.prj_home = pwd;
                 end
                 % COMPUTATION CENTERS
-                this.preferred_archive = fnp.checkPath(settings.getData('preferred_archive'));
-                this.preferred_gps = fnp.checkPath(settings.getData('preferred_gps'));
-                this.preferred_glo = fnp.checkPath(settings.getData('preferred_glo'));
-                this.preferred_mxd = fnp.checkPath(settings.getData('preferred_mxd'));
                 this.preferred_eph = fnp.checkPath(settings.getData('preferred_eph'));
-                this.preferred_erp = fnp.checkPath(settings.getData('preferred_erp'));
-                this.preferred_clk = fnp.checkPath(settings.getData('preferred_clk'));
-                % Custom entry for a server
-                this.custom_addr = fnp.checkPath(settings.getData('custom_addr'));
-                this.custom_port = fnp.checkPath(settings.getData('custom_port'));
-                this.custom_path = fnp.checkPath(settings.getData('custom_path'));
-                this.custom_name_eph = fnp.checkPath(settings.getData('custom_name_eph'));
-                this.custom_name_clk = fnp.checkPath(settings.getData('custom_name_clk'));
-                this.custom_name_erp = fnp.checkPath(settings.getData('custom_name_erp'));
+                this.preferred_iono = fnp.checkPath(settings.getData('preferred_iono'));
+                this.preferred_center = fnp.checkPath(settings.getData('preferred_center'));
                 % DEPRECATE
                 this.input_file_ini_path = fnp.checkPath(settings.getData('input_file_ini_path'));
                 % RECEIVERS
@@ -427,9 +401,7 @@ classdef IO_Settings < Settings_Interface
                 this.xyz_ev_point = settings.getData('xyz_ev_point');
                 % SATELLITES
                 this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir')), this.prj_home));
-                this.eph_name   = fnp.checkPath(settings.getData('eph_name'));
                 this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir')), this.prj_home));
-                this.clk_name   = fnp.checkPath(settings.getData('clk_name'));
                 this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir')), this.prj_home));
                 this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir')), this.prj_home));
                 this.iono_dir    = fnp.getFullDirPath(settings.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
@@ -480,20 +452,9 @@ classdef IO_Settings < Settings_Interface
                 %this.cur_ini   = settings.cur_ini;
 
                 % COMPUTATION CENTERS
-                this.preferred_archive = settings.preferred_archive;
-                this.preferred_gps = settings.preferred_gps;
-                this.preferred_glo = settings.preferred_glo;
-                this.preferred_mxd = settings.preferred_mxd;
                 this.preferred_eph = settings.preferred_eph;
-                this.preferred_erp = settings.preferred_erp;
-                this.preferred_clk = settings.preferred_clk;
-                % Custom entry for a server
-                this.custom_addr = settings.custom_addr;
-                this.custom_port = settings.custom_port;
-                this.custom_path = settings.custom_path;
-                this.custom_name_eph = settings.custom_name_eph;
-                this.custom_name_clk = settings.custom_name_clk;
-                this.custom_name_erp = settings.custom_name_erp;
+                this.preferred_iono = settings.preferred_iono;
+                this.preferred_center = settings.preferred_center;
                 % DEPRECATE
                 this.input_file_ini_path = settings.input_file_ini_path;
                 % RECEIVERS
@@ -597,20 +558,9 @@ classdef IO_Settings < Settings_Interface
             end
             str = [str '---- COMPUTATION CENTER  --------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
-            str = [str sprintf(' Preferred order of servers:                       %s\n', strCell2Str(this.preferred_archive))];
-            str = [str sprintf(' Preferred order of GPS products:                  %s\n', strCell2Str(this.preferred_gps))];
-            str = [str sprintf(' Preferred order of GPS/GLONASS products:          %s\n', strCell2Str(this.preferred_glo))];
-            str = [str sprintf(' Preferred order of Multiconstellation products:   %s\n', strCell2Str(this.preferred_mxd))];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
-            str = [str sprintf(' Preferred order for erp products:                 %s\n', strCell2Str(this.preferred_erp))];
-            str = [str sprintf(' Preferred order for clock products:               %s\n\n', strCell2Str(this.preferred_clk))];
-            str = [str sprintf(' Custom server parameters:\n')];
-            str = [str sprintf('  address:                                         %s\n', this.custom_addr)];
-            str = [str sprintf('  port:                                            %s\n', this.custom_port)];
-            str = [str sprintf('  path:                                            %s\n', this.custom_path)];
-            str = [str sprintf('  eph name:                                        %s\n', this.custom_name_eph)];
-            str = [str sprintf('  clk name:                                        %s\n', this.custom_name_clk)];
-            str = [str sprintf('  erp name:                                        %s\n\n', this.custom_name_erp)];
+            str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
+            str = [str sprintf(' Preferred center:                                 %s\n\n', strCell2Str(this.preferred_center))];
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
@@ -733,51 +683,22 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Every product is searched locally, when not found is downloaded', str_cell);
             str_cell = Ini_Manager.toIniStringComment('When the file is not found, the system fall back on the next available', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred list of web archives,', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_ARCHIVE)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_archive', this.preferred_archive, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred source for GPS only solution, ', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_GPS)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_gps', this.preferred_gps, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred source for GPS/GLONASS only solution,', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_GLO)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_glo', this.preferred_glo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred source for Multiconstellation solution,', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_MXD)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_mxd', this.preferred_mxd, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type, valid only for source "igs",', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred Earth rotation parameters type, rapid are not always available,', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_ERP)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_erp', this.preferred_erp, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Preferred clock types, valid but for "igs" glonass,', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_CLK)), str_cell);
-            str_cell = Ini_Manager.toIniString('preferred_clk', this.preferred_clk, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('A custom center/product can also be used', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('(all the fields are strings)', str_cell);
-            str_cell = Ini_Manager.toIniString('custom_addr', this.custom_addr, str_cell);
-            str_cell = Ini_Manager.toIniString('custom_port', this.custom_port, str_cell);
-            str_cell = Ini_Manager.toIniString('custom_path', this.custom_path, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('The "variable" part of the path should be in the name, e.g. ${WWWW}/igs${WWWWD}.sp3', str_cell);
-            str_cell = Ini_Manager.toIniString('custom_name_eph', this.custom_name_eph, str_cell);
-            str_cell = Ini_Manager.toIniString('custom_name_clk', this.custom_name_clk, str_cell);
-            str_cell = Ini_Manager.toIniString('custom_name_erp', this.custom_name_erp, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred ionospheric type,', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_IONO)), str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_iono', this.preferred_iono, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred center type,', str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_center', this.preferred_center, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % SATELLITES
             str_cell = Ini_Manager.toIniStringSection('INPUT_SATELLITE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Ephemeris files', str_cell);
             str_cell = Ini_Manager.toIniString('eph_dir', fnp.getRelDirPath(this.eph_dir, this.prj_home), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Name of Ephemeris files - special keywords can be used', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
-            str_cell = Ini_Manager.toIniString('eph_name', this.eph_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
             str_cell = Ini_Manager.toIniString('clk_dir', fnp.getRelDirPath(this.clk_dir, this.prj_home), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Name of clock offset files - special keywords can be used', str_cell);
-            str_cell = Ini_Manager.toIniString('clk_name', this.clk_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of CRX files (containing satellite problems)', str_cell);
             str_cell = Ini_Manager.toIniString('crx_dir', fnp.getRelDirPath(this.crx_dir, this.prj_home), str_cell);
@@ -924,11 +845,14 @@ classdef IO_Settings < Settings_Interface
                 
             elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
                 dir = this.getIonoDir();
-            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.SNX') & strcmp(name(1:3),'DCB'))
+            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.BSX'))
                 dir = this.getDcbDir();
+            elseif strcmp(ext,'.${YY}p') || strcmp(ext,'.${YY}n') || strcmp(ext,'.${YY}l') || ~isempty(regexp(ext,'\.\d\dp')) || ~isempty(regexp(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl'))
+                dir = this.getNavEphDir();
             end
             
         end
+       
 
         function base_rinex_dir = getRinexBaseDir(this)
             % Get the base directory containing RINEX files
@@ -1019,31 +943,6 @@ classdef IO_Settings < Settings_Interface
             out = this.img_dir;
         end
 
-        function out = getNavArchive(this)
-            % Get the list of archives to use for the search of navigational files
-            out = this.preferred_archive;
-        end
-
-        function out = getNavGpsProvider(this)
-            % Get the list of gps provider to use during the search for valid navigational files of GPS satellites
-            out = this.preferred_gps;
-        end
-
-        function out = getNavGloProvider(this)
-            % Get the list of gps provider to use during the search for valid navigational files of GLONASS satellites
-            out = this.preferred_glo;
-        end
-
-        function out = getNavMixedProvider(this)
-            % Get the list of gps provider to use during the search for valid navigational files of GPS satellites
-            out = this.preferred_mxd;
-        end
-
-        function out = getNavClkType(this)
-            % Get the order of preference of clock files to search for
-            out = this.preferred_clk;
-        end
-
         function out = getNavEphType(this)
             % Get the order of preference of orbits files to search for
             out = this.preferred_eph;
@@ -1054,15 +953,6 @@ classdef IO_Settings < Settings_Interface
             out = this.preferred_erp;
         end
         
-        function [addr, port, path, eph_name, clk_name, erp_name] = getCustomArchive(this)
-            % Get the custom navigational provider parameters
-            addr = this.custom_addr;
-            port = this.custom_port;
-            path = this.custom_path;
-            eph_name = this.custom_name_eph;
-            clk_name = this.custom_name_clk;
-            erp_name = this.custom_name_erp;
-        end
 
         function file_name = getFullNavEphPath(this, id)
             % Get the file list of ephemeris files
@@ -1409,6 +1299,28 @@ classdef IO_Settings < Settings_Interface
     %  SETTERS
     % =========================================================================
     methods
+        function setFile(this, filename)
+            if length(filename) < 1
+                dir = '';
+                return
+            end
+            [filepath,name,ext] = fileparts(filename);
+            if strcmp(ext,'.sp3') || strcmp(ext,'.eph')
+                this.setNavEphFile(filename);
+            elseif strcmp(ext,'.erp')
+                this.setErpFile(filename);
+            elseif strfind(ext,'.clk')
+                this.setNavClkFile(filename);
+            elseif strcmp(ext,'.CRX')
+                
+            elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
+                this.setIonoFile(filename);
+            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.SNX') & strcmp(name(1:3),'DCB'))
+                this.setDcbFile(filename);
+            end
+            
+        end
+        
         function setNavPath(this, nav_dir)
             % Set the path to the navigational files
             % SYNTAX: this.getNavPath(nav_path)
@@ -1449,6 +1361,12 @@ classdef IO_Settings < Settings_Interface
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
             this.dcb_name = dcb_name;
+        end
+        
+        function setIonoFile(this, iono_file)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.iono_name = iono_file;
         end
         
         function setIGRFFile(this, igrf_name)
@@ -1571,6 +1489,32 @@ classdef IO_Settings < Settings_Interface
                 date_stop = date_stop.getCopy;
             end
             erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function iono_full_name = getIonoFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function crx_full_name = getCrxFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
 
         function updateExternals(this)
@@ -2014,20 +1958,9 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('prj_home', false, true);
             this.checkStringField('cur_ini', false);
 
-            this.checkCellStringField('preferred_archive', false);
-            this.checkCellStringField('preferred_gps', false);
-            this.checkCellStringField('preferred_glo', false);
-            this.checkCellStringField('preferred_mxd', false);
             this.checkCellStringField('preferred_eph', false);
-            this.checkCellStringField('preferred_erp', false);
-            this.checkCellStringField('preferred_clk', false);
-
-            this.checkStringField('custom_addr', false);
-            this.checkStringField('custom_port', false);
-            this.checkStringField('custom_path', false);
-            this.checkStringField('custom_name_eph', false);
-            this.checkStringField('custom_name_clk', false);
-            this.checkStringField('custom_name_erp', false);
+            this.checkCellStringField('preferred_iono', false);
+            this.checkCellStringField('preferred_center', false);
 
             this.checkStringField('sss_id_list', false);
             this.checkStringField('sss_id_start', false);
