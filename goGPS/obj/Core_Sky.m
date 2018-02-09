@@ -1918,6 +1918,13 @@ classdef Core_Sky < handle
             end
             
         end
+        function sys_c = getAvailableSys(this)
+            % get the available system stored into the object
+            % SYNTAX: sys_c = this.getAvailableSys()
+            
+            % Select only the systems present in the file
+            sys_c = this.cc.getAvailableSys();
+        end
     end
     
     % ==================================================================================================================================================
@@ -2248,6 +2255,8 @@ classdef Core_Sky < handle
                 log.addWarning(ww_msg);
             end
         end
+        
+        
         
     end
     

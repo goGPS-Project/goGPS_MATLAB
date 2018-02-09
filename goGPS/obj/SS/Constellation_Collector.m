@@ -291,6 +291,9 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
         
+        function sys_c = getAvailableSys(this)
+            sys_c = this.SYS_C(this.getActive());
+        end
 
         function ant_mod = getAntennaId(this, id)
             % Equivalent to the old function sat_antenna_ID
