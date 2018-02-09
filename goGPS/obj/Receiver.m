@@ -4948,7 +4948,7 @@ classdef Receiver < Exportable
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX:
             %   this.preProcessing();
-            
+            this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
             this.remBad();
             % correct for raw estimate of clock error based on the phase measure
             this.correctTimeDesync();
@@ -5017,7 +5017,7 @@ classdef Receiver < Exportable
                 id_sync = 1 : this.time.length();
             end
             
-            this.log.addMarkedMessage('Computing PPP solution');
+            this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
             this.log.addMessage(this.log.indent('Preparing the system', 6));
             %this.updateAllAvailIndex
             %this.updateAllTOT

@@ -95,6 +95,11 @@ classdef Settings_Interface < Exportable
             end
             this.import(ini);
         end
+        
+        function updateSettingsFile(this, file_path)
+            this.importIniFile(file_path);
+            this.save(file_path);
+        end
 
     end
 

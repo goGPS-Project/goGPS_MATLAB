@@ -132,7 +132,7 @@ classdef Core_Sky < handle
             clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
             this.clearOrbit();
             
-            if  ~isempty(strfind(eph_f_name{1}, '.sp3')) || ~isempty(strfind(eph_f_name{1}, '.SP3')) % assuming all files have the same endings
+            if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
                 this.log.addMarkedMessage('Importing ephemerides...');
                 for i = 1:length(eph_f_name)
                     this.addSp3(eph_f_name{i},clock_in_eph);
@@ -862,8 +862,7 @@ classdef Core_Sky < handle
         end
         
         function importDCB(this)
-            dcb_names = this.state.getDcbFile();
-            dcb_name = dcb_names{1};
+            dcb_name = this.state.getDcbFile();
             if strfind(dcb_name,'CAS')
                 this.importSinexDCB();
             else
@@ -1918,6 +1917,13 @@ classdef Core_Sky < handle
             end
             
         end
+        function sys_c = getAvailableSys(this)
+            % get the available system stored into the object
+            % SYNTAX: sys_c = this.getAvailableSys()
+            
+            % Select only the systems present in the file
+            sys_c = this.cc.getAvailableSys();
+        end
     end
     
     % ==================================================================================================================================================
@@ -2248,6 +2254,8 @@ classdef Core_Sky < handle
                 log.addWarning(ww_msg);
             end
         end
+        
+        
         
     end
     
