@@ -198,14 +198,27 @@ classdef File_Wizard < handle
             end
             file_tree = this.rm.getFileStr(resource_name);
             % check local
+            this.log.addMessage(this.log.indent('\nChecking local folders ...\n'))
             [status, file_tree] = this.navigateTree(file_tree, 'local_check');
+            if status
+                this.log.addMessage(this.log.indent('\nAll files has been found locally\n'))
+            else
+                this.log.addMessage(this.log.indent('\nSome files not found locally\n'))
+            end
             % check remote
             if  this.state.flag_check_remote && not(status)
+                this.log.addMessage(this.log.indent('\nChecking remote folders ...\n'))
                 [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
+                if status
+                    this.log.addMessage(this.log.indent('\nAll files has been found remotely\n'));
+                else
+                    this.log.addMessage(this.log.indent('\nSome files not found remotely\n'))
+                end
                 if status 
+                     this.log.addMessage(this.log.indent('\nDownloading Resources ...\n'));
                     [status, ~] = this.navigateTree(file_tree, 'download');
                     if not(status)
-                        this.log.addWarning('Not all file have been found or uncopress, processing might crash');
+                        this.log.addWarning('\nNot all file have been found or uncopress\n');
                     end
                 end
             end
@@ -267,11 +280,13 @@ classdef File_Wizard < handle
                         file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
                         status = true;
                         for i = 1 : length(file_name_lst)
-                            status = status && exist(file_name_lst{i}, 'file') == 2;
+                            f_status = exist(file_name_lst{i}, 'file') == 2;
+                            status = status && f_status;
+                            if status
+                                this.log.addStatusOk(sprintf('%s have been found locally',file_name_lst{i}));
+                            end
                         end
-                        if status
-                            this.log.addStatusOk(sprintf('%s have been found locally',file_name_lst{i}));
-                        end
+                        
                     elseif strcmp(mode, 'remote_check')
                         for i = 1 : f_struct.loc_number
                             f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];

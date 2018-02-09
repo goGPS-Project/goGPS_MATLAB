@@ -432,6 +432,7 @@ classdef IO_Settings < Settings_Interface
                 this.clk_name   = fnp.checkPath(settings.getData('clk_name'));
                 this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir')), this.prj_home));
                 this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir')), this.prj_home));
+                this.iono_dir    = fnp.getFullDirPath(settings.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
                 this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ems_dir')), this.prj_home));
                 % STATIONS
                 this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir')), this.prj_home));
@@ -921,11 +922,12 @@ classdef IO_Settings < Settings_Interface
                 dir = this.getNavClkDir();
             elseif strcmp(ext,'.CRX')
                 
-            elseif ~isempty(regexp(ext,'\.i\d\d')) || strcmp(ext,'.i${YY}')
+            elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
                 dir = this.getIonoDir();
             elseif strcmp(ext,'.DCB') || (strcmp(ext,'.SNX') & strcmp(name(1:3),'DCB'))
                 dir = this.getDcbDir();
             end
+            
         end
 
         function base_rinex_dir = getRinexBaseDir(this)
@@ -1097,6 +1099,18 @@ classdef IO_Settings < Settings_Interface
                 file_name = file_name{id};
             end
         end
+        
+        function file_name = getFullIonoPath(this, id)
+            % Get the file list of ephemeris files
+            % SYNTAX: file_name = this.getFullErpPath(id)
+            if isempty(this.erp_full_name)
+                this.updateErpFileName();
+            end
+            file_name = this.erp_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
 
         function out = getNavEphFile(this)
             % Get the file name of the navigational files
@@ -1145,8 +1159,13 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: dcb_path = this.getDcbPath()
             out = this.dcb_dir;
         end
-       
-
+        
+        function out = getIonoDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.iono_dir;
+        end
+      
         function out = getNavEphPath(this)
             % Get the path to the navigational files
             % SYNTAX: nav_path = this.getNavEphPath()
@@ -1431,6 +1450,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: this.getClkFile(erp_name)
             this.dcb_name = dcb_name;
         end
+        
         function setIGRFFile(this, igrf_name)
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
