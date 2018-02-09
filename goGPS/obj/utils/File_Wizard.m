@@ -255,7 +255,9 @@ classdef File_Wizard < handle
                         f_path = [f_struct.(['loc' sprintf('%03d',loc_n)]) f_name];
                         file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
                         status = true;
+                        f_status_lst = file_tree{4};
                         for i = 1 : length(file_name_lst)
+                            if ~f_status_lst(i)
                             file_name = file_name_lst{i};
                             [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
                             server = server{1};
@@ -269,6 +271,7 @@ classdef File_Wizard < handle
 %                                 local_f_name = this.fnp.checkPath([out_dir filesep l_f_name])
 %                                 this.state.addFile(local_f_name);
                             end
+                            end
                         end
                     end
                 elseif ~strcmp(mode,'download')
@@ -279,27 +282,35 @@ classdef File_Wizard < handle
                         f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
                         file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
                         status = true;
+                        f_status_lst = false(length(file_name_lst)); %file list to be saved in tree with fòag of downloaded or not
                         for i = 1 : length(file_name_lst)
                             f_status = exist(file_name_lst{i}, 'file') == 2;
+                            f_status_lst(i) = f_status;
                             status = status && f_status;
                             if status
                                 this.log.addStatusOk(sprintf('%s have been found locally',file_name_lst{i}));
+
+%                                 this.state.addFile(file_name_lst{i});
                             end
                         end
+                        file_tree{4} = f_status_lst;
                         
                     elseif strcmp(mode, 'remote_check')
                         for i = 1 : f_struct.loc_number
                             f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
                             file_name_lst = this.fnp.dateKeyRepBatch(f_path, this.date_start, this.date_stop);
                             status = true;
+                            f_status_lst = file_tree{4};
                             for j = 1 : length(file_name_lst)
-                                file_name = file_name_lst{j};
-                                [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
-                                server = server{1};
-                                file_name = strrep(file_name,['?{' server '}'],'');
-                                [s_ip, port] = this.rm.getServerIp(server);
-                                idx = this.getServerIdx(s_ip, port);
-                                status = status && this.ftp_downloaders{idx}.check(file_name);
+                                if ~f_status_lst(j)
+                                    file_name = file_name_lst{j};
+                                    [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
+                                    server = server{1};
+                                    file_name = strrep(file_name,['?{' server '}'],'');
+                                    [s_ip, port] = this.rm.getServerIp(server);
+                                    idx = this.getServerIdx(s_ip, port);
+                                    status = status && this.ftp_downloaders{idx}.check(file_name);
+                                end
                             end
                             if status
                                 file_tree{3} = i;
