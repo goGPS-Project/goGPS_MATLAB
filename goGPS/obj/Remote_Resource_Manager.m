@@ -41,270 +41,489 @@
 classdef Remote_Resource_Manager < Ini_Manager
     properties (Constant, Access = private)
         DEFAULT_RESOURCE_FILE = '../data/goGPSconfig/remote_resource.ini';
+        DEFAULT_RESOURCE_TXT = [...
+            '# *******************************\n\n' ...
+            '# Server File\n\n' ...
+            '# define the server address\n\n' ...
+            '# *******************************\n\n' ...
+            '\n\n' ...
+            '[SERVER]\n\n' ...
+            'cddis = ["cddis.gsfc.nasa.gov" "21"]\n\n' ...
+            'aiub = ["ftp.aiub.unibe.ch" "21"]\n\n' ...
+            'ign = ["igs.ign.fr" "21"]\n\n' ...
+            'jpl = ["igscb.jpl.nasa.gov" "21"]\n\n' ...
+            'sopac = ["garner.ucsd.edu" "21"]\n\n' ...
+            '\n\n' ...
+            '\n\n' ...
+            '# *******************************\n\n' ...
+            '# File resource definition\n\n' ...
+            '# *******************************\n\n' ...
+            '[f_final_sp3@GRECJIS]\n\n' ...
+            'filename = "${CCC}${WWWWD}.sp3"\n\n' ...
+            'loc_number = 2\n\n' ...
+            'loc001 = "?{cddis}/pub/gps/products/mgex/${WWWW}/"\n\n' ...
+            'loc002 = "?{cddis}/pub/gnss/products/${WWWW}/"\n\n' ...
+            '\n\n' ...
+            '[f_final_eph@GRECJIS]\n\n' ...
+            'filename = "${CCC}${WWWWD}.eph"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/pub/gnss/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_final_sp3@GR]\n' ...
+            'filename = "${CCC}${WWWWD}.sp3"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/pub/glonass/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_final_sp3@G]\n' ...
+            'filename = "${CCC}${WWWWD}.sp3"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/pub/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_final_erp]\n' ...
+            'filename = "${CCC}${WWWW}7.erp"\n' ...
+            'loc_number = 4\n' ...
+            'loc001 = "?{cddis}/pub/gps/products/mgex/${WWWW}/"\n' ...
+            'loc002 = "?{cddis}/pub/glonass/products/${WWWW}/"\n' ...
+            'loc003 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc004 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_final_erp_igs]\n' ...
+            'filename = "igs${WWWW}7.erp"\n' ...
+            'loc_number = 2\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_final_sp3@G]\n' ...
+            'filename = "${CCC}${WWWWD}.sp3"\n' ...
+            'loc_number = 2\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_ultra_eph]\n' ...
+            'filename = "${CCC}${WWWWD}_${HH}.sp3"\n' ...
+            'loc_number = 2\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_ultra_erp]\n' ...
+            'filename = "${CCC}${WWWWD}_${HH}.erp"\n' ...
+            'loc_number = 2\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_brdc_eph@GRECJIS]\n' ...
+            'filename = "brdm${DOY}0.${YY}p"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/pub/gps/data/campaign/mgex/daily/rinex3/${YYYY}/brdm/"\n' ...
+            '\n' ...
+            '[f_brdc_eph@G]\n' ...
+            'filename = "brdc${DOY}0.${YY}n"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/data/daily/${YYYY}/brdc/"\n' ...
+            '\n' ...
+            '[f_brdc_epg@R]\n' ...
+            'filename = "brdc${DOY}0.${YY}g"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/data/daily/${YYYY}/brdc/"\n' ...
+            '\n' ...
+            '[f_brdc_epg@E]\n' ...
+            'filename = "brdc${DOY}0.${YY}l"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/data/daily/${YYYY}/brdc/"\n' ...
+            '\n' ...
+            '[f_clk]\n' ...
+            'filename = "${CCC}${WWWWD}.clk"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_clk_05s]\n' ...
+            'filename = "${CCC}${WWWWD}.clk_05s"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_clk_30s]\n' ...
+            'filename = "${CCC}${WWWWD}.clk_30s"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gps/products/${WWWW}/"\n' ...
+            'loc002 = "?{sopac}/gps/products/${WWWW}/"\n' ...
+            '\n' ...
+            '[f_ionex_final]\n' ...
+            'filename = "${CCC}${DOY}0.${YY}i"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/products/ionex/${YYYY}/${DOY}/"\n' ...
+            '\n' ...
+            '[f_ionex_predicted1]\n' ...
+            'filename = "${CCC}${DOY}0.${YY}i"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/products/ionex/${YYYY}/${DOY}/"\n' ...
+            '\n' ...
+            '[f_ionex_predicted2]\n' ...
+            'filename = "${CCC}${DOY}0.${YY}i"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{cddis}/gnss/products/ionex/${YYYY}/${DOY}/"\n' ...
+            '\n' ...
+            '[f_dcb_snx_daily]\n' ...
+            'filename = "${CCC}0MGXRAP_${YYYY}${DOY}0000_01D_01D_DCB.BSX"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{ign}/pub/igs/products/mgex/dcb/${YYYY}/"\n' ...
+            '\n' ...
+            '[f_p1c1_aiub]\n' ...
+            'filename = "P1C1${YY}${MM}.DCB"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{aiub}/CODE/${YYYY}/"\n' ...
+            '\n' ...
+            '[f_p1p2_aiub]\n' ...
+            'filename = "P1P2${YY}${MM}.DCB"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{aiub}/CODE/${YYYY}/"\n' ...
+            '\n' ...
+            '[f_p2c2_aiub]\n' ...
+            'filename = "P2C2${YY}${MM}_RINEX.DCB"\n' ...
+            'loc_number = 1\n' ...
+            'loc001 = "?{aiub}/CODE/${YYYY}/"\n' ...
+            '\n' ...
+            '# *******************************\n' ...
+            '# Remote resource definition\n' ...
+            '# *******************************\n' ...
+            '\n' ...
+            '[r_ultra]\n' ...
+            'resources = "ultra_eph & ( ultra_erp | null )"\n' ...
+            '\n' ...
+            '[r_final]\n' ...
+            'resources = "(final_sp3 | final_eph) & ( final_erp )  & (clk_30s | clk_05s | clk | null)"\n' ...
+            '\n' ...
+            '[r_broadcast]\n' ...
+            'resources = "brdc_eph"\n' ...
+            '\n' ...
+            '[r_iono_final]\n' ...
+            'resources = "ionex_final"\n' ...
+            '\n' ...
+            '[r_iono_predicted1]\n' ...
+            'resources = "ionex_predicted1"\n' ...
+            '\n' ...
+            '[r_iono_predicted2]\n' ...
+            'resources = "ionex_predicted2"\n' ...
+            '\n' ...
+            '[r_iono_broadcast]\n' ...
+            'resources = "brdc_eph"\n' ...
+            '\n' ...
+            '[r_dcb]\n' ...
+            'resources = "dcb_snx_daily | ( (p1c1_aiub & null) & (p1p2_aiub & null) & (p2c2_aiub & null) )"\n' ...
+            '\n' ...
+            '\n' ...
+            '\n' ...
+            '\n' ...
+            '#********************************\n' ...
+            '# Computation center defintion\n' ...
+            '#********************************\n' ...
+            '[c_default]\n' ...
+            'description = "IGS average solution"\n' ...
+            'final = ["G@igs","R@igl"]\n' ...
+            'rapid = ["R@igr","R@igv"]\n' ...
+            'ultra = "G@igu"\n' ...
+            'iono_final = "codg"\n' ...
+            'iono_predicted1 = "c1pg"\n' ...
+            'iono_predicted2 = "c2pg"\n' ...
+            '[c_igs]\n' ...
+            'description = "IGS average solution"\n' ...
+            'final = ["G@igs","R@igl"]\n' ...
+            'rapid = ["R@igr","R@igv"]\n' ...
+            'ultra = "G@igu"\n' ...
+            '[c_code]\n' ...
+            'description = "Center for Orbit Determination Europe"\n' ...
+            'final = "GRE@cod"\n' ...
+            'iono_final = "codg"\n' ...
+            'iono_predicted1 = "c1pg"\n' ...
+            'iono_predicted2 = "c2pg"\n' ...
+            '[c_esa]\n' ...
+            'description = "ESOC"\n' ...
+            'final = "GR@esa"\n' ...
+            'iono_final = "esag"\n' ...
+            '[c_nrcan]\n' ...
+            'description = "Department of Natural Resources - Canada"\n' ...
+            'iono_final = "emrg"\n' ...
+            'final = "GR@emx"\n' ...
+            '[c_cas]\n' ...
+            'description = "China Academy of Science"\n' ...
+            'dcb = "CAS"\n' ...
+            '[c_gfz]\n' ...
+            'description = "Helmholtz-Zentrum Potsdam – Deutsches GeoForschungsZentrum"\n' ...
+            'final = "GRE@gbm"'];
     end
-    
-    properties (Access = private)
-        servers
-        file_resources
-        remote_sources
-        computational_centers
-    end
-    
-    properties (Access = private)
-        log        
-    end
-    
-    methods
-        function this = Remote_Resource_Manager(file_name)
-            if (nargin == 0)
-                file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
-            end
-            
-            this = this@Ini_Manager(file_name);
-            this.readFile();
-            for i = 1 : length(this.section)
-                if strcmp(this.section{i}.name, 'SERVER')
-                    this.servers = this.section{i}.key;
-                end
-                if strcmp(this.section{i}.name(1:2), 'f_')
-                    this.file_resources{end+1} = this.section{i};
-                    this.file_resources{end}.name(1:2) = [];
-                end
-                if strcmp(this.section{i}.name(1:2), 'r_')
-                    this.remote_sources{end+1} = this.section{i};
-                    this.remote_sources{end}.name(1:2) = [];
-                end
-                if strcmp(this.section{i}.name(1:2), 'c_')
-                    this.computational_centers{end+1} = this.section{i};
-                    this.computational_centers{end}.name(1:2) = [];
-                end
-            end
-            
-            this.log = Logger.getInstance();
-        end
-        
-        function center_names= getCenterNames(this)
-            % return the avaliable center name
-            center_names = {};
-            for i = 1 :length(this.computational_centers)
-                center_names{end + 1} = this.computational_centers{i}.name;
-            end
-            
-        end
-        
-        function [ip, port] = getServerIp(this, name)
-            % return the ip of a server given the server name
-            ip = [];
-            port = [];
-            for i = 1 : length(this.servers)
-                if strcmp(this.servers{i}.name, name)
-                    ip = this.servers{i}.data{1};
-                    port = this.servers{i}.data{2};
-                end
-            end
-        end
-        
-        function f_struct = getFileLoc(this, file_name, sys_c)
-            % return the ip of a server given the server name
-            first = true;
-            for i = 1 : length(this.file_resources)
-                name_part = strsplit(this.file_resources{i}.name,'@');
-                name = name_part{1};
-                if length(name_part) > 1
-                    const = name_part{2};
-                else
-                    const = 'GRECJIS';
-                end
-                cond_const = true;
-                if nargin > 2
-                    cond_const = ~isempty(strfind(const, sys_c));
-                end
-                if strcmp(name, file_name) && cond_const
-                    %%%%% add here the loactions
-                    if first
-                        f_struct.name = file_name;
-                        f_struct.const = const;
-                        for j = 1 : length(this.file_resources{i}.key)
-                            name_k = this.file_resources{i}.key{j}.name;
-                            f_struct.(name_k) = this.file_resources{i}.key{j}.data;
-                        end
-                        first = false;
 
-                    else
-                        new_loc = f_struct.loc_number +1;
-                        for j = 1 : length(this.file_resources{i}.key)
-                            name_k = this.file_resources{i}.key{j}.name;
-                            data_k = this.file_resources{i}.key{j}.data;
-                            if strcmp(name_k,'loc_number')
-                                f_struct.loc_number = f_struct.loc_number + data_k;
-                            elseif strcmp(name_k(1:3),'loc')
-                                f_struct.([name_k(1:3) sprintf('%03d',new_loc)]) = data_k;
-                                new_loc = new_loc + 1;
-                            end
+properties (Access = private)
+    servers
+    file_resources
+    remote_sources
+    computational_centers
+end
+
+properties (Access = private)
+    log
+end
+
+methods
+    function this = Remote_Resource_Manager(file_name)
+        if (nargin == 0)
+            file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
+            if exist(file_name, 'file') ~= 2
+                Remote_Resource_Manager.writeDefault();
+            end
+        end
+        this = this@Ini_Manager(file_name);
+        this.readFile();
+        for i = 1 : length(this.section)
+            if strcmp(this.section{i}.name, 'SERVER')
+                this.servers = this.section{i}.key;
+            end
+            if strcmp(this.section{i}.name(1:2), 'f_')
+                this.file_resources{end+1} = this.section{i};
+                this.file_resources{end}.name(1:2) = [];
+            end
+            if strcmp(this.section{i}.name(1:2), 'r_')
+                this.remote_sources{end+1} = this.section{i};
+                this.remote_sources{end}.name(1:2) = [];
+            end
+            if strcmp(this.section{i}.name(1:2), 'c_')
+                this.computational_centers{end+1} = this.section{i};
+                this.computational_centers{end}.name(1:2) = [];
+            end
+        end
+        
+        this.log = Logger.getInstance();
+    end
+    
+    function center_names= getCenterNames(this)
+        % return the avaliable center name
+        center_names = {};
+        for i = 1 :length(this.computational_centers)
+            center_names{end + 1} = this.computational_centers{i}.name;
+        end
+        
+    end
+    
+    function [ip, port] = getServerIp(this, name)
+        % return the ip of a server given the server name
+        ip = [];
+        port = [];
+        for i = 1 : length(this.servers)
+            if strcmp(this.servers{i}.name, name)
+                ip = this.servers{i}.data{1};
+                port = this.servers{i}.data{2};
+            end
+        end
+    end
+    
+    function f_struct = getFileLoc(this, file_name, sys_c)
+        % return the ip of a server given the server name
+        first = true;
+        for i = 1 : length(this.file_resources)
+            name_part = strsplit(this.file_resources{i}.name,'@');
+            name = name_part{1};
+            if length(name_part) > 1
+                const = name_part{2};
+            else
+                const = 'GRECJIS';
+            end
+            cond_const = true;
+            if nargin > 2
+                cond_const = ~isempty(strfind(const, sys_c));
+            end
+            if strcmp(name, file_name) && cond_const
+                %%%%% add here the loactions
+                if first
+                    f_struct.name = file_name;
+                    f_struct.const = const;
+                    for j = 1 : length(this.file_resources{i}.key)
+                        name_k = this.file_resources{i}.key{j}.name;
+                        f_struct.(name_k) = this.file_resources{i}.key{j}.data;
+                    end
+                    first = false;
+                    
+                else
+                    new_loc = f_struct.loc_number +1;
+                    for j = 1 : length(this.file_resources{i}.key)
+                        name_k = this.file_resources{i}.key{j}.name;
+                        data_k = this.file_resources{i}.key{j}.data;
+                        if strcmp(name_k,'loc_number')
+                            f_struct.loc_number = f_struct.loc_number + data_k;
+                        elseif strcmp(name_k(1:3),'loc')
+                            f_struct.([name_k(1:3) sprintf('%03d',new_loc)]) = data_k;
+                            new_loc = new_loc + 1;
                         end
                     end
                 end
             end
         end
-        
-        function [center_code, const] = getCenterCode(this, center_name, resource_name, sys_c)
-            % return the center code given a resource name and desired
-            % constelltion
-            center_code = [];
-            const = [];
-            for i = 1 :length(this.computational_centers)
-                if strcmp(this.computational_centers{i}.name, center_name)
-                    for j = 1 : length(this.computational_centers{i}.key)
-                        resource = this.computational_centers{i}.key{j};
-                        if strcmp(resource.name, resource_name)
-                            idx = [];
-                            if nargin > 3
-                                valid = [];
-                                if ~iscell(resource.data)
-                                    resource.data = {resource.data};
-                                end
-                                for k = 1:length(resource.data)
-                                    center_code_part = strsplit(resource.data{k},'@');
-                                    if length(center_code_part) > 1
-                                        consts = center_code_part{1};
-                                        found = true;
-                                        for l = 1 : length(sys_c)
-                                            found = found && ~isempty(strfind(consts, sys_c(l)));
-                                        end
-                                        if found
-                                            valid = [valid ; [k, (length(consts) -length(sys_c))]];
-                                        end
-                                    else
-                                        valid = [valid; [k,Inf]];
+    end
+    
+    function [center_code, const] = getCenterCode(this, center_name, resource_name, sys_c)
+        % return the center code given a resource name and desired
+        % constelltion
+        center_code = [];
+        const = [];
+        for i = 1 :length(this.computational_centers)
+            if strcmp(this.computational_centers{i}.name, center_name)
+                for j = 1 : length(this.computational_centers{i}.key)
+                    resource = this.computational_centers{i}.key{j};
+                    if strcmp(resource.name, resource_name)
+                        idx = [];
+                        if nargin > 3
+                            valid = [];
+                            if ~iscell(resource.data)
+                                resource.data = {resource.data};
+                            end
+                            for k = 1:length(resource.data)
+                                center_code_part = strsplit(resource.data{k},'@');
+                                if length(center_code_part) > 1
+                                    consts = center_code_part{1};
+                                    found = true;
+                                    for l = 1 : length(sys_c)
+                                        found = found && ~isempty(strfind(consts, sys_c(l)));
                                     end
-                                    if ~isempty(valid)
-                                        idx = valid(valid(:,2) == min(valid(:, 2)), 1); %select the center_code that has all contellations ad give priority to the ones that has the minum number of other constellations
+                                    if found
+                                        valid = [valid ; [k, (length(consts) -length(sys_c))]];
                                     end
+                                else
+                                    valid = [valid; [k,Inf]];
                                 end
-                            else
-                                idx = 1;
+                                if ~isempty(valid)
+                                    idx = valid(valid(:,2) == min(valid(:, 2)), 1); %select the center_code that has all contellations ad give priority to the ones that has the minum number of other constellations
+                                end
                             end
-                            if isempty(idx)
-                                this.log.addWarning('No vaild center code found for the desidered combination')
-                            end
-                            center_code_part = strsplit(resource.data{idx},'@');
-                            if length(center_code_part) > 1
-                                center_code = center_code_part{2};
-                                const = center_code_part{1};
-                                
-                            else
-                                center_code = center_code_part{1};
-                                const = '';
-                                
-                            end
+                        else
+                            idx = 1;
+                        end
+                        if isempty(idx)
+                            this.log.addWarning('No vaild center code found for the desidered combination')
+                        end
+                        center_code_part = strsplit(resource.data{idx},'@');
+                        if length(center_code_part) > 1
+                            center_code = center_code_part{2};
+                            const = center_code_part{1};
+                            
+                        else
+                            center_code = center_code_part{1};
+                            const = '';
                             
                         end
+                        
                     end
                 end
             end
         end
-        
-        function file_structure = getFileStr(this, resource_name)
-            for i = 1 : length(this.remote_sources)
-                if strcmp(this.remote_sources{i}.name, resource_name)
-                    string = this.remote_sources{i}.key{1}.data;
-                    file_structure = this.parseLogicTree(string);
-                end
-            end
-        end        
     end
     
-    methods ( Access = private)
-        function file_structure = parseLogicTree(this, str)
-            [status, list] = this.findElements(str);
-            if status == 0
-                file_structure  = {strtrim(str), false};
-                return
-            else
-                if status == 1
-                    cond = 'or';
-                else
-                    cond = 'and';
-                end
-                for i = 1 : length(list)
-                    file_structure.(cond).(['f' num2str(i)]) = this.parseLogicTree(list{i});
-                end
+    function file_structure = getFileStr(this, resource_name)
+        for i = 1 : length(this.remote_sources)
+            if strcmp(this.remote_sources{i}.name, resource_name)
+                string = this.remote_sources{i}.key{1}.data;
+                file_structure = this.parseLogicTree(string);
             end
-            
+        end
+    end
+end
+
+methods ( Access = private)
+    function file_structure = parseLogicTree(this, str)
+        [status, list] = this.findElements(str);
+        if status == 0
+            file_structure  = {strtrim(str), false};
+            return
+        else
+            if status == 1
+                cond = 'or';
+            else
+                cond = 'and';
+            end
+            for i = 1 : length(list)
+                file_structure.(cond).(['f' num2str(i)]) = this.parseLogicTree(list{i});
+            end
         end
         
-        function [status, list] = findElements(this, str)
-            % OUTPUT:
-            % status: -1 and 0 nothing 1 or
-            % list: list of string parts
-            [matches] = regexp(str, '\&|\|', 'match');
-            if isempty(matches)
-                status = 0;
-                list = {};
-                return
-            else
-                open = 0; %number if open pharentesis
-                status = '';
-                index = [];
-                for i = 1:length(str)
-                    if open == 0
-                        if str(i) == '&' | str(i) == '|'
-                            if isempty(status)
-                                status = str(i);
-                                index = [index; i];
+    end
+    
+    function [status, list] = findElements(this, str)
+        % OUTPUT:
+        % status: -1 and 0 nothing 1 or
+        % list: list of string parts
+        [matches] = regexp(str, '\&|\|', 'match');
+        if isempty(matches)
+            status = 0;
+            list = {};
+            return
+        else
+            open = 0; %number if open pharentesis
+            status = '';
+            index = [];
+            for i = 1:length(str)
+                if open == 0
+                    if str(i) == '&' | str(i) == '|'
+                        if isempty(status)
+                            status = str(i);
+                            index = [index; i];
+                        else
+                            if status ~= str(i)
+                                this.log.addWarning('| and & can not exist at the same level, check parenthesis')
+                                status = 0;
+                                return
                             else
-                                if status ~= str(i)
-                                    this.log.addWarning('| and & can not exist at the same level, check parenthesis')
-                                    status = 0;
-                                    return
-                                else
-                                    index = [index; i];
-                                end
+                                index = [index; i];
                             end
                         end
                     end
-                    if str(i) == '('
-                        open = open + 1;
-                    end
-                    if str(i) == ')'
-                        open = open - 1;
-                    end
                 end
-                if status == '|'
-                    status = 1;
-                elseif status == '&'
-                    status = -1;
+                if str(i) == '('
+                    open = open + 1;
                 end
-                list = {};
-                for i = 1 : length(index)
-                    if i == 1
-                        list{end + 1} = this.removeTrailingPar(str(1:index(i)-1));
-                    else
-                        list{end + 1} = this.removeTrailingPar(str(index(i-1)+1: index(i)-1));
-                    end
+                if str(i) == ')'
+                    open = open - 1;
                 end
-                list{end + 1} = this.removeTrailingPar(str(index(end)+1 : end));
-                
+            end
+            if status == '|'
+                status = 1;
+            elseif status == '&'
+                status = -1;
+            end
+            list = {};
+            for i = 1 : length(index)
+                if i == 1
+                    list{end + 1} = this.removeTrailingPar(str(1:index(i)-1));
+                else
+                    list{end + 1} = this.removeTrailingPar(str(index(i-1)+1: index(i)-1));
+                end
+            end
+            list{end + 1} = this.removeTrailingPar(str(index(end)+1 : end));
+            
+        end
+    end
+    
+    function str = removeTrailingPar(this, str)
+        for i =1 :length(str)
+            if str(i)~=' '
+                if str(i)=='('
+                    str(1:i) = [];
+                end
+                break
             end
         end
-        
-        function str = removeTrailingPar(this, str)
-            for i =1 :length(str)
-                if str(i)~=' '
-                    if str(i)=='('
-                        str(1:i) = [];
-                    end
-                    break
+        for i =length(str) : -1:1
+            if str(i)~=' '
+                if str(i)==')'
+                    str(i:end) = [];
                 end
+                break
             end
-            for i =length(str) : -1:1
-                if str(i)~=' '
-                    if str(i)==')'
-                        str(i:end) = [];
-                    end
-                    break
-                end
-            end
-        end        
+        end
     end
+end
+methods (Static)
+    function writeDefault(this)
+        fid = fopen(Remote_Resource_Manager.DEFAULT_RESOURCE_FILE,'w+');
+        fprintf(fid, Remote_Resource_Manager.DEFAULT_RESOURCE_TXT);
+        fclose(fid);
+    end
+end
 end
