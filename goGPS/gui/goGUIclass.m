@@ -3356,7 +3356,9 @@ classdef goGUIclass < handle
                 if ishandle(this.edtINI.h.wEditINI)
                     close(this.edtINI.h.wEditINI);
                 end
-                delete this.edtINI.h
+                if (ishandle(this.edtINI.h))
+                    delete this.edtINI.h
+                end
             end
             gui_edit_INI();
         end

@@ -6257,7 +6257,7 @@ classdef Receiver < Exportable
                     t = this(r).time.getEpoch(this(r).id_sync(:, 1)).getMatlabTime;
                     
                     sztd = this(r).getSlantZTD(this(r).slant_filter_win);
-                    sztd = sztd(this(r).id_sync(:, 1), :) - this(r).ztd(this(r).id_sync(:, 1));
+                    sztd = bsxfun(@minus, sztd(this(r).id_sync(:, 1), :), this(r).ztd(this(r).id_sync(:, 1)));
                     if nargin >= 3
                         if isa(time_start, 'GPS_Time')
                             time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
