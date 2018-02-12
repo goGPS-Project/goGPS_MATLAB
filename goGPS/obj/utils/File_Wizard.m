@@ -341,7 +341,7 @@ classdef File_Wizard < handle
                     end
                 end
                 file_tree{2} = status;
-            else % is if a brach go deeper into the branhces/ leafs
+            else % is if a brach go deeper into the branches / leafs
                 b_name = fieldnames(file_tree);
                 b_name = b_name{1};
                 or_flag = strcmp(b_name, 'or');
@@ -416,7 +416,7 @@ classdef File_Wizard < handle
             list_preferred = this.state.preferred_eph;
             center = this.state.preferred_center;
             for i = 1 : length(list_preferred)
-                status = this.conjureResource(list_preferred{i},date_start, date_stop, center);
+                status = this.conjureResource(list_preferred{i}, date_start, date_stop, center);
                 if status
                     break
                 end

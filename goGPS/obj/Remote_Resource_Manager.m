@@ -272,6 +272,7 @@ methods
                 Remote_Resource_Manager.writeDefault();
             end
         end
+        
         this = this@Ini_Manager(file_name);
         this.readFile();
         for i = 1 : length(this.section)
@@ -390,7 +391,7 @@ methods
                                     valid = [valid; [k,Inf]];
                                 end
                                 if ~isempty(valid)
-                                    idx = valid(valid(:,2) == min(valid(:, 2)), 1); %select the center_code that has all contellations ad give priority to the ones that has the minum number of other constellations
+                                    idx = valid(valid(:,2) == min(valid(:, 2)), 1); %select the center_code that has all constellations ad give priority to the ones that has the minum number of other constellations
                                 end
                             end
                         else
@@ -419,8 +420,8 @@ methods
     function file_structure = getFileStr(this, resource_name)
         for i = 1 : length(this.remote_sources)
             if strcmp(this.remote_sources{i}.name, resource_name)
-                string = this.remote_sources{i}.key{1}.data;
-                file_structure = this.parseLogicTree(string);
+                str = this.getData(['r_' resource_name], 'resources');
+                file_structure = this.parseLogicTree(str);
             end
         end
     end
@@ -429,6 +430,7 @@ end
 methods ( Access = private)
     function file_structure = parseLogicTree(this, str)
         [status, list] = this.findElements(str);
+        file_structure = [];
         if status == 0
             file_structure  = {strtrim(str), false};
             return

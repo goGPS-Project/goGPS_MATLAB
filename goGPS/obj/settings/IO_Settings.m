@@ -85,7 +85,7 @@ classdef IO_Settings < Settings_Interface
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
-        PREFERRED_CENTER = {'igs'}
+        PREFERRED_CENTER = {'default'}
         PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
 
         % SATELLITES
@@ -835,19 +835,19 @@ classdef IO_Settings < Settings_Interface
                 return
             end
             [filepath,name,ext] = fileparts(filename);
-            if strcmp(ext,'.sp3') || strcmp(ext,'.eph')
+            if strcmp(lower(ext),'.sp3') || strcmp(lower(ext),'.eph')
                 dir = this.getNavEphDir();
-            elseif strcmp(ext,'.erp')
+            elseif strcmp(lower(ext),'.erp')
                 dir = this.getErpDir();
-            elseif strfind(ext,'.clk')
+            elseif strfind(lower(ext),'.clk')
                 dir = this.getNavClkDir();
-            elseif strcmp(ext,'.CRX')
+            elseif strcmp(upper(ext),'.CRX')
                 
             elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
                 dir = this.getIonoDir();
-            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.BSX'))
+            elseif strcmp(upper(ext),'.DCB') || (strcmp(upper(ext),'.BSX')) || (strcmp(upper(ext),'.BIA'))
                 dir = this.getDcbDir();
-            elseif strcmp(ext,'.${YY}p') || strcmp(ext,'.${YY}n') || strcmp(ext,'.${YY}l') || ~isempty(regexp(ext,'\.\d\dp')) || ~isempty(regexp(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl'))
+            elseif strcmp(lower(ext),'.${YY}p') || strcmp(lower(ext),'.${YY}n') || strcmp(lower(ext),'.${YY}l') || ~isempty(regexp(lower(ext),'\.\d\dp')) || ~isempty(regexp(lower(ext),'\.\d\dn')) || ~isempty(regexp(lower(ext),'\.\d\dl'))
                 dir = this.getNavEphDir();
             end
             
