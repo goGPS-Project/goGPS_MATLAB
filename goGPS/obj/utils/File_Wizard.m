@@ -26,7 +26,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea, ...
+%  Contributors:     Gatti Andrea, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -149,7 +149,7 @@ classdef File_Wizard < handle
         
         date_start; % first epoch of common observations (among all the obs files)
         date_stop;  % last epoch of common observations (among all the obs files)
-        center_code;% center code
+        center_name;% center code
         rm;         % resource manager
         sys_c;      % system collector
     end
@@ -178,6 +178,8 @@ classdef File_Wizard < handle
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
+            
+            
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
@@ -189,14 +191,17 @@ classdef File_Wizard < handle
                 this.date_stop = date_stop;
             end
             if nargin < 5
-                center_code = this.center_code;
-            else
-                [this.center_code, t_sys_c] = this.rm.getCenterCode( center_name, resource_name, this.sys_c);
-                if ~isempty(t_sys_c)
-                    this.sys_c = t_sys_c;
-                end
+                center_name  = this.center_name;
             end
-            file_tree = this.rm.getFileStr(resource_name);
+            [file_tree, latency] = this.rm.getFileStr(center_name, resource_name);
+            if isempty(file_tree)
+                status = false;
+                return;
+            end
+            if isempty(latency)
+                latency = [-Inf +Inf];
+            end
+            n_h_passed = (GPS_Time.now() - date_stop)/3600;
             % check local
             this.log.addMessage(this.log.indent('Checking local folders ...\n'))
             [status, file_tree] = this.navigateTree(file_tree, 'local_check');
@@ -207,12 +212,16 @@ classdef File_Wizard < handle
             end
             % check remote
             if  this.state.flag_check_remote && not(status)
-                this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
-                [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
-                if status
-                    this.log.addMessage(this.log.indent('All files has been found remotely\n'));
+                if n_h_passed  < latency(1)
+                    status = false;
                 else
-                    this.log.addMessage(this.log.indent('Some files not found remotely\n'))
+                    this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
+                    [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
+                    if status
+                        this.log.addMessage(this.log.indent('All files has been found remotely\n'));
+                    else
+                        this.log.addMessage(this.log.indent('Some files not found remotely\n'))
+                    end
                 end
                 if status
                     this.log.addMessage(this.log.indent('Downloading Resources ...\n'));
@@ -254,11 +263,8 @@ classdef File_Wizard < handle
                     status = true;
                     if strcmp(mode, 'download') && ~strcmp(file_tree{1},'null') && file_tree{3} ~=0
                         loc_n = file_tree{3};
-                        f_struct = this.rm.getFileLoc(file_tree{1}, this.sys_c);
+                        f_struct = this.rm.getFileLoc(file_tree{1});
                         f_name = f_struct.filename;
-                        if not(isempty( this.center_code))
-                            f_name = strrep(f_name, '${CCC}', this.center_code);
-                        end
                         f_path = [f_struct.(['loc' sprintf('%03d',loc_n)]) f_name];
                         step_s = this.fnp.getStepSec(f_path);
                         dsa = this.date_start.getCopy();
@@ -282,11 +288,8 @@ classdef File_Wizard < handle
                         end
                     end
                 elseif ~strcmp(mode,'download')
-                    f_struct = this.rm.getFileLoc(file_tree{1}, this.sys_c);
+                    f_struct = this.rm.getFileLoc(file_tree{1});
                     f_name = f_struct.filename;
-                    if not(isempty( this.center_code))
-                        f_name = strrep(f_name, '${CCC}', this.center_code);
-                    end
                     this.state.setFile(f_name);
                     if strcmp(mode, 'local_check')
                         f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
@@ -331,6 +334,12 @@ classdef File_Wizard < handle
                                     [s_ip, port] = this.rm.getServerIp(server);
                                     idx = this.getServerIdx(s_ip, port);
                                     status = status && this.ftp_downloaders{idx}.check(file_name);
+                                    if status
+                                        this.log.addStatusOk(sprintf('%s have been found remotely',this.fnp.getFileName(file_name)));
+                                    else
+                                        this.log.addStatusOk(sprintf('%s have not been found remotely',this.fnp.getFileName(file_name)));
+                                        break
+                                    end
                                 end
                             end
                             if status
@@ -377,9 +386,33 @@ classdef File_Wizard < handle
             dsa = date_start.getCopy();
             dso = date_stop.getCopy();
             
-            if nargin > 3
-                this.state.preferred_center = center_name;
+            if nargin < 3
+               center_name = this.state.preferred_center;
             end
+            % check if selected center os compatible with selected
+            % constellation
+            centers = this.rm.getData('CENTER','available');
+            is_ok = false;
+            for i = 1 : length(centers)
+                if ~is_ok
+                    split = strsplit(centers{i},'@');
+                    centerconst = split{2};
+                    centername = strsplit(centerconst,'_');
+                    centername = centername{1};
+                    sys_c = split{1};
+                    if length(intersect(this.sys_c,sys_c)) == length(this.sys_c)
+                        if strcmp(centername  ,center_name)
+                            is_ok = true;
+                            this.center_name = centerconst;
+                        end
+                    end
+                end
+            end
+            
+            if ~is_ok
+                this.log.addError(['Selected center: ' this.state.preferred_center{1} ' not compatible with selected constellations: ' this.sys_c]);
+            end
+                
             % Prepare all the files needed for processing
             
             this.state.setProcessingTime(dsa, dso, false);
@@ -403,6 +436,7 @@ classdef File_Wizard < handle
             last_epoch = fh.last_epoch.last;
         end
         
+        %{
         function conjureDCBFiles(this, date_start, date_stop)
             status = this.conjureResource('dcb',date_start, date_stop, 'cas');
             if status
@@ -411,12 +445,201 @@ classdef File_Wizard < handle
                 this.log.addMarkedMessage('Not all DCB files found program might misbehave')
             end
         end
+        %}
+        
+        function conjureDCBFiles(this, date_start, date_stop)
+            
+            % SYNTAX:
+            %   this.conjureDCBFiles(gps_week, gps_time);
+            %
+            % INPUT:
+            %   date_start = starting GPS_Time
+            %   date_stop = ending GPS_Time
+            %
+            % OUTPUT:
+            %
+            % DESCRIPTION:
+            %   Download of CAS .DCB files from the IGN server.
+            if date_start.getCalEpoch >= 2013 % use CAS DCB
+                dcb_ok = true;
+                % check if file are present
+                fnp = File_Name_Processor();
+                ss = 'mxd';
+                archive = 'ign';
+                provider = 'cas';
+                dcb_type = 'final';
+                dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
+                tmp_date_start = date_start.getCopy;
+                tmp_date_stop = date_stop.getCopy;
+                file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
+                names = {};
+                for i = 1 : length(file_list)
+                    [~, name, ext] = fileparts(file_list{i});
+                    names{end+1} = name;
+                    if exist(checkPath([this.state.getDcbDir '/' name]), 'file') ~= 2
+                        dcb_ok = false;
+                    end
+                end
+                this.state.setDcbFile(names);
+                if (~dcb_ok)
+                    this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
+                    for i = 1 : length(file_list)
+                        [~, name, ext] = fileparts(file_list{i});
+                        if (isunix())
+                            system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
+                        else
+                            try
+                                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                delete([this.state.getDcbDir() '/' name ext]);
+                                s2 = s2(1:end-2);
+                            catch
+                                fprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']);
+                                compressed = 1;
+                            end
+                        end
+                    end
+                    
+                    
+                else
+                    this.log.addStatusOk('Dcb files are present ^_^');
+                    this.log.newLine();
+                end
+                
+                
+                
+                
+            else % use DCB from CODE
+                gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
+                gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
+                %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
+                
+                % Pointer to the global settings:
+                state = Go_State.getCurrentSettings();
+                
+                file_dcb = {};
+                compressed = 0;
+                
+                %AIUB FTP server IP address
+                % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch
+                aiub_ip = 'ftp.aiub.unibe.ch';
+                
+                %download directory
+                down_dir = state.dcb_dir;
+                
+                %convert GPS time to time-of-week
+                gps_tow = weektime2tow(gps_week, gps_time);
+                
+                % starting time
+                date_f = gps2date(gps_week(1), gps_tow(1));
+                
+                % ending time
+                date_l = gps2date(gps_week(end), gps_tow(end));
+                
+                % Check / create output folder
+                if not(exist(down_dir, 'dir'))
+                    mkdir(down_dir);
+                end
+                
+                fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
+                
+                year_orig  = date_f(1) : 1 : date_l(1);
+                if (length(year_orig) < 1)
+                    %fprintf('ERROR: Data range not valid.\n')
+                    return
+                elseif (length(year_orig) == 1)
+                    month = date_f(2) : 1 : date_l(2);
+                    year = year_orig;
+                else
+                    month = date_f(2) : 1 : 12;
+                    year  = date_f(1).*ones(size(month));
+                    for y = 2 : length(year_orig)-1
+                        month = [month 1 : 1 : 12];
+                        year = [year (year+y-1).*ones(1,12)];
+                    end
+                    month = [month 1 : 1 : date_l(2)];
+                    year  = [year date_l(1).*ones(1,date_l(2))];
+                end
+                
+                %connect to the DCB server
+                try
+                    ftp_server = ftp(aiub_ip);
+                catch
+                    fprintf(' connection failed.\n');
+                    this.state.setDcbFile({''});
+                    return
+                end
+                
+                fprintf('\n');
+                
+                m = 0;
+                
+                for y = 1 : length(year_orig)
+                    
+                    %target directory
+                    s = ['/CODE/', num2str(year_orig(y))];
+                    
+                    cd(ftp_server, '/');
+                    cd(ftp_server, s);
+                    
+                    while(m <= length(month)-1)
+                        
+                        m = m + 1;
+                        
+                        ff = {'P1C1','P1P2'};
+                        
+                        for p = 1 : length(ff)
+                            %target file
+                            s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
+                            if not(exist([down_dir '/' s2(1:end-2)]) == 2)
+                                try
+                                    mget(ftp_server,s2,down_dir);
+                                    if (isunix())
+                                        system(['uncompress -f ' down_dir '/' s2]);
+                                    else
+                                        try
+                                            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                            delete([down_dir '/' s2]);
+                                            s2 = s2(1:end-2);
+                                        catch
+                                            fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                                            compressed = 1;
+                                        end
+                                    end
+                                    fprintf(['Downloaded DCB file: ' s2 '\n']);
+                                catch
+                                    cd(ftp_server, '..');
+                                    s1 = [ff{p} '.DCB'];
+                                    mget(ftp_server,s1,down_dir);
+                                    cd(ftp_server, num2str(year_orig(y)));
+                                    s2 = [s2(1:end-2) '_TMP'];
+                                    movefile([down_dir '/' s1], [down_dir '/' s2]);
+                                    fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
+                                end
+                            else
+                                fprintf([s2(1:end-2) ' already present\n']);
+                            end
+                            %cell array with the paths to the downloaded files
+                            entry = {[down_dir, '/', s2]};
+                            file_dcb = [file_dcb; entry]; %#ok<AGROW>
+                            this.state.setDcbFile(file_dcb);
+                        end
+                        
+                        if (month(m) == 12)
+                            break
+                        end
+                    end
+                end
+                
+                close(ftp_server);
+                
+                fprintf('Download complete.\n')
+            end
+        end
         
         function conjureNavFiles(this, date_start, date_stop)
             list_preferred = this.state.preferred_eph;
-            center = this.state.preferred_center;
             for i = 1 : length(list_preferred)
-                status = this.conjureResource(list_preferred{i}, date_start, date_stop, center);
+                status = this.conjureResource(list_preferred{i}, date_start, date_stop);
                 if status
                     break
                 end
@@ -430,9 +653,8 @@ classdef File_Wizard < handle
         
         function conjureErpFiles(this, date_start, date_stop)
             list_preferred = this.state.preferred_erp;
-            center = this.state.preferred_center;
             for i = 1 : length(list_preferred)
-                status = this.conjureResource(list_preferred{i},date_start, date_stop, center);
+                status = this.conjureResource(list_preferred{i},date_start, date_stop);
                 if status
                     break
                 end
@@ -446,9 +668,8 @@ classdef File_Wizard < handle
         
         function conjureIonoFiles(this, date_start, date_stop)
             list_preferred = this.state.preferred_iono;
-            center = this.state.preferred_center;
             for i = 1 : length(list_preferred)
-                status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, center);
+                status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
                 if status
                     break
                 end

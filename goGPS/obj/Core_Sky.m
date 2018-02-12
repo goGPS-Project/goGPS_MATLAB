@@ -863,6 +863,9 @@ classdef Core_Sky < handle
         
         function importDCB(this)
             dcb_name = this.state.getDcbFile();
+            if iscell(dcb_name)
+                dcb_name = dcb_name{1};
+            end
             if strfind(dcb_name,'CAS')
                 this.importSinexDCB();
             else

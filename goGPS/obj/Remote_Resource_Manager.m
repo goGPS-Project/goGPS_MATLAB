@@ -254,10 +254,6 @@ classdef Remote_Resource_Manager < Ini_Manager
     end
 
 properties (Access = private)
-    servers
-    file_resources
-    remote_sources
-    computational_centers
 end
 
 properties (Access = private)
@@ -269,160 +265,51 @@ methods
         if (nargin == 0)
             file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
             if exist(file_name, 'file') ~= 2
-                Remote_Resource_Manager.writeDefault();
+                %Remote_Resource_Manager.writeDefault(); %deafult file not
+                %stable enough
             end
         end
         
         this = this@Ini_Manager(file_name);
-        this.readFile();
-        for i = 1 : length(this.section)
-            if strcmp(this.section{i}.name, 'SERVER')
-                this.servers = this.section{i}.key;
-            end
-            if strcmp(this.section{i}.name(1:2), 'f_')
-                this.file_resources{end+1} = this.section{i};
-                this.file_resources{end}.name(1:2) = [];
-            end
-            if strcmp(this.section{i}.name(1:2), 'r_')
-                this.remote_sources{end+1} = this.section{i};
-                this.remote_sources{end}.name(1:2) = [];
-            end
-            if strcmp(this.section{i}.name(1:2), 'c_')
-                this.computational_centers{end+1} = this.section{i};
-                this.computational_centers{end}.name(1:2) = [];
-            end
-        end
-        
+        this.readFile();        
         this.log = Logger.getInstance();
-    end
-    
-    function center_names= getCenterNames(this)
-        % return the avaliable center name
-        center_names = {};
-        for i = 1 :length(this.computational_centers)
-            center_names{end + 1} = this.computational_centers{i}.name;
-        end
-        
     end
     
     function [ip, port] = getServerIp(this, name)
         % return the ip of a server given the server name
         ip = [];
         port = [];
-        for i = 1 : length(this.servers)
-            if strcmp(this.servers{i}.name, name)
-                ip = this.servers{i}.data{1};
-                port = this.servers{i}.data{2};
-            end
-        end
+        ip_port = this.getData('SERVER', name);
+        ip = ip_port{1};
+        port = ip_port{2};
     end
     
-    function f_struct = getFileLoc(this, file_name, sys_c)
-        % return the ip of a server given the server name
-        first = true;
-        for i = 1 : length(this.file_resources)
-            name_part = strsplit(this.file_resources{i}.name,'@');
-            name = name_part{1};
-            if length(name_part) > 1
-                const = name_part{2};
-            else
-                const = 'GRECJIS';
-            end
-            cond_const = true;
-            if nargin > 2
-                cond_const = ~isempty(strfind(const, sys_c));
-            end
-            if strcmp(name, file_name) && cond_const
-                %%%%% add here the loactions
-                if first
-                    f_struct.name = file_name;
-                    f_struct.const = const;
-                    for j = 1 : length(this.file_resources{i}.key)
-                        name_k = this.file_resources{i}.key{j}.name;
-                        f_struct.(name_k) = this.file_resources{i}.key{j}.data;
-                    end
-                    first = false;
-                    
-                else
-                    new_loc = f_struct.loc_number +1;
-                    for j = 1 : length(this.file_resources{i}.key)
-                        name_k = this.file_resources{i}.key{j}.name;
-                        data_k = this.file_resources{i}.key{j}.data;
-                        if strcmp(name_k,'loc_number')
-                            f_struct.loc_number = f_struct.loc_number + data_k;
-                        elseif strcmp(name_k(1:3),'loc')
-                            f_struct.([name_k(1:3) sprintf('%03d',new_loc)]) = data_k;
-                            new_loc = new_loc + 1;
-                        end
-                    end
-                end
-            end
+    function f_struct = getFileLoc(this, file_name)
+        % return the remote path of the file
+        f_struct.filename = this.getData(['f_' file_name],'filename');
+        f_struct.const = this.getData(['f_' file_name],'sys');
+        locations = this.getData(['f_' file_name],'location');
+        if ~iscell(locations)
+            locations = {locations};
         end
+        f_struct.loc_number = length(locations);
+        for i = 1 : f_struct.loc_number
+             f_struct.(['loc' sprintf('%03d',i)]) = this.getData('LOCATION',locations{i});
+        end
+       
+        
     end
     
-    function [center_code, const] = getCenterCode(this, center_name, resource_name, sys_c)
-        % return the center code given a resource name and desired
-        % constelltion
-        center_code = [];
-        const = [];
-        for i = 1 :length(this.computational_centers)
-            if strcmp(this.computational_centers{i}.name, center_name)
-                for j = 1 : length(this.computational_centers{i}.key)
-                    resource = this.computational_centers{i}.key{j};
-                    if strcmp(resource.name, resource_name)
-                        idx = [];
-                        if nargin > 3
-                            valid = [];
-                            if ~iscell(resource.data)
-                                resource.data = {resource.data};
-                            end
-                            for k = 1:length(resource.data)
-                                center_code_part = strsplit(resource.data{k},'@');
-                                if length(center_code_part) > 1
-                                    consts = center_code_part{1};
-                                    found = true;
-                                    for l = 1 : length(sys_c)
-                                        found = found && ~isempty(strfind(consts, sys_c(l)));
-                                    end
-                                    if found
-                                        valid = [valid ; [k, (length(consts) -length(sys_c))]];
-                                    end
-                                else
-                                    valid = [valid; [k,Inf]];
-                                end
-                                if ~isempty(valid)
-                                    idx = valid(valid(:,2) == min(valid(:, 2)), 1); %select the center_code that has all constellations ad give priority to the ones that has the minum number of other constellations
-                                end
-                            end
-                        else
-                            idx = 1;
-                        end
-                        if isempty(idx)
-                            this.log.addWarning('No vaild center code found for the desidered combination')
-                        end
-                        center_code_part = strsplit(resource.data{idx},'@');
-                        if length(center_code_part) > 1
-                            center_code = center_code_part{2};
-                            const = center_code_part{1};
-                            
-                        else
-                            center_code = center_code_part{1};
-                            const = '';
-                            
-                        end
-                        
-                    end
-                end
-            end
-        end
-    end
     
-    function file_structure = getFileStr(this, resource_name)
-        for i = 1 : length(this.remote_sources)
-            if strcmp(this.remote_sources{i}.name, resource_name)
-                str = this.getData(['r_' resource_name], 'resources');
-                file_structure = this.parseLogicTree(str);
-            end
+    function [file_structure, latency] = getFileStr(this,center_name, resource_name)
+        str = this.getData(['c_' center_name], resource_name);
+        if isempty(str)
+            this.log.addWarning(sprintf('No resource %s for center %s',resource_name, center_name))
+            file_structure = [];
+            latency = [];
+        else
+        file_structure = this.parseLogicTree(str);
+        latency = this.getData(['c_' center_name], [resource_name '_latency']);
         end
     end
 end
