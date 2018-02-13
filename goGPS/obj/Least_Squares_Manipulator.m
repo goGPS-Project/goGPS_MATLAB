@@ -144,6 +144,13 @@ classdef Least_Squares_Manipulator < handle
             end
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             diff_obs = nan2zero(zero2nan(obs_set.obs)-zero2nan(synt_obs));
+            if obs_type == 'C'
+                % very coarse outlier detection based on diff obs
+                
+                mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
+                diff_obs(abs(diff_obs) > 10 * mean_diff_obs) = 0;
+            end
+            
             % remove not valid empty epoch or with only one satellite (probably too
             % bad conditioned)
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
@@ -163,7 +170,7 @@ classdef Least_Squares_Manipulator < handle
             % set up number of parametrs requires
             n_epochs = size(obs_set.obs, 1);
             this.n_epochs = n_epochs;
-            n_stream = size(obs_set.obs, 2);
+            n_stream = size(diff_obs, 2);
             n_coo = 3;
             n_clocks = n_epochs;
             n_tropo = n_clocks;
