@@ -6236,10 +6236,11 @@ classdef Receiver < Exportable
         end
 
         function showZtd_c(this)
-            if isempty(this.ztd)
+            if isempty(this(1).ztd)
                 this.log.addWarning('ZTD and slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
+                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                hold on
                 for s = 1 : size(this,2)
                     if isempty(this(s).id_sync(:))
                         this(s).id_sync = (1 : this(s).time.length())';
