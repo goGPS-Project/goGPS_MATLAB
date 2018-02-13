@@ -422,7 +422,7 @@ classdef File_Wizard < handle
             
             this.conjureDCBFiles(dsa, dso);
             this.conjureCRXFiles(dsa, dso);
-            this.conjureIonoFiles(dsa, dso);
+            %this.conjureIonoFiles(dsa, dso);
         end
         
         function [first_epoch, last_epoch] = conjureObsFile(this)

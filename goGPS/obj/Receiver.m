@@ -5836,9 +5836,9 @@ classdef Receiver < Exportable
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 plot(x, y, '.', 'Color', [0.3 0.3 0.3]);
-                decl_n = (serialize(90 - this.sat.el(this.id_sync(:, 1), this.go_id(ph_id))) / 180*pi) / (pi/2);
-                x = sin(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) == 0) = [];
-                y = cos(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:, 1), this.go_id(ph_id))) == 0) = [];
+                decl_n = (serialize(90 - this.sat.el(this.id_sync(:), this.go_id(ph_id))) / 180*pi) / (pi/2);
+                x = sin(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 plot(x, y, '.', 'Color', [0.4 0.4 0.4]);
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);                
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
@@ -5999,10 +5999,10 @@ classdef Receiver < Exportable
                     time_stop = size(sztd,1);
                 end
                 
-                if isempty(this.id_sync(:, 1))
+                if isempty(this.id_sync(:))
                     this.id_sync(:, 1) = 1 : this.time.length();
                 end
-                id_ok = this.id_sync(this.id_sync(:, 1) > time_start & this.id_sync(:, 1) < time_stop);
+                id_ok = this.id_sync(this.id_sync(:) > time_start & this.id_sync(:) < time_stop);
                 t = this.time.getEpoch(id_ok).getMatlabTime;
                 sztd = sztd(id_ok, :);
                 
@@ -6106,7 +6106,7 @@ classdef Receiver < Exportable
                     time_stop = size(szwd,1);
                 end
                 
-                if isempty(this.id_sync(:, 1))
+                if isempty(this.id_sync(:))
                     this.id_sync = (1 : this.time.length())';
                 end
                 id_ok = this.id_sync(this.id_sync > time_start & this.id_sync < time_stop, 1);
@@ -6182,14 +6182,14 @@ classdef Receiver < Exportable
             else
                 f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
                 for s = 1 : size(this,2)
-                    if isempty(this(s).id_sync(:, 1))
+                    if isempty(this(s).id_sync(:))
                         this(s).id_sync(:, 1) = (1 : this(s).time.length())';
                     end
                     
-                    t = this(s).time.getEpoch(this(s).id_sync(:, 1)).getMatlabTime;
+                    t = this(s).time.getEpoch(this(s).id_sync(:)).getMatlabTime;
                     
                     sztd = this(s).getSlantZTD(this(s).slant_filter_win);
-                    sztd = sztd(this(s).id_sync(:, 1), :);
+                    sztd = sztd(this(s).id_sync(:), :);
                     if nargin >= 3
                         if isa(time_start, 'GPS_Time')
                             time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -6209,7 +6209,7 @@ classdef Receiver < Exportable
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
                     plot(t, sztd,'.'); hold on;
-                    plot(t, zero2nan(this(s).ztd(this(s).id_sync(:, 1))),'k', 'LineWidth', 4);
+                    plot(t, zero2nan(this(s).ztd(this(s).id_sync(:))),'k', 'LineWidth', 4);
                 end
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
@@ -6226,13 +6226,13 @@ classdef Receiver < Exportable
             else
                 f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
                 for s = 1 : size(this,2)
-                    if isempty(this(s).id_sync(:, 1))
+                    if isempty(this(s).id_sync(:))
                         this(s).id_sync = (1 : this(s).time.length())';
                     end
                     
-                    t = this(s).time.getEpoch(this(s).id_sync(:, 1)).getMatlabTime;
+                    t = this(s).time.getEpoch(this(s).id_sync(:)).getMatlabTime;
                     
-                    ztd = this(s).ztd(this(s).id_sync(:, 1));
+                    ztd = this(s).ztd(this(s).id_sync(:));
                     
                     plot(t, zero2nan(ztd), 'LineWidth', 4);
                 end
@@ -6250,14 +6250,14 @@ classdef Receiver < Exportable
                 this.log.addWarning('ZTD and slants have not been computed');
             else                
                 for r = 1 : size(this, 2)
-                    if isempty(this(r).id_sync(:, 1))
+                    if isempty(this(r).id_sync(:))
                         this(r).id_sync = (1 : this(r).time.length())';
                     end
                     
-                    t = this(r).time.getEpoch(this(r).id_sync(:, 1)).getMatlabTime;
+                    t = this(r).time.getEpoch(this(r).id_sync(:)).getMatlabTime;
                     
                     sztd = this(r).getSlantZTD(this(r).slant_filter_win);
-                    sztd = bsxfun(@minus, sztd(this(r).id_sync(:, 1), :), this(r).ztd(this(r).id_sync(:, 1)));
+                    sztd = bsxfun(@minus, sztd(this(r).id_sync(:), :), this(r).ztd(this(r).id_sync(:)));
                     if nargin >= 3
                         if isa(time_start, 'GPS_Time')
                             time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -6272,8 +6272,8 @@ classdef Receiver < Exportable
                     
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
-                    az = (mod(this.sat.az(this(r).id_sync(:, 1),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                    el = (90 - this.sat.el(this(r).id_sync(:, 1),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                    az = (mod(this.sat.az(this(r).id_sync(:),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                    el = (90 - this.sat.el(this(r).id_sync(:),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
                     
                     f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
                     polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
