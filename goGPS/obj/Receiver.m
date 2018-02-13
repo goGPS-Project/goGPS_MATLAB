@@ -2042,19 +2042,25 @@ classdef Receiver < Exportable
             %   h_ortho     orthometric heigth [m]
             %
             % SYNTAX:
-            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
-            
+            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();            
             xyz = this.xyz;
             xyz = median(this.xyz, 1);
-            [lat, lon, h_ellips] = cart2geod(xyz);
-            if nargout == 4
-                gs = Go_State.getInstance;
-                gs.initGeoid();
-                ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
-                h_ortho = h_ellips - ondu;
+            if ~isempty(this)
+                [lat, lon, h_ellips] = cart2geod(xyz);
+                if nargout == 4
+                    gs = Go_State.getInstance;
+                    gs.initGeoid();
+                    ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                    h_ortho = h_ellips - ondu;
+                end
+                lat = lat / pi * 180;
+                lon = lon / pi * 180;
+            else
+                lat = [];
+                lon = [];
+                h_ellips = [];
+                h_ortho = [];
             end
-            lat = lat / pi * 180;
-            lon = lon / pi * 180;
         end
 
         function [mfh, mfw] = getSlantMF(this)
@@ -2701,7 +2707,8 @@ classdef Receiver < Exportable
                         
             for r = 1 : numel(this)
                 xyz = this(r).xyz;
-                xyz = median(this(r).xyz, 1);
+                try
+                xyz = median(this(r).xyz, 1);                
                 [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
                 if nargout == 4
                     gs = Go_State.getInstance;
@@ -2711,6 +2718,9 @@ classdef Receiver < Exportable
                 end
                 lat(r) = lat(r) / pi * 180;
                 lon(r) = lon(r) / pi * 180;
+                catch
+                    % no position in the receiver
+                end
             end
         end
 
@@ -2718,7 +2728,12 @@ classdef Receiver < Exportable
             % MultiRec: works on an array of receivers
             % SYNTAX:
             %  [ztd, p_time, id_sync] = this.getZTD_mr()
-            [p_time, id_sync] = Receiver.getSyncTime(this);
+            [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
+            
+            id_ok = any(~isnan(id_sync{1}),2);
+            id_sync{1} = id_sync{1}(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
             n_rec = numel(this);
             ztd = nan(size(id_sync{1}));
             for r = 1 : n_rec
@@ -6448,10 +6463,12 @@ classdef Receiver < Exportable
             %          and it will stop  with the receiver with the first last epoch
             
             first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
-            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
-            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
-            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            if ~isempty(first_id_ok)
+                p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+                p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
+                p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
+                p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            end
             
             p_time = GPS_Time(); % empty initialization
             
@@ -6494,7 +6511,7 @@ classdef Receiver < Exportable
                         end
                     end
                 end               
-            end
+            end            
         end
         
         function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
