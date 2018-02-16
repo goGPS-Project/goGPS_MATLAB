@@ -1772,11 +1772,207 @@ classdef Receiver < Exportable
             end
         end
         
+        % time
+        
+        function time = getTime(this)
+            % return the time stored in the object
+            %
+            % OUTPUT:
+            %   time     GPS_Time
+            %
+            % SYNTAX: 
+            %   xyz = this.getTime()
+            time = this(1).time.getCopy;
+            for r = 2 : numel(this)
+                time.append(this(r).time);
+            end
+        end        
+
+        function time = getCentralTime(this)
+            % return the central epoch time stored in the a receiver
+            %
+            % OUTPUT:
+            %   time     GPS_Time
+            %
+            % SYNTAX: 
+            %   xyz = this.getCentralTime()
+            id = round(this(1).time.length()/2);
+            time = this(1).time.getEpoch(id);
+            for r = 2 : numel(this)
+                id = round(this(r).time.length()/2);
+                time.append(this(r).time.getEpoch(id));
+            end
+        end  
+        
+        % position
+        
         function dt = getTotalDt(this)
             dt = this.getDt + this.getDtPrePro;            
         end
         
-        % frequencies 
+        function xyz = getAPrioriPos_mr(this)
+            % return apriori position
+            %
+            % SYNTAX:
+            %   xyz = this.getAPrioriPos_mr()
+            xyz = this.getAPrioriPos();
+        end
+        
+        function xyz = getAPrioriPos(this)
+            % return apriori position
+            %
+            % SYNTAX:
+            %   xyz = this.getAPrioriPos()
+            xyz = [];
+            for r = 1 : numel(this)
+                xyz = [xyz; this(r).xyz_approx]; %#ok<AGROW>
+            end
+            xyz = median(xyz, 1);
+            if ~any(xyz) && ~isempty(this.xyz)
+                xyz = median(this.getPosXYZ, 1);
+            end
+        end
+        
+        function xyz = getPosXYZ_mr(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT:
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX:
+            %   xyz = this.getPosXYZ_mr()
+            xyz = this.getPosXYZ()
+        end
+        
+        function xyz = getPosXYZ(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT:
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   xyz = this.getPosXYZ()
+            xyz = [];
+            for r = 1 : numel(this)
+                xyz = [xyz; this(r).xyz]; %#ok<AGROW>
+            end
+        end        
+        
+        function enu = getPosENU_mr(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT:
+            %   enu     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   enu = this.getPosENU_mr()
+            enu = this.getPosENU();
+        end
+        
+        function enu = getPosENU(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT:
+            %   enu     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   enu = this.getPosENU()
+            xyz = this.getPosXYZ();
+            [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+        end
+        
+        function xyz = getMedianPosXYZ_mr(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   xyz = this.getMedianPosXYZ_mr()
+                        
+            xyz = this.getMedianPosXYZ();
+        end
+        
+        function xyz = getMedianPosXYZ(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX: 
+            %   xyz = this.getMedianPosXYZ()
+                        
+            xyz = median(this.getPosXYZ(), 1);
+        end
+        
+        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
+            % return the computed median position of the receiver
+            % MultiRec: works on an array of receivers
+            %
+            % OUTPUT:
+            %   lat         latitude  [deg]
+            %   lon         longitude [deg]
+            %   h_ellips    ellipsoidical heigth [m]
+            %   h_ortho     orthometric heigth [m]
+            %
+            % SYNTAX:
+            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
+            
+            lat = nan(numel(this), 1);
+            lon = nan(numel(this), 1);
+            h_ellips = nan(numel(this), 1);
+            
+            for r = 1 : numel(this)
+                xyz = this(r).xyz; %#ok<NASGU>
+                try
+                    xyz = median(this(r).xyz, 1);
+                    [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
+                    if nargout == 4
+                        gs = Go_State.getInstance;
+                        gs.initGeoid();
+                        ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
+                        h_ortho(r) = h_ellips(r) - ondu; %#ok<AGROW>
+                    end
+                    lat(r) = lat(r) / pi * 180;
+                    lon(r) = lon(r) / pi * 180;
+                catch
+                    % no position in the receiver
+                end
+            end
+        end
+
+        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   lat         latitude  [deg]
+            %   lon         longitude [deg]
+            %   h_ellips    ellipsoidical heigth [m]
+            %   h_ortho     orthometric heigth [m]
+            %
+            % SYNTAX:
+            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();            
+            xyz = this.getPosXYZ();
+            xyz = median(xyz, 1);
+            if ~isempty(this)
+                [lat, lon, h_ellips] = cart2geod(xyz);
+                if nargout == 4
+                    gs = Go_State.getInstance;
+                    gs.initGeoid();
+                    ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                    h_ortho = h_ellips - ondu;
+                end
+                lat = lat / pi * 180;
+                lon = lon / pi * 180;
+            else
+                lat = [];
+                lon = [];
+                h_ellips = [];
+                h_ortho = [];
+            end
+        end
+        
+        % frequencies
         
         function is_mf = isMultiFreq(this)
             is_mf = false;
@@ -1845,7 +2041,7 @@ classdef Receiver < Exportable
             nominal_time.toUnixTime;
         end
         
-        function time_tx = getTimeTx(this,sat)
+        function time_tx = getTimeTx(this, sat)
             % SYNTAX:
             %   this.getTimeTx(epoch);
             %
@@ -2010,59 +2206,6 @@ classdef Receiver < Exportable
             is_static = this.static;
         end
         
-        function xyz = getAPrioriPos(this)
-            % return apriori position
-            % SYNTAX: xyz = this.getAPrioriPos()
-            xyz = this.xyz_approx;
-            if ~any(xyz) && ~isempty(this.xyz)
-                xyz = median(this.xyz, 1);
-            end
-        end
-                       
-        function xyz = getMedianPosXYZ(this)
-            % return the computed median position of the receiver
-            %
-            % OUTPUT:
-            %   xyz     geocentric coordinates
-            %
-            % SYNTAX: 
-            %   xyz = this.getAPrioriPos()
-            
-            xyz = this.xyz;
-            xyz = median(this.xyz, 1);
-        end
-           
-        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
-            % return the computed median position of the receiver
-            %
-            % OUTPUT:
-            %   lat         latitude  [deg]
-            %   lon         longitude [deg]
-            %   h_ellips    ellipsoidical heigth [m]
-            %   h_ortho     orthometric heigth [m]
-            %
-            % SYNTAX:
-            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();            
-            xyz = this.xyz;
-            xyz = median(this.xyz, 1);
-            if ~isempty(this)
-                [lat, lon, h_ellips] = cart2geod(xyz);
-                if nargout == 4
-                    gs = Go_State.getInstance;
-                    gs.initGeoid();
-                    ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
-                    h_ortho = h_ellips - ondu;
-                end
-                lat = lat / pi * 180;
-                lon = lon / pi * 180;
-            else
-                lat = [];
-                lon = [];
-                h_ellips = [];
-                h_ortho = [];
-            end
-        end
-
         function [mfh, mfw] = getSlantMF(this)
             % Get Mapping function for the satellite slant
             % 
@@ -2686,63 +2829,62 @@ classdef Receiver < Exportable
             end            
         end  
         
-        % Multi receivers
-        
-        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
-            % return the computed median position of the receiver
+        function id_sync = getIdSync(this)
             % MultiRec: works on an array of receivers
-            %
-            % OUTPUT:
-            %   lat         latitude  [deg]
-            %   lon         longitude [deg]
-            %   h_ellips    ellipsoidical heigth [m]
-            %   h_ortho     orthometric heigth [m]
-            %
             % SYNTAX:
-            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
+            %  id_sync = this.getIdSync()
+            id_sync = [];
             
-            lat = nan(numel(this), 1);
-            lon = nan(numel(this), 1);
-            h_ellips = nan(numel(this), 1);
-                        
-            for r = 1 : numel(this)
-                xyz = this(r).xyz;
-                try
-                xyz = median(this(r).xyz, 1);                
-                [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
-                if nargout == 4
-                    gs = Go_State.getInstance;
-                    gs.initGeoid();
-                    ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
-                    h_ortho(r) = h_ellips(r) - ondu;
-                end
-                lat(r) = lat(r) / pi * 180;
-                lon(r) = lon(r) / pi * 180;
-                catch
-                    % no position in the receiver
-                end
+            offset = 0;
+            n_rec = numel(this);
+            for r = 1 : n_rec
+                id_sync = [id_sync; this(r).id_sync + offset]; %#ok<AGROW>
+                offset = offset + this.length();
             end
         end
-
+        
+        function id_sync = getIdSync_mr(this)
+            % MultiRec: works on an array of receivers
+            % SYNTAX:
+            %  id_sync = this.getIdSync()
+            id_sync = thisgetIdSync_mr();
+        end
+                
         function [ztd, p_time, id_sync] = getZTD_mr(this)
             % MultiRec: works on an array of receivers
             % SYNTAX:
             %  [ztd, p_time, id_sync] = this.getZTD_mr()
             [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
             
-            id_ok = any(~isnan(id_sync{1}),2);
-            id_sync{1} = id_sync{1}(id_ok, :);
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
 
             n_rec = numel(this);
-            ztd = nan(size(id_sync{1}));
+            ztd = nan(size(id_sync));
             for r = 1 : n_rec
-                id_rec = id_sync{1}(:,r);
+                id_rec = id_sync(:,r);
                 ztd(~isnan(id_rec), r) = this(r).ztd(id_rec(~isnan(id_rec)));
             end
         end
+                
+        function [ztd, time] = getZTD(this)
+            % SYNTAX:
+            %  [ztd, p_time, id_sync] = this.getZTD()
+                        
+            ztd = this(1).ztd(this(1).getIdSync);
+            time = this(1).time.getEpoch(this(1).getIdSync);
+            
+            for r = 2 : numel(this)
+                ztd_tmp = this(r).ztd(this(r).getIdSync);
+                time_tmp = this(r).time.getEpoch(this(r).getIdSync);
+                ztd = [ztd; ztd_tmp]; %#ok<AGROW>
+                time = time.append(time_tmp);
+            end
+            
+        end
         
-        function [zwd, p_time] = getZWD_mr(this)
+        function [zwd, p_time] = getZWD(this)
             % MultiRec: works on an array of receivers
             % SYNTAX:
             %  [zwd, p_time, id_sync] = this.getZWD_mr()
@@ -2754,7 +2896,14 @@ classdef Receiver < Exportable
                 zwd(~isnan(id_rec),r) = this(r).zwd(id_rec(~isnan(id_rec)));
             end
         end
-        
+
+        function [zwd, p_time] = getZWD_mr(this)
+            % MultiRec: works on an array of receivers
+            % SYNTAX:
+            %  [zwd, p_time, id_sync] = this.getZWD_mr()
+            [zwd, p_time] = this.getZWD();
+        end
+
         % Utilities
         
         function getChalmersString(this)
@@ -3047,7 +3196,7 @@ classdef Receiver < Exportable
             end
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);            
-            dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'spline');
+            dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'pchip');
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if lim(i,2) - lim(i,1) > 5
@@ -5674,28 +5823,29 @@ classdef Receiver < Exportable
                 one_plot = false;
             end
             
-            if size(this.xyz,1) > 1
-                this.log.addMessage('Plotting positions');
-                enu = zero2nan(this.xyz);
-                xyz0 = this.getAPrioriPos;
+            xyz = this.getPosXYZ();
+            if size(xyz,1) > 1
+                this(1).log.addMessage('Plotting positions');
+                xyz0 = this.getMedianPosXYZ();
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
+                xyz = this.getPosXYZ();
+                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                 
                 f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
-                t = this.time.getMatlabTime();
+                t = this.getCentralTime().getMatlabTime();
                 if ~one_plot, subplot(3,1,1); end
-                plot(t, zero2nan(1e0 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [m]'); h.FontWeight = 'bold';
+                plot(t, zero2nan(1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
-                plot(t, zero2nan(1e0 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
-                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [m]'); h.FontWeight = 'bold';
+                plot(t, zero2nan(1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
                 grid on;
                 if ~one_plot, subplot(3,1,3); end
-                plot(t, zero2nan(1e0 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [m]'); h.FontWeight = 'bold';
+                plot(t, zero2nan(1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                 grid on;
                 if one_plot
                     h = ylabel('ENU [m]'); h.FontWeight = 'bold';
@@ -5715,24 +5865,25 @@ classdef Receiver < Exportable
                 one_plot = false;
             end
             
-            if size(this.xyz,1) > 1
-                this.log.addMessage('Plotting positions');
-                xyz0 = this.getAPrioriPos();
+            xyz = this.getPosXYZ();
+            xyz0 = this.getMedianPosXYZ();
+            if size(xyz,1) > 1
+                this(1).log.addMessage('Plotting positions');
                 
                 f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
-                t = this.time.getMatlabTime();
+                t = this.getCentralTime().getMatlabTime();
                 if ~one_plot, subplot(3,1,1); end
-                plot(t, 1e0 * (zero2nan(this.xyz(:,1)) - xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                 ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 if ~one_plot, subplot(3,1,2); end
-                plot(t, 1e0 * (zero2nan(this.xyz(:,2)) - xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                 ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
                 grid on;
                 if ~one_plot, subplot(3,1,3); end
-                plot(t, 1e0 * (zero2nan(this.xyz(:,3)) - xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                 ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
                 grid on;
                 if one_plot
@@ -6236,28 +6387,18 @@ classdef Receiver < Exportable
         end
 
         function showZtd_c(this)
-            if isempty(this(1).ztd)
-                this.log.addWarning('ZTD and slants have not been computed');
+            [ztd, t] = this.getZTD();
+            if isempty(ztd)
+                this(1).log.addWarning('ZTD and slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
-                hold on
-                for s = 1 : size(this,2)
-                    if isempty(this(s).id_sync(:))
-                        this(s).id_sync = (1 : this(s).time.length())';
-                    end
-                    
-                    t = this(s).time.getEpoch(this(s).id_sync(:)).getMatlabTime;
-                    
-                    ztd = this(s).ztd(this(s).id_sync(:));
-                    
-                    plot(t, zero2nan(ztd), 'LineWidth', 4);
-                end
+                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';                
+                plot(t.getMatlabTime(), zero2nan(ztd), '.', 'LineWidth', 4);
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s ZTD', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
 
@@ -6437,28 +6578,17 @@ classdef Receiver < Exportable
             end
         end
         
-        function [p_time, id_sync] = getSyncTimeExpanded(rec, obs_type, p_rate)
-            % Get the common (shorter) time among alle the used receivers and the target(s)
-            % Consider most of the receiver to be regularly sampled
+        function [p_time, id_sync] = getSyncTimeExpanded(rec)
+            % Get the common time among all the receivers
             %
             % SYNTAX: 
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, obs_type, <p_rate>);
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec,);
             %
             % EXAMPLE:
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, state.obs_type, state.getProcessingRate());
-
-            if nargin < 3
-                p_rate = 1e-6;
-            end
-            if nargin < 2
-                obs_type = ones(1, numel(rec));
-                len = rec.length_mr();                
-                obs_type(find(len == max(len), 1, 'last')) = 0;
-            end
-            
-            % Do the target(s) as last
-            [~, id] = sort(obs_type, 'descend');
-            
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec);
+           
+            p_rate = 1e-6;
+                       
             % prepare reference time
             % processing time will start with the receiver with the last first epoch
             %          and it will stop  with the receiver with the first last epoch
@@ -6470,49 +6600,23 @@ classdef Receiver < Exportable
                 p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
                 p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
             end
-            
-            p_time = GPS_Time(); % empty initialization
-            
-            i = 0;
-            for r = id
+
+            %figure; for r =id; plot(repmat(r, 1, rec(r).time.length), round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate,'.'); hold on; end
+            t = [];
+            for r = 1 : numel(rec)
                 rec_rate = min(1, rec(r).time.getRate);
-                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
-                if obs_type(r) > 0 % if it's not a target
-                    if ~rec(r).isempty
-                        p_time_start = min(p_time_start,  floor(rec(r).time.first.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                        p_time_stop = max(p_time_stop,  ceil(rec(r).time.last.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                        if rec(r).length > 1
-                            p_rate = min(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
-                        end
-                    end
-                else
-                    % It's a target
-                    
-                    % recompute the parameters for the ref_time estimation
-                    % not that in principle I can have up to num_trg_rec ref_time
-                    % in case of multiple targets the reference times should be independent
-                    % so here I keep the temporary rt0 rt1 r_rate var
-                    % instead of ref_time_start, ref_time_stop, ref_rate
-                    pt0 = max(p_time_start, floor(rec(r).time.first.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                    pt1 = min(p_time_stop, ceil(rec(r).time.last.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                    pr = gcd(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
-                    pt0 = floor(pt0 / rec_rate) * rec_rate;
-                    pt1 = ceil(pt1 / rec_rate) * rec_rate;
-                    
-                    % return one p_time for each target
-                    i = i + 1;
-                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1));
-                    p_time(i).toUnixTime();
-                    
-                    id_sync{i} = nan(p_time(i).length, numel(id));
-                    for rs = id % for each rec to sync
-                        if ~rec(rs).isempty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
-                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
-                            id_sync{i}(id_rec, rs) = id_ref;
-                        end
-                    end
-                end               
-            end            
+                t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate]; 
+            end
+            t = unique(t);
+
+            p_time = GPS_Time(p_time_zero, t);
+            id_sync = nan(p_time.length(), numel(rec));
+            
+            for r = 1 : numel(rec)
+                rec_rate = min(1, rec(r).time.getRate);                
+                [~, id] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                id_sync(id ,r) = 1 : numel(id);
+            end                     
         end
         
         function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
