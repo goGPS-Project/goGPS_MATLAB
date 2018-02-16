@@ -148,7 +148,7 @@ classdef Least_Squares_Manipulator < handle
                 % very coarse outlier detection based on diff obs
                 
                 mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
-                diff_obs(abs(diff_obs) > 10 * mean_diff_obs) = 0;
+                diff_obs(abs(diff_obs) > 100 * mean_diff_obs) = 0;
             end
             
             % remove not valid empty epoch or with only one satellite (probably too
@@ -175,7 +175,7 @@ classdef Least_Squares_Manipulator < handle
             n_clocks = n_epochs;
             n_tropo = n_clocks;
             ep_p_idx = [1 : n_clocks];
-            this.true_epoch = obs_set.getTimeIdx(rec.time.first,rec.rate);
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.rate);
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             iob_idx = zeros(size(obs_set.wl));
             for c = 1:size(u_obs_code, 1)
