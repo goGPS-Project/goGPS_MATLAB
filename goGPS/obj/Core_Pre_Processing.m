@@ -1236,27 +1236,36 @@ classdef Core_Pre_Processing < handle
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);                
                 ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);                
                 
-                %% time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
-                ddt = [0; diff(time_desync)];
-                ddrifting = ddt - ddt_pr;
-                drifting = cumsum(ddt - ddt_pr);
-                
-                % Linear interpolation of ddrifting
-                jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock                
-                d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
-                jmp = [jmp_reset; jmp_fit];
-                drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
-                
-                dt_ph = drifting + dt_ph_dj;
-                dt_pr = drifting + dt_pr_dj;
-                
-                t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
-                dt_ph = dt_ph - t_offset;
-                dt_pr = dt_pr - t_offset;
-                
+                if (max(abs(time_desync)) > 1e-4)
+                    % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
+                    ddt = [0; diff(time_desync)];
+                    ddrifting = ddt - ddt_pr;
+                    drifting = cumsum(ddt - ddt_pr);
+                    
+                    % Linear interpolation of ddrifting
+                    jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                    jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock
+                    d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
+                    jmp = [jmp_reset; jmp_fit];
+                    if numel(d_points) < 3
+                        drifting = zeros(size(drifting));
+                    else
+                        drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
+                    end
+                    
+                    dt_ph = drifting + dt_ph_dj;
+                    dt_pr = drifting + dt_pr_dj;
+                    if ~isempty(jmp)
+                        t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
+                        dt_ph = dt_ph - t_offset;
+                        dt_pr = dt_pr - t_offset;
+                    end
+                else
+                    dt_ph = dt_ph_dj;
+                    dt_pr = dt_pr_dj;
+                end
                 ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
+                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                  
             else
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
