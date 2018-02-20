@@ -3,22 +3,22 @@ function [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,dxs,regFac
 %   [ySplined, xSpline, sWeights ySplined_ext] = splinerMat(x,y,dxs,regFactor,<x_ext>)
 %
 % EXAMPLE:
-%   [y xS wS y_ext] = splinerMat(x,y,4,0,x_ext);
-%   [y xS wS y_ext] = splinerMat(x,[y yvar],4,0,x_ext);
+%   [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,y,4,0,x_ext);
+%   [ySplined, xSpline, sWeights, ySplined_ext] = splinerMat(x,[y yvar],4,0,x_ext);
 %
 % INPUT:
-%   x           [n x 1] observation time
-%   y           [n x 1] observation value
-%               [n x 2] observation value and variances (in this case the variances of the data are taken into account)
-%   dxs         [1 x 1] spline base size
-%   regFactor   [1 x 1] regularization factor on the first derivative
-%   x_ext       [m x 1] points in which to compute the interpolation
+%   x            [n x 1] observation time
+%   y            [n x 1] observation value
+%                [n x 2] observation value and variances (in this case the variances of the data are taken into account)
+%   dxs          [1 x 1] spline base size
+%   regFactor    [1 x 1] regularization factor on the first derivative
+%   x_ext        [m x 1] points in which to compute the interpolation
 %
 % OUTPUT:
-%   ySplined    [n x 1] interpolated observation (on the observation epochs)
-%   xS          [o x 1] center of the (o) splines
-%   wS          [o x 1] weights of the splines
-%   y_ext       [m x 1] spline interpolated in x_ext positions
+%   ySplined     [n x 1] interpolated observation (on the observation epochs)
+%   xSpline      [o x 1] center of the (o) splines
+%   sWeights     [o x 1] weights of the splines
+%   ySplined_ext [m x 1] spline interpolated in x_ext positions
 %
 % DESCRIPTION:
 %   Interpolate with cubic splines a given dataset
