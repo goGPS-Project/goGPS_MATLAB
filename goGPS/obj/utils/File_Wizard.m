@@ -300,7 +300,7 @@ classdef File_Wizard < handle
                         dso.addIntSeconds(+step_s);
                         file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
                         status = true;
-                        f_status_lst = false(length(file_name_lst)); %file list to be saved in tree with fòag of downloaded or not
+                        f_status_lst = false(length(file_name_lst),1); %file list to be saved in tree with flag of downloaded or not
                         for i = 1 : length(file_name_lst)
                             f_status = exist(file_name_lst{i}, 'file') == 2;
                             f_status_lst(i) = f_status;
@@ -489,7 +489,7 @@ classdef File_Wizard < handle
                             system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
                         else
                             try
-                                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
                                 delete([this.state.getDcbDir() '/' name ext]);
                                 s2 = s2(1:end-2);
                             catch

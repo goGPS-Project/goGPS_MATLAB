@@ -175,11 +175,13 @@ classdef FTP_Downloader < handle
                         system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
                     else
                         try
-                            f_path = File_Name_Processor.getFullDirPath(fpath{1});
-                            [status, result] = system(['"START /B .\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' fpath{1} '"' ' -o' '"' f_path '"']); %#ok<ASGLU>
+                            [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
+                            if (status == 0)
+                                status = true;
+                            end
                             delete([fpath{1}]);
                         catch
-                            this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
+                            this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
                             status = false;
                         end
                     end
