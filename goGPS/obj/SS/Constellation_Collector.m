@@ -187,7 +187,7 @@ classdef Constellation_Collector < Settings_Interface
                     this.num_id = [this.num_id this.ID_SBAS];
                     this.sys_c = [this.sys_c this.sbs.SYS_C];
                     this.system = [this.system char(ones(1, this.sbs.N_SAT) * this.sbs.SYS_C)];
-                    this.prn = [this.prn; this.sbs.PRN];
+                    this.prn = [this.prn; this.sbs.PRN(1:this.sbs.N_SAT)];
                     this.n_sat = [this.n_sat this.sbs.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.sbs.N_SAT;
                     this.n_obs_tot = this.n_obs_tot + this.sbs.N_SAT * sum(this.sbs.flag_f);
@@ -787,8 +787,7 @@ classdef Constellation_Collector < Settings_Interface
 %                     p = p + 192;
 %                 end
                 index(i) = this.index((this.system == s)' & this.prn == p);
-            end
-            
+            end            
         end
         
         function sat_name = getSatName(this, go_id)
