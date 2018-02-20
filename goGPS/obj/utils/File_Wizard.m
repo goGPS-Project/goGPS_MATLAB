@@ -251,7 +251,7 @@ classdef File_Wizard < handle
             end
         end
         
-        function [status, file_tree] = navigateTree(this, file_tree, mode);
+        function [status, file_tree] = navigateTree(this, file_tree, mode)
             % navigate into file tree and perform operations
             % INPUT:
             %     file_tree: structure containing the file tree and the
@@ -259,7 +259,7 @@ classdef File_Wizard < handle
             %     mode: 'local_check' , 'remote_check' , 'download'
             status = false;
             if iscell(file_tree) % if is a leaf
-                if strcmp(file_tree{1},'null') || file_tree{2}
+                if strcmp(file_tree{1}, 'null') || file_tree{2}
                     status = true;
                     if strcmp(mode, 'download') && ~strcmp(file_tree{1},'null') && file_tree{3} ~=0
                         loc_n = file_tree{3};
@@ -287,36 +287,15 @@ classdef File_Wizard < handle
                             end
                         end
                     end
-                elseif ~strcmp(mode,'download')
+                elseif ~strcmp(mode, 'download')
                     f_struct = this.rm.getFileLoc(file_tree{1});
-                    f_name = f_struct.filename;
-                    this.state.setFile(f_name);
-                    if strcmp(mode, 'local_check')
-                        f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
-                        step_s = this.fnp.getStepSec(f_path);
-                        dsa = this.date_start.getCopy();
-                        dso = this.date_stop.getCopy();
-                        dsa.addIntSeconds(-step_s);
-                        dso.addIntSeconds(+step_s);
-                        file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
-                        status = true;
-                        f_status_lst = false(length(file_name_lst),1); %file list to be saved in tree with flag of downloaded or not
-                        for i = 1 : length(file_name_lst)
-                            f_status = exist(file_name_lst{i}, 'file') == 2;
-                            f_status_lst(i) = f_status;
-                            status = status && f_status;
-                            if status
-                                this.log.addStatusOk(sprintf('%s have been found locally',this.fnp.getFileName(file_name_lst{i})));
-                            end
-                        end
-                        if status
-                            file_tree{3} = 0;
-                        end
-                        file_tree{4} = f_status_lst;
-                        
-                    elseif strcmp(mode, 'remote_check')
-                        for i = 1 : f_struct.loc_number
-                            f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
+                    if isempty(f_struct.filename)
+                        this.log.addError(sprintf('File resource "%s" not found: remote_resource.ini seems to be corrupted', file_tree{1}));
+                    else
+                        f_name = f_struct.filename;
+                        this.state.setFile(f_name);
+                        if strcmp(mode, 'local_check')
+                            f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
                             step_s = this.fnp.getStepSec(f_path);
                             dsa = this.date_start.getCopy();
                             dso = this.date_stop.getCopy();
@@ -324,27 +303,52 @@ classdef File_Wizard < handle
                             dso.addIntSeconds(+step_s);
                             file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
                             status = true;
-                            f_status_lst = file_tree{4};
-                            for j = 1 : length(file_name_lst)
-                                if ~f_status_lst(j)
-                                    file_name = file_name_lst{j};
-                                    [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
-                                    server = server{1};
-                                    file_name = strrep(file_name,['?{' server '}'],'');
-                                    [s_ip, port] = this.rm.getServerIp(server);
-                                    idx = this.getServerIdx(s_ip, port);
-                                    status = status && this.ftp_downloaders{idx}.check(file_name);
-                                    if status
-                                        this.log.addStatusOk(sprintf('%s have been found remotely',this.fnp.getFileName(file_name)));
-                                    else
-                                        this.log.addStatusOk(sprintf('%s have not been found remotely',this.fnp.getFileName(file_name)));
-                                        break
-                                    end
+                            f_status_lst = false(length(file_name_lst),1); %file list to be saved in tree with flag of downloaded or not
+                            for i = 1 : length(file_name_lst)
+                                f_status = exist(file_name_lst{i}, 'file') == 2;
+                                f_status_lst(i) = f_status;
+                                status = status && f_status;
+                                if status
+                                    this.log.addStatusOk(sprintf('%s have been found locally',this.fnp.getFileName(file_name_lst{i})));
                                 end
                             end
                             if status
-                                file_tree{3} = i;
-                                break
+                                file_tree{3} = 0;
+                            end
+                            file_tree{4} = f_status_lst;
+                        elseif strcmp(mode, 'remote_check')
+                            
+                            for i = 1 : f_struct.loc_number
+                                f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
+                                step_s = this.fnp.getStepSec(f_path);
+                                dsa = this.date_start.getCopy();
+                                dso = this.date_stop.getCopy();
+                                dsa.addIntSeconds(-step_s);
+                                dso.addIntSeconds(+step_s);
+                                file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
+                                status = true;
+                                f_status_lst = file_tree{4};
+                                for j = 1 : length(file_name_lst)
+                                    if ~f_status_lst(j)
+                                        file_name = file_name_lst{j};
+                                        [server] = regexp(file_name,'(?<=\?{)\w*(?=})','match'); % saerch for ?{server_name} in paths
+                                        server = server{1};
+                                        file_name = strrep(file_name,['?{' server '}'],'');
+                                        [s_ip, port] = this.rm.getServerIp(server);
+                                        idx = this.getServerIdx(s_ip, port);
+                                        status = status && this.ftp_downloaders{idx}.check(file_name);
+                                        if status
+                                            this.log.addStatusOk(sprintf('%s have been found remotely', this.fnp.getFileName(file_name)));
+                                        else
+                                            this.log.addStatusOk(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
+                                            break
+                                        end
+                                    end
+                                end
+                                if status
+                                    file_tree{3} = i;
+                                    break
+                                end
                             end
                         end
                     end
