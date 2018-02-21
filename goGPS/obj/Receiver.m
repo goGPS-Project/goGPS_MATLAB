@@ -5898,17 +5898,18 @@ classdef Receiver < Exportable
         
         function showObsVsSynt_m(this, sys_c)
             % Plots phases and pseudo-ranges aginst their synthesised values
-            % SYNTAX: this.plotVsSynt
-            
-            f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-            
+            % SYNTAX: 
+            %   this.plotVsSynt_m(<sys_c>)
+                        
             % Phases
             if nargin == 1
                 [ph, ~, id_ph] = this.getPhases;
                 sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                f = figure; f.Name = sprintf('%03d: VsSynt', f.Number); f.NumberTitle = 'off';
             else
                 [ph, ~, id_ph] = this.getPhases(sys_c);
                 sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
             end
             
             subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
