@@ -3207,6 +3207,7 @@ classdef Receiver < Exportable
             if length(smoothing_win) == 2
                 dt = splinerMat([], dt, smoothing_win(2));
             end
+            
             this.dt = simpleFill1D(zero2nan(dt), id_ko, 'spline');
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
@@ -5242,23 +5243,23 @@ classdef Receiver < Exportable
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
             
+            %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+            this.id_sync = id_sync;
+            %ls.reweight(
+            
+            coo    = x(1:3,1);
+            
+            clock = x(x(:,2) == 6,1);
+            tropo = x(x(:,2) == 7,1);
+            amb = x(x(:,2) == 5,1);
+            gntropo = x(x(:,2) == 8,1);
+            getropo = x(x(:,2) == 9,1);
+            this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
+            this.xyz = this.xyz + coo';
+            valid_ep = ls.true_epoch;
+            this.dt(valid_ep, 1) = clock / Go_State.V_LIGHT;
+            
             if s02 < 0.10
-                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                this.id_sync = id_sync;
-                %ls.reweight(
-                
-                coo    = x(1:3,1);
-                
-                clock = x(x(:,2) == 6,1);
-                tropo = x(x(:,2) == 7,1);
-                amb = x(x(:,2) == 5,1);
-                gntropo = x(x(:,2) == 8,1);
-                getropo = x(x(:,2) == 9,1);
-                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
-                this.xyz = this.xyz + coo';
-                valid_ep = ls.true_epoch;
-                this.dt(valid_ep, 1) = clock / Go_State.V_LIGHT;
-                
                 if this.state.flag_tropo
                     this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
                     this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
