@@ -2976,7 +2976,16 @@ classdef Receiver < Exportable
             
             % Select only the systems still present in the file
             this.cc.setActive(sys_list);
-        end        
+        end
+                
+        function setSlantFilterSize(this, win_size)
+            % Setter multi_receiver to change filtering windows size for slant export
+            % SYNTAX:
+            %   this.setSlantFilterSize(win_size)
+            for r = 1:numel(this)
+                this(r).slant_filter_win = win_size; 
+            end
+        end
     end
     
     % ==================================================================================================================================================
