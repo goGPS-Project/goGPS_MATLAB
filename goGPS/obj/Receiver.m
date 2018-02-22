@@ -5817,7 +5817,7 @@ classdef Receiver < Exportable
             end
         end
 
-        function showPositionENU_c(this, one_plot)
+        function showPositionENU(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
             if nargin == 1
@@ -5859,7 +5859,7 @@ classdef Receiver < Exportable
             grid on;
         end
         
-        function showPositionXYZ_c(this, one_plot)
+        function showPositionXYZ(this, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if nargin == 1
@@ -5938,7 +5938,7 @@ classdef Receiver < Exportable
             caxis([-1 1]);
         end        
         
-        function showDt_c(this)
+        function showDt(this)
             % Plot Clock error
             % SYNTAX: this.plotDt
             
@@ -6344,11 +6344,11 @@ classdef Receiver < Exportable
             end
         end
         
-        function showZtdSlant_c(this, time_start, time_stop)
-            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
-                this.log.addWarning('ZTD and slants have not been computed');
+        function showZtdSlant(this, time_start, time_stop)
+            if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
+                this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this.cc.sys_c); f.NumberTitle = 'off';
+                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
                 for s = 1 : size(this,2)
                     if isempty(this(s).id_sync(:))
                         this(s).id_sync(:, 1) = (1 : this(s).time.length())';
@@ -6388,7 +6388,7 @@ classdef Receiver < Exportable
             end
         end
 
-        function showZtd_c(this)
+        function showZtd(this)
             [ztd, t] = this.getZTD();
             if isempty(ztd)
                 this(1).log.addWarning('ZTD and slants have not been computed');
