@@ -364,7 +364,7 @@ classdef Meteo_Data < handle
                 [~, day_start, day_id] = unique(yyyy*1e4+doy);
                 
                 if (nargin == 1)
-                    state = Go_State.getCurrentSettings();
+                    state = Global_Configuration.getCurrentSettings();
                     file_name =  this.marker_name;
                     % generate short 4 letters name
                     if numel(file_name) < 4

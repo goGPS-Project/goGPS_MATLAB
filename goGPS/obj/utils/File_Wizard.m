@@ -155,7 +155,7 @@ classdef File_Wizard < handle
     end
     
     properties (SetAccess = protected, GetAccess = protected)
-        state = Go_State.getCurrentSettings();     %  Global state, to import custom server and service preferences
+        state = Global_Configuration.getCurrentSettings();     %  Global state, to import custom server and service preferences
     end
     
     properties (SetAccess = private, GetAccess = private)
@@ -174,7 +174,7 @@ classdef File_Wizard < handle
             if (nargin >= 1)
                 this.state = handle(state);
             else
-                this.state = Go_State.getCurrentSettings();
+                this.state = Global_Configuration.getCurrentSettings();
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);                        
@@ -517,7 +517,7 @@ classdef File_Wizard < handle
                 %[file_dcb, compressed] = download_dcb(gps_weeks, gps_times);
                 
                 % Pointer to the global settings:
-                state = Go_State.getCurrentSettings();
+                state = Global_Configuration.getCurrentSettings();
                 
                 file_dcb = {};
                 compressed = 0;
@@ -704,7 +704,7 @@ classdef File_Wizard < handle
             %[file_crx] = download_crx(gps_weeks, gps_times);
             
             % Pointer to the global settings:
-            state = Go_State.getCurrentSettings();
+            state = Global_Configuration.getCurrentSettings();
             
             %AIUB FTP server IP address
             % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch

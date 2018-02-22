@@ -48,7 +48,7 @@ function [download_successful, compressed] = download_nav(filename, nav_path)
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 download_successful = 0;
 compressed = 0;

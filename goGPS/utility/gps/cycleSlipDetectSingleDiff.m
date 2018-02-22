@@ -50,7 +50,7 @@ end
 
 function [data, flag_array] = cleanPhaseObsSingleDiff_v1(data, thr)
     data = data';
-    state = Go_State.getCurrentSettings();
+    state = Global_Configuration.getCurrentSettings();
 
     % remove big outliers
     if nargin == 1
@@ -93,7 +93,7 @@ end
 
 function [data, flag_array] = cleanPhaseObsSingleDiff(data, thr)
     data = data';
-    state = Go_State.getCurrentSettings();
+    state = Global_Configuration.getCurrentSettings();
 
     % get dimension of the set
     n_obs = size(data, 1);

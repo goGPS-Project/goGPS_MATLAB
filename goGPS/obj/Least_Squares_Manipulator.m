@@ -96,7 +96,7 @@ classdef Least_Squares_Manipulator < handle
     
     methods
         function this = Least_Squares_Manipulator()
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off)

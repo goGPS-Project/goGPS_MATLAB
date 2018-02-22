@@ -4,7 +4,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %   N = getOrthometricCorr(phi, lam, geoid);
 %
 % EXAMPLE:
-%   gs = Go_State.getInstance;
+%   gs = Global_Configuration.getInstance;
 %   gs.initGeoid();
 %   getOrthometricCorr(45.69 ./ 180*pi, 9.03 ./ 180*pi, gs.getRefGeoid())
 %
@@ -51,7 +51,7 @@ function N = getOrthometricCorr(phi, lam, geoid)
 %--------------------------------------------------------------------------
 
 if (nargin == 2)
-    gs = Go_State.getInstance();
+    gs = Global_Configuration.getInstance();
     geoid = gs.getRefGeoid();
 end
 

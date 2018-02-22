@@ -66,7 +66,7 @@ if (iephem == 1)
 
     % read header file data
 
-    gs = Go_State.getInstance();
+    gs = Global_Configuration.getInstance();
     go_dir = gs.getLocalStorageDir();
     fid = fopen(fullfile(go_dir, ephname), 'r');
 

@@ -64,7 +64,7 @@ classdef Earth_Magnetic_Field < handle
     end
     methods
         function this = Earth_Magnetic_Field()
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             this.importIGRFModel(this.state.getIgrfFile());
             load(File_Name_Processor.checkPath([this.state.igrf_dir filesep 'P_dP_schimdt.mat']));
             this.P = P;

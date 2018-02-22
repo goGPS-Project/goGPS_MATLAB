@@ -71,7 +71,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 global report
 
 log = Logger.getInstance();
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 % Check the input arguments
 if (nargin < 4)

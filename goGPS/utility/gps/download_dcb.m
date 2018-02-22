@@ -48,7 +48,7 @@ function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 
 
 % Pointer to the global settings:
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 file_dcb = {};
 compressed = 0;

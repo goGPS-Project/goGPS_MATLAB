@@ -44,7 +44,7 @@ if (iephem == 1)
 
     % load binary ephemeris data file
 
-    gs = Go_State.getInstance();
+    gs = Global_Configuration.getInstance();
     go_dir = gs.getLocalStorageDir();
     cspice_furnsh(fullfile(go_dir, ephname));
 

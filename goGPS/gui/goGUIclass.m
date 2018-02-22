@@ -74,7 +74,7 @@ classdef goGUIclass < handle
 
         edtINI = [];                   % Handler to everything related to the editor pf the ini files
 
-        state = Go_State.getCurrentSettings(); % Object that will contain all the settings for goGPS
+        state = Global_Configuration.getCurrentSettings(); % Object that will contain all the settings for goGPS
 
     %  INTERFACE STATUS
     % ======================================================================

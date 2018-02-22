@@ -52,7 +52,7 @@ classdef Core_SEID < handle
         function this = Core_SEID()
             % Core object creator
             this.log = Logger.getInstance();
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
         end
 
         % Concrete implementation.  See Singleton superclass.

@@ -47,18 +47,25 @@ classdef Core < handle
 
     properties (Constant)
         GO_GPS_VERSION = '0.6.0 alpha 1 - nightly';
+        GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
     properties % Public Access
-        log;
-        state;
+        log
+        gc
+        state
+        w_bar
     end
 
     methods (Static)
         function this = Core()
             % Core object creator
             this.log = Logger.getInstance();
-            this.state = Go_State.getCurrentSettings();
+            this.init();
+            
+            this.gc = Global_Configuration.getInstance();
+            this.state = Global_Configuration.getCurrentSettings();
+            this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
 
         % Concrete implementation.  See Singleton superclass.
@@ -72,9 +79,9 @@ classdef Core < handle
                 unique_instance_core__ = this;
             else
                 this = unique_instance_core__;
+                this.init();
             end
         end
-
 
         function showTextHeader()
             this.log = Logger.getInstance();
@@ -288,6 +295,45 @@ classdef Core < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 ]);
         end
+
+        function ok_go = openGUI(this)
+            ok_go = gui_goGPS;
+        end
+
+    end
+    
+    methods
+        function init(this)
+            this.log.setColorMode(true);
+            this.showTextHeader();
+            fclose('all');
+        end
+        
+        function importIniFile(this, ini_settings_file)
+            this.state.importIniFile(ini_settings_file);
+        end
+        
+        function prepareProcessing(this)
+            this.log.newLine();
+            this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
+            this.log.newLine();
+            this.state.showTextMode();
+
+            this.gc.initConfiguration(); % Set up / download observations and navigational files
+            this.log.addMarkedMessage('Conjuring all the files!');
+            fw = File_Wizard;
+            c_mode = this.log.getColorMode();
+            this.log.setColorMode(0);
+            fw.conjureFiles();
+            this.log.setColorMode(c_mode);
+        end
+        
+        function [state, log, w_bar] = getUtilities(this)
+            state = this.state;
+            log = this.log;
+            w_bar = this.w_bar;
+        end
+        
     end
 
     % =========================================================================

@@ -29,7 +29,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 n_epochs = length(time_M);

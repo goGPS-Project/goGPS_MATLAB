@@ -45,7 +45,7 @@ function [file_crx] = download_crx(gps_week, gps_time)
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 %AIUB FTP server IP address
 % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch

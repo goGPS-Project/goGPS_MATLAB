@@ -91,7 +91,7 @@ classdef Atmosphere < handle
     methods
         function this = Atmosphere()
             % Initialisation of the variables
-            gs = Go_State.getInstance;
+            gs = Global_Configuration.getInstance;
             this.geoid = gs.getRefGeoid;
             this.state = gs.getCurrentSettings();
             this.log = Logger.getInstance();
@@ -233,7 +233,7 @@ classdef Atmosphere < handle
         end
         
         function [hoi_delay2, hoi_delay3, bending, ppo] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
-            % [1] Fritsche, M., R. Dietrich, C. KnÃ¶fel, A. RÃ¼lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -254,7 +254,7 @@ classdef Atmosphere < handle
                     end
                     b = this.emf.getB(t_time, GPS_SS.ELL_A/1000 + this.ionex.height(1), pp(2), pp(1));
                     bok = b'*k; %to Tesla
-                    c = Go_State.V_LIGHT ;
+                    c = Global_Configuration.V_LIGHT ;
                     Nemax = (3* 1e12);
                     vtec =  1e18;
                     ni = 0.66;
@@ -293,7 +293,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % Â¬Â¬ undulation is never less than 300 m (on Earth)
+            % ¬¬ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;

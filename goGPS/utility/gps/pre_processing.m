@@ -88,7 +88,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
 
     global cutoff snr_threshold n_sys flag_doppler_cs
 
-    state = Go_State.getCurrentSettings();
+    state = Global_Configuration.getCurrentSettings();
     log = Logger.getInstance();
 
     % Check doppler validity, if dop1 == dop2 [ !! ]
@@ -97,7 +97,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         dop2 = dop2 * 0;
     end
     p_rate = state.getProcessingRate();
-    v_light = Go_State.V_LIGHT;
+    v_light = Global_Configuration.V_LIGHT;
 
     %iono-free coefficients
     alpha1 = lambda(:,4);

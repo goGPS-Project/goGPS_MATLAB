@@ -2160,7 +2160,7 @@ classdef IO_Settings < Settings_Interface
             % check whether or not all the ephemeris files are available
             eph_ok = true;
 
-            state = Go_State.getCurrentSettings();
+            state = Global_Configuration.getCurrentSettings();
             file_name = this.getFullNavEphPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
@@ -2193,7 +2193,7 @@ classdef IO_Settings < Settings_Interface
             % check whether or not all the navigational clock files are available
 
             clk_ok = true;
-            state = Go_State.getCurrentSettings();
+            state = Global_Configuration.getCurrentSettings();
             file_name = this.getFullNavClkPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 
@@ -2226,7 +2226,7 @@ classdef IO_Settings < Settings_Interface
             % check whether or not all the ERP files are available
 
             erp_ok = true;
-            state = Go_State.getCurrentSettings();
+            state = Global_Configuration.getCurrentSettings();
             file_name = this.getFullErpPath();
             file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
 

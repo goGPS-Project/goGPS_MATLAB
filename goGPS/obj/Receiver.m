@@ -222,7 +222,7 @@ classdef Receiver < Exportable
             % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
             this.reset();
             this.log = Logger.getInstance();
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             if nargin >= 1 && ~isempty(cc)
                 this.cc = cc;
             else
@@ -1928,7 +1928,7 @@ classdef Receiver < Exportable
                     xyz = median(this(r).xyz, 1);
                     [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
                     if nargout == 4
-                        gs = Go_State.getInstance;
+                        gs = Global_Configuration.getInstance;
                         gs.initGeoid();
                         ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
                         h_ortho(r) = h_ellips(r) - ondu; %#ok<AGROW>
@@ -1957,7 +1957,7 @@ classdef Receiver < Exportable
             if ~isempty(this)
                 [lat, lon, h_ellips] = cart2geod(xyz);
                 if nargout == 4
-                    gs = Go_State.getInstance;
+                    gs = Global_Configuration.getInstance;
                     gs.initGeoid();
                     ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
                     h_ortho = h_ellips - ondu;
@@ -3548,7 +3548,7 @@ classdef Receiver < Exportable
             end
             
             if flag > 0
-                geoid = Go_State.getInstance.getRefGeoid();
+                geoid = Global_Configuration.getInstance.getRefGeoid();
                 if geoid.ncols > 0
                     % geoid ondulation interpolation
                     undu = getOrthometricCorr(lat_full(end), lon_full(end), geoid); % consider geoid undulation constant
@@ -4860,7 +4860,7 @@ classdef Receiver < Exportable
                     if not(isnan(this.xyz(e,:))) %& sum(abs(x(1:3))) < 300
                         this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
                         cur_xyz_est = this.xyz(e,:);
-                        this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                        this.dt(e,pres_clock) = x(4:end)'/Global_Configuration.V_LIGHT;
                     end
                 else
                     % keyboard
@@ -4944,7 +4944,7 @@ classdef Receiver < Exportable
                     %                     end
                     if max(abs(x(1:3))) <100;
                         this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                        this.dt(e,pres_clock) = x(4:end)'/Go_State.V_LIGHT;
+                        this.dt(e,pres_clock) = x(4:end)'/Global_Configuration.V_LIGHT;
                     else
                         this.dt(e,pres_clock) = 0;
                         this.xyz(e,:) = 0;
@@ -5100,7 +5100,7 @@ classdef Receiver < Exportable
                 s = this.cc.getIndex(sys(o),prn(o));
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
-                times.addSeconds(-obs(o,o_idx_l)'/Go_State.V_LIGHT); % add roucg time of flight
+                times.addSeconds(-obs(o,o_idx_l)'/Global_Configuration.V_LIGHT); % add roucg time of flight
                 xs = this.sat.cs.coordInterpolate(times,s);
                 to_remove = isnan(xs(:,1));
                 o_idx = find(o_idx_l);
@@ -5267,7 +5267,7 @@ classdef Receiver < Exportable
             this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
             this.xyz = this.xyz + coo';
             valid_ep = ls.true_epoch;
-            this.dt(valid_ep, 1) = clock / Go_State.V_LIGHT;
+            this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
             
             if s02 < 0.10
                 if this.state.flag_tropo

@@ -38,7 +38,7 @@ function [data, flag_array] = cleanPhaseObs(data_in, thr)
 %--------------------------------------------------------------------------
 
 data = zero2nan(data_in');
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 % get dimension of the set
 n_obs = size(data, 1);

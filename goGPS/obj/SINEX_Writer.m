@@ -69,7 +69,7 @@ classdef SINEX_Writer < handle
     end
     methods
         function this = SINEX_Writer(fname)
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             this.fname = fname;
             this.fid = fopen(fname,'w');
         end

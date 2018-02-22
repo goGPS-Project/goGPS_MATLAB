@@ -58,7 +58,7 @@ global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR
 global PDOP HDOP VDOP
 
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 p_rate = state.getProcessingRate();
 
 %total number of satellite slots (depending on the constellations enabled)

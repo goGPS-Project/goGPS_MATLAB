@@ -45,12 +45,6 @@ clearvars -except ini_settings_file use_gui; % exceptions for goGPSgo
 %
 % clear java
 
-%cd(fileparts(which('goGPS')));
-%pwd
-
-% close all the opened files
-fclose('all');
-
 % add all the subdirectories to the search path
 if (~isdeployed)
     addpath(genpath(pwd));
@@ -62,16 +56,9 @@ end
 
 % Init Core
 core = Core.getInstance();
-core.showTextHeader();
-
-log = Logger.getInstance();
-
-% Pointer to the global settings:
-gs = Go_State.getInstance();
-state = gs.getCurrentSettings();
 
 if exist('ini_settings_file', 'var')
-    state.importIniFile(ini_settings_file);
+    core.importIniFile(ini_settings_file);
 end
 
 %----------------------------------------------------------------------------------------------
@@ -87,12 +74,12 @@ else
 end
 
 % Init output interfaces (singletons)
-w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', 0);  % 0 means text, 1 means GUI, 5 both
+
 
 %if mode_user == 1
 %    w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
 %else
-w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
+%w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
 %end
 
 %----------------------------------------------------------------------------------------------
@@ -108,45 +95,21 @@ if (mode_user == 1)
     % to be compatible among various OSs the property "unit" of all the
     % elements must be set to "pixels"
     % (default unit is "character", but the size of a character is OS dependent)
-    [ok_go] = gui_goGPS;
+    
+    ok_go = core.openGUI();
     if (~ok_go)
         return
     end        
 end
 
-%-------------------------------------------------------------------------------------------
 %% GO goGPS - here the computations start
-%-------------------------------------------------------------------------------------------
 
-log.newLine();
-log.addMarkedMessage(sprintf('PROJECT: %s', state.getPrjName()));
-log.newLine();
-state.showTextMode();
+core.prepareProcessing();
 
-gs.initProcessing(); % Set up / download observations and navigational files
-
-cc = state.getConstellationCollector();
+[state, log, w_bar] = core.getUtilities();
 
 % start evaluating computation time
 tic;
-
-%-------------------------------------------------------------------------------------------
-%% STARTING BATCH
-%-------------------------------------------------------------------------------------------
-
-% Starting batch!!!
-
-% get short name for File_Name_Processor
-fnp = File_Name_Processor();
-
-initial_mode = state.getMode();
-if state.getSessionCount() > 1
-    is_batch = true;
-    w_bar.setOutputType(0);
-    %log.setColorMode(0);
-else
-    is_batch = false;
-end
 
 state.showTextMode();
 
@@ -175,7 +138,7 @@ for s = 1 : state.getSessionCount()
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        mst(i) = Receiver(cc, state.getMstPath(i, s)); %#ok<SAGROW>
+        mst(i) = Receiver(state.getConstellationCollector(), state.getMstPath(i, s)); %#ok<SAGROW>
         mst(i).preProcessing();
         rec(r) = mst(i); %#ok<SAGROW>
     end
@@ -187,7 +150,7 @@ for s = 1 : state.getSessionCount()
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        ref(i) = Receiver(cc, state.getRefPath(i, s)); %#ok<SAGROW>
+        ref(i) = Receiver(state.getConstellationCollector(), state.getRefPath(i, s)); %#ok<SAGROW>
         ref(i).preProcessing();
         rec(r) = ref(i);        
     end
@@ -199,7 +162,7 @@ for s = 1 : state.getSessionCount()
         fprintf('--------------------------------------------------------------------------\n\n');
         
         r = r + 1;
-        trg(i) = Receiver(cc, state.getTrgPath(i, s)); %#ok<SAGROW>        
+        trg(i) = Receiver(state.getConstellationCollector(), state.getTrgPath(i, s)); %#ok<SAGROW>        
         trg(i).preProcessing();
         rec(r) = trg(i);        
     end
@@ -211,6 +174,11 @@ for s = 1 : state.getSessionCount()
     
     for i = 1 : state.getTrgCount()
         trg(i).staticPPP([], id_sync{i}(:,1));
+        % Align data and recompute solution
+        %dt_i0 = trg(i).dt; 
+        %trg(i).applyDtRec(dt_i0);         
+        %trg(i).staticPPP([], id_sync{i}(:,1));
+        %trg(i).dt = trg(i).dt + dt_i0;
     end
     
     trg_list(:,s) = trg; %#ok<SAGROW>

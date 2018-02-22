@@ -260,7 +260,7 @@ classdef Fig_Lab < handle
             %      2:    plot modulus (3D) error
             %
             % EXAMPLE:
-            %    state = Go_State.getCurrentSettings();
+            %    state = Global_Configuration.getCurrentSettings();
             %
             %    file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
             %    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
@@ -333,7 +333,7 @@ classdef Fig_Lab < handle
             %   file_name_pos = name of the batch position file
             %
             % EXAMPLE:
-            %    state = Go_State.getCurrentSettings();
+            %    state = Global_Configuration.getCurrentSettings();
             %
             %    file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
             %    file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);

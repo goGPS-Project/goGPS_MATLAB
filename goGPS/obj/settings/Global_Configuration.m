@@ -1,4 +1,4 @@
-%   CLASS Go_State
+%   CLASS Global_Configuration
 % =========================================================================
 %
 % DESCRIPTION
@@ -8,9 +8,9 @@
 %   properties of the class are needed during the execution of goGPS
 %
 % EXAMPLE
-%   settings = Go_State.getInstance();
+%   settings = Global_Configuration.getInstance();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Go_State
+% FOR A LIST OF CONSTANTs and METHODS use doc Global_Configuration
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -43,7 +43,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Go_State < Settings_Interface
+classdef Global_Configuration < Settings_Interface
 
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -78,7 +78,7 @@ classdef Go_State < Settings_Interface
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function this = Go_State()
+        function this = Global_Configuration()
             this.initLogger();
 
             if ispc()
@@ -130,9 +130,9 @@ classdef Go_State < Settings_Interface
 
             if isempty(unique_instance_settings__)
                 if ini_is_present
-                    this = Go_State(ini_settings_file);
+                    this = Global_Configuration(ini_settings_file);
                 else
-                    this = Go_State();
+                    this = Global_Configuration();
                 end
                 unique_instance_settings__ = this;
             else
@@ -151,9 +151,9 @@ classdef Go_State < Settings_Interface
         function cur_settings = getCurrentSettings(ini_settings_file)
             % Get the persistent sittings
             if nargin == 0
-                this = Go_State.getInstance();
+                this = Global_Configuration.getInstance();
             else
-                this = Go_State.getInstance(ini_settings_file);
+                this = Global_Configuration.getInstance(ini_settings_file);
             end
             % Return the handler to the object containing the current settings
             cur_settings = handle(this.cur_settings);
@@ -172,7 +172,7 @@ classdef Go_State < Settings_Interface
                 try
                     this.cur_settings.import(settings);
                 catch ex
-                    this.log.addWarning(['Go_State.import failed to import settings (invalid input settings) ', ex.message()]);
+                    this.log.addWarning(['Global_Configuration.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
             end
         end
@@ -203,7 +203,7 @@ classdef Go_State < Settings_Interface
     %  GOGPS INIT FUNCTIONS
     % =========================================================================
     methods (Access = public)
-        function initProcessing(this)
+        function initConfiguration(this)
             % Load all the files necessary to the functioning of a goGPS session
             % SYNTAX:   this.initProcessing()
             
@@ -219,14 +219,7 @@ classdef Go_State < Settings_Interface
             this.log.addMessage(this.log.indent(this.cur_settings.cc.toString, 5));
 
             this.initRef();
-            this.initGeoid();
-            
-            this.log.addMarkedMessage('Conjuring files!');
-            fw = File_Wizard;
-            c_mode = this.log.getColorMode();
-            this.log.setColorMode(0);
-            fw.conjureFiles();
-            this.log.setColorMode(c_mode);
+            this.initGeoid();            
         end
 
         function initGeoid(this)
@@ -531,7 +524,7 @@ classdef Go_State < Settings_Interface
     methods (Static, Access = 'public')
         function test()
             % test the class
-            s = Go_State.getInstance();
+            s = Global_Configuration.getInstance();
             s.testInterfaceRoutines();
         end
     end

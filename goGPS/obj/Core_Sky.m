@@ -88,9 +88,9 @@ classdef Core_Sky < handle
         % Creator
         function this = Core_Sky()
             % Core object creator
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Go_State.getCurrentSettings().getConstellationCollector;
+            this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
             this.ant_pco = zeros(1, this.cc.getNumSat(), 3);
         end
     end
@@ -120,8 +120,7 @@ classdef Core_Sky < handle
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
-            
-            
+                        
             %%% load Epehemerids
             eph_f_name   = this.state.getEphFileName(start_date, stop_time);
             clock_f_name = this.state.getClkFileName(start_date, stop_time);
@@ -1644,7 +1643,7 @@ classdef Core_Sky < handle
             setdt(5.877122033683494);
             xp = 171209e-6; yp = 414328e-6;
             
-            gs = Go_State.getInstance();
+            gs = Global_Configuration.getInstance();
             go_dir = gs.getLocalStorageDir();
             
             %if the binary JPL ephemeris file is not available, generate it

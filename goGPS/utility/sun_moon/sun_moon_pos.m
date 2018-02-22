@@ -17,7 +17,7 @@ setmod(2);
 setdt(5.877122033683494);
 xp = 171209e-6; yp = 414328e-6;
 
-gs = Go_State.getInstance();
+gs = Global_Configuration.getInstance();
 go_dir = gs.getLocalStorageDir();
 
 %if the binary JPL ephemeris file is not available, generate it

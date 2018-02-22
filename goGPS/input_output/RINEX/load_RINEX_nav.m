@@ -62,7 +62,7 @@ end
 
 flag_return = 0;
 log = Logger.getInstance();
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 %number of satellite slots for enabled constellations
 nSatTot = cc.getNumSat();

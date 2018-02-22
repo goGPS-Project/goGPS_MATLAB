@@ -73,7 +73,7 @@ t0 = tic;
 global report
 
 log = Logger.getInstance();
-state = Go_State.getCurrentSettings();
+state = Global_Configuration.getCurrentSettings();
 
 log.addMarkedMessage('Reading observations... ');
 log.newLine();

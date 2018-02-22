@@ -68,7 +68,7 @@ classdef Core_Pre_Processing < handle
             
             this.log = Logger.getInstance();
             if nargin == 0
-                this.state = Go_State.getCurrentSettings();
+                this.state = Global_Configuration.getCurrentSettings();
             else
                 this.state = state;
                 this.eph = eph;
@@ -141,7 +141,7 @@ classdef Core_Pre_Processing < handle
             global cutoff snr_threshold n_sys flag_doppler_cs
                         
             p_rate = this.state.getProcessingRate();
-            v_light = Go_State.V_LIGHT;
+            v_light = Global_Configuration.V_LIGHT;
             
             % iono-free coefficients
             alpha1 = lambda(:,4);
@@ -1615,8 +1615,8 @@ classdef Core_Pre_Processing < handle
                 if (any(delta_GF_ref))
                     delta = delta_GF_ref/lambda_main;
                 elseif (any(delta_MW))
-                    freq_main = Go_State.V_LIGHT ./ lambda_main;
-                    freq_sec = Go_State.V_LIGHT ./ lambda_sec;
+                    freq_main = Global_Configuration.V_LIGHT ./ lambda_main;
+                    freq_sec = Global_Configuration.V_LIGHT ./ lambda_sec;
                     delta = delta_MW*abs((freq_main - freq_sec)/(freq_main*lambda_main));
                 elseif (any(delta_doppler))
                     delta = -delta_doppler;

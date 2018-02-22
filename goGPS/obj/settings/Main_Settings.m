@@ -8,7 +8,7 @@
 %   state = Main_Settings();
 %
 % SEE ALSO
-%   - Go_State
+%   - Global_Configuration
 %         it is a singleton class that store the status of the
 %         Main_Settings to be used in one goGPS session
 %

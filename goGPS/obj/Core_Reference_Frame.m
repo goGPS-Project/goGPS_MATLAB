@@ -47,9 +47,9 @@ classdef Core_Reference_Frame < handle
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             this.log = Logger.getInstance();
-            this.cc = Go_State.getCurrentSettings().getConstellationCollector;
+            this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
         end
     end
     

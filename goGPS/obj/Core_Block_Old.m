@@ -132,7 +132,7 @@ classdef Core_Block_Old < handle
             % EXAMPLE: go_block = Core_Block_Old(n_epoch, n_pr_obs, n_ph_obs)
             
             this.log = Logger.getInstance();
-            this.state = Go_State.getCurrentSettings();
+            this.state = Global_Configuration.getCurrentSettings();
             
             % number of position solutions to be estimated
             this.n_pos = 1;
@@ -1730,7 +1730,7 @@ classdef Core_Block_Old < handle
             % Separate the dataset in single blocks and solve float -> fix
             % go_block = Core_Block_Old.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, 3600);
             %%
-            state = Go_State.getCurrentSettings();
+            state = Global_Configuration.getCurrentSettings();
             log = Logger.getInstance();
 
             s_rate = s_rate(1);
