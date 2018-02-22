@@ -43,6 +43,18 @@
 %--------------------------------------------------------------------------
 classdef Least_Squares_Manipulator < handle
     
+    properties (Constant)
+        PAR_X = 1;
+        PAR_Y = 2;
+        PAR_Z = 3;
+        PAR_ISB = 4;
+        PAR_AMB = 5;
+        PAR_CLK = 6;
+        PAR_TROPO = 7;
+        PAR_TROPO_N = 8;
+        PAR_TROPO_E = 9;        
+    end
+    
     properties
         A_ep % Stacked epochwise design matrices [n_obs x n_param_per_epoch]
         A_idx % index of the paramter [n_obs x n_param_per_epoch]
