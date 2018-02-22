@@ -53,7 +53,9 @@ classdef Observation_Set < handle
         go_id
         sigma
     end
+    
     methods 
+        
         function this = Observation_Set(time, obs, obs_code, wl, el, az, prn)
             if nargin == 0
             return
