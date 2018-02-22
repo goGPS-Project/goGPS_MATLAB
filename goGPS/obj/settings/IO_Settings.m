@@ -1305,20 +1305,19 @@ classdef IO_Settings < Settings_Interface
                 return
             end
             [filepath,name,ext] = fileparts(filename);
-            if strcmp(ext,'.sp3') || strcmp(ext,'.eph')
+            if strcmp(lower(ext),'.sp3') || strcmp(lower(ext),'.eph')
                 this.setNavEphFile(filename);
-            elseif strcmp(ext,'.erp')
+            elseif strcmp(lower(ext),'.erp')
                 this.setErpFile(filename);
-            elseif strfind(ext,'.clk')
+            elseif strfind(lower(ext),'.clk')
                 this.setNavClkFile(filename);
-            elseif strcmp(ext,'.CRX')
+            elseif strcmp(upper(ext),'.CRX')
                 
             elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
                 this.setIonoFile(filename);
-            elseif strcmp(ext,'.DCB') || (strcmp(ext,'.SNX') & strcmp(name(1:3),'DCB'))
+            elseif strcmp(upper(ext),'.DCB') || (strcmp(upper(ext),'.SNX') & strcmp(upper(name(1:3)),'DCB'))
                 this.setDcbFile(filename);
-            end
-            
+            end            
         end
         
         function setNavPath(this, nav_dir)

@@ -177,9 +177,7 @@ classdef File_Wizard < handle
                 this.state = Go_State.getCurrentSettings();
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
-            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
-            
-            
+            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);                        
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
@@ -233,6 +231,7 @@ classdef File_Wizard < handle
             end
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list); % set sys_c again from constellation collector
         end
+        
         function idx = getServerIdx(this, address , port)
             % get idx of server if not present open the connection
             if nargin < 3
@@ -400,14 +399,14 @@ classdef File_Wizard < handle
             for i = 1 : length(centers)
                 if ~is_ok
                     split = strsplit(centers{i},'@');
-                    centerconst = split{2};
-                    centername = strsplit(centerconst,'_');
-                    centername = centername{1};
+                    %centername = split{2};
+                    %centername = strsplit(centerconst,'_');
+                    %centername = centername{1};
                     sys_c = split{1};
                     if length(intersect(this.sys_c,sys_c)) == length(this.sys_c)
-                        if strcmp(centername  ,center_name)
+                        if strcmp(split{2}, center_name{1})
                             is_ok = true;
-                            this.center_name = centerconst;
+                            this.center_name = center_name{1};
                         end
                     end
                 end

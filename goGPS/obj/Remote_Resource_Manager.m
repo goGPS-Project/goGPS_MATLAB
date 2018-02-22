@@ -301,7 +301,7 @@ methods
     end
     
     
-    function [file_structure, latency] = getFileStr(this,center_name, resource_name)
+    function [file_structure, latency] = getFileStr(this, center_name, resource_name)
         str = this.getData(['c_' center_name], resource_name);
         if isempty(str)
             this.log.addWarning(sprintf('No resource %s for center %s',resource_name, center_name))
