@@ -231,6 +231,7 @@ classdef Least_Squares_Manipulator < handle
                 assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
                 id = 1 : numel(amb_obs_count);
                 ko_amb_list = id(amb_obs_count < min_arc);
+                amb_obs_count(amb_obs_count < min_arc) = [];
                 for ko_amb = fliplr(ko_amb_list)
                     id_ko = amb_idx == ko_amb;
                     diff_obs(id_ko) = 0;
@@ -364,9 +365,10 @@ classdef Least_Squares_Manipulator < handle
             %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
             
-            %----Set up the date defecrum constraint problems --------------
+            %---- Set up the date the constraint to solve the rank deficeny problem --------------
             if phase_present
-                G = [zeros(1, n_coo + n_iob) zeros(1, n_amb) +ones(1, n_clocks)];
+                % Ambiguity set 
+                G = [zeros(1, n_coo + n_iob) amb_obs_count sum(~isnan(this.amb_idx), 2)'];
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
@@ -442,7 +444,7 @@ classdef Least_Squares_Manipulator < handle
         %----------------------------------------------------------------
         function weightOnResidual(this, wfun, threshold)
             if isempty(this.rw)
-                this.rw = ones(size(this.variance))
+                this.rw = ones(size(this.variance));
             end
             s02 = mean(abs(this.res).*this.rw);
             res_n = this.res/s02;

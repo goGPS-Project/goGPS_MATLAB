@@ -57,7 +57,8 @@ classdef Core < handle
         w_bar
     end
 
-    methods (Static)
+    methods (Static, Access = private)
+        % Concrete implementation.  See Singleton superclass.
         function this = Core()
             % Core object creator
             this.log = Logger.getInstance();
@@ -67,8 +68,9 @@ classdef Core < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
-
-        % Concrete implementation.  See Singleton superclass.
+    end
+    
+    methods (Static, Access = public)
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core__
@@ -299,10 +301,9 @@ classdef Core < handle
         function ok_go = openGUI(this)
             ok_go = gui_goGPS;
         end
-
     end
     
-    methods
+    methods      
         function init(this)
             this.log.setColorMode(true);
             this.showTextHeader();
