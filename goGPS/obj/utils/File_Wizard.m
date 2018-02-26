@@ -494,7 +494,6 @@ classdef File_Wizard < handle
                             try
                                 [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
                                 delete([this.state.getDcbDir() '/' name ext]);
-                                s2 = s2(1:end-2);
                             catch
                                 fprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']);
                                 compressed = 1;
