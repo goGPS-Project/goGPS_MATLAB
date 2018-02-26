@@ -177,7 +177,6 @@ classdef Least_Squares_Manipulator < handle
                 diff_obs(abs(diff_obs) > 100 * mean_diff_obs) = 0;
             end
             
-            % WARNING: to be check: is there a problem here in case of non consecutive observations?
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.rate); % link between original epoch, and epochs used here 
 
             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
@@ -185,6 +184,8 @@ classdef Least_Squares_Manipulator < handle
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
             id_sync(~idx_valid_ep_l) = [];
+            
+            this.true_epoch(~idx_valid_ep_l) = [];
             
             % removing possible empty column
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
@@ -248,6 +249,8 @@ classdef Least_Squares_Manipulator < handle
                 id_sync(~idx_valid_ep_l) = [];                
                 amb_idx(~idx_valid_ep_l, :) = [];                
                 
+                this.true_epoch(~idx_valid_ep_l) = [];
+
                 % removing possible empty column
                 idx_valid_stream = sum(diff_obs, 1) ~= 0;
                 diff_obs(:, ~idx_valid_stream) = [];
@@ -375,7 +378,7 @@ classdef Least_Squares_Manipulator < handle
                 if tropo_g
                     G = [G zeros(1, 2*n_clocks)];
                 end
-                D = [0];
+                D = 0;
                 this.G = G;
                 this.D = D;
             end
