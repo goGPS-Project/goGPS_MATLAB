@@ -1309,13 +1309,9 @@ classdef Receiver < Exportable
             % divide for wavelenght
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
             
-            
             % find possible cycle slip
             % cycle slip when they exceed threhsold cycle
             poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
-            
-           
-            
             
             %check if epoch before cycle slip can be restored
             poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
@@ -4691,7 +4687,7 @@ classdef Receiver < Exportable
             this.xyz = this.getMedianPosXYZ() + dpos;
             dt = x(x(:,2) == 6,1);
             this.dt = zeros(this.time.length,1);
-            this.dt(ls.true_epoch,1) = dt ./ goGNSS.V_LIGHT;
+            this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
             isb = x(x(:,2) == 4,1);
             this.sat.res = zeros(this.length, this.getMaxSat());
             % LS does not know the max number of satellite stored

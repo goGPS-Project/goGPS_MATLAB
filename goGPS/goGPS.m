@@ -73,15 +73,6 @@ else
     % mode_user = 1 --> use GUI
 end
 
-% Init output interfaces (singletons)
-
-
-%if mode_user == 1
-%    w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
-%else
-%w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
-%end
-
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
@@ -110,8 +101,6 @@ core.prepareProcessing();
 
 % start evaluating computation time
 tic;
-
-state.showTextMode();
 
 sky = Core_Sky.getInstance();
 for s = 1 : state.getSessionCount()
