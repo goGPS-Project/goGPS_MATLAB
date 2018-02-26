@@ -361,10 +361,15 @@ classdef IO_Settings < Settings_Interface
             if isa(settings, 'Ini_Manager')
                 % PROJECT
                 this.prj_name   = fnp.checkPath(settings.getData('prj_name'));
-                this.prj_home   = fnp.getFullDirPath(settings.getData('prj_home'), pwd);
+                dir_fallback = fnp.getRelDirPath([fnp.getPath(settings.file_name) filesep '..'], pwd);
+                if isempty(settings.getData('prj_home'))
+                    this.prj_home  = dir_fallback;
+                else
+                   this.prj_home = fnp.getFullDirPath(settings.getData('prj_home'),  pwd, dir_fallback);
+                end
                 if ~exist(this.prj_home, 'dir')
-                    this.log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, pwd));
-                    this.prj_home = pwd;
+                    this.log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, dir_fallback));
+                    this.prj_home = dir_fallback;
                 end
                 % COMPUTATION CENTERS
                 this.preferred_eph = fnp.checkPath(settings.getData('preferred_eph'));

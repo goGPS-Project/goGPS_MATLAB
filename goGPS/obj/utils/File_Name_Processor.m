@@ -201,7 +201,7 @@ classdef File_Name_Processor < handle
             if isempty(dir_base)
                 dir_base = pwd;
             end
-            
+                       
             dir_path_bk = dir_path;
 
             fnp = File_Name_Processor;
@@ -231,17 +231,24 @@ classdef File_Name_Processor < handle
                                 dir_base = fnp.getFullDirPath(dir_base, pwd);
                             end
                         end
-                        dir_path = fnp.checkPath([dir_base filesep dir_path]);
+                        if ~(numel(dir_path) >= 2 && strcmp(dir_path(1:2), '\\'))
+                            dir_path = fnp.checkPath([dir_base filesep dir_path]);
+                        end
                     end
                 else
                     dir_path = fnp.checkPath(empty_fallback);
                 end
-            end
-
+            end                       
+            
             if ~isempty(dir_path)
                 % remove './'
                 dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
 
+                prefix = '';
+                if numel(dir_path) > 2
+                    prefix = iif(strcmp(dir_path(1:2),'\\'), '\\', '');
+                end
+                
                 % extract sub folder names
                 list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
 
@@ -255,15 +262,21 @@ classdef File_Name_Processor < handle
 
                 % restore full path start
                 if isunix
-                    dir_path = [filesep strCell2Str(list, filesep)];
+                    dir_path = [prefix filesep strCell2Str(list, filesep)];
                 else
-                    dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
+                    %dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
+                    dir_path = [prefix strCell2Str(list, filesep)];
                 end
             end
             % Fallback if not exist
             if (nargin >= 3) && ~isempty(dir_fallback)
                 if ~exist(dir_path, 'file')
+                    prefix = '';
+                    if numel(dir_fallback) > 2
+                        prefix = iif(strcmp(dir_fallback(1:2),'\\'), '\\', '');
+                    end
                     dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
+                    dir_path = [prefix dir_path];
                 end
             end
         end
@@ -299,6 +312,13 @@ classdef File_Name_Processor < handle
                     dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
                 end
             else
+                % if dir_path is a network address && dir_base is not
+                prefix = '';
+                if (numel(dir_path) > 2 && strcmp(dir_path(1:2),'\\')) && ~((numel(dir_base) > 2 && strcmp(dir_base(1:2),'\\')))
+                    n_dir_base = 0;
+                    list_base = {};
+                    prefix = '\\';
+                end
                 dir_path = fnp.getFullDirPath(dir_path, dir_base);
                 list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
                 n_dir_path = numel(list_path);
@@ -311,8 +331,9 @@ classdef File_Name_Processor < handle
                 else
                     list_path = list_path(i+1:end);
                 end
-
-                dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
+                
+                dir_path = [prefix strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep)];
+               
             end
         end
 
@@ -323,7 +344,7 @@ classdef File_Name_Processor < handle
         end
         
         function path = getPath(file_name)
-            % Get only the file name of a full path
+            % Get only the path up to the folder name from a full path
             [path, ~, ~] = fileparts(file_name);
         end
         
@@ -387,6 +408,11 @@ classdef File_Name_Processor < handle
             %       2 => is a file
             %       7 => is a folder
 
+            prefix = '';
+            if numel(path) > 2
+                prefix = iif(strcmp(path(1:2),'\\'), '\', '');
+            end
+            
             if not(isempty(path))
                 if (iscell(path))
                     % for each line of the cell
@@ -417,7 +443,7 @@ classdef File_Name_Processor < handle
                 universal_path = '';
                 is_valid = 0;
             end
-
+            universal_path = [prefix universal_path];
         end
 
     end
