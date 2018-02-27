@@ -251,5 +251,73 @@ classdef Atmosphere < handle
             index = find(abs(x) >= 1.57);
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
         end
+        
+        function [lat_pp, lon_pp, iono_mf, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
+            % Get the pierce point
+            % INPUT:
+            %   lat_rad             latitude of the receiver           [rad]
+            %   lon_rad             longitude of the receiver          [rad]
+            %   h_ortho             orthometric height of the receiver [m]
+            %   az_rad              azimuth of the satellites          [rad]
+            %   el_rad              elevation of the satellites        [rad]
+            %   thin_shell_height   height of the pierce point         [m]
+            %   rcm                 meridian radius curvature <optional>
+            %
+            % OUTPUT
+            %   latpp               latitude pierce point [rad]
+            %   lonpp               longitude pierce point [rad]
+            %   iono_mf             iono mapping function
+            %   k                   iono k factor ????
+            % 
+            % SYNTAX: 
+            %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
+            
+            % Get radius of curvature at lat
+            if nargin < 7
+                rcm = getMeridianRadiusCurvature(lat_rad);
+            end
+            
+            input_size = (size(az_rad));
+            az_rad = az_rad(:);
+            el_rad = el_rad(:);
+            
+            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height)) * cos(el_rad);
+            psi_pp = (pi/2) - el_rad - asin(k);
+            
+            %set azimuth from -180 to 180
+            az_rad = mod((az_rad+pi),2*pi)-pi;
+            
+            %latitude of the ionosphere piercing point
+            lat_pp = asin(sin(lat_rad) * cos(psi_pp) + cos(lat_rad) * sin(psi_pp) .* cos(az_rad));
+            
+            %longitude of the ionosphere piercing point
+            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad)      > tan((pi/2) - lat_rad))) | ...
+                ((lat_pp < -70*pi/180) & (tan(psi_pp).*cos(az_rad + pi) > tan((pi/2) + lat_rad)));
+            
+            lon_pp = zeros(size(az_rad));
+            lon_pp(id_hl) = lon_rad + pi - asin(sin(psi_pp(id_hl)) .* sin(az_rad(id_hl)) ./ cos(lat_pp(id_hl)));
+
+            lon_pp(~id_hl) = lon_rad + asin(sin(psi_pp(~id_hl)) .* sin(az_rad(~id_hl)) ./ cos(lat_pp((~id_hl))));
+            
+            % using thin shell layer mapping function (Handbook of Global
+            % Navigation System pp 185)
+            if nargout > 2
+                iono_mf = (1-(k)^2)^(-1/2);
+            end
+            
+            if nargout > 3
+                k = [cos(az_rad).*cos(el_rad);
+                    -sin(az_rad).*cos(el_rad);
+                    sin(el_rad)];
+                % go to global system
+                R = [-sin(lat_rad) cos(lon_rad) 0;
+                    -sin(lat_rad)*cos(lon_rad) -sin(lat_rad)*sin(lon_rad) cos(lat_rad);
+                    +cos(lat_rad)*cos(lon_rad) +cos(lat_rad)*sin(lon_rad) sin(lat_rad)];
+                [k] = R'*k;
+            end
+            
+            lat_pp = reshape(lat_pp, input_size(1), input_size(2));
+            lon_pp = reshape(lon_pp, input_size(1), input_size(2));
+        end
     end
 end
