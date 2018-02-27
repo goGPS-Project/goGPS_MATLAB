@@ -233,7 +233,7 @@ classdef Atmosphere < handle
         end
         
         function [hoi_delay2, hoi_delay3, bending, ppo] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
-            % [1] Fritsche, M., R. Dietrich, C. Knöfel, A. Rülke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -293,7 +293,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ¬¬ undulation is never less than 300 m (on Earth)
+            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -996,34 +996,59 @@ classdef Atmosphere < handle
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
         end
         
-        function [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
+        function [lat_pp, lon_pp, iono_mf, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
+            % Get the pierce point
+            % INPUT:
+            %   lat_rad             latitude of the receiver           [rad]
+            %   lon_rad             longitude of the receiver          [rad]
+            %   h_ortho             orthometric height of the receiver [m]
+            %   az_rad              azimuth of the satellites          [rad]
+            %   el_rad              elevation of the satellites        [rad]
+            %   thin_shell_height   height of the pierce point         [m]
+            %   rcm                 meridian radius curvature <optional>
+            %
+            % OUTPUT
+            %   latpp               latitude pierce point [rad]
+            %   lonpp               longitude pierce point [rad]
+            %   iono_mf             iono mapping function
+            %   k                   iono k factor ????
+            % 
+            % SYNTAX: 
+            %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
+            
             % Get radius of curvature at lat
             if nargin < 7
                 rcm = getMeridianRadiusCurvature(lat_rad);
             end
-            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height))*cos(el_rad);
-            phipp = (pi/2) - el_rad - asin(k);
+            
+            input_size = (size(az_rad));
+            az_rad = az_rad(:);
+            el_rad = el_rad(:);
+            
+            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height)) * cos(el_rad);
+            psi_pp = (pi/2) - el_rad - asin(k);
             
             %set azimuth from -180 to 180
             az_rad = mod((az_rad+pi),2*pi)-pi;
             
             %latitude of the ionosphere piercing point
-            latpp = asin(sin(lat_rad)*cos(phipp) + cos(lat_rad)*sin(phipp)*cos(az_rad));
+            lat_pp = asin(sin(lat_rad) * cos(psi_pp) + cos(lat_rad) * sin(psi_pp) .* cos(az_rad));
             
             %longitude of the ionosphere piercing point
-            if ((latpp >  70*pi/180) && (tan(phipp)*cos(az_rad)      > tan((pi/2) - lat_rad))) || ...
-                    ((latpp < -70*pi/180) && (tan(phipp)*cos(az_rad + pi) > tan((pi/2) + lat_rad)))
-                
-                lonpp = lon_rad + pi - asin(sin(phipp)*sin(az_rad/cos(latpp)));
-            else
-                lonpp = lon_rad + asin(sin(phipp)*sin(az_rad/cos(latpp)));
-            end
+            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad)      > tan((pi/2) - lat_rad))) | ...
+                ((lat_pp < -70*pi/180) & (tan(psi_pp).*cos(az_rad + pi) > tan((pi/2) + lat_rad)));
+            
+            lon_pp = zeros(size(az_rad));
+            lon_pp(id_hl) = lon_rad + pi - asin(sin(psi_pp(id_hl)) .* sin(az_rad(id_hl)) ./ cos(lat_pp(id_hl)));
+
+            lon_pp(~id_hl) = lon_rad + asin(sin(psi_pp(~id_hl)) .* sin(az_rad(~id_hl)) ./ cos(lat_pp((~id_hl))));
             
             % using thin shell layer mapping function (Handbook of Global
             % Navigation System pp 185)
             if nargout > 2
-                mfpp = (1-(k)^2)^(-1/2);
+                iono_mf = (1-(k)^2)^(-1/2);
             end
+            
             if nargout > 3
                 k = [cos(az_rad).*cos(el_rad);
                     -sin(az_rad).*cos(el_rad);
@@ -1034,6 +1059,9 @@ classdef Atmosphere < handle
                     +cos(lat_rad)*cos(lon_rad) +cos(lat_rad)*sin(lon_rad) sin(lat_rad)];
                 [k] = R'*k;
             end
+            
+            lat_pp = reshape(lat_pp, input_size(1), input_size(2));
+            lon_pp = reshape(lon_pp, input_size(1), input_size(2));
         end
     end
 end

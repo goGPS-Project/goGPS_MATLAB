@@ -52,21 +52,21 @@ R  = 6378.1363; %Earth radius [km]
 hI = 350;       %ionosphere thin shell height [km]
 
 k = (R/(R+hI))*cos(elS);
-phipp = (pi/2) - elS - asin(k);
+psipp = (pi/2) - elS - asin(k);
 
 %set azimuth from -180 to 180
 azS = mod((azS+pi),2*pi)-pi;
 
 %latitude of the ionosphere piercing point
-latpp = asin(sin(latR)*cos(phipp) + cos(latR)*sin(phipp)*cos(azS));
+latpp = asin(sin(latR)*cos(psipp) + cos(latR)*sin(psipp)*cos(azS));
 
 %longitude of the ionosphere piercing point
-if ((latpp >  70*pi/180) & (tan(phipp)*cos(azS)      > tan((pi/2) - latR))) | ...
-   ((latpp < -70*pi/180) & (tan(phipp)*cos(azS + pi) > tan((pi/2) + latR)))
+if ((latpp >  70*pi/180) & (tan(psipp)*cos(azS)      > tan((pi/2) - latR))) | ...
+   ((latpp < -70*pi/180) & (tan(psipp)*cos(azS + pi) > tan((pi/2) + latR)))
 
-    lonpp = lonR + pi - asin(sin(phipp)*sin(azS/cos(latpp)));
+    lonpp = lonR + pi - asin(sin(psipp)*sin(azS)/cos(latpp));
 else
-    lonpp = lonR + asin(sin(phipp)*sin(azS/cos(latpp)));
+    lonpp = lonR + asin(sin(psipp)*sin(azS)/cos(latpp));
 end
 
 %slant (obliquity) factor
