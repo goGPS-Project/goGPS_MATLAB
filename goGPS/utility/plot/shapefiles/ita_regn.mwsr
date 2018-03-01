@@ -1,0 +1,13 @@
+<SFRendering>
+  <Layer Name="ita_regn" Type="3" Path="" Tag="" LegendPicture="" Visible="True" LabelsVisible="True" Expanded="False">
+    <Image Type="">
+    </Image>
+    <ShapeFileProperties Color="16777215" DrawFill="True" TransparencyPercent="1" FillStipple="0" LineOrPointSize="1" LineStipple="0" OutLineColor="16711680" PointType="0" CustomLineStipple="0" UseTransparency="False" TransparencyColor="0">
+      <CustomPointType>
+        <Image Type="">
+        </Image>
+      </CustomPointType>
+    </ShapeFileProperties>
+    <DynamicVisibility UseDynamicVisibility="False" xMin="0" yMin="0" xMax="0" yMax="0" />
+  </Layer>
+</SFRendering>

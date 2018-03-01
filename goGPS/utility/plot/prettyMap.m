@@ -453,7 +453,7 @@ if (~strcmp(shape,'none'))
             	x(find(abs(diff(x))>=abs(xMax-xMin)*0.90)+1) = nan; % Romove lines that occupy more than th 90% of the plot
 	            line(x,y,'color', lineCol);
     	    end
-	    end;
+        end
     else
         if (strcmp(shape,'coast'))
         	m_coast('line','color', lineCol);

@@ -40,6 +40,8 @@
 %                       - 50m           1:50000000 scale country contours
 %                       - 30m           1:30000000 scale country contours
 %                       - 10m           1:10000000 scale country contours
+%                       - provinces     1:10000000 scale provinces contours
+%                       - ita           1:10000000 scale italian regions contours
 %   lineCol         [1 1 1] array of RGB component to draw the contour lines
 %
 % DEFAULT VALUES:
@@ -115,7 +117,7 @@ switch (nargin)
         lineCol = [0 0 0];
         if (ischar(phi))
             projection = 'Miller Cylindrical';
-            if (sum(strcmp(phi,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(phi,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = phi;
                 if (ischar(lambda))
                     projection = lambda;                              % prettyScatter(dataScatter, shape, projection);
@@ -152,7 +154,7 @@ switch (nargin)
         lineCol = [0 0 0];
         projection = 'Miller Cylindrical';
         if (ischar(phiMin))
-            if (sum(strcmp(phiMin,[{'coast'},{'10m'},{'30m'},{'50m'}])))  % prettyScatter(dataScatter, phi, lambda, shape);
+            if (sum(strcmp(phiMin,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))  % prettyScatter(dataScatter, phi, lambda, shape);
                 shape = phiMin;
             else                                                          % prettyScatter(dataScatter, phi, lambda, projection);
                 projection = phiMin;
@@ -170,7 +172,7 @@ switch (nargin)
         lineCol = [0 0 0];
         projection = 'Miller Cylindrical';
         if (ischar(phiMin))
-            if (sum(strcmp(phiMin,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(phiMin,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = phiMin;
                 if (ischar(phiMax))
                     projection = phiMax;                                  % prettyScatter(dataScatter, phiMin, phiMax, shape, projection);
@@ -214,7 +216,7 @@ switch (nargin)
         limitsOk = true;
         projection = 'Lambert';        
         if (ischar(lambdaMin))
-            if (sum(strcmp(lambdaMin,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(lambdaMin,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = lambdaMin;                                        % prettyScatter(dataScatter, phiMin, phiMax, lambdaMin, lambdaMax, shape);
             else
                 projection = lambdaMin;
@@ -245,7 +247,7 @@ switch (nargin)
         limitsOk = true;
         projection = 'Lambert';
         if (ischar(lambdaMin))
-            if (sum(strcmp(lambdaMin,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(lambdaMin,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = lambdaMin;
                 if (ischar(lambdaMax))
                     projection = lambdaMax;                               % prettyScatter(dataScatter, phiMin, phiMax, lambdaMin, lambdaMax, shape, projection);
@@ -285,7 +287,7 @@ switch (nargin)
         lineCol = [0 0 0];
         limitsOk = true;
         if (ischar(projection))
-            if (sum(strcmp(projection,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(projection,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = projection;                                       % prettyScatter(dataScatter, phi, lambda, phiMin, phiMax, lambdaMin, lambdaMax, shape);
                 projection = 'Lambert';
             else
@@ -299,7 +301,7 @@ switch (nargin)
         lineCol = [0 0 0];
         limitsOk = true;
         if (ischar(projection))
-            if (sum(strcmp(projection,[{'coast'},{'10m'},{'30m'},{'50m'}])))
+            if (sum(strcmp(projection,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 tmp = shape;
                 shape = projection;
                 if (ischar(tmp))
@@ -319,7 +321,7 @@ switch (nargin)
         end
     case 10                                                               % prettyScatter(dataScatter, phi, lambda, phiMin, phiMax, lambdaMin, lambdaMax, projection, shape, lineCol)
         limitsOk = true;
-        if (sum(strcmp(projection,[{'coast'},{'10m'},{'30m'},{'50m'}])))   % prettyScatter(dataScatter, phi, lambda, phiMin, phiMax, lambdaMin, lambdaMax, shape, projection, lineCol)
+        if (sum(strcmp(projection,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))   % prettyScatter(dataScatter, phi, lambda, phiMin, phiMax, lambdaMin, lambdaMax, shape, projection, lineCol)
             tmp = shape;
             shape = projection;
             projection = tmp;
@@ -374,8 +376,7 @@ if ~tohold
     % plot the dataScatter
     m_pcolor([lambdaMin lambdaMax],[phiMin phiMax], nan(2));
     % set the light
-    shading flat;
-    
+    shading flat;    
 end
 
 ids = (lambda<lambdaMin) & (lambda < 0);
@@ -388,32 +389,37 @@ hold on;
 [xlocal,ylocal] = m_ll2xy(lambda(:),phi(:));
 scatterHandler = scatter(xlocal,ylocal,30,dataScatter,'filled'); % <========================= SCATTER function is here
 
-% read shapefile
-if (~strcmp(shape,'coast'))
-    if (strcmp(shape,'10m'))
-        M=m_shaperead('countries_10m');
-    elseif (strcmp(shape,'30m'))
-        M=m_shaperead('countries_30m');
-    else
-        M=m_shaperead('countries_50m');
-    end
-    [xMin,yMin] = m_ll2xy(lambdaMin,phiMin);
-    [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);
-    for k=1:length(M.ncst)
-        lamC = M.ncst{k}(:,1);        
-        ids = lamC < lambdaMin;
-        lamC(ids) = lamC(ids) + 360;        
-        phiC = M.ncst{k}(:,2);
-        [x,y] = m_ll2xy(lamC,phiC);
-        if sum(~isnan(x))>1
-            x(find(abs(diff(x))>=abs(xMax-xMin)*0.90)+1) = nan; % Romove lines that occupy more than th 90% of the plot
-            line(x,y,'color', lineCol);
+if ~tohold
+    % read shapefile
+    if (~strcmp(shape,'coast'))
+        if (strcmp(shape,'ita'))
+            M = m_shaperead('ita_regn');
+        elseif (strcmp(shape,'provinces'))
+            M = m_shaperead('ne_10m_admin_1_states_provinces');
+        elseif (strcmp(shape,'10m'))
+            M = m_shaperead('countries_10m');
+        elseif (strcmp(shape,'30m'))
+            M = m_shaperead('countries_30m');
+        else
+            M = m_shaperead('countries_50m');
         end
-    end;
-else
-    m_coast('line','color', lineCol);
+        [xMin,yMin] = m_ll2xy(lambdaMin,phiMin);
+        [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);
+        for k=1:length(M.ncst)
+            lamC = M.ncst{k}(:,1);
+            ids = lamC < lambdaMin;
+            lamC(ids) = lamC(ids) + 360;
+            phiC = M.ncst{k}(:,2);
+            [x,y] = m_ll2xy(lamC,phiC);
+            if sum(~isnan(x))>1
+                x(find(abs(diff(x)) >= abs(xMax-xMin) * 0.70)+1) = nan; % Remove lines that occupy more than the 90% of the plot
+                line(x,y,'color', lineCol);
+            end
+        end
+    else
+        m_coast('line','color', lineCol);
+    end
 end
-
 m_grid('box','fancy','tickdir','in');
 colorbar;
 
