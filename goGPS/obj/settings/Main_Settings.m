@@ -572,7 +572,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if (exist(ini_settings_file, 'file') == 2)
                 this.importIniFile(ini_settings_file);
             else
-                this.log.addMessage('using default settings')
+                this.log.addMarkedMessage('Using default settings');
+                this.log.newLine();
                 this.postImportInit();
             end
         end
@@ -1640,19 +1641,6 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             this.checkNumericField('cs_thr',[0.5 1e50]);
 
-            if this.isModePPP()
-                if (this.cs_thr < 1e20)
-                    this.log.addMessage('In PPP mode the cycle slips detection is computed during pre-processing',15);
-                    this.log.addMessage('cycle slips detection is disabled during processing',15);
-                    this.cs_thr = 1e30; % i.e. disable cycle slips detection during KF processing
-                end
-            else
-                if (this.cs_thr_pre_pro > 1)
-                    this.log.addMessage('Forcing cycle slips detection threshold for pre-processing to 1');
-                    this.cs_thr_pre_pro = 1;
-                end
-            end
-
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
@@ -1692,8 +1680,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_seamless_proc');
             this.checkNumericField('flag_kf_fb', [-1 1]);
             this.flag_kf_fb = round(this.flag_kf_fb);
-            if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))
-                this.log.addWarning('Up to now forward - backward KF is only supported for DD phase and code with static filter\n Disabling it');
+            if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))                
                 this.flag_kf_fb = 0;
             end
 
