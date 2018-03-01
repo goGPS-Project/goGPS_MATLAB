@@ -64,6 +64,7 @@ classdef Least_Squares_Manipulator < handle
         G % hard constraints (Lagrange multiplier)
         D % known term of the hard constraints 
         y % observations  [ n_obs x 1]
+        system_split % limits of the ambiguity splits
         variance % observation variance [ n_obs x 1]
         rw % reweight factor
         res % observations residuals
@@ -177,7 +178,7 @@ classdef Least_Squares_Manipulator < handle
                 diff_obs(abs(diff_obs) > 100 * mean_diff_obs) = 0;
             end
             
-            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.rate); % link between original epoch, and epochs used here 
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here 
 
             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
@@ -265,12 +266,17 @@ classdef Least_Squares_Manipulator < handle
                 n_stream = size(diff_obs, 2); % number of satellites
                 n_coo = 3; % number of coordinates
                 n_clocks = n_epochs; % number of clock errors
-                n_tropo = n_clocks; % number of epoch for ZTD estimation
                 
                 % Store amb_idx
                 n_amb = max(max(amb_idx));
                 amb_flag = 1;
-                this.amb_idx = amb_idx;                
+                this.amb_idx = amb_idx;
+                
+                % get ambiguity wl
+                wl_amb = zeros(size(amb_obs_count));
+                for s = 1 : size(amb_idx, 2)
+                    wl_amb(unique(amb_idx(~isnan(amb_idx(:, s)),s))) = obs_set.wl(s);
+                end                
             else
                 n_amb = 0;
                 amb_flag = 0;
@@ -371,8 +377,8 @@ classdef Least_Squares_Manipulator < handle
             
             %---- Set up the date the constraint to solve the rank deficeny problem --------------
             if phase_present
-                % Ambiguity set 
-                G = [zeros(1, n_coo + n_iob) amb_obs_count sum(~isnan(this.amb_idx), 2)'];
+                % Ambiguity set
+                G = [zeros(1, n_coo + n_iob) amb_obs_count .* wl_amb -sum(~isnan(this.amb_idx), 2)'];
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
@@ -391,6 +397,12 @@ classdef Least_Squares_Manipulator < handle
             this.sat = sat;
             this.param_flag = [0, 0, 0, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
             this.param_class = [1, 2, 3, 4 * ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
+            if phase_present
+                system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                this.system_split = [[1; system_jmp + 1] [system_jmp; max(obs)]];
+            else
+                this.system_split = [1 max(obs)];
+            end
         end
         
         function setTimeRegularization(this, param_class, time_variability)
