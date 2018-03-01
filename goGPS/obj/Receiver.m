@@ -502,6 +502,75 @@ classdef Receiver < Exportable
             this.system(id_obs) = [];
         end
         
+        function keepEpochs(this, good_epochs)
+            bad_epochs = 1 : this.length;
+            bad_epochs(good_epochs) = [];
+            this.remEpochs(bad_epochs)
+        end
+        
+        function remEpochs(this, bad_epochs)
+            this.time.remEpoch(bad_epochs);
+
+            if ~isempty(this.n_spe)
+                this.n_spe(bad_epochs) = [];
+            end
+            
+            if ~isempty(this.synt_ph)
+                this.synt_ph(bad_epochs, :) = [];
+            end
+            if ~isempty(this.obs)
+                this.obs(:, bad_epochs) = [];
+            end
+
+            if ~isempty(this.outlier_idx_ph)
+                this.outlier_idx_ph(bad_epochs, :) = [];
+            end
+            if ~isempty(this.cycle_slip_idx_ph)
+                this.cycle_slip_idx_ph(bad_epochs, :) = [];
+            end
+
+            if ~isempty(this.desync)
+                this.desync(bad_epochs) = [];            
+            end
+            if ~isempty(this.dt)
+                this.dt(bad_epochs) = [];            
+            end
+            if ~isempty(this.dt_ph)
+                this.dt_ph(bad_epochs) = [];            
+            end
+            if ~isempty(this.dt_pr)
+                this.dt_pr(bad_epochs) = [];            
+            end
+            if ~isempty(this.dt_ip)
+                this.dt_ip(bad_epochs) = [];            
+            end
+        
+            if ~isempty(this.sat.avail_index)
+                this.sat.avail_index(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.err_tropo)
+                this.sat.err_tropo(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.err_iono)
+                this.sat.err_iono(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.solid_earth_corr)
+                this.sat.solid_earth_corr(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.tot)
+                this.sat.tot(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.az)
+                this.sat.az(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.el)
+                this.sat.el(bad_epochs, :) = [];            
+            end
+            if ~isempty(this.sat.res)
+                this.sat.res(bad_epochs, :) = [];            
+            end            
+        end
+            
         function remSat(this, go_id, prn)
             %remove satellites from receiver
             if nargin >2 %interpreting as sys_c , orn
@@ -1252,6 +1321,15 @@ classdef Receiver < Exportable
             end
         end
         
+        function updateRemoveOutlierMarkCycleSlip(this)
+            % After changing the observations Synth phases must be recomputed and
+            % old outliers and cycle-slips removed before launching a new detection
+            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
+            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
+            this.updateSyntPhases();
+            this.removeOutlierMarkCycleSlip();
+        end
+        
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
             this.updateAllAvailIndex();
@@ -1271,6 +1349,8 @@ classdef Receiver < Exportable
             
             % mark all as outlier and interpolate
             % get observed values
+            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
+            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
             [ph, wl, id_ph_l] = this.getPhases;
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
@@ -1378,15 +1458,24 @@ classdef Receiver < Exportable
             % remove too short possible arc
             to_short_idx = flagMerge(poss_slip_idx,sa_thr);
             poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
-            to_short_idx(poss_slip_idx) =false;
+            to_short_idx(poss_slip_idx) = false;
             poss_out_idx(to_short_idx) = true;
             
-            n_out = sum(sum(poss_out_idx));
+            n_out = sum(poss_out_idx(:));
             this.outlier_idx_ph = sparse(poss_out_idx);
             this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
+            
+%             sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases);
+%             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+%             % divide for wavelenght
+%             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+%             % outlier when they exceed 0.5 cycle
+%             poss_out_idx = abs(sensor_ph) > ol_thr;
+%             this.outlier_idx_ph = this.outlier_idx_ph & poss_out_idx;
+
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
-            %this.removeShortArch(this.state.getMinArc);
+            %this.removeShortArch(this.state.getMinArc);                        
         end
         
         function cycleSlipPPPres(this)
@@ -2293,6 +2382,12 @@ classdef Receiver < Exportable
             end
         end
         
+        function wl = getWavelenght(this, id_ph)
+            % get the wavelength of a specific phase observation
+            % SYNTAX: wl = this.getWavelenght(id_ph)
+            wl = this.wl(id_ph);
+        end
+        
         function [ph, wl, id_ph] = getPhases(this, sys_c)
             % get the phases observations in meter (not cycles)
             % SYNTAX: [ph, wl, id_ph] = this.getPhases(<sys_c>)
@@ -2421,7 +2516,7 @@ classdef Receiver < Exportable
                 if nargin < 4
                     max_obs_type = length(preferences);
                 end
-                % find the betters flag present
+                % find the better flag present
                 for j = 1 : max_obs_type
                     for i = 1:length(preferences)
                         if sum(sum(sys_obs_code == repmat([flag preferences(i)],sz,1),2)==3)>0
@@ -2499,9 +2594,9 @@ classdef Receiver < Exportable
             %INPUT: flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
             %       fun1  : function of the two wavelegnth to be applied to
-            %       computehr the first frequncy coefficient
+            %       compute the first frequncy coefficient
             %       fun2  : function of the two wavelegnth to be applied to
-            %       computehr the second frequency frequncy coefficient
+            %       compute the second frequency coefficient
             if nargin  < 6
                 know_comb = 'none';
             end
@@ -2641,6 +2736,12 @@ classdef Receiver < Exportable
         end
         
         function [obs_set] = getGeometryFree(this,flag1,flag2,system)
+            if flag1(1) == 'C' &&  flag2(1) == 'C'
+                % Code geometry free is C2 - C1 -> exchange the flags
+                tmp = flag1;
+                flag1 = flag2;
+                flag2 = tmp;
+            end
             fun1 = @(wl1,wl2) 1;
             fun2 = @(wl1,wl2) -1;
             [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
@@ -2804,7 +2905,7 @@ classdef Receiver < Exportable
             % receiver as to be the same
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
-            idx_ep_obs = obs_set.getTimeIdx(this.time.getSubSet(1),this.rate);
+            idx_ep_obs = obs_set.getTimeIdx(this.time.getSubSet(1),this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
@@ -2951,6 +3052,50 @@ classdef Receiver < Exportable
             
             ph = bsxfun(@rdivide, zero2nan(ph'), wl);
             this.obs(id_ph, :) = nan2zero(ph);
+        end
+        
+        function injectPhases(this, ph, wl, f_id, obs_code, go_id)
+            % Injecting phase observations into Receiver
+            % This routine have been written for Core_SEID
+            %
+            % SINTEX:
+            %   this.injectPhases(ph, wl, f_id, obs_code, go_id);
+            
+            if size(ph, 2) ~= size(this.obs, 2)
+                this.log.addError(sprintf('Phase injection not possible, input contains %d epochs while obs contains %d epochs', size(ph, 2), size(this.obs, 2)));
+            else
+                go_id = go_id(:);
+                f_id = f_id(:);
+                wl = wl(:);
+                assert(size(ph, 1) == numel(go_id), 'Phase injection input "go_id" parameters size error');
+                
+                this.obs = [this.obs; ph];
+                this.go_id = [this.go_id; go_id];
+                this.active_ids = [this.active_ids; true(size(go_id))];
+                if numel(f_id) == 1
+                    this.f_id = [this.f_id; f_id * ones(size(go_id))];
+                else
+                    assert(size(ph, 1) == numel(f_id), 'Phase injection input "f_id" parameters size error');
+                    this.f_id = [this.f_id; f_id];
+                end
+                if numel(wl) == 1
+                    this.wl = [this.wl; wl * ones(size(go_id))];
+                else
+                    assert(size(ph, 1) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    this.wl = [this.f_id; wl];
+                end
+                
+                [sys, prn] = this.getSysPrn(go_id);
+                this.prn = [this.prn; prn];
+                this.system = [this.system sys'];
+                
+                if size(obs_code,1) == 1
+                    this.obs_code = [this.obs_code; repmat(obs_code, size(go_id, 1), 1)];
+                else
+                    assert(size(ph, 2) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    this.obs_code = [this.obs_code; obs_code];
+                end
+            end
         end
         
         function setPseudoRanges(this, pr, id_pr)
@@ -3445,6 +3590,12 @@ classdef Receiver < Exportable
             end
         end
         
+        function [rate] = getRate(this)
+            % SYSTEM:
+            %   rate = this.getRate();
+            rate = this.time.getRate;
+        end
+        
         function [az, el] = computeAzimuthElevation(this, go_id)
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
@@ -3585,10 +3736,8 @@ classdef Receiver < Exportable
                             gps_time = this.time.getGpsTime();
                             lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
-                            for e = 1 : size(idx,1)
-                                if idx(e) > 0                                    
-                                    this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
-                                end
+                            for e = find(idx)'
+                                this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
                             end
                     end
                 end
@@ -5782,19 +5931,22 @@ classdef Receiver < Exportable
     %   p polar
     %   m mixed    
     methods (Access = public)        
+        
         function showAll(this)
+            this.toString
             if size(this.xyz, 1) > 1
                 this.showPositionENU_c();
                 this.showPositionXYZ_c();
             end
             this.showDataAvailability();
             this.showSNR_p();
-            this.showDt_c();
+            this.showDt();
             this.showOutliersAndCycleSlip();
             this.showOutliersAndCycleSlip_p();
             this.showResSky_p();
             this.showResSky_c();
-            this.showZtdSlant_c();
+            this.showZtd();
+            this.showZtdSlant();
             this.showZtdSlantRes_p();
             dockAllFigures();
         end
@@ -6417,12 +6569,17 @@ classdef Receiver < Exportable
             end
         end
 
-        function showZtd(this)
+        function showZtd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
             [ztd, t] = this.getZTD();
             if isempty(ztd)
                 this(1).log.addWarning('ZTD and slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';                
+                if new_fig
+                    f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                end
                 plot(t.getMatlabTime(), zero2nan(ztd), '.', 'LineWidth', 4);
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
@@ -6542,10 +6699,10 @@ classdef Receiver < Exportable
             % Get the common (shortest) time among all the used receivers and the target(s)
             %
             % SYNTAX: 
-            %   p_time = Receiver.getSyncTime(rec, obs_type, <p_rate>);
+            %   [p_time, id_sync] = Receiver.getSyncTime(rec, obs_type, <p_rate>);
             %
             % EXAMPLE:
-            %   p_time = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
+            %   [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
 
             if nargin < 3
                 p_rate = 1e-6;
