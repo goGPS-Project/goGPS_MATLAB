@@ -361,7 +361,11 @@ classdef IO_Settings < Settings_Interface
             if isa(settings, 'Ini_Manager')
                 % PROJECT
                 this.prj_name   = fnp.checkPath(settings.getData('prj_name'));
-                dir_fallback = fnp.getRelDirPath([fnp.getPath(settings.file_name) filesep '..'], pwd);
+                if isempty(fnp.getPath(settings.file_name))
+                    dir_fallback = fnp.getFullDirPath([fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]);
+                else
+                    dir_fallback = fnp.getRelDirPath([fnp.getPath(settings.file_name) filesep '..'], pwd);
+                end
                 if isempty(settings.getData('prj_home'))
                     this.prj_home  = dir_fallback;
                 else
@@ -839,20 +843,20 @@ classdef IO_Settings < Settings_Interface
                 dir = '';
                 return
             end
-            [filepath,name,ext] = fileparts(filename);
-            if strcmp(lower(ext),'.sp3') || strcmp(lower(ext),'.eph')
+            [~, ~,ext] = fileparts(filename);
+            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph')
                 dir = this.getNavEphDir();
-            elseif strcmp(lower(ext),'.erp')
+            elseif strcmpi(ext,'.erp')
                 dir = this.getErpDir();
-            elseif strfind(lower(ext),'.clk')
+            elseif contains(lower(ext),'.clk')
                 dir = this.getNavClkDir();
-            elseif strcmp(upper(ext),'.CRX')
+            elseif strcmpi(ext,'.CRX')
                 
-            elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
+            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
                 dir = this.getIonoDir();
-            elseif strcmp(upper(ext),'.DCB') || (strcmp(upper(ext),'.BSX')) || (strcmp(upper(ext),'.BIA'))
+            elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.BSX')) || (strcmpi(ext,'.BIA'))
                 dir = this.getDcbDir();
-            elseif strcmp(lower(ext),'.${YY}p') || strcmp(lower(ext),'.${YY}n') || strcmp(lower(ext),'.${YY}l') || ~isempty(regexp(lower(ext),'\.\d\dp')) || ~isempty(regexp(lower(ext),'\.\d\dn')) || ~isempty(regexp(lower(ext),'\.\d\dl'))
+            elseif strcmpi(ext,'.${YY}p') || strcmpi(ext,'.${YY}n') || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\dp')) || ~isempty(regexpi(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl'))
                 dir = this.getNavEphDir();
             end
             
@@ -1309,18 +1313,18 @@ classdef IO_Settings < Settings_Interface
                 dir = '';
                 return
             end
-            [filepath,name,ext] = fileparts(filename);
-            if strcmp(lower(ext),'.sp3') || strcmp(lower(ext),'.eph')
+            [~, ~, ext] = fileparts(filename);
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')
                 this.setNavEphFile(filename);
-            elseif strcmp(lower(ext),'.erp')
+            elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
-            elseif strfind(lower(ext),'.clk')
+            elseif contains(lower(ext),'.clk')
                 this.setNavClkFile(filename);
-            elseif strcmp(upper(ext),'.CRX')
+            elseif strcmpi(ext,'.CRX')
                 
-            elseif ~isempty(regexp(ext,'\.\d\di')) || strcmp(ext,'.${YY}i')
+            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
                 this.setIonoFile(filename);
-            elseif strcmp(upper(ext),'.DCB') || (strcmp(upper(ext),'.SNX') & strcmp(upper(name(1:3)),'DCB'))
+            elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);
             end            
         end
