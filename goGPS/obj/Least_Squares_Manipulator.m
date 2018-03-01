@@ -255,6 +255,7 @@ classdef Least_Squares_Manipulator < handle
                 idx_valid_stream = sum(diff_obs, 1) ~= 0;
                 diff_obs(:, ~idx_valid_stream) = [];
                 xs_loc(:, ~idx_valid_stream, :) = [];
+                amb_idx(:, ~idx_valid_stream, :) = [];
                 
                 % removing non valid epochs also from obs_set
                 obs_set.sanitizeEmpty();

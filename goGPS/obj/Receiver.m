@@ -4639,9 +4639,30 @@ classdef Receiver < Exportable
             %   Get postioning using code observables
             last_ep_coarse = min(100,this.time.length);
             ep_coarse = 1:last_ep_coarse;
+            % check if the epoch are presents
+            % getteing the obesrvation set that is going to be used in
+            % setUPSA
+            obs_set = Observation_Set();
+            if this.isMultiFreq() %% case multi frequency
+                for sys_c = this.cc.sys_c    
+                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
+                end
+            else
+                for sys_c = this.cc.sys_c
+                    f = this.getFreqs(sys_c); 
+                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                end
+            end
+           while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > 50)) % checking if the selcted epochs contains at least some usabele obseravalbles
+               ep_coarse = ep_coarse +1;
+           end
+            
+            
+            
             dpos = 3000;
             this.updateAllAvailIndex();
-            this.sat.avail_index(min((last_ep_coarse+1),this.time.length):end,:) = 0;
+             this.sat.avail_index(1:(ep_coarse(1)-1),:) = 0;
+            this.sat.avail_index(min(ep_coarse(end)+1,this.time.length):end,:) = 0;
             this.updateAllTOT();
             this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
             
@@ -4696,7 +4717,9 @@ classdef Receiver < Exportable
             if dsz > 0
                 res = [res; zeros(dsz, size(res,2))];
             end
-            this.sat.res(id_epoch,1:size(res,2)) = res;
+            if (size(res,1) == length(id_epoch)) %%% CHECK SIZE OF THE RESIDUALS
+                this.sat.res(id_epoch,1:size(res,2)) = res;
+            end
         end
         
         function initDynamicPositioning(this, obs, prn, sys, flag)
