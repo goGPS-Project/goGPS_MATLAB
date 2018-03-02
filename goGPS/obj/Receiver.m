@@ -1871,7 +1871,39 @@ classdef Receiver < Exportable
             for r = 2 : numel(this)
                 time.append(this(r).time);
             end
-        end        
+        end
+        
+        function [time_lim_small, time_lim_large] = getTimeSpan(this)
+            % return a GPS_Time containing the first and last epoch stored in the Receiver
+            %
+            % OUTPUT:
+            %   time_lim_small     GPS_Time (first and last) epoch of the smaller interval
+            %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
+            %
+            % SYNTAX: 
+            %   xyz = this.getTime()
+            time_lim_small = this(1).time.first;
+            tmp_small = this(1).time.last;
+            time_lim_large = time_lim_small.getCopy;
+            tmp_large = tmp_small.getCopy;
+            for r = 2 : numel(this)
+                if time_lim_small < this(r).time.first
+                    time_lim_small = this(r).time.first;
+                end
+                if time_lim_large > this(r).time.first
+                    time_lim_large = this(r).time.first;
+                end
+
+                if tmp_small > this(r).time.last
+                    tmp_small = this(r).time.last;
+                end
+                if tmp_large < this(r).time.last
+                    tmp_large = this(r).time.last;
+                end
+            end
+            time_lim_small.append(tmp_small);
+            time_lim_large.append(tmp_large);
+        end
 
         function time = getCentralTime(this)
             % return the central epoch time stored in the a receiver
