@@ -482,7 +482,7 @@ classdef Core_UI < handle
     
     %% METODS UTILITIES
     % ==================================================================================================================================================
-    methods    
+    methods (Access = private)  
         function loadState(this, caller, event)
             % Load state settings
 
@@ -547,6 +547,7 @@ classdef Core_UI < handle
             this.log.addMarkedMessage('Starting computation!');
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
             this.state.import(Ini_Manager(txt{1}));
+            this.state.save(Main_Settings.LAST_SETTINGS);
             close(this.w_main);
             this.ok_go = true;
         end
