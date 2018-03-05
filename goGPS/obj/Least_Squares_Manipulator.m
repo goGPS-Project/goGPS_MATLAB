@@ -378,7 +378,7 @@ classdef Least_Squares_Manipulator < handle
             %---- Set up the date the constraint to solve the rank deficeny problem --------------
             if phase_present
                 % Ambiguity set
-                G = [zeros(1, n_coo + n_iob) amb_obs_count .* wl_amb -sum(~isnan(this.amb_idx), 2)'];
+                G = [zeros(1, n_coo + n_iob) (amb_obs_count ./ wl_amb) -sum(~isnan(this.amb_idx), 2)'];
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
@@ -399,6 +399,8 @@ classdef Least_Squares_Manipulator < handle
             this.param_class = [1, 2, 3, 4 * ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                fprintf('#### DEBUG #### \n');
+                [[1; system_jmp + 1] [system_jmp; max(obs)]]
                 this.system_split = [[1; system_jmp + 1] [system_jmp; max(obs)]];
             else
                 this.system_split = [1 max(obs)];
