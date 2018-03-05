@@ -45,186 +45,169 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
+classdef Main_Settings < Settings_Interface & Mode_Settings
+
+    properties (Constant, Access = 'protected')
+        % id to string of out modes
+        DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
+        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];
+    end
+    
+    % Real constant
+    properties(Constant, Access = 'private')
+        % PRE PROCESSING
+        CS_THR_PRE_PRO = 1;                             % Cycle slip threshold (pre-processing) [cycles]
+    end
+    
+    properties (Constant, Access = 'public')
+        % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
+        LAST_SETTINGS = 'last_settings.ini';
+    end
 
     % Default values for each field - useful to restore corrupted fields
     properties (Constant, Access = 'private')
-        % RECEIVER DEFAULT PARAMETERS
+        
+        % IO ---------------------------------------------------------------------------------------------------------------------------------------------------
+        % PROJECT
+        PRJ_NAME = 'Default PPP project';  % Name of the project
+        PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_PPP' filesep]; % Location of the project <relative path from goGPS folder>
+        CUR_INI = [Main_Settings.PRJ_HOME 'Config' filesep 'settings.ini']; % Location of the current ini file
+
+        % SESSION
+        SSS_DATE_START = GPS_Time('2015-08-23'); % Start of the processing session
+        SSS_DATE_STOP = GPS_Time('2015-08-23');  % End of the processing session
+        SSS_ID_LIST = '0';   % id character sequence to be use for the session $(S) special keyword
+        SSS_ID_START = '0';  % first session id (char of sss_id_list)
+        SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
+
+        % STATIONS
+        OBS_DIR = 'RINEX';
+        OBS_NAME = {'ZIMM${DOY}${S}.${YY}O'};
+        REC_DYN_MODE = 0;    % Array for each receiver specify the kind of station
+                             % - rec_mode = 0; static
+                             % - rec_mode = 1; constant velocity
+                             % - rec_mode = 2; constant acceleration
+                             % - rec_mode = 3; variable (stop-go-stop)
+
+        % id to string of Kalman Filter dynamic modes
+        DYN_MODE = {'0: static', ...
+        '1: constant velocity' ...
+        '2: constant acceleration', ...
+        '3: variable (stop-go-stop)'}
+
+        REC_TARGET = 0;
+        REC_MASTER = 1;
+        REC_REFERENCE = 2;
+        OBS_TYPE_LIST = {'Target', ...
+                         'Master', ...
+                         'SEID reference'};
+
+        CRD_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'CRD' filesep]; % Path to Ephemeris files folder
+        CRD_NAME = '';    % Location of the stations coordinate file
+        MET_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'MET' filesep]; % Path to Clock Offset files folder
+        MET_NAME = '';    % Location of the meteorological file
+        OCEAN_DIR = [Main_Settings.DEFAULT_DIR_IN 'station' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
+        OCEAN_NAME = '';  % Location of the ocean loading file
+
+        % REFERENCE
+        REMOTE_RES_CONF_DIR = [Main_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
+        ERP_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
+        ERP_NAME = ''; % Name of ERP files
+        IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        IGRF_NAME = 'igrf12coeff.txt';
+
+        GEOID_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
+        IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
+        IONO_NAME = '';
+
+        % COMPUTATION CENTERS
+        % With official products for orbits and clocks
+        PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
+        PREFERRED_CENTER = {'default'}
+        PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
+        FLAG_CHECK_REMOTE = true;
+
+        % SATELLITES
+        EPH_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep ]; % Path to Ephemeris files folder
+        EPH_NAME = ''; % Name for Ephemeris files
+        CLK_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
+        CLK_NAME = ''; % Name of Clock Offset files
+        CRX_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep]; % Path to CRX folder containing files of Satellites problems
+        CRX_NAME = 'SAT_${YYYY}.CRX';
+        DCB_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep]; % Path to DCB folder containing files of Differential Code Biases
+        EMS_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep]; % Path to EMS folder containing files of EGNOS Message Server.
+
+        % ANTENNA
+        ATX_DIR = [Main_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
+        ATX_NAME = 'igs14.atx';    % Name antex file
+
+        % OUT PATH
+        OUT_DIR = [Main_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
+        OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
+        RUN_COUNTER = [];     % This parameter store the current run number
+
+        % STD PAR ----------------------------------------------------------------------------------------------------------------------------------------------
+        
+        % ADV RECEIVER DEFAULT PARAMETERS
         STD_CODE = 3;                                   % Std of code observations [m]
         STD_PHASE = 0.03;                               % Std of phase observations [m]
         STD_PHASE_IF = 0.009;                           % Std of iono-free phase observations [m]
         SIGMA0_CLOCK = 4.47e-9;                         % Std of a priori receiver clock
         SIGMA0_R_CLOCK = 31                             % Std of receiver clock
-        FLAG_RINEX_MPOS = true;                         % Flag to read the position of the master form the RINEX file (deprecate)
-        MPOS = struct('X', 0, 'Y', 0, 'Z', 0);          % Default master position (these are overrided when the coordinates are specified elsewhere) (deprecate)
 
         % DATA SELECTION
         CC = Constellation_Collector('G');              % object containing info on the activated constellations
-        P_RATE = 1;                                     % Minimum processing rate [s]
-        MIN_N_SAT = 2;                                  % Minimum number of satellites to be used in the Kalman filter
+        MIN_N_SAT = 2;                                  % Minimum number of satellites needed to process a valid epoch
         CUT_OFF = 10;                                   % Cut-off [degrees]
         SNR_THR = 0;                                    % Signal-to-noise ratio threshold [dB]
-        FLAG_OCEAN = false;                             % Flag for enabling the usage of ocean tides modeling
-        MIN_ARC = 10;                                   % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
+        MIN_ARC = 10;                                   % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
 
-        % PRE PROCESSING
-        FLAG_PRE_PRO = true;                            % Flag for enabling pre-processing
-        CS_THR_PRE_PRO = 3;                             % Cycle slip threshold (pre-processing) [cycles]
-
-        % OUTLIER DETECTION
+        % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
-        FLAG_OUTLIER_OLOO = false;                      % Flag for enabling OLOO outlier detection
         PP_SPP_THR = 4;                                 % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
-        COND_NUM_THR = 1e6;                             % threshold on the condition number on the eigenvalues of the N matrix (least squares)
-
-        FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
-        FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
-        VARIOMETRIC_STEP = 1;                           % Step in second for variometric approach
         W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 0: same weight for all the observations
                                                         %  - weights = 1: weight based on satellite elevation (sin)
                                                         %  - weights = 2: weight based on signal-to-noise ratio
-                                                        %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
-                                                        %  - weights = 4: weight based on satellite elevation (exp)
-        W_SNR = struct('a', 30, 'zero', 10, 'one', 50, 'A', 30); % Weight function parameters (when based on SNR)
-        CS_THR = 1;                                     % Cycle slip threshold (processing) [cycles]
         FLAG_IONOFREE = false;                          % Flag for enabling the usage of iono-free combination
-        CONSTRAIN = false;                              % Constrain the solution using a reference path
-        STOP_GO_STOP = false;                           % This flag add the possibility to process in stop go stop mode
-        
-        S_RATE = 3600;                           % In goBlock this is the solution high rate to be exported
-
-        % INTEGER AMBIGUITY RESOLUTION
-        FLAG_IAR = 0;                                   % Flag for enabling the automatic detection of cycle slip
-        IAR_RESTART_MODE = 2;                           % Ambiguity restart mode
-                                                        % - iar_restart_mode = 0; % Observed code - phase difference
-                                                        % - iar_restart_mode = 1; % Kalman-predicted code - phase difference
-                                                        % - iar_restart_mode = 2; % Least squares adjustment
-        IAR_MODE = 1;                                   % Parameter used to select Integer Least Squares estimator
-                                                        % - iar_mode = 0: % ILS method with numeration in search (LAMBDA2)
-                                                        % - iar_mode = 1: % ILS method with shrinking ellipsoid during search (LAMBDA3)
-                                                        % - iar_mode = 2: % ILS method with numeration in search (LAMBDA3)
-                                                        % - iar_mode = 3: % integer rounding method (LAMBDA3)
-                                                        % - iar_mode = 4: % integer bootstrapping method (LAMBDA3)
-                                                        % - iar_mode = 5: % Partial Ambiguity Resolution (PAR) (LAMBDA3)
-        IAR_P0 = 0.001;                                 % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
-        SIGMA0_N = 31;                                  % Std of a priori ambiguity combinations [cycles]
-        IAR_MU = 0.5;                                   % User defined threshold for ratio test
-        FLAG_IAR_AUTO_MU = true;                        % Flag for enabling the automatic determination of mu
-        FLAG_IAR_DEFAULT_P0 = true;                     % Flag for enabling the default value for P0
-        FLAG_DOPPLER = false;                           % Flag for using doppler-predicted phase range for detecting cycle slips
-        
-        % GO BLOCK
-        BLOCK_PRE_CLEANING = false;                     % Try to correct cycle slips / discontinuities in the observations and increase spike variance
-        BLOCK_POST_CLEANING_LOOPS = 4;                  % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
-        BLOCK_SEAMLESS_HR = true;                       % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-        BLOCK_FULL_SLIP_SPLIT = 0;                      % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
-        BLOCK_FORCE_STABILIZATION = false;              % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
-        BLOCK_ONE_ARC = false;                          % Compute the solution correcting cycle slips (use one arc per satellite)
-
-        % KF
-        KF_MODE = 1;                                    % Order of the dynamic model polynomial
-                                                        % - kf_mode = 0; static
-                                                        % - kf_mode = 1; constant velocity
-                                                        % - kf_mode = 2; constant acceleration
-                                                        % - kf_mode = 3; variable (stop-go-stop)
-
-        FLAG_KF_FB = 1;                                 % KF Forward backward mode [-1 / 0 / 1] = [B->F / F / F->B]
-
-        FLAG_SEAMLESS_PROC = false;                     % Tell the processor to re-initialize Kalman filter at the end of 1 session processing
-
-        % RECEIVER POSITION / MOTION
-        SIGMA0_K_POS = 1;                               % Std of initial state [m]
-        STD_K_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1); % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
-        STD_K_VEL_MOD = 0.1                             % Std of 3D modulus variation [m] / [m/s] / [m/s^2]
 
         % ATMOSPHERE
-        SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
-        SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
-        
-        STD_TROPO = 0.0015;                             % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.0004;                    % Std of tropospheric gradient [m/h]
+        FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
+        FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
+
         IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 0: no model
                                                         % - iono_model = 1: Geckle and Feen model
                                                         % - iono_model = 2: Klobuchar model
                                                         % - iono_model = 3: SBAS grid
+                                                        
         TROPO_MODEL = 1;                                % Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
                                                         % - tropo_model = 0: no model
                                                         % - tropo_model = 1: Modified Saastamoinen model (with standard atmosphere parameters)
                                                         % - tropo_model = 2: Modified Saastamoinen model (with Global Pressure Temperature model)
-                                                            % - tropo_model = 3: Saastamoinen model (with standard atmosphere parameters)
+                                                        % - tropo_model = 3: Saastamoinen model (with standard atmosphere parameters)
                                                         % - tropo_model = 4: Modified Hopfield model (with standard atmosphere parameters)
                                                         % - tropo_model = 5: Hopfield model (with standard atmosphere parameters)
 
-        % DTM
-        FLAG_DTM = false;                               % DTM flag (use / do not use)
-        STD_DTM = 0.03;                                 % Std of DEM height [m]
-        ANTENNA_H = 0;                                  % Elevation of the antenna above ground
-        DTM_TILE_HEADER = struct('nrows', 0, 'ncols', 0, 'cellsize', 0, 'nodata', 0); % Parameters common to all DTM tiles
-        DTM_TILE_GEOREF = zeros(1,1,4);                 % Parameters used to georeference every DTM tile
+                                                        % ADV ATMOSPHERE
+        SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
+        SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
 
-        % GUI
-        PLOT_PROC = true;                               % plot during processing
-        PLOT_REF_PATH = false;                          % plot ref during processing
-        PLOT_SKYPLOT_SNR = false;                       % plot sky plot during processing
-        PLOT_ERR_ELLIPSE = false;                       % plot error_ellipse
-        PLOT_AMBIGUITIES = false;                       % plot ambiguities
-        PLOT_MASTER = false;                            % plot master station
-        PLOT_GOOGLE_EARTH = false;                      % plot on google earth
-
-        % CAPTURE
-        C_N_RECEIVERS = 1;                              % Number of receiver to use for capturing data
-        C_RATE = 1;                                     % Capture rate [s]
-        C_PRTC = 1;                                     % Array with the size of c_n_receivers
-                                                        % - c_prtc = 1: UBX (u-blox)
-                                                        % - c_prtc = 2: iTalk (Fastrax)
-                                                        % - c_prtc = 3: SkyTraq
-                                                        % - c_prtc = 4: BINR (NVS)
-        C_COM_ADDR = {'/dev/tty.lpss-serial1'};         % Cell array with the com address of each receiver to be used
-
-        % NTRIP
-        FLAG_NTRIP = false;                             % NTRIP flag (use / do not use)
-        NTRIP = struct('ip_addr', '127.0.0.1', ...      % Struct containing NTRIP parameters: ip_addr, port, mountpoint, username, password, approx_position (lat, lon, h)
-                       'port', '2101', ...
-                       'mountpoint', '/', ...
-                       'username', 'user', ...
-                       'password', 'pswd', ...
-                       'approx_position', struct('lat', 0, 'lon', 0, 'h', 0));
+        STD_TROPO = 0.0015;                             % Std of tropospheric delay [m/h]
+        STD_TROPO_GRADIENT = 0.0004;                    % Std of tropospheric gradient [m/h]
     end
 
     properties (Constant, Access = 'protected')
-        % id to string of Kalman Filter dynamic modes
-        DYN_SMODE_RT = {'0: constant', ...
-                        '1: variable'}
-        DYN_SMODE_PP = {'0: static', ...
-                        '1: constant velocity' ...
-                        '2: constant acceleration', ...
-                        '3: variable (stop-go-stop)'}
-
-        % id to string of IAR modes
-        IAR_SMODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
-                     '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
-                     '2: ILS method with numeration in search (LAMBDA3)', ...
-                     '3: integer rounding method (LAMBDA3)', ...
-                     '4: integer bootstrapping method (LAMBDA3)', ...
-                     '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
-
-        % id to string of IAR restart function
-        IAR_SRESTART = {'0: Observed code - phase difference', ...
-                        '1: Kalman-predicted code - phase difference', ...
-                        '2: Least squares adjustment'}
 
         % id to string of weight functions
         W_SMODE = {'same weight for all the observations', ...
                    'weight based on satellite elevation (sin)' ...
-                   'weight based on satellite elevation (exp)', ...
-                   'weight based on signal-to-noise ratio', ...
-                   'weight based on combined elevation and signal-to-noise ratio'}
+                   'weight based on satellite elevation (exp)'}
 
         % id to string of ionospheric models
         IONO_SMODE = {'0: no model', ...
@@ -236,21 +219,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         TROPO_SMODE = {'0: no model', ...
                        '1: Saastamoinen model (with standard atmosphere parameters)' ...
                        '2: Saastamoinen model (with Global Pressure Temperature model)'}
-
-        % id to string of capturing protocols
-        C_SPROTOCOL = {'1: UBX (u-blox)', ...
-                       '2: iTalk (Fastrax)', ...
-                       '3: SkyTraq', ...
-                       '4: BINR (NVS)'}
-
-        % processing rates used in UI -> to convert UI to settings format
-        UI_P_SRATE = goGUIclass.UI_P_SRATE;
-
-        % capture rates used in UI -> to convert UI to settings format
-        UI_C_SRATE = goGUIclass.UI_C_SRATE;
     end
 
-    %  Processing parameters
+    properties (SetAccess = protected, GetAccess = protected)
+        % Location of the current ini file
+        cur_ini = Main_Settings.CUR_INI;
+    end
+
+    %%  Processing parameters
     % ------------------------------
     % note that some of the processing parameters are actually properties of other objects
     % e.g. std_k_ENU depend on the receiver motion
@@ -258,9 +234,133 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     % values and redefine them. So the values are also
     % stored here as parameters used for a specific processing
     properties (SetAccess = public, GetAccess = public)
+        %------------------------------------------------------------------
+        % PROJECT
+        %------------------------------------------------------------------
+
+        % Name of the project
+        prj_name = Main_Settings.PRJ_NAME;
+
+        % Location of the project <relative path from goGPS folder>
+        prj_home = Main_Settings.PRJ_HOME;
 
         %------------------------------------------------------------------
-        % RECEIVER DEFAULT PARAMETERS
+        % SESSION
+        %------------------------------------------------------------------
+
+        sss_date_start = Main_Settings.SSS_DATE_START;    % start of the processing session
+        sss_date_stop =  Main_Settings.SSS_DATE_STOP;     % end of the processing session
+        sss_id_list =    Main_Settings.SSS_ID_LIST;       % id character sequence to be use for the session $(S) special keyworc
+        sss_id_start =   Main_Settings.SSS_ID_START;      % first session id (char of sss_id_list)
+        sss_id_stop =    Main_Settings.SSS_ID_STOP;       % last session id (char of sss_id_list)
+
+        %------------------------------------------------------------------
+        % STATIONS
+        %------------------------------------------------------------------
+
+        % Observation files of the Receivers
+        % reference receivers (e.g. master, SEID reference)
+
+        obs_dir = Main_Settings.OBS_DIR;    % Directory containing the data (static)
+        obs_name = Main_Settings.OBS_NAME;  % File name of the receivers (can contain special keywords)
+        obs_full_name;                    % Full name of the observations generated during runtime from the provided parameters
+
+        rec_dyn_mode = Main_Settings.REC_DYN_MODE; % Array for each receiver specify the kind of station
+                                          % - rec_dyn_mode = 0; static
+                                          % - rec_dyn_mode = 1; constant velocity
+                                          % - rec_dyn_mode = 2; constant acceleration
+                                          % - rec_dyn_mode = 3; variable (stop-go-stop)
+
+        % Path to stations coordinates files
+        crd_dir = Main_Settings.CRD_DIR;
+        % Location of the stations coordinate file
+        crd_name = Main_Settings.CRD_NAME;
+
+        % Path to stations meteorological files
+        met_dir = Main_Settings.MET_DIR;
+        % Location of the meteorological file
+        met_name =  Main_Settings.MET_NAME;
+        met_full_name; % Full name of the met file generated during runtime from the provided parameters
+
+        % Path to stations ocean loading files
+        ocean_dir = Main_Settings.OCEAN_DIR;
+
+        %------------------------------------------------------------------
+        % COMPUTATION CENTERS
+        %------------------------------------------------------------------
+        % Centers for computation of orbits and other related parameters
+        preferred_eph = Main_Settings.PREFERRED_EPH;          % kind of orbits to prefer
+        preferred_iono = Main_Settings.PREFERRED_IONO;
+        preferred_center = Main_Settings.PREFERRED_CENTER;
+        flag_check_remote = Main_Settings.FLAG_CHECK_REMOTE;
+
+        %------------------------------------------------------------------
+        % SATELLITES
+        %------------------------------------------------------------------
+
+        eph_dir = Main_Settings.EPH_DIR;    % Path to Ephemeris files folder
+        eph_name = Main_Settings.EPH_NAME;  % File name of ephemeris
+        eph_full_name;                    % Full name of the ephemeris generated during runtime from the provided parameters
+
+        clk_dir = Main_Settings.CLK_DIR;    % Path to Clock Offset files folder
+        clk_name = Main_Settings.CLK_NAME;  % File name of clock offsets
+        clk_full_name;                    % Full name of the clock offsets generated during runtime from the provided parameters
+
+        % Path to CRX folder containing files of Satellites problems
+        crx_dir = Main_Settings.CRX_DIR;
+        crx_name = Main_Settings.CRX_NAME;
+        % Path to DCB folder containing files of Differential Code Biases
+        dcb_dir = Main_Settings.DCB_DIR;
+        dcb_name = []; %setted in File_Wizard.ConjureDCB
+        % Path to EMS folder containing files of EGNOS Message Server.
+        ems_dir = Main_Settings.EMS_DIR;
+
+        %------------------------------------------------------------------
+        % ANTENNAS
+        %------------------------------------------------------------------
+
+        atx_dir = Main_Settings.ATX_DIR;    % Location of the antex file
+        atx_name = Main_Settings.ATX_NAME;  % Location of the antex file
+
+        %------------------------------------------------------------------
+        % REFERENCE
+        %------------------------------------------------------------------
+
+        % Path to file containing the reference path
+        erp_dir = Main_Settings.ERP_DIR;     % Path to ERP files folder
+        erp_name = Main_Settings.ERP_NAME;   % File name of ERP
+        erp_full_name;                     % Full name of ERPs generated during runtime from the provided parameters
+
+        iono_dir = Main_Settings.IONO_DIR;   % Path to IONO files folder
+        iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
+        iono_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
+        remote_res_conf_dir = Main_Settings.REMOTE_RES_CONF_DIR;
+
+        igrf_dir = Main_Settings.IGRF_DIR;   % Path to IGRF files folder
+        igrf_name = Main_Settings.IGRF_NAME;
+
+        geoid_dir = Main_Settings.GEOID_DIR;   % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        geoid_name = Main_Settings.GEOID_NAME; % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
+
+        ocean_name =  Main_Settings.OCEAN_NAME; % Location of the ocean loading file
+
+        %------------------------------------------------------------------
+        % OUTPUT
+        %------------------------------------------------------------------
+
+        out_dir = Main_Settings.OUT_DIR;        % Directory containing the output of the project
+        out_prefix = Main_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created
+        out_full_path;                        % Full prefix of the putput files generated during runtime from the provided parameters
+
+        % This parameter store the current run number
+        run_counter = Main_Settings.RUN_COUNTER;
+        run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output
+        
+        
+        
+        
+        %------------------------------------------------------------------
+        % ADVANCED RECEIVER DEFAULT PARAMETERS
         %------------------------------------------------------------------
         % These values are kept if not specified elsewhere
 
@@ -277,46 +377,27 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Std of receiver clock
         sigma0_r_clock = Main_Settings.SIGMA0_R_CLOCK;
 
-        % Flag to read the position of the master form the RINEX file (deprecate)
-        flag_rinex_mpos = Main_Settings.FLAG_RINEX_MPOS;
-        % Default master position (these are overrided when the coordinates are specified elsewhere) (deprecate)
-        mpos = Main_Settings.MPOS;
-
         %------------------------------------------------------------------
         % DATA SELECTION
         %------------------------------------------------------------------
 
         % object containing info on the activated constellations
         cc =  Main_Settings.CC;
-        % Minimum processing rate [s]
-        p_rate = Main_Settings.P_RATE;
-        % Minimum number of satellites to be used in the Kalman filter
+        % Minimum number of satellites needed to process a valid epoch
         min_n_sat = Main_Settings.MIN_N_SAT;
         % Cut-off [degrees]
         cut_off = Main_Settings.CUT_OFF;
         % Signal-to-noise ratio threshold [dB]
         snr_thr = Main_Settings.SNR_THR;
-        % Flag for enabling the usage of ocean tides modeling
-        flag_ocean = Main_Settings.FLAG_OCEAN;
-        % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
+        % Minimum length of an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
         min_arc = Main_Settings.MIN_ARC;
 
         %------------------------------------------------------------------
-        % PRE PROCESSING
-        %------------------------------------------------------------------
-
-        % Flag for enabling pre-processing
-        flag_pre_pro = Main_Settings.FLAG_PRE_PRO;
-        % Cycle slip threshold (pre-processing) [cycles]
-        cs_thr_pre_pro = Main_Settings.CS_THR_PRE_PRO;
-
-        %------------------------------------------------------------------
-        % OUTLIER DETECTION
+        % ADV DATA SELECTION
         %------------------------------------------------------------------
 
         % Flag for enabling outlier detection
         flag_outlier = Main_Settings.FLAG_OUTLIER;
-        flag_outlier_OLOO = Main_Settings.FLAG_OUTLIER_OLOO;
 
         % Threshold on the code point-positioning least squares estimation error [m]
         pp_spp_thr = Main_Settings.PP_SPP_THR;
@@ -329,18 +410,6 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
 
-        % threshold on the condition number on the eigenvalues of the N matrix (least squares)
-        cond_num_thr = Main_Settings.COND_NUM_THR;
-
-        % Flag for enabling the estimation of tropospheric delay
-        flag_tropo = Main_Settings.FLAG_TROPO;
-
-        % Flag for enabling the estimation of tropospheric delay
-        flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
-
-        % Step in second for variometric approach
-        variometric_step = Main_Settings.VARIOMETRIC_STEP;
-
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Main_Settings.W_MODE;
         %  - weights = 0: same weight for all the observations
@@ -349,120 +418,17 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
         %  - weights = 4: weight based on satellite elevation (exp)
 
-        % Weight function parameters (when based on SNR)
-        w_snr = Main_Settings.W_SNR;
-
-        % Cycle slip threshold (processing) [cycles]
-        cs_thr = Main_Settings.CS_THR;
-
         % Flag for enabling the usage of iono-free combination
         flag_ionofree = Main_Settings.FLAG_IONOFREE;
-
-        % Constrain the solution using a reference path
-        constrain = Main_Settings.CONSTRAIN;
-
-        % This flag add the possibility to process in stop go stop mode
-        % static convergence / movement / static convergence
-        stop_go_stop = Main_Settings.STOP_GO_STOP;
-        
-        % In goBlock this is the solution high rate to be exported
-        s_rate = Main_Settings.S_RATE;
-        
-        %------------------------------------------------------------------
-        % INTEGER AMBIGUITY RESOLUTION
-        %------------------------------------------------------------------
-
-        % Flag for enabling the automatic detection of cycle slip
-        flag_iar = Main_Settings.FLAG_IAR;
-
-        % Ambiguity restart mode
-        iar_restart_mode = Main_Settings.IAR_RESTART_MODE;
-        % - iar_restart_mode = 0; % Observed code - phase difference
-        % - iar_restart_mode = 1; % Kalman-predicted code - phase difference
-        % - iar_restart_mode = 2; % Least squares adjustment
-
-        % Parameter used to select Integer Least Squares estimator
-        iar_mode = Main_Settings.IAR_MODE;
-        % - iar_mode = 0: % ILS method with numeration in search (LAMBDA2)
-        % - iar_mode = 1: % ILS method with shrinking ellipsoid during search (LAMBDA3)
-        % - iar_mode = 2: % ILS method with numeration in search (LAMBDA3)
-        % - iar_mode = 3: % integer rounding method (LAMBDA3)
-        % - iar_mode = 4: % integer bootstrapping method (LAMBDA3)
-        % - iar_mode = 5: % Partial Ambiguity Resolution (PAR) (LAMBDA3)
-
-        % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
-        iar_p0 = Main_Settings.IAR_P0;
-
-        % Std of a priori ambiguity combinations [cycles]
-        sigma0_N = Main_Settings.SIGMA0_N;
-
-        % User defined threshold for ratio test
-        iar_mu = Main_Settings.IAR_MU;
-
-        % Flag for enabling the automatic determination of mu
-        flag_iar_auto_mu = Main_Settings.FLAG_IAR_AUTO_MU;
-
-        % Flag for enabling the default value for P0
-        flag_iar_default_p0 = Main_Settings.FLAG_IAR_DEFAULT_P0;
-
-        % Flag for using doppler-predicted phase range for detecting cycle slips
-        flag_doppler = Main_Settings.FLAG_DOPPLER;
-
-        %------------------------------------------------------------------
-        % GO BLOCK
-        %------------------------------------------------------------------
-
-        % Try to correct cycle slips / discontinuities in the observations and increase spike variance
-        block_pre_cleaning = Main_Settings.BLOCK_PRE_CLEANING;
-        % After a first solution iterate # times to stabilize the solution introducing a correction in the observations of N (integer) cycles
-        block_post_cleaning_loops = Main_Settings.BLOCK_POST_CLEANING_LOOPS;
-        % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-        block_seamless_hr = Main_Settings.BLOCK_SEAMLESS_HR;
-        % When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system
-        block_full_slip_split = Main_Settings.BLOCK_FULL_SLIP_SPLIT;
-        % Try to remove the arcs that are making the Covariance matrix of the ambiguities unstable
-        block_force_stabilization = Main_Settings.BLOCK_FORCE_STABILIZATION;
-        % Compute the solution correcting cycle slips (use one arc per satellite)
-        block_one_arc = Main_Settings.BLOCK_ONE_ARC;
-
-        %------------------------------------------------------------------
-        % KF
-        %------------------------------------------------------------------
-
-        % Order of the dynamic model polynomial
-        kf_mode = Main_Settings.KF_MODE;
-        % - kf_mode = 0; static
-        % - kf_mode = 1; constant velocity
-        % - kf_mode = 2; constant acceleration
-        % - kf_mode = 3; variable (stop-go-stop)
-
-        % KF Forward backward mode [-1 / 0 / 1] = [B->F / F / F->B]
-        flag_kf_fb = Main_Settings.FLAG_KF_FB;
-
-        % Tell the processor to re-initialize kalman filter at the end of 1 session processing
-        flag_seamless_proc = Main_Settings.FLAG_SEAMLESS_PROC;
-
-        %------------------------------------------------------------------
-        % RECEIVER POSITION / MOTION
-        %------------------------------------------------------------------
-        
-        % Std of initial state [m]
-        sigma0_k_pos = Main_Settings.SIGMA0_K_POS;
-        % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
-        std_k_ENU = Main_Settings.STD_K_ENU;
-        % Std of 3D modulus variation [m] / [m/s] / [m/s^2]
-        std_k_vel_mod = Main_Settings.STD_K_VEL_MOD;
 
         %------------------------------------------------------------------
         % ATMOSPHERE
         %------------------------------------------------------------------
 
-        % Std of a priori tropospheric delay
-        sigma0_tropo = Main_Settings.SIGMA0_TROPO;
-        sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
-        % Std of tropospheric delay [m / h]
-        std_tropo = Main_Settings.STD_TROPO;
-        std_tropo_gradient = Main_Settings.STD_TROPO;
+        % Flag for enabling the estimation of tropospheric delay
+        flag_tropo = Main_Settings.FLAG_TROPO;
+        % Flag for enabling the estimation of tropospheric delay
+        flag_tropo_gradient = Main_Settings.FLAG_TROPO_GRADIENT;
 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
         iono_model = Main_Settings.IONO_MODEL;
@@ -478,79 +444,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - tropo_model = 2: Saastamoinen model (with Global Pressure Temperature model)
 
         %------------------------------------------------------------------
-        % DTM
+        % ADV ATMOSPHERE
         %------------------------------------------------------------------
-
-        % DTM flag (use / do not use)
-        flag_dtm = Main_Settings.FLAG_DTM;
-
-        % Folder containing DTM files
-        % dtm_dir = '../data/dtm'; -> defined in superclass IO_Settings
-
-        % Std of DEM height [m]
-        std_dtm = Main_Settings.STD_DTM  % (maximize to disable DEM usage: e.g. 1e30)
-
-        % Elevation of the antenna above ground
-        antenna_h = Main_Settings.ANTENNA_H; % when fixing
-
-        % Parameters common to all DTM tiles
-        dtm_tile_header = Main_Settings.DTM_TILE_HEADER;
-
-        % Parameters used to georeference every DTM tile
-        dtm_tile_georef = Main_Settings.DTM_TILE_GEOREF;
-
-        %------------------------------------------------------------------
-        % GUI
-        %------------------------------------------------------------------
-
-        % plot during processing
-        plot_proc = Main_Settings.PLOT_PROC;
-        % plot ref during processing
-        plot_ref_path = Main_Settings.PLOT_REF_PATH;
-        % plot sky plot during processing
-        plot_skyplot_snr = Main_Settings.PLOT_SKYPLOT_SNR;
-        % plot error_ellipse
-        plot_err_ellipse = Main_Settings.PLOT_ERR_ELLIPSE;
-        % plot ambiguities
-        plot_ambiguities = Main_Settings.PLOT_AMBIGUITIES;
-        % plot master station
-        plot_master = Main_Settings.PLOT_MASTER;
-        % plot on google earth
-        plot_google_earth = Main_Settings.PLOT_GOOGLE_EARTH;
-
-        %------------------------------------------------------------------
-        % CAPTURE
-        %------------------------------------------------------------------
-
-        % Number of receiver to use for capturing data
-        c_n_receivers = Main_Settings.C_N_RECEIVERS;
-
-        % Capture rate [s]
-        c_rate = Main_Settings.C_RATE;
-
-        % Array with the size of c_n_receivers
-        c_prtc = Main_Settings.C_PRTC
-        % - c_prtc = 1: UBX (u-blox)
-        % - c_prtc = 2: iTalk (Fastrax)
-        % - c_prtc = 3: SkyTraq
-        % - c_prtc = 4: BINR (NVS)
-
-        % Cell array with the com address of each receiver to be used
-        c_com_addr = Main_Settings.C_COM_ADDR;
-
-        %------------------------------------------------------------------
-        % NTRIP
-        %------------------------------------------------------------------
-
-        % NTRIP flag (use / do not use)
-        flag_ntrip = Main_Settings.FLAG_NTRIP;
-
-        % Struct containing NTRIP parameters: ip_addr, port, mountpoint, username, password, approx_position (lat, lon, h)
-        ntrip = Main_Settings.NTRIP;
+        % Std of a priori tropospheric delay
+        sigma0_tropo = Main_Settings.SIGMA0_TROPO;
+        sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
+        % Std of tropospheric delay [m / h]
+        std_tropo = Main_Settings.STD_TROPO;
+        std_tropo_gradient = Main_Settings.STD_TROPO;
     end
 
     % =========================================================================
-    %  INIT
+    %%  INIT
     % =========================================================================
     methods
         function this = Main_Settings(ini_settings_file)
@@ -580,14 +485,98 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     end
 
     % =========================================================================
-    %  INTERFACE REQUIREMENTS
+    %%  INTERFACE REQUIREMENTS
     % =========================================================================
     methods (Access = 'public')
         function import(this, state)
             % This function import processing settings from another setting object or ini file
             % SYNTAX: s_obj.import(state)
 
+            fnp = File_Name_Processor;
+            
             if isa(state, 'Ini_Manager')
+                % PROJECT
+                this.prj_name   = fnp.checkPath(state.getData('prj_name'));
+                if isempty(fnp.getPath(state.file_name))
+                    dir_fallback = fnp.getFullDirPath([fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]);
+                else
+                    dir_fallback = fnp.getRelDirPath([fnp.getPath(state.file_name) filesep '..'], pwd);
+                end
+                if isempty(state.getData('prj_home'))
+                    this.prj_home  = dir_fallback;
+                else
+                   this.prj_home = fnp.getFullDirPath(state.getData('prj_home'),  pwd, dir_fallback);
+                end
+                if ~exist(this.prj_home, 'dir')
+                    this.log.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, dir_fallback));
+                    this.prj_home = dir_fallback;
+                end
+
+                % SESSION
+                if ~(isempty(state.getData('sss_date_start')))
+                    this.sss_date_start = GPS_Time(datenum(state.getData('sss_date_start')));
+                end
+                if ~(isempty(state.getData('sss_date_stop')))
+                    this.sss_date_stop = GPS_Time(datenum(state.getData('sss_date_stop')));
+                end
+                this.sss_id_list = state.getData('sss_id_list');
+                this.sss_id_start = state.getData('sss_id_start');
+                this.sss_id_stop = state.getData('sss_id_stop');
+
+                % STATIONS
+                this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
+                this.obs_name = fnp.checkPath(state.getData('obs_name'));
+                this.obs_full_name = {};
+                
+                this.rec_dyn_mode = state.getData('rec_dyn_mode');
+
+                this.crd_dir    = fnp.getFullDirPath(state.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crd_dir')), this.prj_home));
+                this.crd_name   = fnp.checkPath(state.getData('crd_name'));
+                this.met_dir    = fnp.getFullDirPath(state.getData('met_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('met_dir')), this.prj_home));
+                this.met_name   = fnp.checkPath(state.getData('met_name'));
+                this.met_full_name = {};
+                this.ocean_dir  = fnp.getFullDirPath(state.getData('ocean_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ocean_dir')), this.prj_home));
+                this.ocean_name = fnp.checkPath(state.getData('ocean_name'));
+
+                % REFERENCE
+                %this.remote_res_conf_dir = fnp.getFullDirPath(settings.getData('remote_res_conf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('remote_res_conf_dir')), this.prj_home));
+                this.igrf_dir   = fnp.getFullDirPath(state.getData('igrf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('igrf_dir')), this.prj_home));
+                this.igrf_name  = fnp.checkPath(state.getData('igrf_name'));
+                this.erp_dir    = fnp.getFullDirPath(state.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
+                this.erp_name   = fnp.checkPath(state.getData('erp_name'));
+                this.geoid_dir  = fnp.getFullDirPath(state.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
+                this.geoid_name = fnp.checkPath(state.getData('geoid_name'));
+                this.iono_dir   = fnp.getFullDirPath(state.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
+                this.iono_name   = fnp.checkPath(state.getData('iono_name'));
+
+                % COMPUTATION CENTERS
+                this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
+                this.preferred_iono = fnp.checkPath(state.getData('preferred_iono'));
+                this.preferred_center = fnp.checkPath(state.getData('preferred_center'));
+
+                % SATELLITES
+                this.eph_dir    = fnp.getFullDirPath(state.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('eph_dir')), this.prj_home));
+                this.clk_dir    = fnp.getFullDirPath(state.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('clk_dir')), this.prj_home));
+                this.crx_dir    = fnp.getFullDirPath(state.getData('crx_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('crx_dir')), this.prj_home));
+                this.dcb_dir    = fnp.getFullDirPath(state.getData('dcb_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('dcb_dir')), this.prj_home));
+                this.ems_dir    = fnp.getFullDirPath(state.getData('ems_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('ems_dir')), this.prj_home));
+
+                % ANTENNAS
+                this.atx_dir    = fnp.getFullDirPath(state.getData('atx_dir'), this.prj_home, pwd);
+                this.atx_name   = fnp.checkPath(state.getData('atx_name'));
+
+                % OUTPUT
+                this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('out_dir')), this.prj_home));
+                if ~exist(this.out_dir, 'dir')
+                    % fallback of fallback
+                    this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home);
+                end
+                this.out_prefix = fnp.checkPath(state.getData('out_prefix'));
+                this.run_counter = state.getData('run_counter');
+                this.run_counter_is_set = ~isempty(this.run_counter);
+                
+                
+                
                 % RECEIVER DEFAULT PARAMETERS
                 this.std_code = state.getData('std_code');
                 this.std_phase = state.getData('std_phase');
@@ -595,223 +584,143 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.sigma0_clock = state.getData('sigma0_clock');
                 this.sigma0_r_clock = state.getData('sigma0_r_clock');
 
-                this.flag_rinex_mpos = state.getData('flag_rinex_mpos');
-                tmp = state.getData('mpos_XYZ');
-                this.mpos = struct('X', tmp(1), 'Y', tmp(2), 'Z', tmp(3));
-
                 % DATA SELECTION
                 this.cc.import(state);
-                this.p_rate = state.getData('p_rate');
                 this.min_n_sat  = state.getData('min_n_sat');
                 this.cut_off = state.getData('cut_off');
                 this.snr_thr = state.getData('snr_thr');
-                this.flag_ocean = state.getData('flag_ocean');
                 this.min_arc = state.getData('min_arc');
 
-                % PRE PROCESSING
-                this.flag_pre_pro = state.getData('flag_pre_pro');
-                this.cs_thr_pre_pro = state.getData('cs_thr_pre_pro');
-
-                % OUTLIER DETECTION
+                % ADV DATA SELECTION
                 this.flag_outlier = state.getData('flag_outlier');
-                this.flag_outlier_OLOO = state.getData('flag_outlier_OLOO');
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
 
                 % PROCESSING PARAMETERS
-                this.flag_tropo = state.getData('flag_tropo');
-                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
-                this.variometric_step = state.getData('variometric_step');
                 this.w_mode = state.getData('w_mode');
-                tmp = state.getData('w_snr');
-                this.w_snr = struct('a', tmp(1), 'zero', tmp(2), 'one', tmp(2), 'A', tmp(4));
-                this.cs_thr = state.getData('cs_thr');
                 this.flag_ionofree = state.getData('flag_ionofree');
-                this.constrain = state.getData('constrain');
-                this.stop_go_stop = state.getData('stop_go_stop');
-                this.s_rate = sort(state.getData('s_rate'), 'descend');
-
-                % INTEGER AMBIGUITY RESOLUTION
-                this.flag_iar = state.getData('flag_iar');
-                this.iar_restart_mode = state.getData('iar_restart_mode');
-                this.iar_mode = state.getData('iar_mode');
-                this.iar_p0 = state.getData('iar_p0');
-                this.sigma0_N = state.getData('sigma0_N');
-                this.iar_mu = state.getData('iar_mu');
-                this.flag_iar_auto_mu = state.getData('flag_iar_auto_mu');
-                this.flag_iar_default_p0 = state.getData('flag_iar_default_p0');
-                this.flag_doppler = state.getData('flag_doppler');
-                
-                % GO BLOCK
-                this.block_pre_cleaning = state.getData('block_pre_cleaning');
-                this.block_post_cleaning_loops = state.getData('block_post_cleaning_loops');
-                this.block_seamless_hr = state.getData('block_seamless_hr');
-                this.block_full_slip_split = state.getData('block_full_slip_split');
-                this.block_force_stabilization = state.getData('block_force_stabilization');
-                this.block_one_arc = state.getData('block_one_arc');
-                
-                % KF
-                this.kf_mode = state.getData('kf_mode');
-                this.flag_kf_fb = state.getData('flag_kf_fb');
-                this.flag_seamless_proc = state.getData('flag_seamless_proc');
-
-                % RECEIVER POSITION / MOTION
-                this.sigma0_k_pos    = state.getData('sigma0_k_pos');
-                tmp = state.getData('std_k_ENU');
-                this.std_k_ENU = struct('E', tmp(1), 'N', tmp(2), 'U', tmp(3));
-                this.std_k_vel_mod = state.getData('std_k_vel_mod');
 
                 % ATMOSPHERE
+                this.iono_model = state.getData('iono_model');
+                this.tropo_model = state.getData('tropo_model');
+                this.flag_tropo = state.getData('flag_tropo');
+                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
+
+                % ADV ATMOSPHERE
                 this.sigma0_tropo  = state.getData('sigma0_tropo');
                 this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
-
-                this.iono_model = state.getData('iono_model');
-                this.tropo_model = state.getData('tropo_model');
-
-                % DTM
-                %this.dtm_dir    = state.getData('dtm_dir');
-                this.flag_dtm = state.getData('flag_dtm');
-                this.std_dtm = state.getData('std_dtm');
-                this.antenna_h = state.getData('antenna_h');
-
-                % GUI
-                this.plot_proc = state.getData('plot_proc');
-                this.plot_ref_path = state.getData('plot_ref_path');
-                this.plot_skyplot_snr = state.getData('plot_skyplot_snr');
-                this.plot_err_ellipse = state.getData('plot_err_ellipse');
-                this.plot_ambiguities = state.getData('plot_ambiguities');
-                this.plot_master = state.getData('plot_master');
-                this.plot_google_earth = state.getData('plot_google_earth');
-
-                % CAPTURE
-                this.c_n_receivers = state.getData('c_n_receivers');
-                this.c_rate = state.getData('c_rate');
-                for r = 1 : this.c_n_receivers
-                    this.c_prtc(r) = state.getData(sprintf('c_prtc_%02d', r));
-                    this.c_com_addr{r} = state.getData(sprintf('c_com_addr_%02d', r));
-                end
-
-                % NTRIP
-                this.flag_ntrip = state.getData('flag_ntrip');
-                this.ntrip = struct('ip_addr', state.getData('NTRIP','ip_addr'), ...
-                       'port', state.getData('NTRIP','port'), ...
-                       'mountpoint', state.getData('NTRIP','mountpoint'), ...
-                       'username', state.getData('NTRIP','username'), ...
-                       'password', state.getData('NTRIP','password'), ...
-                       'approx_position', struct('lat', state.getData('NTRIP','ntrip_lat'), 'lon', state.getData('NTRIP','ntrip_lon'), 'h', state.getData('NTRIP','ntrip_h')));
             else
-                % RECEIVER DEFAULT PARAMETERS
+                % PROJECT
+                this.prj_name   = state.prj_name;
+                this.prj_home   = state.prj_home;
+                %this.cur_ini   = settings.cur_ini;
+
+                % SESSION
+                this.sss_date_start = state.sss_date_start;
+                this.sss_date_stop = state.sss_date_stop;
+                this.sss_id_list = state.sss_id_list;
+                this.sss_id_start = state.sss_id_start;
+                this.sss_id_stop = state.sss_id_stop;
+
+                % STATIONS
+                this.obs_dir = state.obs_dir;
+                this.obs_name = state.obs_name;
+                this.obs_full_name = {};
+
+                this.rec_dyn_mode = state.rec_dyn_mode;
+                
+                this.crd_dir     = state.crd_dir;
+                this.crd_name    = state.crd_name;
+                this.met_dir     = state.met_dir;
+                this.met_name    = state.met_name;
+                this.met_full_name = {};
+                this.ocean_dir   = state.ocean_dir;
+                this.ocean_name  = state.ocean_name;
+
+                % REFERENCE
+                %this.remote_res_conf_dir = settings.remote_res_conf_dir;
+                this.igrf_dir  = state.igrf_dir;
+                this.igrf_name = state.igrf_name;
+                this.erp_dir    = state.erp_dir;
+                this.erp_name   = state.erp_dir;
+                this.geoid_dir  = state.geoid_dir;
+                this.geoid_name = state.geoid_name;
+                this.iono_dir   = state.iono_dir;
+                this.iono_name   = state.iono_name;
+
+                % COMPUTATION CENTERS
+                this.preferred_eph = state.preferred_eph;
+                this.preferred_iono = state.preferred_iono;
+                this.preferred_center = state.preferred_center;
+
+                % SATELLITES
+                this.eph_dir     = state.eph_dir;
+                this.eph_name    = state.eph_name;
+                this.clk_dir     = state.clk_dir;
+                this.clk_name    = state.clk_name;
+                this.crx_dir     = state.crx_dir;
+                this.dcb_dir     = state.dcb_dir;
+                this.ems_dir     = state.ems_dir;
+
+                % ANTENNA
+                this.atx_dir     = state.atx_dir;
+                this.atx_name    = state.atx_name;
+
+                % OUTPUT
+                this.out_dir = state.out_dir;
+                this.out_prefix = state.out_prefix;
+                this.run_counter = state.run_counter;
+                this.run_counter_is_set = ~isempty(this.run_counter);
+                
+                
+                % ADV RECEIVER DEFAULT PARAMETERS
                 this.std_code = state.std_code;
                 this.std_phase = state.std_phase;
                 this.std_phase_if = state.std_phase_if;
                 this.sigma0_clock = state.sigma0_clock;
                 this.sigma0_r_clock = state.sigma0_r_clock;
-                this.flag_rinex_mpos = state.flag_rinex_mpos;
-                this.mpos = state.mpos;
 
                 % DATA SELECTION
                 this.cc.import(state.cc);
-                this.p_rate = state.p_rate;
                 this.min_n_sat  = state.min_n_sat;
                 this.cut_off = state.cut_off;
                 this.snr_thr = state.snr_thr;
-                this.flag_ocean = state.flag_ocean;
                 this.min_arc = state.min_arc;
 
-                % PRE PROCESSING
-                this.flag_pre_pro = state.flag_pre_pro;
-                this.cs_thr_pre_pro = state.cs_thr_pre_pro;
-
-                % OUTLIER DETECTION
                 this.flag_outlier = state.flag_outlier;
-                this.flag_outlier_OLOO = state.flag_outlier_OLOO;
                 this.pp_spp_thr = state.pp_spp_thr;
                 this.pp_max_code_err_thr = state.pp_max_code_err_thr;
                 this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
 
                 % PROCESSING PARAMETERS
+                this.w_mode = state.w_mode;
+                this.flag_ionofree = state.flag_ionofree;
+               
+                % ATMOSPHERE
+                this.iono_model = state.iono_model;
+                this.tropo_model = state.tropo_model;
                 this.flag_tropo = state.flag_tropo;
                 this.flag_tropo_gradient = state.flag_tropo_gradient;
-                this.variometric_step = state.variometric_step;
-                this.w_mode = state.w_mode;
-                this.w_snr = state.w_snr;
-                this.cs_thr = state.cs_thr;
-                this.flag_ionofree = state.flag_ionofree;
-                this.constrain = state.constrain;
-                this.stop_go_stop = state.stop_go_stop;
-                this.s_rate = sort(state.s_rate, 'descend');
 
-                % INTEGER AMBIGUITY RESOLUTION
-                this.flag_iar = state.flag_iar;
-                this.iar_restart_mode = state.iar_restart_mode;
-                this.iar_mode = state.iar_mode;
-                this.iar_p0 = state.iar_p0;
-                this.sigma0_N = state.sigma0_N;
-                this.iar_mu = state.iar_mu;
-                this.flag_iar_auto_mu = state.flag_iar_auto_mu;
-                this.flag_iar_default_p0 = state.flag_iar_default_p0;
-                this.flag_doppler = state.flag_doppler;
-                
-                % GO BLOCK
-                this.block_pre_cleaning = state.block_pre_cleaning;
-                this.block_post_cleaning_loops = state.block_post_cleaning_loops;
-                this.block_seamless_hr = state.block_seamless_hr;
-                this.block_full_slip_split = state.block_full_slip_split;
-                this.block_force_stabilization = state.block_force_stabilization;
-                this.block_one_arc = state.block_one_arc;
-                
-                % KF
-                this.kf_mode = state.kf_mode;
-                this.flag_kf_fb = state.flag_kf_fb;
-                this.flag_seamless_proc = state.flag_seamless_proc;
-
-                % RECEIVER POSITION / MOTION
-                this.sigma0_k_pos = state.sigma0_k_pos;
-                this.std_k_ENU = state.std_k_ENU;
-                this.std_k_vel_mod = state.std_k_vel_mod;
-
-                % ATMOSPHERE
+                % ADV ATMOSPHERE
                 this.sigma0_tropo = state.sigma0_tropo;
                 this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
-                this.iono_model = state.iono_model;
-                this.tropo_model = state.tropo_model;
-
-                % DTM
-                this.flag_dtm = state.flag_dtm;
-                %this.dtm_dir    = state.dtm_dir;
-                this.std_dtm = state.std_dtm;
-                this.antenna_h = state.antenna_h;
-
-                % GUI
-                this.plot_proc = state.plot_proc;
-                this.plot_ref_path = state.plot_ref_path;
-                this.plot_skyplot_snr = state.plot_skyplot_snr;
-                this.plot_err_ellipse = state.plot_err_ellipse;
-                this.plot_ambiguities = state.plot_ambiguities;
-                this.plot_master = state.plot_master;
-                this.plot_google_earth = state.plot_google_earth;
-
-                % CAPTURE
-                this.c_n_receivers = state.c_n_receivers;
-                this.c_rate = state.c_rate;
-                this.c_prtc = state.c_prtc;
-                this.c_com_addr = state.c_com_addr;
-
-                % NTRIP
-                this.flag_ntrip = state.flag_ntrip;
-                this.ntrip = state.ntrip;
             end
 
             % Call to Super Methods
             this.import@Mode_Settings(state);
-            this.import@IO_Settings(state);
 
             this.check(); % check after import
+            this.eph_full_name = '';
+            this.clk_full_name = '';
+            this.erp_full_name = '';
+            this.updateObsFileName();
+
             this.postImportInit();
         end
 
@@ -823,154 +732,320 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 str = '';
             end
 
-            str = this.toString@IO_Settings(str);
-            str = [str '---- RECEIVERS -----------------------------------------------------------' 10 10];
+            fnp = File_Name_Processor();
+            
+            str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
+            str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
+            str = [str sprintf(' Project home:                                     %s\n', fnp.getRelDirPath(this.prj_home, pwd))];
+            str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.cur_ini)];
+            str = [str '---- SESSION --------------------------------------------------------------' 10 10];
+            str = [str sprintf(' Definition of the file names to be parsed\n')];
+            if ~(this.sss_date_start.isempty)
+                str = [str sprintf(' Session start at                              %s \n', this.sss_date_start.toString())];
+                str = [str sprintf(' Session end at                                %s \n', this.sss_date_start.toString())];
+            end
+            str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
+            str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
+            str = [str sprintf(' Last session char                                 %c \n\n', this.sss_id_start)];
+            str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
+            str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
+            str = [str sprintf(' Directory of coordinates file:                    %s\n\n', fnp.getRelDirPath(this.crd_dir, this.prj_home))];
+            str = [str sprintf(' Name of coordinate (CRD) file:                    %s\n', this.crd_name)];
+            str = [str sprintf(' Receiver mode %s\n\n', this.DYN_MODE{this.rec_dyn_mode})];            
+            str = [str sprintf(' Name of the observation files                     %s\n', strCell2Str(this.obs_name, ', '))];
+            str = [str sprintf(' Directory of meteorological data:                 %s\n', fnp.getRelDirPath(this.met_dir, this.prj_home))];
+            str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
+            str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
+            str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
+            str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
+            str = [str sprintf(' Name of ERP files:                                %s\n', this.erp_name)];
+            str = [str sprintf(' Directory of IGRF files:                          %s\n', fnp.getRelDirPath(this.igrf_dir, this.prj_home))];
+            str = [str sprintf(' Name of IGRF files:                               %s\n', this.igrf_name)];
+            str = [str sprintf(' Directory of Geoid models:                        %s\n', fnp.getRelDirPath(this.geoid_dir, this.prj_home))];
+            str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
+            str = [str sprintf(' Directory of Iono models:                         %s\n', fnp.getRelDirPath(this.iono_dir, this.prj_home))];
+            str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n\n', this.iono_name)];
+            str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
+            str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
+            str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
+            str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
+            str = [str sprintf(' Preferred center:                                 %s\n\n', strCell2Str(this.preferred_center))];
+            str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
+            str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
+            str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', fnp.getRelDirPath(this.clk_dir, this.prj_home))];
+            str = [str sprintf(' Name of Satellite clock offsets:                  %s\n', this.clk_name)];
+            str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', fnp.getRelDirPath(this.crx_dir, this.prj_home))];
+            str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', fnp.getRelDirPath(this.dcb_dir, this.prj_home))];
+            str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', fnp.getRelDirPath(this.ems_dir, this.prj_home))];
+            str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
+            str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
+            str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
+            str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
+            str = [str sprintf(' Run counter:                                      %d\n', this.run_counter)];
+            if (this.run_counter_is_set)
+                str = [str sprintf(' Run counter has been set manually => overwriting output\n\n')];
+            else
+                str = [str sprintf(' Run counter has not been previously set \n => it will be set automatically to avoid overwriting of the oputputs\n\n')];
+            end
+            
+            str = [str '---- ADV RECEIVERS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Default STD of code observations [m]:             %g\n', this.std_code)];
             str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_phase)];
             str = [str sprintf(' Default STD of iono-free phase observations [m]:  %g\n', this.std_phase_if)];
             str = [str sprintf(' Default STD of a priori receiver clock:           %g\n', this.sigma0_clock)];
             str = [str sprintf(' Default STD of receiver clock:                    %g\n', this.sigma0_r_clock)];
-            str = [str sprintf(' Read master position from RINEX:                  %d\n', this.flag_rinex_mpos)];
-            str = [str sprintf(' Default Master position (when not ovewrrided):\n')];
-            str = [str sprintf('   - X:  %12.4f [m]\n', this.mpos.X)];
-            str = [str sprintf('   - Y:  %12.4f [m]\n', this.mpos.Y)];
-            str = [str sprintf('   - Z:  %12.4f [m]\n\n', this.mpos.Z)];
 
             str = [str '---- DATA SELECTION ------------------------------------------------------' 10 10];
             str = this.cc.toString(str);
-            str = [str sprintf(' Using a minimum rate of [s]                       %d\n', this.p_rate)];
             str = [str sprintf(' Minimum number of satellite per epoch:            %d\n', this.min_n_sat)];
             str = [str sprintf(' Cut-off [degrees]:                                %d\n', this.cut_off)];
             str = [str sprintf(' Signal-to-noise ratio threshold [dB]:             %d\n', this.snr_thr)];
-            str = [str sprintf(' Use ocean tides:                                  %d\n', this.flag_ocean)];
             str = [str sprintf(' Minimum number of epoch in an arc of observations %d\n\n', this.min_arc)];
 
-            str = [str '---- PRE PROCESSING ------------------------------------------------------' 10 10];
-            str = [str sprintf(' Enable Pre Processing                             %d\n', this.flag_pre_pro)];
-            str = [str sprintf(' Cycle slip threshold [cycles]                     %g\n\n', this.cs_thr_pre_pro)];
-
-            str = [str '---- OUTLIER DETECTION ---------------------------------------------------' 10 10];
+            str = [str '---- ADV DATA SELECTION --------------------------------------------------' 10 10];
             str = [str sprintf(' Enable Outlier detection                          %d\n', this.flag_outlier)];
-            str = [str sprintf(' Apply OLOO for outlier detection                  %d\n', this.flag_outlier_OLOO)];
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', this.pp_spp_thr)];
             str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', this.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = this.toString@Mode_Settings(str);
-            str = [str sprintf(' Estimate tropospheric delay                       %d\n\n', this.flag_tropo)];
-            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
-            str = [str sprintf(' Variometric step [s] for velocity estimation:     %g\n', this.variometric_step)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
-            str = [str sprintf(' Weight function parameters (when based on SNR): \n')];
-            str = [str sprintf('   - w.a:     %d\n', this.w_snr.a)];
-            str = [str sprintf('   - w.zero:  %d\n', this.w_snr.zero)];
-            str = [str sprintf('   - w.one:   %d\n', this.w_snr.one)];
-            str = [str sprintf('   - w.A:     %d\n\n', this.w_snr.A)];
-            str = [str sprintf(' Cycle slip threshold (processing) [cycles]:       %d\n', this.cs_thr)];
             str = [str sprintf(' Enable iono free combination:                     %d\n', this.flag_ionofree)];
-            str = [str sprintf(' Constrain the solution using a reference path:    %d\n', this.constrain)];
-            str = [str sprintf(' Stop go stop option:                              %d\n\n', this.stop_go_stop)];
-            str = [str sprintf(' Solution rate [seconds]:                          %d\n\n', this.s_rate)];
-
-            str = [str '---- AMBIGUITY (IAR) ------------------------------------------------------' 10 10];
-            str = [str sprintf(' Use ambiguity fix resolution:                     %d\n\n', this.flag_iar)];
-            str = [str sprintf(' Ambiguity restart mode: %s\n\n', this.IAR_SRESTART{this.iar_restart_mode+1})];
-            str = [str sprintf(' Using method %s\n\n', this.IAR_SMODE{this.iar_mode+1})];
-            str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_p0)];
-            str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_p0)];
-            str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:  %d\n\n', this.sigma0_N)];
-            str = [str sprintf(' User defined threshold for ratio test:            %g\n', this.iar_mu)];
-            str = [str sprintf(' Automatic determination of mu:                    %d\n', this.flag_iar_auto_mu)];
-            str = [str sprintf(' Use default value for P0:                         %d\n', this.flag_iar_default_p0)];
-            str = [str sprintf(' Use doppler predicted phase range:                %d\n\n', this.flag_doppler)];
-
-            str = [str '---- GO BLOCK PARAMETERS ---.....-----------------------------------------' 10 10];
-            str = [str sprintf(' Pre cleaning:                                     %d\n', this.block_pre_cleaning)];
-            str = [str sprintf(' Number of post cleaning loops                     %g\n', this.block_post_cleaning_loops)];
-            str = [str sprintf(' Seamless high rate processing:                    %d\n', this.block_seamless_hr)];
-            str = [str sprintf(' Full slip split:                                  %d\n', this.block_full_slip_split)];
-            str = [str sprintf(' Force covariance stabilization:                   %d\n', this.block_force_stabilization)];
-            str = [str sprintf(' Correct CS and unify arcs:                        %d\n\n', this.block_one_arc)];
-
-            str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
-            if this.isPP(this.p_mode)
-                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_PP{this.kf_mode+1})];
-            else
-                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_RT{this.kf_mode+1})];
-            end
-            str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
-            str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
-            str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
-
-            switch this.flag_kf_fb
-                case 0, str = [str sprintf(' Kalman forward processing\n')];
-                case 1, str = [str sprintf(' Kalman forward -> backward processing\n')];
-                case -1, str = [str sprintf(' Kalman backward -> forward processing\n')];
-            end
-            str = [str sprintf(' Kalman seamless processing:                       %d\n\n', this.flag_seamless_proc)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
-            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
-            str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
-            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
-            str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
             str = [str sprintf(' Tropospheric model %s\n\n', this.TROPO_SMODE{this.tropo_model+1})];
-
-            str = [str '---- DTM -----------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Use DTM:                                          %d\n', this.flag_dtm)];
-            str = [str sprintf(' Folder containing DTM data:                       %s\n', File_Name_Processor.getRelDirPath(this.dtm_dir, this.prj_home))];
-            str = [str sprintf(' STD of DEM model [m]:                             %g\n', this.std_dtm)];
-            str = [str sprintf(' Height of the antenna above ground [m]:           %g\n\n', this.antenna_h)];
-
-            str = [str '---- UI ------------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Plot during processing:                           %d\n', this.plot_proc)];
-            str = [str sprintf(' Plot ref during processing:                       %d\n', this.plot_ref_path)];
-            str = [str sprintf(' Plot sky plot during processing:                  %d\n', this.plot_skyplot_snr)];
-            str = [str sprintf(' Plot error_ellipse:                               %d\n', this.plot_err_ellipse)];
-            str = [str sprintf(' Plot ambiguities:                                 %d\n', this.plot_ambiguities)];
-            str = [str sprintf(' Plot master station:                              %d\n', this.plot_master)];
-            str = [str sprintf(' Plot on google earth:                             %d\n\n', this.plot_google_earth)];
-
-            str = [str '---- CAPTURE -------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Number of receivers for capturing data:           %d\n', this.c_n_receivers)];
-            str = [str sprintf(' Capture rate [s]:                                 %d\n\n', this.c_rate)];
-            for r = 1 : this.c_n_receivers
-                str = [str sprintf(' Receiver number %d\n', r)];  %#ok<AGROW>
-                str = [str sprintf('  - Protocol in use %s\n', this.C_SPROTOCOL{this.c_prtc(r)})]; %#ok<AGROW>
-                str = [str sprintf('  - COM address: %s\n\n', this.c_com_addr{r})]; %#ok<AGROW>
-            end
-
-            str = [str '---- NTRIP ---------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Use NTRIP protocol:                               %d\n', this.flag_ntrip)];
-            str = [str sprintf(' ip address of the server:                         %s\n', this.ntrip.ip_addr)];
-            str = [str sprintf(' Port number of the server:                        %s\n', this.ntrip.port)];
-            str = [str sprintf(' Mountpoint:                                       %s\n', this.ntrip.mountpoint)];
-            str = [str sprintf(' Username:                                         %s\n', this.ntrip.username)];
-            str = [str sprintf(' Password:                                         %s\n', this.ntrip.password)];
-            str = [str sprintf(' Approximate position - lat [deg]:                 %.9g\n', this.ntrip.approx_position.lat)];
-            str = [str sprintf(' Approximate position - lon [deg]:                 %.9g\n', this.ntrip.approx_position.lon)];
-            str = [str sprintf(' Approximate position - h   [m]:                   %.9g\n\n', this.ntrip.approx_position.h)];
+            str = [str sprintf(' Estimate tropospheric delay                       %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
+            
+            str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
+            str = [str sprintf(' STD of a priori tropospheric delay:                %g\n', this.sigma0_tropo)];
+            str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
+            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
+            str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
         end
 
-        function showTextMode(this)
-            % Display informations about the processing
+        function str_cell = exportIO_project(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
 
-            str = sprintf('Processing using mode %s', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)});
-            if this.isModeKM() && this.getForwardBackwardKF() > 0
-                str = strcat(str, 10, 'Kalman forward/backward processing enabled');
-            end
-            if this.isModeKM() && this.getForwardBackwardKF() < 0
-                str = strcat(str, 10, 'Kalman backward/forward processing enabled');
-            end
-            if this.isModeKM() && this.isSeamlessKF()
-                str = strcat(str, 10, 'Kalman seamless processing enabled');
-            end
-            this.log.addMarkedMessage(str);
-            this.log.newLine();
+            fnp = File_Name_Processor;
+
+            % PROJECT
+            str_cell = Ini_Manager.toIniStringSection('PROJECT', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of the project', str_cell);
+            str_cell = Ini_Manager.toIniString('prj_name', this.prj_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Home of the project', str_cell);
+            str_cell = Ini_Manager.toIniString('prj_home', fnp.getRelDirPath(this.prj_home, pwd), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('NOTES ON THE NAMING CONVENTIONS:', str_cell);
+            str_cell = File_Name_Processor.toIniStringComment(str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
+        function str_cell = exportIO_session(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            % SESSION
+            str_cell = Ini_Manager.toIniStringSection('SESSION', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used to substitute special keywords in file names', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
+            %str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd'), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
+            %str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd'), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword (e.g. "01233456789ABCabc")', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_id_list', this.sss_id_list, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('First session id (char of sss_id_list)', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_id_start', this.sss_id_start, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Last session id (char of sss_id_list)', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_id_stop', this.sss_id_stop, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_station(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % STATION
+            str_cell = Ini_Manager.toIniStringSection('STATION', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory containing the data (static)', str_cell);
+            str_cell = Ini_Manager.toIniString('obs_dir', fnp.getRelDirPath(this.obs_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('File name of the receivers (can contain special keywords)', str_cell);
+            str_cell = Ini_Manager.toIniString('obs_name', this.obs_name, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+
+            str_cell = Ini_Manager.toIniStringComment('Directory of coordinates files', str_cell);
+            str_cell = Ini_Manager.toIniString('crd_dir', fnp.getRelDirPath(this.crd_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of coordinates (CRD) file', str_cell);
+            str_cell = Ini_Manager.toIniString('crd_name', this.crd_name, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringComment('Set the a-priori information on the motion of the receiver', str_cell); 
+            str_cell = Ini_Manager.toIniString('rec_dyn_mode', this.rec_dyn_mode, str_cell); 
+            str_cell = Ini_Manager.toIniStringComment('When capture/monitor modes are in use', str_cell); 
+            for i = 1 : numel(this.DYN_MODE) 
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell); 
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('Directory of meteorological data', str_cell);
+            str_cell = Ini_Manager.toIniString('met_dir', fnp.getRelDirPath(this.met_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Meteorological file (when found it will be used)', str_cell);
+            str_cell = Ini_Manager.toIniString('met_name', this.met_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of ocean loading files', str_cell);
+            str_cell = Ini_Manager.toIniString('ocean_dir', fnp.getRelDirPath(this.ocean_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of ocean loading file (when found it will be used)', str_cell);
+            str_cell = Ini_Manager.toIniString('ocean_name', this.ocean_name, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_reference(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % REFERENCE
+            str_cell = Ini_Manager.toIniStringSection('REFERENCE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Earth rotation/orientation parameters (ERP) files', str_cell);
+            str_cell = Ini_Manager.toIniString('erp_dir', fnp.getRelDirPath(this.erp_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of ERP files - special keywords can be used', str_cell);
+            str_cell = Ini_Manager.toIniString('erp_name', this.erp_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of International Geomagnetic Reference Frame (IGRF) files', str_cell);
+            str_cell = Ini_Manager.toIniString('igrf_dir', fnp.getRelDirPath(this.igrf_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Name of IGRF file', str_cell);
+            str_cell = Ini_Manager.toIniString('igrf_name', this.igrf_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
+            str_cell = Ini_Manager.toIniString('geoid_dir', fnp.getRelDirPath(this.geoid_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
+            str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Ionospheric Models files', str_cell);
+            str_cell = Ini_Manager.toIniString('iono_dir', fnp.getRelDirPath(this.iono_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Filename in iono dir containing the ionospheric models/maps', str_cell);
+            str_cell = Ini_Manager.toIniString('iono_name', this.iono_name, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_computation_center(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % COMPUTATION CENTER
+            str_cell = Ini_Manager.toIniStringSection('COMPUTATION_CENTER', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('List of the computeation center to be used for ephemeris retrival', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Every product is searched locally, when not found is downloaded', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('When the file is not found, the system fall back on the next available', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('The config file "remote_resource.ini" of the products is stored in:', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' => "%s"', fnp.getRelDirPath(this.remote_res_conf_dir, this.prj_home)), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type, valid only for source "igs",', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred ionospheric type,', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_IONO)), str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_iono', this.preferred_iono, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Preferred center type (e.g. default, igs_glo, igs_gps, code, code_mgex, gfz, jaxa', str_cell);
+            str_cell = Ini_Manager.toIniString('preferred_center', this.preferred_center, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_satellite(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % SATELLITES
+            str_cell = Ini_Manager.toIniStringSection('SATELLITE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Ephemeris files', str_cell);
+            str_cell = Ini_Manager.toIniString('eph_dir', fnp.getRelDirPath(this.eph_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
+            str_cell = Ini_Manager.toIniString('clk_dir', fnp.getRelDirPath(this.clk_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of CRX files (containing satellite problems)', str_cell);
+            str_cell = Ini_Manager.toIniString('crx_dir', fnp.getRelDirPath(this.crx_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of DCB files (Differential Code Biases)', str_cell);
+            str_cell = Ini_Manager.toIniString('dcb_dir', fnp.getRelDirPath(this.dcb_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of EMS files (EGNOS Message Server).', str_cell);
+            str_cell = Ini_Manager.toIniString('ems_dir', fnp.getRelDirPath(this.ems_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_antenna(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % ANTENNA
+            str_cell = Ini_Manager.toIniStringSection('ANTENNA', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of PCO - PCV antex (ATX) files', str_cell);
+            str_cell = Ini_Manager.toIniString('atx_dir', fnp.getRelDirPath(this.atx_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
+            str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO_output(this, str_cell)
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            fnp = File_Name_Processor;
+
+            % OUTPUT
+            str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Base dir that is going to store the ouput data files',str_cell);
+            str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Prefix ("name") to add to the output (can contain special keywords / subfolders)',str_cell);
+            str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
+            str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+
+        function str_cell = exportIO(this, str_cell)
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj
+            if (nargin == 1)
+                str_cell = {};
+            end
+
+            str_cell = this.exportIO_project(str_cell);
+            str_cell = this.exportIO_session(str_cell);
+            str_cell = this.exportIO_station(str_cell);
+            str_cell = this.exportIO_reference(str_cell);
+            str_cell = this.exportIO_computation_center(str_cell);
+            str_cell = this.exportIO_satellite(str_cell);
+            str_cell = this.exportIO_antenna(str_cell);
+            str_cell = this.exportIO_output(str_cell);
+        end
+        
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
             % SYNTAX: s_obj.export(str_cell)
@@ -980,17 +1055,17 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             end
 
             this.check(); % check before export
-
             str_cell = Ini_Manager.toIniStringSection('SOFTWARE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS config file', str_cell);
             str_cell = Ini_Manager.toIniString('version', Core.GO_GPS_VERSION, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+
+            str_cell = this.exportIO(str_cell);
             
-            str_cell = this.export@IO_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             % RECEIVER DEFAULT PARAMETERS
-            str_cell = Ini_Manager.toIniStringSection('RECEIVERS', str_cell);
+            str_cell = Ini_Manager.toIniStringSection('ADV RECEIVERS', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of code observations [m]', str_cell);
             str_cell = Ini_Manager.toIniString('std_code', this.std_code, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of phase observations [m]', str_cell);
@@ -1003,42 +1078,23 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('sigma0_r_clock', this.sigma0_r_clock, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Read master position from RINEX (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_rinex_mpos', this.flag_rinex_mpos, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Default Master position (this values are read when not specified elsewhere)', str_cell);
-            str_cell = Ini_Manager.toIniString('mpos_XYZ', struct2array(this.mpos), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % DATA SELECTION
             str_cell = Ini_Manager.toIniStringSection('DATA_SELECTION', str_cell);
             str_cell = this.cc.export(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Processing using a minimum rate of [s]:', str_cell);
-            str_cell = Ini_Manager.toIniString('p_rate', this.p_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Minimum number of satellite per epoch', str_cell);
             str_cell = Ini_Manager.toIniString('min_n_sat', this.min_n_sat, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Cut-off [degrees]', str_cell);
             str_cell = Ini_Manager.toIniString('cut_off', this.cut_off, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio threshold [dB]', str_cell);
             str_cell = Ini_Manager.toIniString('snr_thr', this.snr_thr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Enable ocean tides modeling (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_ocean', this.flag_ocean, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs equal or greater than this value)', str_cell);
             str_cell = Ini_Manager.toIniString('min_arc', this.min_arc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
-            % PRE PROCESSING
-            str_cell = Ini_Manager.toIniStringSection('PRE_PROCESSING', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Enable pre-processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_pre_pro', this.flag_pre_pro, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Cycle slip threshold [cycles]', str_cell);
-            str_cell = Ini_Manager.toIniString('cs_thr_pre_pro', this.cs_thr_pre_pro, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % OUTLIER DETECTION
-            str_cell = Ini_Manager.toIniStringSection('OUTLIER_DETECTION', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable outlier detection (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_outlier', this.flag_outlier, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Apply OLOO for outlier detection (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_outlier_OLOO', this.flag_outlier_OLOO, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on code LS estimation error [m]', str_cell);
             str_cell = Ini_Manager.toIniString('pp_spp_thr', this.pp_spp_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
@@ -1051,126 +1107,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
             str_cell = this.export@Mode_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Variometric step [s] for velocity estimation', str_cell);
-            str_cell = Ini_Manager.toIniString('variometric_step', this.variometric_step, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
             for i = 1 : numel(this.W_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i - 1, this.W_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Weight function parameters (when based on SNR): a / 0 / 1 / A', str_cell);
-            str_cell = Ini_Manager.toIniString('w_snr', struct2array(this.w_snr), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Cycle slip threshold (processing) [cycles]', str_cell);
-            str_cell = Ini_Manager.toIniString('cs_thr', this.cs_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable usage of iono-free combination in PPP (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_ionofree', this.flag_ionofree, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Constrain the solution using a reference path', str_cell);
-            str_cell = Ini_Manager.toIniString('constrain', this.constrain, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Enable / Disable stop go stop mode option (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('stop_go_stop', this.stop_go_stop, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Solution rate to be exported [seconds] (goBlock only), the static mean solution is always computed', str_cell);
-            str_cell = Ini_Manager.toIniString('s_rate', this.s_rate, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % INTEGER AMBIGUITY RESOLUTION
-            str_cell = Ini_Manager.toIniStringSection('AMBIGUITY', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Use integer ambiguity resolution (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_iar', this.flag_iar, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Ambiguity restart mode', str_cell);
-            str_cell = Ini_Manager.toIniString('iar_restart_mode', this.iar_restart_mode, str_cell);
-            for i = 1 : numel(this.IAR_SRESTART)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_SRESTART{i}), str_cell);
-            end
-            str_cell = Ini_Manager.toIniStringComment('Ambiguity detection mode', str_cell);
-            str_cell = Ini_Manager.toIniString('iar_mode', this.iar_mode, str_cell);
-            for i = 1 : numel(this.IAR_SMODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_SMODE{i}), str_cell);
-            end
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('User defined fixed failure rate (methods 1,2) / user defined minimum success rate (for method 5)', str_cell);
-            str_cell = Ini_Manager.toIniString('iar_p0', this.iar_p0, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of a priori ambiguity combinations [cycles]', str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_N', this.sigma0_N, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('User defined threshold for ratio test', str_cell);
-            str_cell = Ini_Manager.toIniString('iar_mu', this.iar_mu, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Automatic determination of mu (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_iar_auto_mu', this.flag_iar_auto_mu, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Use default value for P0 (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_iar_default_p0', this.flag_iar_default_p0, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Use Doppler-predicted phase range for detecting cycle slips (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_doppler', this.flag_doppler, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % GO BLOCK
-            str_cell = Ini_Manager.toIniStringSection('GO_BLOCK', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Try to correct cycle slips / discontinuities in the observations and increase spike variance', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('WARNING: risky operation, do it with consciousness, check the results against disabled pre-cleaning', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('         this feature can be used when the phase residuals show unresolved anbiguities', str_cell);
-            str_cell = Ini_Manager.toIniString('block_pre_cleaning', this.block_pre_cleaning, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('After a first solution iterate # times to stabilize the solution introducing a correction (when needed) in the observations of N (integer) cycles', str_cell);
-            str_cell = Ini_Manager.toIniString('block_post_cleaning_loops', this.block_post_cleaning_loops, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)', str_cell);
-            str_cell = Ini_Manager.toIniString('block_seamless_hr', this.block_seamless_hr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('When there is an interruption in all the phase observations suppose a cycle slip on all the satellite -> split the LS system', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('This could improve the results when processing daily datasets, when processing at high rate with no seamless mode it is best to turn this feature off.', str_cell);
-            str_cell = Ini_Manager.toIniString('block_full_slip_split', this.block_full_slip_split, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Try to remove the arcs that are making the covariance matrix of the ambiguities unstable', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Often, the computed positions are good wether or not the covariance matrix is stable', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Under particular conditions forcing the stabilization can remove most or all the arcs making the solution worse', str_cell);
-            str_cell = Ini_Manager.toIniString('block_force_stabilization', this.block_force_stabilization, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Compute the solution considering one arc per satellite', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('It uses the fixed solution from LAMBDA to correct cycle slips', str_cell);
-            str_cell = Ini_Manager.toIniString('block_one_arc', this.block_one_arc, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % KF
-            str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
-            str_cell = Ini_Manager.toIniString('kf_mode', this.kf_mode, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('When capture/monitor modes are in use', str_cell);
-            for i = 1 : numel(this.DYN_SMODE_RT)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE_RT{i}), str_cell);
-            end
-            str_cell = Ini_Manager.toIniStringComment('When post processing is in use:', str_cell);
-            for i = 1 : numel(this.DYN_SMODE_PP)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE_PP{i}), str_cell);
-            end
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_k_pos', this.sigma0_k_pos, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of ENU variation [m] / [m/s] / [m/s^2]', str_cell);
-            str_cell = Ini_Manager.toIniString('std_k_ENU', struct2array(this.std_k_ENU), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of 3D modulus variation [m] / [m/s] / [m/s^2]', str_cell);
-            str_cell = Ini_Manager.toIniString('std_k_vel_mod', this.std_k_vel_mod, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
-            % KF Forward backward mode
-            str_cell = Ini_Manager.toIniStringComment('Use forward - backward mode for Kalman filter processing (-1 / 0 / 1)', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(' -1 Backward -> Forward', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('  0 Forward', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('  1 Forward -> Backward', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('WARNING: experimental - enabled for static DD code and phase', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_kf_fb', this.flag_kf_fb, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Tell the processor to not re-initialize Kalman filter at the end of 1 session processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_seamless_proc', this.flag_seamless_proc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.3f)', this.STD_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('iono_model', this.iono_model, str_cell);
             for i = 1 : numel(this.IONO_SMODE)
@@ -1183,309 +1131,37 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.TROPO_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % DTM
-            str_cell = Ini_Manager.toIniStringSection('DTM', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Use DTM (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_dtm', this.flag_dtm, str_cell);
-            %str_cell = Ini_Manager.toIniStringComment('Folder containing DTM data', str_cell);
-            %str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of DEM model [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('std_dtm', this.std_dtm, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Elevation of the antenna above ground [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('antenna_h', this.antenna_h, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % GUI
-            str_cell = Ini_Manager.toIniStringSection('UI', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot during processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_proc', this.plot_proc, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot reference during processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_ref_path', this.plot_ref_path, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot sky plot during processing (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_skyplot_snr', this.plot_skyplot_snr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot error_ellipse (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_err_ellipse', this.plot_err_ellipse, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot ambiguities (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_ambiguities', this.plot_ambiguities, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot master station (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_master', this.plot_master, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Plot on google earth (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('plot_google_earth', this.plot_google_earth, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
-            % CAPTURE
-            str_cell = Ini_Manager.toIniStringSection('CAPTURE', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Number of receivers for capturing data', str_cell);
-            str_cell = Ini_Manager.toIniString('c_n_receivers', this.c_n_receivers, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Capture rate', str_cell);
-            str_cell = Ini_Manager.toIniString('c_rate', this.c_rate, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            for r = 1 : this.c_n_receivers
-                str_cell = Ini_Manager.toIniStringComment(sprintf('Protocol for receiver %d', r), str_cell);
-                str_cell = Ini_Manager.toIniString(sprintf('c_prtc_%02d', r), this.c_prtc(r), str_cell);
-                for i = 1 : numel(this.C_SPROTOCOL)
-                    str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.C_SPROTOCOL{i}), str_cell);
-                end
-                str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-                str_cell = Ini_Manager.toIniStringComment(sprintf('COM address for receiver %d', r), str_cell);
-                str_cell = Ini_Manager.toIniString(sprintf('c_com_addr_%02d', r), this.c_com_addr{r}, str_cell);
-                str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            end
-
-            % NTRIP
-            str_cell = Ini_Manager.toIniStringSection('NTRIP', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Use NTRIP protocol (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_ntrip', this.flag_ntrip, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Here the NTRIP server parameters will follow (ip_addr, port, mountpoint, user, password, approximate_position):', str_cell);
-            str_cell = Ini_Manager.toIniString('ip_addr', this.ntrip.ip_addr, str_cell);
-            str_cell = Ini_Manager.toIniString('port', this.ntrip.port, str_cell);
-            str_cell = Ini_Manager.toIniString('mountpoint', this.ntrip.mountpoint, str_cell);
-            str_cell = Ini_Manager.toIniString('username', this.ntrip.username, str_cell);
-            str_cell = Ini_Manager.toIniString('password', this.ntrip.password, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Approximate position [degrees / degrees / m]:', str_cell);
-            str_cell = Ini_Manager.toIniString('ntrip_lat', this.ntrip.approx_position.lat, str_cell);
-            str_cell = Ini_Manager.toIniString('ntrip_lon', this.ntrip.approx_position.lon, str_cell);
-            str_cell = Ini_Manager.toIniString('ntrip_h', this.ntrip.approx_position.h, str_cell);
+            % ATMOSPHERE
+            str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.3f)', this.STD_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
     end
 
     % =========================================================================
-    %  LEGACY IMPORT
-    % =========================================================================
-    methods (Access = 'public')
-        function legacyImport(this, state)
-            % import from the state variable (saved into the old interface mat file of goGPS)
-            % If a group of imports fails display a warning but continue the
-            % import of other groups
-            % SYNTAX: this.legacyImport(state)
-
-            this.legacyImport@IO_Settings(state);
-
-            % RECEIVER DEFAULT PARAMETERS ---------------------------------
-            try
-                this.std_code = str2double(state.std_code);
-                if (state.toggle_std_phase)
-                    this.std_phase = str2double(state.std_phase);
-                else
-                    this.std_phase = 1e30;
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Receiver defaults" failed - ', ex.message])
-            end
-
-            % DATA SELECTION  ---------------------------------------------
-            try
-                this.cc.legacyImport(state);
-                if (isfield(state,'srate'))
-                    rates = this.UI_P_SRATE;
-                    this.p_rate = rates(state.srate);
-                end
-                this.min_n_sat = str2double(state.min_sat);
-                this.cut_off = str2double(state.cut_off);
-                this.snr_thr = str2double(state.snr_thres);
-                if (isfield(state,'ocean'))
-                    this.flag_ocean = state.ocean;
-                end
-                if (isfield(state,'min_arc'))
-                    this.min_arc = str2double(state.min_arc);
-                end
-
-            catch ex
-                this.log.addWarning(['Legacy import "Data Selection" failed - ', ex.message])
-            end
-
-            % PRE PROCESSING ----------------------------------------------
-            try
-                if (isfield(state,'pre_pro'))
-                    this.flag_pre_pro = state.pre_pro;
-                end
-                if (isfield(state,'cs_thresh'))
-                    this.cs_thr_pre_pro = str2double(state.cs_thresh);
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Pre Processing" failed - ', ex.message])
-            end
-
-            % OUTLIER DETECTION -------------------------------------------
-            try
-                if (isfield(state,'outlier'))
-                    this.flag_outlier = state.outlier;
-                end
-                if (isfield(state,'outlier_OLOO'))
-                    this.flag_outlier_OLOO = state.outlier_OLOO;
-                end
-                if (isfield(state,'spp_thr'))
-                    this.pp_spp_thr = str2double(state.spp_thr);
-                end
-                if (isfield(state,'code_thr'))
-                    this.pp_max_code_err_thr = str2double(state.code_thr);
-                end
-                if (isfield(state,'phase_thr'))
-                    this.pp_max_phase_err_thr = str2double(state.phase_thr);
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Outlier Detection" failed - ', ex.message])
-            end
-
-            % PROCESSING --------------------------------------------------
-            try
-                if (isfield(state,'tropo'))
-                    this.flag_tropo = state.tropo;
-                end
-                if (isfield(state,'tropo_gradient'))
-                    this.flag_tropo_gradient = state.tropo_gradient;
-                end
-                this.legacyImport@Mode_Settings(state);
-                this.constrain = state.constraint;
-                if (isfield(state,'cs_thresh'))
-                    this.cs_thr = str2double(state.cs_thresh);
-                end
-                if (isfield(state,'wModel'))
-                    this.w_mode = state.wModel - 1;
-                elseif (isfield(state,'weight_0'))
-                    this.w_mode =  max(4, 1 * state.weight_1 + 2 * state.weight_2 + 3 * state.weight_3 + 4 * state.weight_4);
-                end
-                if (isfield(state,'obs_comb'))
-                    this.flag_ionofree = (state.obs_comb == 2);
-                end
-                this.stop_go_stop = state.stopGOstop;
-            catch ex
-                this.log.addWarning(['Legacy import "Processing" failed - ', ex.message])
-            end
-
-            % MASTER STATION DEFAULT PARAMETERS ---------------------------
-            try
-                this.flag_rinex_mpos = state.master_pos;
-                if (state.crs == 1)
-                    X = state.master_X; if ischar(X); X = str2double(X); end; if isempty(X); X = 0; end
-                    Y = state.master_Y; if ischar(Y); Y = str2double(Y); end; if isempty(Y); Y = 0; end
-                    Z = state.master_Z; if ischar(Z); Z = str2double(Z); end; if isempty(Z); Z = 0; end
-                    this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
-                else
-                    [X, Y, Z] = geod2cart(state.master_lat, state.master_lon, state.master_h);
-                    this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
-                end
-
-                % master_pos, crs, master_X, master_Y, master_Z,
-                % master_lat, master_lon, master_h are no longer supported
-                % since they are considered data and not a settings they
-                % will not be included into the settings parameters
-                if (state.master_pos == 0) % If the coordinates of the master are not read from RINEX
-                    this.log.addWarning(['Master position should be set into the RINEX file!', ex.message])
-                    this.log.addWarning(['the coordinates are still read from UI but soon they won''t be imported anymore', ex.message])
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Master position" failed - ', ex.message])
-            end
-
-            % INTEGER AMBIGUITY RESOLUTION --------------------------------
-            try
-                this.iar_restart_mode = state.amb_select - 1;
-                this.flag_iar = state.use_lambda;
-                this.iar_mode = state.lambda_method-1;
-                this.iar_p0 = str2double(state.lambda_P0);
-                this.iar_mu = str2double(state.lambda_mu);
-                this.flag_iar_auto_mu = state.lambda_auto_mu;
-                this.flag_iar_default_p0 = state.lambda_default_P0;
-                this.flag_doppler = state.flag_doppler;
-            catch ex
-                this.log.addWarning(['Legacy import "iar" failed - ', ex.message])
-            end
-
-            % KALMAN FILTER PARAMETERS ------------------------------------
-            try
-                if this.isPP(this.p_mode)
-                    interface2settings = [1 2 0 3];
-                    this.kf_mode = interface2settings(state.dyn_mod);
-                else
-                    this.kf_mode = state.dyn_mod - 1;
-                end
-                this.sigma0_k_pos = str2double(state.std_init);
-                this.std_k_ENU = struct('E', str2double(state.std_X), 'N', str2double(state.std_Y), 'U', str2double(state.std_Z));
-                this.std_k_vel_mod = str2double(state.std_vel);
-
-                if (state.toggle_std_dtm)
-                    this.std_dtm = str2double(state.std_dtm);
-                else
-                    this.std_dtm = 1e30;
-                end
-
-                this.antenna_h = str2double(state.antenna_h);
-            catch ex
-                this.log.addWarning(['Legacy import "Kalman filter parameters" failed - ', ex.message])
-            end
-
-            % ATMOSPHERE ------------------------------------
-            try
-                if (isfield(state,'ionoModel'))
-                    this.iono_model = state.ionoModel - 1;
-                end
-                if (isfield(state,'tropoModel'))
-                    this.tropo_model = state.tropoModel - 1;
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Atmosphere models" failed - ', ex.message])
-            end
-
-            % UI ----------------------------------------------------------
-            try
-                this.plot_proc = state.plotproc;
-                this.plot_ref_path = state.ref_path;
-                this.plot_skyplot_snr = state.no_skyplot_snr;
-                this.plot_err_ellipse = state.err_ellipse;
-                this.plot_ambiguities = state.plot_amb;
-                this.plot_master = state.plot_master;
-                this.plot_google_earth = state.google_earth;
-            catch ex
-                this.log.addWarning(['Legacy import "UI Plotting flags" failed - ', ex.message])
-            end
-
-            % NTRIP -------------------------------------------------------
-            try
-                this.flag_ntrip = state.use_ntrip;
-                this.ntrip = struct('ip_addr', state.IP_address, ...
-                                    'port', state.port, ...
-                                    'mountpoint', state.mountpoint, ...
-                                    'username', state.username, ...
-                                    'password', state.password, ...
-                                    'approx_position', struct('lat', str2double(state.approx_lat), 'lon', str2double(state.approx_lon), 'h', str2double(state.approx_h)));
-            catch ex
-                this.log.addWarning(['Legacy import "NTRIP parameters" failed - ', ex.message])
-            end
-
-            % CAPTURE -----------------------------------------------------
-            try
-                this.c_n_receivers = state.num_receivers;
-                rates = this.UI_C_SRATE;
-                this.c_rate = rates(state.captureRate);
-                for r = 1 : this.c_n_receivers
-                    this.c_prtc(r) = state.(sprintf('protocol_select_%d', r));
-                    this.c_com_addr{r} = state.(sprintf('com_select_%d', r));
-                end
-            catch ex
-                this.log.addWarning(['Legacy import "Capture parameters" failed - ', ex.message])
-            end
-
-            this.check(); % check after import
-        end
-    end
-
-    % =========================================================================
-    %  ADDITIONAL PROTECTED
+    %%  ADDITIONAL PROTECTED
     % =========================================================================
     methods (Access = 'protected')
         function postImportInit(this)
             % Operations to run after the import of new parameters
             % SYNTAX: this.postImportInit
             this.check(); % check after import
-            this.init_dtm();
         end
     end
 
     % =========================================================================
-    %  ADDITIONAL PUBLIC METHODS
+    %%  ADDITIONAL PUBLIC METHODS
     % =========================================================================
     methods (Access = 'public')
         function ini = save(this, file_path)
@@ -1494,7 +1170,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             %
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
-            % property "cur_ini" defined in the superclass IO_Settings
+            % property "cur_ini" defined in the superclass Main_Settings
             % return optionally the ini manager object used by the save function
 
             if (nargin == 1)
@@ -1514,14 +1190,13 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: this.importIniFile(<file_path>);
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
-            % property "cur_ini" defined in the superclass IO_Settings            if (nargin == 1)
+            % property "cur_ini" defined in the superclass Main_Settings            if (nargin == 1)
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
             this.setFilePath(file_path);
             if (exist(file_path, 'file') == 2)
                 this.importIniFile@Settings_Interface(file_path);
-                this.updateExternals();
                 this.postImportInit();
                 this.log.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
             else
@@ -1544,10 +1219,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     end
 
     % =========================================================================
-    %  TEST PARAMETERS VALIDITY
+    %%  CHECKING FUNCTIONS
     % =========================================================================
     methods (Access = 'protected')
-
         function checkLogicalField(this, field_name)
             % Check if a logical field of the object is a valid logical number
             % To make the function works it is needed to have defined the default
@@ -1556,16 +1230,43 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
         end
 
+        function checkCellStringField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string field of the object is a valid string
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            switch nargin
+                case 2, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                otherwise, error('Settings checkCellStringField called with the wrong number of parameters');
+            end
+        end
+
         function checkStringField(this, field_name, empty_is_valid, check_existence)
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
             % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
-
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
                 case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            end
+        end
+
+        function checkPathField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string path field of the object is a valid path
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            fnp = File_Name_Processor();
+            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home, [], fnp.getFullDirPath(this.(upper(field_name))));
+            switch nargin
+                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
+                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
+                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
@@ -1582,10 +1283,335 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
         end
+        
+        
+        % File type specific ----------------------------------------------
+
+        function file_path = checkCrdPath(this, file_path)
+            % Check if the crd file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkCrdPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+            if ~isempty(file_path) && ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = fnp.checkPath([this.prj_home this.CRD_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = fnp.checkPath([this.crd_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end
+        end
+
+        function file_path = checkAtxPath(this, file_path)
+            % Check if the atx file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+
+            if ~isempty(file_path) && ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = fnp.checkPath([this.prj_home this.ATX_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = fnp.checkPath([this.atx_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end
+        end
+
+        function file_path = checkOceanPath(this, file_path)
+            % Check if the atx file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+
+            if ~isempty(file_path) && ~exist(file_path, 'file')
+                fnp = File_Name_Processor();
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = fnp.checkPath([this.prj_home this.OCEAN_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = fnp.checkPath([this.ocean_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end
+        end
+
+        function file_path = checkMetPath(this, file_path)
+            % Check if the met file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkMetPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+
+            if ~isempty(file_path) && ~exist(file_path, 'file')
+                fnp = File_Name_Processor();
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = File_Name_Processor.checkPath([this.prj_home this.MET_DIR(length(Main_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = fnp.checkPath([this.met_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end
+        end
     end
 
     % =========================================================================
-    %  TEST PARAMETERS VALIDITY
+    %%  CHECKING FUNCTIONS IO
+    % =========================================================================
+    methods (Access = 'public')
+        function checkIO(this)
+            % Check the validity of the fields
+            % SYNTAX: this.check();
+            EMPTY_IS_VALID = true;
+            EMPTY_IS_NOT_VALID = false;
+            CHECK_EXISTENCE = true;
+
+            this.checkStringField('prj_name', EMPTY_IS_NOT_VALID);
+            this.checkStringField('prj_home', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkStringField('cur_ini', EMPTY_IS_NOT_VALID);
+
+            this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('preferred_iono', EMPTY_IS_NOT_VALID);
+            this.checkCellStringField('preferred_center', EMPTY_IS_NOT_VALID);
+
+            this.checkStringField('sss_id_list', EMPTY_IS_NOT_VALID);
+            this.checkStringField('sss_id_start', EMPTY_IS_NOT_VALID);
+            this.checkStringField('sss_id_stop', EMPTY_IS_NOT_VALID);
+
+            this.checkPathField('obs_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkCellStringField('obs_name', EMPTY_IS_NOT_VALID);
+
+            this.checkPathField('atx_dir', EMPTY_IS_NOT_VALID);
+            this.checkStringField('atx_name', EMPTY_IS_NOT_VALID);
+
+            this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
+            this.checkStringField('eph_name', EMPTY_IS_VALID);
+            this.checkPathField('clk_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkStringField('clk_name', EMPTY_IS_VALID);
+            this.checkPathField('erp_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkStringField('erp_name', EMPTY_IS_VALID);
+            this.checkPathField('crx_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('dcb_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('ems_dir', EMPTY_IS_VALID);
+
+            this.checkNumericField('rec_dyn_mode', [0 numel(this.DYN_MODE)-1]);
+            if numel(this.rec_dyn_mode) < this.getRecCount()
+                if numel(this.rec_dyn_mode) == 0
+                    this.rec_dyn_mode(end : this.getRecCount()) = 0; % set all static
+                else
+                    this.rec_dyn_mode(end : this.getRecCount()) = this.rec_dyn_mode(1);
+                end
+            end
+
+            this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
+            this.checkStringField('ocean_dir', EMPTY_IS_NOT_VALID);
+
+            this.checkPathField('igrf_dir', EMPTY_IS_NOT_VALID);
+            this.checkStringField('igrf_name', EMPTY_IS_NOT_VALID);
+            this.checkPathField('geoid_dir', EMPTY_IS_NOT_VALID);
+            this.checkStringField('geoid_name', EMPTY_IS_NOT_VALID);
+
+            this.checkStringField('out_prefix', EMPTY_IS_VALID);
+
+            if (this.run_counter_is_set) || ~(isempty(this.run_counter))
+                this.checkNumericField('run_counter',[0 1e6]);
+            end
+        end
+
+        function status = checkRecFiles(this, go_verbose)
+            % check the availability of all the rinex files
+            % SYNTAX: status = this.checkReceiverFiles(obs_type, go_verbose)
+            % status is an array containing the file status for each receiver
+            %   0: all file are present
+            %  -1: no file are present
+            %   1: at least one file is present but not all
+
+            if nargin == 2
+                go_verbose = false;
+            end
+
+            n_rec = this.getRecCount();
+            file_name_all = this.getRecPath();
+
+            fnp = File_Name_Processor();
+
+            % If no receiver have been found
+            if n_rec == 0
+                status = -1;
+            else
+                status = 0;
+                for r = 1 : n_rec
+
+                    if go_verbose
+                        this.log.addMessage(sprintf('Checking files for receiver %d', r));
+                    end
+                    file_name = file_name_all{r};
+                    file_count = 0;
+                    for f = 1 : numel(file_name)
+                        full_path = fnp.checkPath(file_name{f});
+                        file_ok = exist(full_path, 'file') == 2;
+                        file_count = file_count + uint16(logical(file_ok));
+                        if go_verbose
+                            if file_ok
+                                this.log.addStatusOk(sprintf('%s is present', full_path));
+                            else
+                                this.log.addError(sprintf('%s does not exist', full_path));
+                            end
+                        end
+                    end
+                    if (file_count == 0)
+                        status = -1;
+                    end
+                end
+            end
+        end
+
+        function eph_ok = checkNavEphFiles(this)
+            % check whether or not all the ephemeris files are available
+            eph_ok = true;
+
+            state = Global_Configuration.getCurrentSettings();
+            file_name = this.getFullNavEphPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
+
+            if isempty(file_name)
+                eph_ok = false;
+            elseif isempty(file_name{1})
+                eph_ok = false;
+            else
+                this.log.addMarkedMessage(sprintf('Checking navigational files from %s', state.getHomeDir()));
+                this.log.newLine();
+                i = 0;
+                while (i < numel(file_name) && eph_ok)
+                    i = i + 1;
+                    eph_ok = exist(file_name{i}, 'file') == 2;
+                    if eph_ok
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                    else
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                        end
+                    end
+                end
+                this.log.newLine();
+            end
+        end
+
+        function clk_ok = checkNavClkFiles(this)
+            % check whether or not all the navigational clock files are available
+
+            clk_ok = true;
+            state = Global_Configuration.getCurrentSettings();
+            file_name = this.getFullNavClkPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
+
+            if isempty(file_name)
+                clk_ok = true;
+            elseif isempty(file_name{1})
+                clk_ok = true;
+            else
+                this.log.addMarkedMessage(sprintf('Checking clock offsets files from %s', state.getHomeDir()));
+                this.log.newLine();
+                i = 0;
+                while (i < numel(file_name) && clk_ok)
+                    i = i + 1;
+                    clk_ok = exist(file_name{i}, 'file') == 2;
+                    if clk_ok
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                    else
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                        end
+                    end
+                end
+                this.log.newLine();
+            end
+        end
+
+        function erp_ok = checkErpFiles(this)
+            % check whether or not all the ERP files are available
+
+            erp_ok = true;
+            state = Global_Configuration.getCurrentSettings();
+            file_name = this.getFullErpPath();
+            file_name_rel = File_Name_Processor.getRelDirPath(file_name, state.getHomeDir());
+
+            if isempty(file_name)
+                erp_ok = true;
+            elseif isempty(file_name{1})
+                erp_ok = true;
+            else
+                this.log.addMarkedMessage(sprintf('Checking Earth rotation parameters files from %s', state.getHomeDir()));
+                this.log.newLine();
+                i = 0;
+                while (i < numel(file_name) && erp_ok)
+                    i = i + 1;
+                    erp_ok = exist(file_name{i}, 'file') == 2;
+                    if erp_ok
+                        this.log.addStatusOk(sprintf('%s', file_name_rel{i}));
+                    else
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.log.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.log.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                        end
+                    end
+                end
+                this.log.newLine();
+            end
+        end
+    end
+    
+    % =========================================================================
+    %%  TEST PARAMETERS VALIDITY
     % =========================================================================
 
     methods (Access = 'public')
@@ -1593,157 +1619,698 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Check the validity of the fields
             % SYNTAX: this.check();
 
-            % RECEIVER DEFAULT PARAMETERS
+            this.checkIO();
+            
+            % ADV RECEIVER DEFAULT PARAMETERS
             this.checkNumericField('std_code',[0 1e50]);
             this.checkNumericField('std_phase',[0 1e50]);
             this.checkNumericField('std_phase_if',[0 1e50]);
             this.checkNumericField('sigma0_clock',[0 1e50]);
             this.checkNumericField('sigma0_r_clock',[0 1e50]);
-            this.checkLogicalField('flag_rinex_mpos');
-
-            this.mpos.X = this.checkNumber('mpos.X', this.mpos.X, this.MPOS.X, [-1e9 1e9]);
-            this.mpos.Y = this.checkNumber('mpos.Y', this.mpos.Y, this.MPOS.Y, [-1e9 1e9]);
-            this.mpos.Z = this.checkNumber('mpos.Z', this.mpos.Z, this.MPOS.Z, [-1e9 1e9]);
 
             % DATA SELECTION
-            this.checkNumericField('p_rate',[0.0001 1800]);
             this.checkNumericField('min_n_sat',[1 300]);
-            if(this.getMode() == this.MODE_PP_LS_CP_SA && this.min_n_sat < 4)
-                this.log.addWarning('Minimum number of satellites is forced to 4 (for LS undifferenced positioning)');
-                this.min_n_sat = 4;
-            end
             this.checkNumericField('cut_off',[0 90]);
             this.checkNumericField('snr_thr',[0 70]);
-            this.checkLogicalField('flag_ocean');
             this.checkNumericField('min_arc',[1 1800]);
 
-            % PRE PROCESSING
-            this.checkLogicalField('flag_pre_pro');
-            this.checkNumericField('cs_thr_pre_pro',[0 1e50]);
-
-            % OUTLIER DETECTION
+            % ADV DATA SELECTION
             this.checkLogicalField('flag_outlier');
-            this.checkLogicalField('flag_outlier_OLOO');
             this.checkNumericField('pp_spp_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
 
             % PROCESSING PARAMETERS
-            this.checkLogicalField('flag_tropo');
-            this.checkLogicalField('flag_tropo_gradient');
-            this.checkNumericField('variometric_step',[0.001 60]);
             this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
-
-            this.w_snr.a = this.checkNumber('w_snr.a', this.w_snr.a, this.W_SNR.a, [0.001 100]);
-            this.w_snr.zero = this.checkNumber('w_snr.zero', this.w_snr.zero, this.W_SNR.zero, [0.001 100]);
-            this.w_snr.one = this.checkNumber('w_snr.one', this.w_snr.one, this.W_SNR.one, [0.001 100]);
-            this.w_snr.A = this.checkNumber('w_snr.A', this.w_snr.A, this.W_SNR.A, [0.001 100]);
-
-            this.checkNumericField('cs_thr',[0.5 1e50]);
-
             this.checkLogicalField('flag_ionofree');
-            this.checkLogicalField('constrain');
-            this.checkLogicalField('stop_go_stop');
-            this.checkNumericField('s_rate',[this.p_rate 86400]);
-
-
-            % INTEGER AMBIGUITY RESOLUTION
-            this.checkLogicalField('flag_iar');
-            this.checkNumericField('iar_restart_mode',[0 numel(this.IAR_SRESTART)-1]);
-            this.checkNumericField('iar_mode',[0 numel(this.IAR_SMODE)-1]);
-            this.checkNumericField('iar_p0',[0.00001 1]);
-            this.checkNumericField('sigma0_N',[1 100]);
-            this.checkNumericField('iar_mu',[0.001 1]);
-            this.checkLogicalField('flag_iar_auto_mu');
-            this.checkLogicalField('flag_iar_default_p0');
-            this.checkLogicalField('flag_doppler');
-            
-            % GO BLOCK
-            this.checkLogicalField('block_pre_cleaning');
-            this.checkNumericField('block_post_cleaning_loops',[0 10]);
-            this.checkLogicalField('block_seamless_hr');
-            this.checkNumericField('block_full_slip_split', [0 1000]);
-            this.checkLogicalField('block_force_stabilization');
-            this.checkLogicalField('block_one_arc');
-            
-            % KF
-            if this.isPP(this.p_mode)
-                this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_PP)-1]);
-            else
-                this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_RT)-1]);
-            end
-
-            if (this.getMode() == this.MODE_PP_BLK_CP_DD_STATIC) && ~(this.isStaticKF())
-               this.kf_mode = 0;
-            end
-
-            this.checkLogicalField('flag_seamless_proc');
-            this.checkNumericField('flag_kf_fb', [-1 1]);
-            this.flag_kf_fb = round(this.flag_kf_fb);
-            if this.flag_kf_fb && (~this.isStaticKF() || (this.getMode() ~= this.MODE_PP_KF_CP_DD))                
-                this.flag_kf_fb = 0;
-            end
-
-            % RECEIVER POSITION / MOTION
-            this.checkNumericField('sigma0_k_pos',[0 1e3]);
-            this.std_k_ENU.E = this.checkNumber('std_k_ENU.E', this.std_k_ENU.E, this.STD_K_ENU.E, [0 1e9]);
-            this.std_k_ENU.N = this.checkNumber('std_k_ENU.N', this.std_k_ENU.N, this.STD_K_ENU.N, [0 1e9]);
-            this.std_k_ENU.U = this.checkNumber('std_k_ENU.U', this.std_k_ENU.U, this.STD_K_ENU.U, [0 1e9]);
-            this.checkNumericField('std_k_vel_mod',[0 1e9]);
 
             % ATMOSPHERE
+            this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
+            this.checkNumericField('tropo_model',[0 numel(this.TROPO_SMODE)-1]);
+            this.checkLogicalField('flag_tropo');
+            this.checkLogicalField('flag_tropo_gradient');
+
+            % ADV ATMOSPHERE
             this.checkNumericField('sigma0_tropo',[1e-11 10]);
             this.checkNumericField('std_tropo',[1e-12 1]);
             this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1]);
-            this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
-            this.checkNumericField('tropo_model',[0 numel(this.TROPO_SMODE)-1]);
-
-            % DTM
-            this.checkLogicalField('flag_dtm');
-            this.checkNumericField('std_dtm',[0 1e50]);
-            this.checkNumericField('antenna_h',[0 1e6]);
-
-            % GUI
-            this.checkLogicalField('plot_proc');
-            this.checkLogicalField('plot_ref_path');
-            this.checkLogicalField('plot_skyplot_snr');
-            this.checkLogicalField('plot_err_ellipse');
-            this.checkLogicalField('plot_ambiguities');
-            this.checkLogicalField('plot_master');
-            this.checkLogicalField('plot_google_earth');
-
-            % CAPTURE
-            this.checkNumericField('c_n_receivers',[0 100]);
-            this.checkNumericField('c_rate',[0.0001 1800]);
-            this.checkNumericField('c_prtc',[1 numel(this.C_SPROTOCOL)]);
-
-            % NTRIP
-            this.checkLogicalField('flag_ntrip');
-            this.ntrip.ip_addr = this.checkString('ntrip.ip_addr', this.ntrip.ip_addr, this.NTRIP.ip_addr, true);
-            this.ntrip.port = this.checkString('ntrip.port', this.ntrip.port, this.NTRIP.port, true);
-            this.ntrip.mountpoint = this.checkString('ntrip.mountpoint', this.ntrip.mountpoint, this.NTRIP.mountpoint, true);
-            this.ntrip.username = this.checkString('ntrip.username', this.ntrip.username, this.NTRIP.username, true);
-            this.ntrip.password = this.checkString('ntrip.password', this.ntrip.password, this.NTRIP.password, true);
-            this.ntrip.approx_position.lat = this.checkNumber('ntrip.approx_position.lat', this.ntrip.approx_position.lat, this.NTRIP.approx_position.lat, [-90 90]);
-            this.ntrip.approx_position.lon = this.checkNumber('ntrip.approx_position.lon', this.ntrip.approx_position.lon, this.NTRIP.approx_position.lon, [-90 90]);
-            this.ntrip.approx_position.h = this.checkNumber('ntrip.approx_position.h', this.ntrip.approx_position.h, this.NTRIP.approx_position.h, [-1e4 1e6]);
-            this.check@IO_Settings();
         end
     end
 
     % =========================================================================
-    %  GETTERS
+    %%  GETTERS IO
+    % =========================================================================
+    methods
+        function file_dir = getHomeDir(this)
+            % Get the base directory containing the project
+            file_dir = this.prj_home;
+        end
+
+        function remote_source_file = getRemoteSourceFile(this)
+            fnp = File_Name_Processor();
+            remote_ini_path = [this.remote_res_conf_dir filesep 'remote_resource.ini'];
+            remote_ini_path = fnp.getFullDirPath(remote_ini_path, this.getHomeDir);
+            remote_source_file = fnp.checkPath(remote_ini_path);
+        end
+
+        function remote_center = getRemoteCenter(this)
+            remote_center = this.preferred_center;
+            if ~iscell(remote_center)
+                remote_center = {remote_center};
+            end
+        end
+
+        function preferred_eph = getPreferredEph(this)
+            preferred_eph = this.preferred_eph;
+            if ~iscell(preferred_eph)
+                preferred_eph = {preferred_eph};
+            end
+        end
+
+        function dir = getFileDir(this, filename)
+            if length(filename) < 1
+                dir = '';
+                return
+            end
+            [~, ~,ext] = fileparts(filename);
+            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph')
+                dir = this.getNavEphDir();
+            elseif strcmpi(ext,'.erp')
+                dir = this.getErpDir();
+            elseif contains(lower(ext),'.clk')
+                dir = this.getNavClkDir();
+            elseif strcmpi(ext,'.CRX')
+
+            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
+                dir = this.getIonoDir();
+            elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.BSX')) || (strcmpi(ext,'.BIA'))
+                dir = this.getDcbDir();
+            elseif strcmpi(ext,'.${YY}p') || strcmpi(ext,'.${YY}n') || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\dp')) || ~isempty(regexpi(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl', 'once'))
+                dir = this.getNavEphDir();
+            end
+
+        end
+
+        function base_rinex_dir = getRinexBaseDir(this)
+            % Get the base directory containing RINEX files
+            base_rinex_dir = this.obs_dir();
+        end
+
+        function num_receiver = getSessionCount(this)
+            % Get the number of sessions
+            file_name = this.getRecPath();
+            num_receiver = numel(file_name{1});
+        end
+
+        function num_stations = getRecCount(this)
+            % Get the number of the receivers
+            num_stations = numel(this.getRecPath());
+        end
+
+        function file_name = getRecPath(this, rec_num, session)
+            % Get the file list of receivers files
+            % SYNTAX: file_name = this.getRecPath()
+            % A cell for each receiver containing the list of names as cell
+            if isempty(this.obs_full_name)
+                this.updateObsFileName();
+            end
+            file_name = this.obs_full_name;
+            if ~iscell(file_name)
+                file_name = {{file_name}};
+            end
+            if ~iscell(file_name{1})
+                file_name{1} = {file_name};
+            end
+            if nargin >= 2
+                file_name = file_name{rec_num};
+                if nargin == 3
+                    file_name = file_name{session};
+                end
+            end
+        end
+        
+        function dyn_mode = getDynMode(this, rec_num)
+            % Get the a-priori information on the motion of the receiver
+            dyn_mode = this.rec_dyn_mode(rec_num);
+        end
+
+        function out = getNavEphType(this)
+            % Get the order of preference of orbits files to search for
+            out = this.preferred_eph;
+        end
+
+        function out = getNavErpType(this)
+            % Get the order of preference of erp files to search for
+            out = this.preferred_erp;
+        end
+
+
+        function file_name = getFullNavEphPath(this, id)
+            % Get the file list of ephemeris files
+            % SYNTAX: file_name = this.getFullNavEphPath(id)
+            if isempty(this.eph_full_name)
+                this.updateNavFileName();
+            end
+            file_name = this.eph_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
+
+        function file_name = getFullNavClkPath(this, id)
+            % Get the file list of clock files
+            % SYNTAX: file_name = this.getFullNavClkPath(id)
+            if isempty(this.clk_full_name)
+                this.updateNavFileName();
+            end
+            file_name = this.clk_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
+
+        function file_name = getFullErpPath(this, id)
+            % Get the file list of ephemeris files
+            % SYNTAX: file_name = this.getFullErpPath(id)
+            if isempty(this.erp_full_name)
+                this.updateErpFileName();
+            end
+            file_name = this.erp_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
+
+        function file_name = getFullIonoPath(this, id)
+            % Get the file list of ephemeris files
+            % SYNTAX: file_name = this.getFullErpPath(id)
+            if isempty(this.erp_full_name)
+                this.updateErpFileName();
+            end
+            file_name = this.erp_full_name;
+            if (nargin == 2)
+                file_name = file_name{id};
+            end
+        end
+
+        function out = getNavEphFile(this)
+            % Get the file name of the navigational files
+            % SYNTAX: nav_path = this.getNavPath()
+            out = this.eph_name;
+        end
+
+        function clk_file = getNavClkFile(this)
+            % Get the file name of the clock files
+            % SYNTAX: clk_path = this.getClkPath()
+            clk_file = this.clk_name;
+        end
+
+        function erp_file = getErpFile(this)
+            % Get the file name of the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            erp_file = this.erp_name;
+        end
+
+        function dcb_file = getDcbFile(this)
+            % Get the file name of the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            dcb_file = this.dcb_name;
+        end
+
+        function out = getNavEphDir(this)
+            % Get the path to the navigational files
+            % SYNTAX: nav_path = this.getNavEphDir()
+            out = this.eph_dir;
+        end
+
+        function out = getNavClkDir(this)
+            % Get the path to the clock files
+            % SYNTAX: nav_path = this.getClkPath()
+            out = this.clk_dir;
+        end
+
+        function out = getErpDir(this)
+            % Get the path to the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            out = this.erp_dir;
+        end
+
+        function out = getDcbDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.dcb_dir;
+        end
+
+        function out = getIonoDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.iono_dir;
+        end
+
+        function out = getNavEphPath(this)
+            % Get the path to the navigational files
+            % SYNTAX: nav_path = this.getNavEphPath()
+            out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
+        end
+
+        function out = getNavClkPath(this)
+            % Get the path to the clock files
+            % SYNTAX: nav_path = this.getNavClkPath()
+            out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+        end
+
+        function out = getErpPath(this)
+            % Get the path to the ERP files
+            % SYNTAX: erp_path = this.getErpPath()
+            out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+        end
+
+        function out = getCrdFile(this)
+            % Get the path of the stations coordinates file
+            % SYNTAX: file_path = this.getCrdFile()
+            if (isempty(this.crd_name))
+                out = '';
+            else
+                out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
+            end
+        end
+
+        function out = getAtxFile(this)
+            % Get the path of the antex file
+            % SYNTAX: file_path = this.getAtxFile()
+            if (isempty(this.atx_name))
+                out = '';
+            else
+                out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
+            end
+        end
+
+        function out = getOceanFile(this)
+            % Get the path of the ocean loading file
+            % SYNTAX: file_path = this.getOceanFile()
+            if (isempty(this.ocean_name))
+                out = '';
+            else
+                out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
+            end
+        end
+
+        function out = getMetDir(this)
+            % Get the path of the meteorological file dir
+            % SYNTAX: file_path = this.getMetDir()
+            if (isempty(this.met_dir))
+                out = '';
+            else
+                out = this.checkMetPath(strcat(this.met_dir));
+            end
+        end
+
+        function out = getMetFile(this, id)
+            % Get the path of the meteorological file
+            % SYNTAX: file_path = this.getMetFile()
+            if (isempty(this.met_name))
+                out = '';
+            else
+                if isempty(this.met_full_name)
+                    this.updateMetFileName();
+                end
+                out = this.met_full_name;
+                if iscell(out{1})
+                    out = out{1};
+                end
+                if (nargin == 2)
+                    if (id > length(out))
+                        out = out{end};
+                        this.log.addWarning(sprintf('The session "%d" is non-existent, using %s', id, out));
+                    else
+                        out = out{id};
+                    end
+                end
+            end
+        end
+
+        function file_path = getIgrfFile(this)
+            % Get the file name of the Mg
+            % SYNTAX: file_path = this.getIgrfFile()
+            file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
+        end
+
+        function file_path = getGeoidFile(this)
+            % Get the path of the geoid file
+            % SYNTAX: file_path = this.getGeoidFile()
+            file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
+        end
+
+        function out_dir = getOutDir(this)
+            % Get the path of the out folder
+            % SYNTAX: out_dir = this.getOutDir()
+            out_dir = File_Name_Processor.checkPath(this.out_dir);
+        end
+
+        function out_prefix = getOutPrefix(this)
+            % Get the path of the out_prefix
+            % SYNTAX: out_prefix = this.getOutPrefix()
+            fnp = File_Name_Processor;
+            out_prefix = fnp.checkPath(this.out_prefix);
+        end
+
+        function updateOutPath(this, date, session)
+            % Update the full prefix of the putput files (replacing special keywords)
+            % SYNTAX: this.updateOutPath(date, session);
+            % NOTE: when no date is specified special keywords are substituted considering a date 0 (0000/00/00 00:00:00)
+            %       when no session is specified special keywords are substituted considering a session "0" (char)
+
+            fnp = File_Name_Processor;
+
+            % get the output prefix
+            narginchk(1,3);
+
+            if (nargin < 2)
+                date = GPS_Time(0);
+            end
+            if (nargin < 3)
+                session = '0';
+            end
+
+            this.out_full_path = fnp.dateKeyRep(fnp.checkPath([this.out_dir filesep this.out_prefix]), date, session);
+
+            if ~(this.run_counter_is_set)
+                % make sure to have the name of the file and the name of the
+                % output folder
+                [~, out_prefix, ~] = fileparts(this.out_full_path); %#ok<PROPLC>
+                % list all the files that match the prefix
+                file_list = dir([this.out_full_path '*']);
+                % if there are no files in the putput folder
+                if isempty(file_list)
+                    this.run_counter = 0; % set the counter of the output == 0
+                else
+                    % put the cell of the file in a single string
+                    file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));
+                    % parse with regexp for output numbers -> get the maximum
+                    this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROPLC>
+                    this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
+                end
+            end
+            this.out_full_path = [ this.out_full_path '_' sprintf('%03d', this.run_counter)];
+        end
+
+        function out = getFullOutPath(this)
+            % Get the path of the out folder composed with the prefix and the count number
+            % update the run counter if necessary
+            % SYNTAX: out_prefix = this.getOutPath()
+
+            if isempty(this.out_full_path)
+                this.log.addWarning('Output prefix has not yet been computed! It should have been done before.');
+                this.updateOutPath();
+            end
+            out = this.out_full_path;
+        end
+
+        function counter = getRunCounter(this)
+            % Get the currGPS_Time(0)ent run counter
+            % SYNTAX: counter = getRunCounter(this)
+            counter = this.run_counter;
+        end
+    end
+    
+    % =========================================================================
+    %%  SETTERS IO
+    % =========================================================================
+    methods
+        function setFile(this, filename)
+            [~, ~, ext] = fileparts(filename);
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')
+                this.setNavEphFile(filename);
+            elseif strcmpi(ext,'.erp')
+                this.setErpFile(filename);
+            elseif contains(lower(ext),'.clk')
+                this.setNavClkFile(filename);
+            elseif strcmpi(ext,'.CRX')
+
+            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
+                this.setIonoFile(filename);
+            elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
+                this.setDcbFile(filename);
+            end
+        end
+
+        function setNavPath(this, nav_dir)
+            % Set the path to the navigational files
+            % SYNTAX: this.getNavPath(nav_path)
+            this.eph_dir = nav_dir;
+        end
+
+        function setNavEphFile(this, nav_name)
+            % Set the file name of the navigational files
+            % SYNTAX: this.setNavEphFile(nav_name)
+            this.eph_name = nav_name;
+        end
+
+        function setNavClkPath(this, clk_dir)
+            % Set the path to the clock files
+            % SYNTAX: this.getClkPath(nav_path)
+            this.clk_dir = clk_dir;
+        end
+
+        function setNavClkFile(this, clk_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(nav_name)
+            this.clk_name = clk_name;
+        end
+
+        function setErpPath(this, erp_dir)
+            % Set the path to the clock files
+            % SYNTAX: this.getClkPath(nav_path)
+            this.erp_dir = erp_dir;
+        end
+
+        function setErpFile(this, erp_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.erp_name = erp_name;
+        end
+
+        function setDcbFile(this, dcb_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.dcb_name = dcb_name;
+        end
+
+        function setIonoFile(this, iono_file)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.iono_name = iono_file;
+        end
+
+        function setIGRFFile(this, igrf_name)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.igrf_name = igrf_name;
+        end
+
+        function setOutPrefix(this, out_prefix)
+            % Set the path of the out_prefix
+            % SYNTAX: out_prefix = this.setOutPrefix(out_prefix)
+            this.out_prefix = File_Name_Processor.checkPath(out_prefix);
+        end
+
+        function updateObsFileName(this)
+            % Update the full name of the observations files (replacing special keywords)
+            % SYNTAX: this.updateObsFileName();
+            this.obs_full_name = {};
+            fnp = File_Name_Processor();
+            if ~iscell(this.obs_name)
+                this.obs_name = {this.obs_name};
+            end
+            for i = 1 : numel(this.obs_name)
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            end
+        end
+
+        function updateMetFileName(this)
+            % Update the full name of the observations files (replacing special keywords)
+            % SYNTAX: this.updateObsFileName();
+            this.met_full_name = {};
+            fnp = File_Name_Processor();
+            if ~iscell(this.met_name)
+                this.met_name = {this.met_name};
+            end
+            this.met_full_name = {};
+            for i = 1 : numel(this.met_name)
+                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+            end
+            %this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
+        end
+
+        function updateNavFileName(this)
+            % Update the full name of the navigational files (replacing special keywords)
+            % SYNTAX: this.updateNavFileName();
+            this.updateEphFileName();
+            this.updateClkFileName();
+        end
+
+        function updateEphFileName(this)
+            % Update the full name of the ephemerides files (replacing special keywords)
+            % SYNTAX: this.updateEphFileName();
+            this.eph_full_name = this.getEphFileName(this.sss_date_start, this.sss_date_stop);
+        end
+
+        function updateClkFileName(this)
+            % Update the full name of the clock offset files (replacing special keywords)
+            % SYNTAX: this.updateClkFileName();
+            this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
+        end
+
+        function updateErpFileName(this)
+            % Update the full name of the ERP files (replacing special keywords)
+            % SYNTAX: this.updateClkFileName();
+            this.erp_full_name = this.getErpFileName(this.sss_date_start, this.sss_date_stop);
+        end
+
+        function date = getSessionStart(this)
+            % SYNTAX: date = getSessionStart(this)
+            date = this.sss_date_start;
+        end
+
+        function date = getSessionStop(this)
+            % SYNTAX: date = getSessionStop(this)
+            date = this.sss_date_stop;
+        end
+
+        function date = getSessionLimits(this)
+            % SYNTAX: date = getSessionLimits(this)
+            date = this.sss_date_start.getCopy;
+            date.append(this.sss_date_stop);
+        end
+
+        function eph_full_name = getEphFileName(this, date_start, date_stop)
+            % Get the full name of the ephemerides files (replacing special keywords)
+            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
+            step_sec = fnp.getStepSec(file_name);
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            end
+            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function clk_full_name = getClkFileName(this, date_start, date_stop)
+            % Get the full name of the clock offset files (replacing special keywords)
+            % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+            step_sec = fnp.getStepSec(file_name);
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            end
+            clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function erp_full_name = getErpFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function iono_full_name = getIonoFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function crx_full_name = getCrxFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
+            % Set the first/last epoch of processing
+            % SYNTAX: dir = this.setProcessingTime(first_epoch, last_epoch, <update_iif_smaller == false>)
+            if nargin == 3
+                update_iif_smaller = false;
+            end
+
+            if (~update_iif_smaller) || (this.sss_date_start.isempty()) || (this.sss_date_start.getMatlabTime() < first_epoch.getMatlabTime())
+                this.sss_date_start = first_epoch.getCopy();
+            end
+            if (~update_iif_smaller) || (this.sss_date_stop.isempty()) || (this.sss_date_stop.getMatlabTime() < last_epoch.getMatlabTime())
+                this.sss_date_stop = last_epoch.getCopy();
+            end
+        end
+
+        function setPrjHome(this, prj_home)
+            % Set home folder of the project
+            % SYNTAX: dir = this.setPrjHome(prj_home)
+            this.prj_home = prj_home;
+        end
+
+        function setFilePath(this, file_path)
+            % Set the file name of the current settings
+            % SYNTAX: this.setFilePath(file_path)
+            [path_str, name, ~] = fileparts(file_path);
+            this.cur_ini = [path_str filesep name '.ini'];
+        end
+
+        function updatePrj(this, file_path)
+            % Set the file project name / home / file_path from file_path
+            % SYNTAX: this.autoUpdatePrj(this, file_path)
+            fnp = File_Name_Processor();
+
+            [path_str, name, ~] = fileparts(fnp.checkPath(file_path));
+            this.cur_ini = [path_str filesep name '.ini'];
+            path_parts = strsplit(path_str,filesep);
+            if numel(path_parts) > 3
+                this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep));
+                this.prj_name = path_parts{end-1};
+                this.log.addMessage('Trying to guess project name / home / ini');
+                this.log.addMessage(sprintf(' name: %s', this.prj_name));
+                this.log.addMessage(sprintf(' home: %s', this.prj_home));
+                this.log.addMessage(sprintf(' ini:  %s', this.cur_ini));
+            end
+        end
+    end
+    
+    
+    % =========================================================================
+    %%  GETTERS
     % =========================================================================
     methods (Access = 'public')
         function name = getPrjName(this)
             % get the project name
             % SYNTAX:
             %   name = this.getPrjName();
-            
+
             name = this.prj_name;
         end
-        
+
         function cc = getConstellationCollector(this)
             % Get the constellation collector object
             % SYNTAX: cc = this.getConstellationCollector()
@@ -1767,7 +2334,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: capture_rate = this.getCaptureRate();
             capture_rate = this.c_rate;
         end
-        
+
         function cut_off = getCutOff(this)
             % Get the cut off
             % SYNTAX: cut_off = this.getCutOff();
@@ -1839,7 +2406,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: is_tropo_gradient = this.isTropoGradientEnabled();
             is_tropo_gradient = this.flag_tropo_gradient;
         end
-        
+
         function s_rate = getSolutionRate(this)
             % Get the solution rate to be exported (high rate) in go Block
             % SYNTAX: s_rate = this.isTropoGradientEnabled();
@@ -1857,7 +2424,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: flag = this.useBlockPreCleaning()
             n_loop = this.block_post_cleaning_loops;
         end
-        
+
         function flag = isSeamlessHR(this)
             % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
             % SYNTAX: flag = this.useBlockSeamlessHR()
@@ -1869,19 +2436,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % SYNTAX: flag = this.useBlockSeamlessHR()
             flag = this.block_full_slip_split;
         end
-        
+
         function flag = isOutlierRejectionOn(this)
             % Get the status of outlier rejection
             % SYNTAX: flag = this.isOutlierRejectionOn()
             flag = this.flag_outlier;
         end
-            
+
         function flag = isBlockForceStabilizationOn(this)
             % Get the status of outlier rejection OF UNSTABLE ARCS
             % SYNTAX: flag = this.isBlockForceStabilizationOn()
             flag = this.block_force_stabilization;
         end
-        
 
         function flag = isBlockOneArc(this)
             % Get the status of "one arc" approach
@@ -1889,8 +2455,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             flag = this.block_one_arc;
         end
     end
+    
     % =========================================================================
-    %  TEST
+    %%  TEST
     % =========================================================================
     methods (Static, Access = 'public')
         function test()

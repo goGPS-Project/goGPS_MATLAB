@@ -218,7 +218,7 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods
-        function this = Receiver(cc, rinex_file_name)
+        function this = Receiver(cc, rinex_file_name, dyn_mode)
             % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
             this.reset();
             this.log = Logger.getInstance();
@@ -234,7 +234,8 @@ classdef Receiver < Exportable
                 this.loadAntModel();
             end  
             this.rec_settings = Receiver_Settings();
-        end
+            this.static == dyn_mode == 0;
+        end        
                 
         function reset(this)
             this.marker_name  = 'unknown';  % marker name
@@ -1921,7 +1922,7 @@ classdef Receiver < Exportable
             end
         end  
         
-        % position
+        % position        
         
         function dt = getTotalDt(this)
             dt = this.getDt + this.getDtPrePro;            
@@ -5317,7 +5318,7 @@ classdef Receiver < Exportable
             end
         end             
         
-        function preProcessing(this, is_static)
+        function preProcessing(this)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX:
@@ -5326,12 +5327,6 @@ classdef Receiver < Exportable
             this.remBad();
             % correct for raw estimate of clock error based on the phase measure
             this.correctTimeDesync();
-            % set to static or dynamic
-            if (nargin == 2)
-                this.static = is_static;
-            else
-                this.static = this.state.kf_mode == 0;
-            end
             % this.TEST_smoothCodeWithDoppler(51);
             % code only solution
             this.initPositioning();

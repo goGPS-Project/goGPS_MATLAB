@@ -77,20 +77,18 @@ end
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-% Set global variable for goGPS obj mode
-clearvars -global goObj;
-
 if (mode_user == 1)
     
     % Now there's a unique interface for goGPS
     % to be compatible among various OSs the property "unit" of all the
     % elements must be set to "pixels"
     % (default unit is "character", but the size of a character is OS dependent)
+    ui = Core_UI.getInstance();
+    ui.openGUI();
     
-    ok_go = core.openGUI();
-    if (~ok_go)
+    if ~ui.isGo()
         return
-    end        
+    end
 end
 
 %% GO goGPS - here the computations start
@@ -113,63 +111,35 @@ for s = 1 : state.getSessionCount()
     fprintf('--------------------------------------------------------------------------\n');
     
     % Init sky
-    fr = File_Rinex(state.getTrgPath(1, s), 100);
+    fr = File_Rinex(state.getRecPath(1, s), 100);
     cur_date_start = fr.first_epoch.last();
     cur_date_stop = fr.last_epoch.first();
     sky.initSession(cur_date_start, cur_date_stop);
         
     clear rec;  % handle to all the receivers
     clear mst;
-    r = 0;
-    for i = 1 : state.getMstCount()
+    for r = 1 : state.getRecCount()
         log.newLine();
-        log.addMessage(sprintf('Reading master %d of %d', i, state.getMstCount()));
+        log.addMessage(sprintf('Reading receiver %d of %d', r, state.getRecCount()));
         fprintf('--------------------------------------------------------------------------\n\n');
         
-        r = r + 1;
-        mst(i) = Receiver(state.getConstellationCollector(), state.getMstPath(i, s)); %#ok<SAGROW>
-        mst(i).preProcessing();
-        rec(r) = mst(i); %#ok<SAGROW>
-    end
-    
-    clear ref;
-    for i = 1 : state.getRefCount()
-        log.newLine();
-        log.addMessage(sprintf('Reading reference %d of %d', i, state.getRefCount));
-        fprintf('--------------------------------------------------------------------------\n\n');
-        
-        r = r + 1;
-        ref(i) = Receiver(state.getConstellationCollector(), state.getRefPath(i, s)); %#ok<SAGROW>
-        ref(i).preProcessing();
-        rec(r) = ref(i);        
-    end
-    
-    clear trg;
-    for i = 1 : state.getTrgCount()
-        log.newLine();
-        log.addMessage(sprintf('Reading target %d of %d', i, state.getTrgCount));
-        fprintf('--------------------------------------------------------------------------\n\n');
-        
-        r = r + 1;
-        trg(i) = Receiver(state.getConstellationCollector(), state.getTrgPath(i, s)); %#ok<SAGROW>        
-        trg(i).preProcessing();
-        rec(r) = trg(i);        
-    end
+        rec(r) = Receiver(state.getConstellationCollector(), state.getRecPath(r, s), state.getDynMode(r)); %#ok<SAGROW>
+        rec(r).preProcessing();
+    end    
     
     fprintf('--------------------------------------------------------------------------\n');
     log.newLine();
     log.addMarkedMessage('Syncing times, computing reference time');
-    [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
     
-    for i = 1 : state.getTrgCount()
-        trg(i).staticPPP([], id_sync{i}(:,1));
-        % Align data and recompute solution
-        %dt_i0 = trg(i).dt; 
-        %trg(i).applyDtRec(dt_i0);         
-        %trg(i).staticPPP([], id_sync{i}(:,1));
-        %trg(i).dt = trg(i).dt + dt_i0;
+    for r = 1 : state.getRecCount()
+        [p_time, id_sync] = Receiver.getSyncTime(rec(r), 0, rec(r).getRate());
+        %if r == 6
+        %    tic; Core_SEID.getSyntL2(rec(1:4), rec(6)); toc;
+        %    [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
+        %end
+        rec(r).staticPPP([], id_sync{1}(:, 1));
     end
     
-    trg_list(:,s) = trg; %#ok<SAGROW>
+    rec_list(:,s) = rec; %#ok<SAGROW>
 end
     

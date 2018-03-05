@@ -390,7 +390,7 @@ classdef File_Wizard < handle
             dso = date_stop.getCopy();
             
             if nargin < 3
-               center_name = this.state.preferred_center;
+               center_name = this.state.getRemoteCenter();
             end
             % check if selected center os compatible with selected
             % constellation
@@ -432,8 +432,8 @@ classdef File_Wizard < handle
             % Prepare the extended file name of the files to be used in goGPS
             % In a future here I'll download the required navigational files of a station in a network
             
-            first_target_files = this.state.getTrgPath(1);
-            fh = File_Rinex(first_target_files, 100);
+            first_rec_files = this.state.getRecPath(1);
+            fh = File_Rinex(first_rec_files, 100);
             this.log.newLine();
             first_epoch = fh.first_epoch.first;
             last_epoch = fh.last_epoch.last;
@@ -639,7 +639,7 @@ classdef File_Wizard < handle
         end
         
         function conjureNavFiles(this, date_start, date_stop)
-            list_preferred = this.state.preferred_eph;
+            list_preferred = this.state.getPreferredEph();
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i}, date_start, date_stop);
                 if status

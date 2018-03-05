@@ -141,9 +141,6 @@ classdef Global_Configuration < Settings_Interface
                     this.cur_settings.importIniFile(ini_settings_file);
                 else
                     this = unique_instance_settings__;
-                    if isempty(this.cur_settings.ext_ini)
-                        this.cur_settings.updateExternals();
-                    end
                 end
             end
         end
@@ -218,7 +215,6 @@ classdef Global_Configuration < Settings_Interface
 
             this.log.addMessage(this.log.indent(this.cur_settings.cc.toString, 5));
 
-            this.initRef();
             this.initGeoid();            
         end
 
@@ -249,39 +245,6 @@ classdef Global_Configuration < Settings_Interface
             end
         end
 
-    end
-
-    methods (Access = private)
-        function initRef(this)
-            % load external ref_path
-
-            %-------------------------------------------------------------------------------------------
-            % REFERENCE PATH LOAD
-            %-------------------------------------------------------------------------------------------
-            if this.cur_settings.plot_ref_path
-                filename_ref = this.cur_settings.getRefFile();
-                d = dir(filename_ref);
-
-                if ~isempty(d)
-                    load(filename_ref, 'ref_path', 'mat_path');
-
-                    % adjust the reference path according to antenna height
-                    [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3)); %#ok<NODEF>
-                    ref_h = ref_h + this.cur_settings.antenna_h;
-                    orbital_p = this.cur_settings.cc.gps.ORBITAL_P; % Using GPS orbital parameters
-                    [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, orbital_p.ELL.A, orbital_p.ELL.F);
-                    this.reference.path = [ref_X , ref_Y , ref_Z];
-                    this.reference.adj_mat = mat_path;
-                else
-                    this.reference.path = [];
-                    this.reference.adj_mat = [];
-                end
-
-            else
-                this.reference.path = [];
-                this.reference.adj_mat = [];
-            end
-        end
     end
 
     % =========================================================================
