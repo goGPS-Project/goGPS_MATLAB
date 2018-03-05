@@ -56,6 +56,7 @@ classdef File_Name_Processor < handle
         GPS_6H = '${6H}';
         GPS_HH = '${HH}';
         GPS_YY = '${YY}';
+        GPS_YYDOY = '${YYDOY}';
         GPS_YYYY = '${YYYY}';
         GPS_DOY = '${DOY}';
         GPS_SESSION = '${S}';
@@ -93,6 +94,7 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
             [year, doy] = date.getDOY();
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
+            file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
             file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
             file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
             file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
@@ -359,17 +361,18 @@ classdef File_Name_Processor < handle
                 str_cell = {};
             end
             str_cell = Ini_Manager.toIniStringComment('Special Keywords that can be used in file names:', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4 char GPS week', File_Name_Processor.GPS_WEEK), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    4 char GPS week', File_Name_Processor.GPS_WEEK), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4+1 char GPS week + day of the week', File_Name_Processor.GPS_WD), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 1 char day of the week', File_Name_Processor.GPS_DOW), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS hour', File_Name_Processor.GPS_HH), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4 char GPS year', File_Name_Processor.GPS_YYYY), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS year', File_Name_Processor.GPS_YY), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS month', File_Name_Processor.GPS_MM), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2 char GPS day', File_Name_Processor.GPS_DD), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 3 char GPS day of the year', File_Name_Processor.GPS_DOY), str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 1 char session', File_Name_Processor.GPS_SESSION), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s       1 char day of the week', File_Name_Processor.GPS_DOW), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour', File_Name_Processor.GPS_HH), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2+3 char GPS year + day of year', File_Name_Processor.GPS_YYDOY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    4 char GPS year', File_Name_Processor.GPS_YYYY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS year', File_Name_Processor.GPS_YY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS month', File_Name_Processor.GPS_MM), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS day', File_Name_Processor.GPS_DD), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s     3 char GPS day of the year', File_Name_Processor.GPS_DOY), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s       1 char session', File_Name_Processor.GPS_SESSION), str_cell);
         end
 
         function full_path = getFullPath(dir_path, file_path)
