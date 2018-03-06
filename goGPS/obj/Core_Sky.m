@@ -1000,7 +1000,7 @@ classdef Core_Sky < handle
                     else
                         gd(end) = []; %t aking off lagrange multiplier
                         dcb_col   = idxCharLines(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
-                        this.group_delays(prn, dcb_col) = - gd * goGNSS.V_LIGHT * 1e-9;
+                        this.group_delays(prn, dcb_col) = - gd * Global_Configuration.V_LIGHT * 1e-9;
                     end
                 end
             end

@@ -57,8 +57,8 @@ if nargin == 1
     X = X(:, 1);
 end
 
-a = goGNSS.ELL_A_GPS;
-e = goGNSS.ELL_E_GPS;
+a = GPS_SS.ELL_A;
+e = GPS_SS.ELL_E;
 
 %radius computation
 r = sqrt(X.^2 + Y.^2 + Z.^2);

@@ -2191,7 +2191,7 @@ classdef Receiver < Exportable
             % special relativity (eccntrcity term)
             idx = this.sat.avail_index(:,sat) > 0;
             [X,V] = this.sat.cs.coordInterpolate(this.time.getSubSet(idx),sat);
-            dtRel = -2 * sum(conj(X) .* V, 2) / (goGNSS.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
+            dtRel = -2 * sum(conj(X) .* V, 2) / (Global_Configuration.V_LIGHT ^ 2); % Relativity correction (eccentricity velocity term)
         end
         
         function dtS = getDtS(this, sat)
@@ -3236,7 +3236,7 @@ classdef Receiver < Exportable
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, go_id) =   obs' / goGNSS.V_LIGHT + this.dt(:, 1);  %<---- check dt with all the new dts field
+            this.sat.tot(:, go_id) =   obs' / Global_Configuration.V_LIGHT + this.dt(:, 1);  %<---- check dt with all the new dts field
         end
         
         function updateAllTOT(this)
@@ -3347,7 +3347,7 @@ classdef Receiver < Exportable
                 sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0));
                 this.updateAvailIndex(ep_idx, go_id);
-                dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * goGNSS.V_LIGHT;
+                dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Global_Configuration.V_LIGHT;
                 for o = find(sat_idx)'
                     obs_idx_l = this.obs(o,:) ~= 0;
                     obs_idx = find(obs_idx_l);
@@ -3908,7 +3908,7 @@ classdef Receiver < Exportable
             p = (3*sin(phiC)^2-1)/2;
             
             %gravitational parameters
-            GE = goGNSS.GM_GAL; %Earth
+            GE = Galileo_SS.ORBITAL_P.GM; %Earth
             GS = GE*332946.0; %Sun
             GM = GE*0.01230002; %Moon
             
@@ -4435,9 +4435,9 @@ classdef Receiver < Exportable
             
             GM = 3.986005e14;
             
-            %corr = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
+            %corr = 2*GM/(Global_Configuration.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR)); %#ok<CPROPLC>
             
-            sh_delay = 2*GM/(goGNSS.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
+            sh_delay = 2*GM/(Global_Configuration.V_LIGHT^2) * log((distR + distS + distSR)./(distR + distS - distSR));
             
         end
         
@@ -5419,7 +5419,7 @@ classdef Receiver < Exportable
             for i = 1 : n_epoch
                 [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
                 this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
-                this.zwd(id_sync(i)) = saast_wet(T, goGNSS.STD_HUMI, h_orto);
+                this.zwd(id_sync(i)) = saast_wet(T, Global_Configuration.ATM.STD_HUMI, h_orto);
             end
             
             rate = time.getRate();
