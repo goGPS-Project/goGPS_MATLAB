@@ -1,0 +1,173 @@
+%   CLASS Command_Settings
+% =========================================================================
+%
+% DESCRIPTION
+%   Class to store all the goGPS command
+%
+% EXAMPLE
+%   settings = Command_Settings();
+%
+% FOR A LIST OF CONSTANTS and METHODS use doc Command_Settings
+
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.6.0 alpha 1 - nightly
+%
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
+%
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
+%
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
+%
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
+
+classdef Command_Settings < Settings_Interface
+
+    
+    % Default values for each field - useful to restore corrupted fields
+    properties (Constant, GetAccess = public)
+        CMD_LIST = {'PP R*', 'SEID T5 R1:4 @30s :G', 'SYNC R*', 'PPP R1,2,3,4 @30s :G'};
+    end
+
+    properties (Constant, GetAccess = protected)
+        CMD_SECTION = 'COMMANDS';
+    end
+
+    properties (SetAccess = public, GetAccess = public)
+        cmd_list = Command_Settings.CMD_LIST;
+    end
+
+    % =========================================================================
+    %  INIT
+    % =========================================================================
+    methods
+        function this = Command_Settings()
+            % Creator of Command_Settings
+            this.initLogger();
+        end
+    end
+
+    % =========================================================================
+    %  INTERFACE REQUIREMENTS
+    % =========================================================================
+    methods
+        function import(this, settings)
+            % This function import Mode (only) settings from another setting object
+            %
+            % SYNTAX:
+            %   this.import(settings);
+            
+            if isa(settings, 'Ini_Manager')
+                cmd_keys = settings.getKeys(this.CMD_SECTION);
+                this.cmd_list = {};
+                % cleaning list
+                l = 0;
+                while l < numel(cmd_keys)
+                    l = l + 1;
+                    if (numel(cmd_keys{l}) < 3) || ~strcmpi(cmd_keys{l}(1:3), 'cmd')
+                        this.log.addWarning(sprintf('%s command unrecognized\nit should start with "cmd" (e.g. cmd_001)', cmd_keys{l}));
+                        cmd_keys(l) = [];
+                        l = l - 1;
+                    else
+                        this.cmd_list{l} = settings.getData(this.CMD_SECTION, cmd_keys{l});
+                    end
+                end                
+            else
+                this.cmd_list = settings.cmd_list;
+            end
+            this.check();
+        end
+
+        function str = toString(this, str)
+            % Display the command list
+            %
+            % SYNTAX:
+            %   str = this.toString(str);
+            if (nargin == 1)
+                str = '';
+            end
+            if ischar(str)
+                str = [str '---- CMD LIST ------------------------------------------------------------' 10 10];
+                str = [str sprintf('Execution list:\n')];
+                cmd_list = this.cmd_list;
+            else
+                cmd_list = str;
+                str = '';
+            end
+            for l = 1 : numel(cmd_list)
+                str = [str sprintf(' %03d %s\n', l, cmd_list{l})];
+            end
+            %str = [str 10];
+        end
+
+        function str_cell = export(this, str_cell)
+            % Conversion to string ini format of the minimal information needed to reconstruct the object
+            %
+            % SYNTAX:
+            %   str_cell = this.export(str_cell);
+            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            
+            str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('NOTE: The command will be executed for every session', str_cell);
+            for l = 1 : numel(this.cmd_list)
+                str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), this.cmd_list{l}, str_cell);
+            end
+        end
+    end
+   
+    % =========================================================================
+    %  CHECKER CALL
+    % =========================================================================
+    methods (Access = 'private')
+        function check(this)
+            if isempty(this.cmd_list)
+            % Minimal check on cmd_list entries validity 
+            % Modify and (try to) correct cmd_list
+            %
+            % SYNTAX:
+            %   this.check();
+            %
+                this.log.addWarning(sprintf('Command list seems to be empty, using default values\n %s', this.toString));
+                this.cmd_list = this.CMD_LIST;
+                %this.cmd_list = Command_Interpreter.fast_check(this.cmd_list);
+            end
+        end
+    end
+   
+    % =========================================================================
+    %  TEST
+    % =========================================================================
+    methods (Static, Access = 'public')
+        function test()
+            % test the class
+            % 
+            % SYNTAX:
+            %   this.test();
+            s = Command_Settings();
+            s.testInterfaceRoutines();
+        end
+    end
+end

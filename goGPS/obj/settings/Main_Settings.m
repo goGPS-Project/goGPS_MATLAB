@@ -45,7 +45,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Main_Settings < Settings_Interface & Mode_Settings
+classdef Main_Settings < Settings_Interface & Command_Settings
 
     properties (Constant, Access = 'protected')
         % id to string of out modes
@@ -712,14 +712,14 @@ classdef Main_Settings < Settings_Interface & Mode_Settings
                 this.std_tropo_gradient = state.std_tropo_gradient;
             end
 
-            % Call to Super Methods
-            this.import@Mode_Settings(state);
-
             this.check(); % check after import
             this.eph_full_name = '';
             this.clk_full_name = '';
             this.erp_full_name = '';
             this.updateObsFileName();
+
+            % Call to Super Methods
+            this.import@Command_Settings(state);
 
             this.postImportInit();
         end
@@ -814,7 +814,6 @@ classdef Main_Settings < Settings_Interface & Mode_Settings
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
-            str = this.toString@Mode_Settings(str);
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Enable iono free combination:                     %d\n', this.flag_ionofree)];
 
@@ -829,6 +828,7 @@ classdef Main_Settings < Settings_Interface & Mode_Settings
             str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
             str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
+            str = this.toString@Command_Settings(str);
         end
 
         function str_cell = exportIO_project(this, str_cell)
@@ -1105,7 +1105,6 @@ classdef Main_Settings < Settings_Interface & Mode_Settings
 
             % PROCESSING PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
-            str_cell = this.export@Mode_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
@@ -1146,6 +1145,7 @@ classdef Main_Settings < Settings_Interface & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = this.export@Command_Settings(str_cell);
         end
     end
 
