@@ -2,29 +2,29 @@ function cols=m_colmap(nme,m,ncol)
 % M_COLMAP  Useful colormaps
 %   M_COLMAP(NAME) returns an M-by-3 matrix containing the NAME colormap
 %   where NAME is one of:
-%     'jet' : a percentually uniform variation of the JET colormap. It 
-%             contains the multiple colours which make JET useful, while 
-%             avoiding the weird highlighting especially around yellow and 
-%             cyan. The colors begin with dark blue, range through shades 
+%     'jet' : a percentually uniform variation of the JET colormap. It
+%             contains the multiple colours which make JET useful, while
+%             avoiding the weird highlighting especially around yellow and
+%             cyan. The colors begin with dark blue, range through shades
 %             of blue, green, orange and red, and ends with dark red. 
 %     'blue' : a perceptually useful blue shading (good for bathymetry)
 %     'green' : a precentually useful green shading
 %     'diverging' : a blue/red diverging colormap
 %
-%   and M is the same length as the current figure's colormap. If no 
+%   and M is the same length as the current figure's colormap. If no
 %   figure exists, the length of the default colormap is used. The
 %   length can be explicitly specified with M_COLMAP(NAME,M)
 %
 %   M_COLMAP(NAME,'step') returns a 256-color map in which colours are
-%   perceptually bunched into 16 separate colours. This is useful 
+%   perceptually bunched into 16 separate colours. This is useful
 %   if you want to see "edges" in what would be an otherwise
 %   smooth gradation (i.e. approaching the look of contouring). 
 %
 %   M_COLMAP(NAME,'demo') Gives a demo of this behavior
-%  
+%
 %   M_COLMAP(NAME,'step',M) bunches into M colours.
 %
-%   The jet colourmap was designed using the CET Perceptually Uniform 
+%   The jet colourmap was designed using the CET Perceptually Uniform
 %   Colour Maps toolbox at http://peterkovesi.com/projects/colourmaps/
 %
 %   The blue, green, and diverging colormaps are from CBREWER, a matlab
@@ -63,7 +63,7 @@ if nargin < 2
    f = gcf;
    m = size(get(f,'Colormap'),1);
    ncol=m;
-else 
+else
   if isnumeric(m)
     ncol=m;
   else
@@ -80,19 +80,19 @@ else
          title(['The colormap used above: m\_colmap(''' nme ''',256,16)']);
 	     if nargout==0
 	       clear cols
-	     end  
+	     end
          return;
 
       case 'ste'    % step
          m=256;
          if nargin<3
 	        ncol=16;
-         end  
+         end
       otherwise
          error(['map: ' mfilename ':invalidOption'],...
             ' Second argument must be an valid option');
      end
-   end    
+   end
 end
    
 % Whatever length colormap we have
@@ -1158,4 +1158,4 @@ switch nme
 end
 
  
-end   
+end

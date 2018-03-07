@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -80,7 +80,7 @@ classdef Core_SEID < handle
             rec(1:numel(ref)) = ref;
             rec(numel(ref) + (1 : numel(trg))) = trg;
             obs_type(1:numel(ref)) = 2;
-            obs_type(numel(ref) + (1 : numel(trg))) = 0;            
+            obs_type(numel(ref) + (1 : numel(trg))) = 0;
             [p_time, id_sync] = Receiver.getSyncTime(rec, obs_type);
             log = Logger.getInstance();
             
@@ -91,7 +91,7 @@ classdef Core_SEID < handle
                 phase_gf(r) = ref(r).getGeometryFree('L1','L2','G');
                 code_gf(r) = ref(r).getGeometryFree('C1','C2','G');
                 [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
-                [pierce_point(r).lat, pierce_point(r).lon] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);                                
+                [pierce_point(r).lat, pierce_point(r).lon] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
             end
              
             max_sat = 0;
@@ -125,7 +125,7 @@ classdef Core_SEID < handle
                     end
                     pr_gf(:, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_sync{t}(:,r), :));
                 end
-                ph_gf_diff = diff(ph_gf);                
+                ph_gf_diff = diff(ph_gf);
                 
                 % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
                 % pierce_point(r).lat could have different size receiver by receiver
@@ -143,10 +143,10 @@ classdef Core_SEID < handle
                 %     prettyScatter(tmp(id_ok(2 : end, :)), pierce_point(r).lat(id_ok) / pi * 180, pierce_point(r).lon(id_ok) / pi * 180, lat_lim(1), lat_lim(2), lon_lim(1), lon_lim(2), '10m'); hold on; colormap(jet);
                 % end
                 
-                [ph1, id_ph] = trg(t).getObs('L1','G');                
+                [ph1, id_ph] = trg(t).getObs('L1','G');
                 [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
                 trg_go_id = unique(trg(t).go_id(id_ph)');
-                [lat_pp, lon_pp] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);                                
+                [lat_pp, lon_pp] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
 
                 % It is necessary to better sync satellites in view
                 % this part of the code needs to be improved
@@ -164,7 +164,7 @@ classdef Core_SEID < handle
                     end
                     
                     trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
-                    trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));                    
+                    trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
                 end
                 
                 % I interpolate the diff (derivate) of L4 but now I rebuild L4 by cumsum (integral)
@@ -225,7 +225,7 @@ classdef Core_SEID < handle
             %   data_in [n_epoch x n_ref]  data [deg]
             %   lat_q   [n_epoch x 1]      query latitude
             %   lon_q   [n_epoch x 1]      query longitude
-            %   
+            %
             % SYNTAX:
             %   data_q = Core_SEID.satDataInterp(lat_in, lon_in, data_in, lat_q, lon_q);
             
@@ -237,7 +237,7 @@ classdef Core_SEID < handle
                     w = (1 ./ d(id_ok))';
                     data_q(i) = (data_in(i, id_ok) * w) ./ sum(w);
                 end
-            end            
+            end
         end
         
     end

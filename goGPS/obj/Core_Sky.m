@@ -1203,7 +1203,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [dt_S] = clockInterpolate(this,time, sat)            
+        function [dt_S] = clockInterpolate(this,time, sat)
             % SYNTAX:
             %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
             %
@@ -1230,17 +1230,17 @@ classdef Core_Sky < handle
             times = this.getClockTime();
             
             % find day change
-            date = times.get6ColDate; 
+            date = times.get6ColDate;
             day_change = find(diff(date(:,3)));
             
             p = max(0, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
             
-            b =  (times.getSubSet(p) - time)';            
+            b =  (times.getSubSet(p) - time)';
             
             SP3_c = zeros(time.length,2);
             u = zeros(time.length,1);
             
-            % extract the SP3 clocks            
+            % extract the SP3 clocks
             b_pos_idx = b > 0;
             p_pos = p(b_pos_idx);
             SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));
@@ -1520,7 +1520,7 @@ classdef Core_Sky < handle
                     8*t_fct7 ...
                     9*t_fct8 ...
                     10*t_fct9];
-                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,id),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;                
+                V_sat(t_idx,:,:) = reshape(eval_vec*reshape(permute(this.coord_pol_coeff(2:end,:,sat_idx,id),[1 3 2 4]),10,3*n_sat),sum(t_idx),n_sat,3)/this.coord_rate;
             end
             if size(X_sat,2)==1
                 X_sat = squeeze(X_sat);

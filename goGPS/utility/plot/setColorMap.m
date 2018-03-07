@@ -36,9 +36,9 @@ cmapCenter = cmapCenter(round((length(cmapCenter)-posDiff)/2):round((length(cmap
 
 % Set lateral colormaps to the remaining perc size
 cmapLow = jet(round((posMin)/((1-perc)/2)));
-cmapLow = cmapLow(1:posMin-1,:); 
+cmapLow = cmapLow(1:posMin-1,:);
 cmapHigh = jet(round((length(caxVal)-posMax)/((1-perc)/2)));
-cmapHigh = cmapHigh(end-(length(caxVal)-posMax-1):end,:); 
+cmapHigh = cmapHigh(end-(length(caxVal)-posMax-1):end,:);
 cmap = [cmapLow; cmapCenter; cmapHigh];
 
 % Central threshold

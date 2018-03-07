@@ -16,7 +16,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -52,7 +52,7 @@ classdef Least_Squares_Manipulator < handle
         PAR_CLK = 6;
         PAR_TROPO = 7;
         PAR_TROPO_N = 8;
-        PAR_TROPO_E = 9;        
+        PAR_TROPO_E = 9;
     end
     
     properties
@@ -62,7 +62,7 @@ classdef Least_Squares_Manipulator < handle
         out_idx % index to tell if observation is outlier [ n_obs x 1]
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         G % hard constraints (Lagrange multiplier)
-        D % known term of the hard constraints 
+        D % known term of the hard constraints
         y % observations  [ n_obs x 1]
         system_split % limits of the ambiguity splits
         variance % observation variance [ n_obs x 1]
@@ -173,12 +173,12 @@ classdef Least_Squares_Manipulator < handle
             
             % Sometime code observations may contain unreasonable values -> remove them
             if obs_type == 'C'
-                % very coarse outlier detection based on diff obs                
+                % very coarse outlier detection based on diff obs
                 mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
                 diff_obs(abs(diff_obs) > 100 * mean_diff_obs) = 0;
             end
             
-            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here 
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
 
             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
@@ -247,8 +247,8 @@ classdef Least_Squares_Manipulator < handle
                 idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
                 diff_obs(~idx_valid_ep_l, :) = [];
                 xs_loc(~idx_valid_ep_l, :, :) = [];
-                id_sync(~idx_valid_ep_l) = [];                
-                amb_idx(~idx_valid_ep_l, :) = [];                
+                id_sync(~idx_valid_ep_l) = [];
+                amb_idx(~idx_valid_ep_l, :) = [];
                 
                 this.true_epoch(~idx_valid_ep_l) = [];
 
@@ -276,7 +276,7 @@ classdef Least_Squares_Manipulator < handle
                 wl_amb = zeros(size(amb_obs_count));
                 for s = 1 : size(amb_idx, 2)
                     wl_amb(unique(amb_idx(~isnan(amb_idx(:, s)),s))) = obs_set.wl(s);
-                end                
+                end
             else
                 n_amb = 0;
                 amb_flag = 0;
@@ -304,7 +304,7 @@ classdef Least_Squares_Manipulator < handle
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
             
-            A_idx = zeros(n_obs, n_par); 
+            A_idx = zeros(n_obs, n_par);
             A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
             y = zeros(n_obs, 1);
             variance = zeros(n_obs, 1);
@@ -317,7 +317,7 @@ classdef Least_Squares_Manipulator < handle
                 mfw = mfw(id_sync,:); % getting only the desampled values
             end
             
-            for s = 1 : n_stream                
+            for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
                 obs_stream = diff_obs(id_ok_stream, s);
@@ -623,7 +623,7 @@ classdef Least_Squares_Manipulator < handle
                     Cxx = s02 * Cxx;
                 end
             end
-            x = [x, x_class];            
+            x = [x, x_class];
         end
         
         function reduceNormalEquation(this, keep_param)

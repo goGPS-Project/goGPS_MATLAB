@@ -7,7 +7,7 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
 %   az      azimuth      [rad]
 %   decl    declination  [rad]
 %   size    size of the scattered point
-%   color   data field for scatter 
+%   color   data field for scatter
 %   flag    at the moment can only be 'filled'
 %
 % OUTPUT
@@ -18,7 +18,7 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

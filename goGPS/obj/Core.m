@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '0.6.0 alpha 1 - nightly';
+        GO_GPS_VERSION = '0.6.0 alpha 2 - nightly';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -63,7 +63,7 @@ classdef Core < handle
         cmd
     end
 
-    %% PROPERTIES RECEIVERS    
+    %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         rec      % List of all the receiver used in a session
@@ -112,7 +112,7 @@ classdef Core < handle
     
     %% METHODS INIT
     % ==================================================================================================================================================
-    methods      
+    methods
         function init(this)
             this.log.setColorMode(true);
             Core_UI.showTextHeader();
@@ -139,7 +139,7 @@ classdef Core < handle
     
     %% METHODS RUN
     % ==================================================================================================================================================
-    methods      
+    methods
         function prepareSession(this, session_number)
             %-------------------------------------------------------------------------------------------
             % SESSION START
@@ -198,7 +198,7 @@ classdef Core < handle
             state = this.state;
             log = this.log;
             w_bar = this.w_bar;
-        end        
+        end
     end
 
     methods % Public Access (Legacy support)

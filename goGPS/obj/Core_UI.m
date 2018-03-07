@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -56,7 +56,7 @@ classdef Core_UI < handle
         w_bar
     end
 
-    %% PROPERTIES GUI    
+    %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
         w_main
@@ -64,7 +64,7 @@ classdef Core_UI < handle
         j_settings
     end
 
-    %% PROPERTIES STATUS    
+    %% PROPERTIES STATUS
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private)
         ok_go = false;
@@ -318,7 +318,7 @@ classdef Core_UI < handle
         function  dependencies_ok = openSplashGUI(this)
             if ~isempty(this.w_splash) && isvalid(this.w_splash)
                 close(this.w_splash);
-            end            
+            end
             LIGHT_GRAY_BG = 0.85 * ones(3, 1);
             DARK_GRAY_BG = 0.18 * ones(3, 1);
 
@@ -341,7 +341,7 @@ classdef Core_UI < handle
                 dependencies_ok = true;
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                close(win); 
+                close(win);
                 return
             end
             
@@ -358,7 +358,7 @@ classdef Core_UI < handle
                 'Padding', 5, ...
                 'BackgroundColor', LIGHT_GRAY_BG);
             
-            logo_ax = axes( 'Parent', logo_g, 'Position', [10 5 64 64]);            
+            logo_ax = axes( 'Parent', logo_g, 'Position', [10 5 64 64]);
             [logo, transparency] = Core_UI.getLogo();
             logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
             logo = logo - 20;
@@ -397,30 +397,30 @@ classdef Core_UI < handle
                 'FontName', 'verdana', ...
                 'FontSize', this.getFontSize(4), ...
                 'FontWeight', 'bold');
-            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', LIGHT_GRAY_BG); 
+            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', LIGHT_GRAY_BG);
             descr_bv.Heights = [-3.5 -2 -1 -0.5];
             
             main_grid.Heights = 82;
             main_grid.Widths = 200;
             logo_g.Widths = [64 -1];
             logo_g.Heights = 64;
-            this.w_splash.Visible = 'on';            
+            this.w_splash.Visible = 'on';
         end
         
         function ok_go = openGUI(this)
-            %%      
+            %%
             
             % WIN CONFIGURATION
             % L| N|    W
-            %  |  |
-            %  |  |
+            %
+            %
             % ----------
             % b      b b
             %
             
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 close(this.w_main);
-            end            
+            end
             LIGHT_GRAY_BG = 0.85 * ones(3, 1);
             DARK_GRAY_BG = 0.18 * ones(3, 1);
                         
@@ -444,7 +444,7 @@ classdef Core_UI < handle
                     'BackgroundColor', DARK_GRAY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
-                close(win); 
+                close(win);
                 return;
             end
             top_bh = uix.HBox( 'Parent', main_bv);
@@ -505,7 +505,7 @@ classdef Core_UI < handle
                 'FontName', 'verdana', ...
                 'FontSize', this.getFontSize(4), ...
                 'FontWeight', 'bold');
-            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', LIGHT_GRAY_BG); 
+            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', LIGHT_GRAY_BG);
             descr_bv.Heights = [-3.5 -2 -1 -0.5];
             
             % Main Panel -----------------------------------------------------------------------------------------------
@@ -543,7 +543,7 @@ classdef Core_UI < handle
 
             refresh_but = uicontrol( 'Parent', tab1_bvr, ...
                 'String', 'Refresh', ...
-                'Callback', @this.refreshIni);           
+                'Callback', @this.refreshIni);
             
             % Main Panel > tab2 remote resource ini --------------------------------------------------------------------
             enable_rri = true;
@@ -606,7 +606,7 @@ classdef Core_UI < handle
             
             % Empty space ----------------------------------------------------------------------------------------------
             
-            uicontrol('Parent', left_bv, 'Style', 'Text', 'BackgroundColor', DARK_GRAY_BG); 
+            uicontrol('Parent', left_bv, 'Style', 'Text', 'BackgroundColor', DARK_GRAY_BG);
             
             % Botton Panel ---------------------------------------------------------------------------------------------            
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
@@ -657,7 +657,7 @@ classdef Core_UI < handle
     
     %% METODS getters
     % ==================================================================================================================================================
-    methods        
+    methods
         function ok_go = isGo(this)
             ok_go = this.ok_go;
         end
@@ -681,7 +681,7 @@ classdef Core_UI < handle
     
     %% METODS UTILITIES
     % ==================================================================================================================================================
-    methods (Access = private)  
+    methods (Access = private)
         function refreshIni(this, caller, event)
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
             this.state.import(Ini_Manager(txt{1}));

@@ -5,7 +5,7 @@ function h=m_ruler(posx,posy,varargin)
 %   in the range 0 to 1.  
 %   M_RULER(X1,[Y1 Y2]) draws a vertical scalebar
 %   M_RULER(...,NINTS) draws the scalebar with NINTS intervals
-%   if NINTS is a scalar (default 4).  Distances of each interval are 
+%   if NINTS is a scalar (default 4).  Distances of each interval are
 %   chosen to be 'nice'. If NINTS is a vector it is understood to be
 %   the distances to be used (in meters)
 %
@@ -40,7 +40,7 @@ if length(varargin)>0
    varargin=varargin(2:end);
    fixticks=1;
  end
-end    
+end
 
  
 gcolor='k';
@@ -48,8 +48,8 @@ glinestyle='-';
 glinewidth=3;
 gfontsize=get(gca,'fontsize');
 gfontname=get(gca,'fontname');
-gticklen=get(gca,'ticklength'); gticklen=gticklen(1); 
-gtickdir=get(gca,'tickdir'); 
+gticklen=get(gca,'ticklength'); gticklen=gticklen(1);
+gtickdir=get(gca,'tickdir');
  
 if MAP_PROJECTION.newgraphics
  gticklen=gticklen*3;
@@ -104,7 +104,7 @@ while k<=length(varargin)
        return;
   end
   k=k+2;
-end   
+end
 
  
 % Need earth radius, in m.
@@ -187,11 +187,11 @@ if horiz
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end
-    else  
+    else
       line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end	 
+    end
   else
    
     patch(posx(1)+[dist(1:end-1);dist(1:end-1);dist(2:end);dist(2:end)]/scfac,...
@@ -215,7 +215,7 @@ if horiz
     text(posx(1)+diff(posx)/2,posy(1)+diff(ylm)*gticklen,'km',...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','bottom','horizontalalignment','center','tag','m_ruler_label');
-  else 
+  else
     text(posx(1)+mean(dist)/scfac,posy(1)-diff(ylm)*gticklen*2,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','top','horizontalalignment','center','tag','m_ruler_label');
@@ -237,11 +237,11 @@ else
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
       end
-    else  
+    else
        line(XX,YY,...
 	 'color',gcolor,'linewidth',glinewidth/3,'linestyle',glinestyle,...
 	 'clipping','off','tag','m_ruler_y');
-    end	 
+    end
   else
    
     patch(posx(1)+diff(xlm)*gticklen*[-1;1;1;-1]*ones(1,nints),...
@@ -262,7 +262,7 @@ else
     text(posx(1)+diff(xlm)*gticklen*2,posy(1)+dist(nints+1)/scfac,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');
-  else  
+  else
     text(posx(1)+diff(xlm)*gticklen*2,posy(1)+mean(dist)/scfac,sprintf('%d km',dist(end)/numfac),...
           'fontsize',gfontsize,'fontname',gfontname,...
           'verticalalignment','middle','horizontalalignment','left','tag','m_ruler_label');

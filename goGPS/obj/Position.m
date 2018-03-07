@@ -55,8 +55,8 @@ classdef Position < Exportable
         
     methods
         % Creator
-        function this = Position(file_name)            
-            % Core object creator            
+        function this = Position(file_name)
+            % Core object creator
             this.log = Logger.getInstance();
             this.reset();
             if nargin == 1
@@ -91,7 +91,7 @@ classdef Position < Exportable
         function reset(this)
             this.time = GPS_Time();
             this.xyz = [];
-            this.enu = [];            
+            this.enu = [];
             this.lat = [];
             this.lon = [];
             
@@ -102,7 +102,7 @@ classdef Position < Exportable
             this.hdop =  [];
             this.khdop = [];
             this.a_fix = [];
-            this.s_rate = [];            
+            this.s_rate = [];
         end
         
         function importPosition(this, file)
@@ -159,7 +159,7 @@ classdef Position < Exportable
             n_sat = data(:,20);
             hdop =  data(:,21);
             khdop = data(:,22);
-            a_fix = data(:,26); 
+            a_fix = data(:,26);
             s_rate = data(:,27);
             
             % Append in obj
@@ -188,7 +188,7 @@ classdef Position < Exportable
             %
             % SYNTAX:  
             %   position = Position.loadBatch(file_name, run_start, run_stop)
-            % 
+            %
             % INPUT:
             %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
             %   run_start     number of the first run to load

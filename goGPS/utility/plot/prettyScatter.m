@@ -214,7 +214,7 @@ switch (nargin)
         shape = 'coast';
         lineCol = [0 0 0];
         limitsOk = true;
-        projection = 'Lambert';        
+        projection = 'Lambert';
         if (ischar(lambdaMin))
             if (sum(strcmp(lambdaMin,[{'coast'}, {'ita'}, {'provinces'},{'10m'},{'30m'},{'50m'}])))
                 shape = lambdaMin;                                        % prettyScatter(dataScatter, phiMin, phiMax, lambdaMin, lambdaMax, shape);
@@ -340,7 +340,7 @@ if (sum(diff(lambdaTmp) == val) == 1) && val > 10
     lambdaTmp(1:idMax) = lambdaTmp(1:idMax)+360;
     if ~limitsOk
         lambdaMax = lambdaTmp(idMax);
-        lambdaMin = lambdaTmp(idMax+1);    
+        lambdaMin = lambdaTmp(idMax+1);
     end
 end
 
@@ -376,7 +376,7 @@ if ~tohold
     % plot the dataScatter
     m_pcolor([lambdaMin lambdaMax],[phiMin phiMax], nan(2));
     % set the light
-    shading flat;    
+    shading flat;
 end
 
 ids = (lambda<lambdaMin) & (lambda < 0);

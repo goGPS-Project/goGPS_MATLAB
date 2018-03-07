@@ -21,7 +21,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -177,7 +177,7 @@ classdef File_Wizard < handle
                 this.state = Global_Configuration.getCurrentSettings();
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
-            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);                        
+            this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)

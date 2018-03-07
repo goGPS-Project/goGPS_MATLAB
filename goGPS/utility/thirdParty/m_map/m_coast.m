@@ -7,11 +7,11 @@ function h=m_coast(varargin)
 %         M_COAST( (standard line option,...,...) )  or
 %         M_COAST('line', (standard line option,...,...) ) draws the coastline
 %         as a simple line.
-%         M_COAST('patch' ( ,standard patch options,...,...) ) draws the 
+%         M_COAST('patch' ( ,standard patch options,...,...) ) draws the
 %         coastline as a number of patches. 
 %
-%    
-%         See also M_PROJ, M_GRID     
+%
+%         See also M_PROJ, M_GRID
 
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 15/June/98
 %

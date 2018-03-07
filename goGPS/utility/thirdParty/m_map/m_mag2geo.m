@@ -1,13 +1,13 @@
 function [longGEO,latGEO,phiVecGEO,thetaVecGEO]=m_mag2geo(longMAG,latMAG,phiVecMAG,thetaVecMAG)
 % M_MAG2GEO  Converts magnetic to geographic coordinates.
-%   [longGEO,latGEO]=M_MAG2GEO(longMAG,latMAG) converts geomagnetic 
-%   (dipole) coordinates to geographic coordinates.  IGRF 2000 is used 
-%   to determine the location of the geomagnetic dipole. All in units of 
-%   degrees with + longitudes east. All variables can be scalar or matrix 
+%   [longGEO,latGEO]=M_MAG2GEO(longMAG,latMAG) converts geomagnetic
+%   (dipole) coordinates to geographic coordinates.  IGRF 2000 is used
+%   to determine the location of the geomagnetic dipole. All in units of
+%   degrees with + longitudes east. All variables can be scalar or matrix
 %   but must have the same size.
 %
 %    Vector rotations can be carried using
-% 
+%
 %  [longGEO,latGEO,phiVecGEO,thetaVecGEO]=M_MAG2GEO(longMAG,latMAG,phiVecMAG,thetaVecMAG)
 %
 %   where
@@ -35,5 +35,5 @@ elseif nargin==4
    [longGEO,latGEO,phiVecGEO,thetaVecGEO]=mc_coords('mag2geo',longMAG,latMAG,phiVecMAG,thetaVecMAG);
 else
    error('Wrong number of input parameters');
-end  
+end
 

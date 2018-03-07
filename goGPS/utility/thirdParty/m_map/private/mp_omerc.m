@@ -46,7 +46,7 @@ switch optn
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs)],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
             [' Aspect ratio: ' num2str(MAP_VAR_LIST.aspect)],...
-            [' Baseline direction ' MAP_VAR_LIST.direc]); 
+            [' Baseline direction ' MAP_VAR_LIST.direc]);
 
   case 'initialize'
 
@@ -59,7 +59,7 @@ switch optn
     MAP_VAR_LIST.rectbox='on';  % THis is always the case for this projection; it's just
                                 % too difficult to comtemplate the other possibility
     k=2;
-    while k<length(varargin)   
+    while k<length(varargin)
       switch varargin{k}(1:3)
          case 'lon'
            MAP_VAR_LIST.ulongs=varargin{k+1};
@@ -148,7 +148,7 @@ switch optn
                 +cos(MAP_VAR_LIST.rpolelat)*sin(varargin{2})./cosh(-varargin{1}) )/pi180;
          X=(l_0+atan2( sin(MAP_VAR_LIST.rpolelat)*sin(varargin{2}) ...
                      -cos(MAP_VAR_LIST.rpolelat)*sinh(-varargin{1}), cos(varargin{2}) ) )/pi180;
-     end  
+     end
         
   case 'xgrid'
    

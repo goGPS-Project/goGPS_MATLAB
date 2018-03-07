@@ -85,7 +85,7 @@ function print2eps(name, fig, export_options, varargin)
 % 07/07/15: Fixed issue #83: use numeric handles in HG1
 % 22/07/15: Fixed issue #91 (thanks to Carlos Moffat)
 % 28/09/15: Fixed issue #108 (thanks to JacobD10)
-% 01/11/15: Fixed issue #112: optional renderer for bounding-box computation (thanks to Jesús Pestana Puerta)
+% 01/11/15: Fixed issue #112: optional renderer for bounding-box computation (thanks to Jesÿs Pestana Puerta)
 % 21/02/16: Enabled specifying non-automated crop amounts
 % 22/02/16: Better support + backward compatibility for transparency (issue #108)
 % 10/06/16: Fixed issue #159: text handles get cleared by Matlab in the print() command

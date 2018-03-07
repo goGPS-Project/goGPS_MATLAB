@@ -9,7 +9,7 @@ function [ncst,Area,k]=mu_coast(optn,varargin)
 %
 %         Calling sequence is MU_COAST(option,arguments) where
 %
-%         Option string  
+%         Option string
 %           c,l,i,h,f :  Accesses various GSHHS databases. Next argument is
 %                        GSHHS filename.
 %
@@ -17,14 +17,14 @@ function [ncst,Area,k]=mu_coast(optn,varargin)
 %                      data saved from a previous MU_COAST call). Next argument
 %                      is filename
 %
-%           v[ector] : Uses input vector of data. Next argument is the 
+%           v[ector] : Uses input vector of data. Next argument is the
 %                     data in the form of a nx2 matrix of [longitude latitude].
 %                     Patches must have first and last points the same. In a vector,
 %                     different patches can be separated by NaN.
 %
 %           d[efault] :  Accesses default coastline.
 %
-%         The arguments given above are then followed by (optional) arguments 
+%         The arguments given above are then followed by (optional) arguments
 %         specifying lines or patches, in the form:
 %
 %          optional arguments:  <line property/value pairs>, or
@@ -40,8 +40,8 @@ function [ncst,Area,k]=mu_coast(optn,varargin)
 %         coastal region.
 %
 %
-%    
-%         See also M_PROJ, M_GRID     
+%
+%         See also M_PROJ, M_GRID
 
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 2/Apr/1997
 %
@@ -161,7 +161,7 @@ switch MAP_PROJECTION.routine
 end
 
 
-if ~isempty(varargin) 
+if ~isempty(varargin)
   if strcmp(varargin(1),'patch')
     optn='patch';
   end
@@ -200,10 +200,10 @@ switch optn
     case 'circle'
       rl=MAP_VAR_LIST.rhomax;
       [X,Y]=m_ll2xy(ncst(:,1),ncst(:,2),'clip','on');
-      oncearound=2*pi;    
+      oncearound=2*pi;
   end
 
-  if ~MAP_PROJECTION.newgraphics 
+  if ~MAP_PROJECTION.newgraphics
      p_hand=zeros(length(k)-1,1); % Patch handles
   else
      p_hand=gobjects(length(k)-1,1); % Patch handles
@@ -215,7 +215,7 @@ switch optn
     fk=isfinite(x);
     if any(fk)
       y=Y(k(i)+1:k(i+1)-1);XX=x;YY=y;
-%% if i>921, disp('pause 1'); pause; end; 
+%% if i>921, disp('pause 1'); pause; end;
       nx=length(x);
       if Area(i)<0, x=flipud(x);y=flipud(y); fk=flipud(fk); end
 %clf
@@ -270,7 +270,7 @@ switch optn
         switch MAP_VAR_LIST.rectbox
           case {'on','off'}
             for e=floor(estart):floor(s_edge(mi))
-              if e==floor(s_edge(mi)), xe=x(st([mi mi])); ye=y(st([mi mi])); 
+              if e==floor(s_edge(mi)), xe=x(st([mi mi])); ye=y(st([mi mi]));
               else,  xe=xl; ye=yl; end
               switch rem(e,4)
                 case 0
@@ -296,8 +296,8 @@ switch optn
         end
         if mi==1 % joined back to start
     	   if strcmp(optn,'patch')
-               if strcmp(MAP_VAR_LIST.rectbox,'off') 
-                 [xx,yy]=m_ll2xy(xx,yy,'clip','off'); 
+               if strcmp(MAP_VAR_LIST.rectbox,'off')
+                 [xx,yy]=m_ll2xy(xx,yy,'clip','off');
                end
                if Area(i)<0
                   p_hand(i)=patch(xx,yy,varargin{2:end},'facecolor',get(gca,'color'));
@@ -310,15 +310,15 @@ switch optn
 	     else  % speckle
             if ~strcmp(MAP_VAR_LIST.rectbox,'off')  % If we were clipping in
 	           [xx,yy]=m_xy2ll(xx,yy);                % screen coords go back
-            end  
+            end
             if Area(i)>0
                p_hand(i)=m_hatch(xx,yy,'speckle',varargin{2:end});
                if ishandle(p_hand(i)),set(p_hand(i),'tag',[get(p_hand(i),'tag') '_lake']); end
-            else   
+            else
 	           p_hand(i)=m_hatch(xx,yy,'outspeckle',varargin{2:end});
                if ishandle(p_hand(i)),set(p_hand(i),'tag',[ get(p_hand(i),'tag') '_land']); end
             end
-         end  
+         end
 %%%if i>921, disp(['paused-2 ' int2str(i)]);pause; end;
          ed(1)=[];st(1)=[];edge2(1)=[];edge1(1)=[];
        else
@@ -329,7 +329,7 @@ switch optn
        end
 %%if i>921, disp(['paused-2 ' int2str(i)]);pause; end;
      end
-    end 
+    end
    end
   
    otherwise
@@ -342,13 +342,13 @@ switch optn
   [X,Y]=m_ll2xy(ncst(:,1),ncst(:,2),'clip','on');
  
   % Get rid of 2-point lines (these are probably clipped lines spanning the window)
-  fk=isfinite(X);        
+  fk=isfinite(X);
   st=find(diff(fk)==1)+1;
   ed=find(diff(fk)==-1);
   k=find((ed-st)==1);
   X(st(k))=NaN;
 
-  p_hand=line(X,Y,varargin{:}); 
+  p_hand=line(X,Y,varargin{:});
 
 end
 
@@ -479,23 +479,23 @@ while cnt>0
  
    % For versions > 12 there are 2 Antarctics - ice-line and grounding line,
    % also they changed the limits from 0-360 to -180 to 180.
-   if g.ver>14 
+   if g.ver>14
      switch g.level
-       case 6   
+       case 6
          g.level=flaglim+1; % ice line - don't show
-       case 5   
+       case 5
          g.level=1;         % grounding line - use this.
      end
    else
      %For Antarctica the lime limits are 0 to 360 (exactly), thus c==0 and the
      %line is not chosen for (e.g. a conic projection of part of Antarctica)
-     % Fix 30may/02 
-     if g.extentE==360e6, g.extentE=g.extentE-1; end 
-   end      
+     % Fix 30may/02
+     if g.extentE==360e6, g.extentE=g.extentE-1; end
+   end
      
    a=rlim>llim;  % Map limits cross longitude jump? (a==1 is no)
    b=g.greenwich<65536; % Cross boundary? (b==1 if no).
-   c=llim<rem(g.extentE+360e6,360e6); 
+   c=llim<rem(g.extentE+360e6,360e6);
    d=rlim>rem(g.extentW+360e6,360e6);
    e=tlim>g.extentS & blim<g.extentN;
  
@@ -506,7 +506,7 @@ while cnt>0
    if     e  ...
       && (    (  a&&( (b&&c&&d) || (~b&&(c||d) ) ) )    ...
            || ( ~a&&(    ~b     || ( b&&(c||d) ) ) )  ) ...
-      && g.level<=flaglim 
+      && g.level<=flaglim
   
      l=l+1;
      x=C(1:2:end)*1e-6;
@@ -533,7 +533,7 @@ while cnt>0
          y=[-89.9;-78.4;y;   -78.4;-89.9*ones(19,1)];
          x=[ 180; 180 ;x;    -180; [-180:20:180]'];
        end
-     end  
+     end
     
    
      %plot(x,y);pause;
@@ -544,7 +544,7 @@ while cnt>0
      if g.area>0
     
        if x(end)~=x(1) || y(end)~=y(1)   % First and last points should be the same
-             x=[x;x(1)];y=[y;y(1)]; 
+             x=[x;x(1)];y=[y;y(1)];
        end
     
        % get correct curve orientation for patch-fill algorithm.
@@ -553,10 +553,10 @@ while cnt>0
        Area(l)=g.area/10;                                  % Area "on the globe"
 
        if rem(g.level,2)==0  % Make lakes (2) and islands (1) differently oriented
-         Area(l)=-abs(Area(l)); 
+         Area(l)=-abs(Area(l));
          if Area2(l)>0, x=x(end:-1:1);y=y(end:-1:1); end
        else
-         if Area2(l)<0, x=x(end:-1:1);y=y(end:-1:1); end 
+         if Area2(l)<0, x=x(end:-1:1);y=y(end:-1:1); end
        end
        
      else
@@ -564,7 +564,7 @@ while cnt>0
        if length(x)==2
           x=[x(1);mean(x);x(2)];
           y=[y(1);mean(y);y(2)];
-       end 
+       end
      end
  
      % Here we try to reduce the number of points and clip them
@@ -591,7 +591,7 @@ while cnt>0
         ncst(k(l)+1:k(l+1),:)=[cx,cy;NaN NaN];
      end
     
-     %plot(ncst(:,1),ncst(:,2));drawnow; 
+     %plot(ncst(:,1),ncst(:,2));drawnow;
    end
   [cnt,g]=get_gheader(fid);
 end
@@ -613,7 +613,7 @@ function [x,y]=clip_to_lims(x,y,m,decfac)
    % by a factor of about 'decfac' (don't get rid of them completely because that
    % can sometimes cause problems when polygon edges cross curved map edges).
    
-   tol=.2;   
+   tol=.2;
   
    % Do y limits, then x so we can keep corner points.
    
@@ -645,14 +645,14 @@ function [x,y]=clip_to_lims(x,y,m,decfac)
                      % or left (i.e. not in wraparound case)
      x(x>m.rlim+tol)=m.rlim+tol;
      x(x<m.llim-tol)=m.llim-tol;
-   end   
+   end
    
 
 end
 
 function [cnt,g]=get_gheader(fid)
 % Reads the gshhs file header
-% 
+%
 % A bit of code added because header format changed with version 1.3.
 %
 % 17/Sep/2008 - added material to handle latest GSHHS version.
@@ -682,7 +682,7 @@ function [cnt,g]=get_gheader(fid)
 %
 %int id;				/* Unique polygon id number, starting at 0 */
 %int n;				/* Number of points in this polygon */
-%int flag;			/* level + version << 8 + greenwich << 16 + source << 24 
+%int flag;			/* level + version << 8 + greenwich << 16 + source << 24
 %int west, east, south, north;	/* min/max extent in micro-degrees */
 %int area;			/* Area of polygon in 1/10 km^2 */
 %
@@ -712,7 +712,7 @@ function [cnt,g]=get_gheader(fid)
 %	int area;	/* Area of polygon in 1/10 km^2 */
 %	int area_full;	/* Area of original full-resolution polygon in 1/10 km^2 */
 %	int container;	/* Id of container polygon that encloses this polygon (-1 if none) */
-%	int ancestor;	/* Id of ancestor polygon in the full resolution set that was the source of this polygon (-1 if none) 
+%	int ancestor;	/* Id of ancestor polygon in the full resolution set that was the source of this polygon (-1 if none)
 
 
 % Now, in the calling code I have to use A(2),A(3),A(5-7), A(8), A(9) from original.

@@ -1,21 +1,21 @@
 function h=m_windbarb(long,lat,u,v,varargin)
 %  M_WINDBARB Project wind barbs onto map axes
 %
-%  M_WINDBARB(LONG,LAT,U,V) projects two dimensional wind barbs onto the 
-%  current map axes. The vector components (U,V) are assumed to be in units 
-%  of knots and are specified at the points (LON,LAT). It handles winds up 
+%  M_WINDBARB(LONG,LAT,U,V) projects two dimensional wind barbs onto the
+%  current map axes. The vector components (U,V) are assumed to be in units
+%  of knots and are specified at the points (LON,LAT). It handles winds up
 %  to 130 knots. Winds exceeding 130 knots will appear as 130 knots.
 %
 %  If (u,v) are both positive, barbs appear to the SW of the vector head.
 %  (in quiver, the arrowhead would be in the NE)
 %
-%  M_WINDBARB(...,S) uses the input S to scale the vectors after 
+%  M_WINDBARB(...,S) uses the input S to scale the vectors after
 %  they have been automatically scaled to fit within the grid. If omitted, 
 %  S = 0.9 is assumed.
-%  
+%
 %  M_WINDBARB(...,'PropertyName',PropertyValue,...) allows you to specify
 %  additional LINE properties.
-% 
+%
 %  An additional parameter/value pair allows for u/v vectors in units
 %  other than knots:
 %          'units' : 'knots' | 'm/s' | 'kmh' | 'mph'
@@ -48,7 +48,7 @@ end
 
 if scale==0
     error(['map:' mfilename ':invalidScale'], ...
-            'Invalid scale factor - must be greater than zero.')   
+            'Invalid scale factor - must be greater than zero.')
 end
 %      1 knot = 0.5144 m/s = 1.852 kmh = 1.151 mph
 
@@ -104,7 +104,7 @@ g{9} = (umag > 2.5  & umag <= 7.5 ) | (umag > 12.5 & umag <= 17.5);
 g{10} = umag > 22.5 & umag <= 27.5;
 g{11} =(umag > 32.5 & umag <= 37.5) | (umag > 52.5 & umag <= 57.5);
 g{12} =(umag > 42.5 & umag <= 47.5) | (umag > 62.5 & umag <= 67.5);
-g{13} =(umag > 72.5 & umag <= 77.5) | (umag > 102.5 & umag <= 107.5); 
+g{13} =(umag > 72.5 & umag <= 77.5) | (umag > 102.5 & umag <= 107.5);
 g{14} =(umag > 82.5 & umag <= 87.5) | (umag > 112.5 & umag <= 117.5);
 g{15} =(umag > 92.5 & umag <= 97.5) | (umag > 122.5 & umag <= 127.5);
 g{16} = umag > 47.5;
@@ -129,7 +129,7 @@ c{13} =[-.375 0; -.4375 .1625]; % Half barb 6
 c{14} =[-.25  0; -.3125 .1625]; % Half barb 7
 c{15} =[-.125 0; -.1875 .1625]; % Half barb 8
 c{16} =[-1    0; -.875  .325];  % Slant other way for triangle 1
-c{17} =[-.75  0; -.625  .325];  % Slant other way for taingle 
+c{17} =[-.75  0; -.625  .325];  % Slant other way for taingle
 c{18} =[0     0; -1      0  ];  % Base
 
 %set scale based on average latitude spacing

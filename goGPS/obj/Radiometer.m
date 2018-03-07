@@ -104,7 +104,7 @@ classdef Radiometer < handle
             this.el  = [];
             this.az  = [];
             
-            this.bright_21  = [];    
+            this.bright_21  = [];
             this.sigma_br_21  = [];
             this.bright_314  = [];
             this.sigma_br_314  = [];
@@ -175,7 +175,7 @@ classdef Radiometer < handle
             end
             el = 90 - abs(90-el);
             
-            bright_21  = data(:,15);    
+            bright_21  = data(:,15);
             sigma_br_21 = data(:,16);
             bright_314 = data(:,17);
             sigma_br_314 = data(:,18);
@@ -247,7 +247,7 @@ classdef Radiometer < handle
                 
                 zwd_wvr(id_ko,i) = nan;
                 %plot(t_pred, zwd_wvr(:,i),'.'); hold on;
-                t_obs = [];                
+                t_obs = [];
             end
             %hold on; plot(t, rad.zwd,'.k','LineWidth', 0.5);
             
@@ -299,7 +299,7 @@ classdef Radiometer < handle
                 drawnow
             end
         end
-    end   
+    end
     
     methods (Static)
         function wvr = loadBatch(file_name, run_start, run_stop)
@@ -307,7 +307,7 @@ classdef Radiometer < handle
             %
             % SYNTAX:  
             %   tropo = Tropo.loadBatch(file_name, run_start, run_stop)
-            % 
+            %
             % INPUT:
             %   file_name     it should include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
             %   run_start     number of the first run to load

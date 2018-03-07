@@ -22,8 +22,8 @@ else
     if strcmp(MAP_COORDS.name,'geographic')
       [long,lat]=mc_coords('mag2geo',long,lat);
     else
-      [long,lat]=mc_coords('geo2mag',long,lat);      
-    end 
+      [long,lat]=mc_coords('geo2mag',long,lat);
+    end
   end
 end
 

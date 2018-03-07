@@ -10,7 +10,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -58,7 +58,7 @@ classdef Exportable < handle
             cm = log.getColorMode();
             log.setColorMode(false);
             warning off
-            if (numel(this) == 0) 
+            if (numel(this) == 0)
                 out = [];
             end
             for i = 1 : numel(this)

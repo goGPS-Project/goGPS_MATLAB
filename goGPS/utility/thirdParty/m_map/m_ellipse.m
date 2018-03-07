@@ -1,7 +1,7 @@
 function [h,varargout]=m_ellipse(long,lat,fmaj,fmin,finc,fpha,scl,tpe,varargin)
 % M_ELLIPSE Draws ellipses on a map.
 %      [H]=M_ELLIPSE(LONG,LAT,MAJOR,MINOR,INC,PHA,SCALE,TYPE)
-%      draws ellipses as patch objects or lines on a map created 
+%      draws ellipses as patch objects or lines on a map created
 %      by the M_Map package.
 %
 %      H:  vector of handles to the patch or line object
@@ -14,7 +14,7 @@ function [h,varargout]=m_ellipse(long,lat,fmaj,fmin,finc,fpha,scl,tpe,varargin)
 %      SCALE:     scale factor (set to [] for default scale)
 %      TYPE:      'patch' or 'line'
 %      VARARGIN   options passed to the patch or line objects
-%       
+%
 %      By default, drawing the ellipses as patch objects with phase
 %      information will produce an ellipse using the full range
 %      colours of the current colormap.  As time increases around the
@@ -34,8 +34,8 @@ function [h,varargout]=m_ellipse(long,lat,fmaj,fmin,finc,fpha,scl,tpe,varargin)
 %            - coordinate transformation for maps covering large areas
 %            - phase lines added to 'line' option
 %            - phase line colours change with rotation direction
-% Mark Halverson (mhalvers@eos.ubc.ca) 
-%       28/03/2013  
+% Mark Halverson (mhalvers@eos.ubc.ca)
+%       28/03/2013
 %            - added crude input error handling
 
 
@@ -52,18 +52,18 @@ if nargin<8
 end
 
 if isempty(scl)
-  scl=1;    
+  scl=1;
 end
 scl=scl*1/100/60*2;
 
-% flag to determine how to deal with phase info 
+% flag to determine how to deal with phase info
 pha_flag=1;  %draw phase lines for ellipse type 'line'
 
 % if phase information is not given - take it to be 0
 
 if isempty(fpha)
   fpha=zeros(size(fmaj));
-  pha_flag=0;  % do not draw phase lines or phase patch colours 
+  pha_flag=0;  % do not draw phase lines or phase patch colours
 end
 
 % if any(finc<0) | any(finc>180),
@@ -72,7 +72,7 @@ end
 % end
 
 t=[0:1/24:1 NaN]*360;  % 0 to 360 for drawing ellipses
-%t=[0:.1/24:1 NaN]*360;  % 0 to 360 for drawing ellipses                        
+%t=[0:.1/24:1 NaN]*360;  % 0 to 360 for drawing ellipses
 %t=[0:1/24:0.958333 NaN]*360;  % 0 to 360 for drawing ellipses
 
 lt=length(t);
@@ -88,7 +88,7 @@ fpha2=repmat(fpha(:),1,lt);
 fmin2=repmat(fmin(:)*scl,1,lt);
 t2=repmat(t,size(fmaj2,1),1);
  
-% parametric equation for ellipse 
+% parametric equation for ellipse
 phang=t2-fpha2;  % Phase angle relative to greenwich
                  % A small positive greenwich phase should appear a
 		 % small distance CW if the sense of rotation is CCW.
@@ -109,7 +109,7 @@ my=x.*repmat(diff(YE)',1,lt)*1000 + y.*repmat(diff(YN)',1,lt)*1000;
 
 % coordinates for the ellipse
 xe=(X2+mx)'; % center plus ellipse edge
-ye=(Y2+my)'; 
+ye=(Y2+my)';
  
 
 % Draw each ellipse as a series of triangular patches, and shade each
@@ -128,7 +128,7 @@ if strcmp(tpe,'patch')
      yp=[Y';ye([k;k+1],:)];
 
      h(k)=patch(xp,yp,ones(size(xp))*(lt-k).^(1/3),(k).^(1/3),varargin{:});
-  end   
+  end
   set(h,'edgecolor','none','clip','off')
   
   if pha_flag==0  %no phase info, and no varargin given

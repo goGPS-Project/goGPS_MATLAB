@@ -26,7 +26,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -643,7 +643,7 @@ classdef GPS_Time < Exportable & handle
                     time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
                     rounding = 10.^(round(16 - max(0,log10(this.mat_time * 86400 + eps(this.mat_time * 86400))))); % 52 bits of mantissa
-                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding;                    
+                    this.unix_time_f = round((time_s - double(this.unix_time)) .* rounding) ./ rounding;
                     second_correction = - floor(this.unix_time_f);
                     this.unix_time = this.unix_time - uint32(second_correction);
                     this.unix_time_f = this.unix_time_f + second_correction;
@@ -697,7 +697,7 @@ classdef GPS_Time < Exportable & handle
                 this.is_gps = false;
             else
                 if (this.is_gps == true)
-                    if (this.leap_seconds(1) >= 999) || (length(this.leap_seconds) ~= this.length) 
+                    if (this.leap_seconds(1) >= 999) || (length(this.leap_seconds) ~= this.length)
                         this.leap_seconds = this.computeLeapSeconds();
                     end
                     this.addSeconds(-this.leap_seconds);
@@ -873,7 +873,7 @@ classdef GPS_Time < Exportable & handle
                     second_correction = - floor(unix_time_f);
                     unix_time = unix_time - uint32(second_correction);
                     unix_time_f = unix_time_f + second_correction;
-            end            
+            end
         end
         
         function date6col = get6ColDate(this)
@@ -1074,11 +1074,11 @@ classdef GPS_Time < Exportable & handle
                     this.mat_time = (round(this.mat_time * 86400 ./ rounding) .* rounding) / 86400;
                 case 1 % I'm in UNIX TIME
                     this.unix_time_f = round(this.unix_time_f ./ rounding) .* rounding;
-                    idx =  this.unix_time_f >= 1;                    
+                    idx =  this.unix_time_f >= 1;
                     this.unix_time(idx) = this.unix_time(idx) + uint32(ceil(this.unix_time_f(idx)));
                     this.unix_time_f(idx) = this.unix_time_f(idx) - ceil(this.unix_time_f(idx));
                     
-                    idx =  this.unix_time_f < 0;                    
+                    idx =  this.unix_time_f < 0;
                     this.unix_time(idx) = this.unix_time(idx) - uint32(-floor(this.unix_time_f(idx)));
                     this.unix_time_f(idx) = this.unix_time_f(idx) - floor(this.unix_time_f(idx));
                 case 2 % I'm in REF TIME
@@ -1277,7 +1277,7 @@ classdef GPS_Time < Exportable & handle
             
             [~, sec, sec_f] = GPS_Time.minus(gt_1, gt_2);
             prec = max(gt_1.getPrecision, gt_2.getPrecision);
-            res = abs(sec+sec_f) < prec;            
+            res = abs(sec+sec_f) < prec;
         end
         
         function [sec, sec_i, sec_f] = minus(gt_1, gt_2)
@@ -1290,7 +1290,7 @@ classdef GPS_Time < Exportable & handle
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             sec_i = int64(unix_time1) - int64(unix_time2);
-            sec_f = unix_time_f1 - unix_time_f2;            
+            sec_f = unix_time_f1 - unix_time_f2;
             
             % make the two values consistent
             idx_sec = sec_i > 0;

@@ -7,7 +7,7 @@ function varargout = pdftops(cmd)
 % Attempts to locate a pdftops executable, finally asking the user to
 % specify the directory pdftops was installed into. The resulting path is
 % stored for future reference.
-% 
+%
 % Once found, the executable is called with the input command string.
 %
 % This function requires that you have pdftops (from the Xpdf package)

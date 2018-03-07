@@ -19,7 +19,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -887,7 +887,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
             str_cell = Ini_Manager.toIniStringComment('         this flag could cause memory problems', str_cell);
             str_cell = Ini_Manager.toIniString('flag_keep_rec_list', this.flag_keep_rec_list, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
         function str_cell = exportIO_station(this, str_cell)
@@ -910,12 +910,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Name of coordinates (CRD) file', str_cell);
             str_cell = Ini_Manager.toIniString('crd_name', this.crd_name, str_cell);
             
-            str_cell = Ini_Manager.toIniStringComment('Set the a-priori information on the motion of the receiver', str_cell); 
-            str_cell = Ini_Manager.toIniString('rec_dyn_mode', this.rec_dyn_mode, str_cell); 
-            for i = 1 : numel(this.DYN_MODE) 
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell); 
+            str_cell = Ini_Manager.toIniStringComment('Set the a-priori information on the motion of the receiver', str_cell);
+            str_cell = Ini_Manager.toIniString('rec_dyn_mode', this.rec_dyn_mode, str_cell);
+            for i = 1 : numel(this.DYN_MODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell);
             end
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of meteorological data', str_cell);
             str_cell = Ini_Manager.toIniString('met_dir', fnp.getRelDirPath(this.met_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteorological file (when found it will be used)', str_cell);
@@ -1297,7 +1297,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
-        end        
+        end
         
         % File type specific ----------------------------------------------
 

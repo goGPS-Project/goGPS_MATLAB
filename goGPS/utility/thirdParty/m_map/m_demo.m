@@ -129,7 +129,7 @@ switch i
   
     m_proj('lambert','lon',[-10 20],'lat',[33 48]);
     if MAP_PROJECTION.IsOctave
-       [CS,CH]=m_tbase('contourf',[-5000:500:3000]); 
+       [CS,CH]=m_tbase('contourf',[-5000:500:3000]);
     else
        [CS,CH]=m_tbase('contourf',[-5000:500:3000],'edgecolor','none');
     end
@@ -213,7 +213,7 @@ switch i
     dates=datenum(1997,10,23,15,1:41,zeros(1,41));
 
     m_track(lons,lats,dates,'ticks',0,'times',4,'dates',8,...
-           'clip','off','color','r','orient','upright');  
+           'clip','off','color','r','orient','upright');
            
   case 11
   

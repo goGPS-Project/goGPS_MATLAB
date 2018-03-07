@@ -154,12 +154,12 @@ classdef Earth_Magnetic_Field < handle
             V =  re * sum(sum(arn .* (G .* cosm + H .* sinm) .* P));
         end
         function B = getBnum(this, gps_time, r, phi, theta)
-            % X 
+            % X
             dtheta = 0.1/180*pi;
             V2 = this.getV( gps_time, r, phi, theta-dtheta/2);
             V1 = this.getV( gps_time, r, phi, theta+dtheta/2);
             X = (V2 - V1)/dtheta * 1 / r;
-            % Y 
+            % Y
             dphi = 0.1/180*pi;
             V2 = this.getV( gps_time, r, phi+dphi/2, theta);
             V1 = this.getV( gps_time, r, phi-dphi/2, theta);
@@ -212,7 +212,7 @@ classdef Earth_Magnetic_Field < handle
             M = N';
             % X dV/dtheta
             dP = this.interpolatedP(cos(lat));
-            X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP)); 
+            X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
             % Y dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
             Y = - re / (r * sin(lat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));

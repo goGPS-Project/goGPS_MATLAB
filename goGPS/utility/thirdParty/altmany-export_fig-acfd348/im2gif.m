@@ -8,8 +8,8 @@
 %   im2gif(..., '-nodither')
 %   im2gif(..., '-ncolors', n)
 %   im2gif(..., '-loops', n)
-%   im2gif(..., '-delay', n) 
-%   
+%   im2gif(..., '-delay', n)
+%
 % This function converts a multiframe image to an animated GIF.
 %
 % To create an animation from a series of figures, export to a multiframe

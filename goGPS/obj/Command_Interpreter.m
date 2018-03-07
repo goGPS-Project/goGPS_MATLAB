@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -75,7 +75,7 @@ classdef Command_Interpreter < handle
         CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC'};
         VALID_CMD = {};
         CMD_ID = [];
-        % Struct containing cells are not created properly as constant => see init method        
+        % Struct containing cells are not created properly as constant => see init method
     end
     
     %% PROPERTIES SINGLETON POINTERS
@@ -99,7 +99,7 @@ classdef Command_Interpreter < handle
         function this = Command_Interpreter()
             % Core object creator
             this.log = Logger.getInstance();
-            this.init();            
+            this.init();
         end
     end
     %% METODS UI
@@ -243,7 +243,7 @@ classdef Command_Interpreter < handle
                         rec(r).staticPPP();
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
-                    end                    
+                    end
                 end
             end
         end

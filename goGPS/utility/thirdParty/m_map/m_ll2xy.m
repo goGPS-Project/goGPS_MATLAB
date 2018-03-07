@@ -49,8 +49,8 @@ else
      [X,Y,I]=feval(MAP_PROJECTION.routine,'ll2xy',LONG,LAT,args{:});
      
    else
-     error('m_ll2xy: Unrecognized coordinate system');   
-  end 
+     error('m_ll2xy: Unrecognized coordinate system');
+  end
 end
 
 if nargout==0

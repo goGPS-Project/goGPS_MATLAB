@@ -1,21 +1,21 @@
 function h=m_gshhs(resolution,varargin)
-% M_GSHHS Add a coastline to a given map using 
-%           the Global Self-consistant Hierarchical High-resolution 
+% M_GSHHS Add a coastline to a given map using
+%           the Global Self-consistant Hierarchical High-resolution
 %           Shorelines, Rivers, and Borders
 %
 %         M_GSHHS(RES, (standard line option,...,...) ) draws the coastline
 %         river network, or borders as  simple lines.
 %
-%         M_GSHHS(RES,'patch' ( ,standard patch options,...,...) ) draws the 
+%         M_GSHHS(RES,'patch' ( ,standard patch options,...,...) ) draws the
 %         coastline as a number of patches (rivers and borders are not
 %         arranged so patches can be drawn).
 %
 %         M_GSHHS(RES,'save',FILENAME) saves the extracted coastline data
-%         for the current projection in a file FILENAME. This allows 
+%         for the current projection in a file FILENAME. This allows
 %         speedier replotting using M_USERCOAST(FILENAME). 
-%    
+%
 %         RES: A one-char string (optionally 2 or 3)
-%         
+%
 %         First char: resolution - one of
 %                      'c'  crude
 %                      'l'  low
@@ -27,7 +27,7 @@ function h=m_gshhs(resolution,varargin)
 %                      'c' GSHHS coastline (default)
 %                      'b' WDB Border
 %                      'r' WDB River
-%  
+%
 %         Third char - if 2nd char is 'b':
 %                      '1' Country borders
 %                      '2' State/Province and Country borders
@@ -41,12 +41,12 @@ function h=m_gshhs(resolution,varargin)
 %                  2  or 'low'  	
 %                  3  or 'intermediate'  
 %                  4  or 'high' 	
-%                  5  or 'full  	
+%                  5  or 'full
 %
 %         but please don't use this).
 %
-%         See also M_PROJ, M_GRID, M_COAST, M_GSHHS_L, M_GSHHS_H, M_GSHHS_C 
-%         M_USERCOAST    
+%         See also M_PROJ, M_GRID, M_COAST, M_GSHHS_L, M_GSHHS_H, M_GSHHS_C
+%         M_USERCOAST
 
 % Rich Pawlowicz (rich@ocgy.ubc.ca) 15/June/98
 %
@@ -56,7 +56,7 @@ function h=m_gshhs(resolution,varargin)
 %
 %  16/Dec/2005
 %*********************************************************************
-%  Modified after code provided by Bruce Lipphardt (brucel@udel.edu) to 
+%  Modified after code provided by Bruce Lipphardt (brucel@udel.edu) to
 %  reduce the hierarchy of M_GSHHS_* routines to a single routine with a
 %  variable resolution input:
 % 20/Jan/2008 - added borders and rivers from gshhs v1.10
@@ -85,7 +85,7 @@ if ischar(resolution)
  end
  if length(resolution)>=3
    flaglim = resolution(3);
- end  
+ end
  resolution = strmatch(lower(resolution(1)),res_list);
 end
  

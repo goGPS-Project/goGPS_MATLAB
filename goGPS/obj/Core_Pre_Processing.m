@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -1147,7 +1147,7 @@ classdef Core_Pre_Processing < handle
                 dt = cumsum(ddt);
                 ph_bk = obs;
                 obs = bsxfun(@minus, obs, dt);
-                d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');                
+                d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');
                 dobs = Core_Pre_Processing.diffAndPred(obs);
                 % find jmps on the median 4th derivate
                 jmp_candidate = flagExpand(abs(nan2zero(d4dt)) > clock_thresh, 2);
@@ -1269,16 +1269,16 @@ classdef Core_Pre_Processing < handle
 
             log = Logger.getInstance();
                         
-            id_not_empty = time ~= 0; 
+            id_not_empty = time ~= 0;
 
-            time_desync = nan(size(time)); 
-            time_desync(id_not_empty)  = round((time(id_not_empty) - time_ref(id_not_empty)) * 1e7) / 1e7; % the rinex time has a maximum of 7 significant decimal digits 
+            time_desync = nan(size(time));
+            time_desync(id_not_empty)  = round((time(id_not_empty) - time_ref(id_not_empty)) * 1e7) / 1e7; % the rinex time has a maximum of 7 significant decimal digits
             time_desync = simpleFill1D(time_desync,isnan(time_desync),'nearest');
             
             if any(time_desync)
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
-                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);                
-                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);                
+                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
                 
                 %% time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
                 ddt = [0; diff(time_desync)];
@@ -1287,7 +1287,7 @@ classdef Core_Pre_Processing < handle
                 
                 % Linear interpolation of ddrifting
                 jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock                
+                jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock
                 d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
                 jmp = [jmp_reset; jmp_fit];
                 drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
@@ -1300,7 +1300,7 @@ classdef Core_Pre_Processing < handle
                 dt_pr = dt_pr - t_offset;
                 
                 ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
+                pr = bsxfun(@minus, pr, dt_pr .* 299792458);
             else
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
@@ -1317,7 +1317,7 @@ classdef Core_Pre_Processing < handle
                 dt_pr = dt_pr - t_offset;
 
                 ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                pr = bsxfun(@minus, pr, dt_pr .* 299792458);                
+                pr = bsxfun(@minus, pr, dt_pr .* 299792458);
             end
             
             if any(dt_ph_dj)
@@ -1329,7 +1329,7 @@ classdef Core_Pre_Processing < handle
                 log.addMessage(log.indent('Correcting pseudo-ranges jumps', 6),100);
             else
                 log.addMessage(log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6),100);
-            end            
+            end
         end
         
         function [obs_out] = remShortArcs(obs_in, min_len)

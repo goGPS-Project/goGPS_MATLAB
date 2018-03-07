@@ -7,7 +7,7 @@ function varargout = ghostscript(cmd)
 % Attempts to locate a ghostscript executable, finally asking the user to
 % specify the directory ghostcript was installed into. The resulting path
 % is stored for future reference.
-% 
+%
 % Once found, the executable is called with the input command string.
 %
 % This function requires that you have Ghostscript installed on your
@@ -32,7 +32,7 @@ function varargout = ghostscript(cmd)
 %            Punnoose for highlighting the issue.
 % 28/06/13 - Fix error using GS 9.07 in Linux. Many thanks to Jannick
 %            Steinbring for proposing the fix.
-% 24/10/13 - Fix error using GS 9.07 in Linux. Many thanks to Johannes 
+% 24/10/13 - Fix error using GS 9.07 in Linux. Many thanks to Johannes
 %            for the fix.
 % 23/01/14 - Add full path to ghostscript.txt in warning. Thanks to Koen
 %            Vermeer for raising the issue.

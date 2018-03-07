@@ -100,10 +100,10 @@ switch optn
     end
     if isnan(MAP_VAR_LIST.clong)
       if isnan(MAP_VAR_LIST.false)
-         MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs); 
+         MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
       else
          MAP_VAR_LIST.clong=MAP_VAR_LIST.false(1);
-      end 	 
+      end
     elseif ~longs_def, MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];  end
     if isnan(MAP_VAR_LIST.parallels), MAP_VAR_LIST.parallels=mean(MAP_VAR_LIST.ulats)*[1 1]; end
     if isnan(MAP_VAR_LIST.false), MAP_VAR_LIST.false=[MAP_VAR_LIST.clong mean(MAP_VAR_LIST.parallels)]; end
@@ -133,7 +133,7 @@ switch optn
 	        1./(2*e)*log((1-e.*sin(MAP_VAR_LIST.rfalse(2)))./(1+e.*sin(MAP_VAR_LIST.rfalse(2)))) );
 	   MAP_VAR_LIST.n=-diff(m12.^2)/diff(q12);
 	   MAP_VAR_LIST.C=m12(1).^2 + MAP_VAR_LIST.n.*q12(1);
-	   MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q0)/MAP_VAR_LIST.n;	
+	   MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q0)/MAP_VAR_LIST.n;
         end
       case name(2)
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
@@ -152,12 +152,12 @@ switch optn
 	      tF=tan(pi/4-MAP_VAR_LIST.rfalse(2)/2)./( (1-e*sin(MAP_VAR_LIST.rfalse(2)))./(1+e*sin(MAP_VAR_LIST.rfalse(2))) ).^(e/2);
 	      if diff(MAP_VAR_LIST.rparallels)==0
 	         MAP_VAR_LIST.n=sin(MAP_VAR_LIST.rparallels(1));
-          else   
+          else
              MAP_VAR_LIST.n=diff(log(m12))/diff(log(t12));
-          end   
+          end
 	      MAP_VAR_LIST.F=m12(1)/MAP_VAR_LIST.n/t12(1).^MAP_VAR_LIST.n;
 	      MAP_VAR_LIST.rho0=MAP_VAR_LIST.ellip(1)*MAP_VAR_LIST.F*tF.^MAP_VAR_LIST.n;
-        end  
+        end
     end
 
     % check for a valid ellipsoid. if not, use the normalized sphere
@@ -190,7 +190,7 @@ switch optn
     end
 
     switch MAP_PROJECTION.name
-      case name(1)  
+      case name(1)
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
            rho=sqrt(MAP_VAR_LIST.C-2*MAP_VAR_LIST.n*sin(lat*pi180))/MAP_VAR_LIST.n;
         else
@@ -198,7 +198,7 @@ switch optn
 	       q= (1-e.^2)*(sin(lat*pi180)./(1-(e.*sin(lat*pi180)).^2) - ...
 	            1./(2*e)*log((1-e.*sin(lat*pi180))./(1+e.*sin(lat*pi180))) );
 	       rho=MAP_VAR_LIST.ellip(1)*sqrt(MAP_VAR_LIST.C-MAP_VAR_LIST.n*q)/MAP_VAR_LIST.n;
-        end  
+        end
       case name(2)
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
            lat(lat==-90)=-89.999; % Prevents /0 problems in next line
@@ -207,11 +207,11 @@ switch optn
 	       e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
 	       t=tan(pi/4-lat*pi180/2)./( (1-e*sin(lat*pi180))./(1+e*sin(lat*pi180)) ).^(e/2);
 	       rho=MAP_VAR_LIST.ellip(1)*MAP_VAR_LIST.F*t.^MAP_VAR_LIST.n;
-        end 
+        end
     end
     theta=MAP_VAR_LIST.n*(long-MAP_VAR_LIST.false(1))*pi180;
 
-    X=real(rho.*sin(theta));    
+    X=real(rho.*sin(theta));
     Y=real(MAP_VAR_LIST.rho0-rho.*cos(theta));
 
     % Clip out-of-range values (rectangular box)
@@ -228,24 +228,24 @@ switch optn
 
   case 'xy2ll'
 
-    pi180=pi/180; 
+    pi180=pi/180;
     
     switch MAP_PROJECTION.name
-      case name(1)   
+      case name(1)
         rho=sqrt(varargin{1}.^2+(MAP_VAR_LIST.rho0-varargin{2}).^2);
         theta=atan(varargin{1}./(MAP_VAR_LIST.rho0-varargin{2}));
         if strcmp(MAP_VAR_LIST.ellipsoid,'normal')
            Y=asin((MAP_VAR_LIST.C-(rho*MAP_VAR_LIST.n).^2)/(2*MAP_VAR_LIST.n))/pi180;
 	else
 	   e=sqrt(2*MAP_VAR_LIST.ellip(2)-MAP_VAR_LIST.ellip(2)^2);
-           q=(MAP_VAR_LIST.C - (rho.*MAP_VAR_LIST.n/MAP_VAR_LIST.ellip(1)).^2)./MAP_VAR_LIST.n;	  
+           q=(MAP_VAR_LIST.C - (rho.*MAP_VAR_LIST.n/MAP_VAR_LIST.ellip(1)).^2)./MAP_VAR_LIST.n;
 	   % Y is computed iteratively
 	   Y=asin(q/2);
 	   for k=1:4
 	     Y=Y+(1-(e.*sin(Y)).^2).^2./(2*cos(Y)).*( q./(1-e.^2) - sin(Y)./(1-(e.*sin(Y)).^2) + ...
 	         1./(2*e)*log( (1-e*sin(Y))./(1+e*sin(Y)) ) );
        end
-	   Y=Y/pi180; 
+	   Y=Y/pi180;
         end
       case name(2)
         rho=sign(MAP_VAR_LIST.n)*sqrt(varargin{1}.^2+(MAP_VAR_LIST.rho0-varargin{2}).^2);
@@ -259,9 +259,9 @@ switch optn
 	       Y=pi/2 - 2*atan(tp);
 	       for k=1:4
 	         Y=pi/2 - 2*atan(tp.*((1-e*sin(Y))./(1+e*sin(Y))).^(e/2) );
-           end  
+           end
 	       Y=Y/pi180;
-        end   
+        end
     end
     % Clip out-of-range values (lat/long box)
     X=MAP_VAR_LIST.false(1)+(theta/MAP_VAR_LIST.n)/pi180;

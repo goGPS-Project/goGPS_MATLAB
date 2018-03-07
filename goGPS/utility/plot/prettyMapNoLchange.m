@@ -72,7 +72,7 @@
 %    projection = 'Lambert'
 %
 % AVAILABLE PROJECTION:
-%    * Lambert                  
+%    * Lambert
 %      Stereographic
 %      Orthographic
 %      Azimuthal Equal-area
@@ -124,7 +124,7 @@ limitsOk = false;
 tohold = false;
 if length(findall(0,'Type','figure'))>=1
     if ishold
-        clf; 
+        clf;
         tohold = true;
     else
         figure;
@@ -146,7 +146,7 @@ switch (nargin)
         
         phiGrid    = (phiMin + deltaPhi/2 : deltaPhi : phiMax - deltaPhi/2)';
         lambdaGrid = (lambdaMin + deltaLambda/2 :  deltaLambda :  lambdaMax  - deltaLambda/2)';
-    case 2 
+    case 2
         shape = 'coast';
         lineCol = [0 0 0];
         projection = 'Miller Cylindrical';
@@ -274,12 +274,12 @@ switch (nargin)
         limitsOk = true;
         projection = 'Lambert';
         if (ischar(lambdaMin))
-            if (sum(strcmp(lambdaMin,[{'none'},{'coast'},{'fill'},{'10m'},{'30m'},{'50m'}])))  
+            if (sum(strcmp(lambdaMin,[{'none'},{'coast'},{'fill'},{'10m'},{'30m'},{'50m'}])))
                 shape = lambdaMin;                                        % prettyMap(map, phiMin, phiMax, lambdaMin, lambdaMax, shape);
-            else                                                          
+            else
                 projection = lambdaMin;                                   % prettyMap(map, phiMin, phiMax, lambdaMin, lambdaMax, projection);
             end
-        elseif (length(lambdaMin) == 3)                                   
+        elseif (length(lambdaMin) == 3)
             lineCol = lambdaMin;                                          % prettyMap(map, phiMin, phiMax, lambdaMin, lambdaMax, lineCol);
         end
 
@@ -345,13 +345,13 @@ switch (nargin)
         lineCol = [0 0 0];
         limitsOk = true;
         if (ischar(projection))
-            if (sum(strcmp(projection,[{'none'},{'coast'},{'fill'},{'10m'},{'30m'},{'50m'}])))  
+            if (sum(strcmp(projection,[{'none'},{'coast'},{'fill'},{'10m'},{'30m'},{'50m'}])))
                 shape = projection;                                       % prettyMap(map, phiGrid, lambdaGrid, phiMin, phiMax, lambdaMin, lambdaMax, shape);
                 projection = 'Lambert';
-            else                                                          
+            else
                                                                           % prettyMap(map, phiGrid, lambdaGrid, phiMin, phiMax, lambdaMin, lambdaMax, projection);
             end
-        elseif (length(projection) == 3)                                   
+        elseif (length(projection) == 3)
             lineCol = projection;                                         % prettyMap(map, phiGrid, lambdaGrid, phiMin, phiMax, lambdaMin, lambdaMax, lineCol);
             projection = 'Lambert';
         end
@@ -399,7 +399,7 @@ lambdaGrid = sort(lambdaGrid);
 %     lambdaGrid(1:idMax) = lambdaGrid(1:idMax)+360;
 %     if ~limitsOk
 %         lambdaMax = lambdaGrid(idMax);
-%         lambdaMin = lambdaGrid(idMax+1);    
+%         lambdaMin = lambdaGrid(idMax+1);
 %     end
 % end
 lambdaGrid = sort(lambdaGrid);
@@ -441,12 +441,12 @@ if (~strcmp(shape,'none'))
 	    else
     	    M=m_shaperead('countries_50m');
 	    end
-    	[xMin,yMin] = m_ll2xy(lambdaMin,phiMin);    
-	    [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);    
+    	[xMin,yMin] = m_ll2xy(lambdaMin,phiMin);
+	    [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);
     	for k=1:length(M.ncst)
-        	lamC = M.ncst{k}(:,1);        
+        	lamC = M.ncst{k}(:,1);
 	        ids = lamC < lambdaMin;
-   	    	lamC(ids) = lamC(ids) + 360;        
+   	    	lamC(ids) = lamC(ids) + 360;
         	phiC = M.ncst{k}(:,2);
         	[x,y] = m_ll2xy(lamC,phiC);
         	if sum(~isnan(x))>1

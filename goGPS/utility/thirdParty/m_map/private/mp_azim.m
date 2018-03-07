@@ -24,7 +24,7 @@ function [X,Y,vals,labI]=mp_azim(optn,varargin)
 %   Orthographic   - neither conformal nor equal-area, but looks like globe
 %                    with viewpoint at infinity.
 %   Az Equal-area  - equal area, but not conformal (by Lambert)
-%   Az Equidistant - distance and direction from center are true 
+%   Az Equidistant - distance and direction from center are true
 %   Gnomonic       - all great circles are straight lines.
 %   Satellite      - a perspective view from a finite distance
 
@@ -82,7 +82,7 @@ switch optn
          otherwise
            disp(['Unknown option: ' varargin{k}]);
       end
-      k=k+2;    
+      k=k+2;
     end
     if strcmp(MAP_VAR_LIST.rectbox,'off'), MAP_VAR_LIST.rectbox='circle'; end
 
@@ -115,7 +115,7 @@ switch optn
       rradius=atan2(sinc,cosc);
       MAP_VAR_LIST.radius=rradius/pi180;
     end
-    MAP_VAR_LIST.cosradius=cos(rradius);  
+    MAP_VAR_LIST.cosradius=cos(rradius);
  
     switch MAP_PROJECTION.name
       case name(1)
@@ -135,7 +135,7 @@ switch optn
     if strcmp(MAP_VAR_LIST.rectbox,'on')
       if length(MAP_VAR_LIST.uradius)==1
         MAP_VAR_LIST.xlims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;
-        MAP_VAR_LIST.ylims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;        
+        MAP_VAR_LIST.ylims=[-1 1]/sqrt(2)*MAP_VAR_LIST.rhomax;
       else
         [X,Y]=mp_azim('ll2xy',MAP_VAR_LIST.uradius(1),MAP_VAR_LIST.uradius(2),'clip','off');
         MAP_VAR_LIST.xlims=[-abs(X) abs(X)];
@@ -156,7 +156,7 @@ switch optn
     lat=varargin{2}*pi180;
     vals=zeros(size(long));
 
-    pi180=pi/180;     
+    pi180=pi/180;
     cosc     =sin(MAP_VAR_LIST.rlat)*sin(lat)+cos(MAP_VAR_LIST.rlat)*(cos(lat).*cos(long));
     sinAzsinc=sin(long).*cos(lat);
     cosAzsinc=cos(MAP_VAR_LIST.rlat)*sin(lat)-sin(MAP_VAR_LIST.rlat)*(cos(lat).*cos(long));
@@ -176,7 +176,7 @@ switch optn
       case name(5)
         rho=sinc./cosc; % = tan(c)
       case name(6)
-        rho=sinc./(1+(1-cosc)/MAP_VAR_LIST.uradius); % 
+        rho=sinc./(1+(1-cosc)/MAP_VAR_LIST.uradius); %
     end
 
     sinc(sinc==0)=eps;
@@ -188,7 +188,7 @@ switch optn
     % in the orthographic map rho->0 for points on the other side of the
     % globe whereas c does not!
     
-    % Also, we clip on rho even if we later clip on X/Y because in some projections (e.g. the 
+    % Also, we clip on rho even if we later clip on X/Y because in some projections (e.g. the
     % orthographic) the X/Y locations wrap back. 
     if ~strcmp(varargin{4},'off')
         vals = vals | cosc<=MAP_VAR_LIST.cosradius+eps*10;
@@ -246,7 +246,7 @@ switch optn
 %        X=(MAP_VAR_LIST.rlong+atan2(varargin{1},varargin{2}))/pi180;
 %      otherwise
 %        X=(MAP_VAR_LIST.rlong+atan2( varargin{1}.*sin(c), ...
-%          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*varargin{2}.*sin(c) ) )/pi180; 
+%          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*varargin{2}.*sin(c) ) )/pi180;
 %     end;
 
    % Can be problem if the argument is slightly larger than 1 - then the asin
@@ -264,7 +264,7 @@ switch optn
         X=(MAP_VAR_LIST.rlong+atan2(V1,V2))/pi180;
       otherwise
         X=(MAP_VAR_LIST.rlong+atan2( V1.*sin(c), ...
-          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*V2.*sin(c) ) )/pi180; 
+          cos(MAP_VAR_LIST.rlat)*cos(c).*rho - sin(MAP_VAR_LIST.rlat)*V2.*sin(c) ) )/pi180;
     end
 
   case 'xgrid'

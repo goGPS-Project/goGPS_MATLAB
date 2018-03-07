@@ -46,7 +46,7 @@
 %    projection = 'Lambert'
 %
 % AVAILABLE PROJECTION:
-%    * Lambert                  
+%    * Lambert
 %      Stereographic
 %      Orthographic
 %      Azimuthal Equal-area
@@ -340,7 +340,7 @@ if (sum(diff(lambdaTmp) == val) == 1) && val > 10
     lambdaTmp(1:idMax) = lambdaTmp(1:idMax)+360;
     if ~limitsOk
         lambdaMax = lambdaTmp(idMax);
-        lambdaMin = lambdaTmp(idMax+1);    
+        lambdaMin = lambdaTmp(idMax+1);
     end
 end
 
@@ -386,11 +386,11 @@ hold on;
 [xlocal,ylocal] = m_ll2xy(lambda(:),phi(:));
 if isfield(dataQuiver,'rgb') % I also have colors!!!
     s=1;
-    for c = 1:length(dataQuiver)        
+    for c = 1:length(dataQuiver)
         quiverHandler = quiver(xlocal(s:(s+length(dataQuiver(c).u)-1)),ylocal(s:(s+length(dataQuiver(c).u)-1)),dataQuiver(c).u,dataQuiver(c).v,0, 'Color', [dataQuiver(c).rgb(1) dataQuiver(c).rgb(2) dataQuiver(c).rgb(3)]); % <========================= QUIVER function is here
         s = s+length(dataQuiver(c).u);
     end
-else   
+else
     quiverHandler = quiver(xlocal,ylocal,dataQuiver.u(:),dataQuiver.v(:),0); % <========================= QUIVER function is here
 end
 
@@ -403,12 +403,12 @@ if (~strcmp(shape,'coast'))
     else
         M=m_shaperead('countries_50m');
     end
-    [xMin,yMin] = m_ll2xy(lambdaMin,phiMin);    
-    [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);    
+    [xMin,yMin] = m_ll2xy(lambdaMin,phiMin);
+    [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);
     for k=1:length(M.ncst)
-        lamC = M.ncst{k}(:,1);        
+        lamC = M.ncst{k}(:,1);
         ids = lamC < lambdaMin;
-        lamC(ids) = lamC(ids) + 360;        
+        lamC(ids) = lamC(ids) + 360;
         phiC = M.ncst{k}(:,2);
         [x,y] = m_ll2xy(lamC,phiC);
         if sum(~isnan(x))>1

@@ -6,7 +6,7 @@ function [h] = m_legend(varargin)
 %
 %    [legend_handle] = M_LEGEND(HANDLES,String1,String2,String3,...)
 %
-%    puts a legend on the plot containing the handles in the vector HANDLES 
+%    puts a legend on the plot containing the handles in the vector HANDLES
 %    using the specified strings as labels for the corresponding handles.
 %    By holding the mouse button down, the legend can be moved around the
 %    plot.

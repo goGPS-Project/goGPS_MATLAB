@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -711,12 +711,12 @@ classdef Constellation_Collector < Settings_Interface
         
         function name = getSysName(this, sys_c)
             % get the 3 chars name of a constellation
-            name = this.SYS_NAME{this.SYS_C == sys_c};            
+            name = this.SYS_NAME{this.SYS_C == sys_c};
         end
 
         function name = getSysExtName(this, sys_c)
             % get the name of a constellation
-            name = this.SYS_EXT_NAME{this.SYS_C == sys_c};            
+            name = this.SYS_EXT_NAME{this.SYS_C == sys_c};
         end
         
         function gps = getGPS(this)
@@ -787,7 +787,7 @@ classdef Constellation_Collector < Settings_Interface
 %                     p = p + 192;
 %                 end
                 index(i) = this.index((this.system == s)' & this.prn == p);
-            end            
+            end
         end
         
         function sat_name = getSatName(this, go_id)

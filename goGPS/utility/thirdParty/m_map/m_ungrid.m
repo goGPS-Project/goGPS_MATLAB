@@ -10,7 +10,7 @@ function m_ungrid(goptn)
 %          can be used to remove other parameters plotted using an
 %          M_XXX command (e.g. M_UNGRID COAST).
 
-% Rich Pawlowicz (rich@ocgy.ubc.ca) 4/Apr/97 
+% Rich Pawlowicz (rich@ocgy.ubc.ca) 4/Apr/97
 %
 % 14/11/98 - Added possible option to remove other tagged items.
 % Nov/2017 - removed a loop around deletion.

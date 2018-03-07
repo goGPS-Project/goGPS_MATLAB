@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -143,7 +143,7 @@ classdef File_Rinex < Exportable
                             if (numel(line) > 20) && ~isempty(regexp(line(1:10),'( [0-9]{2,4} )', 'once'))
                                 % Check that the read epoch is within 30 days from the first epoch
                                 % (if it's further in time it's probably a misleading false epoch line)
-                                time = GPS_Time(line(this.id_date), [], true);                                
+                                time = GPS_Time(line(this.id_date), [], true);
                                 time_diff = ((time - this.first_epoch.last())/86400);
                                 if (time_diff < 30) && (time_diff > 0)
                                     epoch_line = line;

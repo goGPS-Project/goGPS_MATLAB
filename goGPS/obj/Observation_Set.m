@@ -5,7 +5,7 @@
 %   observation set to be used for calalculations
 %
 % REFERENCES
-%  
+%
 
 
 %--------------------------------------------------------------------------
@@ -13,7 +13,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -54,7 +54,7 @@ classdef Observation_Set < handle
         sigma
     end
     
-    methods 
+    methods
         
         function this = Observation_Set(time, obs, obs_code, wl, el, az, prn)
             if nargin == 0
@@ -79,10 +79,10 @@ classdef Observation_Set < handle
                 this.time = obs_set.time;
             end
             %case optional field empty
-            if isempty(this.snr) 
+            if isempty(this.snr)
                 this.snr = nan(size(this.obs));
             end
-            if isempty(this.cycle_slip) 
+            if isempty(this.cycle_slip)
                 this.cycle_slip = sparse(size(this.obs,1),size(this.obs,2));
             end
             %merge
@@ -163,7 +163,7 @@ classdef Observation_Set < handle
                     lim(end,:) = [];
                 end
                 lim(:,2) = lim(:,2) + 1;
-                for l = 1 : size(lim, 1) 
+                for l = 1 : size(lim, 1)
                     this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
                 end
                 this.cycle_slip(idx_rem,:) = [];

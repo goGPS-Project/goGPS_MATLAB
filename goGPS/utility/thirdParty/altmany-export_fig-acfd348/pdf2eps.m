@@ -7,7 +7,7 @@
 %
 % This function requires that you have pdftops, from the Xpdf suite of
 % functions, installed on your system. This can be downloaded from:
-% http://www.foolabs.com/xpdf  
+% http://www.foolabs.com/xpdf
 %
 %IN:
 %   source - filename of the source pdf file to convert. The filename is

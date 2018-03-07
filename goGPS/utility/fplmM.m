@@ -1,4 +1,4 @@
-% Function for the computation of Legendre functions 
+% Function for the computation of Legendre functions
 % High Definition
 % Matlab version
 function [P] = fplmM(l, m, theta)
@@ -8,13 +8,13 @@ function [P] = fplmM(l, m, theta)
     mMin = m(1);
     mMax = m(end);
     
-    if (size(l,1)==1) 
+    if (size(l,1)==1)
         l=l';
     end
-    if (size(m,1)==1) 
+    if (size(m,1)==1)
         m=m';
     end
-    if (size(theta,1)==1) 
+    if (size(theta,1)==1)
         theta=theta';
     end
     
@@ -27,7 +27,7 @@ function [P] = fplmM(l, m, theta)
     l = (1:lMax);
     
     r1(2:end) = sqrt((2*i+1)./(2*i));
-%%    
+%%
     % Init P (result matrix)
     
     P = zeros(mMax,length(m),length(theta));
@@ -39,7 +39,7 @@ function [P] = fplmM(l, m, theta)
     Ptmp0 = ones(length(theta),1);
     for mfix = 1:mMin-1
        Ptmp1 = r1(mfix) * sin(theta).*Ptmp0;
-       Ptmp0 = Ptmp1;        
+       Ptmp0 = Ptmp1;
     end
         
     % for each m

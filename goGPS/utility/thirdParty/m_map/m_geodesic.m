@@ -8,7 +8,7 @@ function [s,lon,lat] = m_geodesic(lon1,lat1,lon2,lat2,Npoints,varargin)
 % lat2, lon2 = second point (degrees)
 % Npoints = number of points along geodesic
 % spheroid = (Optional) spheroid, defaults to 'wgs84'
-% S = distance in meters  
+% S = distance in meters
 % LON,LAT = points on geodesics.
 %
 % Note that inputs can be the same size, or a mixture of scalars and matrices.
@@ -40,7 +40,7 @@ for k=1:size(allsize,2)
    if allsize(3,k)==1,lon2=repmat(lon2,j1); end
    if allsize(4,k)==1,lat2=repmat(lat2,j1); end
  elseif length(rs)>2
-  error('incompatible array sizes!');  
+  error('incompatible array sizes!');
  end
 end
 

@@ -9,7 +9,7 @@
 % MATLAB's print function, making them more similar to those seen on
 % screen. Grid lines are also changed from a dashed style to a dotted
 % style, for greater differentiation from dashed lines.
-% 
+%
 % The function also places embedded fonts after the postscript header, in
 % versions of MATLAB which place the fonts first (R2006b and earlier), in
 % order to allow programs such as Ghostscript to find the bounding box

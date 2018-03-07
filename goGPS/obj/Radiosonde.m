@@ -35,7 +35,7 @@ classdef Radiosonde < handle
         time     % time as datetime                  datetime [n_records x 1]
         p        % pressure [hPa]                    double   [n_records x 1]
         h        % height [m]                        double   [n_records x 1]
-        T        % temperature [°C]                  double   [n_records x 1]
+        T        % temperature [ÿC]                  double   [n_records x 1]
         rh       % relatibe humidity [%]             double   [n_records x 1]
         pwv      % precipitable water vapor [mm]     double   [n_launches x 1]
     end
@@ -192,5 +192,5 @@ classdef Radiosonde < handle
                 j=j+1;
             end
         end
-    end        
+    end
 end

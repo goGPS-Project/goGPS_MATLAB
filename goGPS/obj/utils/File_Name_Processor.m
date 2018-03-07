@@ -21,7 +21,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -61,7 +61,7 @@ classdef File_Name_Processor < handle
         GPS_DOY = '${DOY}';
         GPS_SESSION = '${S}';
         GPS_MM = '${MM}';
-        GPS_DD = '${DD}';        
+        GPS_DD = '${DD}';
     end
 
     properties (SetAccess = private, GetAccess = public)
@@ -100,7 +100,7 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
             [date] = datevec(date.getMatlabTime());
             file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
-            file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));            
+            file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
         end
 
         function step_sec = getStepSec(this, file_name)
@@ -240,7 +240,7 @@ classdef File_Name_Processor < handle
                 else
                     dir_path = fnp.checkPath(empty_fallback);
                 end
-            end                       
+            end
             
             if ~isempty(dir_path)
                 % remove './'

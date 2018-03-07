@@ -89,7 +89,7 @@ switch optn
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ' (centered at ' num2str(MAP_VAR_LIST.clong) ')'],...
             [' latitudes: ' num2str(MAP_VAR_LIST.ulats) ],...
-            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]); 
+            [' Rectangular border: ' MAP_VAR_LIST.rectbox ]);
 
   case 'initialize'
 
@@ -130,7 +130,7 @@ switch optn
       end
        k=k+2;
     end
-    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs); 
+    if isnan(MAP_VAR_LIST.clong),  MAP_VAR_LIST.clong=mean(MAP_VAR_LIST.ulongs);
     elseif ~longs_def, MAP_VAR_LIST.ulongs=MAP_VAR_LIST.clong+[-180 180];   end
     
     MAP_VAR_LIST.clat=mean(MAP_VAR_LIST.ulats);
@@ -178,7 +178,7 @@ switch optn
 	%   cos(theta) changed to cos(2*theta) -thanks Zhigang Xu! Dec 2006.
 	%
 	%The program has a divide by zero
-	%error when theta= ±(pi/2).  I've introduced the variable "notpoles"
+	%error when theta= ÿ(pi/2).  I've introduced the variable "notpoles"
 	%to handle this exception, although there are certainly other ways to
 	% deal with the special cases = Kevin Lewis Feb 2011
 	% (my note - I'm just taking this as is)
@@ -229,7 +229,7 @@ switch optn
         X=MAP_VAR_LIST.clong+(varargin{1}-MAP_VAR_LIST.clong*pi180)./cos(varargin{2})/pi180;
       case name(3)
         X=varargin{1}/cos(45*pi180)/pi180 + MAP_VAR_LIST.clong;
-        Y=asin(varargin{2}*cos(45*pi180))/pi180; 
+        Y=asin(varargin{2}*cos(45*pi180))/pi180;
       case name(4)
         z=sqrt(1-(varargin{1}/4).^2-(varargin{2}/2).^2);
         X=MAP_VAR_LIST.clong+2*atan2(z.*varargin{1},2*(2*z.^2-1))/pi180;
@@ -240,7 +240,7 @@ switch optn
         X=(varargin{1}*90-MAP_VAR_LIST.clong)./cos(theta)+MAP_VAR_LIST.clong;
       case name(6)
         Y=interp1(Robscal(:,3),Robscal(:,1),varargin{2}/pi);
-	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clong;	
+	X=varargin{1}./interp1(Robscal(:,1),Robscal(:,2),Y)*180/pi+MAP_VAR_LIST.clong;
     end
         
   case 'xgrid'

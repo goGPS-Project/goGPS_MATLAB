@@ -18,7 +18,7 @@ function [ocean_load_disp] = load_BLQ(filename, marker)
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -90,7 +90,7 @@ for file_blq=1:size(filename,1)
         end
     else
         ocean_load_disp=[];
-        log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); 
+        log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']);
     end
 end
 

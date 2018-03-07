@@ -87,7 +87,7 @@ switch optn
     MAP_VAR_LIST.rectbox='off';
     k=2;
 
-    while k<length(varargin) 
+    while k<length(varargin)
       switch varargin{k}(1:3)
 	case 'lon'
 	  MAP_VAR_LIST.ulongs=varargin{k+1};
@@ -286,7 +286,7 @@ return
 %-------------------------------------------------------------------
 
 function [lat,lon] = mu_utm2ll (x,y, zone, hemisphere,ellipsoid)
-%mu_utm2ll		Convert X/Y UTM coordinates to geodetic lat,lon 
+%mu_utm2ll		Convert X/Y UTM coordinates to geodetic lat,lon
 %
 %	[lat,lon] = mu_utm2ll (x,y, zone, hemisphere,ellipsoid)
 %

@@ -30,7 +30,7 @@ function [values,longs,lats]=m_etopo2(varargin)
 % 21/Mar/06 - modified for etopo2
 % 4/DEc/11 - isstr to ischar
 % May/28/2014 - modified for etopo2v2 (which has actualy ben around for years...)
-% May/29/2014 - modified for etopo1  
+% May/29/2014 - modified for etopo1
 
 
 
@@ -90,9 +90,9 @@ if efid==-1
    m_elev(varargin{:});
   elseif nargout==2
    [values,longs]=m_elev(varargin{:});
-  elseif nargout==3	
+  elseif nargout==3
    [values,longs,lats]=m_elev(varargin{:});
- end	
+ end
   return;
 end
 
@@ -137,8 +137,8 @@ if grid
    end
 
  
-   lgs=        [llong:rlong]/ptsperdeg;   
-   lts=fliplr( [blat:tlat]/ptsperdeg    );  
+   lgs=        [llong:rlong]/ptsperdeg;
+   lts=fliplr( [blat:tlat]/ptsperdeg    );
 
    ptsperline=nx+1;
    
@@ -173,11 +173,11 @@ else   % Cell entering
    lts=fliplr( ([blat:tlat]-1/2)/ptsperdeg );  % move down
 
    ptsperline=nx;
-end   
+end
 
 eaxes=[llong+nx/2 rlong+nx/2 ny/2-blat ny/2-tlat];  % indexes of edges (start with 0)
 
-% Get it inside, or just off the right edge if edge-crossing   
+% Get it inside, or just off the right edge if edge-crossing
 if eaxes(2)>nx,  eaxes([1 2])=eaxes([1 2])-nx; end
 if eaxes(1)<0,   eaxes([1 2])=eaxes([1 2])+nx; end
 
@@ -256,10 +256,10 @@ if draw_map
       [values,longs]=m_contour(lgs,lts,topo,levels);
    case 'contourf'
       [values,longs]=m_contourf(lgs,lts,topo,levels);
- end  
+ end
  set(longs,'tag','m_etopo2');
- if n_opt<length(varargin) 
-    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end 
+ if n_opt<length(varargin)
+    for l=1:length(longs), set(longs(l),varargin{n_opt:end}); end
  end
   
  m_coord(Currentmap.name);

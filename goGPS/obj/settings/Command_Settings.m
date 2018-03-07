@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -90,7 +90,7 @@ classdef Command_Settings < Settings_Interface
                     else
                         this.cmd_list{l} = settings.getData(this.CMD_SECTION, cmd_keys{l});
                     end
-                end                
+                end
             else
                 this.cmd_list = settings.cmd_list;
             end
@@ -138,7 +138,7 @@ classdef Command_Settings < Settings_Interface
             
             str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Available commands: PREPRO T*', str_cell);
             str_cell = Ini_Manager.toIniStringComment('                    PPP    T1:5', str_cell);
             str_cell = Ini_Manager.toIniStringComment('                    SEID   R1,3:5 T7', str_cell);
@@ -154,7 +154,7 @@ classdef Command_Settings < Settings_Interface
     methods (Access = 'private')
         function check(this)
             if isempty(this.cmd_list)
-            % Minimal check on cmd_list entries validity 
+            % Minimal check on cmd_list entries validity
             % Modify and (try to) correct cmd_list
             %
             % SYNTAX:
@@ -165,13 +165,13 @@ classdef Command_Settings < Settings_Interface
             end
             ci = Command_Interpreter.getInstance();
             this.cmd_list = ci.fastCheck(this.cmd_list);
-        end        
+        end
     end
     
     methods (Access = 'public')
         function cmd_list = getCommandList(this)
             cmd_list = this.cmd_list;
-        end            
+        end
     end
    
     % =========================================================================
@@ -180,7 +180,7 @@ classdef Command_Settings < Settings_Interface
     methods (Static, Access = 'public')
         function test()
             % test the class
-            % 
+            %
             % SYNTAX:
             %   this.test();
             s = Command_Settings();

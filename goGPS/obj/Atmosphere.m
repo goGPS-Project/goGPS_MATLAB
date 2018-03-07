@@ -15,7 +15,7 @@
 %     __ _ ___ / __| _ | __
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 1 - nightly
+%    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -84,7 +84,7 @@ classdef Atmosphere < handle
         atm     % atm saved value for GPT computation
         ata     % ata saved value for GPT computation
         
-        emf     % current Earth geomagnetic field object 
+        emf     % current Earth geomagnetic field object
         log
     end
     
@@ -233,11 +233,11 @@ classdef Atmosphere < handle
         end
         
         function [hoi_delay2, hoi_delay3, bending, ppo] = getHOIdelay(this,lat,lon, az,el,h,time,lambda)
-            % [1] Fritsche, M., R. Dietrich, C. Knï¿½fel, A. Rï¿½lke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
-            % get High order ionophere delays -- Return phase group 
+            % get High order ionophere delays -- Return phase group
             hoi_delay2 = zeros(size(el));
             hoi_delay3 = zeros(size(el));
             bending = zeros(size(el));
@@ -293,7 +293,7 @@ classdef Atmosphere < handle
             %   --> multi epoch for static receiver
             
             % Saastamoinen model requires (positive) orthometric height
-            % ï¿½ï¿½ undulation is never less than 300 m (on Earth)
+            % ÿÿ undulation is never less than 300 m (on Earth)
             %h(undu > -300) = h(undu > -300) - undu(undu > -300);
             h = h - undu;
             h(h < 0) = 0;
@@ -1012,7 +1012,7 @@ classdef Atmosphere < handle
             %   lonpp               longitude pierce point [rad]
             %   iono_mf             iono mapping function
             %   k                   iono k factor ????
-            % 
+            %
             % SYNTAX: 
             %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
             

@@ -1,6 +1,6 @@
 function [bndry_lon,bndry_lat] = m_plotbndry(name,varargin)
 % M_PLOTBNDRY plots text files of Lat,Lon for political boundaries.
-% Text files (derived from the DCW) are obtained from 
+% Text files (derived from the DCW) are obtained from
 %   http://www.maproom.psu.edu/cgi-bin/ian/points/index.cgi
 %
 %     M_PLOTBNDRY(NAME) plots the state or country specified in the
@@ -10,13 +10,13 @@ function [bndry_lon,bndry_lat] = m_plotbndry(name,varargin)
 %             of that name, and, if found convert it to a mat-file.
 %          c) failing that, it will open a file dialog box.
 %
-%     M_PLOTBNDRY(NAME, ...line properties) will use the specified 
+%     M_PLOTBNDRY(NAME, ...line properties) will use the specified
 %     line properties in drawing the boundary.
 %
 %     [LON,LAT]=M_PLOTBNDRY(...) returns vectors of the boundary
 %     points.
 %
-% Note: If errors occur when a file is first plotted, check that 
+% Note: If errors occur when a file is first plotted, check that
 % the entire file was downloaded.  It should end with two consecutive
 % END lines.
 
@@ -24,7 +24,7 @@ function [bndry_lon,bndry_lat] = m_plotbndry(name,varargin)
 % Original Author: Michael W. Mann
 %
 % Changes: R. Pawlowicz 21/12/98 - changed interface to read from
-%          given directory, allow output, allow various line 
+%          given directory, allow output, allow various line
 %          properties to be specified.
 % 6/Nov/00 - eliminate returned stuff if ';' neglected (thx to D Byrne)
 % 19/Mar/04 - .mat files not being created because of a bug found by James Connor.

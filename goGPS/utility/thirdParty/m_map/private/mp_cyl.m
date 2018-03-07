@@ -47,7 +47,7 @@ switch optn
 
      X=char([' Projection: ' MAP_PROJECTION.name '  (function: ' MAP_PROJECTION.routine ')'],...
             [' longitudes: ' num2str(MAP_VAR_LIST.ulongs) ],...
-            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ]); 
+            [' Latitudes: ' num2str(MAP_VAR_LIST.ulats) ]);
 
   case 'initialize'
 

@@ -3,13 +3,13 @@ function wysiwyg
 %       changes the size of the figure on the screen to equal
 %       the size of the figure that would be printed, 
 %       according to the papersize attribute.  Use this function
-%       to give a more accurate picture of what will be 
+%       to give a more accurate picture of what will be
 %       printed.
 %
 %       Particularly useful after calling ORIENT to set a papersize.
 
 %       Dan(K) Braithwaite, Dept. of Hydrology U.of.A  11/93
-%    
+%
 % Changes:  Dec/2017 - updated for post-2014b matlab
    
 unis = get(gcf,'units');

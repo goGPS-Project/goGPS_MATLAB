@@ -1,5 +1,5 @@
 function [ ax,h ] = m_contfbar( varargin )
-% M_CONTFBAR Draws a colour bar for contourf plots 
+% M_CONTFBAR Draws a colour bar for contourf plots
 %    M_CONTFBAR([X1,X2],Y,DATA,LEVELS) draws a horizontal colourbar
 %    between the normalized coordinates (X1,Y) and (X2,Y) where
 %    X/Y are both in the range 0 to 1 across the current axes.
@@ -9,7 +9,7 @@ function [ ax,h ] = m_contfbar( varargin )
 %    colour patches exactly corresponding to levels provided by
 %    CONTOURF(DATA,LEVELS) instead of showing the whole continuous
 %    colourmap, the parent axis is not resized, the axis can be made
-%    as large or small as desired, and the presence of values 
+%    as large or small as desired, and the presence of values
 %    above/below contoured levels is indicated by triangular pieces
 %    (MATLAB 2014b or later).
 %
@@ -65,7 +65,7 @@ if nargin>0 && length(varargin{1})==1 && (varargin{1}==0 || varargin{1}==1 )
 end
  
 % Is first argument an axis handle?
-if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1}) 
+if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1})
    if  strcmp(get(varargin{1},'type'),'axes')
       savax=varargin{1};
       varargin(1)=[];
@@ -73,7 +73,7 @@ if nargin>0 && length(varargin{1})==1 && ishandle(varargin{1})
    else
       error(['map: ' mfilename ':invalidAxesHandle'],...
             ' First argument must be an axes handle ');
-   end   
+   end
 else
     savax=gca;
     inheritcolormap=false;
@@ -178,7 +178,7 @@ if minD<Clevel(1) && endpiece
     fakex=[1;1]*[Clevel(1)-.1*dC Clevel(1)];
     fakey=[1 2;1 0];
     leftpatch=true;
-else    
+else
     fakedata=[1;1]*[Clevel(1) ];
     fakex=[1;1]*[Clevel(1)];
     fakey=[2;0];
@@ -190,7 +190,7 @@ if maxD>Clevel(end) && endpiece
     fakex=[fakex [1;1]*[Clevel(end) Clevel(end)+.1*dC] ];
     fakey=[fakey [2 1;0 1]];
 
-else    
+else
     fakedata=[ fakedata [1;1]*[Clevel(end)]];
     fakex=[fakex [1;1]*[Clevel(end)] ];
     fakey=[fakey [2 ;0 ]];
@@ -210,13 +210,13 @@ elseif  ( length(posx)==1 && length(posy)==2)
     cpos=[ axpos(1)+(posx-1/2*axfrac)*axpos(3) ...
          axpos(2)+posy(1)*axpos(4) ...
          axfrac*axpos(3) ...
-         diff(posy)*axpos(4) ];  
+         diff(posy)*axpos(4) ];
     tmp=fakex;
     fakex=fakey;
     fakey=tmp;
 end
 
-ax=axes('position',cpos);  
+ax=axes('position',cpos);
 
 if leftpatch   % If a left triangle is being drawn, colour a "behind"
     if horiz

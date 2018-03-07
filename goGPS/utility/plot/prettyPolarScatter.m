@@ -212,7 +212,7 @@ switch (nargin)
         shape = 'coast';
         lineCol = [0 0 0];
         limitsOk = true;
-        projection = 'Lambert';        
+        projection = 'Lambert';
         if (ischar(lambdaMin))
             if (sum(strcmp(lambdaMin,[{'coast'},{'10m'},{'30m'},{'50m'}])))
                 shape = lambdaMin;                                        % prettyPolorScatter(dataScatter, phiMin, phiMax, lambdaMin, lambdaMax, shape);
@@ -338,7 +338,7 @@ if (sum(diff(lambdaTmp) == val) == 1) && val > 10
     lambdaTmp(1:idMax) = lambdaTmp(1:idMax)+360;
     if ~limitsOk
         lambdaMax = lambdaTmp(idMax);
-        lambdaMin = lambdaTmp(idMax+1);    
+        lambdaMin = lambdaTmp(idMax+1);
     end
 end
 
@@ -402,9 +402,9 @@ if (~strcmp(shape,'coast'))
     [xMin,yMin] = m_ll2xy(lambdaMin,phiMin);
     [xMax,yMax] = m_ll2xy(lambdaMax,phiMax);
     for k=1:length(M.ncst)
-        lamC = M.ncst{k}(:,1);        
+        lamC = M.ncst{k}(:,1);
         ids = lamC < lambdaMin;
-        lamC(ids) = lamC(ids) + 360;        
+        lamC(ids) = lamC(ids) + 360;
         phiC = M.ncst{k}(:,2);
         [x,y] = m_ll2xy(lamC,phiC);
         if sum(~isnan(x))>1
@@ -421,12 +421,12 @@ drawnow;
 if (phiMax >= 0)
     h=get(gca,'Children'); hf = findobj(h(1:end),'Tag','m_grid_fancybox1');
     delete(h(18));
-    delete(hf([1:5 8]));    
+    delete(hf([1:5 8]));
 else
-    h=get(gca,'Children'); 
-    hf = findobj(h(1:end),'Tag','m_grid_fancybox1'); 
+    h=get(gca,'Children');
+    hf = findobj(h(1:end),'Tag','m_grid_fancybox1');
     %delete(h(18));
-    delete(hf([1:4 6 7]));    
+    delete(hf([1:4 6 7]));
 end
 
 colorbar;

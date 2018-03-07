@@ -5,7 +5,7 @@ function han = m_plot(varargin)
 % like plot as only the first two arguments are actually converted
 % to map coords, i.e.:
 %
-% USAGE: M_PLOT(LON,LAT,[OPTIONS]) 
+% USAGE: M_PLOT(LON,LAT,[OPTIONS])
 %
 
 % Deirdre Byrne, dbyrne@umeoce.maine.edu 00/07/27 (v1.1)

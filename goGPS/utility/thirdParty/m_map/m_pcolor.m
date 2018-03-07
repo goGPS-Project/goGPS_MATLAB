@@ -5,11 +5,11 @@ function [h]=m_pcolor(long,lat,data,varargin)
 %    cell of the plot. In the default shading mode, 'faceted',
 %    each cell has a constant color and the last row and column of
 %    DATA are not used. With shading('interp'), each cell has color
-%    resulting from bilinear interpolation of the color at its 
+%    resulting from bilinear interpolation of the color at its
 %    four vertices and all elements of DATA are used. 
 %    The smallest and largest elements of DATA are assigned the first and
-%    last colors given in the color table; colors for the remainder of the 
-%    elements in DATA are determined by table-lookup within the remainder of 
+%    last colors given in the color table; colors for the remainder of the
+%    elements in DATA are determined by table-lookup within the remainder of
 %    the color table.
 %
 %    See also M_CONTOUR, CONTOURF, PCOLOR
@@ -24,7 +24,7 @@ function [h]=m_pcolor(long,lat,data,varargin)
 % 6/Nov/00 - eliminate returned stuff if ';' neglected (thx to D Byrne)
 % 6/Nov/17 - added flat shading default.
 
-global MAP_PROJECTION 
+global MAP_PROJECTION
 
 % Have to have initialized a map first
 
@@ -47,7 +47,7 @@ data(i)=NaN;
                  % is a no-no. Note that this only clips properly down
                  % columns of long/lat - not across rows. In general this
                  % means patches may nto line up properly a right/left edges.
-if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','patch'); end  
+if any(i(:)), [X,Y]=m_ll2xy(long,lat,'clip','patch'); end
 
                  % Added edgecolor,'none' because if people go on and
 		 % use 'shading flat' (which you always do) it generates
