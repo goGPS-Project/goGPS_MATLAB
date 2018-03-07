@@ -59,8 +59,9 @@ classdef Core_UI < handle
     %% PROPERTIES GUI    
     % ==================================================================================================================================================
     properties
-        w_main;
-        j_settings;
+        w_main
+        w_splash
+        j_settings
     end
 
     %% PROPERTIES STATUS    
@@ -314,6 +315,97 @@ classdef Core_UI < handle
     %% METODS INIT
     % ==================================================================================================================================================
     methods
+        function  dependencies_ok = openSplashGUI(this)
+            if ~isempty(this.w_splash) && isvalid(this.w_splash)
+                close(this.w_splash);
+            end            
+            LIGHT_GRAY_BG = 0.85 * ones(3, 1);
+            DARK_GRAY_BG = 0.18 * ones(3, 1);
+
+            win = figure( 'Name', '', ...
+                'Resize', 'off', ...
+                'Visible', 'off', ...
+                'MenuBar', 'none', ...
+                'ToolBar', 'none', ...
+                'NumberTitle', 'off' );
+            win.Position(3) = 210;
+            win.Position(4) = 92;
+            
+            this.w_splash = win;
+                                   
+            dependencies_ok = false;
+            try
+                main_grid = uix.Grid('Parent', win, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', DARK_GRAY_BG);
+                dependencies_ok = true;
+            catch
+                this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                close(win); 
+                return
+            end
+            
+            % Logo/title box -------------------------------------------------------------------------------------------
+            
+            % Logo
+            logo_g_border0 = uix.Grid('Parent', main_grid, ...
+                'Padding', 2, ...
+                'BackgroundColor', LIGHT_GRAY_BG);
+            logo_g_border1 = uix.Grid('Parent', logo_g_border0, ...
+                'Padding', 2, ...
+                'BackgroundColor', DARK_GRAY_BG);
+            logo_g = uix.Grid('Parent', logo_g_border1, ...
+                'Padding', 5, ...
+                'BackgroundColor', LIGHT_GRAY_BG);
+            
+            logo_ax = axes( 'Parent', logo_g, 'Position', [10 5 64 64]);            
+            [logo, transparency] = Core_UI.getLogo();
+            logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
+            logo = logo - 20;
+            image(logo_ax, logo, 'AlphaData', transparency);
+            logo_ax.XTickLabel = [];
+            logo_ax.YTickLabel = [];
+            axis off;
+
+            % Title and description
+            descr_bv = uix.VBox('Parent', logo_g, ...
+                'BackgroundColor', LIGHT_GRAY_BG);
+            title_txt = uicontrol('Parent', descr_bv, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'left', ...
+                'String', '  goGPS', ...
+                'BackgroundColor', LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0 * ones(3, 1), ...
+                'FontName', 'verdana', ...
+                'FontAngle', 'italic', ...
+                'FontSize', this.getFontSize(15), ...
+                'FontWeight', 'bold');
+            descr_txt = uicontrol('Parent', descr_bv, ...
+                'Style', 'Text', ...
+                'String', 'open source positioning', ...
+                'BackgroundColor', LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0 * ones(3, 1), ...
+                'FontName', 'arial', ...
+                'FontSize', this.getFontSize(6), ...
+                'FontWeight', 'bold');
+            version_txt = uicontrol('Parent', descr_bv, ...
+                'Style', 'Text', ...
+                'HorizontalAlignment', 'right', ...
+                'String', [Core.GO_GPS_VERSION ' '], ...
+                'BackgroundColor', LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0 * ones(3, 1), ...
+                'FontName', 'verdana', ...
+                'FontSize', this.getFontSize(4), ...
+                'FontWeight', 'bold');
+            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', LIGHT_GRAY_BG); 
+            descr_bv.Heights = [-3.5 -2 -1 -0.5];
+            
+            main_grid.Heights = 82;
+            main_grid.Widths = 200;
+            logo_g.Widths = [64 -1];
+            logo_g.Heights = 64;
+            this.w_splash.Visible = 'on';            
+        end
         
         function ok_go = openGUI(this)
             %%      
@@ -423,20 +515,100 @@ classdef Core_UI < handle
                 'BackgroundColor', DARK_GRAY_BG);
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
             
+            tab_panel = uix.TabPanel('Parent', panel_g_border, ...
+                'Padding', 5, ...
+                'BackgroundColor', LIGHT_GRAY_BG);
+            
+            % Main Panel -----------------------------------------------------------------------------------------------
+            % Main Panel > tab1 settings -------------------------------------------------------------------------------
+            tab1 = uix.Grid('Parent', tab_panel);
+            
             j_settings = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_settings.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_settings.setContentType(codeType);
             str = strrep(strCell2Str(this.state.export(), 10),'#','%');
             j_settings.setText(str);
             % Create the ScrollPanel containing the widget
-            jScrollPaneINI = com.mathworks.mwswing.MJScrollPane(j_settings);
+            j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_settings);
             % Inject edit box with the Java Scroll Pane into the main_window
-            [panel_j, panel_h] = javacomponent(jScrollPaneINI, [1 1 1 1], panel_g_border);
+            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], tab1);
             
             this.j_settings = j_settings;
+            
+            tab1_bvr = uix.VButtonBox( 'Parent', tab1, ...
+                'Spacing', 5, ...
+                'VerticalAlignment', 'top', ...
+                'HorizontalAlignment', 'right', ...
+                'BackgroundColor', LIGHT_GRAY_BG);
+
+            refresh_but = uicontrol( 'Parent', tab1_bvr, ...
+                'String', 'Refresh', ...
+                'Callback', @this.refreshIni);           
+            
+            % Main Panel > tab2 remote resource ini --------------------------------------------------------------------
+            enable_rri = true;
+            if enable_rri
+                tab2 = uix.Grid('Parent', tab_panel);
+                
+                tab2_bv = uix.VBox( 'Parent', tab2, ...
+                    'Spacing', 5, ...
+                    'BackgroundColor', LIGHT_GRAY_BG);
+                
+                uicontrol('Parent', tab2_bv, ...
+                    'Style', 'Text', ...
+                    'String', 'Remote Resources ini file - not editable from GUI', ...
+                    'BackgroundColor', LIGHT_GRAY_BG, ...
+                    'ForegroundColor', 0 * ones(3, 1), ...
+                    'FontName', 'arial', ...
+                    'FontSize', this.getFontSize(10), ...
+                    'FontWeight', 'bold');
+                
+                uicontrol('Parent', tab2_bv, ...
+                    'Style', 'Text', ...
+                    'String', this.state.getRemoteSourceFile, ...
+                    'BackgroundColor', LIGHT_GRAY_BG, ...
+                    'ForegroundColor', 0.3 * ones(3, 1), ...
+                    'FontName', 'arial', ...
+                    'FontSize', this.getFontSize(7));
+                
+                j_rrini = com.mathworks.widgets.SyntaxTextPane;
+                codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+                j_rrini.setContentType(codeType);
+                try
+                    file_name = this.state.getRemoteSourceFile;
+                    fid = fopen(file_name);
+                    str = fread(fid, '*char')';
+                    str = strrep(str,'#','%');
+                    fclose(fid);
+                catch
+                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+                end
+                
+                j_rrini.setText(str);
+                j_rrini.setEditable(0)
+                % Create the ScrollPanel containing the widget
+                j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_rrini);
+                % Inject edit box with the Java Scroll Pane into the main_window
+                javacomponent(j_scroll_rri, [1 1 1 1], tab2_bv);
+            end
+            
+            % Tabs settings --------------------------------------------------------------------------------------------
+            
+            if enable_rri
+                tab_panel.TabTitles = {'Settings', 'Resources'};
+            else
+                tab_panel.TabTitles = {'Settings'};
+            end
+            tab1.Widths = [-1 64];
+            if enable_rri
+                tab2_bv.Heights = [20 15 -1];
+            end
+            
+            % Empty space ----------------------------------------------------------------------------------------------
+            
             uicontrol('Parent', left_bv, 'Style', 'Text', 'BackgroundColor', DARK_GRAY_BG); 
             
-            % Botton Panel -----------------------------------------------------------------------------------------------            
+            % Botton Panel ---------------------------------------------------------------------------------------------            
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
                 'Padding', 5, ...
                 'Spacing', 5, ...
@@ -474,7 +646,7 @@ classdef Core_UI < handle
             left_bv.Heights = [82 -1];
             top_bh.Widths = [200 -1];
             logo_g.Widths = [64 -1];
-            logo_g.Heights = [64];
+            logo_g.Heights = 64;
             
             this.w_main.Visible = 'on';
             t_win = toc(t0);
@@ -510,6 +682,12 @@ classdef Core_UI < handle
     %% METODS UTILITIES
     % ==================================================================================================================================================
     methods (Access = private)  
+        function refreshIni(this, caller, event)
+            txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
+            this.state.import(Ini_Manager(txt{1}));
+            this.updateSettingsUI();
+        end
+        
         function loadState(this, caller, event)
             % Load state settings
 
