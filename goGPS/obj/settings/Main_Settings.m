@@ -79,7 +79,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_ID_LIST = '0';   % id character sequence to be use for the session $(S) special keyword
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
-
+        
+        FLAG_KEEP_REC_LIST = false; % Flag to store the receivers for all the sessions
+        
         % STATIONS
         OBS_DIR = 'RINEX';
         OBS_NAME = {'ZIMM${DOY}${S}.${YY}O'};
@@ -253,6 +255,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         sss_id_list =    Main_Settings.SSS_ID_LIST;       % id character sequence to be use for the session $(S) special keyworc
         sss_id_start =   Main_Settings.SSS_ID_START;      % first session id (char of sss_id_list)
         sss_id_stop =    Main_Settings.SSS_ID_STOP;       % last session id (char of sss_id_list)
+        
+        flag_keep_rec_list = Main_Settings.FLAG_KEEP_REC_LIST; % Flag to store the receivers for all the sessions
 
         %------------------------------------------------------------------
         % STATIONS
@@ -355,10 +359,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % This parameter store the current run number
         run_counter = Main_Settings.RUN_COUNTER;
         run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output
-        
-        
-        
-        
+                
         %------------------------------------------------------------------
         % ADVANCED RECEIVER DEFAULT PARAMETERS
         %------------------------------------------------------------------
@@ -523,6 +524,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_id_start = state.getData('sss_id_start');
                 this.sss_id_stop = state.getData('sss_id_stop');
 
+                this.flag_keep_rec_list = state.getData('flag_keep_rec_list');
+                
                 % STATIONS
                 this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
                 this.obs_name = fnp.checkPath(state.getData('obs_name'));
@@ -624,6 +627,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_id_list = state.sss_id_list;
                 this.sss_id_start = state.sss_id_start;
                 this.sss_id_stop = state.sss_id_stop;
+
+                this.flag_keep_rec_list = state.flag_keep_rec_list;
 
                 % STATIONS
                 this.obs_dir = state.obs_dir;
@@ -746,7 +751,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
-            str = [str sprintf(' Last session char                                 %c \n\n', this.sss_id_start)];
+            str = [str sprintf(' Last session char                                 %c \n', this.sss_id_start)];
+            
             str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
             str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
@@ -757,6 +763,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
             str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
+            str = [str sprintf(' Keep all the receiver objects:                    %d\n\n', this.flag_keep_rec_list)];
+            
             str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
             str = [str sprintf(' Name of ERP files:                                %s\n', this.erp_name)];
@@ -766,11 +774,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of Iono models:                         %s\n', fnp.getRelDirPath(this.iono_dir, this.prj_home))];
             str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n\n', this.iono_name)];
+            
             str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
             str = [str sprintf(' Preferred center:                                 %s\n\n', strCell2Str(this.preferred_center))];
+            
             str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
@@ -779,9 +789,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', fnp.getRelDirPath(this.crx_dir, this.prj_home))];
             str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', fnp.getRelDirPath(this.dcb_dir, this.prj_home))];
             str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', fnp.getRelDirPath(this.ems_dir, this.prj_home))];
+            
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
+            
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
             str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
@@ -871,6 +883,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Last session id (char of sss_id_list)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_stop', this.sss_id_stop, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag DEBUG (0/1) to keep in memory all the processed receiver', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('         this flag could cause memory problems', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_keep_rec_list', this.flag_keep_rec_list, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
         end
 
         function str_cell = exportIO_station(this, str_cell)
@@ -895,7 +912,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str_cell = Ini_Manager.toIniStringComment('Set the a-priori information on the motion of the receiver', str_cell); 
             str_cell = Ini_Manager.toIniString('rec_dyn_mode', this.rec_dyn_mode, str_cell); 
-            str_cell = Ini_Manager.toIniStringComment('When capture/monitor modes are in use', str_cell); 
             for i = 1 : numel(this.DYN_MODE) 
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell); 
             end
@@ -1281,8 +1297,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
-        end
-        
+        end        
         
         % File type specific ----------------------------------------------
 
@@ -1444,6 +1459,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     this.rec_dyn_mode(end : this.getRecCount()) = this.rec_dyn_mode(1);
                 end
             end
+            
+            this.checkLogicalField('flag_keep_rec_list');
 
             this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
@@ -1764,7 +1781,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             out = this.preferred_erp;
         end
 
-
         function file_name = getFullNavEphPath(this, id)
             % Get the file list of ephemeris files
             % SYNTAX: file_name = this.getFullNavEphPath(id)
@@ -2030,6 +2046,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the currGPS_Time(0)ent run counter
             % SYNTAX: counter = getRunCounter(this)
             counter = this.run_counter;
+        end
+        
+        function keep = isKeepRecList(this)
+            % Get the flag to keep in memory all the receivers (CEBUG)
+            % SYNTAX: keep = this.isKeepRecList();
+            keep = this.flag_keep_rec_list;
         end
     end
     
@@ -2322,18 +2344,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             cc = handle(this.cc);
         end
 
-        function time_step = getVariometricTimeStep(this)
-            % Get the time step for the Variometric approach
-            % SYNTAX: time_step = this.getVariometricTimeStep();
-            time_step = this.variometric_step;
-        end
-
-        function capture_rate = getCaptureRate(this)
-            % Get the Capture Rate
-            % SYNTAX: capture_rate = this.getCaptureRate();
-            capture_rate = this.c_rate;
-        end
-
         function cut_off = getCutOff(this)
             % Get the cut off
             % SYNTAX: cut_off = this.getCutOff();
@@ -2360,7 +2370,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function err_thr = getMaxPhaseErrThr(this)
             % Get the maximum error acceptable on phase observations
-            % SYNTAX: capture_rate = this.getCaptureRate();
+            % SYNTAX: err_thr = this.getMaxPhaseErrThr()
             err_thr = this.pp_max_phase_err_thr;
         end
 

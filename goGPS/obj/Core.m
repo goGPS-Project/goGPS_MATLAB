@@ -66,11 +66,9 @@ classdef Core < handle
     %% PROPERTIES RECEIVERS    
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        rec     % List of all the receiver used in a session
+        rec      % List of all the receiver used in a session
         
-        trg     % temporary pointer to all the targets
-        ref     % temporary pointer to all the reference stations (SEID)
-        mst     % temporary pointer to all the master stations
+        rec_list % List of all the receiver used in all the session
     end
 
     %% METHOD CREATOR
@@ -175,6 +173,16 @@ classdef Core < handle
             for s = 1 : this.state.getSessionCount()
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);
+                
+                if this.state.isKeepRecList()
+                    if isempty(this.rec_list)
+                        clear rec_list;
+                        rec_list(:,s) = this.rec;
+                        this.rec_list = rec_list;
+                    else
+                        this.rec_list(:,s) = this.rec;
+                    end
+                end
             end
         end
         
