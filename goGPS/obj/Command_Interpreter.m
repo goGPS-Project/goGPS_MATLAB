@@ -82,8 +82,6 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log
-        gc
-        state
     end
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
@@ -101,10 +99,7 @@ classdef Command_Interpreter < handle
         function this = Command_Interpreter()
             % Core object creator
             this.log = Logger.getInstance();
-            this.init();
-            
-            this.gc = Global_Configuration.getInstance();
-            this.state = this.gc.getCurrentSettings();
+            this.init();            
         end
     end
     %% METODS UI
@@ -195,7 +190,8 @@ classdef Command_Interpreter < handle
         
         function exec(this, rec, cmd_list)
             if nargin == 2
-                cmd_list = this.state.getCommandList();
+                state = Global_Configuration.getCurrentSettings();
+                cmd_list = state.getCommandList();
             end
             if ~iscell(cmd_list)
                 cmd_list = {cmd_list};
