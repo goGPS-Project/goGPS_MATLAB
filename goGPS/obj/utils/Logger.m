@@ -121,6 +121,25 @@ classdef Logger < handle
             end
         end
 
+        function simpleSeparator(this, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 2)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                fprintf('--------------------------------------------------------------------------\n');
+            end
+        end
+        
+        function starSeparator(this, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 2)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                fprintf('  ***************************************************\n');
+            end
+        end
         function addMarkedMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)

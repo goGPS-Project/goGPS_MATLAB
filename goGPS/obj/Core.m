@@ -7,9 +7,9 @@
 %   parameters
 %
 % EXAMPLE
-%   settings = goGNSS();
+%   core = Core();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Core
 
 
 %--------------------------------------------------------------------------
@@ -59,6 +59,8 @@ classdef Core < handle
         gc
         state
         w_bar
+        sky
+        cmd
     end
 
     %% PROPERTIES RECEIVERS    
@@ -83,10 +85,12 @@ classdef Core < handle
             this.gc = Global_Configuration.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
+            this.sky = Core_Sky.getInstance();
+            this.cmd = Command_Interpreter.getInstance;
         end
     end
     
-    %% METODS UI
+    %% METHODS UI
     % ==================================================================================================================================================
     methods (Static, Access = public)
         function this = getInstance()
@@ -103,12 +107,12 @@ classdef Core < handle
             end
         end
 
-        function ok_go = openGUI(this)
+        function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
     end
     
-    %% METODS INIT
+    %% METHODS INIT
     % ==================================================================================================================================================
     methods      
         function init(this)
@@ -135,15 +139,58 @@ classdef Core < handle
         end
     end
     
-    %% METODS UTILITIES
+    %% METHODS RUN
+    % ==================================================================================================================================================
+    methods      
+        function prepareSession(this, session_number)
+            %-------------------------------------------------------------------------------------------
+            % SESSION START
+            %-------------------------------------------------------------------------------------------
+            session = session_number;
+            
+            this.log.newLine;
+            this.log.simpleSeparator();
+            this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
+            this.log.simpleSeparator();
+            
+            % Init sky
+            
+            clear rec;  % handle to all the receivers
+            for r = 1 : this.state.getRecCount()
+                this.log.newLine();
+                this.log.addMessage(sprintf('Reading receiver %d of %d', r, this.state.getRecCount()));
+                this.log.simpleSeparator();
+                
+                rec(r) = Receiver(this.state.getConstellationCollector(), this.state.getRecPath(r, session), this.state.getDynMode(r)); %#ok<AGROW>
+            end
+            this.rec = rec;
+            
+            % Init sky for this session
+            [~, time_lim_large] = rec.getTimeSpan();
+            this.sky.initSession(time_lim_large.first, time_lim_large.last);
+            this.log.simpleSeparator();
+        end
+        
+        function go(this)
+            for s = 1 : this.state.getSessionCount()
+                this.prepareSession(s);
+                this.cmd.exec(this.rec);
+            end
+        end
+        
+        function exec(this, cmd)
+            this.cmd.exec(this.rec, cmd);
+        end
+    end
+        
+    %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
         function [state, log, w_bar] = getUtilities(this)
             state = this.state;
             log = this.log;
             w_bar = this.w_bar;
-        end
-        
+        end        
     end
 
     methods % Public Access (Legacy support)

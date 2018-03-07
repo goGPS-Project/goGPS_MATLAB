@@ -752,7 +752,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
             str = [str sprintf(' Directory of coordinates file:                    %s\n\n', fnp.getRelDirPath(this.crd_dir, this.prj_home))];
             str = [str sprintf(' Name of coordinate (CRD) file:                    %s\n', this.crd_name)];
-            str = [str sprintf(' Receiver mode %s\n\n', this.DYN_MODE{this.rec_dyn_mode})];            
             str = [str sprintf(' Name of the observation files                     %s\n', strCell2Str(this.obs_name, ', '))];
             str = [str sprintf(' Directory of meteorological data:                 %s\n', fnp.getRelDirPath(this.met_dir, this.prj_home))];
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];

@@ -2,12 +2,12 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   class to manages the user interface of go_GPS
+%   class to manages the user interface of goGPS
 %
 % EXAMPLE
-%   settings = goGNSS();
+%   ui = Core_UI.getInstance();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Core_UI
 
 
 %--------------------------------------------------------------------------
@@ -87,8 +87,7 @@ classdef Core_UI < handle
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core_ui__
-            unique_instance_core_ui__ = [];
-
+            
             if isempty(unique_instance_core_ui__)
                 this = Core_UI();
                 unique_instance_core_ui__ = this;
@@ -554,7 +553,7 @@ classdef Core_UI < handle
             try
                 if this.j_settings.isValid
                     txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-                    this.state.importIO(Ini_Manager(txt{1}));
+                    this.state.import(Ini_Manager(txt{1}));
                     this.state.setFilePath(settings_file);
                     this.state.save(settings_file);
                     this.updateSettingsUI();

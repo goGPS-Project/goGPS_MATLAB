@@ -45,7 +45,7 @@ classdef Command_Settings < Settings_Interface
     
     % Default values for each field - useful to restore corrupted fields
     properties (Constant, GetAccess = public)
-        CMD_LIST = {'PP R*', 'SEID T5 R1:4 @30s :G', 'SYNC R*', 'PPP R1,2,3,4 @30s :G'};
+        CMD_LIST = {'PREPRO T*'};
     end
 
     properties (Constant, GetAccess = protected)
@@ -98,10 +98,17 @@ classdef Command_Settings < Settings_Interface
         end
 
         function str = toString(this, str)
+            if (nargin == 1)
+                str = '';
+            end
+            str = this.cmdToString(str);
+        end
+        
+        function str = cmdToString(this, str)
             % Display the command list
             %
             % SYNTAX:
-            %   str = this.toString(str);
+            %   str = this.cmdToString(str);
             if (nargin == 1)
                 str = '';
             end
@@ -131,7 +138,10 @@ classdef Command_Settings < Settings_Interface
             
             str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('NOTE: The command will be executed for every session', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('Available commands: PREPRO T*', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('                    PPP    T1:5', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('                    SEID   R1,3:5 T7', str_cell);
             for l = 1 : numel(this.cmd_list)
                 str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), this.cmd_list{l}, str_cell);
             end
@@ -150,11 +160,18 @@ classdef Command_Settings < Settings_Interface
             % SYNTAX:
             %   this.check();
             %
-                this.log.addWarning(sprintf('Command list seems to be empty, using default values\n %s', this.toString));
                 this.cmd_list = this.CMD_LIST;
-                %this.cmd_list = Command_Interpreter.fast_check(this.cmd_list);
+                this.log.addWarning(sprintf('Command list seems to be empty, using default values\n %s', this.cmdToString));
             end
-        end
+            ci = Command_Interpreter.getInstance();
+            this.cmd_list = ci.fastCheck(this.cmd_list);
+        end        
+    end
+    
+    methods (Access = 'public')
+        function cmd_list = getCommandList(this)
+            cmd_list = this.cmd_list;
+        end            
     end
    
     % =========================================================================

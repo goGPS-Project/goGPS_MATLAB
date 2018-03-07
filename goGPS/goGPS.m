@@ -78,14 +78,14 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode_user == 1)
-    
+
     % Now there's a unique interface for goGPS
     % to be compatible among various OSs the property "unit" of all the
     % elements must be set to "pixels"
     % (default unit is "character", but the size of a character is OS dependent)
     ui = Core_UI.getInstance();
     ui.openGUI();
-    
+
     if ~ui.isGo()
         return
     end
@@ -94,52 +94,4 @@ end
 %% GO goGPS - here the computations start
 
 core.prepareProcessing();
-
-[state, log, w_bar] = core.getUtilities();
-
-% start evaluating computation time
-tic;
-
-sky = Core_Sky.getInstance();
-for s = 1 : state.getSessionCount()
-    %-------------------------------------------------------------------------------------------
-    % SESSION START
-    %-------------------------------------------------------------------------------------------
-    
-    fprintf('\n--------------------------------------------------------------------------\n');
-    log.addMessage(sprintf('Starting session %d of %d', s, state.getSessionCount()));
-    fprintf('--------------------------------------------------------------------------\n');
-    
-    % Init sky
-    fr = File_Rinex(state.getRecPath(1, s), 100);
-    cur_date_start = fr.first_epoch.last();
-    cur_date_stop = fr.last_epoch.first();
-    sky.initSession(cur_date_start, cur_date_stop);
-        
-    clear rec;  % handle to all the receivers
-    clear mst;
-    for r = 1 : state.getRecCount()
-        log.newLine();
-        log.addMessage(sprintf('Reading receiver %d of %d', r, state.getRecCount()));
-        fprintf('--------------------------------------------------------------------------\n\n');
-        
-        rec(r) = Receiver(state.getConstellationCollector(), state.getRecPath(r, s), state.getDynMode(r)); %#ok<SAGROW>
-        rec(r).preProcessing();
-    end    
-    
-    fprintf('--------------------------------------------------------------------------\n');
-    log.newLine();
-    log.addMarkedMessage('Syncing times, computing reference time');
-    
-    for r = 1 : state.getRecCount()
-        [p_time, id_sync] = Receiver.getSyncTime(rec(r), 0, rec(r).getRate());
-        %if r == 6
-        %    tic; Core_SEID.getSyntL2(rec(1:4), rec(6)); toc;
-        %    [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
-        %end
-        rec(r).staticPPP([], id_sync{1}(:, 1));
-    end
-    
-    rec_list(:,s) = rec; %#ok<SAGROW>
-end
-    
+core.go();

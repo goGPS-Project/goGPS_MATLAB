@@ -234,7 +234,11 @@ classdef Receiver < Exportable
                 this.loadAntModel();
             end  
             this.rec_settings = Receiver_Settings();
-            this.static == dyn_mode == 0;
+            if nargin == 3
+                this.static == dyn_mode == 0;
+            else
+                this.static = true;
+            end
         end        
                 
         function reset(this)
@@ -1659,6 +1663,10 @@ classdef Receiver < Exportable
             end
             fprintf(' ----------------------------------------------------------\n')
             
+        end
+                
+        function marker_name = getMarkerName(this)
+            marker_name = this.marker_name;
         end
 
         % size 
