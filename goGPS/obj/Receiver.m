@@ -495,25 +495,112 @@ classdef Receiver < Exportable
         end
         
         function remObs(this, id_obs)
-            % remove observations with a certain id
-            % SYNTAX:   this.remObs(id_obs)
+            % remove observable with a certain id
+            %
+            % SYNTAX:   
+            %   this.remObs(id_obs)
             this.obs(id_obs,:) = [];
             this.obs_code(id_obs, :) = [];
             this.active_ids(id_obs) = [];
             this.wl(id_obs) = [];
             this.f_id(id_obs) = [];
             this.prn(id_obs) = [];
-            this.go_id(id_obs) = [];
+            
             this.system(id_obs) = [];
+            
+            go_out = this.go_id(id_obs);
+            this.go_id(id_obs) = [];
+            go_out = setdiff(go_out, unique(this.go_id));
+            
+            [~, id_out] = intersect(this.ph_idx, id_obs);
+            tmp = false(max(this.ph_idx), 1);
+            tmp(this.ph_idx) = true;
+            tmp(id_out) = false;
+            this.ph_idx = find(tmp);
+            
+            % try to remove observables from other precomputed properties of the object
+            try
+                this.synt_ph(:,id_out) = [];
+            catch
+            end
+            try
+                this.outlier_idx_ph(:,id_out) = [];
+            catch
+            end
+            try
+                this.cycle_slip_idx_ph(:,id_out) = [];
+            catch
+            end
+            
+            % try to remove observables from other precomputed properties of the object in sat
+            try
+                this.sat.avail_index(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.err_tropo(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.err_iono(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.solid_earth_corr(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.tot(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.az(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.el(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.res(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.slant_td(:, go_out) = [];
+            catch
+            end
+            try
+                this.sat.amb(:, go_out) = [];
+            catch
+            end            
         end
         
         function keepEpochs(this, good_epochs)
+            % keep epochs with a certain id
+            %
+            % SYNTAX:   
+            %   this.keepEpochs(good_epochs)
             bad_epochs = 1 : this.length;
             bad_epochs(good_epochs) = [];
             this.remEpochs(bad_epochs)
         end
         
+        function keep(this, rate, sys_list)
+            if nargin > 1 && ~isempty(rate)
+                [~, id_sync] = Receiver.getSyncTimeExpanded(this, rate);
+                this.keepEpochs(id_sync(~isnan(id_sync)));
+            end
+            if nargin > 2 && ~isempty(sys_list)
+                this.setActiveSys(sys_list);
+                this.remSat(this.go_id(regexp(this.system, ['[^' sys_list ']'])));
+            end            
+        end
+                
         function remEpochs(this, bad_epochs)
+            % remove epochs with a certain id
+            %
+            % SYNTAX:   
+            %   this.remEpochs(bad_epochs)
             this.time.remEpoch(bad_epochs);
 
             if ~isempty(this.n_spe)
@@ -550,6 +637,25 @@ classdef Receiver < Exportable
                 this.dt_ip(bad_epochs) = [];
             end
         
+            if ~isempty(this.zhd)
+                this.zhd(bad_epochs) = [];
+            end
+            if ~isempty(this.ztd)
+                this.ztd(bad_epochs) = [];
+            end
+            if ~isempty(this.zwd)
+                this.zwd(bad_epochs) = [];
+            end
+            if ~isempty(this.pwv)
+                this.pwv(bad_epochs) = [];
+            end
+            if ~isempty(this.tgn)
+                this.tgn(bad_epochs) = [];
+            end
+            if ~isempty(this.tge)
+                this.tge(bad_epochs) = [];
+            end
+            
             if ~isempty(this.sat.avail_index)
                 this.sat.avail_index(bad_epochs, :) = [];
             end
@@ -574,16 +680,24 @@ classdef Receiver < Exportable
             if ~isempty(this.sat.res)
                 this.sat.res(bad_epochs, :) = [];
             end
+            if ~isempty(this.sat.slant_td)
+                this.sat.slant_td(bad_epochs, :) = [];
+            end            
         end
             
         function remSat(this, go_id, prn)
-            %remove satellites from receiver
-            if nargin >2 %interpreting as sys_c , orn
+            % remove satellites from receiver
+            %
+            % SYNTAX:
+            %   this.remSat(go_id)
+            %   this.remSat(sys, prn);            
+            if nargin > 2 % interpreting as sys_c , prn
                 go_id = this.getGoId(go_id, prn);
             end
-                
-            idx = this.go_id == go_id;
-            this.remObs(idx);
+            if ~isempty(go_id)
+                idx = this.go_id == go_id;
+                this.remObs(idx);
+            end
         end
         
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
@@ -2154,9 +2268,11 @@ classdef Receiver < Exportable
         end
                
         function nominal_time = getNominalTime(this)
-            % get the nominal time aka rounded time cosidering a  constant
+            % get the nominal time aka rounded time cosidering a constant
             % sampling rate
-            % SYNTAX: nominal_time = this.getNominalTime()
+            %
+            % SYNTAX: 
+            %   nominal_time = this.getNominalTime()
             nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
             rinex_time = this.time.getRefTime(nominal_time_zero);
             nominal_time = round(rinex_time * this.time.getRate) / this.time.getRate;
@@ -3026,7 +3142,7 @@ classdef Receiver < Exportable
             % MultiRec: works on an array of receivers
             % SYNTAX:
             %  [zwd, p_time, id_sync] = this.getZWD_mr()
-            [p_time, id_sync] = Receiver.getSyncTime(this);
+            [p_time, id_sync] = Receiver.getSyncTimeTR(this);
             n_rec = numel(this);
             zwd = nan(size(id_sync{1}));
             for r = 1 : n_rec
@@ -6730,15 +6846,18 @@ classdef Receiver < Exportable
             y0(y0 == 0) = []; % remove pivots
         end
                 
-        function [p_time, id_sync] = getSyncTime(rec, obs_type, p_rate)
+        function [p_time, id_sync] = getSyncTimeTR(rec, obs_type, p_rate)
             % Get the common (shortest) time among all the used receivers and the target(s)
+            % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
+            % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
+            %       output: 1 sync @1Hz + 1 sync@30s
             %
             % SYNTAX: 
-            %   [p_time, id_sync] = Receiver.getSyncTime(rec, obs_type, <p_rate>);
+            %   [p_time, id_sync] = Receiver.getSyncTimeTR(rec, obs_type, <p_rate>);
             %
-            % EXAMPLE:
-            %   [p_time, id_sync] = Receiver.getSyncTime(rec, state.obs_type, state.getProcessingRate());
-
+            % SEE ALSO:
+            %   this.getSyncTimeExpanded
+            %
             if nargin < 3
                 p_rate = 1e-6;
             end
@@ -6801,16 +6920,18 @@ classdef Receiver < Exportable
             end
         end
         
-        function [p_time, id_sync] = getSyncTimeExpanded(rec)
+        function [p_time, id_sync] = getSyncTimeExpanded(rec, p_rate)
             % Get the common time among all the receivers
             %
             % SYNTAX: 
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec,);
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, p_rate);
             %
             % EXAMPLE:
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec);
+            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, 30);
            
-            p_rate = 1e-6;
+            if nargin == 1
+                p_rate = 1e-6;
+            end
                        
             % prepare reference time
             % processing time will start with the receiver with the last first epoch
@@ -6819,26 +6940,31 @@ classdef Receiver < Exportable
             first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
             if ~isempty(first_id_ok)
                 p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
-                p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
-                p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
-                p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
             end
 
-            %figure; for r =id; plot(repmat(r, 1, rec(r).time.length), round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate,'.'); hold on; end
+            % Get all the common epochs
             t = [];
             for r = 1 : numel(rec)
                 rec_rate = min(1, rec(r).time.getRate);
                 t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
             end
             t = unique(t);
+            
+            % If p_rate is specified use it
+            if nargin > 1
+                t = intersect(t, (0 : p_rate : t(end) + p_rate)');
+            end
 
+            % Create reference time            
             p_time = GPS_Time(p_time_zero, t);
             id_sync = nan(p_time.length(), numel(rec));
             
+            % Get intersected times
             for r = 1 : numel(rec)
                 rec_rate = min(1, rec(r).time.getRate);
-                [~, id] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                id_sync(id ,r) = 1 : numel(id);
+                [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                id_sync(id1 ,r) = id2;
             end
         end
         

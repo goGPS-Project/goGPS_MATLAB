@@ -128,14 +128,14 @@ classdef Command_Interpreter < handle
             % in the definition the character "$" indicate the parameter value
             this.PAR_RATE.name = 'rate';
             this.PAR_RATE.descr = 'processing rate in seconds';
-            this.PAR_RATE.par = {'@$', '-r:$', '--rate:$'};
+            this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
             this.PAR_RATE.class = 'double';
             this.PAR_RATE.limits = [0.000001 900];
             this.PAR_RATE.accepted_values = [];
             
             this.PAR_SS.name = 'constellation';
             this.PAR_SS.descr = 'active constellations';
-            this.PAR_SS.par = {'-s:$', '--constellation:$'};
+            this.PAR_SS.par = '(\-s\=)|(\-\-constellation\=)'; % (regexp) parameter prefix: -s --constellation
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
@@ -150,26 +150,32 @@ classdef Command_Interpreter < handle
             % definition of commands
             
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
+            this.CMD_PREPRO.descr = 'code positioning, computation of satellite positions and various corrections';
             this.CMD_PREPRO.rec = {'T'};
             this.CMD_PREPRO.par = [];
             
             this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
+            this.CMD_PREPRO.descr = 'code positioning';
             this.CMD_CODEPP.rec = {'T'};
             this.CMD_CODEPP.par = [this.PAR_RATE this.PAR_SS];
             
             this.CMD_PPP.name = {'PPP', 'precise_point_positioning'};
+            this.CMD_PREPRO.descr = 'Precise Point Positioning using carrier phase observations';
             this.CMD_PPP.rec = {'T'};
             this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
+            this.CMD_PREPRO.descr = 'generate a Synthesised L2 on a target receiver using n (dual frequencies) reference stations';
             this.CMD_SEID.rec = {'R', 'T'};
             this.CMD_SEID.par = [];
             
             this.CMD_KEEP.name = {'KEEP'};
+            this.CMD_PREPRO.descr = 'keep in the object the data of a certain constallation / at a certain rate';
             this.CMD_KEEP.rec = {'T'};
             this.CMD_KEEP.par = [this.PAR_RATE this.PAR_SS];
             
             this.CMD_SYNC.name = {'SYNC'};
+            this.CMD_PREPRO.descr = 'syncronize all the receivers at the same rate (with the minimal data span)';
             this.CMD_SYNC.rec = {'T'};
             this.CMD_SYNC.par = [this.PAR_RATE];
             
@@ -210,11 +216,13 @@ classdef Command_Interpreter < handle
                     case this.CMD_PREPRO.name
                         this.runPrePro(rec, tok(2:end));
                     case this.CMD_CODEPP.name
+                        this.runCodePP(rec, tok(2:end));                        
                     case this.CMD_PPP.name
                         this.runPPP(rec, tok(2:end));
                     case this.CMD_SEID.name
                         this.runSEID(rec, tok(2:end));
                     case this.CMD_KEEP.name
+                        this.runKeep(rec, tok(2:end));
                     case this.CMD_SYNC.name
                 end
             end
@@ -248,6 +256,18 @@ classdef Command_Interpreter < handle
             end
         end
     
+        function runCodePP(this, rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                    rec(r).initPositioning();
+                end
+            end
+        end
+        
         function runSEID(this, rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
@@ -261,13 +281,33 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-
+        
+        function runKeep(this, rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                [rate, found] = this.getRate(tok);
+                if found
+                    for r = id_trg
+                        this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).getMarkerName()));
+                        rec(r).keep(rate);
+                    end
+                end
+                [sys_list, found] = this.getConstellation(tok);
+                if found
+                    for r = id_trg
+                        this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).getMarkerName()));
+                        rec(r).keep([], sys_list);
+                    end
+                end
+            end
+        end
     end
     
     %% METODS STATIC UTILITIES
     % ==================================================================================================================================================
-    methods
-        
+    methods        
         function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
             if nargin == 2
                 type = 'T';
@@ -303,8 +343,37 @@ classdef Command_Interpreter < handle
                     found = ~isempty(id_rec);
                     matching_rec = rec(id_rec);
                 end
-            end
+            end            
+        end
+        
+        function [rate, found] = getRate(this, tok)
+            found = false;
+            rate = [];
             
+            t = 0;
+            while ~found && t < numel(tok)
+                t = t + 1;
+                rate = str2double(regexp(tok{t}, ['(?<=' this.PAR_RATE.par ')[+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match'));
+                if ~isempty(rate)
+                    rate = rate(1);
+                    found = true;
+                end
+            end            
+        end
+        
+        function [sys, found] = getConstellation(this, tok)
+            found = false;
+            sys = [];
+            
+            t = 0;
+            while ~found && t < numel(tok)
+                t = t + 1;
+                sys = regexp(tok{t}, ['(?<=' this.PAR_SS.par ')[GREJCIS]*'], 'match');
+                if ~isempty(sys)
+                    sys = [sys{:}];
+                    found = true;
+                end
+            end            
         end
         
         function [cmd, err, id] = getCommandValidity(this, str)
