@@ -84,16 +84,6 @@ classdef Command_Interpreter < handle
         log
     end
     %
-    %% PROPERTIES RECEIVERS
-    % ==================================================================================================================================================
-    properties % Utility Pointers to Singletons
-        rec     % List of all the receiver used in a session
-        
-        trg     % temporary pointer to all the targets
-        ref     % temporary pointer to all the reference stations (SEID)
-        mst     % temporary pointer to all the master stations
-    end
-    %
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -227,22 +217,21 @@ classdef Command_Interpreter < handle
                 this.log.newLine();
                 
                 switch upper(tok{1})
-                    case this.CMD_PREPRO.name
+                    case this.CMD_PREPRO.name               % PREPRO
                         this.runPrePro(rec, tok(2:end));
-                    case this.CMD_CODEPP.name
+                    case this.CMD_CODEPP.name               % CODEPP
                         this.runCodePP(rec, tok(2:end));                        
-                    case this.CMD_PPP.name
+                    case this.CMD_PPP.name                  % PPP
                         this.runPPP(rec, tok(2:end));
-                    case this.CMD_SEID.name
+                    case this.CMD_SEID.name                 % SEID
                         this.runSEID(rec, tok(2:end));
-                    case this.CMD_KEEP.name
+                    case this.CMD_KEEP.name                 % KEEP
                         this.runKeep(rec, tok(2:end));
-                    case this.CMD_SYNC.name
+                    case this.CMD_SYNC.name                 % SYNC
+                        this.runSync(rec, tok(2:end));                        
                 end
             end
         end
-        
-        % --------------------------------------------------------------------
     end
     %
     %% METHODS EXECUTE (PRIVATE)
@@ -287,7 +276,7 @@ classdef Command_Interpreter < handle
             else
                 for r = id_trg
                     if rec(r).isStatic
-                        this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                        this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
                         rec(r).staticPPP();
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
@@ -367,11 +356,43 @@ classdef Command_Interpreter < handle
                 end
             end
         end
+        
+        function runSync(this, rec, tok)
+            % Filter Receiver data
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runKeep(rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                [rate, found] = this.getRate(tok);
+                if found
+                    Receiver.sync(rec, rate);
+                else
+                    Receiver.sync(rec);
+                end
+            end
+        end
     end
-    %% METHODS STATIC UTILITIES
+    %
+    %% METHODS UTILITIES (PRIVATE)
     % ==================================================================================================================================================
-    methods        
+    methods (Access = private)       
         function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
+            % Extract from a set of tokens the receivers to be used
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %   type    type of receavers to search for ('T'/'R'/'M') 
+            %
+            % SYNTAX
+            %   [id_rec, found, matching_rec] = this.getMatchingRec(rec, tok, type)
             if nargin == 2
                 type = 'T';
             end
@@ -410,40 +431,52 @@ classdef Command_Interpreter < handle
         end
         
         function [rate, found] = getRate(this, tok)
-            found = false;
-            rate = [];
-            
-            t = 0;
-            while ~found && t < numel(tok)
-                t = t + 1;
-                rate = str2double(regexp(tok{t}, ['(?<=' this.PAR_RATE.par ')[+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match'));
-                if ~isempty(rate)
-                    rate = rate(1);
-                    found = true;
-                end
-            end            
+            % Extract from a set of tokens the rate parameter
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [rate, found] = this.getRate(tok)
+            found = false;            
+            rate = str2double(regexp([tok{:}], ['(?<=' this.PAR_RATE.par ')[+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match', 'once'));
+            if ~isempty(rate) && ~isnan(rate)
+                found = true;
+            end
         end
         
         function [sys, found] = getConstellation(this, tok)
-            found = false;
-            sys = [];
-            
-            t = 0;
-            while ~found && t < numel(tok)
-                t = t + 1;
-                sys = regexp(tok{t}, ['(?<=' this.PAR_SS.par ')[GREJCIS]*'], 'match');
-                if ~isempty(sys)
-                    sys = [sys{:}];
-                    found = true;
-                end
-            end            
+            % Extract from a set of tokens the constellation parameter
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [sys, found] = this.getConstellation(tok)
+            found = false;            
+            sys = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCIS]*'], 'match', 'once');
+            if ~isempty(sys)
+                found = true;
+            end
         end
         
-        function [cmd, err, id] = getCommandValidity(this, str)
+        function [cmd, err, id] = getCommandValidity(this, str_cmd)
+            % Extract from a string the goGPS command found
+            %
+            % INPUT
+            %   str_cmd     command as a string
+            %
+            % OUTPUT
+            %   cmd         command struct for the found command
+            %   err         error number (==0 ok) (> 0 on error) (< 0 on warning)
+            %    id         internal usage id in the VALID_CMD array
+            %
+            % SYNTAX
+            %  [cmd, err, id] = getCommandValidity(this, str_cmd)
             err = 0;
-            tok = regexp(str,'[^ ]*', 'match');
-            str = tok{1};
-            id = this.CMD_ID((strcmp(str, this.VALID_CMD)));
+            tok = regexp(str_cmd,'[^ ]*', 'match');
+            str_cmd = tok{1};
+            id = this.CMD_ID((strcmp(str_cmd, this.VALID_CMD)));
             if isempty(id)
                 cmd = [];
                 err = this.ERR_UNK; % command unknown
@@ -457,8 +490,23 @@ classdef Command_Interpreter < handle
                 
             end
         end
-        
+    end
+    %
+    %% METHODS UTILITIES
+    % ==================================================================================================================================================
+    methods
         function [cmd_list, err_list] = fastCheck(this, cmd_list)
+            % Check a cmd list keeping the valid commands only
+            %
+            % INPUT
+            %   cmd_list    command as a cell array
+            %
+            % OUTPUT
+            %   cmd_list    list with all the valid commands
+            %   err         error list
+            %
+            % SYNTAX
+            %  [cmd, err, id] = getCommandValidity(this, str_cmd)
             err_list = zeros(size(cmd_list));
             for c = 1 : numel(cmd_list)
                 [~, err_list(c)] = this.getCommandValidity(cmd_list{c});
@@ -472,9 +520,5 @@ classdef Command_Interpreter < handle
             end
             cmd_list = cmd_list(err_list == 0);
         end
-    end
-    
-    methods % Public Access (Legacy support)
-        
-    end
+    end    
 end

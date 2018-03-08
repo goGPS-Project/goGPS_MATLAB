@@ -586,6 +586,10 @@ classdef Receiver < Exportable
         end
         
         function keep(this, rate, sys_list)
+            % keep epochs at a certain rate for a certain constellation
+            %
+            % SYNTAX:   
+            %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
                 [~, id_sync] = Receiver.getSyncTimeExpanded(this, rate);
                 this.keepEpochs(id_sync(~isnan(id_sync)));
@@ -595,7 +599,7 @@ classdef Receiver < Exportable
                 this.remSat(this.go_id(regexp(this.system, ['[^' sys_list ']'])));
             end            
         end
-                
+                        
         function remEpochs(this, bad_epochs)
             % remove epochs with a certain id
             %
@@ -6967,7 +6971,29 @@ classdef Receiver < Exportable
                 id_sync(id1 ,r) = id2;
             end
         end
-        
+
+        function sync(rec, rate)
+            % keep epochs at a certain rate for a certain constellation
+            %
+            % SYNTAX:   
+            %   this.keep(rate, sys_list)
+            if nargin > 1 && ~isempty(rate)
+                [~, id_sync] = Receiver.getSyncTimeExpanded(rec, rate);
+            else
+                [~, id_sync] = Receiver.getSyncTimeExpanded(rec);                
+            end
+            % Keep the epochs in common
+            % starting from the first when all the receivers are available
+            % ending whit the last when all the receivers are available
+            id_sync((find(sum(isnan(id_sync), 2) == 0, 1, 'first') : find(sum(isnan(id_sync), 2) == 0, 1, 'last')), :);
+            
+            % keep only synced epochs
+            for r = 1 : numel(rec)
+                rec(r).keepEpochs(id_sync(~isnan(id_sync(:, r)), r));
+            end
+            
+        end
+
         function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
             %res_code1_fix  = [];                      % double differences code residuals (fixed solution)
             %res_code2_fix  = [];                      % double differences code residuals (fixed solution)
