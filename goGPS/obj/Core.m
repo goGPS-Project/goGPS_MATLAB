@@ -94,7 +94,6 @@ classdef Core < handle
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core__
-            unique_instance_core__ = [];
 
             if isempty(unique_instance_core__)
                 this = Core();

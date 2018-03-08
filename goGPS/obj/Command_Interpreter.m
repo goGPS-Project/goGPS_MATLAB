@@ -41,7 +41,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Command_Interpreter < handle
+classdef Command_Interpreter < handle    
     
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
@@ -55,34 +55,35 @@ classdef Command_Interpreter < handle
             'Not enough input parameters', ...
             'Too many input parameters'};
     end
-    
+    %
     %% PROPERTIES COMMAND CONSTANTS
     % ==================================================================================================================================================
     properties (GetAccess = public, SetAccess = private)
         % List of the supported commands
         
-        CMD_PREPRO
-        CMD_CODEPP
-        CMD_PPP
-        CMD_SEID
-        CMD_KEEP
-        CMD_SYNC
+        CMD_PREPRO      % Pre-processing command
+        CMD_CODEPP      % Code point positioning
+        CMD_PPP         % Precise point positioning        
+        CMD_SEID        % SEID processing (synthesise L2)
+        CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
+        CMD_SYNC        % Syncronization among multiple receivers (same rate)
         
-        PAR_RATE
-        PAR_SS
-        PAR_SYNC
+        PAR_RATE        % Parameter select rate
+        PAR_SS          % Parameter select constellation
+        PAR_SYNC        % Parameter sync 
         
         CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
     end
-    
+    %
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log
     end
+    %
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
@@ -92,6 +93,7 @@ classdef Command_Interpreter < handle
         ref     % temporary pointer to all the reference stations (SEID)
         mst     % temporary pointer to all the master stations
     end
+    %
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -102,7 +104,8 @@ classdef Command_Interpreter < handle
             this.init();
         end
     end
-    %% METODS UI
+    %
+    %% METHOD INTERFACE
     % ==================================================================================================================================================
     methods (Static, Access = public)
         function this = getInstance()
@@ -119,10 +122,16 @@ classdef Command_Interpreter < handle
             end
         end
     end
-    %% METODS INIT
+    %
+    %% METHODS INIT
     % ==================================================================================================================================================
     methods
         function init(this)
+            % Define and fill the "CONSTANT" structures of the class
+            % Due to MATLAB limits it is not possible to create cells into struct on declaration
+            %
+            % SYNTAX:
+            %   this.init()
             
             % definition of parameters (ToDo: these should be converted into objects)
             % in the definition the character "$" indicate the parameter value
@@ -190,11 +199,16 @@ classdef Command_Interpreter < handle
             end
         end
     end
-    %% METODS EXECUTE
+    %
+    %% METHODS EXECUTE
     % ==================================================================================================================================================
-    methods
-        
+    % methods to execute a set of goGPS Commands
+    methods        
         function exec(this, rec, cmd_list)
+            % run a set of commands (divided in cells of cmd_list)
+            %
+            % SYNTAX:
+            %   this.exec(rec, cmd_list)
             if nargin == 2
                 state = Global_Configuration.getCurrentSettings();
                 cmd_list = state.getCommandList();
@@ -228,7 +242,25 @@ classdef Command_Interpreter < handle
             end
         end
         
+        % --------------------------------------------------------------------
+    end
+    %
+    %% METHODS EXECUTE (PRIVATE)
+    % ==================================================================================================================================================
+    % methods to execute a set of goGPS Commands
+    methods (Access = private)    
+        
         function runPrePro(this, rec, tok)
+            % Execute Pre processing
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runPrePro(rec, tok)
+            
+            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
@@ -241,6 +273,14 @@ classdef Command_Interpreter < handle
         end
         
         function runPPP(this, rec, tok)
+            % Execute Precise Point Positioning
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runPPP(rec, tok)
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
@@ -257,6 +297,14 @@ classdef Command_Interpreter < handle
         end
     
         function runCodePP(this, rec, tok)
+            % Execute Code Point Positioning
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runCodePP(rec, tok)            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
@@ -269,6 +317,14 @@ classdef Command_Interpreter < handle
         end
         
         function runSEID(this, rec, tok)
+            % Synthesise L2 observations on a target receiver given a set of dual frequency reference stations
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runSEID(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
@@ -283,6 +339,14 @@ classdef Command_Interpreter < handle
         end
         
         function runKeep(this, rec, tok)
+            % Filter Receiver data
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runKeep(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
@@ -304,8 +368,7 @@ classdef Command_Interpreter < handle
             end
         end
     end
-    
-    %% METODS STATIC UTILITIES
+    %% METHODS STATIC UTILITIES
     % ==================================================================================================================================================
     methods        
         function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
@@ -414,5 +477,4 @@ classdef Command_Interpreter < handle
     methods % Public Access (Legacy support)
         
     end
-    
 end

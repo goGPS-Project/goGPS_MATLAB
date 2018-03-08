@@ -54,8 +54,6 @@ classdef SINEX_Writer < handle
         ACKNOWLEDGMENTS = 'International GNSS Service (IGS)';
         
         TROPO_HEADER = '*SITE EPOCH_______ TROTOT STDEV  TGNTOT  STDEV  TGETOT  STDEV';
-        
-        
     end
     properties
         state;

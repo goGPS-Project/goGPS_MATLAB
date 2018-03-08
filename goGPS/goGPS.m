@@ -1,3 +1,26 @@
+function goGPS(ini_settings_file, use_gui)
+% SYNTAX:
+%   goGPS(<ini_settings_file>, <use_gui =false>);
+%
+% INPUT:
+%   ini_settings_file       path to the settings file
+%   use_gui                 (0/1) flag to activate GUI editing of the settings
+%                           default = 0 (false
+%
+% DESCRIPTION:
+%   function launcher for goGPS
+%   
+% OUTPUT:
+%   goGPS creates a singleton object, for debug purposes it is possibble to obtain it typing:
+%   core = Core.getInstance();
+%
+% EXAMPLE:
+%   goGPS('../data/project/default_PPP/config/settings.ini');
+%
+% COMPILATION STRING:
+%   tic; mcc -v -d ./bin/ -m goGPS -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv; toc;
+%
+
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
 %     __ _ ___ / __| _ | __
@@ -7,8 +30,6 @@
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Originally written by:       Mirko Reguzzoni, Eugenio Realini
-%  Contributors:                Gatti Andrea, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -29,12 +50,6 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-% clear all variables
-% NOTE: using only 'clearvars' does not clear global variables, while using
-% 'clear all' removes breakpoints
-clearvars -global -except ini_settings_file use_gui; %  exceptions for goGPSgo
-clearvars -except ini_settings_file use_gui; % exceptions for goGPSgo
-
 % if the plotting gets slower than usual, there might be problems with the
 % Java garbage collector. In case, you can try to use the following
 % command:
@@ -46,52 +61,52 @@ clearvars -except ini_settings_file use_gui; % exceptions for goGPSgo
 % clear java
 
 % add all the subdirectories to the search path
-if (~isdeployed)
-    addpath(genpath(pwd));
-end
 
-%----------------------------------------------------------------------------------------------
-% INIT
-%----------------------------------------------------------------------------------------------
+    %% Preparing execution and settings
+    if (~isdeployed)
+        addpath(genpath(pwd));
+    end
 
-% Init Core
-core = Core.getInstance();
+    core = Core.getInstance(); % Init Core
 
-if exist('ini_settings_file', 'var')
-    core.importIniFile(ini_settings_file);
-end
+    if nargin >= 1
+        if  ~exist(ini_settings_file,'file')
+            clear ini_settings_file;
+        else            
+            core.importIniFile(ini_settings_file);
+        end
+    end
+    if nargin < 2
+        if isdeployed
+            use_gui = true;
+       else
+            use_gui = true;
+        end
+    end
 
-%----------------------------------------------------------------------------------------------
-% INTERFACE TYPE DEFINITION
-%----------------------------------------------------------------------------------------------
+    % Every parameters when the application is deployed are strings
+    if isdeployed
+        if (ischar(use_gui) && (use_gui == '1'))
+            use_gui = true;
+        end
+    end
+    
+    if use_gui
+        ui = Core_UI.getInstance();
+        ui.openGUI();
+        
+        if ~ui.isGo()
+            return
+        end
+    end
+    
+    %% GO goGPS - here the computations start
+    core.prepareProcessing(); % download important files
+    core.go(); % execute all
 
-if exist('use_gui', 'var')
-    mode_user = use_gui;
-else
-    mode_user =   1; % user interface type
-    % mode_user = 0 --> use text interface
-    % mode_user = 1 --> use GUI
-end
-
-%----------------------------------------------------------------------------------------------
-% INTERFACE STARTUP
-%----------------------------------------------------------------------------------------------
-
-if (mode_user == 1)
-
-    % Now there's a unique interface for goGPS
-    % to be compatible among various OSs the property "unit" of all the
-    % elements must be set to "pixels"
-    % (default unit is "character", but the size of a character is OS dependent)
-    ui = Core_UI.getInstance();
-    ui.openGUI();
-
-    if ~ui.isGo()
-        return
+    %% Closing all
+    if ~use_gui
+        close all;
     end
 end
 
-%% GO goGPS - here the computations start
-
-core.prepareProcessing();
-core.go();

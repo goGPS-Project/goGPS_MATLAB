@@ -495,7 +495,7 @@ classdef File_Wizard < handle
                                 [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
                                 delete([this.state.getDcbDir() '/' name ext]);
                             catch
-                                fprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']);
+                                this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
                                 compressed = 1;
                             end
                         end
@@ -542,7 +542,7 @@ classdef File_Wizard < handle
                     mkdir(down_dir);
                 end
                 
-                fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
+                log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                 
                 year_orig  = date_f(1) : 1 : date_l(1);
                 if (length(year_orig) < 1)
@@ -727,9 +727,7 @@ classdef File_Wizard < handle
             if not(exist(down_dir, 'dir'))
                 mkdir(down_dir);
             end
-            
-            fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
-            
+                        
             year  = date_f(1) : 1 : date_l(1);
             file_crx = cell(length(year),1);
             
@@ -737,7 +735,8 @@ classdef File_Wizard < handle
             try
                 ftp_server = ftp(aiub_ip);
             catch
-                fprintf(' connection failed.\n');
+                this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                this.log.addError('Connection failed.\n');
                 return
             end
             
@@ -761,19 +760,22 @@ classdef File_Wizard < handle
                 % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
                 % do not do
                 if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
+                    this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                     %if not(exist([down_dir, '/', s2]) == 2)
                     mget(ftp_server,s2,down_dir);
+                    this.log.addMessage(this.log.indent(sprintf(['Downloaded CRX file: ' s2 '\n'])));
                 end
                 
                 % cell array with the paths to the downloaded files
-                file_crx{y} = [down_dir, '/', s2];
-                
-                fprintf(['Downloaded CRX file: ' s2 '\n']);
+                file_crx{y} = [down_dir, '/', s2];                                
             end
             
-            close(ftp_server);
+            try
+                close(ftp_server);
+            catch
+            end
             
-            fprintf('Download complete.\n')
+            this.log.addStatusOk(this.log.indent(('CRX ready!\n')))
             
         end
         
