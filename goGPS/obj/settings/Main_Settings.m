@@ -131,9 +131,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_CHECK_REMOTE = true;
 
         % SATELLITES
-        EPH_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep ]; % Path to Ephemeris files folder
+        EPH_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep '${WWWW}' filesep]; % Path to Ephemeris files folder
         EPH_NAME = ''; % Name for Ephemeris files
-        CLK_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
+        CLK_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep '${WWWW}' filesep]; % Path to Clock Offset files folder
         CLK_NAME = ''; % Name of Clock Offset files
         CRX_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep]; % Path to CRX folder containing files of Satellites problems
         CRX_NAME = 'SAT_${YYYY}.CRX';

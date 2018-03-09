@@ -282,6 +282,8 @@ classdef File_Wizard < handle
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 idx = this.getServerIdx(s_ip, port);
                                 out_dir = this.state.getFileDir(file_name);
+                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, dsa, dso);
+                                out_dir = out_dir{1};
                                 status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
                             end
                         end
@@ -425,7 +427,7 @@ classdef File_Wizard < handle
             
             this.conjureDCBFiles(dsa, dso);
             this.conjureCRXFiles(dsa, dso);
-            %this.conjureIonoFiles(dsa, dso);
+            this.conjureIonoFiles(dsa, dso);
         end
         
         function [first_epoch, last_epoch] = conjureObsFile(this)

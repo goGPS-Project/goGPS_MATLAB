@@ -113,7 +113,11 @@ classdef Receiver < Exportable
         
         outlier_idx_ph;
         cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
-        ph_idx             % idx of outlier and cycle slip in obs
+        ph_idx             % idx of outlier and cycle slip in obs 
+        
+        amb_idx;           % temporary varibale to test PPP ambiguity fixing
+        if_amb;            % temporary varibale to test PPP ambiguity fixing
+        est_slant;         % temporary varibale to test PPP ambiguity fixing
     end
     
     % ==================================================================================================================================================
@@ -424,9 +428,18 @@ classdef Receiver < Exportable
                 % GPS C2 -> C2C
                 idx = this.getObsIdx('C2 ','G');
                 this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GPS L1 -> L1C
+                idx = this.getObsIdx('L1 ','G');
+                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
+                % GPS L2 -> L2W
+                idx = this.getObsIdx('L2 ','G');
+                this.obs_code(idx,:) = repmat('L2W',length(idx),1);
                 % GPS C5 -> C5I
                 idx = this.getObsIdx('C5 ','G');
                 this.obs_code(idx,:) = repmat('C5I',length(idx),1);
+                % GPS L5 -> L5I
+                idx = this.getObsIdx('L5 ','G');
+                this.obs_code(idx,:) = repmat('L5I',length(idx),1);
                 % GPS P1 -> C1W
                 idx = this.getObsIdx('P1 ','G');
                 this.obs_code(idx,:) = repmat('C1W',length(idx),1);
@@ -2801,7 +2814,8 @@ classdef Receiver < Exportable
                 w2 =  this.wl(i2);
                 oc1 = this.obs_code(i1(1),:);
                 oc2 = this.obs_code(i2(1),:);
-                if flag1(2) == 'L'
+                % form cycle to meters
+                if flag1(2) == 'L'  
                     o1 = o1.*repmat(w1',size(o1,1),1);
                 end
                 if flag2(2) == 'L'
@@ -2955,7 +2969,7 @@ classdef Receiver < Exportable
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
         
-        function [obs_set]  = getPrefMelWub(this, obs_type, system)
+        function [obs_set]  = getPrefMelWub(this, system)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
@@ -2967,7 +2981,7 @@ classdef Receiver < Exportable
                 end
             end
             iono_pref = iono_pref(is_present,:);
-            [obs_set]  = this.getMelWub([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+            [obs_set]  = this.getMelWub([iono_pref(1,1)], [iono_pref(1,2)], system);
         end
                 
         function [range, XS_loc] = getSyntObs(this, obs_type, go_id)
@@ -3651,6 +3665,7 @@ classdef Receiver < Exportable
         
         function applyGroupDelay(this)
             if this.group_delay_status == 0
+                this.log.addMarkedMessage('Adding code group delays');
                 this.groupDelay(1);
                 this.group_delay_status = 1; %applied
             end
@@ -3658,6 +3673,7 @@ classdef Receiver < Exportable
         
         function removeGroupDelay(this)
             if this.group_delay_status == 1
+                this.log.addMarkedMessage('Removing code group delays');
                 this.groupDelay(-1);
                 this.group_delay_status = 0; %applied
             end
@@ -3675,7 +3691,7 @@ classdef Receiver < Exportable
                 if sum(this.sat.cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
                         for s = 1 : size(this.sat.cs.group_delays,1)
-                            sat_idx = idx((this.prn(idx) == s));
+                            sat_idx = idx((this.prn(idx) == s)); 
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
                             if this.sat.cs.group_delays(s,i) ~= 0
                                 this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * this.sat.cs.group_delays(s,i);
@@ -3736,7 +3752,7 @@ classdef Receiver < Exportable
                 case 'I'
                     omegae_dot = this.cc.irn.ORBITAL_P.OMEGAE_DOT;
                 otherwise
-                    Logger.getInstance().addWarning('Something went wrong in satellite_positions.m\nUnrecognized Satellite system!\n');
+                    Logger.getInstance().addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
             end
             omega_tau = omegae_dot * travel_time;
@@ -4425,7 +4441,8 @@ classdef Receiver < Exportable
             
             this.updateCoo();
             atmo = Atmosphere();
-            atmo.importIonex('/media/utente/5A7A700750D93945/goGPS_MATLAB_nightly/data/satellite/IONO/corg2350.15i');
+            fname = this.state.getIonoFileName(this.time.getSubSet(1), this.time.getSubSet(this.time.length));
+            atmo.importIonex(fname{1}); 
             [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
             
         end
@@ -5614,7 +5631,8 @@ classdef Receiver < Exportable
             this.xyz = this.xyz + coo';
             valid_ep = ls.true_epoch;
             this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
-            
+            this.amb_idx = ls.amb_idx; % to test ambiguity fixing
+            this.if_amb = amb; % to test ambiguity fixing
             if s02 < 0.10
                 if this.state.flag_tropo
                     this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
@@ -5624,6 +5642,7 @@ classdef Receiver < Exportable
                     this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
                         + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
                         + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
+                    this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index;  % to test ambiguity fixing
                 end
                 if this.state.flag_tropo_gradient
                     if isempty(this.tgn)
@@ -5641,6 +5660,9 @@ classdef Receiver < Exportable
                     this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
                                                           + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
                                                           + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));
+                    this.est_slant = nan2zero(zero2nan(this.est_slant) ...
+                                                          + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
+                                                          + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));  % to test ambiguity fixing
                 end
             else
                 this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))

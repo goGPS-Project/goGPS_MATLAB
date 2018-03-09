@@ -160,7 +160,9 @@ classdef FTP_Downloader < handle
                 fname = File_Name_Processor.getFileName(filepath);
                 cd(this.ftp_server, path);
                 this.log.addMessage(this.log.indent(sprintf('downloading %s ...',fname)));
-                
+                if ~(7 ==exist(out_dir,'dir'))
+                    mkdir(out_dir);
+                end
                 fpath = mget(this.ftp_server, [fname '*'], out_dir);
                 if isempty(fpath)
                     status = false;

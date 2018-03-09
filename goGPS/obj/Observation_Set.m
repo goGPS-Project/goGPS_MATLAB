@@ -116,11 +116,17 @@ classdef Observation_Set < handle
         end
         
         function remUnderCutOff(this, cut_off)
+            % DESCRIPTION: remove observations under the selcted cut off
+            % SYNTAX : this.remUnderCutOff(cut_off);
             idx = this.el < cut_off;
             this.remObs(idx);
         end
         
         function remObs(this,idx)
+            % DESCRIPTION: remove the observations identified by the index
+            % idx, remove all corrsponding paramaters ( snr el az cycle
+            % slip) then sanitize the object for empty row or columns
+            % SYNTAX : this.remObs(idx)
             this.obs(idx) = 0;
             this.snr(idx) = 0;
             this.el(idx) = 0;

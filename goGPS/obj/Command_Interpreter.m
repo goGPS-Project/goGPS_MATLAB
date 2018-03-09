@@ -148,7 +148,7 @@ classdef Command_Interpreter < handle
             
             % definition of commands
             
-            new_line = [newline '             '];
+            new_line = [char(10) '             '];
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';

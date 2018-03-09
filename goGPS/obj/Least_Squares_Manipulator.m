@@ -114,7 +114,7 @@ classdef Least_Squares_Manipulator < handle
             id_sync = this.setUpSA(rec, id_sync, 'C', cut_off);
         end
         
-        function id_sync = setUpSA(this, rec, id_sync, obs_type, cut_off)
+        function id_sync = setUpSA(this, rec, id_sync, obs_type, cut_off, custom_obs_set)
             % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
             % INPUT:
@@ -125,22 +125,25 @@ classdef Least_Squares_Manipulator < handle
             %
             
             % extract the observations to be used for the solution
-            obs_set = Observation_Set();
-            if rec.isMultiFreq() %% case multi frequency
-                for sys_c = rec.cc.sys_c
-                    for i = 1 : length(obs_type)
-                        obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+            if nargin < 6
+                obs_set = Observation_Set();
+                if rec.isMultiFreq() %% case multi frequency
+                    for sys_c = rec.cc.sys_c
+                        for i = 1 : length(obs_type)
+                            obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                        end
+                    end
+                else
+                    for sys_c = rec.cc.sys_c
+                        f = rec.getFreqs(sys_c);
+                        for i = 1 : length(obs_type)
+                            obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                        end
                     end
                 end
             else
-                for sys_c = rec.cc.sys_c
-                    f = rec.getFreqs(sys_c);
-                    for i = 1 : length(obs_type)
-                        obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
-                    end
-                end
+                obs_set = custom_obs_set;
             end
-            
             % if phase observations are present check if the computation of troposphere parameters is required
             phase_present = strfind(obs_type, 'L');
             if phase_present
@@ -152,9 +155,11 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % check presence of snr data and fill the gaps if needed
-            snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
-            if sum(sum(snr_to_fill))
-                obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
+            if ~isempty(obs_set.snr)
+                snr_to_fill = (double(obs_set.snr ~= 0) + 2 * double(obs_set.obs ~= 0)) == 2; % obs if present but snr is not
+                if sum(sum(snr_to_fill))
+                    obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
+                end
             end
             
             % remove epochs based on desired sampling
@@ -349,7 +354,7 @@ classdef Least_Squares_Manipulator < handle
                 % ----------- Abiguity ------------------
                 if phase_present
                     amb_offset = n_coo + iob_flag + 1;
-                    A(lines_stream, amb_offset) = obs_set.wl(s);
+                    A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
                     A_idx(lines_stream, amb_offset) = n_coo + iob_flag + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
@@ -378,7 +383,7 @@ classdef Least_Squares_Manipulator < handle
             %---- Set up the date the constraint to solve the rank deficeny problem --------------
             if phase_present
                 % Ambiguity set
-                G = [zeros(1, n_coo + n_iob) (amb_obs_count ./ wl_amb) -sum(~isnan(this.amb_idx), 2)'];
+                G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
@@ -499,6 +504,10 @@ classdef Least_Squares_Manipulator < handle
         end
         %------------------------------------------------------------------------
         function [x, res, s02, Cxx] = solve(this)
+            % if N_ep if empty call A
+            if isempty(this.N_ep)
+                this.Astack2Nstack();
+            end
             idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
             idx_constant = find(idx_constant_l);
             idx_non_constant = find(~idx_constant_l);
