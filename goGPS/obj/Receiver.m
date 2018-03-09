@@ -2889,8 +2889,6 @@ classdef Receiver < Exportable
                     end
                     wl(p) = w1(ii1)*w2(ii2)/(i*w2(ii2) + j*w1(ii1)); % see: https://www.tekmon.gr/online-gps-tutorial/1-4-1-linear-combinations-of-simultaneous-observations-between-frequencies
                 end
-
-
             end
             obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, el, az, common_prns);
             obs_set.go_id = go_id;
@@ -5633,7 +5631,7 @@ classdef Receiver < Exportable
                     this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
                         + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
                         + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
-                    this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index;  % to test ambiguity fixing
+                    this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
                 end
                 if this.state.flag_tropo_gradient
                     if isempty(this.tgn)
