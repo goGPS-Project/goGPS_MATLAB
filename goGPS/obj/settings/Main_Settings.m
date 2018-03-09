@@ -1440,12 +1440,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkPathField('atx_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('atx_name', EMPTY_IS_NOT_VALID);
 
-            this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
             this.checkStringField('eph_name', EMPTY_IS_VALID);
-            this.checkPathField('clk_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkPathField('clk_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('clk_name', EMPTY_IS_VALID);
-            this.checkPathField('erp_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            this.checkPathField('erp_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('erp_name', EMPTY_IS_VALID);
             this.checkPathField('crx_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('dcb_dir', EMPTY_IS_NOT_VALID);
