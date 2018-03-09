@@ -25,7 +25,7 @@ function [latpp, lonpp, fpp] = iono_pierce_point(latR, lonR, azS, elS)
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Antonio Herrera Olmo, 2012
 %  Contributors:     Eugenio Realini, 2013
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

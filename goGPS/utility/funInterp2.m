@@ -29,7 +29,7 @@ function data = funInterp2(x_pred, y_pred, x_obs, y_obs, data_obs, fun)
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

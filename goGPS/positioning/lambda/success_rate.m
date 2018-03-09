@@ -24,7 +24,7 @@ function [up_bound, lo_bound] = success_rate(D, L, bias)
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Hendy F. Suhandri
 %  Contributors:     ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

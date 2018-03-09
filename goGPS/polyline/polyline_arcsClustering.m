@@ -28,7 +28,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     Lisa Pertusini,
 %                    Alemu Befkadu...

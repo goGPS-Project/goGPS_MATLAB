@@ -22,7 +22,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:
 %  Contributors:     ...
 %  Partially based on RINEXE.M (EASY suite) by Kai Borre

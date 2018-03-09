@@ -10,7 +10,7 @@ function [A, y0, b, Q, obs_track, amb_num, amb_prn_track, rem_amb] = LS_short_ar
 %    |___/                    v 0.6.0 alpha 2 - nightly
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Eugenio Realini
 %  Contributors:     Eugenio Realini, Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
