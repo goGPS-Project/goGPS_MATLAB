@@ -140,10 +140,15 @@ classdef Least_Squares_Manipulator < handle
                             obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
                         end
                     end
+                    % To be checked:
+                    % commenting to generate the error and investigate for problems next time
+                    %obs_set.el = rec.sat.el(:,obs_set.go_id);
+                    %obs_set.az = rec.sat.az(:,obs_set.go_id);                    
                 end
             else
                 obs_set = custom_obs_set;
             end
+            
             % if phase observations are present check if the computation of troposphere parameters is required
             phase_present = strfind(obs_type, 'L');
             if phase_present
