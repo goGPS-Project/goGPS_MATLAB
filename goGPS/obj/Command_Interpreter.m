@@ -84,8 +84,9 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
-        PAR_S_ZTDS      % ZTD Slant
-        
+        PAR_S_STD       % ZTD Slant
+        PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+
         PAR_S_SAVE      % flage for saving
         
         CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW'};
@@ -207,9 +208,13 @@ classdef Command_Interpreter < handle
             this.PAR_S_ZTD.descr = 'ZTD              Zenithal Total Delay';
             this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
 
-            this.PAR_S_ZTDS.name = 'ZTD Slant';
-            this.PAR_S_ZTDS.descr = 'ZTDS             Zenithal Total Delay with slants';
-            this.PAR_S_ZTDS.par = '(ztds)|(ZTDS)';
+            this.PAR_S_STD.name = 'ZTD Slant';
+            this.PAR_S_STD.descr = 'STD              Zenithal Total Delay with slants';
+            this.PAR_S_STD.par = '(std)|(STD)';
+
+            this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
+            this.PAR_S_RES_STD.descr = 'STDS             Slants Total Delay residuals (polar plot)';
+            this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
 
             % definition of commands
             
@@ -252,7 +257,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_ZTDS];
+            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_STD this.PAR_S_RES_STD];
 
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
@@ -561,8 +566,10 @@ classdef Command_Interpreter < handle
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
                                 rec(r).showResSky_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
-                                rec(r).showZtd();
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTDS.par ')*$'], 'once'))
+                                rec(r).showZtd();                                
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
+                                rec(r).showZtdSlant();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
                                 rec(r).showZtdSlantRes_p();
                             end
                         catch ex
