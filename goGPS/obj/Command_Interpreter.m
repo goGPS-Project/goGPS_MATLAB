@@ -41,8 +41,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Command_Interpreter < handle    
-    
+classdef Command_Interpreter < handle        
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant, GetAccess = private)
@@ -67,12 +66,13 @@ classdef Command_Interpreter < handle
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
+        CMD_OUTDET      % Outlier and cycle-slip detection 
         
         PAR_RATE        % Parameter select rate
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync 
         
-        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC'};
+        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -126,21 +126,21 @@ classdef Command_Interpreter < handle
             % definition of parameters (ToDo: these should be converted into objects)
             % in the definition the character "$" indicate the parameter value
             this.PAR_RATE.name = 'rate';
-            this.PAR_RATE.descr = 'processing rate in seconds';
+            this.PAR_RATE.descr = '@<rate>          processing rate in seconds (e.g. @30s, -r=30s)';
             this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
             this.PAR_RATE.class = 'double';
             this.PAR_RATE.limits = [0.000001 900];
             this.PAR_RATE.accepted_values = [];
             
             this.PAR_SS.name = 'constellation';
-            this.PAR_SS.descr = 'active constellations';
+            this.PAR_SS.descr = '-s=<sat_list>    active constellations (e.g. -s=GRE)';
             this.PAR_SS.par = '(\-s\=)|(\-\-constellation\=)'; % (regexp) parameter prefix: -s --constellation
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
             
             this.PAR_SYNC.name = 'sync results';
-            this.PAR_SYNC.descr = 'use syncronized time only';
+            this.PAR_SYNC.descr = '--sync           use syncronized time only';
             this.PAR_SYNC.par = {'--sync'};
             this.PAR_SYNC.class = '';
             this.PAR_SYNC.limits = [];
@@ -148,36 +148,42 @@ classdef Command_Interpreter < handle
             
             % definition of commands
             
+            new_line = [newline '             '];
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
-            this.CMD_PREPRO.descr = 'code positioning, computation of satellite positions and various corrections';
-            this.CMD_PREPRO.rec = {'T'};
+            this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
+            this.CMD_PREPRO.rec = 'T';
             this.CMD_PREPRO.par = [];
             
             this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
-            this.CMD_PREPRO.descr = 'code positioning';
-            this.CMD_CODEPP.rec = {'T'};
+            this.CMD_CODEPP.descr = 'Code positioning';
+            this.CMD_CODEPP.rec = 'T';
             this.CMD_CODEPP.par = [this.PAR_RATE this.PAR_SS];
             
             this.CMD_PPP.name = {'PPP', 'precise_point_positioning'};
-            this.CMD_PREPRO.descr = 'Precise Point Positioning using carrier phase observations';
-            this.CMD_PPP.rec = {'T'};
+            this.CMD_PPP.descr = 'Precise Point Positioning using carrier phase observations';
+            this.CMD_PPP.rec = 'T';
             this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
-            this.CMD_PREPRO.descr = 'generate a Synthesised L2 on a target receiver using n (dual frequencies) reference stations';
-            this.CMD_SEID.rec = {'R', 'T'};
+            this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
+            this.CMD_SEID.rec = 'RT';
             this.CMD_SEID.par = [];
             
             this.CMD_KEEP.name = {'KEEP'};
-            this.CMD_PREPRO.descr = 'keep in the object the data of a certain constallation / at a certain rate';
-            this.CMD_KEEP.rec = {'T'};
+            this.CMD_KEEP.descr = ['Keep in the object the data of a certain constallation' new_line 'at a certain rate'];
+            this.CMD_KEEP.rec = 'T';
             this.CMD_KEEP.par = [this.PAR_RATE this.PAR_SS];
             
             this.CMD_SYNC.name = {'SYNC'};
-            this.CMD_PREPRO.descr = 'syncronize all the receivers at the same rate (with the minimal data span)';
-            this.CMD_SYNC.rec = {'T'};
+            this.CMD_SYNC.descr = ['Syncronize all the receivers at the same rate ' new_line '(with the minimal data span)'];
+            this.CMD_SYNC.rec = 'T';
             this.CMD_SYNC.par = [this.PAR_RATE];
             
+            this.CMD_OUTDET.name = {'OUTDET', 'outlier_detection', 'cycle_slip_detection'};
+            this.CMD_OUTDET.descr = 'Force outlier and cycle slip detection';
+            this.CMD_OUTDET.rec = 'T';
+            this.CMD_OUTDET.par = [];
+
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
             % and modify the method exec to allow execution
@@ -187,6 +193,51 @@ classdef Command_Interpreter < handle
                 this.VALID_CMD = [this.VALID_CMD(:); this.(sprintf('CMD_%s', this.CMD_LIST{c})).name(:)];
                 this.CMD_ID = [this.CMD_ID, c * ones(size(this.(sprintf('CMD_%s', this.CMD_LIST{c})).name))];
             end
+        end
+        
+        function str = getHelp(this)
+            % Get a string containing the "help" description to all the supported commands
+            %
+            % SYNTAX:
+            %   str = this.getHelp()
+            str = sprintf('Accepted commands:\n');
+            str = sprintf('%s--------------------------------------------------------------------------------\n', str);
+            for c = 1 : numel(this.CMD_LIST)
+                cmd_name = this.(sprintf('CMD_%s', this.CMD_LIST{c})).name{1};
+                str = sprintf('%s - %s\n', str, cmd_name);
+            end
+            str = sprintf('%s\nCommands description:\n', str);
+            str = sprintf('%s--------------------------------------------------------------------------------\n', str);
+            for c = 1 : numel(this.CMD_LIST)
+                cmd = this.(sprintf('CMD_%s', this.CMD_LIST{c}));
+                str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10-numel(cmd.name{1})) * ' ', cmd.descr);
+                if ~isempty(cmd.rec)
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory receivers:');
+                    if numel(cmd.rec) > 1
+                        rec_par = sprintf('%c%s', cmd.rec(1), sprintf(', %c', cmd.rec(2:end)));
+                    else
+                        rec_par = cmd.rec(1);
+                    end
+                    str = sprintf('%s %s\n', str, rec_par);
+                end
+                
+                if ~isempty(cmd.par)
+                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
+                    for p = 1 : numel(cmd.par)
+                        str = sprintf('%s%s%s\n', str, ones(1, 16) * ' ', cmd.par(p).descr);
+                    end
+                end
+            str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
+            end
+            
+            str = sprintf(['%s\n   Note: "T" refers to Target receiver' ...
+                '\n         "R" refers to reference receiver' ...
+                '\n         Receivers can be identified with their id (as they are defined in "obs_name")' ...
+                '\n         It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
+                '\n\n         Command example: KEEP T* @30s' ...
+                '\n                          SEID R1:4 T5' ...
+                ], str);
+            
         end
     end
     %
@@ -229,6 +280,8 @@ classdef Command_Interpreter < handle
                         this.runKeep(rec, tok(2:end));
                     case this.CMD_SYNC.name                 % SYNC
                         this.runSync(rec, tok(2:end));                        
+                    case this.CMD_OUTDET.name               % OUTDET
+                        this.runOutDet(rec, tok);                        
                 end
             end
         end
@@ -353,6 +406,26 @@ classdef Command_Interpreter < handle
                         this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).getMarkerName()));
                         rec(r).keep([], sys_list);
                     end
+                end
+            end
+        end
+        
+        function runOutDet(this, rec, tok)
+            % Perform outlier rejection and cycle slip detection
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runOutDet(rec)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
+                    rec(r).updateRemoveOutlierMarkCycleSlip();
                 end
             end
         end

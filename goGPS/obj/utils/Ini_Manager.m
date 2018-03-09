@@ -1070,11 +1070,15 @@ classdef Ini_Manager < handle
         function cell_str = toIniStringComment(comment, cell_str)
             % Add a comment in ini string format
             % SYNTAX:
-            %   cell_str = toIniStringSection(section_name, cell_str)
+            %   cell_str = toIniStringComment(comment, cell_str)
             if (nargin == 1)
                 cell_str = {};
             end
-            cell_str{numel(cell_str) + 1} = [ Ini_Manager.STD_COMMENT ' ' comment];
+            line_lim = strfind(comment, 10);
+            line_lim = [[1; line_lim'] [line_lim'; numel(comment)]];
+            for i = 1 : size(line_lim, 1)            
+                cell_str{numel(cell_str) + 1} = [ Ini_Manager.STD_COMMENT ' ' strrep(comment(line_lim(i, 1) : line_lim(i, 2)), newline, '')];
+            end
 
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)

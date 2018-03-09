@@ -139,12 +139,14 @@ classdef Command_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
             str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Available commands: PREPRO T*', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('                    PPP    T1:5', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('                    SEID   R1,3:5 T7', str_cell);
+            cmd = Command_Interpreter.getInstance();
+            % To be moved in the manual in the future
+            str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
             for l = 1 : numel(this.cmd_list)
                 str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), this.cmd_list{l}, str_cell);
             end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+
         end
     end
    
