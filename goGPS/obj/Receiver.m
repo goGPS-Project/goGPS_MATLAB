@@ -532,58 +532,48 @@ classdef Receiver < Exportable
             this.ph_idx = find(tmp);
 
             % try to remove observables from other precomputed properties of the object
-            try
+            if ~isempty(this.synt_ph)
                 this.synt_ph(:,id_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.outlier_idx_ph)
                 this.outlier_idx_ph(:,id_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.cycle_slip_idx_ph)
                 this.cycle_slip_idx_ph(:,id_out) = [];
-            catch
             end
 
             % try to remove observables from other precomputed properties of the object in sat
-            try
+            if ~isempty(this.sat.avail_index)
                 this.sat.avail_index(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.err_tropo)
                 this.sat.err_tropo(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.err_iono)
                 this.sat.err_iono(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.solid_earth_corr)
                 this.sat.solid_earth_corr(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.tot)
                 this.sat.tot(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.az)
                 this.sat.az(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.el)
                 this.sat.el(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.res)
                 this.sat.res(:, go_out) = [];
-            catch
             end
-            try
+            if ~isempty(this.sat.slant_td)
                 this.sat.slant_td(:, go_out) = [];
-            catch
             end
             try
-                this.sat.amb(:, go_out) = [];
+                if ~isempty(this.sat.amb)
+                    this.sat.amb(:, go_out) = [];
+                end
             catch
             end
         end
