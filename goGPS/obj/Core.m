@@ -169,12 +169,13 @@ classdef Core < handle
         end
         
         function go(this)
+            this.rec_list = [];
             for s = 1 : this.state.getSessionCount()
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);
                 
                 if this.state.isKeepRecList()
-                    if isempty(this.rec_list)
+                    if numel(this.rec_list) == 0
                         clear rec_list;
                         rec_list(:,s) = this.rec;
                         this.rec_list = rec_list;

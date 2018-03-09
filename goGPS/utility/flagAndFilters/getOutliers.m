@@ -37,7 +37,6 @@ function [flagIntervals] = getOutliers(flags)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-
     % convert flags into array
     if isstruct(flags)
         flagArray = int8(struct2flagVec(flags, max(flags.pos+1)));

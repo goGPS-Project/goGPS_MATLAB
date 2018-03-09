@@ -601,92 +601,115 @@ classdef Receiver < Exportable
         end
                         
         function remEpochs(this, bad_epochs)
-            % remove epochs with a certain id
-            %
-            % SYNTAX:   
-            %   this.remEpochs(bad_epochs)
-            this.time.remEpoch(bad_epochs);
+            if ~isempty(bad_epochs)
+                % remove epochs with a certain id
+                %
+                % SYNTAX:
+                %   this.remEpochs(bad_epochs)
 
-            if ~isempty(this.n_spe)
-                this.n_spe(bad_epochs) = [];
+                if ~isempty(this.cycle_slip_idx_ph)
+                    cycle_slip = this.cycle_slip_idx_ph;
+                    
+                    tmp = false(max(bad_epochs), 1); tmp(bad_epochs) = true;
+                    lim = getOutliers(tmp);
+                    
+                    if lim(end) == size(cycle_slip, 1)
+                        lim(end,:) = [];
+                    end
+                    lim(:,2) = min(lim(:,2) + 1, size(cycle_slip, 1));
+                    for l = 1 : size(lim, 1)
+                        cycle_slip(lim(l, 2), :) = any(cycle_slip(lim(l, 1) : lim(l, 2), :));
+                    end
+                    cycle_slip(bad_epochs,:) = [];
+                    
+                    this.cycle_slip_idx_ph = cycle_slip;
+                end
+                
+                this.time.remEpoch(bad_epochs);
+                
+                if ~isempty(this.n_spe)
+                    this.n_spe(bad_epochs) = [];
+                end
+                
+                if ~isempty(this.synt_ph)
+                    this.synt_ph(bad_epochs, :) = [];
+                end
+                if ~isempty(this.obs)
+                    this.obs(:, bad_epochs) = [];
+                end
+                
+                if ~isempty(this.outlier_idx_ph)
+                    this.outlier_idx_ph(bad_epochs, :) = [];
+                end
+                
+                tmp = false(max(this.id_sync), 1);
+                tmp(this.id_sync) = true;
+                tmp(bad_epochs) = false;
+                this.id_sync = find(tmp);
+                
+                if ~isempty(this.desync)
+                    this.desync(bad_epochs) = [];
+                end
+                if ~isempty(this.dt)
+                    this.dt(bad_epochs) = [];
+                end
+                if ~isempty(this.dt_ph)
+                    this.dt_ph(bad_epochs) = [];
+                end
+                if ~isempty(this.dt_pr)
+                    this.dt_pr(bad_epochs) = [];
+                end
+                if ~isempty(this.dt_ip)
+                    this.dt_ip(bad_epochs) = [];
+                end
+                
+                if ~isempty(this.zhd)
+                    this.zhd(bad_epochs) = [];
+                end
+                if ~isempty(this.ztd)
+                    this.ztd(bad_epochs) = [];
+                end
+                if ~isempty(this.zwd)
+                    this.zwd(bad_epochs) = [];
+                end
+                if ~isempty(this.pwv)
+                    this.pwv(bad_epochs) = [];
+                end
+                if ~isempty(this.tgn)
+                    this.tgn(bad_epochs) = [];
+                end
+                if ~isempty(this.tge)
+                    this.tge(bad_epochs) = [];
+                end
+                
+                if ~isempty(this.sat.avail_index)
+                    this.sat.avail_index(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.err_tropo)
+                    this.sat.err_tropo(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.err_iono)
+                    this.sat.err_iono(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.solid_earth_corr)
+                    this.sat.solid_earth_corr(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.tot)
+                    this.sat.tot(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.az)
+                    this.sat.az(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.el)
+                    this.sat.el(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.res)
+                    this.sat.res(bad_epochs, :) = [];
+                end
+                if ~isempty(this.sat.slant_td)
+                    this.sat.slant_td(bad_epochs, :) = [];
+                end
             end
-            
-            if ~isempty(this.synt_ph)
-                this.synt_ph(bad_epochs, :) = [];
-            end
-            if ~isempty(this.obs)
-                this.obs(:, bad_epochs) = [];
-            end
-
-            if ~isempty(this.outlier_idx_ph)
-                this.outlier_idx_ph(bad_epochs, :) = [];
-            end
-            if ~isempty(this.cycle_slip_idx_ph)
-                this.cycle_slip_idx_ph(bad_epochs, :) = [];
-            end
-
-            if ~isempty(this.desync)
-                this.desync(bad_epochs) = [];
-            end
-            if ~isempty(this.dt)
-                this.dt(bad_epochs) = [];
-            end
-            if ~isempty(this.dt_ph)
-                this.dt_ph(bad_epochs) = [];
-            end
-            if ~isempty(this.dt_pr)
-                this.dt_pr(bad_epochs) = [];
-            end
-            if ~isempty(this.dt_ip)
-                this.dt_ip(bad_epochs) = [];
-            end
-        
-            if ~isempty(this.zhd)
-                this.zhd(bad_epochs) = [];
-            end
-            if ~isempty(this.ztd)
-                this.ztd(bad_epochs) = [];
-            end
-            if ~isempty(this.zwd)
-                this.zwd(bad_epochs) = [];
-            end
-            if ~isempty(this.pwv)
-                this.pwv(bad_epochs) = [];
-            end
-            if ~isempty(this.tgn)
-                this.tgn(bad_epochs) = [];
-            end
-            if ~isempty(this.tge)
-                this.tge(bad_epochs) = [];
-            end
-            
-            if ~isempty(this.sat.avail_index)
-                this.sat.avail_index(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.err_tropo)
-                this.sat.err_tropo(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.err_iono)
-                this.sat.err_iono(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.solid_earth_corr)
-                this.sat.solid_earth_corr(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.tot)
-                this.sat.tot(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.az)
-                this.sat.az(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.el)
-                this.sat.el(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.res)
-                this.sat.res(bad_epochs, :) = [];
-            end
-            if ~isempty(this.sat.slant_td)
-                this.sat.slant_td(bad_epochs, :) = [];
-            end            
         end
             
         function remSat(this, go_id, prn)
@@ -2657,7 +2680,7 @@ classdef Receiver < Exportable
             cycle_slips = [];
             if length(flag)==3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
-                idx = idx & [this.system == system]';
+                idx = idx & (this.system == system)';
                 %this.legger.addWarning(['Unnecessary Call obs_type already determined, use getObsIdx instead'])
                 [obs,idx] = this.getObs(flag, system);
             elseif length(flag) >= 2
