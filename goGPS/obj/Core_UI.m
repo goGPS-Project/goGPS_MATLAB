@@ -76,9 +76,6 @@ classdef Core_UI < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Core_UI()
             % Core object creator
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
-            this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
     end
     
@@ -96,6 +93,7 @@ classdef Core_UI < handle
                 this = unique_instance_core_ui__;
                 this.ok_go = false;
             end
+            this.init();
         end
 
         function showTextHeader()
@@ -315,7 +313,13 @@ classdef Core_UI < handle
     %% METODS INIT
     % ==================================================================================================================================================
     methods
-        function  dependencies_ok = openSplashGUI(this)
+        function init(this)
+            this.log = Logger.getInstance();
+            this.state = Global_Configuration.getCurrentSettings();
+            this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
+        end
+        
+        function dependencies_ok = openSplashGUI(this)
             if ~isempty(this.w_splash) && isvalid(this.w_splash)
                 close(this.w_splash);
             end

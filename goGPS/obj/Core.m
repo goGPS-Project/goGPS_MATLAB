@@ -78,13 +78,7 @@ classdef Core < handle
         function this = Core()
             % Core object creator
             this.log = Logger.getInstance();
-            this.init();
-            
-            this.gc = Global_Configuration.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
-            this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
-            this.sky = Core_Sky.getInstance();
-            this.cmd = Command_Interpreter.getInstance;
+            this.init();            
         end
     end
     
@@ -116,6 +110,11 @@ classdef Core < handle
             this.log.setColorMode(true);
             Core_UI.showTextHeader();
             fclose('all');
+            this.gc = Global_Configuration.getInstance();
+            this.state = Global_Configuration.getCurrentSettings();
+            this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
+            this.sky = Core_Sky.getInstance();
+            this.cmd = Command_Interpreter.getInstance;            
         end
         
         function importIniFile(this, ini_settings_file)
