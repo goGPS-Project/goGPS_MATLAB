@@ -53,6 +53,7 @@ classdef Remote_Resource_Manager < Ini_Manager
     
     methods
         function this = Remote_Resource_Manager(file_name)
+            % SYNTAX remote_resource_manager = Remote_Resource_Manager(file_name)
             if (nargin == 0)
                 file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
                 if exist(file_name, 'file') ~= 2
@@ -67,7 +68,10 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
         
         function [ip, port] = getServerIp(this, name)
-            % return the ip of a server given the server name
+            % Return the ip of a server given the server name
+            %
+            % SYNTAX:
+            %   [ip, port] = this.getServerIp(name)
             ip = [];
             port = [];
             ip_port = this.getData('SERVER', name);
@@ -76,7 +80,10 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
         
         function f_struct = getFileLoc(this, file_name)
-            % return the remote path of the file
+            % Return the remote path of the file
+            %
+            % SYNTAX:
+            %   f_struct = this.getFileLoc(file_name)
             f_struct.filename = this.getData(['f_' file_name],'filename');
             f_struct.const = this.getData(['f_' file_name],'sys');
             locations = this.getData(['f_' file_name],'location');
@@ -93,6 +100,35 @@ classdef Remote_Resource_Manager < Ini_Manager
         
         
         function [file_structure, latency] = getFileStr(this, center_name, resource_name)
+            % Get the logical file structure for the desidered center and
+            % resource the latecncy of the resource
+            %
+            % SYNTAX
+            %   [file_structure, latency] = this.getFileStr(center_name, resource_name)
+            % 
+            % OUTPUT:
+            % file_strcuture
+            %           the structure is a tree and can cointains fields
+            %           named in 3 way 'fn' (where n is progressive number at
+            %           the same level of the structure) , 'and' and 'or'.
+            %           Or means that all sub field of the structure has to
+            %           be found or means at least one.
+            %           Leaves of the tree are cell containing the file code to 
+            %           be found in the remote resource ini file and a boolean to
+            %           tell if the file has been found or not
+            %
+            %           example: fs.and.f1
+            %                          .f2.or.f1
+            %                                .f2
+            %                          .f3
+            %                     
+            %                    f1 = {'cnes_erp' , 0}
+            % latency
+            %           [h1 h2] h1 -> hours before which we now the
+            %                         resource is not there
+            %                   h2 -> hours after which we are sure we will
+            %                         found the resource
+            %           
             str = this.getData(['c_' center_name], resource_name);
             if isempty(str)
                 this.log.addWarning(sprintf('No resource %s for center %s',resource_name, center_name))
@@ -107,6 +143,12 @@ classdef Remote_Resource_Manager < Ini_Manager
     
     methods ( Access = private)
         function file_structure = parseLogicTree(this, str)
+            % Description parse the logic structure found in
+            % remote_resource.ini to get the file structure descripbed in
+            % this.getFileStr
+            %
+            % SYNTAX:
+            %   file_structure = this.parseLogicTree(this)
             [status, list] = this.findElements(str);
             file_structure = [];
             if status == 0
@@ -126,6 +168,11 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
         
         function [status, list] = findElements(this, str)
+            % Return the element of the string separated by | and &
+            %
+            % SYNTAX:
+            %       [status, list] = this.findElements(str)
+            %
             % OUTPUT:
             % status: -1 and 0 nothing 1 or
             % list: list of string parts
@@ -181,6 +228,10 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
         
         function str = removeTrailingPar(this, str)
+            % Remove trailing parenthesis
+            %
+            % SYNTAX:
+            %   str = this.removeTrailingPar(str)
             for i =1 :length(str)
                 if str(i)~=' '
                     if str(i)=='('
@@ -201,6 +252,10 @@ classdef Remote_Resource_Manager < Ini_Manager
     end
     methods (Static)
         function writeDefault(this)
+            % Write the deafut remote resource ini file if it is not found 
+            %
+            % SYNTAX:
+            %       Remote_Resource_Manager.writeDefault()
             fid = fopen(Remote_Resource_Manager.DEFAULT_RESOURCE_FILE,'w+');
             fprintf(fid, Remote_Resource_Manager.DEFAULT_RESOURCE_TXT);
             fclose(fid);
