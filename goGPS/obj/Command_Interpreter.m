@@ -62,17 +62,33 @@ classdef Command_Interpreter < handle
         
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
-        CMD_PPP         % Precise point positioning        
+        CMD_PPP         % Precise point positioning
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
-        CMD_OUTDET      % Outlier and cycle-slip detection 
+        CMD_OUTDET      % Outlier and cycle-slip detection
+        CMD_SHOW        % Display plots and images
         
         PAR_RATE        % Parameter select rate
         PAR_SS          % Parameter select constellation
-        PAR_SYNC        % Parameter sync 
+        PAR_SYNC        % Parameter sync
         
-        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET'};
+        PAR_S_SHOW_ALL  % show all plots
+        PAR_S_DA        % Data availability
+        PAR_S_ENU       % ENU positions
+        PAR_S_XYZ       % XYZ positions
+        PAR_S_CK        % Clock Error
+        PAR_S_SNR       % SNR Signal to Noise Ratio
+        PAR_S_OCS       % Outliers and cycle slips
+        PAR_S_OCSP      % Outliers and cycle slips (polar plot)
+        PAR_S_RES_SKY   % Residuals sky plot
+        PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
+        PAR_S_ZTD       % ZTD
+        PAR_S_ZTDS      % ZTD Slant
+        
+        PAR_S_SAVE      % flage for saving
+        
+        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -141,14 +157,63 @@ classdef Command_Interpreter < handle
             
             this.PAR_SYNC.name = 'sync results';
             this.PAR_SYNC.descr = '--sync           use syncronized time only';
-            this.PAR_SYNC.par = {'--sync'};
+            this.PAR_SYNC.par = '(\-\-sync)';
             this.PAR_SYNC.class = '';
             this.PAR_SYNC.limits = [];
             this.PAR_SYNC.accepted_values = [];
             
+            % Show plots
+            this.PAR_S_SHOW_ALL.name = 'Show all the plots';
+            this.PAR_S_SHOW_ALL.descr = 'SHOWALL';
+            this.PAR_S_SHOW_ALL.par = '(SHOW_ALL)|(SHOWALL)|(showall)|(show_all)';
+
+            this.PAR_S_DA.name = 'Data availability';
+            this.PAR_S_DA.descr = 'DA               Data Availability';
+            this.PAR_S_DA.par = '(DA)|(\-\-dataAvailability)|(da)';
+
+            this.PAR_S_ENU.name = 'ENU positions';
+            this.PAR_S_ENU.descr = 'ENU              East Nord Up positions';
+            this.PAR_S_ENU.par = '(ENU)|(enu)';
+
+            this.PAR_S_XYZ.name = 'XYZ positions';
+            this.PAR_S_XYZ.descr = 'XYZ              XYZ Earth Fixed Earth centered positions';
+            this.PAR_S_XYZ.par = '(XYZ)|(xyz)';
+
+            this.PAR_S_CK.name = 'Clock Error';
+            this.PAR_S_CK.descr = 'CK               Clock errors';
+            this.PAR_S_CK.par = '(ck)|(CK)';
+
+            this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
+            this.PAR_S_SNR.descr = 'SNR              Signal to Noise Ratio (polar plot)';
+            this.PAR_S_SNR.par = '(snr)|(SNR)';
+            
+            this.PAR_S_OCS.name = 'Outliers and cycle slips';
+            this.PAR_S_OCS.descr = 'OCS              Outliers and cycle slips';
+            this.PAR_S_OCS.par = '(ocs)|(OCS)';
+            
+            this.PAR_S_OCSP.name = 'Outliers and cycle slips (polar plot)';
+            this.PAR_S_OCSP.descr = 'OCSP             Outliers and cycle slips (polar plot)';
+            this.PAR_S_OCSP.par = '(ocsp)|(OCSP)';
+            
+            this.PAR_S_RES_SKY.name = 'Residuals sky plot';
+            this.PAR_S_RES_SKY.descr = 'RES_SKY          Residual sky plot';
+            this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
+
+            this.PAR_S_RES_SKYP.name = 'Residuals sky plot (polar plot)';
+            this.PAR_S_RES_SKYP.descr = 'RES_SKYP         Residual sky plot (polar plot)';
+            this.PAR_S_RES_SKYP.par = '(res_skyp)|(RES_SKYP)';
+
+            this.PAR_S_ZTD.name = 'ZTD';
+            this.PAR_S_ZTD.descr = 'ZTD              Zenithal Total Delay';
+            this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
+
+            this.PAR_S_ZTDS.name = 'ZTD Slant';
+            this.PAR_S_ZTDS.descr = 'ZTDS             Zenithal Total Delay with slants';
+            this.PAR_S_ZTDS.par = '(ztds)|(ZTDS)';
+
             % definition of commands
             
-            new_line = [char(10) '             '];
+            new_line = [char(10) '             ']; %#ok<CHARTEN>
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
@@ -183,6 +248,11 @@ classdef Command_Interpreter < handle
             this.CMD_OUTDET.descr = 'Force outlier and cycle slip detection';
             this.CMD_OUTDET.rec = 'T';
             this.CMD_OUTDET.par = [];
+
+            this.CMD_SHOW.name = {'SHOW'};
+            this.CMD_SHOW.descr = 'Display various plots / images';
+            this.CMD_SHOW.rec = 'T';
+            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_ZTDS];
 
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
@@ -224,7 +294,7 @@ classdef Command_Interpreter < handle
                 if ~isempty(cmd.par)
                     str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
                     for p = 1 : numel(cmd.par)
-                        str = sprintf('%s%s%s\n', str, ones(1, 16) * ' ', cmd.par(p).descr);
+                        str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
                     end
                 end
             str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
@@ -232,7 +302,7 @@ classdef Command_Interpreter < handle
             
             str = sprintf(['%s\n   Note: "T" refers to Target receiver' ...
                 '\n         "R" refers to reference receiver' ...
-                '\n         Receivers can be identified with their id (as they are defined in "obs_name")' ...
+                '\n         Receivers can be identified with their id (as defined in "obs_name")' ...
                 '\n         It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
                 '\n\n         Command example: KEEP T* @30s' ...
                 '\n                          SEID R1:4 T5' ...
@@ -282,6 +352,8 @@ classdef Command_Interpreter < handle
                         this.runSync(rec, tok(2:end));                        
                     case this.CMD_OUTDET.name               % OUTDET
                         this.runOutDet(rec, tok);                        
+                    case this.CMD_SHOW.name                 % SHOW
+                        this.runShow(rec, tok);                        
                 end
             end
         end
@@ -439,7 +511,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runKeep(rec, tok)
-            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            [~, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
@@ -451,12 +523,62 @@ classdef Command_Interpreter < handle
                 end
             end
         end
+        
+        function runShow(this, rec, tok)
+            % Show Images
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runShow(rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    for t = 1 : numel(tok)
+                        try
+                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SHOW_ALL.par ')*$'], 'once'))
+                                rec(r).showAll();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
+                                rec(r).showDataAvailability();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
+                                rec(r).showPositionENU();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
+                                rec(r).showPositionXYZ();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
+                                rec(r).showDt();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
+                                rec(r).showSNR_p();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
+                                rec(r).showOutliersAndCycleSlip();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
+                                rec(r).showOutliersAndCycleSlip_p();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
+                                rec(r).showResSky_c();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
+                                rec(r).showResSky_p();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
+                                rec(r).showZtd();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTDS.par ')*$'], 'once'))
+                                rec(r).showZtdSlantRes_p();
+                            end
+                        catch ex
+                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+                        end
+                    end
+                end
+            end
+        end
+
     end
     %
     %% METHODS UTILITIES (PRIVATE)
     % ==================================================================================================================================================
     methods (Access = private)       
-        function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
+        function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type) %#ok<INUSL>
             % Extract from a set of tokens the receivers to be used
             %
             % INPUT
@@ -492,7 +614,7 @@ classdef Command_Interpreter < handle
                             id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
                             id_after = find(pos_ids(:) > pos_colon(p), 1, 'first');
                             if ~isempty(id_before) && ~isempty(id_after)
-                                id_rec = [id_rec ids(id_before) : ids(id_after)];
+                                id_rec = [id_rec ids(id_before) : ids(id_after)]; %#ok<AGROW>
                             end
                         end
                         id_rec = unique([ids id_rec]);

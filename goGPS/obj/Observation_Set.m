@@ -139,16 +139,26 @@ classdef Observation_Set < handle
             % SYNTAX : 
             %      this.remObs(idx)
             %
-            this.obs(idx) = 0;
-            this.snr(idx) = 0;
-            this.el(idx) = 0;
-            this.az(idx) = 0;
-            idx2 = find(idx);
-            idx2(idx2==(size(idx,1) * size(idx,2))) = [];
-            for i = idx2'
-                this.cycle_slip(i+1) = this.cycle_slip(i+1) | this.cycle_slip(i);
+            if ~isempty(this.obs)
+                this.obs(idx) = 0;
             end
-            this.cycle_slip(idx) = 0;
+            if ~isempty(this.snr)
+                this.snr(idx) = 0;
+            end
+            if ~isempty(this.el)
+                this.el(idx) = 0;
+            end
+            if ~isempty(this.az)
+                this.az(idx) = 0;
+            end
+            if ~isempty(this.cycle_slip)
+                idx2 = find(idx);
+                idx2(idx2==(size(idx,1) * size(idx,2))) = [];
+                for i = idx2'
+                    this.cycle_slip(i+1) = this.cycle_slip(i+1) | this.cycle_slip(i);
+                end
+                this.cycle_slip(idx) = 0;
+            end
             this.sanitizeEmpty();
         end
         
