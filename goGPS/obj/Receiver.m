@@ -5600,6 +5600,11 @@ classdef Receiver < Exportable
             end
             this.log.addMessage(this.log.indent('Solving the system', 6));
             [x, res, s02] = ls.solve();
+            % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
+            % enable)
+            % ls.reweightHuber();
+            % ls.Astack2Nstack();
+            % [x, res, s02] = ls.solve();
 
             this.sat.res = zeros(this.length, this.getMaxSat());
             dsz = max(id_sync) - size(res,1);
