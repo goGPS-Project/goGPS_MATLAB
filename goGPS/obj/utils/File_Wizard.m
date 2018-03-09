@@ -181,6 +181,20 @@ classdef File_Wizard < handle
         end
         
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name)
+            % Conjure the deisdered resource giveng the desidered center
+            % and the times bounds
+            %
+            % SYNTAX: 
+            %   [status] = this.conjureResource(resource_name, date_start, date_stop, center_name)
+            %
+            % INPUT:
+            %      resource_name = name of the resource (e.g. final_erp)
+            %      date_start = GPS_Time start
+            %      date_stop = GPS_Time stop
+            %      center_name = name of the center (e.g. code)
+            %
+            % OUPUT:
+            %     status = 1 everything has been found 0 no
             if nargin < 3
                 date_start = this.date_start;
                 date_stop = this.date_stop;
@@ -233,7 +247,11 @@ classdef File_Wizard < handle
         end
         
         function idx = getServerIdx(this, address , port)
-            % get idx of server if not present open the connection
+            % Get idx of server int the FTP_downlader if not present open
+            % the connection and append a FTP_downloder object
+            %
+            % SYNTAX:
+            %   idx = this.getServerIdx(address, port)
             if nargin < 3
                 port = 21;
             end
@@ -251,7 +269,10 @@ classdef File_Wizard < handle
         end
         
         function [status, file_tree] = navigateTree(this, file_tree, mode)
-            % navigate into file tree and perform operations
+            % Navigate into th logical file tree (see Remote_resource_manager.getFileStr) and perform operations
+            %
+            % SYNTAX:
+            %      [status, file_tree] = this.navigateTree(file_tree, mode)
             % INPUT:
             %     file_tree: structure containing the file tree and the
             %     logical operators
@@ -384,7 +405,10 @@ classdef File_Wizard < handle
         end
         
         function conjureFiles(this, date_start, date_stop, center_name)
-            % Prepare all the files needed for processing
+            % Get all the files needed for processing
+            %
+            % SYNTAX:
+            %     this.conjureFiles(date_start, date_stop, center_name)
             if (nargin == 1)
                 [date_start, date_stop] = this.conjureObsFile();
             end
@@ -432,7 +456,12 @@ classdef File_Wizard < handle
         
         function [first_epoch, last_epoch] = conjureObsFile(this)
             % Prepare the extended file name of the files to be used in goGPS
-            % In a future here I'll download the required navigational files of a station in a network
+            %
+            % SYNTAX:
+            %       [first_epoch, last_epoch] = this.conjureObsFile()
+            %
+            % POSSIBLE EXTENSION: download the wanted rinex from the
+            % networs
             
             first_rec_files = this.state.getRecPath(1);
             fh = File_Rinex(first_rec_files, 100);
@@ -453,7 +482,8 @@ classdef File_Wizard < handle
         %}
         
         function conjureDCBFiles(this, date_start, date_stop)
-            
+            % Download of CAS .DCB files from the IGN server.
+            %
             % SYNTAX:
             %   this.conjureDCBFiles(gps_week, gps_time);
             %
@@ -462,9 +492,7 @@ classdef File_Wizard < handle
             %   date_stop = ending GPS_Time
             %
             % OUTPUT:
-            %
-            % DESCRIPTION:
-            %   Download of CAS .DCB files from the IGN server.
+            
             if date_start.getCalEpoch >= 2013 % use CAS DCB
                 dcb_ok = true;
                 % check if file are present
@@ -641,6 +669,11 @@ classdef File_Wizard < handle
         end
         
         function conjureNavFiles(this, date_start, date_stop)
+            % Wrapper of conjureResources for navigational files
+            %
+            % SYNTAX:
+            %   this.conjureNavFiles(date_start, date_stop)
+            %
             list_preferred = this.state.getPreferredEph();
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i}, date_start, date_stop);
@@ -656,6 +689,11 @@ classdef File_Wizard < handle
         end
         
         function conjureErpFiles(this, date_start, date_stop)
+            % Wrapper of conjureResources for ERP files
+            %
+            % SYNTAX:
+            %   this.conjureErpFiles(date_start, date_stop)
+            %
             list_preferred = this.state.preferred_erp;
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i},date_start, date_stop);
@@ -671,6 +709,11 @@ classdef File_Wizard < handle
         end
         
         function conjureIonoFiles(this, date_start, date_stop)
+            % Wrapper of conjureResources for iono files
+            %
+            % SYNTAX:
+            %   this.conjureIonoFiles(date_start, date_stop)
+            %
             list_preferred = this.state.preferred_iono;
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop);
