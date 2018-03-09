@@ -41,22 +41,29 @@
 
 classdef Observation_Set < handle
     properties
-        obs
-        obs_code
-        wl
-        el
-        az
-        prn
-        snr
-        cycle_slip
-        time
-        go_id
-        sigma
+        obs      % the actual observatiions [n_epochs x n_obs_type]
+        obs_code % the code for each observation [n_obs_type x max_n_char_obs_code] , general obs_code structure [sys xxx yyy comb_type], exmaple [GC1WC2WI]
+                 % comb_type : I -> iono free
+                 %             W -> widelane
+                 %             N -> narrowlane
+                 %             G -> geometry free
+                 %             M -> melbourne wubbena
+        wl       % wavelength of the observations (only for phase measurements)
+        el       % elevation 
+        az       % azimuth
+        prn      % prn
+        snr      % signla to naoise ration
+        cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip
+        time     % GPS_Time 
+        go_id    % go_ids of the observations
+        sigma    % teoretical precision of the measurements [m]
     end
     
     methods
         
         function this = Observation_Set(time, obs, obs_code, wl, el, az, prn)
+            % SYNTAX: 
+            %   obs_set = Observation_Set(time, obs, obs_code, wl, el, az, prn)
             if nargin == 0
             return
             end
@@ -73,7 +80,11 @@ classdef Observation_Set < handle
         end
         
         function merge(this, obs_set)
-            % DESCRIPTION: merge observation with same time stamps
+            % Merge observation with same time stamps
+            % 
+            % SYNTAX:
+            %   this.merge(obs_set)
+            %
             %cases empty object
             if isempty(this.time) %case void set
                 this.time = obs_set.time;
@@ -110,23 +121,24 @@ classdef Observation_Set < handle
             this.cycle_slip = [this.cycle_slip cycle_slip2];
         end
         
-        function obs = getUnderCutOff(this, cut_off)
-            obs = this.obs;
-            obs(this.el < cut_off) = 0;
-        end
-        
         function remUnderCutOff(this, cut_off)
-            % DESCRIPTION: remove observations under the selcted cut off
-            % SYNTAX : this.remUnderCutOff(cut_off);
+            % Remove observations under the selcted cut off
+            %
+            % SYNTAX : 
+            %   this.remUnderCutOff(cut_off);
+            %
             idx = this.el < cut_off;
             this.remObs(idx);
         end
         
         function remObs(this,idx)
-            % DESCRIPTION: remove the observations identified by the index
+            % Remove the observations identified by the index
             % idx, remove all corrsponding paramaters ( snr el az cycle
             % slip) then sanitize the object for empty row or columns
-            % SYNTAX : this.remObs(idx)
+            %
+            % SYNTAX : 
+            %      this.remObs(idx)
+            %
             this.obs(idx) = 0;
             this.snr(idx) = 0;
             this.el(idx) = 0;
@@ -141,6 +153,12 @@ classdef Observation_Set < handle
         end
         
         function sanitizeEmpty(this)
+            %Remove empty lines and rows in obs
+            %
+            % SYNTAX
+            %     this.sanitizeEmpty()
+            %
+            
             %remove empty lines
             idx_e = sum(this.obs,2) == 0;
             if sum(idx_e)
@@ -154,6 +172,12 @@ classdef Observation_Set < handle
         end
         
         function remEpochs(this, idx_rem)
+            % Remove obseravtions at desidered epoch
+            %
+            % SYNTAX
+            %     this.remEpochs(idx)
+            %
+            
             if sum(idx_rem) > 0
                 this.obs(idx_rem,:) = [];
                 if ~isempty(this.el)
@@ -179,16 +203,32 @@ classdef Observation_Set < handle
         end
         
         function keepEpochs(this, idx)
+            % Remove all onservations not at epochs than are not idx
+            %
+            % SYNTAX
+            %     this.keepEpochs(idx)
+            %
             idx_rem = true(this.time.length, 1);
             idx_rem(idx) = false;
             this.remEpochs(idx_rem);
         end
         
         function idx = getTimeIdx(this,time_st, rate)
+            % Using a start time and a rate return at which integer
+            % multiple o rate the observations are closer
+            %
+            % SYNTAX
+            %     idx = this.getTimeIdx(this,time_st, rate)
+            %
             idx = round((this.time -time_st)/rate) +1;
         end
         
         function removeColumn(this, idx_col)
+            % Remove colums from observations
+            %
+            % SYNTAX:
+            %   this.removeColumn(idx)
+            %
             this.obs(:,idx_col) = [];
             if ~isempty(this.el)
                 this.el(:,idx_col) = [];
@@ -203,18 +243,6 @@ classdef Observation_Set < handle
             this.prn(idx_col) = [];
             this.go_id(idx_col) = [];
             this.sigma(idx_col) = [];
-        end
-        
-        function plotCycleSlip(this, rec)
-            if ~isempty(this.cycle_slip)
-                synt_ph = rec.getSyntTwin(this);
-                obs = this.obs - synt_ph;
-                figure;
-                plot(zero2nan(obs));
-                ep = repmat([1: this.time.length]',1,size(obs,2));
-                hold on
-                scatter(ep(this.cycle_slip~=0),obs(this.cycle_slip~=0))
-            end
         end
     end
 end
