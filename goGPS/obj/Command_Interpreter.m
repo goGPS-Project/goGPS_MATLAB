@@ -77,6 +77,7 @@ classdef Command_Interpreter < handle
         PAR_S_DA        % Data availability
         PAR_S_ENU       % ENU positions
         PAR_S_XYZ       % XYZ positions
+        PAR_S_MAP       % positions on map
         PAR_S_CK        % Clock Error
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_OCS       % Outliers and cycle slips
@@ -179,6 +180,10 @@ classdef Command_Interpreter < handle
             this.PAR_S_XYZ.name = 'XYZ positions';
             this.PAR_S_XYZ.descr = 'XYZ              XYZ Earth Fixed Earth centered positions';
             this.PAR_S_XYZ.par = '(XYZ)|(xyz)';
+
+            this.PAR_S_MAP.name = 'Position on map';
+            this.PAR_S_MAP.descr = 'MAP              Position on map';
+            this.PAR_S_MAP.par = '(MAP)|(map)';
 
             this.PAR_S_CK.name = 'Clock Error';
             this.PAR_S_CK.descr = 'CK               Clock errors';
@@ -542,6 +547,20 @@ classdef Command_Interpreter < handle
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
+                for t = 1 : numel(tok)
+                    try
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
+                            rec(id_trg).showMap();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
+                            rec(id_trg).showZtd();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
+                            rec(id_trg).showZtdSlant();
+                        end
+                    catch ex
+                        this.log.addError(sprintf('%s',ex.message));
+                    end
+                end
+                
                 for r = id_trg
                     for t = 1 : numel(tok)
                         try
@@ -565,10 +584,6 @@ classdef Command_Interpreter < handle
                                 rec(r).showResSky_c();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
                                 rec(r).showResSky_p();
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
-                                rec(r).showZtd();                                
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
-                                rec(r).showZtdSlant();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
                                 rec(r).showZtdSlantRes_p();
                             end

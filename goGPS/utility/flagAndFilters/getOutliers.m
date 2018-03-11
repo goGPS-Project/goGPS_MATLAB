@@ -53,6 +53,6 @@ function [flagIntervals] = getOutliers(flags)
 end
 
 function [flagArray] = struct2flagVec(flags, maxSize)
-flagArray = false(maxSize,1);
-flagArray(flags.pos) = flags.val;
+    flagArray = false(maxSize,1);
+    flagArray(flags.pos) = flags.val;
 end

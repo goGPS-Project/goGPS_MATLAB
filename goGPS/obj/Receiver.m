@@ -6127,6 +6127,7 @@ classdef Receiver < Exportable
                 this.showPositionENU_c();
                 this.showPositionXYZ_c();
             end
+            this.showMap();
             this.showDataAvailability();
             this.showSNR_p();
             this.showDt();
@@ -6264,6 +6265,51 @@ classdef Receiver < Exportable
             else
                 this.log.addMessage('Plotting a single point static position is not yet supported');
             end
+        end
+        
+        function showMap(this)
+            [lat, lon] = cart2geod(this.getPosXYZ());
+
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
+            hold on;
+            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 10);
+            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 10, 'LineWidth', 2);
+            
+            if numel(this) == 1
+                lon_lim = minMax(lon/pi*180);
+                lat_lim = minMax(lat/pi*180);
+                lon_lim(1) = lon_lim(1) - 0.05;
+                lon_lim(2) = lon_lim(2) + 0.05;
+                lat_lim(1) = lat_lim(1) - 0.05;
+                lat_lim(2) = lat_lim(2) + 0.05;
+            else
+                lon_lim = xlim();
+                lon_lim(1) = lon_lim(1) - diff(lon_lim)/3;
+                lon_lim(2) = lon_lim(2) + diff(lon_lim)/3;
+                lat_lim = ylim();
+                lat_lim(1) = lat_lim(1) - diff(lat_lim)/3;
+                lat_lim(2) = lat_lim(2) + diff(lat_lim)/3;
+            end
+            
+            xlim(lon_lim);
+            ylim(lat_lim);
+
+            for r = 1 : numel(this)
+                name = upper(this(r).getMarkerName());
+                t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name ' '], ...
+                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
+                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                    'Margin', 2, 'LineWidth', 2, ...
+                    'HorizontalAlignment','left');
+                t.Units = 'pixels';
+                t.Position(1) = t.Position(1) + 10 + 10 * double(numel(this) == 1);
+                t.Units = 'data';
+            end            
+            
+            plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+            title('Receiver position');
+            xlabel('Longitude [deg]');
+            ylabel('Latitude [deg]');
         end
 
         function showObsVsSynt_m(this, sys_c)
