@@ -488,7 +488,7 @@ classdef Receiver < Exportable
             % This function has been tested in particular cases on UBLOX single frequency receivers
             % For the future see: Optimal Doppler-aided smoothing strategy for GNSS navigation
             [pr, id_pr] = this.getPseudoRanges;
-            pr_corr = Core_Pre_Processing.diffAndPred(pr + cumsum(nan2zero(this.getDoppler * this.rate)));
+            pr_corr = Core_Pre_Processing.diffAndPred(pr + cumsum(nan2zero(this.getDoppler * this.getRate())));
             for s = 1 : size(pr_corr, 2)
                 pr_corr(:,s) = cumsum(nan2zero(pr_corr(:,s) - splinerMat([], movmedian(pr_corr(:,s), 3, 'omitnan'), win_size, 1e-9)));
                 pr_corr(:,s) = pr_corr(:,s) - splinerMat([], pr_corr(:,s), win_size, 1e-9);
@@ -650,19 +650,19 @@ classdef Receiver < Exportable
                 tmp(bad_epochs) = false;
                 this.id_sync = find(tmp);
 
-                if ~isempty(this.desync)
+                if numel(this.desync) > 1
                     this.desync(bad_epochs) = [];
                 end
-                if ~isempty(this.dt)
+                if numel(this.dt) > 1
                     this.dt(bad_epochs) = [];
                 end
-                if ~isempty(this.dt_ph)
+                if numel(this.dt_ph) > 1
                     this.dt_ph(bad_epochs) = [];
                 end
-                if ~isempty(this.dt_pr)
+                if numel(this.dt_pr) > 1
                     this.dt_pr(bad_epochs) = [];
                 end
-                if ~isempty(this.dt_ip)
+                if numel(this.dt_ip) > 1
                     this.dt_ip(bad_epochs) = [];
                 end
 
@@ -799,15 +799,15 @@ classdef Receiver < Exportable
                 o_idx = this.go_id == s;
                 for i = find(nan_coord(:,s) == 1)'
                     c_rate = this.sat.cs.coord_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + i * c_rate - c_rate * 10)/this.rate)));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.rate)));
+                    bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + i * c_rate - c_rate * 10)/this.getRate())));
+                    bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.getRate())));
                     this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                 end
 
                 for i = find(nan_clock(:,s) == 1)'
                     c_rate = this.sat.cs.clock_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.rate)));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + i*c_rate + c_rate * 1)/this.rate)));
+                    bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.getRate())));
+                    bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + i*c_rate + c_rate * 1)/this.getRate())));
                     this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                 end
             end
@@ -1646,7 +1646,7 @@ classdef Receiver < Exportable
             % linear time
             lin_time = 900; %single diffrence is linear in 15 minutes
             max_window = 600; %maximum windows allowed (for computational reason)
-            win_size = min(max_window,ceil(lin_time / this.rate/2)*2); %force even
+            win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
 
             poss_out_idx = this.outlier_idx_ph;
             poss_slip_idx = this.cycle_slip_idx_ph;
@@ -1769,7 +1769,7 @@ classdef Receiver < Exportable
             this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
             this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
             this.log.newLine();
-            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.rate));
+            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.getRate()));
             this.log.newLine();
             this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this.n_sat)));
             this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
