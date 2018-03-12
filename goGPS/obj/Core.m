@@ -113,7 +113,7 @@ classdef Core < handle
             this.gc = Global_Configuration.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
-            this.sky = Core_Sky.getInstance();
+            this.sky = Core_Sky.getInstance(true);
             this.cmd = Command_Interpreter.getInstance;            
         end
         
