@@ -131,8 +131,10 @@ classdef Core_Sky < handle
             for i = 1:length(clock_f_name)
                 clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
             end
-            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
-            this.clearOrbit(start_date);
+            clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
+            to_clear_date = start_date.getCopy();
+            to_clear_date.addSeconds(-86400);
+            this.clearOrbit(to_clear_date);
             
             if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
                 this.log.addMarkedMessage('Importing ephemerides...');
