@@ -2667,7 +2667,15 @@ classdef Receiver < Exportable
 
         function obs_set = getPrefObsSetCh(this, flag, system)
             [obs, idx, snr, cycle_slips] = this.getPrefObsCh(flag, system, 1);
-            obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', [], [], this.prn(idx)');
+            go_ids = this.getGoId(system, this.prn(idx)');
+            if ~isempty(this.sat.el) && ~isempty(this.sat.az)
+                el = this.sat.el(:, go_ids);
+                az = this.sat.az(:, go_ids);
+            else
+                az = [];
+                el = [];
+            end
+            obs_set = Observation_Set(this.time.getCopy(), obs' ,[this.system(idx)' this.obs_code(idx,:)], this.wl(idx)', el, az, this.prn(idx)');
             obs_set.cycle_slip = cycle_slips';
             obs_set.snr = snr';
             sigma = this.rec_settings.getStd(system, obs_set.obs_code(1,2:4));
