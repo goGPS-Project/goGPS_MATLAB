@@ -3506,7 +3506,7 @@ classdef Receiver < Exportable
             for i = id'
                 go_id = this.go_id(i);
                 sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
-                ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0));
+                ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0,1));
                 this.updateAvailIndex(ep_idx, go_id);
                 dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Global_Configuration.V_LIGHT;
                 for o = find(sat_idx)'
