@@ -97,7 +97,7 @@ classdef Core_Sky < handle
     
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
-        function this = getInstance()
+        function this = getInstance(force_clean)
             % Get the persistent instance of the class
             persistent unique_instance_core_sky__
             
@@ -106,6 +106,9 @@ classdef Core_Sky < handle
                 unique_instance_core_sky__ = this;
             else
                 this = unique_instance_core_sky__;
+            end
+            if nargin == 1 && force_clean
+                this.clearOrbit();
             end
         end
     end
@@ -128,13 +131,20 @@ classdef Core_Sky < handle
             for i = 1:length(clock_f_name)
                 clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
             end
-            clock_in_eph = isempty(setdiff(eph_f_name,clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
-            this.clearOrbit();
+            clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
+            to_clear_date = start_date.getCopy();
+            to_clear_date.addSeconds(-86400);
+            this.clearOrbit(to_clear_date);
             
             if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
                 this.log.addMarkedMessage('Importing ephemerides...');
                 for i = 1:length(eph_f_name)
-                    this.addSp3(eph_f_name{i},clock_in_eph);
+                    [~,name,ext] = fileparts(eph_f_name{i});
+                    gps_time = getFileStTime([name ext]);
+                    end_time = this.getLastEpochCoord();
+                    if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
+                        this.addSp3(eph_f_name{i},clock_in_eph);
+                    end
                     this.coord_type = 0; % center of mass
                 end
             else %% if not sp3 assume is a rinex navigational file
@@ -145,7 +155,13 @@ classdef Core_Sky < handle
             if not(clock_in_eph)
                 this.log.addMarkedMessage('Importing satellite clock files...');
                 for i = 1:length(clock_f_name)
-                    this.addClk(clock_f_name{i});
+                    [~,name,ext] = fileparts(clock_f_name{i});
+                    gps_time = getFileStTime([name ext]);
+                    end_time = this.getLastEpochClock();
+                    if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
+                        this.addClk(clock_f_name{i});
+                    end
+                    
                 end
             end
                         
@@ -172,6 +188,7 @@ classdef Core_Sky < handle
             if nargin > 1
                 this.clearCoord(gps_date);
                 this.clearClock(gps_date);
+                this.clearSunMoon();
             else
                 this.clearCoord();
                 this.clearClock();
@@ -182,7 +199,7 @@ classdef Core_Sky < handle
         function clearCoord(this, gps_date)
             % DESCRIPTION: clear coord data, if date is provided clear
             % only data before that date
-            if nargin > 1
+            if nargin > 1 && ~isempty(this.time_ref_coord)
                 if this.time_ref_coord < gps_date
                     n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
                     this.coord(1:n_ep,:,:)=[];
@@ -210,7 +227,7 @@ classdef Core_Sky < handle
         function clearClock(this, gps_date)
             % DESCRIPTION: clear clock data , if date is provided clear
             % only data before that date
-            if nargin > 1
+            if nargin > 1  && ~isempty(this.time_ref_clock)
                 if this.time_ref_clock < gps_date
                     n_ep = floor((gps_date - this.time_ref_clock)/this.clock_rate);
                     this.clock(1:n_ep,:)=[];
@@ -295,6 +312,26 @@ classdef Core_Sky < handle
             
             orb_time.appendUnixTime(u_t , u_t_f);
             
+        end
+        
+        function time = getLastEpochClock(this)
+            % return last epoch of clock
+            if ~isempty(this.time_ref_clock)
+                time = this.time_ref_clock.getCopy();
+                time.addSeconds((size(this.clock, 1) - 1) * this.clock_rate);
+            else
+                time = [];
+            end
+        end
+        
+        function time = getLastEpochCoord(this)
+            % return last epoch of coord
+            if ~isempty(this.time_ref_coord)
+                time = this.time_ref_coord.getCopy();
+                time.addSeconds((size(this.coord, 1) - 1) * this.coord_rate);
+            else
+                time = [];
+            end
         end
         
         function importEph(this, eph, t_st, t_end, step, clock)
