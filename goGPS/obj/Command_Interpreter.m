@@ -218,7 +218,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_STD.par = '(std)|(STD)';
 
             this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
-            this.PAR_S_RES_STD.descr = 'STDS             Slants Total Delay residuals (polar plot)';
+            this.PAR_S_RES_STD.descr = 'RES_STD             Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
 
             % definition of commands

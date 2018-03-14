@@ -176,10 +176,10 @@ classdef Core < handle
                 if this.state.isKeepRecList()
                     if numel(this.rec_list) == 0
                         clear rec_list;
-                        rec_list(:,s) = this.rec;
+                        rec_list(s,:) = this.rec;
                         this.rec_list = rec_list;
                     else
-                        this.rec_list(:,s) = this.rec;
+                        this.rec_list(s,:) = this.rec;
                     end
                 end
             end

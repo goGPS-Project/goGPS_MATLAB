@@ -47,6 +47,14 @@ classdef Core_UI < handle
         FONT_SIZE_CONVERSION_LNX = 1.1;
         FONT_SIZE_CONVERSION_MAC = 1.4;
         FONT_SIZE_CONVERSION_WIN = 1;
+        COLOR_ORDER = [ ...
+            0     0.447 0.741;
+            0.85  0.325 0.098;
+            0.929 0.694 0.125;
+            0.494 0.184 0.556;
+            0.466 0.674 0.188;
+            0.301 0.745 0.933;
+            0.635 0.078 0.184];
     end
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
@@ -951,6 +959,19 @@ classdef Core_UI < handle
         
         function font_o = getFontSize(this, font_i)
             font_o = round(font_i * this.getSizeConversion());
+        end
+    end
+    
+    %% METODS (static) getters
+    % ==================================================================================================================================================
+    methods (Static)
+        function color = getColor(color_id)
+            % get a color taken from COLOR ORDER CONSTANT
+            %
+            % SYNTAX:
+            %   Core_UI.getColor(id);
+            %
+            color = Core_UI.COLOR_ORDER(mod(color_id, size(Core_UI.COLOR_ORDER, 1)) + 1, :);
         end
     end
     

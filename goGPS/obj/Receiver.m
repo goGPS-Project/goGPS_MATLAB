@@ -3162,17 +3162,18 @@ classdef Receiver < Exportable
         function [ztd, time] = getZTD(this)
             % SYNTAX:
             %  [ztd, p_time, id_sync] = this.getZTD()
-
-            ztd = this(1).ztd(this(1).getIdSync);
-            time = this(1).time.getEpoch(this(1).getIdSync);
-
-            for r = 2 : numel(this)
-                ztd_tmp = this(r).ztd(this(r).getIdSync);
-                time_tmp = this(r).time.getEpoch(this(r).getIdSync);
-                ztd = [ztd; ztd_tmp]; %#ok<AGROW>
-                time = time.append(time_tmp);
+            
+            for r = 1 : size(this, 2)
+                ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    ztd{r} = [ztd{r}; ztd_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
             end
-
         end
 
         function [zwd, p_time] = getZWD(this)
@@ -6377,9 +6378,9 @@ classdef Receiver < Exportable
             if any(this.getDt)
                 plot(t, this.getDt, '-', 'LineWidth', 2);
                 plot(t, this.getTotalDt, '-', 'LineWidth', 2);
-                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'northeastoutside');
+                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
             else
-            legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'northeastoutside');
+                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
             end
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
 
@@ -6772,43 +6773,47 @@ classdef Receiver < Exportable
             if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
-                f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
-                for s = 1 : size(this,2)
-                    if isempty(this(s).id_sync(:))
-                        this(s).id_sync(:, 1) = (1 : this(s).time.length())';
-                    end
-
-                    t = this(s).time.getEpoch(this(s).id_sync(:)).getMatlabTime;
-
-                    sztd = this(s).getSlantZTD(this(s).slant_filter_win);
-                    sztd = sztd(this(s).id_sync(:), :);
-                    if nargin >= 3
-                        if isa(time_start, 'GPS_Time')
-                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                for r = 1 : size(this,2)
+                    
+                    f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    for s = 1 : size(this,1)
+                        if isempty(this(s, r).id_sync(:))
+                            this(s, r).id_sync(:, 1) = (1 : this(s, r).time.length())';
                         end
-                        time_start = max(1, time_start);
-                        time_stop = min(size(sztd,1), time_stop);
-                    else
-                        time_start = 1;
-                        time_stop = size(sztd,1);
+                        
+                        t = this(s, r).time.getEpoch(this(s, r).id_sync(:)).getMatlabTime;
+                        
+                        sztd = this(s, r).getSlantZTD(this(s, r).slant_filter_win);
+                        sztd = sztd(this(s, r).id_sync(:), :);
+                        if nargin >= 3
+                            if isa(time_start, 'GPS_Time')
+                                time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                                time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
+                            end
+                            time_start = max(1, time_start);
+                            time_stop = min(size(sztd,1), time_stop);
+                        else
+                            time_start = 1;
+                            time_stop = size(sztd,1);
+                        end
+                        
+                        if nargin < 4
+                            win_size = (t(time_stop) - t(time_start)) * 86400;
+                        end
+                        
+                        %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                        
+                        plot(t, sztd,'.'); hold on;
+                        plot(t, zero2nan(this(s, r).ztd(this(s, r).id_sync(:))),'k', 'LineWidth', 4);
                     end
-
-                    if nargin < 4
-                        win_size = (t(time_stop) - t(time_start)) * 86400;
-                    end
-
-                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-
-                    plot(t, sztd,'.'); hold on;
-                    plot(t, zero2nan(this(s).ztd(this(s).id_sync(:))),'k', 'LineWidth', 4);
+                    %ylim(yl);
+                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                    h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+                    grid on;
+                    h = title(sprintf('Receiver %s ZTD', this(s, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    drawnow;
                 end
-                %ylim(yl);
-                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
-                grid on;
-                h = title(sprintf('Receiver %s ZTD', this(s).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
 
@@ -6823,13 +6828,25 @@ classdef Receiver < Exportable
                 if new_fig
                     f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
                 end
-                plot(t.getMatlabTime(), zero2nan(ztd), '.', 'LineWidth', 4);
+                for r = 1 : size(this, 2)
+                    plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                    outm{r} = this(1, r).getMarkerName();
+                end
+                
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                n_entry = numel(outm);
+                icons = icons(n_entry + 2 : 2 : end);
+                
+                for i = 1 : numel(icons)
+                    icons(i).MarkerSize = 16;
+                end
+                
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s ZTD', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title('Receiver ZTD'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
 
