@@ -121,7 +121,7 @@ classdef File_Name_Processor < handle
             end
         end
 
-        function file_name_lst = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop)
+        function [file_name_lst, date_list] = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop)
             % substitute time placeholder with the proper format
             % SYNTAX: file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)
             % NOTE: I consider only two possible file formats:
@@ -142,6 +142,7 @@ classdef File_Name_Processor < handle
 
             if (step_sec > 0)
                 file_name_lst = {};
+                date_list = date_start.getCopy();
                 date0 = date_start.getCopy(); date0.toMatlabTime();
                 date1 = date_stop.getCopy(); date1.toMatlabTime();
                 date1.addIntSeconds(0.1); % adding margin
@@ -161,8 +162,12 @@ classdef File_Name_Processor < handle
                         i = i + 1;
                     end
                     date0.addIntSeconds(step_sec);
+                    if (date0.getMatlabTime() <= date1.getMatlabTime())
+                        date_list.append(date0);
+                    end
                 end
             else
+                date_list = GPS_Time();
                 i = 1;
                 % run over session
                 if session
