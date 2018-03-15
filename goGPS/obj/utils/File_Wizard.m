@@ -291,7 +291,8 @@ classdef File_Wizard < handle
                         dso = this.date_stop.getCopy();
                         dsa.addIntSeconds(-step_s);
                         dso.addIntSeconds(+step_s);
-                        file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
+                        [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
+                        
                         status = true;
                         f_status_lst = file_tree{4};
                         for i = 1 : length(file_name_lst)
@@ -303,7 +304,7 @@ classdef File_Wizard < handle
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 idx = this.getServerIdx(s_ip, port);
                                 out_dir = this.state.getFileDir(file_name);
-                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, dsa, dso);
+                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, date_list.getEpoch(i), date_list.getEpoch(i));
                                 out_dir = out_dir{1};
                                 status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
                             end
