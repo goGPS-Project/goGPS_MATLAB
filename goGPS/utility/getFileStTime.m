@@ -30,20 +30,23 @@
 %--------------------------------------------------------------------------
 
 function time = getFileStTime(filename)
-%Return the start time of the file using the standard naming convention
-[~,name, ext] = fileparts(filename);
-if strcmp(ext,'.sp3') || strcmp(ext,'.clk') || strcmp(ext,'.clk_30s') || strcmp(ext,'.clk_05s')
-    % name should be : cccwwwwd
-    if length(name) == 8
-        week = str2double(name(4:7));
-        dow = str2double(name(8));
-        if ~isnan(week) && ~isnan(dow)
-            time = GPS_Time.fromWeekDow(week, dow);
+% Return the start time of the file using the standard naming convention
+
+% xGiulio: This function must be changed in such a way that the epoch is read from the file
+
+    [~,name, ext] = fileparts(filename);
+    if strcmpi(ext,'.eph') || strcmpi(ext,'.sp3') || strcmpi(ext,'.clk') || strcmpi(ext,'.clk_30s') || strcmpi(ext,'.clk_05s')
+        % name should be : cccwwwwd
+        if length(name) == 8
+            week = str2double(name(4:7));
+            dow = str2double(name(8));
+            if ~isnan(week) && ~isnan(dow)
+                time = GPS_Time.fromWeekDow(week, dow);
+            else
+                time = [];
+            end
         else
             time = [];
         end
-    else
-        time = [];
     end
-end
 end
