@@ -119,67 +119,77 @@ classdef Core_Sky < handle
     
     methods % Public Access
         
-        function initSession(this, start_date, stop_time)
+        function initSession(this, start_date, stop_date)
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
                         
             %%% load Epehemerids
-            eph_f_name   = this.state.getEphFileName(start_date, stop_time);
-            clock_f_name = this.state.getClkFileName(start_date, stop_time);
-            clock_is_present = true;
-            for i = 1:length(clock_f_name)
-                clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
+            if nargin == 2
+                stop_date = start_date.last();
+                start_date = start_date.first();
             end
-            clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
-            to_clear_date = start_date.getCopy();
-            to_clear_date.addSeconds(-86400);
-            this.clearOrbit(to_clear_date);
-            
-            if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
-                this.log.addMarkedMessage('Importing ephemerides...');
-                for i = 1:length(eph_f_name)
-                    [~,name,ext] = fileparts(eph_f_name{i});
-                    gps_time = getFileStTime([name ext]);
-                    end_time = this.getLastEpochCoord();
-                    if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
-                        this.addSp3(eph_f_name{i},clock_in_eph);
-                    end
-                    this.coord_type = 0; % center of mass
-                end
-            else %% if not sp3 assume is a rinex navigational file
-                this.log.addMarkedMessage('Importing broadcast ephemerides...');
-                this.importBrdcs(eph_f_name,start_date, stop_time, clock_in_eph);
-            end
-            
-            if not(clock_in_eph)
-                this.log.addMarkedMessage('Importing satellite clock files...');
+            if ~ isempty(start_date)
+                eph_f_name   = this.state.getEphFileName(start_date, stop_date);
+                clock_f_name = this.state.getClkFileName(start_date, stop_date);
+                clock_is_present = true;
                 for i = 1:length(clock_f_name)
-                    [~,name,ext] = fileparts(clock_f_name{i});
-                    gps_time = getFileStTime([name ext]);
-                    end_time = this.getLastEpochClock();
-                    if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
-                        this.addClk(clock_f_name{i});
-                    end
-                    
+                    clock_is_present = clock_is_present && (exist(clock_f_name{i}, 'file') == 2);
                 end
-            end
+                clock_in_eph = isempty(setdiff(eph_f_name, clock_f_name)) || ~clock_is_present; %%% condition to be tested in differnet cases
+                if isempty(this.time_ref_coord) || start_date < this.time_ref_coord
+                    this.clearOrbit();
+                else
+                    to_clear_date = start_date.getCopy();
+                    to_clear_date.addSeconds(-86400); % keep only one day before the first epoch
+                    this.clearOrbit(to_clear_date);
+                end
+                
+                if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
+                    this.log.addMarkedMessage('Importing ephemerides...');
+                    for i = 1:length(eph_f_name)
+                        [~,name,ext] = fileparts(eph_f_name{i});
+                        gps_time = getFileStTime([name ext]);
+                        end_time = this.getLastEpochCoord();
+                        if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
+                            this.addSp3(eph_f_name{i},clock_in_eph);
+                        end
+                        this.coord_type = 0; % center of mass
+                    end
+                else %% if not sp3 assume is a rinex navigational file
+                    this.log.addMarkedMessage('Importing broadcast ephemerides...');
+                    this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
+                end
+                
+                if not(clock_in_eph)
+                    this.log.addMarkedMessage('Importing satellite clock files...');
+                    for i = 1:length(clock_f_name)
+                        [~,name,ext] = fileparts(clock_f_name{i});
+                        gps_time = getFileStTime([name ext]);
+                        end_time = this.getLastEpochClock();
+                        if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
+                            this.addClk(clock_f_name{i});
+                        end
                         
-            % load PCV
-            this.log.addMarkedMessage('Loading antennas phase center variations');
-            this.loadAntPCV(this.state.getAtxFile);
-            % pass to antenna phase center if necessary
-            if this.coord_type == 0
-                this.toAPC();
+                    end
+                end
+                
+                % load PCV
+                this.log.addMarkedMessage('Loading antennas phase center variations');
+                this.loadAntPCV(this.state.getAtxFile);
+                % pass to antenna phase center if necessary
+                if this.coord_type == 0
+                    this.toAPC();
+                end
+                
+                % load erp
+                this.log.addMarkedMessage('Importing Earth Rotation Parameters');
+                this.importERP(this.state.getErpFileName(start_date, stop_date),start_date);
+                
+                % load dcb
+                this.log.addMarkedMessage('Importing Differential code biases');
+                this.importDCB();
             end
-            
-            % load erp
-            this.log.addMarkedMessage('Importing Earth Rotation Parameters');
-            this.importERP(this.state.getErpFileName(start_date, stop_time),start_date);
-            
-            % load dcb
-            this.log.addMarkedMessage('Importing Differential code biases');
-            this.importDCB();
         end
         
         function clearOrbit(this, gps_date)
@@ -1240,7 +1250,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [dt_S] = clockInterpolate(this,time, sat)
+        function [dt_S] = clockInterpolate(this, time, sat)
             % SYNTAX:
             %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
             %
@@ -1272,7 +1282,7 @@ classdef Core_Sky < handle
             
             p = max(0, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
             
-            b =  (times.getSubSet(p) - time)';
+            b =  (times.getEpoch(p) - time)';
             
             SP3_c = zeros(time.length,2);
             u = zeros(time.length,1);
@@ -1518,9 +1528,6 @@ classdef Core_Sky < handle
             for id = un_idx
                 t_idx = c_idx == id;
                 times = t_diff(t_idx);
-                %times=t.getSubSet(t_idx);
-                %t_fct=((times-this.time(5+idx)))';%time from coefficient time
-                %t_fct =  (times -  c_times.getSubSet(idx+5))/this.coord_rate; %
                 t_fct =  (times -  c_times(id + ((size(this.coord, 1) - size(this.coord_pol_coeff, 4)) / 2)))/this.coord_rate;
                 
                 %%%% compute position
