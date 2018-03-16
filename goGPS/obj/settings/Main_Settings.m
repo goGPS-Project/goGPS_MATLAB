@@ -1748,7 +1748,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the file list of receivers files
             % SYNTAX: file_name = this.getRecPath()
             % A cell for each receiver containing the list of names as cell
-            if isempty(this.obs_full_name)
+            if isempty(this.obs_full_name) || isempty(this.obs_full_name{1})
                 this.updateObsFileName();
             end
             file_name = this.obs_full_name;
