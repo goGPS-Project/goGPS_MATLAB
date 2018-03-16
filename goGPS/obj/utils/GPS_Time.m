@@ -996,7 +996,7 @@ classdef GPS_Time < Exportable & handle
             sod = floor((utc_time.mat_time - datenum(year,1,1) - doy +1)*86400) ; % days from the beginning of the year
         end
         
-        function [year, month, day, hour, minute, second] = getCalEpoch(this,idx)
+        function [year, month, day, hour, minute, second] = getCalEpoch(this, idx)
             % get year month doy hour minute second
             % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this,idx)
             if nargin == 1
@@ -1087,7 +1087,7 @@ classdef GPS_Time < Exportable & handle
         end
         
         function new_obj = getEpoch(this, id)
-            % Overloading of the operator index ()
+            % Overloading of the operator index (getEpoch)
             % get a copy of the obj containing only the selected epoch id of time
             % SYNTAX this.getEpoch(id)
             
@@ -1097,25 +1097,33 @@ classdef GPS_Time < Exportable & handle
                 max_id = max(id);
             end
             
-            switch this.time_type
-                case 0 % I'm in MAT TIME
-                    if (length(this.mat_time) >= max_id)
-                        new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
-                    else
-                        new_obj = GPS_Time();
-                    end
-                case 1 % I'm in UNIX TIME
-                    if (length(this.unix_time) >= max_id)
-                        new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
-                    else
-                        new_obj = GPS_Time();
-                    end
-                case 2 % I'm in REF TIME
-                    if (length(this.time_diff) >= max_id)
-                        new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
-                    else
-                        new_obj = GPS_Time();
-                    end
+            if id > this.length()
+                id = this.length();
+            end
+            
+            if id == 0
+                new_obj = GPS_Time();
+            else
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        if (length(this.mat_time) >= max_id)
+                            new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
+                        else
+                            new_obj = GPS_Time();
+                        end
+                    case 1 % I'm in UNIX TIME
+                        if (length(this.unix_time) >= max_id)
+                            new_obj = GPS_Time(uint32(this.unix_time(id)), this.unix_time_f(id), this.is_gps);
+                        else
+                            new_obj = GPS_Time();
+                        end
+                    case 2 % I'm in REF TIME
+                        if (length(this.time_diff) >= max_id)
+                            new_obj = GPS_Time(this.time_ref, this.time_diff(id), this.is_gps);
+                        else
+                            new_obj = GPS_Time();
+                        end
+                end
             end
         end
         
