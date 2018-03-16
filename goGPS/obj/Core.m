@@ -163,13 +163,20 @@ classdef Core < handle
             
             % Init sky for this session
             [~, time_lim_large] = rec.getTimeSpan();
+            this.sky = Core_Sky.getInstance();
             this.sky.initSession(time_lim_large.first, time_lim_large.last);
             this.log.simpleSeparator();
         end
         
-        function go(this)
+        function go(this, session_num)
+            t0 = tic;
             this.rec_list = [];
-            for s = 1 : this.state.getSessionCount()
+            if nargin == 1
+                session_list = 1 : this.state.getSessionCount();
+            else
+                session_list = session_num;
+            end
+            for s = session_list
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);
                 
@@ -183,6 +190,9 @@ classdef Core < handle
                     end
                 end
             end
+            this.log.newLine;
+            this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
+            this.log.newLine;
         end
         
         function exec(this, cmd)
