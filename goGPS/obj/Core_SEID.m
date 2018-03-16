@@ -167,7 +167,7 @@ classdef Core_SEID < handle
                     trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
                 end
                 
-                % I interpolate the diff (derivate) of L4 but now I rebuild L4 by cumsum (integral)
+                % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
                 inan = isnan(trg_ph_gf);
                 trg_ph_gf = cumsum(nan2zero(trg_ph_gf));
                 trg_ph_gf(inan) = nan;
@@ -191,6 +191,7 @@ classdef Core_SEID < handle
                 %compute ~P2
                 %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
                 
+                % Remove the L2 stored in the object
                 [~, id_ph] = trg(t).getObs('L2','G');
                 if ~isempty(id_ph)
                     log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
@@ -202,6 +203,7 @@ classdef Core_SEID < handle
                     trg(t).remObs(id_pr);
                 end
                 
+                % Inject the new synthesised phase
                 log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
                 trg(t).injectPhases(nan2zero(pr2), wl2, 2, 'C2 ', trg_go_id)
                 trg(t).injectPhases(nan2zero(ph2), wl2, 2, 'L2 ', trg_go_id);
@@ -216,7 +218,7 @@ classdef Core_SEID < handle
     end
 
     methods (Static)
-        function data_q = satDataInterp(lat_in, lon_in, data_in, lat_q, lon_q)
+        function data_q = satDataInterp(lat_in, lon_in, data_in, lat_q, lon_q, method)
             % Interpolate the data given for n points "_in" to query point "_q"
             %
             % INPUT:
@@ -229,14 +231,26 @@ classdef Core_SEID < handle
             % SYNTAX:
             %   data_q = Core_SEID.satDataInterp(lat_in, lon_in, data_in, lat_q, lon_q);
             
-            data_q = nan(size(lat_q));
-            for i = 1 : size(lat_in, 1)
-                id_ok = ~isnan(data_in(i, :));
-                if sum(id_ok) == size(lat_in, 2) % require all the stations to interpolate ionosphere
-                    d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
-                    w = (1 ./ d(id_ok))';
-                    data_q(i) = (data_in(i, id_ok) * w) ./ sum(w);
-                end
+            if nargin < 6
+                method = 'distance';
+            end
+            
+            switch method
+                case {'plane'}
+                    % consider a plane of interpolation, the coordinates of the pierce point must be considered as 
+                    % spherical distances in phi/lam from the interpolation point... the reference (center) is the interpolation point
+                    % ...to be done
+                case  {'distance'}
+                    % very simple interpolation by spherical distance
+                    data_q = nan(size(lat_q));
+                    for i = 1 : size(lat_in, 1)
+                        id_ok = ~isnan(data_in(i, :));
+                        if sum(id_ok) == size(lat_in, 2) % require all the stations to interpolate ionosphere
+                            d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
+                            w = (1 ./ d(id_ok))';
+                            data_q(i) = (data_in(i, id_ok) * w) ./ sum(w);
+                        end
+                    end
             end
         end
         
