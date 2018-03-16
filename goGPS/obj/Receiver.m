@@ -99,6 +99,8 @@ classdef Receiver < Exportable
         clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         pcv = []                     % phase center corrections for the receiver
 
+        pp_status = false;      % flag is pre-proccesed / not pre-processed
+        
         group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
         dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
         sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
@@ -233,7 +235,7 @@ classdef Receiver < Exportable
                 this.cc = this.state.cc;
             end
             this.w_bar = Go_Wait_Bar.getInstance();
-            if nargin >= 2 && ~isempty(rinex_file_name)
+            if nargin >= 2 && ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
                 this.loadRinex(rinex_file_name);
                 this.loadAntModel();
             end
@@ -295,6 +297,7 @@ classdef Receiver < Exportable
                 'slant_td',         []  ...    % slant total delay (except ionosphere delay)
                 );
             this.initR2S;
+            this.pp_status = false;
         end
 
         function initObs(this)
@@ -595,7 +598,9 @@ classdef Receiver < Exportable
             %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
                 [~, id_sync] = Receiver.getSyncTimeExpanded(this, rate);
-                this.keepEpochs(id_sync(~isnan(id_sync)));
+                if ~isempty(id_sync)
+                    this.keepEpochs(id_sync(~isnan(id_sync)));
+                end
             end
             if nargin > 2 && ~isempty(sys_list)
                 this.setActiveSys(sys_list);
@@ -792,7 +797,7 @@ classdef Receiver < Exportable
             this.log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
             nan_coord = sum(isnan(this.sat.cs.coord) | this.sat.cs.coord == 0,3) > 0;
             nan_clock = isnan(this.sat.cs.clock) | this.sat.cs.clock == 0;
-            first_epoch = this.time.getSubSet(1);
+            first_epoch = this.time.first;
             coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
             clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
             for s = 1 : this.getMaxSat()
@@ -1486,7 +1491,7 @@ classdef Receiver < Exportable
             % PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
-            sa_thr = 10;  % short arc threshold
+            sa_thr = this.state.getMinArc();  % short arc threshold
 
             %----------------------------
             % Outlier Detection
@@ -1503,7 +1508,7 @@ classdef Receiver < Exportable
             [ph, wl, id_ph_l] = this.getPhases;
 
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
-            % first time derivative
+            % first time derivate
             synt_ph = this.getSyntPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
 
@@ -1511,8 +1516,28 @@ classdef Receiver < Exportable
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             % divide for wavelenght
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            
+            % test sensor variance
+            tmp = sensor_ph(~isnan(sensor_ph)); 
+            tmp(abs(tmp)>4) = []; 
+            std_sensor = mean(movstd(tmp(:),900));
+            
+            % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
+            % use as a sensor the time second derivate
+            if std_sensor > ol_thr
+                this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
+                der = 2; % use second
+                % try with second time derivate
+                sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph, der);                
+                % subtract median (clock error)
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));                
+                % divide for wavelenght
+                sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            else
+                der = 1; % use first
+            end
             % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > ol_thr;
+            poss_out_idx = abs(sensor_ph) > ol_thr / der;
             % take them off
             ph2 = ph;
             ph2(poss_out_idx) = nan;
@@ -1529,7 +1554,7 @@ classdef Receiver < Exportable
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
                 if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o),1);
+                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
                 end
             end
 
@@ -1597,7 +1622,7 @@ classdef Receiver < Exportable
                 poss_slip_idx(c_idx,o) = 1;
             end
 
-            %if majority of satellites jump set cycle slip on all
+            % if majority of satellites jump set cycle slip on all
             n_obs_ep = sum(~isnan(ph2),2);
             all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
             for c = find(all_but_one')
@@ -1614,14 +1639,16 @@ classdef Receiver < Exportable
             this.outlier_idx_ph = sparse(poss_out_idx);
             this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
 
-%             sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases);
-%             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-%             % divide for wavelenght
-%             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-%             % outlier when they exceed 0.5 cycle
-%             poss_out_idx = abs(sensor_ph) > ol_thr;
-%             this.outlier_idx_ph = this.outlier_idx_ph & poss_out_idx;
+            % Outlier detection for some reason is not working properly -> reperform outlier detection
+            sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > 0.5;
+            this.outlier_idx_ph = this.outlier_idx_ph | poss_out_idx;
 
+            this.cycle_slip_idx_ph([false(1,size(this.outlier_idx_ph,2)); (diff(this.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
 
             %this.removeShortArch(this.state.getMinArc);
@@ -2020,9 +2047,9 @@ classdef Receiver < Exportable
             %
             % SYNTAX:
             %   xyz = this.getTime()
-            time = this(1).time.getCopy;
+            time = this(1).time.getEpoch(this(1).id_sync);
             for r = 2 : numel(this)
-                time.append(this(r).time);
+                time.append(this(r).time.getEpoch(this(r).id_sync));
             end
         end
 
@@ -2478,6 +2505,10 @@ classdef Receiver < Exportable
             is_static = this.static;
         end
 
+        function is_pp = isPreProcessed(this)
+            is_pp = this.pp_status;
+        end
+        
         function [mfh, mfw] = getSlantMF(this)
             % Get Mapping function for the satellite slant
             %
@@ -3099,7 +3130,7 @@ classdef Receiver < Exportable
             % receiver as to be the same
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
-            idx_ep_obs = obs_set.getTimeIdx(this.time.getSubSet(1),this.getRate);
+            idx_ep_obs = obs_set.getTimeIdx(this.time.first,this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
@@ -3541,6 +3572,7 @@ classdef Receiver < Exportable
             end
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);
+            % lim = [lim(1) lim(end)];
             dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'pchip');
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
@@ -4438,7 +4470,7 @@ classdef Receiver < Exportable
 
             this.updateCoo();
             atmo = Atmosphere();
-            fname = this.state.getIonoFileName(this.time.getSubSet(1), this.time.getSubSet(this.time.length));
+            fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
             atmo.importIonex(fname{1});
             [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
 
@@ -4934,40 +4966,43 @@ classdef Receiver < Exportable
             % INPUT:
             %   sys_c = wanted system
             % Init "errors"
-            this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
-            this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
-            this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
-            this.sat.solid_earth_corr  = zeros(this.time.length, this.getMaxSat());
-            this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
-            % if not applied apply group delay
-            this.applyGroupDelay();
-            this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
-            this.applyDtSat();
-
-            %this.static = 0;
-            if this.isStatic()
-                %this.initStaticPositioningOld(obs, prn, sys, flag)
-                this.initStaticPositioning();
+            if this.isEmpty()
+                this.log.addError('Init positioning failed: the receiver object is empty');
             else
-                % get best observation for all satellites and all epochs
-                this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
-                [obs, prn, sys, flag] = this.getBestCodeObs;
-                % remove unwanted system
-                if nargin < 2
-                    sys_c = this.cc.sys_c;
+                this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
+                this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
+                this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
+                this.sat.solid_earth_corr  = zeros(this.time.length, this.getMaxSat());
+                this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
+                % if not applied apply group delay
+                this.applyGroupDelay();
+                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
+                this.applyDtSat();
+                
+                %this.static = 0;
+                if this.isStatic()
+                    %this.initStaticPositioningOld(obs, prn, sys, flag)
+                    this.initStaticPositioning();
+                else
+                    % get best observation for all satellites and all epochs
+                    this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
+                    [obs, prn, sys, flag] = this.getBestCodeObs;
+                    % remove unwanted system
+                    if nargin < 2
+                        sys_c = this.cc.sys_c;
+                    end
+                    sys_idx = false(size(sys));
+                    for s = 1:length(sys_c)
+                        sys_idx = sys_idx | sys == sys_c(s);
+                    end
+                    obs(~sys_idx,:) = [];
+                    prn(~sys_idx,:) = [];
+                    sys(~sys_idx,:) = [];
+                    flag(~sys_idx,:) = [];
+                    
+                    this.initDynamicPositioning(obs, prn, sys, flag)
                 end
-                sys_idx = false(size(sys));
-                for s = 1:length(sys_c)
-                    sys_idx = sys_idx | sys == sys_c(s);
-                end
-                obs(~sys_idx,:) = [];
-                prn(~sys_idx,:) = [];
-                sys(~sys_idx,:) = [];
-                flag(~sys_idx,:) = [];
-
-                this.initDynamicPositioning(obs, prn, sys, flag)
             end
-
         end
 
         function initStaticPositioning(this)
@@ -4984,59 +5019,65 @@ classdef Receiver < Exportable
             %
             % DESCRIPTION:
             %   Get postioning using code observables
-            last_ep_coarse = min(100,this.time.length);
-            ep_coarse = 1:last_ep_coarse;
-            % check if the epoch are presents
-            % getteing the obesrvation set that is going to be used in
-            % setUPSA
-            obs_set = Observation_Set();
-            if this.isMultiFreq() %% case multi frequency
-                for sys_c = this.cc.sys_c
-                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
-                end
+            
+            
+            if this.isEmpty()
+                this.log.addError('Static positioning failed: the receiver object is empty');
             else
-                for sys_c = this.cc.sys_c
-                    f = this.getFreqs(sys_c);
+                last_ep_coarse = min(100,this.time.length);
+                ep_coarse = 1:last_ep_coarse;
+                % check if the epoch are presents
+                % getteing the obesrvation set that is going to be used in
+                % setUPSA
+                obs_set = Observation_Set();
+                if this.isMultiFreq() %% case multi frequency
+                    for sys_c = this.cc.sys_c
+                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
+                    end
+                else
+                    for sys_c = this.cc.sys_c
+                        f = this.getFreqs(sys_c);
                         obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                    end
                 end
+                while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > 50)) % checking if the selcted epochs contains at least some usabele obseravalbles
+                    ep_coarse = ep_coarse +1;
+                end
+                
+                
+                
+                dpos = 3000;
+                this.updateAllAvailIndex();
+                this.sat.avail_index(1:(ep_coarse(1)-1),:) = 0;
+                this.sat.avail_index(min(ep_coarse(end)+1,this.time.length):end,:) = 0;
+                this.updateAllTOT();
+                this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
+                
+                while max(abs(dpos)) > 10
+                    dpos = this.codeStaticPositioning(ep_coarse);
+                end
+                
+                this.updateAzimuthElevation()
+                this.updateErrTropo();
+                this.updateErrIono();
+                this.codeStaticPositioning(ep_coarse, 15);
+                
+                this.updateAllAvailIndex();
+                this.updateAllTOT();
+                this.updateAzimuthElevation()
+                this.updateErrTropo();
+                this.updateErrIono();
+                this.log.addMessage(this.log.indent('improving estimation',6))
+                this.codeStaticPositioning(1:this.time.length, 15);
+                
+                this.updateAllTOT();
+                this.log.addMessage(this.log.indent('Final estimation',6))
+                this.codeStaticPositioning(1:this.time.length, 15);
+                
+                % final estimation of time of flight
+                this.updateAllAvailIndex()
+                this.updateAllTOT
             end
-           while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > 50)) % checking if the selcted epochs contains at least some usabele obseravalbles
-               ep_coarse = ep_coarse +1;
-           end
-
-
-
-            dpos = 3000;
-            this.updateAllAvailIndex();
-             this.sat.avail_index(1:(ep_coarse(1)-1),:) = 0;
-            this.sat.avail_index(min(ep_coarse(end)+1,this.time.length):end,:) = 0;
-            this.updateAllTOT();
-            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
-
-            while max(abs(dpos)) > 10
-                dpos = this.codeStaticPositioning(ep_coarse);
-            end
-
-            this.updateAzimuthElevation()
-            this.updateErrTropo();
-            this.updateErrIono();
-            this.codeStaticPositioning(ep_coarse, 15);
-
-            this.updateAllAvailIndex();
-            this.updateAllTOT();
-            this.updateAzimuthElevation()
-            this.updateErrTropo();
-            this.updateErrIono();
-            this.log.addMessage(this.log.indent('improving estimation',6))
-            this.codeStaticPositioning(1:this.time.length, 15);
-
-            this.updateAllTOT();
-            this.log.addMessage(this.log.indent('Final estimation',6))
-            this.codeStaticPositioning(1:this.time.length, 15);
-
-            % final estimation of time of flight
-            this.updateAllAvailIndex()
-            this.updateAllTOT
         end
 
         function dpos = codeStaticPositioning(this,id_epoch, cut_off)
@@ -5051,6 +5092,12 @@ classdef Receiver < Exportable
             ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
 
+            % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
+            % enable)
+            ls.reweightHuber();
+            ls.Astack2Nstack();
+            [x, res, s02] = ls.solve();
+            
             dpos = x(1:3);
             this.xyz = this.getMedianPosXYZ() + dpos;
             dt = x(x(:,2) == 6,1);
@@ -5488,39 +5535,45 @@ classdef Receiver < Exportable
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX:
             %   this.preProcessing();
-            this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
-            this.remBad();
-            % correct for raw estimate of clock error based on the phase measure
-            this.correctTimeDesync();
-            % this.TEST_smoothCodeWithDoppler(51);
-            % code only solution
-            this.initPositioning();
-            % smooth clock estimation
-            this.smoothAndApplyDt(3);
-            % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-            this.dt_ip = this.dt; % save init_positioning clock
-            this.dt(:) = 0; % reset dt field
-            % set all availability index
-            this.updateAllAvailIndex();
-
-            % update azimuth elevation
-            this.updateAzimuthElevation();
-            % Add a model correction for time desync -> observations are now referred to nominal time  #14
-            this.shiftToNominal()
-            this.updateAllTOT();
-
-            % apply various corrections
-            this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-
-            this.applyPCV();
-            this.applyPoleTide();
-            this.applyPhaseWindUpCorr();
-            this.applySolidEarthTide();
-            this.applyShDelay();
-            this.applyOceanLoading();
-            %this.applyHOI();
-
-            this.removeOutlierMarkCycleSlip();
+            
+            if this.isEmpty()
+                this.log.addError('Pre-Processing failed: the receiver object is empty');
+            else                
+                this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
+                this.remBad();
+                % correct for raw estimate of clock error based on the phase measure
+                this.correctTimeDesync();
+                % this.TEST_smoothCodeWithDoppler(51);
+                % code only solution
+                this.initPositioning();
+                % smooth clock estimation
+                this.smoothAndApplyDt(3);
+                % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
+                this.dt_ip = this.dt; % save init_positioning clock
+                this.dt(:) = 0; % reset dt field
+                % set all availability index
+                this.updateAllAvailIndex();
+                
+                % update azimuth elevation
+                this.updateAzimuthElevation();
+                % Add a model correction for time desync -> observations are now referred to nominal time  #14
+                this.shiftToNominal()
+                this.updateAllTOT();
+                
+                % apply various corrections
+                this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                
+                this.applyPCV();
+                this.applyPoleTide();
+                this.applyPhaseWindUpCorr();
+                this.applySolidEarthTide();
+                this.applyShDelay();
+                this.applyOceanLoading();
+                %this.applyHOI();
+                
+                this.removeOutlierMarkCycleSlip();
+                this.pp_status = true;
+            end
         end
 
         function staticPPP(this, sys_list, id_sync)
@@ -5541,129 +5594,138 @@ classdef Receiver < Exportable
             %   using epochs from 501 to 2380
             %    - this.staticPPP([], 500:2380);
 
-            if nargin >= 2
-                if ~isempty(sys_list)
-                    this.setActiveSys(sys_list);
-                end
-            end
-
-            if nargin < 3
-                id_sync = 1 : this.time.length();
-            end
-
-            this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-            this.log.addMessage(this.log.indent('Preparing the system', 6));
-            %this.updateAllAvailIndex
-            %this.updateAllTOT
-            ls = Least_Squares_Manipulator();
-            id_sync = ls.setUpPPP(this, id_sync);
-            ls.Astack2Nstack();
-
-            [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
-            time = this.time.getSubSet(id_sync);
-            gps_time = time.getGpsTime();
-            n_epoch = time.length;
-
-            atm = Atmosphere();
-
-            if isempty(this.zwd)
-                this.zwd = zeros(this.time.length(), 1);
-            end
-            if isempty(this.zhd)
-                this.zhd = zeros(this.time.length(),1);
-            end
-            if isempty(this.ztd)
-                this.ztd = zeros(this.time.length(),1);
-            end
-
-            n_sat = this.getMaxSat();
-            if isempty(this.sat.slant_td)
-                this.sat.slant_td = zeros(this.time.length(), n_sat);
-            end
-
-            for i = 1 : n_epoch
-                [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
-                this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
-                this.zwd(id_sync(i)) = saast_wet(T, Global_Configuration.ATM.STD_HUMI, h_orto);
-            end
-
-            rate = time.getRate();
-
-            ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
-            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
-            if this.state.flag_tropo_gradient
-                ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
-            end
-            this.log.addMessage(this.log.indent('Solving the system', 6));
-            [x, res, s02] = ls.solve();
-            % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
-            % enable)
-            % ls.reweightHuber();
-            % ls.Astack2Nstack();
-            % [x, res, s02] = ls.solve();
-
-            this.sat.res = zeros(this.length, this.getMaxSat());
-            dsz = max(id_sync) - size(res,1);
-            if dsz == 0
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+            if this.isEmpty()
+                this.log.addError('staticPPP failed The receiver object is empty');
+            elseif ~this.isPreProcessed()
+                this.log.addError('Pre-Processing is required to compute a PPP solution');
             else
-                if dsz > 0
-                    id_sync = id_sync(1 : end - dsz);
+                if nargin >= 2
+                    if ~isempty(sys_list)
+                        this.setActiveSys(sys_list);
+                    end
                 end
-                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-            end
-
-            %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-            this.id_sync = id_sync;
-            %ls.reweight(
-
-            coo    = x(1:3,1);
-
-            clock = x(x(:,2) == 6,1);
-            tropo = x(x(:,2) == 7,1);
-            amb = x(x(:,2) == 5,1);
-            gntropo = x(x(:,2) == 8,1);
-            getropo = x(x(:,2) == 9,1);
-            this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
-            this.xyz = this.xyz + coo';
-            valid_ep = ls.true_epoch;
-            this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
-            this.amb_idx = ls.amb_idx; % to test ambiguity fixing
-            this.if_amb = amb; % to test ambiguity fixing
-            if s02 < 0.10
-                if this.state.flag_tropo
-                    this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
-                    this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
-                    this.sat.amb = amb;
-                    [mfh, mfw] = getSlantMF(this);
-                    this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
-                        + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
-                        + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
-                    this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
+                
+                if nargin < 3
+                    id_sync = 1 : this.time.length();
                 end
+                
+                this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                this.log.addMessage(this.log.indent('Preparing the system', 6));
+                %this.updateAllAvailIndex
+                %this.updateAllTOT
+                ls = Least_Squares_Manipulator();
+                id_sync = ls.setUpPPP(this, id_sync);
+                ls.Astack2Nstack();
+                
+                [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
+                time = this.time.getSubSet(id_sync);
+                gps_time = time.getGpsTime();
+                n_epoch = time.length;
+                
+                atm = Atmosphere();
+                
+                if isempty(this.zwd)
+                    this.zwd = zeros(this.time.length(), 1);
+                end
+                if isempty(this.zhd)
+                    this.zhd = zeros(this.time.length(),1);
+                end
+                if isempty(this.ztd)
+                    this.ztd = zeros(this.time.length(),1);
+                end
+                
+                n_sat = this.getMaxSat();
+                if isempty(this.sat.slant_td)
+                    this.sat.slant_td = zeros(this.time.length(), n_sat);
+                end
+                
+                for i = 1 : n_epoch
+                    [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                    this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
+                    this.zwd(id_sync(i)) = saast_wet(T, Global_Configuration.ATM.STD_HUMI, h_orto);
+                end
+                
+                rate = time.getRate();
+                
+                ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                 if this.state.flag_tropo_gradient
-                    if isempty(this.tgn)
-                        this.tgn = zeros(this.time.length,1);
-                    end
-                    this.tgn(valid_ep) =  gntropo;
-                    if isempty(this.tge)
-                        this.tge = zeros(this.time.length,1);
-                    end
-                    this.tge(valid_ep) =  getropo;
-
-                    cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
-                    cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
-                    sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-                    this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
-                                                          + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
-                                                          + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));
-                    this.est_slant = nan2zero(zero2nan(this.est_slant) ...
-                                                          + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
-                                                          + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));  % to test ambiguity fixing
+                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
-            else
-                this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
+                this.log.addMessage(this.log.indent('Solving the system', 6));
+                [x, res, s02] = ls.solve();
+                % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
+                % enable)
+                % ls.reweightHuber();
+                % ls.Astack2Nstack();
+                % [x, res, s02] = ls.solve();
+                
+                this.sat.res = zeros(this.length, this.getMaxSat());
+                dsz = max(id_sync) - size(res,1);
+                if dsz == 0
+                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                else
+                    if dsz > 0
+                        id_sync = id_sync(1 : end - dsz);
+                    end
+                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                end
+                
+                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+                this.id_sync = id_sync;
+                %ls.reweight(
+                
+                coo    = x(1:3,1);
+                
+                clock = x(x(:,2) == 6,1);
+                tropo = x(x(:,2) == 7,1);
+                amb = x(x(:,2) == 5,1);
+                gntropo = x(x(:,2) == 8,1);
+                getropo = x(x(:,2) == 9,1);
+                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
+                this.xyz = this.xyz + coo';
+                valid_ep = ls.true_epoch;
+                this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
+                this.amb_idx = ls.amb_idx; % to test ambiguity fixing
+                this.if_amb = amb; % to test ambiguity fixing
+                if s02 > 0.10
+                    this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
+                end
+                if s02 < 0.30
+                    if this.state.flag_tropo
+                        this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
+                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                        this.sat.amb = amb;
+                        [mfh, mfw] = getSlantMF(this);
+                        this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
+                            + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
+                            + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
+                        this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
+                    end
+                    if this.state.flag_tropo_gradient
+                        if isempty(this.tgn)
+                            this.tgn = zeros(this.time.length,1);
+                        end
+                        this.tgn(valid_ep) =  gntropo;
+                        if isempty(this.tge)
+                            this.tge = zeros(this.time.length,1);
+                        end
+                        this.tge(valid_ep) =  getropo;
+                        
+                        cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
+                        cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
+                        sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
+                        this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
+                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
+                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));
+                        this.est_slant = nan2zero(zero2nan(this.est_slant) ...
+                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
+                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));  % to test ambiguity fixing
+                    end
+                else
+                    this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
+                end
             end
         end
 
@@ -6055,13 +6117,13 @@ classdef Receiver < Exportable
         end
 
         function exportTropoSINEX(this)
-            [year, doy] = this.time.getSubSet(1).getDOY();
+            [year, doy] = this.time.first.getDOY();
             yy = num2str(year);
             yy = yy(3:4);
             sess_str = '0'; %think how to get the ricgt one from sss_id_list
             fname = sprintf('%s',[this.state.getOutDir() '/' this.marker_name sprintf('%03d',doy) sess_str '.' yy 'zpd']);
             snx_wrt = SINEX_Writer(fname);
-            snx_wrt.writeTroSinexHeader( this.time.getSubSet(1), this.time.getSubSet(this.time.length), this.marker_name)
+            snx_wrt.writeTroSinexHeader( this.time.first, this.time.getSubSet(this.time.length), this.marker_name)
             snx_wrt.writeFileReference()
             snx_wrt.writeAcknoledgments()
             smpl_tropo = median(diff(this.id_sync)) * this.time.getRate;
@@ -6081,7 +6143,7 @@ classdef Receiver < Exportable
                 save_on_disk = true;
             end
             if save_on_disk
-                [year, doy] = this.time.getSubSet(1).getDOY();
+                [year, doy] = this.time.first.getDOY();
                 yy = num2str(year);
                 yy = yy(3:4);
                 sess_str = '0'; % think how to get the right one from sss_id_list
@@ -6205,7 +6267,7 @@ classdef Receiver < Exportable
             end
 
             xyz = this.getPosXYZ();
-            if size(xyz,1) > 1
+            if size(this, 1) > 1 || size(xyz, 1) > 1
                 this(1).log.addMessage('Plotting positions');
                 xyz0 = this.getMedianPosXYZ();
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
@@ -6214,20 +6276,38 @@ classdef Receiver < Exportable
 
                 f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
+                
                 t = this.getCentralTime().getMatlabTime();
-                if ~one_plot, subplot(3,1,1); end
-                plot(t, zero2nan(1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
-                grid on;
-                h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                if ~one_plot, subplot(3,1,2); end
-                plot(t, zero2nan(1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
-                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
-                grid on;
-                if ~one_plot, subplot(3,1,3); end
-                plot(t, zero2nan(1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
-                grid on;
+                for r = 1 : size(this, 2)
+                    t = [];
+                    xyz = this(:,r).getPosXYZ();
+                    xyz0 = this(:,r).getMedianPosXYZ();
+                    
+                    for s = 1 : size(this, 1)
+                        if this(s, r).isStatic
+                            t = [t; this(s, r).getCentralTime().getMatlabTime()];
+                        else
+                            t = [t; this(s, r).getMatlabTime()];
+                        end
+                    end
+                    
+                    [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                    
+                    if ~one_plot, subplot(3,1,1); end
+                    plot(t, zero2nan(1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                    grid on;
+                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    if ~one_plot, subplot(3,1,2); end
+                    plot(t, zero2nan(1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                    grid on;
+                    if ~one_plot, subplot(3,1,3); end
+                    plot(t, zero2nan(1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                    grid on;
+                end
                 if one_plot
                     h = ylabel('ENU [m]'); h.FontWeight = 'bold';
                 else
@@ -6246,29 +6326,46 @@ classdef Receiver < Exportable
                 one_plot = false;
             end
 
-            xyz = this.getPosXYZ();
-            xyz0 = this.getMedianPosXYZ();
-            if size(xyz,1) > 1
+            xyz = this(:,1).getPosXYZ();
+            if size(this, 1) > 1 || size(xyz, 1) > 1
                 this(1).log.addMessage('Plotting positions');
 
                 f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
-                t = this.getCentralTime().getMatlabTime();
-                if ~one_plot, subplot(3,1,1); end
-                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
-                grid on;
-                h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                if ~one_plot, subplot(3,1,2); end
-                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
-                ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                grid on;
-                if ~one_plot, subplot(3,1,3); end
-                plot(t, 1e0 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3)), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                grid on;
-                if one_plot
-                    h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                
+                for r = 1 : size(this, 2)                
+                    t = [];
+                    xyz = this(:,r).getPosXYZ();
+                    xyz0 = this(:,r).getMedianPosXYZ();
+                    
+                    for s = 1 : size(this, 1)
+                        if this(s, r).isStatic
+                            t = [t; this(s, r).getCentralTime().getMatlabTime()];
+                        else
+                            t = [t; this(s, r).getMatlabTime()];
+                        end
+                    end
+                    
+                    x = 1e0 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
+                    y = 1e0 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
+                    z = 1e0 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
+                    
+                    if ~one_plot, subplot(3,1,1); end
+                    plot(t, x, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
+                    grid on;
+                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    if ~one_plot, subplot(3,1,2); end
+                    plot(t, y, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
+                    grid on;
+                    if ~one_plot, subplot(3,1,3); end
+                    plot(t, z, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
+                    grid on;
+                    if one_plot
+                        h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                    end
                 end
                 linkaxes(ax, 'x');
             else
@@ -6531,7 +6628,6 @@ classdef Receiver < Exportable
                     res = abs(this.sat.res(:, s));
 
                     f = figure; f.Name = sprintf('%03d: Res P %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                    this.updateAzimuthElevation()
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
@@ -6554,11 +6650,11 @@ classdef Receiver < Exportable
                 end
 
                 for sys_c = sys_c_list
-                    s = this.go_id(this.system == sys_c);
+                    s = unique(this.go_id(this.system == sys_c));
                     res = abs(this.sat.res(:, s));
 
                     f = figure; f.Name = sprintf('%03d: Res C %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                    this.updateAzimuthElevation()
+                    %this.updateAzimuthElevation()
                     id_ok = (res~=0);
                     az = this.sat.az(:, s);
                     el = this.sat.el(:, s);
@@ -6773,7 +6869,7 @@ classdef Receiver < Exportable
             if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
-                for r = 1 : size(this,2)
+                for r = 1 : size(this, 2)
                     
                     f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
                     for s = 1 : size(this,1)
@@ -6829,10 +6925,18 @@ classdef Receiver < Exportable
                     f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
                 end
                 for r = 1 : size(this, 2)
-                    plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                    if new_fig
+                        plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                    else
+                        plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4); hold on;
+                    end
                     outm{r} = this(1, r).getMarkerName();
                 end
                 
+                l = legend; 
+                old_legend = get(l,'String');
+    
+                outm = [old_legend, outm];
                 [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
                 n_entry = numel(outm);
                 icons = icons(n_entry + 2 : 2 : end);
@@ -7038,42 +7142,48 @@ classdef Receiver < Exportable
             % EXAMPLE:
             %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, 30);
 
-            if nargin == 1
-                p_rate = 1e-6;
-            end
-
-            % prepare reference time
-            % processing time will start with the receiver with the last first epoch
-            %          and it will stop  with the receiver with the first last epoch
-
-            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
-            if ~isempty(first_id_ok)
-                p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
-            end
-
-            % Get all the common epochs
-            t = [];
-            for r = 1 : numel(rec)
-                rec_rate = min(1, rec(r).time.getRate);
-                t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
-                % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
-            end
-            t = unique(t);
-
-            % If p_rate is specified use it
-            if nargin > 1
-                t = intersect(t, (0 : p_rate : t(end) + p_rate)');
-            end
-
-            % Create reference time
-            p_time = GPS_Time(p_time_zero, t);
-            id_sync = nan(p_time.length(), numel(rec));
-
-            % Get intersected times
-            for r = 1 : numel(rec)
-                rec_rate = min(1, rec(r).time.getRate);
-                [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
-                id_sync(id1 ,r) = id2;
+            if sum(~rec.isEmpty_mr) == 0
+                % no valid receiver
+                p_time = GPS_Time;
+                id_sync = [];
+            else                
+                if nargin == 1
+                    p_rate = 1e-6;
+                end
+                
+                % prepare reference time
+                % processing time will start with the receiver with the last first epoch
+                %          and it will stop  with the receiver with the first last epoch
+                
+                first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+                if ~isempty(first_id_ok)
+                    p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+                end
+                
+                % Get all the common epochs
+                t = [];
+                for r = 1 : numel(rec)
+                    rec_rate = min(1, rec(r).time.getRate);
+                    t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                    % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                end
+                t = unique(t);
+                
+                % If p_rate is specified use it
+                if nargin > 1
+                    t = intersect(t, (0 : p_rate : t(end) + p_rate)');
+                end
+                
+                % Create reference time
+                p_time = GPS_Time(p_time_zero, t);
+                id_sync = nan(p_time.length(), numel(rec));
+                
+                % Get intersected times
+                for r = 1 : numel(rec)
+                    rec_rate = min(1, rec(r).time.getRate);
+                    [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    id_sync(id1 ,r) = id2;
+                end
             end
         end
 
