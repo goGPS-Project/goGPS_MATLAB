@@ -6145,9 +6145,9 @@ classdef Receiver < Exportable
             tropo_struct.lon = this.lon;
             tropo_struct.h_ellips = this.h_ellips;
             tropo_struct.h_ortho = this.h_ortho;
-            tropo_struct.ztd = this.ztd;
+            tropo_struct.ztd = this.ztd(this.id_sync);
             time = this.time.getMatlabTime();
-            tropo_struct.time = gps2utc(time);
+            tropo_struct.time = gps2utc(time(this.id_sync));
             fname = sprintf('%s',[this.state.getOutDir() '/' this.marker_name sprintf('%04d%03d',year,doy) '.mat']);
             save(fname, 'tropo_struct');
         end
