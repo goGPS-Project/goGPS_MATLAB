@@ -6137,6 +6137,20 @@ classdef Receiver < Exportable
             snx_wrt.close()
         end
 
+        function exportTropoMat(this)
+            [year, doy] = this.time.first.getDOY();
+            tropo_struct = struct();
+            this.updateCoo;
+            tropo_struct.lat = this.lat;
+            tropo_struct.lon = this.lon;
+            tropo_struct.h_ellips = this.h_ellips;
+            tropo_struct.h_ortho = this.h_ortho;
+            tropo_struct.ztd = this.ztd;
+            time = this.time.getMatlabTime();
+            tropo_struct.time = gps2utc(time(this.id_sync));
+            fname = sprintf('%s',[this.state.getOutDir() '/' this.marker_name sprintf('%04d%03d',year,doy) '.mat']);
+            save(fname, 'tropo_struct');
+        end
         %export WRF-compatible file (LITTLE_R)
         function txt = exportGPSZTD(this, save_on_disk)
             if nargin == 1
