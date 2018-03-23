@@ -949,6 +949,14 @@ classdef GPS_Time < Exportable & handle
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
         end
         
+        function [second] = getSecond(this)
+            % get second of the times,
+            
+           [seconds, fraction_of_seconds] = this.getUnixTime();
+            second = seconds - floor(seconds/60)*60 + fraction_of_seconds;
+           
+        end
+        
         function [gps_time] = getGpsTime(this, gps_offset)
             % Get time as number of seconds from Jan 6, 1980
             % SYNTAX: [gps_time] = this.getGpsTime(gps_offset)

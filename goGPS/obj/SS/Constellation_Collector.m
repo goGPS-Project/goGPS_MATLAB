@@ -691,10 +691,19 @@ classdef Constellation_Collector < Settings_Interface
     %  GETTERS
     % =========================================================================
     methods (Access = 'public')
-        function n_sat = getNumSat(this)
-            % return the total number of enabled satellites
+        function n_sat = getNumSat(this, sys_c)
+            % return the total number of enabled satellites,
+            % id sys_c is passed get total numebr of satellites for the desidered system
             % SYNTAX: n_sat = this.getNumSat();
+            if nargin < 2
             n_sat = this.n_sat_tot;
+            else % get numebr of sat for the selected systems
+                n_sat = 0;
+                for i = 1 : length(sys_c)
+                    n_sat = n_sat + this.getSys(sys_c(i)).N_SAT;
+                end
+            end
+            
         end
         
         function n_sat = getMaxObsSat(this)
