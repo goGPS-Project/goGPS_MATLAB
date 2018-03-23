@@ -907,7 +907,7 @@ classdef GPS_Time < Exportable & handle
                         time_diff = (this.mat_time - time_ref) * 86400;
                         if (nargin == 2)
                             % optional change of reference
-                            time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
+                            time_diff = time_diff + (time_ref - new_time_mat_ref) * 86400;
                             time_ref = new_time_mat_ref;
                         end
                     case 1 % I'm in UNIX TIME
