@@ -3194,6 +3194,8 @@ classdef Receiver < Exportable
             % SYNTAX:
             %  [ztd, p_time, id_sync] = this.getZTD()
             
+            ztd = {};
+            time = {};
             for r = 1 : size(this, 2)
                 ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
@@ -3204,6 +3206,11 @@ classdef Receiver < Exportable
                     ztd{r} = [ztd{r}; ztd_tmp];
                     time{r} = time{r}.append(time_tmp);
                 end
+            end
+            
+            if numel(ztd) == 1
+                ztd = ztd{1};
+                time = time{1};
             end
         end
 
@@ -3334,7 +3341,7 @@ classdef Receiver < Exportable
         function setXYZ(this, xyz)
             %description set xyz and upadte godetic coordinates
             this.xyz = xyz;
-            this.updateCoo();
+            this.updateCoordinates();
         end
 
         function setActiveSys(this, sys_list)
@@ -3359,7 +3366,7 @@ classdef Receiver < Exportable
     %% METHODS UPDATERS
     % ==================================================================================================================================================
     methods
-        function updateCoo(this)
+        function updateCoordinates(this)
             % upadte lat lon e ortometric height
             [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
         end
@@ -4468,7 +4475,7 @@ classdef Receiver < Exportable
             % DESCRIPTION:
             %   Computation of thigh order ionospheric effect
 
-            this.updateCoo();
+            this.updateCoordinates();
             atmo = Atmosphere();
             fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
             atmo.importIonex(fname{1});
@@ -6138,21 +6145,44 @@ classdef Receiver < Exportable
         end
 
         function exportTropoMat(this)
-            [year, doy] = this.time.first.getDOY();
-            tropo_struct = struct();
-            this.updateCoo;
-            tropo_struct.lat = this.lat;
-            tropo_struct.lon = this.lon;
-            tropo_struct.h_ellips = this.h_ellips;
-            tropo_struct.h_ortho = this.h_ortho;
-            tropo_struct.ztd = this.ztd(this.id_sync);
-            time = this.time.getMatlabTime();
-            tropo_struct.time = gps2utc(time(this.id_sync));
-            fname = sprintf('%s',[this.state.getOutDir() '/' this.marker_name sprintf('%04d%03d',year,doy) '.mat']);
-            save(fname, 'tropo_struct');
+            % Export the troposphere into a MATLAB data format file
+            % The data exported are:
+            %  - lat
+            %  - lon
+            %  - h_ellips
+            %  - h_ortho
+            %  - ztd
+            %  - time_utc in matlab format
+            %
+            % SYNTAX:
+            %   this.exportTropoMat
+            
+            for t = 1 : numel(this)
+                try
+                    this(t).updateCoordinates;
+                    time = this(t).getTime();
+                    [year, doy] = this(t).getCentralTime.getDOY();
+                    time.toUtc();
+                    
+                    lat = this(t).lat; %#ok<NASGU>
+                    lon = this(t).lon; %#ok<NASGU>
+                    h_ellips = this(t).h_ellips; %#ok<NASGU>
+                    h_ortho = this(t).h_ortho; %#ok<NASGU>
+                    ztd = this(t).getZTD(); %#ok<NASGU>
+                    utc_time = time.getMatlabTime; %#ok<NASGU>
+                    
+                    fname = sprintf('%s',[this(t).state.getOutDir() '/' this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);                    
+                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time');
+                    
+                    this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                catch ex
+                    this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                end
+            end
         end
-        %export WRF-compatible file (LITTLE_R)
+        
         function txt = exportGPSZTD(this, save_on_disk)
+        % export WRF-compatible file (LITTLE_R)
             if nargin == 1
                 save_on_disk = true;
             end
@@ -6164,7 +6194,7 @@ classdef Receiver < Exportable
                 fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
                 fid = fopen(fname,'w');
             end
-            this.updateCoo();
+            this.updateCoordinates();
             meas_time = this.time.getSubSet(this.id_sync);
             meas_time.toUnixTime();
             txt = '';
@@ -6932,6 +6962,10 @@ classdef Receiver < Exportable
                 new_fig = true;
             end
             [ztd, t] = this.getZTD();
+            if ~iscell(ztd)
+                ztd = {ztd};
+                t = {t};
+            end
             if isempty(ztd)
                 this(1).log.addWarning('ZTD and slants have not been computed');
             else
