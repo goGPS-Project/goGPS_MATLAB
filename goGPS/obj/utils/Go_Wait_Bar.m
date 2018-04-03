@@ -69,7 +69,7 @@ classdef Go_Wait_Bar < Exportable
         SPC = char(ones(1,250)) * 32;   % array of /s, used to fill the text bar
     end
 
-    properties (GetAccess = 'public', SetAccess = 'public')
+    properties (GetAccess = 'private', SetAccess = 'private')
         type = 0;        % 0 means text, 1 means GUI, 5 both
         h = [];          % handle of the waitbar
         ext_h = [];      % extendend handles to the waitbar
@@ -101,6 +101,9 @@ classdef Go_Wait_Bar < Exportable
 
         function getNewBar(this, title)
             % Build a new graphic bar
+            if ~any(([0 1 5] - this.type) == 0)
+                this.type = 0;
+            end
             if (this.type == 1) ||  (this.type == 5)
                 if verLessThan('matlab', '8.5') % matlab 2015a
                     try
@@ -140,12 +143,10 @@ classdef Go_Wait_Bar < Exportable
                 fprintf('\n');
                 if nargin == 2
                     this.title = title;
-                    fprintf('%s', title);
-                end
-                this.msg = '                ';
+                end                
                 this.text_bar = this.getTextBar();
                 txt = sprintf(' %s\n%s\n', this.msg, this.text_bar);
-                fprintf('\n%s', txt);
+                fprintf('%s', txt);
                 this.bar_len = length(txt);
             end
         end
@@ -205,7 +206,11 @@ classdef Go_Wait_Bar < Exportable
                     this.last_step = 0;
                 end
                 if (nargin >= 2)
-                    this.msg = msg;
+                    if isempty(msg)
+                        this.msg = '                ';
+                    else
+                        this.msg = msg;
+                    end
                     if (this.type == 1) ||  (this.type == 5)
                         if verLessThan('matlab', '8.5') % matlab 2015a
                             try
@@ -225,7 +230,6 @@ classdef Go_Wait_Bar < Exportable
     end
 
     methods
-
         % Create a new window or plot the first bar
         function createNewBar(this, title, type)
             this.last_step = 0;
@@ -393,10 +397,15 @@ classdef Go_Wait_Bar < Exportable
                 end
             end
         end
-
+        
+        % Get the lenght of the bar
+        function bar_len = getBarLen(this)
+            bar_len = this.bar_len;
+        end
+            
         % Set the max value accepted by the bar ( == 100%)
         function setBarLen(this, n_steps)
-            % Set output type: 0 means text, 1 means GUI, 5 both
+            % Set the max value accepted by the bar ( == 100%)
             this.n_steps = n_steps;
             this.last_step = min(this.last_step, n_steps);
         end
