@@ -1142,7 +1142,7 @@ classdef Receiver < Exportable
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
             % SYNTAX: this.parseRin2Data(txt, lim, eoh)
             % remove comment line from lim
-            comment_line = sum(txt(repmat(lim(1:end-1,1),1,7) + repmat(60:66, size(lim,1)-1, 1)) == repmat('COMMENT', size(lim,1)-1, 1),2) == 7;
+            comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
             comment_line(1:eoh) = false;
             lim(comment_line,:) = [];
             % find all the observation lines
