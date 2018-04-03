@@ -7072,36 +7072,29 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     
                     f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
-                    for s = 1 : size(this,1)
-                        if isempty(this(s, r).id_sync(:))
-                            this(s, r).id_sync(:, 1) = (1 : this(s, r).time.length())';
+                    t = this(:, r).getTime.getMatlabTime;
+                    
+                    sztd = this(:, r).getSlantZTD(this(1, r).slant_filter_win);
+                    if nargin >= 3
+                        if isa(time_start, 'GPS_Time')
+                            time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
+                            time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
                         end
-                        
-                        t = this(s, r).time.getEpoch(this(s, r).id_sync(:)).getMatlabTime;
-                        
-                        sztd = this(s, r).getSlantZTD(this(s, r).slant_filter_win);
-                        sztd = sztd(this(s, r).id_sync(:), :);
-                        if nargin >= 3
-                            if isa(time_start, 'GPS_Time')
-                                time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
-                                time_stop = find(t <= time_stop.last.getMatlabTime(), 1, 'last');
-                            end
-                            time_start = max(1, time_start);
-                            time_stop = min(size(sztd,1), time_stop);
-                        else
-                            time_start = 1;
-                            time_stop = size(sztd,1);
-                        end
-                        
-                        if nargin < 4
-                            win_size = (t(time_stop) - t(time_start)) * 86400;
-                        end
-                        
-                        %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
-                        
-                        plot(t, sztd,'.'); hold on;
-                        plot(t, zero2nan(this(s, r).ztd(this(s, r).id_sync(:))),'k', 'LineWidth', 4);
+                        time_start = max(1, time_start);
+                        time_stop = min(size(sztd,1), time_stop);
+                    else
+                        time_start = 1;
+                        time_stop = size(sztd,1);
                     end
+                    
+                    if nargin < 4
+                        win_size = (t(time_stop) - t(time_start)) * 86400;
+                    end
+                    
+                    %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
+                    
+                    plot(t, sztd,'.'); hold on;
+                    plot(t, zero2nan(this(:, r).getZTD),'k', 'LineWidth', 4);
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
