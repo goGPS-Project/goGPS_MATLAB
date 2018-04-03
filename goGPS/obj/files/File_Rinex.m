@@ -58,7 +58,7 @@ classdef File_Rinex < Exportable
         first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
         last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
 
-        verbosity_lev = 0;                          % Level of verbosity  0 = all messages, see Logger for more information
+        verbosity_lev = 0;                           % Level of verbosity  0 = all messages, see Logger for more information (if negative) no messages at all
 
         eoh = 0;                                     % end of header line - store the last line of the header
     end
@@ -77,8 +77,18 @@ classdef File_Rinex < Exportable
             end
             this.file_name_list = {};
             this.ext = {};
-            for f = 1 : numel(file_name)
-                [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+            if numel(file_name) > 20
+                w_bar = Go_Wait_Bar.getInstance(numel(file_name), 'Checking rinex files');
+                w_bar.createNewBar
+                for f = 1 : numel(file_name)
+                    [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                    w_bar.go();
+                end
+                w_bar.close();
+            else
+                for f = 1 : numel(file_name)
+                    [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                end
             end
 
             if nargin == 2
@@ -162,17 +172,17 @@ classdef File_Rinex < Exportable
                         if this.last_epoch.length < f
                             this.last_epoch.addEpoch(0);
                         end
-                        this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file']);
+                        this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file'], this.verbosity_lev);
                         this.is_valid_list(f) = false;
                     end
                 else
-                    this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing']);
+                    this.log.addError(['"' this.file_name_list{f} this.ext{f} '" appears to be missing'], this.verbosity_lev);
                     this.is_valid_list(f) = false;
                 end
             end
             this.is_valid = all(this.is_valid_list);
             if (~this.is_valid)
-                this.log.addWarning('Some or all the RINEX files are corrupted or missing!!!');
+                this.log.addWarning('Some or all the RINEX files are corrupted or missing!!!', this.verbosity_lev);
             end
         end
 
