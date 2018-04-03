@@ -86,6 +86,7 @@ classdef Least_Squares_Manipulator < handle
         mean_regularization
         true_epoch % true epoch of the epochwise paramters
         sat_go_id  % go id of the satindeces
+        receiver_id % id of the receiver , in case of differenced obsercation two columns are used 
     end
     
     properties(Access = private)
@@ -139,11 +140,7 @@ classdef Least_Squares_Manipulator < handle
                         for i = 1 : length(obs_type)
                             obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
                         end
-                    end
-                    % To be checked:
-                    % commenting to generate the error and investigate for problems next time
-                    %obs_set.el = rec.sat.el(:,obs_set.go_id);
-                    %obs_set.az = rec.sat.az(:,obs_set.go_id);                    
+                    end               
                 end
             else
                 obs_set = custom_obs_set;
@@ -417,6 +414,130 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
+        function setUpSDNetworkAdj(this, rec_list, datum_definition, rate, obs_type, sys_c)
+            % set up a network adjustement for the receiver in the list using sigle difference ( rec - rec)  observations
+            % SYNTAX: ls_manipulator = Network.setUpNetworkAdj(rec_list)
+            % INPUT:
+            %      rec_list = list of receivers (cell)
+            %      datum_definition = struct with field .type [ F (Free network) | C Costrained ( either by lagrange multiplier or pseudo observations)]
+            %                                           .station matrix,
+            %                                           case free netwrok [st_nums]
+            %                                           case constarined network [ st_num (1 hard 2 soft) sigma_x sigma_y sigma_z] if hard sigma ccan be left to 0 since the will be ignored
+            %      rate : rate of observations in seconds
+            %      obs_type: I : iono free, 1 first frequency, 2 second frequency, 3 third frequency 
+            % NOTE: if one wants to set up a single baseline processing he can simpy set up and hard contrsaint on the coordinates of the master see (setUpBaselineAdj)        
+            % IMPRTANT: when specifing the rate it is assumed for instance that 30 seconds observations are sampled in the vivicinity if 00 and 30 seconds of the minute, if 
+            %           this is not the case the method will not work
+            if nargin < 5
+                sys_c = this.state.cc.getAvailableSys();
+            end
+            % check consistency onf obs_type:
+            if ~isempty(strfind(obs_type,'I')) && length(obs_type > 1)
+                obs_type = 'I';
+                this.log.addWarning('Network Adjustement: When using Iono Free combination no other frequency or combination is allowed');
+            end
+            
+            obs_sets  = {};
+            % rates of all recievers this serve also as an indicatpr of if the receiver is used in fact it remains nan of the receiver is not used
+            rates = nan(length(rec_list),1);
+            
+            min_time = GPS_Time(datenum([9999 0 0 0 0 0])); % Warning! to be updated in year 9999
+            % get Observations 
+            for i = 1 : length(rec_list)
+                % chek if sampling is compatible 
+                rate_ratio = max(rate, rec_list(i).getRate()) / min(rate, rec_list(i).getRate());
+                st_time_ratio = rec_list(i).time.first.getSecond() / rec_list(i).getRate();
+                n_skip_epochs = [];
+                if abs( rate_ratio - round(rate_ratio)) > 10e-9
+                    this.log.addWarning(sprintf('Receiver %s not compatible with selected rate, skipping',rec_list(i).marker_name));
+                    obs_sets{end+1} = [];
+                elseif abs( st_time_ratio - round(st_time_ratio)) > 10e-3
+                    this.log.addWarning(sprintf('Receiver %s has starting time not multiple of sampling rate. Not supported skipping',rec_list(i).marker_name));
+                    obs_sets{end+1} = [];
+                else
+                    if abs(st_time_ratio - round(st_time_ratio)) > 1e-3 % chek if we have to skip epochs
+                            skip_time = ceil(st_time_ratio)*rate - second;
+                            n_skip_epochs = skip_time / rec_list(i).getRate();
+                    end
+                    if rec_list(i).time.first < min_time % detemine the staring time to form the single diffferences
+                        second = rec_list(i).time.first.getSecond();
+                        st_time_ratio = second / rate;
+                        if abs(st_time_ratio - round(st_time_ratio)) > 1e-3 % chek if we have to skip epochs
+                            min_time = rec_list(i).time.first ;
+                            mid_time.addSeconds(skip_time); %skip epochs and round the time
+                            
+                        else % round to an epoch muliple of rate
+                            round_time =round(st_time_ratio)*rate - second;
+                            min_time = rec_list(i).time.first ;
+                            mid_time.addSeconds(round_time);
+                        end
+                    end
+                    obs_set = Observation_Set();
+                    for j = 1 : length(obs_type) % get the observiont set 
+                        if obs_type(j) == 'I'
+                            for sys_c = rec.cc.sys_c
+                                for i = 1 : length(obs_type)
+                                    obs_set.merge(rec_list(i).getPrefIonoFree(obs_type(i), sys_c));
+                                end
+                            end
+                        else
+                            for sys_c = rec.cc.sys_c
+                                f = rec.getFreqs(sys_c);
+                                for i = 1 : length(obs_type)
+                                    obs_set.merge(rec_list(i).getPrefObsSetCh([obs_type(i) obs_type(j)], sys_c));
+                                end
+                            end
+                        end
+                    end
+                    if ~isempty(n_skip_epochs) % remove epochs to homogenize start times
+                        obs_set.removeEpochs([1 : n_skip_epochs])
+                    end
+                    obs_sets{end+1} = obs_set; % add to the list
+                    rates(i) = rec_list(i).getRate();
+                    
+                end
+            end
+            % get offset from min epochs and estiamted num of valid epochs
+            
+            start_off_set = nan(length(rec_list),1);
+            est_num_ep = nan(length(rec_list),1);
+            for i = 1 : length(rec_list)
+                if ~ismepty(obs_sets{i})
+                    start_off_set(i) = round((obs_sets{i}.time.first - min_time)/rate); % off ste from min epochs
+                    est_num_ep = round(obs_sets{i}.time.length / rate);
+                end
+            end
+            %estimate roughly an upper bound for the numebr of observations, so that memeory can be preallocated
+            % num_pochs x num_sat/2 x num_valid_receiver
+            num_sat = this.state.cc.getNumSat(sys_c);
+            est_n_obs = max(est_num_ep,'omitnan') * num_sat/2 * sum(~isnan(rates));
+            n_par = n_coo + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A = zeros(est_n_obs, n_par); 
+            A_idx = zeros(est_n_obs, n_par); 
+            
+            cond_stop = true;
+            while cond_stop
+                for i = 1 : num_sat
+                    
+                end
+                
+            end
+            
+           
+        end
+        
+        function setUpBaselineAdj(this, receivers, master)
+            % set up baseline adjustment 
+            % SYNTAX: ls_manipulator = Network.setUpBaselineAdj(receivers, master)
+            % INPUT: receivers = {rec1 , rec2}
+            %        master = 1  first is master , 2 second is master
+            % NOTE: wrapper to setUPNetworkAdj function
+             datum_definition.type = 'C';
+             datum_definition.station = [master 1 0 0 0]; % gard constarint on master
+             ls_manipulator = setUpSDNetworkAdj(receivers, datum_definition);
+            
+        end
+        
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;
             if sum(idx_param) > 0
@@ -625,6 +746,7 @@ classdef Least_Squares_Manipulator < handle
                 
             else
                 x = N \ B;
+                %[x, flag] =  pcg(N,B,1e-9, 10000);
             end
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
@@ -639,6 +761,8 @@ classdef Least_Squares_Manipulator < handle
             end
             x = [x, x_class];
         end
+        
+         
         
         function reduceNormalEquation(this, keep_param)
             % reduce number of parmeters (STUB)
