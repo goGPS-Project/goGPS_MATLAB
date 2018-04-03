@@ -223,6 +223,10 @@ classdef Global_Configuration < Settings_Interface
             % SYNTAX: this.initGeoid();
             try
                 geoid_file = this.cur_settings.getGeoidFile();
+                if ~exist(this.cur_settings.getGeoidDir, 'file')
+                    this.cur_settings.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
+                    geoid_file = this.cur_settings.getGeoidFile();
+                end
                 g = load(geoid_file);
                 fn = fieldnames(g);
                 % geoid grid and parameters
