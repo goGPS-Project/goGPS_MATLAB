@@ -1144,7 +1144,7 @@ classdef Core_UI < handle
                 state.setSessionStop(sss_stop);
             end
             if status_change
-                this.updateUI();
+                this.updateRecList();
             end
         end
         
@@ -1158,7 +1158,6 @@ classdef Core_UI < handle
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
             this.state.import(Ini_Manager(txt{1}));
             this.updateUI();
-            this.updateSessionFromState
         end
         
         function updateAndCheckRecList(this, caller, event)
@@ -1264,6 +1263,7 @@ classdef Core_UI < handle
                 end
             end
             this.updateRecList();
+            this.updateSessionFromState();            
         end
     end
 
