@@ -5250,9 +5250,9 @@ classdef Receiver < Exportable
 
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
-            ls.reweightHuber();
-            ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+%             ls.reweightHuber();
+%             ls.Astack2Nstack();
+%             [x, res, s02] = ls.solve();
             
             dpos = x(1:3);
             this.xyz = this.getMedianPosXYZ() + dpos;
@@ -5845,7 +5845,7 @@ classdef Receiver < Exportable
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.amb_idx = ls.amb_idx; % to test ambiguity fixing
                 this.if_amb = amb; % to test ambiguity fixing
-                if s02 > 0.10
+                if s02 > 0.30
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
                 end
                 if s02 < 0.30
@@ -5855,9 +5855,9 @@ classdef Receiver < Exportable
                         this.sat.amb = amb;
                         [mfh, mfw] = getSlantMF(this);
                         this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
-                            + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw(id_sync, :)) ...
-                            + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh(id_sync, :)));
-                        this.est_slant = repmat(tropo, 1, n_sat) .*mfw(id_sync, :) .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
+                            + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw) ...
+                            + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh));
+                        this.est_slant = repmat(tropo, 1, n_sat) .*mfw .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
                     end
                     if this.state.flag_tropo_gradient
                         if isempty(this.tgn)
@@ -5873,11 +5873,11 @@ classdef Receiver < Exportable
                         cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
                         sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
                         this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
-                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
-                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));
+                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
+                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));
                         this.est_slant = nan2zero(zero2nan(this.est_slant) ...
-                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* cosaz) ...
-                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw(id_sync, :) .* cotel .* sinaz));  % to test ambiguity fixing
+                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
+                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));  % to test ambiguity fixing
                     end
                 else
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
@@ -6273,6 +6273,8 @@ classdef Receiver < Exportable
         end
 
         function exportTropoSINEX(this)
+            for t = 1 : numel(this)
+                try
             [year, doy] = this.time.first.getDOY();
             yy = num2str(year);
             yy = yy(3:4);
@@ -6291,6 +6293,11 @@ classdef Receiver < Exportable
             snx_wrt.writeTropoSolutionEnd()
             snx_wrt.writeTroSinexEnd();
             snx_wrt.close()
+            this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+            catch ex
+                    this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                end
+            end
         end
 
         function exportTropoMat(this)
@@ -6321,7 +6328,7 @@ classdef Receiver < Exportable
                     utc_time = time.getMatlabTime; %#ok<NASGU>
                     
                     fname = sprintf('%s',[this(t).state.getOutDir() '/' this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);                    
-                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time');
+                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                     
                     this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
                 catch ex
