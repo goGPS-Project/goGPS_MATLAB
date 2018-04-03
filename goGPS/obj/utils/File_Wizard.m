@@ -685,7 +685,8 @@ classdef File_Wizard < handle
             if status
                 this.log.addMarkedMessage('All ephemerids files present')
             else
-                this.log.addMarkedMessage('Not all ephemerids files found program might misbehave')
+                this.log.addError('Not all ephemerids files found program might misbehave');
+                error('With no ephemerides the processing cannot be completed');
             end
         end
         
