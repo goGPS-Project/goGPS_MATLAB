@@ -152,7 +152,9 @@ classdef Receiver < Exportable
     properties (SetAccess = public, GetAccess = public)
         xyz_approx     % approximate position of the receiver (XYZ geocentric)
         xyz            % position of the receiver (XYZ geocentric)
-        enu            % position of the receiver (ENU local UTM)
+        enu            % position of the receiver (ENU local)
+        utm            % position of the receiver (UTM)
+        utm_zone       % UTM zone
 
         lat            % ellipsoidal latitude
         lon            % ellipsoidal longitude
@@ -3471,6 +3473,15 @@ classdef Receiver < Exportable
             % upadte lat lon e ortometric height
             [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
         end
+        
+        function updateUTM(this)
+            for i = 1:numel(this)
+                xyz = this(i).getMedianPosXYZ;
+                [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
+                this(i).utm = [EAST, NORTH, h];
+                this(i).utm_zone = utm_zone;
+            end
+        end
 
         function updateSyntPhases(this, sys_c)
             %DESCRIPTION: update the content of the syntetic phase
@@ -4129,7 +4140,7 @@ classdef Receiver < Exportable
 
         function updateErrIono(this, go_id)
             if isempty(this.sat.err_iono)
-                this.sat.err_iono = size(this.sat.avail_index);
+                this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
                 this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
@@ -6295,7 +6306,7 @@ classdef Receiver < Exportable
             snx_wrt.close()
             this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
             catch ex
-                    this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                    this(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                 end
             end
         end

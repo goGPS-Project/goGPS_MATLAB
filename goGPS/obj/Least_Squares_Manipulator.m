@@ -182,7 +182,7 @@ classdef Least_Squares_Manipulator < handle
             if obs_type == 'C'
                 % very coarse outlier detection based on diff obs
                 mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
-                diff_obs(abs(diff_obs) > 100 * mean_diff_obs) = 0;
+                diff_obs(abs(diff_obs) > 50 * mean_diff_obs) = 0;
             end
             
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
@@ -321,7 +321,7 @@ classdef Least_Squares_Manipulator < handle
             % Getting mapping faction values
             if tropo || tropo_g
                 [~, mfw] = rec.getSlantMF();
-                mfw = mfw(id_sync,:); % getting only the desampled values
+                %mfw = mfw(id_sync,:); % getting only the desampled values
             end
             
             for s = 1 : n_stream
