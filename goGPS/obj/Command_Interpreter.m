@@ -68,12 +68,13 @@ classdef Command_Interpreter < handle
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
         CMD_OUTDET      % Outlier and cycle-slip detection
         CMD_SHOW        % Display plots and images
+        CMD_EXPORT      % Export results
         
         PAR_RATE        % Parameter select rate
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
         
-        PAR_S_SHOW_ALL  % show all plots
+        PAR_S_ALL       % show all plots
         PAR_S_DA        % Data availability
         PAR_S_ENU       % ENU positions
         PAR_S_XYZ       % XYZ positions
@@ -87,10 +88,12 @@ classdef Command_Interpreter < handle
         PAR_S_ZTD       % ZTD
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
+        PAR_E_TROPO_SNX % Tropo paramters sinex format
+        PAR_E_TROPO_MAT % Tropo paramters mat format
 
         PAR_S_SAVE      % flage for saving
         
-        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW'};
+        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -165,9 +168,9 @@ classdef Command_Interpreter < handle
             this.PAR_SYNC.accepted_values = [];
             
             % Show plots
-            this.PAR_S_SHOW_ALL.name = 'Show all the plots';
-            this.PAR_S_SHOW_ALL.descr = 'SHOWALL';
-            this.PAR_S_SHOW_ALL.par = '(ALL)|(all)';
+            this.PAR_S_ALL.name = 'Show all the plots';
+            this.PAR_S_ALL.descr = 'SHOWALL';
+            this.PAR_S_ALL.par = '(ALL)|(all)';
 
             this.PAR_S_DA.name = 'Data availability';
             this.PAR_S_DA.descr = 'DA               Data Availability';
@@ -221,6 +224,14 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.descr = 'RES_STD          Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
 
+            this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
+            this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters SINEX file';
+            this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
+
+            this.PAR_E_TROPO_MAT.name = 'TROPO Matlab format';
+            this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab .mat file';
+            this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
+            
             % definition of commands
             
             new_line = [char(10) '             ']; %#ok<CHARTEN>
@@ -263,6 +274,11 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_STD this.PAR_S_RES_STD];
+
+            this.CMD_EXPORT.name = {'EXPORT', 'export_results', 'export_results'};
+            this.CMD_EXPORT.descr = 'Export results';
+            this.CMD_EXPORT.rec = 'T';
+            this.CMD_EXPORT.par = [this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
 
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
@@ -363,7 +379,9 @@ classdef Command_Interpreter < handle
                     case this.CMD_OUTDET.name               % OUTDET
                         this.runOutDet(rec, tok);                        
                     case this.CMD_SHOW.name                 % SHOW
-                        this.runShow(rec, tok);                        
+                        this.runShow(rec, tok);  
+                    case this.CMD_EXPORT.name                 % SHOW
+                        this.runExport(rec, tok);   
                 end
             end
         end
@@ -547,7 +565,7 @@ classdef Command_Interpreter < handle
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
-                for t = 1 : numel(tok)
+                for t = 1 : numel(tok) % gloabal for all target
                     try
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
                             rec(id_trg).showMap();
@@ -561,10 +579,10 @@ classdef Command_Interpreter < handle
                     end
                 end
                 
-                for r = id_trg
+                for r = id_trg % different for each target
                     for t = 1 : numel(tok)
                         try
-                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SHOW_ALL.par ')*$'], 'once'))
+                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALL.par ')*$'], 'once'))
                                 rec(r).showAll();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
                                 rec(r).showDataAvailability();
@@ -586,6 +604,36 @@ classdef Command_Interpreter < handle
                                 rec(r).showResSky_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
                                 rec(r).showZtdSlantRes_p();
+                            end
+                        catch ex
+                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+                        end
+                    end
+                end
+            end
+        end
+        
+        function runExport(this, rec, tok)
+            % Export results
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runShow(rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                
+                for r = id_trg % different for each target
+                    for t = 1 : numel(tok)
+                        try
+                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
+                                rec(r).exportTropoSINEX();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                rec(r).exportTropoMat();
                             end
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));

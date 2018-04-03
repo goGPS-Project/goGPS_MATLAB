@@ -408,6 +408,11 @@ classdef Receiver < Exportable
                 while lim(end,3) < 3
                     lim(end,:) = [];
                 end
+                
+                % removing empty lines at end of file
+                while (lim(end,1) - lim(end-1,1))  < 2
+                    lim(end,:) = [];
+                end
 
                 % importing header informations
                 eoh = this.file.eoh;
@@ -5245,9 +5250,9 @@ classdef Receiver < Exportable
 
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
-            ls.reweightHuber();
-            ls.Astack2Nstack();
-            [x, res, s02] = ls.solve();
+%             ls.reweightHuber();
+%             ls.Astack2Nstack();
+%             [x, res, s02] = ls.solve();
             
             dpos = x(1:3);
             this.xyz = this.getMedianPosXYZ() + dpos;
@@ -5840,7 +5845,7 @@ classdef Receiver < Exportable
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.amb_idx = ls.amb_idx; % to test ambiguity fixing
                 this.if_amb = amb; % to test ambiguity fixing
-                if s02 > 0.10
+                if s02 > 0.30
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
                 end
                 if s02 < 0.30
@@ -6268,6 +6273,8 @@ classdef Receiver < Exportable
         end
 
         function exportTropoSINEX(this)
+            for t = 1 : numel(this)
+                try
             [year, doy] = this.time.first.getDOY();
             yy = num2str(year);
             yy = yy(3:4);
@@ -6286,6 +6293,11 @@ classdef Receiver < Exportable
             snx_wrt.writeTropoSolutionEnd()
             snx_wrt.writeTroSinexEnd();
             snx_wrt.close()
+            this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+            catch ex
+                    this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                end
+            end
         end
 
         function exportTropoMat(this)
@@ -6316,7 +6328,7 @@ classdef Receiver < Exportable
                     utc_time = time.getMatlabTime; %#ok<NASGU>
                     
                     fname = sprintf('%s',[this(t).state.getOutDir() '/' this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);                    
-                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time');
+                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                     
                     this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
                 catch ex
