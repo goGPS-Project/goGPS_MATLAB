@@ -2051,9 +2051,17 @@ classdef Receiver < Exportable
             %
             % SYNTAX:
             %   xyz = this.getTime()
-            time = this(1).time.getEpoch(this(1).id_sync);
+            if ~isempty(this(1).id_sync)
+                time = this(1).time.getEpoch(this(1).id_sync);
+            else
+                time = this(1).time.getCopy();
+            end
             for r = 2 : numel(this)
-                time.append(this(r).time.getEpoch(this(r).id_sync));
+                if ~isempty(this(r).id_sync)
+                    time.append(this(r).time.getEpoch(this(r).id_sync));
+                else
+                    time = time.append(this(r).time.getCopy());
+                end
             end
         end
 
@@ -2530,7 +2538,7 @@ classdef Receiver < Exportable
             %   [mfh, mfw] = this.getSlantMF()
 
             if numel(this) == 1
-                n_sat = size(this.sat.slant_td, 2);
+                n_sat = size(this.sat.az, 2);
             else
                 n_sat = this.getMaxSat();
             end
@@ -2549,8 +2557,13 @@ classdef Receiver < Exportable
                 [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
                 mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                 mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
-                mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+                if isempty(this(r).id_sync)
+                    mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp;
+                    mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp;
+                else
+                    mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
+                    mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+                end
                 t = t + this(r).length;                
             end
         end
