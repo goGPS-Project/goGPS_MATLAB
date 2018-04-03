@@ -1269,10 +1269,10 @@ classdef GPS_Time < Exportable & handle
                     this.time_diff = this.time_diff + n_seconds(:);
             end
         end
+                
         
         function res = lt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<' function
-            %%% get unix time
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
@@ -1281,17 +1281,26 @@ classdef GPS_Time < Exportable & handle
         
         function res = gt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '>' function
-            %%% get unix time
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
             res = (unix_time1 > unix_time2) |( (unix_time1 == unix_time2) & (unix_time_f1 > unix_time_f2) );
         end
         
+        function res = le(gt_1, gt_2)
+            %%% DESCRIPTION: overload of '<=' function
+            res = gt_1 < gt_2 | gt_1 == gt_2;
+        end
+        
+        function res = ge(gt_1, gt_2)
+            %%% DESCRIPTION: overload of '>=' function
+            res = gt_1 > gt_2 | gt_1 == gt_2;
+        end        
+        
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
             
-            [~, sec, sec_f] = GPS_Time.minus(gt_1, gt_2);
+            [~, sec, sec_f] = gt_1.minus(gt_2);
             prec = max(gt_1.getPrecision, gt_2.getPrecision);
             res = abs(sec+sec_f) < prec;
         end
