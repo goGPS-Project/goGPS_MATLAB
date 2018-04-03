@@ -193,9 +193,12 @@ classdef Logger < handle
             end
         end
 
-        function addError(this, text)
+        function addError(this, text, verbosity_level)
             % Send an error through the standard interface
-            if (this.ERROR_VERBOSITY_LEV <= this.verbosity)
+            if (nargin < 3)
+                verbosity_level = this.ERROR_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
                 this.printError(text);
             end
         end
