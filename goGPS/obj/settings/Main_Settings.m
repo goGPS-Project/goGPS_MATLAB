@@ -197,8 +197,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % - tropo_model = 5: Hopfield model (with standard atmosphere parameters)
 
                                                         % ADV ATMOSPHERE
-        SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
-        SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
+        %SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
+        %SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
 
         STD_TROPO = 0.0015;                             % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.0004;                    % Std of tropospheric gradient [m/h]
@@ -448,8 +448,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ADV ATMOSPHERE
         %------------------------------------------------------------------
         % Std of a priori tropospheric delay
-        sigma0_tropo = Main_Settings.SIGMA0_TROPO;
-        sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
+        %sigma0_tropo = Main_Settings.SIGMA0_TROPO;
+        %sigma0_tropo_gradient = Main_Settings.SIGMA0_TROPO_GRADIENT;
         % Std of tropospheric delay [m / h]
         std_tropo = Main_Settings.STD_TROPO;
         std_tropo_gradient = Main_Settings.STD_TROPO;
@@ -546,11 +546,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.igrf_dir   = fnp.getFullDirPath(state.getData('igrf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('igrf_dir')), this.prj_home));
                 this.igrf_name  = fnp.checkPath(state.getData('igrf_name'));
                 this.erp_dir    = fnp.getFullDirPath(state.getData('erp_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('erp_dir')), this.prj_home));
-                this.erp_name   = fnp.checkPath(state.getData('erp_name'));
                 this.geoid_dir  = fnp.getFullDirPath(state.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
                 this.geoid_name = fnp.checkPath(state.getData('geoid_name'));
                 this.iono_dir   = fnp.getFullDirPath(state.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
-                this.iono_name   = fnp.checkPath(state.getData('iono_name'));
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
@@ -611,8 +609,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
 
                 % ADV ATMOSPHERE
-                this.sigma0_tropo  = state.getData('sigma0_tropo');
-                this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
+                %this.sigma0_tropo  = state.getData('sigma0_tropo');
+                %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
             else
@@ -650,11 +648,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.igrf_dir  = state.igrf_dir;
                 this.igrf_name = state.igrf_name;
                 this.erp_dir    = state.erp_dir;
-                this.erp_name   = state.erp_dir;
                 this.geoid_dir  = state.geoid_dir;
                 this.geoid_name = state.geoid_name;
                 this.iono_dir   = state.iono_dir;
-                this.iono_name   = state.iono_name;
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = state.preferred_eph;
@@ -711,8 +707,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_tropo_gradient = state.flag_tropo_gradient;
 
                 % ADV ATMOSPHERE
-                this.sigma0_tropo = state.sigma0_tropo;
-                this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
+                %this.sigma0_tropo = state.sigma0_tropo;
+                %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
             end
@@ -835,9 +831,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
-            str = [str sprintf(' STD of a priori tropospheric delay:                %g\n', this.sigma0_tropo)];
+            %str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n', this.std_tropo)];
-            str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
+            %str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = this.toString@Command_Settings(str);
         end
@@ -938,9 +934,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringSection('REFERENCE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Earth rotation/orientation parameters (ERP) files', str_cell);
             str_cell = Ini_Manager.toIniString('erp_dir', fnp.getRelDirPath(this.erp_dir, this.prj_home), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Name of ERP files - special keywords can be used', str_cell);
-            str_cell = Ini_Manager.toIniString('erp_name', this.erp_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of International Geomagnetic Reference Frame (IGRF) files', str_cell);
             str_cell = Ini_Manager.toIniString('igrf_dir', fnp.getRelDirPath(this.igrf_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of IGRF file', str_cell);
@@ -951,8 +944,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Ionospheric Models files', str_cell);
             str_cell = Ini_Manager.toIniString('iono_dir', fnp.getRelDirPath(this.iono_dir, this.prj_home), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Filename in iono dir containing the ionospheric models/maps', str_cell);
-            str_cell = Ini_Manager.toIniString('iono_name', this.iono_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1077,8 +1068,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             str_cell = this.exportIO(str_cell);
             
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
             % RECEIVER DEFAULT PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('ADV RECEIVERS', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of code observations [m]', str_cell);
@@ -1151,12 +1140,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
+            %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
+            %str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.3f)', this.STD_TROPO), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
+            %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
+            %str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -1468,7 +1457,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             this.checkPathField('igrf_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('igrf_name', EMPTY_IS_NOT_VALID);
-            this.checkPathField('geoid_dir', EMPTY_IS_NOT_VALID);
+            this.checkPathField('geoid_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkStringField('geoid_name', EMPTY_IS_NOT_VALID);
 
             this.checkStringField('out_prefix', EMPTY_IS_VALID);
@@ -1667,9 +1656,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_tropo_gradient');
 
             % ADV ATMOSPHERE
-            this.checkNumericField('sigma0_tropo',[1e-11 10]);
+            %this.checkNumericField('sigma0_tropo',[1e-11 10]);
             this.checkNumericField('std_tropo',[1e-12 1]);
-            this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
+            %this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1]);
         end
     end
@@ -1971,6 +1960,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
         end
 
+        function out = getGeoidDir(this)
+            % Get the dir of the geoid file
+            % SYNTAX: out = this.getGeoidDir()
+            out = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep));
+        end
+        
         function file_path = getGeoidFile(this)
             % Get the path of the geoid file
             % SYNTAX: file_path = this.getGeoidFile()
@@ -2052,6 +2047,89 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the flag to keep in memory all the receivers (CEBUG)
             % SYNTAX: keep = this.isKeepRecList();
             keep = this.flag_keep_rec_list;
+        end
+        
+        function date = getSessionStart(this)
+            % SYNTAX: date = getSessionStart(this)
+            date = this.sss_date_start;
+        end
+
+        function date = getSessionStop(this)
+            % SYNTAX: date = getSessionStop(this)
+            date = this.sss_date_stop;
+        end
+
+        function date = getSessionLimits(this)
+            % SYNTAX: date = getSessionLimits(this)
+            date = this.sss_date_start.getCopy;
+            date.append(this.sss_date_stop);
+        end
+
+        function eph_full_name = getEphFileName(this, date_start, date_stop)
+            % Get the full name of the ephemerides files (replacing special keywords)
+            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
+            step_sec = fnp.getStepSec(file_name);
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            end
+            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function clk_full_name = getClkFileName(this, date_start, date_stop)
+            % Get the full name of the clock offset files (replacing special keywords)
+            % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
+            step_sec = fnp.getStepSec(file_name);
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            end
+            clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function erp_full_name = getErpFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function iono_full_name = getIonoFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+
+        function crx_full_name = getCrxFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
     end
     
@@ -2189,88 +2267,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.erp_full_name = this.getErpFileName(this.sss_date_start, this.sss_date_stop);
         end
 
-        function date = getSessionStart(this)
-            % SYNTAX: date = getSessionStart(this)
-            date = this.sss_date_start;
+        function date = setSessionStart(this, date)
+            % SYNTAX: setSessionStart(this, date)
+            this.sss_date_start = date.getCopy;
         end
 
-        function date = getSessionStop(this)
-            % SYNTAX: date = getSessionStop(this)
-            date = this.sss_date_stop;
-        end
-
-        function date = getSessionLimits(this)
-            % SYNTAX: date = getSessionLimits(this)
-            date = this.sss_date_start.getCopy;
-            date.append(this.sss_date_stop);
-        end
-
-        function eph_full_name = getEphFileName(this, date_start, date_stop)
-            % Get the full name of the ephemerides files (replacing special keywords)
-            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
-            fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
-            step_sec = fnp.getStepSec(file_name);
-
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
-            end
-            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-        end
-
-        function clk_full_name = getClkFileName(this, date_start, date_stop)
-            % Get the full name of the clock offset files (replacing special keywords)
-            % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
-            fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
-            step_sec = fnp.getStepSec(file_name);
-
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
-            end
-            clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-        end
-
-        function erp_full_name = getErpFileName(this, date_start, date_stop)
-            % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
-            fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
-
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy;
-                date_stop = date_stop.getCopy;
-            end
-            erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-        end
-
-        function iono_full_name = getIonoFileName(this, date_start, date_stop)
-            % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
-            fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
-
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy;
-                date_stop = date_stop.getCopy;
-            end
-            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-        end
-
-        function crx_full_name = getCrxFileName(this, date_start, date_stop)
-            % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
-            fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
-
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy;
-                date_stop = date_stop.getCopy;
-            end
-            crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-        end
+        function date = setSessionStop(this, date)
+            % SYNTAX: setSessionStop(this, date)
+            this.sss_date_stop = date.getCopy();
+        end               
 
         function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
             % Set the first/last epoch of processing
