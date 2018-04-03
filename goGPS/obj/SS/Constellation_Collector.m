@@ -505,7 +505,7 @@ classdef Constellation_Collector < Settings_Interface
     methods (Access = 'public')
         function setActive(this, active_list)
             if ischar(active_list)
-                sys_c = active_list;
+                sys_c = active_list(:)';
                 active_list = false(1, 7);
                 for ss = sys_c
                     switch ss
