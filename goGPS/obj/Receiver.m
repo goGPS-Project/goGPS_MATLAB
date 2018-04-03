@@ -408,6 +408,11 @@ classdef Receiver < Exportable
                 while lim(end,3) < 3
                     lim(end,:) = [];
                 end
+                
+                % removing empty lines at end of file
+                while (lim(end,1) - lim(end-1,1))  < 2
+                    lim(end,:) = [];
+                end
 
                 % importing header informations
                 eoh = this.file.eoh;
