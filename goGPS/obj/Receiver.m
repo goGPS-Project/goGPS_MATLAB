@@ -1262,7 +1262,7 @@ classdef Receiver < Exportable
                     bad_epochs = [bad_epochs; e];
                     cm = this.log.getColorMode();
                     this.log.setColorMode(false); % disable color mode for speed up
-                    this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.bar_len,1))));
+                    this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
                     this.log.setColorMode(cm);
                 else
                     for s = 1 : size(sat, 1)
@@ -1870,7 +1870,7 @@ classdef Receiver < Exportable
             % Return the time span of the receiver
             % SYNTAX:
             %   len = this.length();
-            len = this.time.length();
+            len = this.getTime.length();
         end
 
         function len = length_mr(this)
@@ -1914,11 +1914,15 @@ classdef Receiver < Exportable
         function n_sat = getMaxSat(this, sys_c)
             % get the number of satellites stored in the object
             % SYNTAX: n_sat = getNumSat(<sys_c>)
-            if nargin == 2
-                n_sat = max(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') ));
-            else
-                n_sat = max(this.go_id(this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L'));
+            n_sat = [];
+            for r = 1 : numel(this)
+                if nargin == 2
+                    n_sat(r) = max(this(r).go_id( (this(r).system == sys_c)' & (this(r).obs_code(:,1) == 'C' | this(r).obs_code(:,1) == 'L') ));
+                else
+                    n_sat(r) = max(this(r).go_id(this(r).obs_code(:,1) == 'C' | this(r).obs_code(:,1) == 'L'));
+                end
             end
+            n_sat = max(n_sat);
         end
 
         % constellation systems
@@ -2198,8 +2202,14 @@ classdef Receiver < Exportable
             %
             % SYNTAX:
             %   xyz = this.getMedianPosXYZ()
-
-            xyz = median(this.getPosXYZ(), 1);
+            xyz = [];
+            for r = 1 : numel(this)
+                if isempty(median(this(r).getPosXYZ(), 1))
+                    xyz = [xyz; nan(1,3)]; %#ok<AGROW>
+                else
+                    xyz = [xyz; median(this(r).getPosXYZ(), 1)]; %#ok<AGROW>
+                end
+            end
         end
 
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
@@ -2218,7 +2228,7 @@ classdef Receiver < Exportable
             lat = nan(numel(this), 1);
             lon = nan(numel(this), 1);
             h_ellips = nan(numel(this), 1);
-
+            h_ortho = nan(numel(this), 1);;
             for r = 1 : numel(this)
                 xyz = this(r).xyz; %#ok<NASGU>
                 try
@@ -2519,35 +2529,60 @@ classdef Receiver < Exportable
             % SYNTAX:
             %   [mfh, mfw] = this.getSlantMF()
 
-            [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic();
+            if numel(this) == 1
+                n_sat = size(this.sat.slant_td, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            
+            mfh = zeros(this.length, n_sat);
+            mfw = zeros(this.length, n_sat);
+            
+            t = 1;
+            
             atmo = Atmosphere();
-            [gmfh, gmfw] = atmo.gmf(this.time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this.sat.el(:))./180*pi);
-            mfh = reshape(gmfh, size(this.sat.el, 1), size(this.sat.el, 2));
-            mfw = reshape(gmfw, size(this.sat.el, 1), size(this.sat.el, 2));
+            [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic_mr();
+            lat = median(lat);
+            lon = median(lon);
+            h_ortho = median(h_ortho);
+            for r = 1 : numel(this)
+                [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
+                mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
+                mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+                t = t + this(r).length;                
+            end
         end
 
-        function sztd = getSlantZTD(this, smooth_win_size)
+        function sztd = getSlantZTD(this, smooth_win_size, id_extract)
             % Get the "zenithalized" total delay
             % SYNTAX:
-            %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)
-            if ~isempty(this.zhd)
+            %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)                        
+            if nargin < 3
+                id_extract = 1 : this.getTime.length;
+            end
+            
+            if ~isempty(this(1).ztd)
                 [mfh, mfw] = this.getSlantMF();
-                sztd = bsxfun(@plus, (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw, this.zhd);
+                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZHD)) ./ mfw, this.getZHD);
                 sztd(sztd <= 0) = nan;
-
-                if nargin == 2 && smooth_win_size > 0
-                    t = this.time.getRefTime;
+                sztd = sztd(id_extract, :);
+                
+                if nargin >= 2 && smooth_win_size > 0
+                    t = this.getTime.getEpoch(id_extract).getRefTime;
                     for s = 1 : size(sztd,2)
                         id_ok = ~isnan(sztd(:, s));
                         if sum(id_ok) > 3
                             lim = getOutliers(id_ok);
-                            lim = limMerge(lim, 2*smooth_win_size);
+                            lim = limMerge(lim, 2 * smooth_win_size / this.getRate);
 
-                            lim = [lim(1) lim(end)];
+                            %lim = [lim(1) lim(end)];
                             for l = 1 : size(lim, 1)
                                 if (lim(l, 2) - lim(l, 1) + 1) > 3
                                     id_ok = lim(l, 1) : lim(l, 2);
-                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                                    ztd = this.getZTD();
+                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
                                 end
                             end
                         end
@@ -2557,29 +2592,53 @@ classdef Receiver < Exportable
                 this.log.addWarning('ZTD and slants have not been computed');
             end
         end
+                
+        function slant_td = getSlantTD(this)
+            % Get the slant total delay
+            % SYNTAX:
+            %   slant_td = this.getSlantTD();
+            if numel(this) == 1
+                n_sat = size(this.sat.slant_td, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            slant_td = zeros(this.length, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                slant_td(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.slant_td(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
 
-        function swtd = getSlantZWD(this, smooth_win_size)
+        function swtd = getSlantZWD(this, smooth_win_size, id_extract)
             % Get the "zenithalized" wet delay
             % SYNTAX:
             %   sztd = this.getSlantZWD(<flag_smooth_data = 0>)
-            if ~isempty(this.zwd)
+            
+            if nargin < 3
+                id_extract = 1 : this.getTime.length;
+            end
+            
+            if ~isempty(this(1).zwd)
                 [mfh, mfw] = this.getSlantMF();
-                swtd = (zero2nan(this.sat.slant_td) - bsxfun(@times, mfh, this.zhd)) ./ mfw;
+                swtd = (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZHD)) ./ mfw;
                 swtd(swtd <= 0) = nan;
-
-                if nargin == 2 && smooth_win_size > 0
-                    t = this.time.getRefTime;
+                swtd = swtd(id_extract, :);
+                
+                if nargin >= 2 && smooth_win_size > 0
+                    t = this.getTime.getEpoch(id_extract).getRefTime;
                     for s = 1 : size(swtd,2)
                         id_ok = ~isnan(swtd(:, s));
                         if sum(id_ok) > 3
                             lim = getOutliers(id_ok);
                             lim = limMerge(lim, 2*smooth_win_size);
 
-                            lim = [lim(1) lim(end)];
+                            %lim = [lim(1) lim(end)];
                             for l = 1 : size(lim, 1)
                                 if (lim(l, 2) - lim(l, 1) + 1) > 3
                                     id_ok = lim(l, 1) : lim(l, 2);
-                                    swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(this.ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(this.ztd(id_ok));
+                                    ztd = this.getZWD();
+                                    swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
                                 end
                             end
                         end
@@ -3214,6 +3273,30 @@ classdef Receiver < Exportable
             end
         end
 
+        function [zhd, time] = getZHD(this)
+            % SYNTAX:
+            %  [zhd, p_time, id_sync] = this.getZHD()
+            
+            zhd = {};
+            time = {};
+            for r = 1 : size(this, 2)
+                zhd{r} = this(1, r).zhd(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    zhd_tmp = this(s, r).zhd(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    zhd{r} = [zhd{r}; zhd_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
+            end
+            
+            if numel(zhd) == 1
+                zhd = zhd{1};
+                time = time{1};
+            end
+        end
+        
         function [zwd, p_time] = getZWD(this)
             % MultiRec: works on an array of receivers
             % SYNTAX:
@@ -3829,22 +3912,68 @@ classdef Receiver < Exportable
         function [rate] = getRate(this)
             % SYSTEM:
             %   rate = this.getRate();
-            rate = this.time.getRate;
+            rate = this.getTime.getRate;
         end
 
         function [az, el] = computeAzimuthElevation(this, go_id)
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
-
-        function [az] = getAz(this, go_id)
-            %DESCRIPTION: get valid azimuth for given satellite
-            az = this.sat.az(this.sat.avail_index(:,go_id),go_id);
+        
+        function [az, el] = getAzEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   [az, el] = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.length, n_sat);
+            el = zeros(this.length, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
         end
 
-        function [el] = getEl(this, go_id)
-            %DESCRIPTION: get valid elevation for given satellite
-            el = this.sat.el(this.sat.avail_index(:,go_id),go_id);
+        function [az] = getAz(this)
+            % Get the azimuth (on valid id_sync)
+            %
+            % SYNTAX:
+            %   az = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.length, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
+
+        function [el] = getEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   el = this.getEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.el, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            el = zeros(this.length, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
         end
 
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
@@ -3955,9 +4084,8 @@ classdef Receiver < Exportable
                         lat = lat_full;
                         lon = lon_full;
                     end
-                    %%% get compute az el
-                    %az = this.getAz(s);
-                    el = this.getEl(s);
+                    %%% get compute el
+                    el = this.sat.el(this.sat.avail_index(:,s), s);
                     switch flag
                         case 0 % no model
 
@@ -5613,7 +5741,7 @@ classdef Receiver < Exportable
                 end
                 
                 if nargin < 3
-                    id_sync = 1 : this.time.length();
+                    id_sync = (1 : this.time.length())';
                 end
                 
                 this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
@@ -6342,7 +6470,7 @@ classdef Receiver < Exportable
                     plot(t, zero2nan(1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                     ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
                     plot(t, zero2nan(1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
@@ -6398,7 +6526,7 @@ classdef Receiver < Exportable
                     plot(t, x, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                     ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
                     plot(t, y, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
@@ -6418,7 +6546,8 @@ classdef Receiver < Exportable
         end
         
         function showMap(this)
-            [lat, lon] = cart2geod(this.getPosXYZ());
+            f = figure; maximizeFig(f);
+            [lat, lon] = cart2geod(this.getMedianPosXYZ());
 
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
             hold on;
@@ -6525,7 +6654,7 @@ classdef Receiver < Exportable
             end
             xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
 
-            h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
 
         function showSNR_p(this, sys_c_list)
@@ -6541,7 +6670,6 @@ classdef Receiver < Exportable
                 [snr, snr_id] = this.getSNR(sys_c);
                 f = figure; f.Name = sprintf('%03d: SNR %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
 
-                this.updateAzimuthElevation()
                 id_ok = (~isnan(snr));
                 az = this.sat.az(:,this.go_id(snr_id));
                 el = this.sat.el(:,this.go_id(snr_id));
@@ -6951,7 +7079,7 @@ classdef Receiver < Exportable
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                     h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s ZTD', this(s, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s ZTD', this(s, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     drawnow;
                 end
             end
@@ -6998,7 +7126,7 @@ classdef Receiver < Exportable
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title('Receiver ZTD'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title('Receiver ZTD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
 
@@ -7035,7 +7163,7 @@ classdef Receiver < Exportable
                     f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
                     polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
                     caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                    h = title(sprintf('Receiver %s ZTD - Slant difference', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s ZTD - Slant difference', this(r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 end
             end
         end
