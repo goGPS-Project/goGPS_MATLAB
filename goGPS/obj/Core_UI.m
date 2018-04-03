@@ -892,10 +892,9 @@ classdef Core_UI < handle
                 'BackgroundColor', this.DARK_GRAY_BG);
             this.insertEmpty(bar_v, this.DARK_GRAY_BG);
             bar = uix.Panel( 'Parent', bar_v, ...
-                'Padding', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             this.insertEmpty(bar_v, this.DARK_GRAY_BG);
-            bar_v.Heights = [-1 5 -1];
+            bar_v.Heights = [-1 1 -1];
         end
         
         function date = insertDateSpinner(this, container, date_in)
@@ -903,8 +902,12 @@ classdef Core_UI < handle
             com.mathworks.mwswing.MJUtilities.initJIDE;
             
             % Display a DateChooserPanel
-            date = com.jidesoft.combobox.DateSpinnerComboBox ;
-            [hPanel,hContainer] = javacomponent(date,[10,10,140,20], container);
+            date = com.jidesoft.combobox.DateSpinnerComboBox;
+            
+            [h_panel, h_container] = javacomponent(date,[10,10,140,20], container);
+                        
+            set(h_panel, 'ItemStateChangedCallback', @this.onSessionChange);
+            
             date.setBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
             date.setDisabledBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
             date.setShowWeekNumbers(false);     % Java syntax
@@ -960,18 +963,20 @@ classdef Core_UI < handle
             date_g.Heights = [22 22];
             date_g.Widths = [46, -1];
 
-            but_session = uix.HButtonBox( 'Parent', this.session_g, ...
-                'Padding', 5, ...
-                'Spacing', 5, ...
-                'HorizontalAlignment', 'right', ...
-                'ButtonSize', [120 20], ...
-                'BackgroundColor', 0.14 * [1 1 1]);
-
-            save_but = uicontrol( 'Parent', but_session, ...
-                'String', 'Sync Session UI => INI', ...
-                'Callback', @this.updateSessionFromUI);
-
-            this.session_g.Heights = [26 2 5 50 30];
+            % % button sync => not used autp-sync on
+            % but_session = uix.HButtonBox( 'Parent', this.session_g, ...
+            %     'Padding', 5, ...
+            %     'Spacing', 5, ...
+            %     'HorizontalAlignment', 'right', ...
+            %     'ButtonSize', [120 20], ...
+            %     'BackgroundColor', 0.14 * [1 1 1]);
+            % 
+            % save_but = uicontrol( 'Parent', but_session, ...
+            %     'String', 'Sync Session UI => INI', ...
+            %     'Callback', @this.onSessionChange);
+            % 
+            % this.session_g.Heights = [26 2 5 50 30];
+            this.session_g.Heights = [26 10 5 50];
             
             
         end
@@ -1040,7 +1045,7 @@ classdef Core_UI < handle
                 str = 'No receivers found';
             end            
             this.rec_list.String = str;
-            this.info_g.Heights = [26 2 this.rec_list.Extent(3)];            
+            this.info_g.Heights = [26 10 this.rec_list.Extent(3)];            
         end
     end
     
@@ -1071,8 +1076,15 @@ classdef Core_UI < handle
     %% METODS UI getters
     % ==================================================================================================================================================
     methods
-        function [sss_start, sss_stop] = getSessionLimits(this)
+        function [sss_start, sss_stop, validity_check] = getSessionLimits(this)
+            % get Start session and stop from UI
+            % check validity if sss_start > sss_stop then stop = start
+            %
+            % SYNTAX:
+            %   [sss_start, sss_stop, validity_check] = getSessionLimits(this)
+            %
             state = Global_Configuration.getCurrentSettings;   
+            validity_check = true;
 
             date = this.ui_sss_start.getDate; 
             if isempty(date)
@@ -1086,7 +1098,8 @@ classdef Core_UI < handle
             else
                 sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
             end
-            if sss_stop < sss_start
+            if sss_stop <= sss_start
+                validity_check = false;
                 sss_stop = sss_start.getCopy;
             end                        
         end
@@ -1108,16 +1121,31 @@ classdef Core_UI < handle
     %% METODS EVENTS
     % ==================================================================================================================================================
     methods (Access = public)
-        function updateSessionFromUI(this, caller, event)
-            [sss_start, sss_stop] = getSessionLimits(this);
+        function onSessionChange(this, caller, event)
+            % Manage the event of session modification (UI)
+            %
+            % SYNTAX:
+            %   this.onSessionChange()
+            %
+            [sss_start, sss_stop, validity_check] = getSessionLimits(this);
                         
+            if ~validity_check
+                this.ui_sss_stop.setDate(java.util.Date(sss_stop.toString('yyyy/mm/dd')));
+            end
+            
             state = Global_Configuration.getCurrentSettings;
-            
-            state.setSessionStart(sss_start);
-            state.setSessionStop(sss_stop);
-            
-            this.updateSessionFromState();
-            this.updateUI();
+            status_change = false;
+            if sss_start - state.getSessionStart() ~= 0
+                status_change = true;
+                state.setSessionStart(sss_start);
+            end
+            if sss_stop - state.getSessionStop() ~= 0
+                status_change = true;
+                state.setSessionStop(sss_stop);
+            end
+            if status_change
+                this.updateUI();
+            end
         end
         
         function updateSessionFromState(this, caller, event)                        
@@ -1235,7 +1263,7 @@ classdef Core_UI < handle
                     this.j_settings.setText(str);
                 end
             end
-            this.updateRecList(); 
+            this.updateRecList();
         end
     end
 
