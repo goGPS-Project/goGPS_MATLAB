@@ -5012,7 +5012,7 @@ classdef Receiver < Exportable
             % computing nominal_time
             nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
             rinex_time = this.time.getRefTime(nominal_time_zero);
-            nominal_time = round(rinex_time * this.time.getRate) / this.time.getRate;
+            nominal_time = round(rinex_time / this.time.getRate) * this.time.getRate;
             ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
 
             % reordering observations filling empty epochs with zeros;
