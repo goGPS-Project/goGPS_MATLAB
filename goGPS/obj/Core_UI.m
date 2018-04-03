@@ -45,11 +45,12 @@ classdef Core_UI < handle
 
     properties (Constant)
         FONT_SIZE_CONVERSION_LNX = 1.05;
-        FONT_SIZE_CONVERSION_MAC = 1.4;
+        FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
         
         LIGHT_GRAY_BG = 0.85 * ones(3, 1);
         DARK_GRAY_BG = 0.18 * ones(3, 1);
+        WHITE = ones(3, 1);
         
         COLOR_ORDER = [ ...
             0     0.447 0.741;
@@ -71,9 +72,14 @@ classdef Core_UI < handle
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main
+        w_main  
+        info_g      % Info group
+        rec_list    % Receiver list        
+        session_g   % Session group
+        ui_sss_start
+        ui_sss_stop
         
-        j_settings
+        j_settings  % java settings panel
     end
 
     %% PROPERTIES STATUS
@@ -602,9 +608,7 @@ classdef Core_UI < handle
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
                 
-        function ok_go = openGUI(this)
-            %%
-            
+        function ok_go = openGUI(this)            
             % WIN CONFIGURATION
             % L| N|    W
             %
@@ -623,12 +627,16 @@ classdef Core_UI < handle
             % Main Window ----------------------------------------------------------------------------------------------
             
             win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                'Visible', 'off', ...
+                'Visible', 'on', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
-                'NumberTitle', 'off' );
-            win.Position(3) = 1000;
-            win.Position(4) = 600;
+                'NumberTitle', 'off', ...
+                'Position', [0 0 1000 600]);
+            
+            win_decoration_v = win.OuterPosition(4) - win.InnerPosition(4);
+            win_decoration_h = win.OuterPosition(3) - win.InnerPosition(3);
+            win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+            win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             this.w_main = win;
             
             try
@@ -649,6 +657,12 @@ classdef Core_UI < handle
             % Logo/title box -------------------------------------------------------------------------------------------
             
             this.insertLogo(left_bv);
+            
+            this.insertSessionDate(left_bv);
+            this.insertRecList(left_bv);
+            
+            %this.updateRec(left_bv);            
+            
             
             % Main Panel -----------------------------------------------------------------------------------------------
             
@@ -679,11 +693,7 @@ classdef Core_UI < handle
             else
                 tab_panel.TabTitles = {'Settings'};
             end
-            
-            % Empty space ----------------------------------------------------------------------------------------------
-            
-            uicontrol('Parent', left_bv, 'Style', 'Text', 'BackgroundColor', this.DARK_GRAY_BG);
-            
+                        
             % Botton Panel ---------------------------------------------------------------------------------------------            
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
                 'Padding', 5, ...
@@ -719,7 +729,9 @@ classdef Core_UI < handle
             % Manage dimension -------------------------------------------------------------------------------------------
             
             main_bv.Heights = [-1 30];
-            left_bv.Heights = [82 -1];
+            %session_height = sum(left_bv.Children(2).Children(1).Heights);
+            session_height = sum(left_bv.Children(2).Heights);
+            left_bv.Heights = [82 session_height -1];
             top_bh.Widths = [200 -1];
             
             this.w_main.Visible = 'on';
@@ -732,6 +744,8 @@ classdef Core_UI < handle
     methods
         function insertLogo(this, container)
             % Logo
+            logo_bg_color = this.LIGHT_GRAY_BG;
+            
             logo_g_border0 = uix.Grid('Parent', container, ...
                 'Padding', 2, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
@@ -740,7 +754,7 @@ classdef Core_UI < handle
                 'BackgroundColor', this.DARK_GRAY_BG);
             logo_g = uix.Grid('Parent', logo_g_border1, ...
                 'Padding', 5, ...
-                'BackgroundColor', this.LIGHT_GRAY_BG);
+                'BackgroundColor', logo_bg_color);
             
             logo_ax = axes( 'Parent', logo_g);
             [logo, transparency] = Core_UI.getLogo();
@@ -753,12 +767,12 @@ classdef Core_UI < handle
 
             % Title and description
             descr_bv = uix.VBox('Parent', logo_g, ...
-                'BackgroundColor', this.LIGHT_GRAY_BG);
+                'BackgroundColor', logo_bg_color);
             title_txt = uicontrol('Parent', descr_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'center', ...
                 'String', '  goGPS', ...
-                'BackgroundColor', this.LIGHT_GRAY_BG, ...
+                'BackgroundColor', logo_bg_color, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
                 'FontName', 'verdana', ...
                 'FontAngle', 'italic', ...
@@ -767,7 +781,7 @@ classdef Core_UI < handle
             descr_txt = uicontrol('Parent', descr_bv, ...
                 'Style', 'Text', ...
                 'String', 'open source positioning', ...
-                'BackgroundColor', this.LIGHT_GRAY_BG, ...
+                'BackgroundColor', logo_bg_color, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
                 'FontName', 'arial', ...
                 'FontSize', this.getFontSize(6), ...
@@ -776,13 +790,13 @@ classdef Core_UI < handle
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'right', ...
                 'String', [Core.GO_GPS_VERSION ' '], ...
-                'BackgroundColor', this.LIGHT_GRAY_BG, ...
+                'BackgroundColor', logo_bg_color, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
                 'FontName', 'verdana', ...
-                'FontSize', this.getFontSize(4), ...
+                'FontSize', this.getFontSize(5), ...
                 'FontWeight', 'bold');
-            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', this.LIGHT_GRAY_BG);
-            descr_bv.Heights = [-3.5 -2 -1 -0.5];            
+            uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', logo_bg_color);
+            descr_bv.Heights = [-3.5 -2 -1.3 -0.5];            
 
             logo_g.Widths = [64 -1];
             logo_g.Heights = 64;
@@ -804,14 +818,19 @@ classdef Core_UI < handle
             tab1_bvr = uix.VButtonBox( 'Parent', tab, ...
                 'Spacing', 5, ...
                 'VerticalAlignment', 'top', ...
-                'HorizontalAlignment', 'right', ...
+                'HorizontalAlignment', 'center', ...
+                'ButtonSize', [120 20], ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             refresh_but = uicontrol( 'Parent', tab1_bvr, ...
-                'String', 'Refresh', ...
+                'String', 'Refresh INI => UI', ...
                 'Callback', @this.refreshIni);
             
-            tab.Widths = [-1 64];
+            check_rec = uicontrol( 'Parent', tab1_bvr, ...
+                'String', 'Check receiver files', ...
+                'Callback', @this.updateAndCheckRecList);
+
+            tab.Widths = [-1 128];
         end
         
         function insertRemoteResource(this, container)
@@ -860,6 +879,167 @@ classdef Core_UI < handle
                 
                 tab_bv.Heights = [20 15 -1];
         end
+        
+        function insertEmpty(this, container, color)
+            uicontrol('Parent', container, 'Style', 'Text', 'BackgroundColor', color)
+        end
+        
+        function insertVBar(this, container)
+            bar_v = uix.VBox('Parent', container, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.DARK_GRAY_BG);
+            this.insertEmpty(bar_v, this.DARK_GRAY_BG);
+            bar = uix.Panel( 'Parent', bar_v, ...
+                'Padding', 5, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            this.insertEmpty(bar_v, this.DARK_GRAY_BG);
+            bar_v.Heights = [-1 5 -1];
+        end
+        
+        function date = insertDateSpinner(this, container, date_in)
+            % Initialize JIDE's usage within Matlab
+            com.mathworks.mwswing.MJUtilities.initJIDE;
+            
+            % Display a DateChooserPanel
+            date = com.jidesoft.combobox.DateSpinnerComboBox ;
+            [hPanel,hContainer] = javacomponent(date,[10,10,140,20], container);
+            date.setBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
+            date.setDisabledBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
+            date.setShowWeekNumbers(false);     % Java syntax
+            dateFormat = java.text.SimpleDateFormat('dd-MM-yyyy');
+            date.setFormat(dateFormat);
+            date.setDate(java.util.Date(date_in))
+        end
+                
+        function insertSessionDate(this, container)
+            state = Global_Configuration.getCurrentSettings;   
+            
+            session_bg = this.DARK_GRAY_BG;
+            %session_p = uix.Panel('Parent', container, ...
+            %    'Padding', 0, ...
+            %    'BackgroundColor', session_bg);
+            this.session_g = uix.VBox('Parent', container, ...
+                'Padding', 0, ...
+                'BackgroundColor', session_bg);
+                        
+            v_text = uix.VBox( 'Parent', this.session_g, ...
+                'Padding', 5, ...
+                'BackgroundColor', session_bg);
+            this.insertEmpty(v_text, session_bg);
+            list_title = uicontrol('Parent', v_text, ...
+                'Style', 'Text', ...
+                'String', 'Session', ...
+                'ForegroundColor', this.WHITE, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'FontWeight', 'bold', ...
+                'BackgroundColor', session_bg);                        
+            this.insertEmpty(v_text, session_bg);
+            v_text.Heights = [-1, list_title.Extent(4), -1];
+            this.insertVBar(this.session_g);
+            this.insertEmpty(this.session_g, session_bg);
+
+            date_g = uix.Grid( 'Parent', this.session_g, ...
+                'BackgroundColor', session_bg);
+            uicontrol('Parent', date_g, ...
+                'Style', 'Text', ...
+                'String', 'Start', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', session_bg, ...
+                'ForegroundColor', this.WHITE);            
+            uicontrol('Parent', date_g, ...
+                'Style', 'Text', ...
+                'String', 'Stop', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', session_bg, ...
+                'ForegroundColor', this.WHITE);            
+            this.ui_sss_start = this.insertDateSpinner(date_g, state.getSessionStart.toString('yyyy/mm/dd'));
+            this.ui_sss_stop = this.insertDateSpinner(date_g, state.getSessionStop.toString('yyyy/mm/dd'));
+            date_g.Heights = [22 22];
+            date_g.Widths = [46, -1];
+
+            but_session = uix.HButtonBox( 'Parent', this.session_g, ...
+                'Padding', 5, ...
+                'Spacing', 5, ...
+                'HorizontalAlignment', 'right', ...
+                'ButtonSize', [120 20], ...
+                'BackgroundColor', 0.14 * [1 1 1]);
+
+            save_but = uicontrol( 'Parent', but_session, ...
+                'String', 'Sync Session UI => INI', ...
+                'Callback', @this.updateSessionFromUI);
+
+            this.session_g.Heights = [26 2 5 50 30];
+            
+            
+        end
+        
+        function insertRecList(this, container)
+            this.info_g = uix.VBox('Parent', container, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.DARK_GRAY_BG);
+                        
+            v_text = uix.VBox( 'Parent', this.info_g, ...
+                'Padding', 5, ...
+                'BackgroundColor', this.DARK_GRAY_BG);
+            this.insertEmpty(v_text, this.DARK_GRAY_BG);
+            list_title = uicontrol('Parent', v_text, ...
+                'Style', 'Text', ...
+                'String', 'Receiver List', ...
+                'ForegroundColor', this.WHITE, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'FontWeight', 'bold', ...
+                'BackgroundColor', this.DARK_GRAY_BG);                        
+            this.insertEmpty(v_text, this.DARK_GRAY_BG);
+            this.insertVBar(this.info_g);
+            
+            v_text.Heights = [-1, list_title.Extent(4), -1];
+            
+            rec_g = uix.Grid('Parent', this.info_g, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.DARK_GRAY_BG);                                    
+            
+            this.rec_list = uicontrol('Parent', rec_g, ...
+                'Style', 'Text', ...
+                'String', 'No receivers loaded', ...
+                'ForegroundColor', this.WHITE, ...
+                'HorizontalAlignment', 'left', ...
+                'FontName', 'Courier New', ...
+                'FontSize', this.getFontSize(9), ...
+                'FontWeight', 'bold', ...
+                'BackgroundColor', this.DARK_GRAY_BG);
+           
+            this.updateRecList();
+        end
+        
+        function updateRecList(this)
+            % Get file name list
+            state = Global_Configuration.getCurrentSettings;
+            state.updateObsFileName;
+            n_rec = state.getRecCount;
+            rec_path = state.getRecPath;
+            str = '';
+            for r = 1 : n_rec
+                name = File_Name_Processor.getFileName(rec_path{r}{1});
+                n_session = numel(rec_path{r});
+                if n_session < 20
+                    this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+                    fr = File_Rinex(rec_path{r}, 100);
+                    n_ok = sum(fr.is_valid_list);
+                    n_ko = sum(~fr.is_valid_list);
+                    str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
+                else
+                    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
+                end
+            end
+            this.log.addMessage('Receiver files checked');
+            if n_rec == 0
+                str = 'No receivers found';
+            end            
+            this.rec_list.String = str;
+            this.info_g.Heights = [26 2 this.rec_list.Extent(3)];            
+        end
     end
     
     %% METODS getters
@@ -886,6 +1066,30 @@ classdef Core_UI < handle
         end
     end
     
+    %% METODS UI getters
+    % ==================================================================================================================================================
+    methods
+        function [sss_start, sss_stop] = getSessionLimits(this)
+            state = Global_Configuration.getCurrentSettings;   
+
+            date = this.ui_sss_start.getDate; 
+            if isempty(date)
+                sss_start = state.getSessionStart;
+            else
+                sss_start = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
+            end
+            date = this.ui_sss_stop.getDate;
+            if isempty(date)
+                sss_stop = state.getSessionStop;
+            else
+                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
+            end
+            if sss_stop < sss_start
+                sss_stop = sss_start.getCopy;
+            end                        
+        end
+    end
+    
     %% METODS (static) getters
     % ==================================================================================================================================================
     methods (Static)
@@ -899,14 +1103,57 @@ classdef Core_UI < handle
         end
     end
     
-    %% METODS UTILITIES
+    %% METODS EVENTS
     % ==================================================================================================================================================
-    methods (Access = private)
+    methods (Access = public)
+        function updateSessionFromUI(this, caller, event)
+            [sss_start, sss_stop] = getSessionLimits(this);
+                        
+            state = Global_Configuration.getCurrentSettings;
+            
+            state.setSessionStart(sss_start);
+            state.setSessionStop(sss_stop);
+            
+            this.updateSessionFromState();
+            this.updateUI();
+        end
+        
+        function updateSessionFromState(this, caller, event)                        
+            state = Global_Configuration.getCurrentSettings;
+            this.ui_sss_start.setDate(java.util.Date(state.getSessionStart.toString('yyyy/mm/dd')));
+            this.ui_sss_stop.setDate(java.util.Date(state.getSessionStop.toString('yyyy/mm/dd')));
+        end
+        
         function refreshIni(this, caller, event)
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
             this.state.import(Ini_Manager(txt{1}));
-            this.updateSettingsUI();
+            this.updateUI();
+            this.updateSessionFromState
         end
+        
+        function updateAndCheckRecList(this, caller, event)
+            % Get file name list
+            state = Global_Configuration.getCurrentSettings;
+            state.updateObsFileName;
+            n_rec = state.getRecCount;
+            rec_path = state.getRecPath;
+            str = '';
+            
+            for r = 1 : n_rec
+                name = File_Name_Processor.getFileName(rec_path{r}{1});
+                this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+                fr = File_Rinex(rec_path{r}, 100);
+                n_ok = sum(fr.is_valid_list);
+                n_ko = sum(~fr.is_valid_list);
+                str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
+            end
+            if n_rec == 0
+                str = 'No receivers found';
+            end
+            this.log.addMessage('File availability checked');
+            this.rec_list.String = str;
+            this.info_g.Heights = [1*26 2 this.rec_list.Extent(3)];            
+        end        
         
         function loadState(this, caller, event)
             % Load state settings
@@ -927,7 +1174,7 @@ classdef Core_UI < handle
                 
                 if strcmp(ext, '.ini')
                     this.state.importIniFile(settings_file);
-                    this.updateSettingsUI();
+                    this.updateUI();
                 else
                     this.log.addError('Unrecognized input file format!');
                 end
@@ -954,7 +1201,7 @@ classdef Core_UI < handle
                     this.state.import(Ini_Manager(txt{1}));
                     this.state.setFilePath(settings_file);
                     this.state.save(settings_file);
-                    this.updateSettingsUI();
+                    this.updateUI();
                     this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
                 else
                     this.log.addError(sprintf('File not saved, GUI have been closed\n%s'));
@@ -977,7 +1224,7 @@ classdef Core_UI < handle
             this.ok_go = true;
         end
         
-        function updateSettingsUI(this)
+        function updateUI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
                 
@@ -986,6 +1233,7 @@ classdef Core_UI < handle
                     this.j_settings.setText(str);
                 end
             end
+            this.updateRecList(); 
         end
     end
 
