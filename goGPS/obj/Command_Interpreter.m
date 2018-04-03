@@ -167,7 +167,7 @@ classdef Command_Interpreter < handle
             % Show plots
             this.PAR_S_SHOW_ALL.name = 'Show all the plots';
             this.PAR_S_SHOW_ALL.descr = 'SHOWALL';
-            this.PAR_S_SHOW_ALL.par = '(SHOW_ALL)|(SHOWALL)|(showall)|(show_all)';
+            this.PAR_S_SHOW_ALL.par = '(ALL)|(all)';
 
             this.PAR_S_DA.name = 'Data availability';
             this.PAR_S_DA.descr = 'DA               Data Availability';
@@ -218,7 +218,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_STD.par = '(std)|(STD)';
 
             this.PAR_S_RES_STD.name = 'Slant Total Delay Residuals (polar plot)';
-            this.PAR_S_RES_STD.descr = 'RES_STD             Slants Total Delay residuals (polar plot)';
+            this.PAR_S_RES_STD.descr = 'RES_STD          Slants Total Delay residuals (polar plot)';
             this.PAR_S_RES_STD.par = '(res_std)|(RES_STD)';
 
             % definition of commands
