@@ -632,11 +632,13 @@ classdef Core_UI < handle
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
                 'Position', [0 0 1000 600]);
-            
-            win_decoration_v = win.OuterPosition(4) - win.InnerPosition(4);
-            win_decoration_h = win.OuterPosition(3) - win.InnerPosition(3);
-            win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
-            win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+            if isunix && not(ismac())
+                win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
+                win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
+            else
+                win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
+                win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
+            end
             this.w_main = win;
             
             try
