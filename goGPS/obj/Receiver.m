@@ -7100,7 +7100,7 @@ classdef Receiver < Exportable
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                     h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s ZTD', this(s, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s ZTD', this(1, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     drawnow;
                 end
             end
