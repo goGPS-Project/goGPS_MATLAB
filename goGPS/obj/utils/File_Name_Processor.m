@@ -145,7 +145,7 @@ classdef File_Name_Processor < handle
                 date_list = date_start.getCopy();
                 date0 = date_start.getCopy(); date0.toMatlabTime();
                 date1 = date_stop.getCopy(); date1.toMatlabTime();
-                date1.addIntSeconds(0.1); % adding margin
+                date1.addIntSeconds(0.0000001); % adding margin
                 i = 1;
                 % Find all the file in the interval of dates
                 while (date0.getMatlabTime() <= date1.getMatlabTime())

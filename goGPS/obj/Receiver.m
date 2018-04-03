@@ -5172,6 +5172,9 @@ classdef Receiver < Exportable
             if this.isEmpty()
                 this.log.addError('Static positioning failed: the receiver object is empty');
             else
+                if isempty(this.id_sync)
+                   this.id_sync = 1:this.time.length;
+                end
                 last_ep_coarse = min(100,this.time.length);
                 ep_coarse = 1:last_ep_coarse;
                 % check if the epoch are presents
@@ -5216,11 +5219,11 @@ classdef Receiver < Exportable
                 this.updateErrTropo();
                 this.updateErrIono();
                 this.log.addMessage(this.log.indent('improving estimation',6))
-                this.codeStaticPositioning(1:this.time.length, 15);
+                this.codeStaticPositioning(this.id_sync, 15);
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation',6))
-                this.codeStaticPositioning(1:this.time.length, 15);
+                this.codeStaticPositioning(this.id_sync, 15);
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
