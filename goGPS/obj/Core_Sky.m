@@ -736,7 +736,7 @@ classdef Core_Sky < handle
                             clk_rate = median(diff(sat_time.getGpsTime()));
                             if not(empty_clk) & clk_rate ~= this.clock_rate
                                 this.log.addWarning('Clock rate in file different from one in Core_Sky\n Discarding old data\n');
-                                thic.clearClock();
+                                this.clearClock();
                                 empty_clk = true;
                                 this.clock_rate = clk_rate;
                             end
