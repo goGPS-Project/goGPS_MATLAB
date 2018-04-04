@@ -115,7 +115,7 @@ classdef Least_Squares_Manipulator < handle
             id_sync = this.setUpSA(rec, id_sync, 'C', cut_off);
         end
         
-        function id_sync = setUpSA(this, rec, id_sync, obs_type, cut_off, custom_obs_set)
+        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set)
             % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
             % INPUT:
@@ -166,7 +166,7 @@ classdef Least_Squares_Manipulator < handle
             
             % remove epochs based on desired sampling
             if nargin > 2
-                obs_set.keepEpochs(id_sync);
+                obs_set.keepEpochs(id_sync_in);
             end
             
             % re-apply cut off if requested
@@ -191,7 +191,8 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
-            id_sync(~idx_valid_ep_l) = [];
+            id_sync_out = id_sync_in;
+            id_sync_out(~idx_valid_ep_l) = [];
             
             this.true_epoch(~idx_valid_ep_l) = [];
             
@@ -254,7 +255,7 @@ classdef Least_Squares_Manipulator < handle
                 idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
                 diff_obs(~idx_valid_ep_l, :) = [];
                 xs_loc(~idx_valid_ep_l, :, :) = [];
-                id_sync(~idx_valid_ep_l) = [];
+                id_sync_out(~idx_valid_ep_l) = [];
                 amb_idx(~idx_valid_ep_l, :) = [];
                 
                 this.true_epoch(~idx_valid_ep_l) = [];
@@ -320,8 +321,8 @@ classdef Least_Squares_Manipulator < handle
             
             % Getting mapping faction values
             if tropo || tropo_g
-                [~, mfw] = rec.getSlantMF();
-                %mfw = mfw(id_sync,:); % getting only the desampled values
+                [~, mfw] = rec.getSlantMF(id_sync_out);
+                %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
             for s = 1 : n_stream

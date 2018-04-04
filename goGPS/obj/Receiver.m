@@ -2574,7 +2574,7 @@ classdef Receiver < Exportable
             is_pp = this.pp_status;
         end
         
-        function [mfh, mfw] = getSlantMF(this)
+        function [mfh, mfw] = getSlantMF(this, id_sync)
             % Get Mapping function for the satellite slant
             %
             % OUTPUT:
@@ -2600,18 +2600,32 @@ classdef Receiver < Exportable
             lat = median(lat);
             lon = median(lon);
             h_ortho = median(h_ortho);
-            for r = 1 : numel(this)
-                [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
-                mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                if isempty(this(r).id_sync)
-                    mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp;
-                    mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp;
-                else
-                    mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
-                    mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+            if nargin == 1
+                for r = 1 : numel(this)
+                    
+                    [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
+                    mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                    mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                    if isempty(this(r).id_sync)
+                        mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp;
+                        mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp;
+                    else
+                        mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
+                        mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+                    end
+                    t = t + this(r).length;
                 end
-                t = t + this(r).length;
+            else
+                for r = 1 : numel(this)
+                    
+                    [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
+                    mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                    mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
+                    
+                    mfh(t : t + length(id_sync) - 1, 1 : this(r).getMaxSat) = mfh_tmp(id_sync, :);
+                    mfw(t : t + length(id_sync) - 1, 1 : this(r).getMaxSat) = mfw_tmp(id_sync, :);
+                    t = t + this(r).length;
+                end
             end
         end
         
@@ -5776,7 +5790,7 @@ classdef Receiver < Exportable
                 % update azimuth elevation
                 this.updateAzimuthElevation();
                 % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                this.shiftToNominal()
+                %this.shiftToNominal()
                 this.updateAllTOT();
                 
                 % apply various corrections
