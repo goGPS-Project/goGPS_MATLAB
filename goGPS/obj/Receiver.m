@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to store receiver data (observations, and characteristics
+%   Class to store receiver data (observations, and characteristics)
 %
 % EXAMPLE
 %   trg = Receiver();
@@ -227,7 +227,10 @@ classdef Receiver < Exportable
 
     methods
         function this = Receiver(cc, rinex_file_name, dyn_mode)
-            % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
+            % Set 
+            %
+            % SYNTAX
+                %this = Receiver(<cc>, <rinex_file_name>)
             this.reset();
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
@@ -250,6 +253,7 @@ classdef Receiver < Exportable
         end
 
         function reset(this)
+            % Reset parameters of the receivers
             this.marker_name  = 'unknown';  % marker name
             this.marker_type  = '';       % marker type
             this.number   = '000';
@@ -304,6 +308,7 @@ classdef Receiver < Exportable
 
         function initObs(this)
             % Reset the content of the receiver obj
+            %
             % SYNTAX:
             %   this.initObs;
 
@@ -350,7 +355,9 @@ classdef Receiver < Exportable
 
         function initR2S(this)
             % initialize satellite related parameters
-            % SYNTAX: this.initR2S();
+            %
+            % SYNTAX:
+                %this.initR2S();
 
             this.sat.cs           = Core_Sky.getInstance();
             %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
@@ -486,6 +493,7 @@ classdef Receiver < Exportable
 
         function loadAntModel(this)
             % Load and parse the antenna (ATX) file as specified into settings
+            %
             % SYNTAX:
             %   this.loadAntModel
             filename_pcv = this.state.getAtxFile;
@@ -507,7 +515,8 @@ classdef Receiver < Exportable
         end
 
         function subSample(this, id_sync)
-            % keep epochs id_sync
+            % Keep epochs id_sync
+            %
             % SYNTAX:   this.subSample(id_sync)
             if (nargin < 2)
                 id_sync = this.id_sync;
@@ -518,7 +527,7 @@ classdef Receiver < Exportable
         end
 
         function remObs(this, id_obs)
-            % remove observable with a certain id
+            % Remove observable with a certain id
             %
             % SYNTAX:
             %   this.remObs(id_obs)
@@ -589,7 +598,7 @@ classdef Receiver < Exportable
         end
 
         function keepEpochs(this, good_epochs)
-            % keep epochs with a certain id
+            % Keep epochs with a certain id
             %
             % SYNTAX:
             %   this.keepEpochs(good_epochs)
@@ -599,7 +608,7 @@ classdef Receiver < Exportable
         end
 
         function keep(this, rate, sys_list)
-            % keep epochs at a certain rate for a certain constellation
+            % Keep epochs at a certain rate for a certain constellation
             %
             % SYNTAX:
             %   this.keep(rate, sys_list)
@@ -617,7 +626,7 @@ classdef Receiver < Exportable
 
         function remEpochs(this, bad_epochs)
             if ~isempty(bad_epochs)
-                % remove epochs with a certain id
+                % Remove epochs with a certain id
                 %
                 % SYNTAX:
                 %   this.remEpochs(bad_epochs)
@@ -743,7 +752,7 @@ classdef Receiver < Exportable
         end
 
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
-            % DESCRIPTION: remove obs under cut off
+            % remove obs under cut off
             for i = 1 : length(prn)
                 go_id = this.getGoId(sys(i), prn(i)); % get go_id
 
@@ -770,7 +779,7 @@ classdef Receiver < Exportable
         end
 
         function remEmptyObs(this)
-            %DESCRIPTION: remove empty obs lines
+            % Remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
             this.remObs(empty_sat);
         end
@@ -779,6 +788,7 @@ classdef Receiver < Exportable
             % Remove observation marked as bad in crx file and satellites
             % whose prn exceed the maximum prn (spare satellites, in maintenance, etc ..)
             % remove spare satellites
+            %
             % SYNTAX:
             %   this.remBad();
 
@@ -1193,7 +1203,9 @@ classdef Receiver < Exportable
 
         function parseRin2Data(this, txt, lim, eoh)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX: this.parseRin2Data(txt, lim, eoh)
+            %
+            % SYNTAX:
+                %this.parseRin2Data(txt, lim, eoh)
             % remove comment line from lim
             comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
             comment_line(1:eoh) = false;
@@ -1354,6 +1366,10 @@ classdef Receiver < Exportable
         end
 
         function parseRin3Data(this, txt, lim, eoh)
+            %
+            %
+            % SYNTAX:
+                %
             % find all the observation lines
             t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
             n_epo = numel(t_line);
@@ -3488,6 +3504,7 @@ classdef Receiver < Exportable
     methods
         function setStatic(this)
             % Set the internal status of the Receiver as static
+            %
             % SYNTAX:
             %   this.setStatic()
             this.static = true;
@@ -3495,6 +3512,7 @@ classdef Receiver < Exportable
 
         function setDynamic(this)
             % Set the internal status of the Receiver as dynamic
+            %
             % SYNTAX:
             %   this.setDynamic()
             this.static = false;
@@ -3502,7 +3520,9 @@ classdef Receiver < Exportable
 
         function setDoppler(this, dop, wl, id_dop)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
+            %
+            % SYNTAX:
+                %[pr, id_pr] = this.setDoppler(<sys_c>)
             % SEE ALSO:  getDoppler
             dop = bsxfun(@rdivide, zero2nan(dop'), wl);
             this.obs(id_dop, :) = nan2zero(dop');
@@ -3510,16 +3530,19 @@ classdef Receiver < Exportable
 
         function setSNR(this, snr, id_snr)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setSNR(<sys_c>)
+            %
+            % SYNTAX: 
+            %   [pr, id_pr] = this.setSNR(<sys_c>)
             % SEE ALSO:  getSNR
             this.obs(id_snr, :) = nan2zero(snr');
         end
 
         function setPhases(this, ph, wl, id_ph)
             % set the phases observations in meter (not cycles)
-            % SYNTAX: setPhases(this, ph, wl, id_ph)
+            %
+            % SYNTAX: 
+            %   this.setPhases(ph, wl, id_ph)
             % SEE ALSO: getPhases getPseudoRanges setPseudoRanges
-
             ph = bsxfun(@rdivide, zero2nan(ph'), wl);
             this.obs(id_ph, :) = nan2zero(ph);
         end
@@ -7299,14 +7322,16 @@ classdef Receiver < Exportable
 
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)
+            %
             % SYNTAX:
-            %   marker_num = markerName2Num(marker_name);
+            %   marker_num = Receiver.markerName2Num(marker_name);
 
             marker_num = marker_name(:,1:4) * [2^24 2^16 2^8 1]';
         end
 
         function marker_name = markerNum2Name(marker_num)
             % Convert a numeric value (float) of a station into a 4 char marker
+            %
             % SYNTAX:
             %   marker_name = markerNum2Name(marker_num)
             marker_name = char(zeros(numel(marker_num), 4));
@@ -7321,7 +7346,10 @@ classdef Receiver < Exportable
 
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
             % prepare y0 and pivot_correction arrays (phase only)
-            % SYNTAX: [y0, pc] = prepareY0(trg, mst, lambda, pivot)
+            %
+            % SYNTAX: 
+            %   [y0, pc] = prepareY0(trg, mst, lambda, pivot)
+            %
             % WARNING: y0 contains also the pivot observations and must be reduced by the pivot corrections
             %          use composeY0 to do it
             y0 = [];
