@@ -1280,7 +1280,7 @@ classdef Core_Sky < handle
             date = times.get6ColDate;
             day_change = find(diff(date(:,3)));
             
-            p = max(0, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
+            p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
             
             b =  (times.getEpoch(p) - time)';
             

@@ -76,7 +76,7 @@ classdef Core < handle
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Core(force_clean)
-            if nargin < 2
+            if nargin < 1
                 force_clean = false;
             end
             % Core object creator
@@ -89,7 +89,7 @@ classdef Core < handle
     % ==================================================================================================================================================
     methods (Static, Access = public)
         function this = getInstance(force_clean)
-            if nargin < 2
+            if nargin < 1
                 force_clean = false;
             end
             % Get the persistent instance of the class
