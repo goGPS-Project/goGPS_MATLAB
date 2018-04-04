@@ -66,8 +66,8 @@ function goGPS(ini_settings_file, use_gui)
     if (~isdeployed)
         addpath(genpath(pwd));
     end
-
-    core = Core.getInstance(); % Init Core
+    
+    core = Core.getInstance(true); % Init Core
 
     if nargin >= 1
         if  ~exist(ini_settings_file,'file')

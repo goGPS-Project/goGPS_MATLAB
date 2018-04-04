@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to store receiver data (observations, and characteristics
+%   Class to store receiver data (observations, and characteristics)
 %
 % EXAMPLE
 %   trg = Receiver();
@@ -227,7 +227,10 @@ classdef Receiver < Exportable
 
     methods
         function this = Receiver(cc, rinex_file_name, dyn_mode)
-            % SYNTAX  this = Receiver(<cc>, <rinex_file_name>)
+            % Set 
+            %
+            % SYNTAX
+                %this = Receiver(<cc>, <rinex_file_name>)
             this.reset();
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
@@ -250,6 +253,7 @@ classdef Receiver < Exportable
         end
 
         function reset(this)
+            % Reset parameters of the receivers
             this.marker_name  = 'unknown';  % marker name
             this.marker_type  = '';       % marker type
             this.number   = '000';
@@ -304,6 +308,7 @@ classdef Receiver < Exportable
 
         function initObs(this)
             % Reset the content of the receiver obj
+            %
             % SYNTAX:
             %   this.initObs;
 
@@ -350,7 +355,9 @@ classdef Receiver < Exportable
 
         function initR2S(this)
             % initialize satellite related parameters
-            % SYNTAX: this.initR2S();
+            %
+            % SYNTAX:
+                %this.initR2S();
 
             this.sat.cs           = Core_Sky.getInstance();
             %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
@@ -486,6 +493,7 @@ classdef Receiver < Exportable
 
         function loadAntModel(this)
             % Load and parse the antenna (ATX) file as specified into settings
+            %
             % SYNTAX:
             %   this.loadAntModel
             filename_pcv = this.state.getAtxFile;
@@ -507,7 +515,8 @@ classdef Receiver < Exportable
         end
 
         function subSample(this, id_sync)
-            % keep epochs id_sync
+            % Keep epochs id_sync
+            %
             % SYNTAX:   this.subSample(id_sync)
             if (nargin < 2)
                 id_sync = this.id_sync;
@@ -518,7 +527,7 @@ classdef Receiver < Exportable
         end
 
         function remObs(this, id_obs)
-            % remove observable with a certain id
+            % Remove observable with a certain id
             %
             % SYNTAX:
             %   this.remObs(id_obs)
@@ -589,17 +598,17 @@ classdef Receiver < Exportable
         end
 
         function keepEpochs(this, good_epochs)
-            % keep epochs with a certain id
+            % Keep epochs with a certain id
             %
             % SYNTAX:
             %   this.keepEpochs(good_epochs)
-            bad_epochs = 1 : this.length;
+            bad_epochs = 1 : this.getNumEpochs;
             bad_epochs(good_epochs) = [];
             this.remEpochs(bad_epochs)
         end
 
         function keep(this, rate, sys_list)
-            % keep epochs at a certain rate for a certain constellation
+            % Keep epochs at a certain rate for a certain constellation
             %
             % SYNTAX:
             %   this.keep(rate, sys_list)
@@ -617,7 +626,7 @@ classdef Receiver < Exportable
 
         function remEpochs(this, bad_epochs)
             if ~isempty(bad_epochs)
-                % remove epochs with a certain id
+                % Remove epochs with a certain id
                 %
                 % SYNTAX:
                 %   this.remEpochs(bad_epochs)
@@ -743,7 +752,7 @@ classdef Receiver < Exportable
         end
 
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
-            % DESCRIPTION: remove obs under cut off
+            % remove obs under cut off
             for i = 1 : length(prn)
                 go_id = this.getGoId(sys(i), prn(i)); % get go_id
 
@@ -770,7 +779,7 @@ classdef Receiver < Exportable
         end
 
         function remEmptyObs(this)
-            %DESCRIPTION: remove empty obs lines
+            % Remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
             this.remObs(empty_sat);
         end
@@ -779,6 +788,7 @@ classdef Receiver < Exportable
             % Remove observation marked as bad in crx file and satellites
             % whose prn exceed the maximum prn (spare satellites, in maintenance, etc ..)
             % remove spare satellites
+            %
             % SYNTAX:
             %   this.remBad();
 
@@ -808,19 +818,65 @@ classdef Receiver < Exportable
             coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
             clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
             for s = 1 : this.getMaxSat()
-                o_idx = this.go_id == s;
-                for i = find(nan_coord(:,s) == 1)'
-                    c_rate = this.sat.cs.coord_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + i * c_rate - c_rate * 10)/this.getRate())));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.getRate())));
-                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                 o_idx = this.go_id == s;
+                dnancoord = diff(nan_coord(:,s));
+                st_idx = find(dnancoord == 1);
+                end_idx = find(dnancoord == -1);
+                if ~isempty(st_idx) || ~isempty(end_idx)
+                    if isempty(st_idx)
+                        st_idx = 1;
+                    end
+                    if isempty(end_idx)
+                        end_idx = length(dnanclock);
+                    end
+                    if end_idx(1) < st_idx(1);
+                        st_idx = [1; st_idx];
+                    end
+                    if st_idx(end) > end_idx(end)
+                        end_idx = [end_idx ; length(dnanclock)];
+                    end
+                    for i = 1:length(st_idx)
+                        is = st_idx(i);
+                        ie = end_idx(i);
+                        c_rate = this.sat.cs.coord_rate;
+                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())));
+                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                    end
+                else
+                    if nan_coord(1,s) == 1
+                        this.obs(o_idx , :) = 0;
+                    end
                 end
-
-                for i = find(nan_clock(:,s) == 1)'
-                    c_rate = this.sat.cs.clock_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.getRate())));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + i*c_rate + c_rate * 1)/this.getRate())));
-                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                % remoiving near empty clock
+                dnanclock = diff(nan_clock(:,s));
+                st_idx = find(dnanclock == 1);
+                end_idx = find(dnanclock == -1);
+                if ~isempty(st_idx) || ~isempty(end_idx)
+                    if isempty(st_idx)
+                        st_idx = 1;
+                    end
+                    if isempty(end_idx)
+                        end_idx = length(dnanclock);
+                    end
+                    if end_idx(1) < st_idx(1);
+                        st_idx = [1; st_idx];
+                    end
+                    if st_idx(end) > end_idx(end)
+                        end_idx = [end_idx ; length(dnanclock)];
+                    end
+                    for i = 1:length(st_idx)
+                        is = st_idx(i);
+                        ie = end_idx(i);
+                        c_rate = this.sat.cs.clock_rate;
+                        bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.getRate())));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.getRate())));
+                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                    end
+                else
+                    if nan_clock(1,s) == 1
+                        this.obs(o_idx , :) = 0;
+                    end
                 end
             end
             % check empty lines
@@ -1147,7 +1203,9 @@ classdef Receiver < Exportable
 
         function parseRin2Data(this, txt, lim, eoh)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX: this.parseRin2Data(txt, lim, eoh)
+            %
+            % SYNTAX:
+                %this.parseRin2Data(txt, lim, eoh)
             % remove comment line from lim
             comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
             comment_line(1:eoh) = false;
@@ -1308,6 +1366,10 @@ classdef Receiver < Exportable
         end
 
         function parseRin3Data(this, txt, lim, eoh)
+            %
+            %
+            % SYNTAX:
+                %
             % find all the observation lines
             t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
             n_epo = numel(t_line);
@@ -1880,13 +1942,13 @@ classdef Receiver < Exportable
             len = this.getTime.length();
         end
 
-        function len = length_mr(this)
+        function n_epo = getNumEpochs(this)
             % Return the time span of the receiver
             % SYNTAX:
             %   len = this.length();
-            len =  zeros(numel(this), 1);
+            n_epo =  zeros(numel(this), 1);
             for r = 1 : numel(this)
-                len(r) =  this(r).time.length();
+                n_epo(r) =  this(r).time.length();
             end
         end
 
@@ -1894,12 +1956,6 @@ classdef Receiver < Exportable
             % get the number of observables stored in the object
             % SYNTAX: n_obs = this.getNumObservables()
             n_obs = size(this.obs, 1);
-        end
-
-        function n_epo = getNumEpochs(this)
-            % get the number of epochs stored in the object
-            % SYNTAX: n_obs = this.getNumEpochs()
-            n_epo = size(this.obs, 2);
         end
 
         function n_pr = getNumPseudoRanges(this)
@@ -1948,7 +2004,7 @@ classdef Receiver < Exportable
 
             % Select only the systems still present in the file
             go_id = this.getActiveGoIds();
-            sys_c = unique(this.getSysPrn(go_id));
+            sys_c = serialize(unique(this.getSysPrn(go_id)))';
         end
 
         function [sys_c, prn] = getSysPrn(this, go_id)
@@ -2202,11 +2258,13 @@ classdef Receiver < Exportable
             %
             % OUTPUT:
             %   xyz     geocentric coordinates
+            %           dimensions: [#rec, 3, #sessions]
             %
             % SYNTAX:
             %   xyz = this.getMedianPosXYZ_mr()
 
             xyz = this.getMedianPosXYZ();
+            xyz = permute(reshape(xyz, size(this,1), size(this,2), 3), [2 3 1]);
         end
 
         function xyz = getMedianPosXYZ(this)
@@ -2214,19 +2272,55 @@ classdef Receiver < Exportable
             %
             % OUTPUT:
             %   xyz     geocentric coordinates
+            %           dimensions: [#sessions*#rec, 3]
             %
             % SYNTAX:
             %   xyz = this.getMedianPosXYZ()
-            xyz = [];
+            xyz = nan(numel(this),3);
             for r = 1 : numel(this)
-                if isempty(median(this(r).getPosXYZ(), 1))
-                    xyz = [xyz; nan(1,3)]; %#ok<AGROW>
-                else
-                    xyz = [xyz; median(this(r).getPosXYZ(), 1)]; %#ok<AGROW>
+                if ~isempty(median(this(r).getPosXYZ(), 1))
+                    xyz(r, :) = median(this(r).getPosXYZ(), 1);
                 end
             end
         end
 
+        function [utm, utm_zone] = getMedianPosUTM_mr(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   utm      UTM coordinates (EAST NORTH, ellipsoidal h)
+            %            [#rec, 3, #sessions]
+            %   utm_zone UTM coordinates (EAST NORTH, ellipsoidal h)
+            %            [#rec, 4, #sessions]
+            %
+            % SYNTAX:
+            %   utm = this.getMedianPosUTM()
+            
+            [utm, utm_zone] = this.getMedianPosUTM();
+            utm = permute(reshape(utm, size(this,1), size(this,2), 3), [2 3 1]);
+            utm_zone = permute(reshape(utm_zone, size(this,1), size(this,2), 4), [2 3 1]);
+        end
+        
+        function [utm, utm_zone] = getMedianPosUTM(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   utm     UTM coordinates (EAST NORTH, ellipsoidal h)
+            %
+            % SYNTAX:
+            %   utm = this.getMedianPosUTM()
+            this.updateUTM();
+            
+            utm = nan(numel(this),3);
+            utm_zone = char(ones(numel(this),4) * ' ');
+            for r = 1 : numel(this)
+                if ~isempty(this(r).utm)
+                    utm(r, :) = this(r).utm;
+                    utm_zone(r, :) = this(r).utm_zone;
+                end
+            end
+        end
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
@@ -3336,6 +3430,62 @@ classdef Receiver < Exportable
             %  [zwd, p_time, id_sync] = this.getZWD_mr()
             [zwd, p_time] = this.getZWD();
         end
+        
+        function [az, el] = getAzEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   [az, el] = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.getNumEpochs, n_sat);
+            el = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
+
+        function [az] = getAz(this)
+            % Get the azimuth (on valid id_sync)
+            %
+            % SYNTAX:
+            %   az = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
+
+        function [el] = getEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   el = this.getEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.el, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            el = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
 
         % Utilities
 
@@ -3354,6 +3504,7 @@ classdef Receiver < Exportable
     methods
         function setStatic(this)
             % Set the internal status of the Receiver as static
+            %
             % SYNTAX:
             %   this.setStatic()
             this.static = true;
@@ -3361,6 +3512,7 @@ classdef Receiver < Exportable
 
         function setDynamic(this)
             % Set the internal status of the Receiver as dynamic
+            %
             % SYNTAX:
             %   this.setDynamic()
             this.static = false;
@@ -3368,7 +3520,9 @@ classdef Receiver < Exportable
 
         function setDoppler(this, dop, wl, id_dop)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setDoppler(<sys_c>)
+            %
+            % SYNTAX:
+                %[pr, id_pr] = this.setDoppler(<sys_c>)
             % SEE ALSO:  getDoppler
             dop = bsxfun(@rdivide, zero2nan(dop'), wl);
             this.obs(id_dop, :) = nan2zero(dop');
@@ -3376,16 +3530,19 @@ classdef Receiver < Exportable
 
         function setSNR(this, snr, id_snr)
             % set the snr observations
-            % SYNTAX: [pr, id_pr] = this.setSNR(<sys_c>)
+            %
+            % SYNTAX: 
+            %   [pr, id_pr] = this.setSNR(<sys_c>)
             % SEE ALSO:  getSNR
             this.obs(id_snr, :) = nan2zero(snr');
         end
 
         function setPhases(this, ph, wl, id_ph)
             % set the phases observations in meter (not cycles)
-            % SYNTAX: setPhases(this, ph, wl, id_ph)
+            %
+            % SYNTAX: 
+            %   this.setPhases(ph, wl, id_ph)
             % SEE ALSO: getPhases getPseudoRanges setPseudoRanges
-
             ph = bsxfun(@rdivide, zero2nan(ph'), wl);
             this.obs(id_ph, :) = nan2zero(ph);
         end
@@ -3475,11 +3632,11 @@ classdef Receiver < Exportable
         end
         
         function updateUTM(this)
-            for i = 1:numel(this)
-                xyz = this(i).getMedianPosXYZ;
+            for r = 1 : numel(this)
+                xyz = this(r).getMedianPosXYZ;
                 [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
-                this(i).utm = [EAST, NORTH, h];
-                this(i).utm_zone = utm_zone;
+                this(r).utm = [EAST, NORTH, h];
+                this(r).utm_zone = utm_zone;
             end
         end
 
@@ -3938,72 +4095,20 @@ classdef Receiver < Exportable
             end
         end
 
-        function [rate] = getRate(this)
-            % SYSTEM:
-            %   rate = this.getRate();
-            rate = this.getTime.getRate;
-        end
+        
 
         function [az, el] = computeAzimuthElevation(this, go_id)
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
         
-        function [az, el] = getAzEl(this)
-            % Get the azimuth and elevation (on valid id_sync)
-            %
-            % SYNTAX:
-            %   [az, el] = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            az = zeros(this.length, n_sat);
-            el = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
+        function [rate] = getRate(this)
+            % SYSTEM:
+            %   rate = this.getRate();
+            rate = this.getTime.getRate;
         end
-
-        function [az] = getAz(this)
-            % Get the azimuth (on valid id_sync)
-            %
-            % SYNTAX:
-            %   az = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            az = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-        end
-
-        function [el] = getEl(this)
-            % Get the azimuth and elevation (on valid id_sync)
-            %
-            % SYNTAX:
-            %   el = this.getEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.el, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            el = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-        end
+        
+        
 
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
@@ -5250,7 +5355,11 @@ classdef Receiver < Exportable
         function dpos = codeStaticPositioning(this,id_epoch, cut_off)
             ls = Least_Squares_Manipulator();
             if nargin < 2
-                id_epoch = 1:this.length();
+                if ~isempty(this.id_sync)
+                    id_epoch = this.id_sync;
+                else
+                    id_epoch = 1:this.getNumEpochs();
+                end
             end
             if nargin < 3
                 cut_off = [];
@@ -5271,7 +5380,7 @@ classdef Receiver < Exportable
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, this.getMaxSat());
+            this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
             % LS does not know the max number of satellite stored
             % make dimensions consistent
              dsz = length(id_epoch) - size(res,1);
@@ -5828,7 +5937,7 @@ classdef Receiver < Exportable
                 % ls.Astack2Nstack();
                 % [x, res, s02] = ls.solve();
                 
-                this.sat.res = zeros(this.length, this.getMaxSat());
+                this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
                 dsz = max(id_sync) - size(res,1);
                 if dsz == 0
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
@@ -7213,14 +7322,16 @@ classdef Receiver < Exportable
 
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)
+            %
             % SYNTAX:
-            %   marker_num = markerName2Num(marker_name);
+            %   marker_num = Receiver.markerName2Num(marker_name);
 
             marker_num = marker_name(:,1:4) * [2^24 2^16 2^8 1]';
         end
 
         function marker_name = markerNum2Name(marker_num)
             % Convert a numeric value (float) of a station into a 4 char marker
+            %
             % SYNTAX:
             %   marker_name = markerNum2Name(marker_num)
             marker_name = char(zeros(numel(marker_num), 4));
@@ -7235,7 +7346,10 @@ classdef Receiver < Exportable
 
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
             % prepare y0 and pivot_correction arrays (phase only)
-            % SYNTAX: [y0, pc] = prepareY0(trg, mst, lambda, pivot)
+            %
+            % SYNTAX: 
+            %   [y0, pc] = prepareY0(trg, mst, lambda, pivot)
+            %
             % WARNING: y0 contains also the pivot observations and must be reduced by the pivot corrections
             %          use composeY0 to do it
             y0 = [];

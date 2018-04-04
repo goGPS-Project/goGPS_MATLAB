@@ -77,9 +77,7 @@ classdef Tropo < Exportable
                     end
                 end
             end
-        end
-        
-        
+        end  
     end
     
     % =========================================================================
@@ -104,7 +102,9 @@ classdef Tropo < Exportable
         
         function importTropo(this, file)
             % Import after reset a tropo file
-            % SYNTAX: this.importTropo(file)
+            %
+            % SYNTAX: 
+            %   this.importTropo(file)
             this.reset();
             this.appendTropo(file)
         end
