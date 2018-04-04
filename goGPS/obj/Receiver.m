@@ -808,19 +808,65 @@ classdef Receiver < Exportable
             coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
             clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
             for s = 1 : this.getMaxSat()
-                o_idx = this.go_id == s;
-                for i = find(nan_coord(:,s) == 1)'
-                    c_rate = this.sat.cs.coord_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + i * c_rate - c_rate * 10)/this.getRate())));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + i * c_rate + c_rate * 10)/this.getRate())));
-                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                 o_idx = this.go_id == s;
+                dnancoord = diff(nan_coord(:,s));
+                st_idx = find(dnancoord == 1);
+                end_idx = find(dnancoord == -1);
+                if ~isempty(st_idx) || ~isempty(end_idx)
+                    if isempty(st_idx)
+                        st_idx = 1;
+                    end
+                    if isempty(end_idx)
+                        end_idx = length(dnanclock);
+                    end
+                    if end_idx(1) < st_idx(1);
+                        st_idx = [1; st_idx];
+                    end
+                    if st_idx(end) > end_idx(end)
+                        end_idx = [end_idx ; length(dnanclock)];
+                    end
+                    for i = 1:length(st_idx)
+                        is = st_idx(i);
+                        ie = end_idx(i);
+                        c_rate = this.sat.cs.coord_rate;
+                        bad_ep_st = min(this.time.length,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 10)/this.getRate())));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 10)/this.getRate())));
+                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                    end
+                else
+                    if nan_coord(1,s) == 1
+                        this.obs(o_idx , :) = 0;
+                    end
                 end
-
-                for i = find(nan_clock(:,s) == 1)'
-                    c_rate = this.sat.cs.clock_rate;
-                    bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + i*c_rate - c_rate * 1)/this.getRate())));
-                    bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + i*c_rate + c_rate * 1)/this.getRate())));
-                    this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                % remoiving near empty clock
+                dnanclock = diff(nan_clock(:,s));
+                st_idx = find(dnanclock == 1);
+                end_idx = find(dnanclock == -1);
+                if ~isempty(st_idx) || ~isempty(end_idx)
+                    if isempty(st_idx)
+                        st_idx = 1;
+                    end
+                    if isempty(end_idx)
+                        end_idx = length(dnanclock);
+                    end
+                    if end_idx(1) < st_idx(1);
+                        st_idx = [1; st_idx];
+                    end
+                    if st_idx(end) > end_idx(end)
+                        end_idx = [end_idx ; length(dnanclock)];
+                    end
+                    for i = 1:length(st_idx)
+                        is = st_idx(i);
+                        ie = end_idx(i);
+                        c_rate = this.sat.cs.clock_rate;
+                        bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.getRate())));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.getRate())));
+                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
+                    end
+                else
+                    if nan_clock(1,s) == 1
+                        this.obs(o_idx , :) = 0;
+                    end
                 end
             end
             % check empty lines
@@ -4038,6 +4084,7 @@ classdef Receiver < Exportable
             %   rate = this.getRate();
             rate = this.getTime.getRate;
         end
+        
         
 
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
