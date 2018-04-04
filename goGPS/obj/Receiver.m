@@ -593,7 +593,7 @@ classdef Receiver < Exportable
             %
             % SYNTAX:
             %   this.keepEpochs(good_epochs)
-            bad_epochs = 1 : this.length;
+            bad_epochs = 1 : this.getNumEpochs;
             bad_epochs(good_epochs) = [];
             this.remEpochs(bad_epochs)
         end
@@ -3330,6 +3330,62 @@ classdef Receiver < Exportable
             %  [zwd, p_time, id_sync] = this.getZWD_mr()
             [zwd, p_time] = this.getZWD();
         end
+        
+        function [az, el] = getAzEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   [az, el] = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.getNumEpochs, n_sat);
+            el = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
+
+        function [az] = getAz(this)
+            % Get the azimuth (on valid id_sync)
+            %
+            % SYNTAX:
+            %   az = this.getAzEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.az, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            az = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
+
+        function [el] = getEl(this)
+            % Get the azimuth and elevation (on valid id_sync)
+            %
+            % SYNTAX:
+            %   el = this.getEl();
+            if numel(this) == 1
+                n_sat = size(this.sat.el, 2);
+            else
+                n_sat = this.getMaxSat();
+            end
+            el = zeros(this.getNumEpochs, n_sat);
+            t = 1;
+            for r = 1 : numel(this)
+                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                t = t + this(r).length;
+            end
+        end
 
         % Utilities
 
@@ -3932,72 +3988,19 @@ classdef Receiver < Exportable
             end
         end
 
-        function [rate] = getRate(this)
-            % SYSTEM:
-            %   rate = this.getRate();
-            rate = this.getTime.getRate;
-        end
+        
 
         function [az, el] = computeAzimuthElevation(this, go_id)
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
         
-        function [az, el] = getAzEl(this)
-            % Get the azimuth and elevation (on valid id_sync)
-            %
-            % SYNTAX:
-            %   [az, el] = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            az = zeros(this.length, n_sat);
-            el = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
+        function [rate] = getRate(this)
+            % SYSTEM:
+            %   rate = this.getRate();
+            rate = this.getTime.getRate;
         end
-
-        function [az] = getAz(this)
-            % Get the azimuth (on valid id_sync)
-            %
-            % SYNTAX:
-            %   az = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            az = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-        end
-
-        function [el] = getEl(this)
-            % Get the azimuth and elevation (on valid id_sync)
-            %
-            % SYNTAX:
-            %   el = this.getEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.el, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            el = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-        end
+        
 
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX:
@@ -5269,7 +5272,7 @@ classdef Receiver < Exportable
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, this.getMaxSat());
+            this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
             % LS does not know the max number of satellite stored
             % make dimensions consistent
              dsz = length(id_epoch) - size(res,1);
@@ -5826,7 +5829,7 @@ classdef Receiver < Exportable
                 % ls.Astack2Nstack();
                 % [x, res, s02] = ls.solve();
                 
-                this.sat.res = zeros(this.length, this.getMaxSat());
+                this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
                 dsz = max(id_sync) - size(res,1);
                 if dsz == 0
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
