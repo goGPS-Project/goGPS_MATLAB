@@ -4043,7 +4043,7 @@ classdef Receiver < Exportable
                 if isempty(this.sat.az)
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
-                av_idx = this.sat.avail_index(:, go_id);
+                av_idx = this.sat.avail_index(:, go_id) ~= 0;
                 [this.sat.az(av_idx, go_id), this.sat.el(av_idx, go_id)] = this.computeAzimuthElevation(go_id);
             end
         end
@@ -4172,7 +4172,7 @@ classdef Receiver < Exportable
                         lon = lon_full;
                     end
                     %%% get compute el
-                    el = this.sat.el(this.sat.avail_index(:,s), s);
+                    el = this.sat.el(idx, s);
                     switch flag
                         case 0 % no model
                             
@@ -4364,7 +4364,7 @@ classdef Receiver < Exportable
             [XS] = this.getXSLoc();
             for i  = 1 : length(sat)
                 s = sat(i);
-                sat_idx = this.sat.avail_index(:,s);
+                sat_idx = this.sat.avail_index(:,s) ~= 0;
                 XSs = permute(XS(sat_idx,s,:),[1 3 2]);
                 LOSu = rowNormalize(XSs);
                 solid_earth_corr(sat_idx,i) = sum(conj(r(sat_idx,:)).*LOSu,2);
