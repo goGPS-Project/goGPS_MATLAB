@@ -380,7 +380,7 @@ classdef Command_Interpreter < handle
                         this.runOutDet(rec, tok);                        
                     case this.CMD_SHOW.name                 % SHOW
                         this.runShow(rec, tok);  
-                    case this.CMD_EXPORT.name                 % SHOW
+                    case this.CMD_EXPORT.name               % EXPORT
                         this.runExport(rec, tok);   
                 end
             end
@@ -621,7 +621,7 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runShow(rec, tok)
+            %   this.runExport(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');

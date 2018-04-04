@@ -1144,7 +1144,19 @@ classdef Core_UI < handle
                 state.setSessionStop(sss_stop);
             end
             if status_change
+                this.updateINI();
                 this.updateRecList();
+            end
+        end
+        
+        function updateINI(this)
+            if ~isempty(this.w_main) && isvalid(this.w_main)
+                this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
+                
+                if this.j_settings.isValid
+                    str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+                    this.j_settings.setText(str);
+                end
             end
         end
         
@@ -1254,14 +1266,7 @@ classdef Core_UI < handle
         end
         
         function updateUI(this)
-            if ~isempty(this.w_main) && isvalid(this.w_main)
-                this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
-                
-                if this.j_settings.isValid
-                    str = strrep(strCell2Str(this.state.export(), 10),'#','%');
-                    this.j_settings.setText(str);
-                end
-            end
+            this.updateINI();
             this.updateRecList();
             this.updateSessionFromState();            
         end

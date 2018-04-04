@@ -65,6 +65,8 @@ classdef Global_Configuration < Settings_Interface
         reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
 
         local_storage = '';
+        
+        is_advanced = true;
     end
 
     properties % Public Access
@@ -248,7 +250,6 @@ classdef Global_Configuration < Settings_Interface
                 this.geoid.nrows = 0;
             end
         end
-
     end
 
     % =========================================================================
@@ -278,8 +279,32 @@ classdef Global_Configuration < Settings_Interface
             end
             geoid = this.geoid;
         end
+        
+        function [is_adv] = isAdvanced(this)
+            % Get the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.isAdvanced()
+            is_adv = this.is_advanced;
+        end
     end
 
+    % =========================================================================
+    %  ADDITIONAL GETTERS
+    % =========================================================================
+    methods
+        function setAdvanced(this, mode)
+            % Set the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.setAdvanced(<mode>)
+            if nargin == 1
+                mode = true;
+            end
+            this.is_advanced = mode;
+        end        
+    end
+    
     % =========================================================================
     %  GOGPS EXPORT
     % =========================================================================
