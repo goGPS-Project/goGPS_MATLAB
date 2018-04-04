@@ -2196,11 +2196,13 @@ classdef Receiver < Exportable
             %
             % OUTPUT:
             %   xyz     geocentric coordinates
+            %           dimensions: [#rec, 3, #sessions]
             %
             % SYNTAX:
             %   xyz = this.getMedianPosXYZ_mr()
 
             xyz = this.getMedianPosXYZ();
+            xyz = permute(reshape(xyz, size(this,1), size(this,2), 3), [2 3 1]);
         end
 
         function xyz = getMedianPosXYZ(this)
@@ -2208,19 +2210,55 @@ classdef Receiver < Exportable
             %
             % OUTPUT:
             %   xyz     geocentric coordinates
+            %           dimensions: [#sessions*#rec, 3]
             %
             % SYNTAX:
             %   xyz = this.getMedianPosXYZ()
-            xyz = [];
+            xyz = nan(numel(this),3);
             for r = 1 : numel(this)
-                if isempty(median(this(r).getPosXYZ(), 1))
-                    xyz = [xyz; nan(1,3)]; %#ok<AGROW>
-                else
-                    xyz = [xyz; median(this(r).getPosXYZ(), 1)]; %#ok<AGROW>
+                if ~isempty(median(this(r).getPosXYZ(), 1))
+                    xyz(r, :) = median(this(r).getPosXYZ(), 1);
                 end
             end
         end
 
+        function [utm, utm_zone] = getMedianPosUTM_mr(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   utm      UTM coordinates (EAST NORTH, ellipsoidal h)
+            %            [#rec, 3, #sessions]
+            %   utm_zone UTM coordinates (EAST NORTH, ellipsoidal h)
+            %            [#rec, 4, #sessions]
+            %
+            % SYNTAX:
+            %   utm = this.getMedianPosUTM()
+            
+            [utm, utm_zone] = this.getMedianPosUTM();
+            utm = permute(reshape(utm, size(this,1), size(this,2), 3), [2 3 1]);
+            utm_zone = permute(reshape(utm_zone, size(this,1), size(this,2), 4), [2 3 1]);
+        end
+        
+        function [utm, utm_zone] = getMedianPosUTM(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT:
+            %   utm     UTM coordinates (EAST NORTH, ellipsoidal h)
+            %
+            % SYNTAX:
+            %   utm = this.getMedianPosUTM()
+            this.updateUTM();
+            
+            utm = nan(numel(this),3);
+            utm_zone = char(ones(numel(this),4) * ' ');
+            for r = 1 : numel(this)
+                if ~isempty(this(r).utm)
+                    utm(r, :) = this(r).utm;
+                    utm_zone(r, :) = this(r).utm_zone;
+                end
+            end
+        end
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
@@ -3525,11 +3563,11 @@ classdef Receiver < Exportable
         end
         
         function updateUTM(this)
-            for i = 1:numel(this)
-                xyz = this(i).getMedianPosXYZ;
+            for r = 1 : numel(this)
+                xyz = this(r).getMedianPosXYZ;
                 [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
-                this(i).utm = [EAST, NORTH, h];
-                this(i).utm_zone = utm_zone;
+                this(r).utm = [EAST, NORTH, h];
+                this(r).utm_zone = utm_zone;
             end
         end
 
