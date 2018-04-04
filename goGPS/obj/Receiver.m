@@ -1880,13 +1880,13 @@ classdef Receiver < Exportable
             len = this.getTime.length();
         end
 
-        function len = length_mr(this)
+        function n_epo = getNumEpochs(this)
             % Return the time span of the receiver
             % SYNTAX:
             %   len = this.length();
-            len =  zeros(numel(this), 1);
+            n_epo =  zeros(numel(this), 1);
             for r = 1 : numel(this)
-                len(r) =  this(r).time.length();
+                n_epo(r) =  this(r).time.length();
             end
         end
 
@@ -1894,12 +1894,6 @@ classdef Receiver < Exportable
             % get the number of observables stored in the object
             % SYNTAX: n_obs = this.getNumObservables()
             n_obs = size(this.obs, 1);
-        end
-
-        function n_epo = getNumEpochs(this)
-            % get the number of epochs stored in the object
-            % SYNTAX: n_obs = this.getNumEpochs()
-            n_epo = size(this.obs, 2);
         end
 
         function n_pr = getNumPseudoRanges(this)
@@ -1948,7 +1942,7 @@ classdef Receiver < Exportable
 
             % Select only the systems still present in the file
             go_id = this.getActiveGoIds();
-            sys_c = unique(this.getSysPrn(go_id));
+            sys_c = serialize(unique(this.getSysPrn(go_id)))';
         end
 
         function [sys_c, prn] = getSysPrn(this, go_id)
@@ -5250,7 +5244,11 @@ classdef Receiver < Exportable
         function dpos = codeStaticPositioning(this,id_epoch, cut_off)
             ls = Least_Squares_Manipulator();
             if nargin < 2
-                id_epoch = 1:this.length();
+                if ~isempty(this.id_sync)
+                    id_epoch = this.id_sync;
+                else
+                    id_epoch = 1:this.getNumEpochs();
+                end
             end
             if nargin < 3
                 cut_off = [];

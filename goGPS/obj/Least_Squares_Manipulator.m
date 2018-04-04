@@ -357,7 +357,7 @@ classdef Least_Squares_Manipulator < handle
                 if phase_present
                     amb_offset = n_coo + iob_flag + 1;
                     A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
-                    A_idx(lines_stream, amb_offset) = n_coo + iob_flag + amb_idx(id_ok_stream, s);
+                    A_idx(lines_stream, amb_offset) = n_coo + n_iob + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
                 A(lines_stream, n_coo+iob_flag+amb_flag + 1) = 1;

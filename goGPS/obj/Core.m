@@ -75,27 +75,34 @@ classdef Core < handle
     % ==================================================================================================================================================
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
-        function this = Core()
+        function this = Core(force_clean)
+            if nargin < 2
+                force_clean = false;
+            end
             % Core object creator
             this.log = Logger.getInstance();
-            this.init();            
+            this.init(force_clean);            
         end
     end
     
     %% METHODS UI
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance()
+        function this = getInstance(force_clean)
+            if nargin < 2
+                force_clean = false;
+            end
             % Get the persistent instance of the class
             persistent unique_instance_core__
 
             if isempty(unique_instance_core__)
-                this = Core();
+                this = Core(force_clean);
                 unique_instance_core__ = this;
             else
                 this = unique_instance_core__;
-                this.init();
+                this.init(force_clean);
             end
+            
         end
 
         function ok_go = openGUI()
@@ -106,14 +113,17 @@ classdef Core < handle
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
-        function init(this)
+        function init(this, force_clean)
+            if nargin < 2
+                force_clean = false;
+            end
             this.log.setColorMode(true);
             Core_UI.showTextHeader();
             fclose('all');
             this.gc = Global_Configuration.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
-            this.sky = Core_Sky.getInstance();
+            this.sky = Core_Sky.getInstance(force_clean);
             this.cmd = Command_Interpreter.getInstance;            
         end
         
