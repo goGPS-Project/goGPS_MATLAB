@@ -576,9 +576,23 @@ classdef Meteo_Data < handle
     methods (Static)
         function md = getVMS(name, xyz, time, station)
             % Get Virtual Meteo Station
-            % SYNTAX: md = this.getVMS(name, xyz, time, station)
-            % e.g. [x, y, z, amsl] = station(1).getLocation();
-            %      md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
+            %
+            % INPUT
+            %   name    name of the new Meteo_Data virtual station
+            %   xyz     coordinates of the new meteo station
+            %   time    time of interpolation
+            %
+            %   station list of Meteo_Data station to use for the interpolation
+            %   
+            % OUTPUT
+            %   md      virtual Meteo_Data station generated at xyz coordinates
+            %   
+            % SYNTAX
+            %   md = this.getVMS(name, xyz, time, station)
+            %
+            % EXAMPLE
+            %   [x, y, z, amsl] = station(1).getLocation();
+            %   md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
 
             log = Logger.getInstance();
 

@@ -50,8 +50,9 @@ function [X,Y,Z] = geod2cart (phi, lam, h, a, f)
 %--------------------------------------------------------------------------
 
 if (nargin == 3)
-    a = goGNSS.ELL_A_GPS;
-    e = goGNSS.ELL_E_GPS;
+    cc = Constellation_Collector('G');
+    a = cc.gps.ELL_A;
+    e = cc.gps.ELL_E;
     e2 = e^2;
 else
     e = sqrt(1-(1-f)^2);
