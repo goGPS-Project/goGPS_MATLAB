@@ -1934,6 +1934,7 @@ classdef Receiver < Exportable
             for r = 1 : numel(this)
                 n_epo(r) =  this(r).time.length();
             end
+            n_epo = sum(n_epo);
         end
         
         function n_obs = getNumObservables(this)

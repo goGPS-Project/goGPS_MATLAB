@@ -108,7 +108,7 @@ classdef Meteo_Data < handle
         data = [];          % Meteorological file
 
         xyz = [0 0 0];      % geocentric coordinate of the sensor
-        amsl = 0;        % hortometric height of the sensor
+        amsl = 0;           % hortometric height of the sensor
         is_valid = false;   % Status of valitity of the file;
     end
 
