@@ -189,6 +189,8 @@ classdef Receiver < Exportable
         
         tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
         tge      % tropospheric gradient east          double   [n_epoch x n_sat]
+        
+        meteo_data % meteo data object
     end
     
     % ==================================================================================================================================================
@@ -222,7 +224,7 @@ classdef Receiver < Exportable
     end
     
     % ==================================================================================================================================================
-    %% METHODS INIT - CLEAN - RESET - REM
+    %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     
     methods
@@ -238,8 +240,8 @@ classdef Receiver < Exportable
             end
             this.w_bar = Go_Wait_Bar.getInstance();
             if nargin >= 2 && ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
-                this.loadRinex(rinex_file_name);
-                this.loadAntModel();
+                this.importRinex(rinex_file_name);
+                this.importAntModel();
             end
             this.rec_settings = Receiver_Settings();
             if nargin == 3
@@ -355,143 +357,6 @@ classdef Receiver < Exportable
             this.sat.cs           = Core_Sky.getInstance();
             %this.sat.avail_index  = false(this.getNumEpochs, this.cc.getNumSat);
             %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
-        end
-        
-        function loadRinex(this, file_name)
-            % Parses RINEX observation files.
-            %
-            % SYNTAX:
-            %   this.loadRinex(file_name)
-            %
-            % INPUT:
-            %   filename = RINEX observation file(s)
-            %
-            % OUTPUT:
-            %   pr1 = code observation (L1 carrier)
-            %   ph1 = phase observation (L1 carrier)
-            %   pr2 = code observation (L2 carrier)
-            %   ph2 = phase observation (L2 carrier)
-            %   dop1 = Doppler observation (L1 carrier)
-            %   dop2 = Doppler observation (L2 carrier)
-            %   snr1 = signal-to-noise ratio (L1 carrier)
-            %   snr2 = signal-to-noise ratio (L2 carrier)
-            %   time = receiver seconds-of-week
-            %   week = GPS week
-            %   date = date (year,month,day,hour,minute,second)
-            %   pos = rover approximate position
-            %   interval = observation time interval [s]
-            %   antoff = antenna offset [m]
-            %   antmod = antenna model [string]
-            %   codeC1 = boolean variable to notify if the C1 code is used instead of P1
-            %   marker = marker name [string]
-            
-            t0 = tic;
-            
-            this.log.addMarkedMessage('Reading observations...');
-            this.log.newLine();
-            
-            this.file =  File_Rinex(file_name, 9);
-            
-            if this.file.isValid()
-                this.log.addMessage(sprintf('Opening file %s for reading', file_name), 100);
-                % open RINEX observation file
-                fid = fopen(file_name,'r');
-                txt = fread(fid,'*char')';
-                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
-                fclose(fid);
-                
-                % get new line separators
-                nl = regexp(txt, '\n')';
-                if nl(end) <  numel(txt)
-                    nl = [nl; numel(txt)];
-                end
-                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-                lim = [lim lim(:,2) - lim(:,1)];
-                while lim(end,3) < 3
-                    lim(end,:) = [];
-                end
-                
-                % removing empty lines at end of file
-                while (lim(end,1) - lim(end-1,1))  < 2
-                    lim(end,:) = [];
-                end
-                
-                % importing header informations
-                eoh = this.file.eoh;
-                this.parseRinHead(txt, lim, eoh);
-                
-                if (this.rin_type < 3)
-                    % considering rinex 2
-                    this.parseRin2Data(txt, lim, eoh);
-                else
-                    % considering rinex 3
-                    this.parseRin3Data(txt, lim, eoh);
-                end
-                
-                % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
-                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag C2D) receiver not supporter (in rinex 2) convert them
-                % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
-                
-                % GPS C1 -> C1C
-                idx = this.getObsIdx('C1 ','G');
-                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
-                % GPS C2 -> C2C
-                idx = this.getObsIdx('C2 ','G');
-                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
-                % GPS L1 -> L1C
-                idx = this.getObsIdx('L1 ','G');
-                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
-                % GPS L2 -> L2W
-                idx = this.getObsIdx('L2 ','G');
-                this.obs_code(idx,:) = repmat('L2W',length(idx),1);
-                % GPS C5 -> C5I
-                idx = this.getObsIdx('C5 ','G');
-                this.obs_code(idx,:) = repmat('C5I',length(idx),1);
-                % GPS L5 -> L5I
-                idx = this.getObsIdx('L5 ','G');
-                this.obs_code(idx,:) = repmat('L5I',length(idx),1);
-                % GPS P1 -> C1W
-                idx = this.getObsIdx('P1 ','G');
-                this.obs_code(idx,:) = repmat('C1W',length(idx),1);
-                % GPS P2 -> C2W
-                idx = this.getObsIdx('P2 ','G');
-                this.obs_code(idx,:) = repmat('C2W',length(idx),1);
-                % GLONASS C1 -> C1C
-                idx = this.getObsIdx('C1 ','R');
-                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
-                % GLONASS C2 -> C2C
-                idx = this.getObsIdx('C2 ','R');
-                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
-                % GLONASS P1 -> C1P
-                idx = this.getObsIdx('P1 ','R');
-                this.obs_code(idx,:) = repmat('C1P',length(idx),1);
-                % GLONASS P2 -> C2P
-                idx = this.getObsIdx('P2 ','R');
-                this.obs_code(idx,:) = repmat('C2P',length(idx),1);
-                % other flags to be investiagated
-                
-                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
-                this.log.newLine();
-            end
-            
-            % Compute the other useful status array of the receiver object
-            this.updateStatus();
-            this.active_ids = true(this.getNumObservables, 1);
-            
-            % remove empty observables
-            this.remObs(~this.active_ids);
-            
-            this.setActiveSys(this.getAvailableSys);
-        end
-        
-        function loadAntModel(this)
-            % Load and parse the antenna (ATX) file as specified into settings
-            % SYNTAX:
-            %   this.loadAntModel
-            filename_pcv = this.state.getAtxFile;
-            fnp = File_Name_Processor();
-            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
-            this.pcv = Core_Utils.readAntennaPCV(filename_pcv, {this.ant_type});
         end
         
         function TEST_smoothCodeWithDoppler(this, win_size)
@@ -890,6 +755,507 @@ classdef Receiver < Exportable
                 this.setPhases(ph, wl, id_ph);
                 this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
             end
+        end
+        
+
+        function chooseDataTypes(this)
+            % get the right attribute column to be used for a certain type/band couple
+            % LEGACY????
+            t_ok = 'CLDS'; % type
+            
+            rin_obs_col = struct('G', zeros(4, numel(this.cc.gps.F_VEC)), ...
+                'R', zeros(4, size(this.cc.glo.F_VEC,2)), ...
+                'E', zeros(4, numel(this.cc.gal.F_VEC)), ...
+                'J', zeros(4, numel(this.cc.qzs.F_VEC)), ...
+                'C', zeros(4, numel(this.cc.bds.F_VEC)), ...
+                'I', zeros(4, numel(this.cc.irn.F_VEC)), ...
+                'S', zeros(4, numel(this.cc.sbs.F_VEC)));
+            
+            if this.rin_type >= 3
+                
+                for c = 1 : numel(this.cc.SYS_C)
+                    sys_c = char(this.cc.SYS_C(c));
+                    sys = char(this.cc.SYS_NAME{c} + 32);
+                    
+                    if ~isempty(this.rin_obs_code.G)
+                        code = reshape(this.rin_obs_code.(sys_c), 3, numel(this.rin_obs_code.(sys_c)) / 3)';
+                        b_ok = this.cc.(sys).CODE_RIN3_2BAND;  % band
+                        a_ok = this.cc.(sys).CODE_RIN3_ATTRIB; % attribute
+                        for t = 1 : numel(t_ok)
+                            for b = 1 : numel(b_ok)
+                                % get the observation codes with a certain type t_ok(t) and band b_ok(b)
+                                obs = (code(:,1) == t_ok(t)) & (code(:,2) == b_ok(b));
+                                if any(obs)
+                                    % find the preferred observation among the available ones
+                                    [a, id] = intersect(code(obs, 3), a_ok{b}); a = a(id);
+                                    % save the id of the column in the rin_obs_col struct matrix
+                                    rin_obs_col.(sys_c)(t, b) = find(obs & code(:,3) == a(1));
+                                end
+                            end
+                        end
+                    end
+                end
+                
+            else % rinex 2
+                keyboard;
+                % to be done
+            end
+        end
+        
+        function updateRemoveOutlierMarkCycleSlip(this)
+            % After changing the observations Synth phases must be recomputed and
+            % old outliers and cycle-slips removed before launching a new detection
+            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
+            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
+            this.updateSyntPhases();
+            this.removeOutlierMarkCycleSlip();
+        end
+        
+        function removeOutlierMarkCycleSlip(this)
+            this.log.addMarkedMessage('Cleaning observations');
+            this.updateAllAvailIndex();
+            this.updateAllTOT();
+            % PARAMETRS
+            ol_thr = 0.5; % outlier threshold
+            cs_thr = 0.5; % CYCLE SLIP THR
+            sa_thr = this.state.getMinArc();  % short arc threshold
+            
+            %----------------------------
+            % Outlier Detection
+            %----------------------------
+            
+            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
+            mask = this.sat.el > this.state.cut_off;
+            this.obs = this.obs .* mask(:, this.go_id)';
+            
+            % mark all as outlier and interpolate
+            % get observed values
+            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
+            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
+            [ph, wl, id_ph_l] = this.getPhases;
+            
+            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
+            % first time derivate
+            synt_ph = this.getSyntPhases;
+            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
+            
+            % subtract median (clock error)
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            
+            % test sensor variance
+            tmp = sensor_ph(~isnan(sensor_ph));
+            tmp(abs(tmp)>4) = [];
+            std_sensor = mean(movstd(tmp(:),900));
+            
+            % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
+            % use as a sensor the time second derivate
+            if std_sensor > ol_thr
+                this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
+                der = 2; % use second
+                % try with second time derivate
+                sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph, der);
+                % subtract median (clock error)
+                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                % divide for wavelenght
+                sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            else
+                der = 1; % use first
+            end
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > ol_thr / der;
+            % take them off
+            ph2 = ph;
+            ph2(poss_out_idx) = nan;
+            
+            %----------------------------
+            % Cycle slip detection
+            %----------------------------
+            
+            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
+            % join the nan
+            sensor_ph_cs = nan(size(sensor_ph));
+            for o = 1 : size(ph2,2)
+                tmp_ph = ph2(:,o);
+                ph_idx = not(isnan(tmp_ph));
+                tmp_ph = tmp_ph(ph_idx);
+                if ~isempty(tmp_ph)
+                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
+                end
+            end
+            
+            % subtract median
+            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
+            
+            % find possible cycle slip
+            % cycle slip when they exceed threhsold cycle
+            poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
+            
+            %check if epoch before cycle slip can be restored
+            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
+            poss_rest = poss_rest & poss_out_idx;
+            poss_rest_line = sum(poss_rest,2);
+            if sum(poss_rest_line) > 0
+                poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
+                ph_rest_lines = ph(poss_rest_line,:);
+                synt_ph_rest_lines = synt_ph(poss_rest_line,:);
+                sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+                % subtract median
+                sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
+                % divide for wavelenght
+                sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
+                for i = 1:size(sensor_rst,2)
+                    for c = find(poss_rest(:,i))'
+                        if ~isempty(c)
+                            idx = sum(poss_rest_line(1:c));
+                            if abs(sensor_rst(idx,i)) < cs_thr
+                                poss_out_idx(c,i) = false; %is not outlier
+                                %move 1 step before the cycle slip index
+                                poss_slip_idx(c+1,i) = false;
+                                poss_slip_idx(c,i) = true;
+                            end
+                        end
+                    end
+                end
+            end
+            this.ph_idx = find(id_ph_l);
+            %-------------------------------------------------------
+            % MELBOURNE WUBBENA based cycle slip detection
+            %--------------------------------------------------------
+            %             mw = this.getMelWub('1','2','G');
+            %             omw = mw.obs./repmat(mw.wl,size(mw.obs,1),1);
+            %             %m_omw = reshape(medfilt_mat(omw,10),size(omw));
+            %             omw1 = Core_Pre_Processing.diffAndPred(zero2nan(omw),1);
+            %             omw2 = Core_Pre_Processing.diffAndPred(zero2nan(omw),2);
+            %             omw3 = Core_Pre_Processing.diffAndPred(zero2nan(omw),3);
+            %             omw4 = Core_Pre_Processing.diffAndPred(zero2nan(omw),4);
+            %             omw5 = Core_Pre_Processing.diffAndPred(zero2nan(omw),5);
+            %             m_omw = (omw1 + omw2/2 + omw3/3 + omw4/4 + omw5/5) / 5;
+            %             for o = 1 : length(mw.go_id)
+            %                 go_id = mw.go_id(o);
+            %                 idx_gi = this.go_id(id_ph_l) == go_id;
+            %                 poss_slip_idx(abs(m_omw(:,o)) > 0.5,idx_gi) = 1;
+            %             end
+            %-------------------------------------------------------
+            % SAFE CHOICE: if there is an hole put a cycle slip
+            %--------------------------------------------------------
+            for o = 1 : size(ph2,2)
+                tmp_ph = ph2(:,o);
+                ph_idx = isnan(tmp_ph);
+                c_idx = [false ;diff(ph_idx) == -1];
+                poss_slip_idx(c_idx,o) = 1;
+            end
+            
+            % if majority of satellites jump set cycle slip on all
+            n_obs_ep = sum(~isnan(ph2),2);
+            all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
+            for c = find(all_but_one')
+                poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
+            end
+            
+            % remove too short possible arc
+            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
+            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
+            to_short_idx(poss_slip_idx) = false;
+            poss_out_idx(to_short_idx) = true;
+            
+            n_out = sum(poss_out_idx(:));
+            this.outlier_idx_ph = sparse(poss_out_idx);
+            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
+            
+            % Outlier detection for some reason is not working properly -> reperform outlier detection
+            sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            % divide for wavelenght
+            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > 0.5;
+            this.outlier_idx_ph = this.outlier_idx_ph | poss_out_idx;
+            
+            this.cycle_slip_idx_ph([false(1,size(this.outlier_idx_ph,2)); (diff(this.outlier_idx_ph) == -1)]) = 1;
+            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
+            
+            %this.removeShortArch(this.state.getMinArc);
+        end
+        
+        function cycleSlipPPPres(this)
+            sensor = Core_Pre_Processing.diffAndPred(this.sat.res);
+            ph_idx =  this.obs_code(:,1) == 'L';
+            idx = abs(sensor) > 0.03;
+            for i = 1 : size(sensor,2)
+                sat_idx = this.go_id(ph_idx) == i;
+                this.cycle_slip_idx_ph(idx(:,i), :) = 1;
+            end
+        end
+        
+        function tryCycleSlipRepair(this)
+            %----------------------------
+            % Cycle slip repair
+            %----------------------------
+            
+            % window used to estimate cycle slip
+            % linear time
+            lin_time = 900; %single diffrence is linear in 15 minutes
+            max_window = 600; %maximum windows allowed (for computational reason)
+            win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
+            
+            poss_out_idx = this.outlier_idx_ph;
+            poss_slip_idx = this.cycle_slip_idx_ph;
+            
+            [ph, ~, id_ph_l] = this.getPhases();
+            id_ph = find(id_ph_l);
+            synt_ph = this.getSyntPhases();
+            d_no_out = (ph - synt_ph )./ repmat(this.wl(id_ph_l)',size(ph,1),1);
+            n_ep = this.time.length;
+            poss_slip_idx = double(poss_slip_idx);
+            n_cycleslip = 0;
+            n_repaired = 0;
+            jmps = [];
+            for p = 1:size(poss_slip_idx,2)
+                c_slip = find(poss_slip_idx(:,p)' == 1);
+                for c = c_slip
+                    n_cycleslip = n_cycleslip + 1;
+                    slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
+                    if isempty(slip_bf)
+                        slip_bf = 0;
+                    end
+                    st_wind_idx = max(1,c - win_size /2 + slip_bf);
+                    slip_aft = find(poss_slip_idx(c :min( c + win_size / 2,n_ep), p),1,'first');
+                    if isempty(slip_aft)
+                        slip_aft = 0;
+                    end
+                    end_wind_idx = min(c + win_size /2 - slip_bf -1,n_ep);
+                    jmp_idx =  win_size /2 - slip_bf +1;
+                    
+                    % find best master before
+                    idx_other_l = 1:size(poss_slip_idx,2) ~= p;
+                    idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
+                    best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst_bf =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst_bf(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_bf = sum(poss_mst_bf); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_bf,'descend');
+                    [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
+                    
+                    % find best master after
+                    idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
+                    best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
+                    poss_mst_aft =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
+                    for j = 1 : length(best_cs)
+                        poss_mst_aft(1:best_cs(j),j) = false;
+                    end
+                    num_us_ep_aft = sum(poss_mst_aft); % number of usable epoch befor
+                    data_sorted = sort(num_us_ep_aft,'descend');
+                    [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
+                    
+                    
+                    idx_other = find(idx_other_l);
+                    
+                    %decide which arc to use
+                    bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
+                    if isempty(bst_1)
+                        bst_1 = find(rnk_bf == 1 ,1,'first');
+                        bst_2 = find(rnk_aft == 1,1,'first');
+                        same_slope = false;
+                    else
+                        bst_2 = bst_1;
+                        same_slope = true;
+                    end
+                    
+                    s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
+                    jmp = nan;
+                    if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
+                        jmp = estimateJump(s_diff, jmp_idx,same_slope,'median');
+                        jmps= [jmps ; jmp];
+                    end
+                    
+                    %{
+                    ph_piv = d_no_out(st_wind_idx : end_wind_idx,p);
+                    usable_s = sum(poss_mst_bf) > 0 & sum(poss_mst_aft);
+                    ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
+                    ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
+                    ph_other(:, ~usable_s) = [];
+
+                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
+                    %}
+                    % repair
+                    % TO DO half cycle
+                    if ~isnan(jmp)
+                        this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
+                    end
+                    if false %abs(jmp -round(jmp)) < 0.01
+                        poss_slip_idx(c, p) = - 1;
+                        n_repaired = n_repaired +1;
+                    else
+                        poss_slip_idx(c, p) =   1;
+                    end
+                end
+            end
+            
+            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
+            
+            this.cycle_slip_idx_ph = poss_slip_idx;
+            
+            % save index into object
+            
+        end
+        
+        function importRinex(this, file_name)
+            % Parses RINEX observation files.
+            %
+            % SYNTAX:
+            %   this.importRinex(file_name)
+            %
+            % INPUT:
+            %   filename = RINEX observation file(s)
+            %
+            % OUTPUT:
+            %   pr1 = code observation (L1 carrier)
+            %   ph1 = phase observation (L1 carrier)
+            %   pr2 = code observation (L2 carrier)
+            %   ph2 = phase observation (L2 carrier)
+            %   dop1 = Doppler observation (L1 carrier)
+            %   dop2 = Doppler observation (L2 carrier)
+            %   snr1 = signal-to-noise ratio (L1 carrier)
+            %   snr2 = signal-to-noise ratio (L2 carrier)
+            %   time = receiver seconds-of-week
+            %   week = GPS week
+            %   date = date (year,month,day,hour,minute,second)
+            %   pos = rover approximate position
+            %   interval = observation time interval [s]
+            %   antoff = antenna offset [m]
+            %   antmod = antenna model [string]
+            %   codeC1 = boolean variable to notify if the C1 code is used instead of P1
+            %   marker = marker name [string]
+            
+            t0 = tic;
+            
+            this.log.addMarkedMessage('Reading observations...');
+            this.log.newLine();
+            
+            this.file =  File_Rinex(file_name, 9);
+            
+            if this.file.isValid()
+                this.log.addMessage(sprintf('Opening file %s for reading', file_name), 100);
+                % open RINEX observation file
+                fid = fopen(file_name,'r');
+                txt = fread(fid,'*char')';
+                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                while lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % removing empty lines at end of file
+                while (lim(end,1) - lim(end-1,1))  < 2
+                    lim(end,:) = [];
+                end
+                
+                % importing header informations
+                eoh = this.file.eoh;
+                this.parseRinHead(txt, lim, eoh);
+                
+                if (this.rin_type < 3)
+                    % considering rinex 2
+                    this.parseRin2Data(txt, lim, eoh);
+                else
+                    % considering rinex 3
+                    this.parseRin3Data(txt, lim, eoh);
+                end
+                
+                % guess rinex3 flag for incomplete flag (probably coming from rinex2 or converted rinex2 -> rinex3)
+                % WARNING!! (C/A) + (P2-P1) semi codeless tracking (flag C2D) receiver not supporter (in rinex 2) convert them
+                % using cc2noncc converter https://github.com/ianmartin/cc2noncc (not tested)
+                
+                % GPS C1 -> C1C
+                idx = this.getObsIdx('C1 ','G');
+                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                % GPS C2 -> C2C
+                idx = this.getObsIdx('C2 ','G');
+                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GPS L1 -> L1C
+                idx = this.getObsIdx('L1 ','G');
+                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
+                % GPS L2 -> L2W
+                idx = this.getObsIdx('L2 ','G');
+                this.obs_code(idx,:) = repmat('L2W',length(idx),1);
+                % GPS C5 -> C5I
+                idx = this.getObsIdx('C5 ','G');
+                this.obs_code(idx,:) = repmat('C5I',length(idx),1);
+                % GPS L5 -> L5I
+                idx = this.getObsIdx('L5 ','G');
+                this.obs_code(idx,:) = repmat('L5I',length(idx),1);
+                % GPS P1 -> C1W
+                idx = this.getObsIdx('P1 ','G');
+                this.obs_code(idx,:) = repmat('C1W',length(idx),1);
+                % GPS P2 -> C2W
+                idx = this.getObsIdx('P2 ','G');
+                this.obs_code(idx,:) = repmat('C2W',length(idx),1);
+                % GLONASS C1 -> C1C
+                idx = this.getObsIdx('C1 ','R');
+                this.obs_code(idx,:) = repmat('C1C',length(idx),1);
+                % GLONASS C2 -> C2C
+                idx = this.getObsIdx('C2 ','R');
+                this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GLONASS P1 -> C1P
+                idx = this.getObsIdx('P1 ','R');
+                this.obs_code(idx,:) = repmat('C1P',length(idx),1);
+                % GLONASS P2 -> C2P
+                idx = this.getObsIdx('P2 ','R');
+                this.obs_code(idx,:) = repmat('C2P',length(idx),1);
+                % other flags to be investiagated
+                
+                this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
+                this.log.newLine();
+            end
+            
+            % Compute the other useful status array of the receiver object
+            this.updateStatus();
+            this.active_ids = true(this.getNumObservables, 1);
+            
+            % remove empty observables
+            this.remObs(~this.active_ids);
+            
+            this.setActiveSys(this.getAvailableSys);
+        end
+        
+        function importAntModel(this)
+            % Load and parse the antenna (ATX) file as specified into settings
+            % SYNTAX:
+            %   this.importAntModel
+            filename_pcv = this.state.getAtxFile;
+            fnp = File_Name_Processor();
+            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+            this.pcv = Core_Utils.readAntennaPCV(filename_pcv, {this.ant_type});
+        end
+        
+        function importOceanLoading(this)
+            %DESCRIPTION: load ocean loading displcement matrix from
+            %ocean_loading.blq if satation is present
+            this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.marker_name});
+            if isempty(this.ocean_load_disp)
+                this.ocean_load_disp == -1; %mean not found
+            end
+        end
+        
+        function importMeteoData(this)
+            %DESCRIPTION: load meteo data from met file
+            %and get a virtual station at receiver positions
+            
+            
         end
         
         function parseRinHead(this, txt, lim, eoh)
@@ -1484,352 +1850,6 @@ classdef Receiver < Exportable
             this.obs = obs;
         end
         
-        function chooseDataTypes(this)
-            % get the right attribute column to be used for a certain type/band couple
-            % LEGACY????
-            t_ok = 'CLDS'; % type
-            
-            rin_obs_col = struct('G', zeros(4, numel(this.cc.gps.F_VEC)), ...
-                'R', zeros(4, size(this.cc.glo.F_VEC,2)), ...
-                'E', zeros(4, numel(this.cc.gal.F_VEC)), ...
-                'J', zeros(4, numel(this.cc.qzs.F_VEC)), ...
-                'C', zeros(4, numel(this.cc.bds.F_VEC)), ...
-                'I', zeros(4, numel(this.cc.irn.F_VEC)), ...
-                'S', zeros(4, numel(this.cc.sbs.F_VEC)));
-            
-            if this.rin_type >= 3
-                
-                for c = 1 : numel(this.cc.SYS_C)
-                    sys_c = char(this.cc.SYS_C(c));
-                    sys = char(this.cc.SYS_NAME{c} + 32);
-                    
-                    if ~isempty(this.rin_obs_code.G)
-                        code = reshape(this.rin_obs_code.(sys_c), 3, numel(this.rin_obs_code.(sys_c)) / 3)';
-                        b_ok = this.cc.(sys).CODE_RIN3_2BAND;  % band
-                        a_ok = this.cc.(sys).CODE_RIN3_ATTRIB; % attribute
-                        for t = 1 : numel(t_ok)
-                            for b = 1 : numel(b_ok)
-                                % get the observation codes with a certain type t_ok(t) and band b_ok(b)
-                                obs = (code(:,1) == t_ok(t)) & (code(:,2) == b_ok(b));
-                                if any(obs)
-                                    % find the preferred observation among the available ones
-                                    [a, id] = intersect(code(obs, 3), a_ok{b}); a = a(id);
-                                    % save the id of the column in the rin_obs_col struct matrix
-                                    rin_obs_col.(sys_c)(t, b) = find(obs & code(:,3) == a(1));
-                                end
-                            end
-                        end
-                    end
-                end
-                
-            else % rinex 2
-                keyboard;
-                % to be done
-            end
-        end
-        
-        function updateRemoveOutlierMarkCycleSlip(this)
-            % After changing the observations Synth phases must be recomputed and
-            % old outliers and cycle-slips removed before launching a new detection
-            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
-            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
-            this.updateSyntPhases();
-            this.removeOutlierMarkCycleSlip();
-        end
-        
-        function removeOutlierMarkCycleSlip(this)
-            this.log.addMarkedMessage('Cleaning observations');
-            this.updateAllAvailIndex();
-            this.updateAllTOT();
-            % PARAMETRS
-            ol_thr = 0.5; % outlier threshold
-            cs_thr = 0.5; % CYCLE SLIP THR
-            sa_thr = this.state.getMinArc();  % short arc threshold
-            
-            %----------------------------
-            % Outlier Detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
-            mask = this.sat.el > this.state.cut_off;
-            this.obs = this.obs .* mask(:, this.go_id)';
-            
-            % mark all as outlier and interpolate
-            % get observed values
-            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
-            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
-            [ph, wl, id_ph_l] = this.getPhases;
-            
-            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
-            % first time derivate
-            synt_ph = this.getSyntPhases;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
-            
-            % subtract median (clock error)
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            
-            % test sensor variance
-            tmp = sensor_ph(~isnan(sensor_ph));
-            tmp(abs(tmp)>4) = [];
-            std_sensor = mean(movstd(tmp(:),900));
-            
-            % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
-            % use as a sensor the time second derivate
-            if std_sensor > ol_thr
-                this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
-                der = 2; % use second
-                % try with second time derivate
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph, der);
-                % subtract median (clock error)
-                sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                % divide for wavelenght
-                sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            else
-                der = 1; % use first
-            end
-            % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > ol_thr / der;
-            % take them off
-            ph2 = ph;
-            ph2(poss_out_idx) = nan;
-            
-            %----------------------------
-            % Cycle slip detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
-            % join the nan
-            sensor_ph_cs = nan(size(sensor_ph));
-            for o = 1 : size(ph2,2)
-                tmp_ph = ph2(:,o);
-                ph_idx = not(isnan(tmp_ph));
-                tmp_ph = tmp_ph(ph_idx);
-                if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
-                end
-            end
-            
-            % subtract median
-            sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
-            
-            % find possible cycle slip
-            % cycle slip when they exceed threhsold cycle
-            poss_slip_idx = abs(sensor_ph_cs2) > cs_thr;
-            
-            %check if epoch before cycle slip can be restored
-            poss_rest = [poss_slip_idx(2:end,:); zeros(1,size(poss_slip_idx,2))];
-            poss_rest = poss_rest & poss_out_idx;
-            poss_rest_line = sum(poss_rest,2);
-            if sum(poss_rest_line) > 0
-                poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
-                ph_rest_lines = ph(poss_rest_line,:);
-                synt_ph_rest_lines = synt_ph(poss_rest_line,:);
-                sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
-                % subtract median
-                sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-                % divide for wavelenght
-                sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
-                for i = 1:size(sensor_rst,2)
-                    for c = find(poss_rest(:,i))'
-                        if ~isempty(c)
-                            idx = sum(poss_rest_line(1:c));
-                            if abs(sensor_rst(idx,i)) < cs_thr
-                                poss_out_idx(c,i) = false; %is not outlier
-                                %move 1 step before the cycle slip index
-                                poss_slip_idx(c+1,i) = false;
-                                poss_slip_idx(c,i) = true;
-                            end
-                        end
-                    end
-                end
-            end
-            this.ph_idx = find(id_ph_l);
-            %-------------------------------------------------------
-            % MELBOURNE WUBBENA based cycle slip detection
-            %--------------------------------------------------------
-            %             mw = this.getMelWub('1','2','G');
-            %             omw = mw.obs./repmat(mw.wl,size(mw.obs,1),1);
-            %             %m_omw = reshape(medfilt_mat(omw,10),size(omw));
-            %             omw1 = Core_Pre_Processing.diffAndPred(zero2nan(omw),1);
-            %             omw2 = Core_Pre_Processing.diffAndPred(zero2nan(omw),2);
-            %             omw3 = Core_Pre_Processing.diffAndPred(zero2nan(omw),3);
-            %             omw4 = Core_Pre_Processing.diffAndPred(zero2nan(omw),4);
-            %             omw5 = Core_Pre_Processing.diffAndPred(zero2nan(omw),5);
-            %             m_omw = (omw1 + omw2/2 + omw3/3 + omw4/4 + omw5/5) / 5;
-            %             for o = 1 : length(mw.go_id)
-            %                 go_id = mw.go_id(o);
-            %                 idx_gi = this.go_id(id_ph_l) == go_id;
-            %                 poss_slip_idx(abs(m_omw(:,o)) > 0.5,idx_gi) = 1;
-            %             end
-            %-------------------------------------------------------
-            % SAFE CHOICE: if there is an hole put a cycle slip
-            %--------------------------------------------------------
-            for o = 1 : size(ph2,2)
-                tmp_ph = ph2(:,o);
-                ph_idx = isnan(tmp_ph);
-                c_idx = [false ;diff(ph_idx) == -1];
-                poss_slip_idx(c_idx,o) = 1;
-            end
-            
-            % if majority of satellites jump set cycle slip on all
-            n_obs_ep = sum(~isnan(ph2),2);
-            all_but_one = (n_obs_ep - sum(poss_slip_idx,2)) < (0.7 * n_obs_ep) |  (n_obs_ep - sum(poss_slip_idx,2)) < 3;
-            for c = find(all_but_one')
-                poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
-            end
-            
-            % remove too short possible arc
-            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
-            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
-            to_short_idx(poss_slip_idx) = false;
-            poss_out_idx(to_short_idx) = true;
-            
-            n_out = sum(poss_out_idx(:));
-            this.outlier_idx_ph = sparse(poss_out_idx);
-            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
-            
-            % Outlier detection for some reason is not working properly -> reperform outlier detection
-            sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelenght
-            sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
-            % outlier when they exceed 0.5 cycle
-            poss_out_idx = abs(sensor_ph) > 0.5;
-            this.outlier_idx_ph = this.outlier_idx_ph | poss_out_idx;
-            
-            this.cycle_slip_idx_ph([false(1,size(this.outlier_idx_ph,2)); (diff(this.outlier_idx_ph) == -1)]) = 1;
-            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
-            
-            %this.removeShortArch(this.state.getMinArc);
-        end
-        
-        function cycleSlipPPPres(this)
-            sensor = Core_Pre_Processing.diffAndPred(this.sat.res);
-            ph_idx =  this.obs_code(:,1) == 'L';
-            idx = abs(sensor) > 0.03;
-            for i = 1 : size(sensor,2)
-                sat_idx = this.go_id(ph_idx) == i;
-                this.cycle_slip_idx_ph(idx(:,i), :) = 1;
-            end
-        end
-        
-        function tryCycleSlipRepair(this)
-            %----------------------------
-            % Cycle slip repair
-            %----------------------------
-            
-            % window used to estimate cycle slip
-            % linear time
-            lin_time = 900; %single diffrence is linear in 15 minutes
-            max_window = 600; %maximum windows allowed (for computational reason)
-            win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
-            
-            poss_out_idx = this.outlier_idx_ph;
-            poss_slip_idx = this.cycle_slip_idx_ph;
-            
-            [ph, ~, id_ph_l] = this.getPhases();
-            id_ph = find(id_ph_l);
-            synt_ph = this.getSyntPhases();
-            d_no_out = (ph - synt_ph )./ repmat(this.wl(id_ph_l)',size(ph,1),1);
-            n_ep = this.time.length;
-            poss_slip_idx = double(poss_slip_idx);
-            n_cycleslip = 0;
-            n_repaired = 0;
-            jmps = [];
-            for p = 1:size(poss_slip_idx,2)
-                c_slip = find(poss_slip_idx(:,p)' == 1);
-                for c = c_slip
-                    n_cycleslip = n_cycleslip + 1;
-                    slip_bf = find(poss_slip_idx(max(1,c - win_size /2 ): c-1, p),1,'last');
-                    if isempty(slip_bf)
-                        slip_bf = 0;
-                    end
-                    st_wind_idx = max(1,c - win_size /2 + slip_bf);
-                    slip_aft = find(poss_slip_idx(c :min( c + win_size / 2,n_ep), p),1,'first');
-                    if isempty(slip_aft)
-                        slip_aft = 0;
-                    end
-                    end_wind_idx = min(c + win_size /2 - slip_bf -1,n_ep);
-                    jmp_idx =  win_size /2 - slip_bf +1;
-                    
-                    % find best master before
-                    idx_other_l = 1:size(poss_slip_idx,2) ~= p;
-                    idx_win_bf = poss_slip_idx(st_wind_idx : c -1 , idx_other_l) ;
-                    best_cs = min(idx_win_bf .* repmat([1:(c-st_wind_idx)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst_bf =~isnan(d_no_out(st_wind_idx : c -1 , idx_other_l));
-                    for j = 1 : length(best_cs)
-                        poss_mst_bf(1:best_cs(j),j) = false;
-                    end
-                    num_us_ep_bf = sum(poss_mst_bf); % number of usable epoch befor
-                    data_sorted = sort(num_us_ep_bf,'descend');
-                    [~, rnk_bf] = ismember(num_us_ep_bf,data_sorted);
-                    
-                    % find best master after
-                    idx_win_aft = poss_slip_idx(c : end_wind_idx , idx_other_l) ;
-                    best_cs = min(idx_win_aft .* repmat([1:(end_wind_idx -c +1)]',1,sum(idx_other_l))); %find other arc with farerer cycle slip
-                    poss_mst_aft =~isnan(d_no_out(c : end_wind_idx, idx_other_l));
-                    for j = 1 : length(best_cs)
-                        poss_mst_aft(1:best_cs(j),j) = false;
-                    end
-                    num_us_ep_aft = sum(poss_mst_aft); % number of usable epoch befor
-                    data_sorted = sort(num_us_ep_aft,'descend');
-                    [~, rnk_aft] = ismember(num_us_ep_aft,data_sorted);
-                    
-                    
-                    idx_other = find(idx_other_l);
-                    
-                    %decide which arc to use
-                    bst_1 = find(rnk_bf == 1  & rnk_aft == 1,1,'first');
-                    if isempty(bst_1)
-                        bst_1 = find(rnk_bf == 1 ,1,'first');
-                        bst_2 = find(rnk_aft == 1,1,'first');
-                        same_slope = false;
-                    else
-                        bst_2 = bst_1;
-                        same_slope = true;
-                    end
-                    
-                    s_diff = d_no_out(st_wind_idx : end_wind_idx, p) - [d_no_out(st_wind_idx : c -1, idx_other(bst_1)); d_no_out(c : end_wind_idx, idx_other(bst_2))];
-                    jmp = nan;
-                    if sum(~isnan(s_diff(1:jmp_idx-1))) > 5 & sum(~isnan(s_diff(jmp_idx:end))) > 5
-                        jmp = estimateJump(s_diff, jmp_idx,same_slope,'median');
-                        jmps= [jmps ; jmp];
-                    end
-                    
-                    %{
-                    ph_piv = d_no_out(st_wind_idx : end_wind_idx,p);
-                    usable_s = sum(poss_mst_bf) > 0 & sum(poss_mst_aft);
-                    ph_other = d_no_out(st_wind_idx : end_wind_idx,idx_other_l);
-                    ph_other([~poss_mst_bf ;~poss_mst_aft]) = nan;
-                    ph_other(:, ~usable_s) = [];
-
-                    s_diff = ph_other - repmat(ph_piv,1,size(ph_other,2));
-                    %}
-                    % repair
-                    % TO DO half cycle
-                    if ~isnan(jmp)
-                        this.obs(id_ph(p),c:end) = nan2zero(zero2nan(this.obs(id_ph(p),c:end)) - round(jmp));
-                    end
-                    if false %abs(jmp -round(jmp)) < 0.01
-                        poss_slip_idx(c, p) = - 1;
-                        n_repaired = n_repaired +1;
-                    else
-                        poss_slip_idx(c, p) =   1;
-                    end
-                end
-            end
-            
-            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
-            
-            this.cycle_slip_idx_ph = poss_slip_idx;
-            
-            % save index into object
-            
-        end
     end
     
     % ==================================================================================================================================================
@@ -3271,7 +3291,7 @@ classdef Receiver < Exportable
                     [range, xs_loc_t] = this.getSyntObs('I', go_id);
                 else
                     f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
-                    [range, xs_loc_t] = this.getSyntObs(f, go_id);
+                    [range, xs_loc_t] = this.getSyntObs(f, go_id );
                 end
                 
                 idx_obs = obs_set.obs(:, i) ~= 0;
@@ -4531,15 +4551,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function importOceanLoading(this)
-            %DESCRIPTION: load ocean loading displcement matrix from
-            %ocean_loading.blq if satation is present
-            this.ocean_load_disp = load_BLQ( this.state.getOceanFile,{this.marker_name});
-            if isempty(this.ocean_load_disp)
-                this.ocean_load_disp == -1; %mean not found
-            end
-        end
-        
+       
         %--------------------------------------------------------
         % Pole Tide
         % -------------------------------------------------------
@@ -5600,6 +5612,7 @@ classdef Receiver < Exportable
             end
         end
         
+        
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT:
             % OUPUT:
@@ -5791,7 +5804,7 @@ classdef Receiver < Exportable
                 % update azimuth elevation
                 this.updateAzimuthElevation();
                 % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                %this.shiftToNominal()
+                this.shiftToNominal()
                 this.updateAllTOT();
                 
                 % apply various corrections

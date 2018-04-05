@@ -176,6 +176,7 @@ classdef Least_Squares_Manipulator < handle
             
             % get reference observations and satellite positions
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
+            zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
             
             % Sometime code observations may contain unreasonable values -> remove them
@@ -237,7 +238,7 @@ classdef Least_Squares_Manipulator < handle
                 % remove short arcs
                 min_arc = this.state.getMinArc;
                 % ambiguity number for each satellite
-                amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
+                 amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
                 assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
                 id = 1 : numel(amb_obs_count);
                 ko_amb_list = id(amb_obs_count < min_arc);
@@ -322,6 +323,7 @@ classdef Least_Squares_Manipulator < handle
             % Getting mapping faction values
             if tropo || tropo_g
                 [~, mfw] = rec.getSlantMF(id_sync_out);
+                mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
@@ -387,6 +389,7 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
+                %G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)];
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end

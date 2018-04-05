@@ -10,7 +10,6 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc Meteo_Data
 %
 % REFERENCE
-% ftp://igs.org/pub/data/format/rinex303.pdf
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
@@ -110,6 +109,8 @@ classdef Meteo_Data < handle
         xyz = [0 0 0];      % geocentric coordinate of the sensor
         amsl = 0;           % hortometric height of the sensor
         is_valid = false;   % Status of valitity of the file;
+        
+        max_bound = 20;     % Max bound to extrapolate
     end
 
     methods (Access = private)
@@ -281,6 +282,17 @@ classdef Meteo_Data < handle
             this.parseData(meteo_file);
         end
     end
+    
+    % =========================================================================
+    %  SETTER
+    % =========================================================================
+    methods
+        function setMaxBound(this, max_bound)
+            % Set the maximum extrapolation span
+            this.max_bound = max_bound;
+        end
+        
+    end
 
     % =========================================================================
     %  INIT / READER
@@ -309,9 +321,9 @@ classdef Meteo_Data < handle
     % =========================================================================
     methods
 
-        function import_raw(this, obs_time, data, type, marker_name, pos_xyz)
+        function importRaw(this, obs_time, data, type, marker_name, pos_xyz)
             % Import a meteorological file
-            % EXAMPLE: this.import_raw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
+            % EXAMPLE: this.importRaw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
             narginchk(6, 6);
 
             % Skip NaN epochs
@@ -466,6 +478,12 @@ classdef Meteo_Data < handle
             id = this.getTypeId();
             type = this.DATA_TYPE(id,:);
         end
+        
+        function max_bound = getMaxBound(this)
+            % Get the maximum extrapolation
+            max_bound = this.max_bound;
+        end
+        
 
         function type = getTypeExt(this)
             % Get the description of the types of data stored in the RINEX
@@ -503,7 +521,7 @@ classdef Meteo_Data < handle
                         else
                             data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
                             % do not extrapolate further than 20 minutes in time
-                            data((time_pred < time_data(1) - 20 / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                            data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
                         end
                     end
                 else
@@ -707,7 +725,7 @@ classdef Meteo_Data < handle
             data = data(:, id_ok);
             type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
             type = type(:, id_ok);
-            md.import_raw(time, data, type, name, xyz);
+            md.importRaw(time, data, type, name, xyz);
         end
 
         function [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
