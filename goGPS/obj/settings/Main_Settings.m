@@ -2078,6 +2078,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
+        
+         function eph_full_name = getMetFileName(this, date_start, date_stop)
+            % Get the full name of the ephemerides files (replacing special keywords)
+            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.met_dir, filesep, this.met_name));
+            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
 
         function clk_full_name = getClkFileName(this, date_start, date_stop)
             % Get the full name of the clock offset files (replacing special keywords)

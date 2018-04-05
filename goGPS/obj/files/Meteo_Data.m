@@ -110,7 +110,7 @@ classdef Meteo_Data < handle
         amsl = 0;           % hortometric height of the sensor
         is_valid = false;   % Status of valitity of the file;
         
-        max_bound = 20;     % Max bound to extrapolate
+        max_bound = 90;     % Max bound to extrapolate
     end
 
     methods (Access = private)
@@ -521,7 +521,7 @@ classdef Meteo_Data < handle
                         else
                             data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
                             % do not extrapolate further than 20 minutes in time
-                            data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + 20 / 1440)) = NaN;
+                            data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + this.getMaxBound / 1440)) = NaN;
                         end
                     end
                 else

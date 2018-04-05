@@ -42,24 +42,55 @@ classdef Meteo_Network < handle
     properties
         mds % list of meteo data
     end
+    %% METHOD CREATOR
+    % ==================================================================================================================================================
+    methods (Static, Access = private)
+        % Concrete implementation.  See Singleton superclass.
+        function this = Meteo_Network()
+            
+        end
+    end
+    
+    %% METHODS UI
+    % ==================================================================================================================================================
+    methods (Static, Access = public)
+        function this = getInstance()
+            % Get the persistent instance of the class
+            persistent unique_instance_meteo_network__
+
+            if isempty(unique_instance_meteo_network__)
+                this = Meteo_Network();
+                unique_instance_meteo_network__ = this;
+            else
+                this = unique_instance_meteo_network__;
+            end
+            
+        end
+
+        function ok_go = openGUI()
+            ok_go = gui_goGPS;
+        end
+    end
     
     methods (Access = public)
-        function this = Meteo_Network()
+        function initSession(this, date_start, date_stop)
+            this.mds = [];
             % load all meteo file present in current settings
             state = Global_Configuration.getCurrentSettings();
-            fnames = state.getMetFile();
+            fnames = state.getMetFileName(date_start, date_stop);
             n_met_data = numel(fnames);
             for  i=1:n_met_data
                 
                 md = Meteo_Data(fnames{i});
                 if md.isValid()
-                    md.setMaxBound(0);
+                    %md.setMaxBound(0);
                     this.mds = [this.mds; md];
                 
                 end
 
             end
         end
+        
         function md = getVMS(this, name, xyz, time)
             % Get Virtual Meteo Station
             %

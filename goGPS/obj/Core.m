@@ -170,8 +170,9 @@ classdef Core < handle
                 rec(r) = Receiver(this.state.getConstellationCollector(), this.state.getRecPath(r, session), this.state.getDynMode(r)); %#ok<AGROW>
             end
             this.rec = rec;
-            
+            this.initMeteoNetwork();
             this.initSkySession();
+            
             this.log.simpleSeparator();            
         end  
         
@@ -180,6 +181,14 @@ classdef Core < handle
             [~, time_lim_large] = this.rec.getTimeSpan();
             this.sky = Core_Sky.getInstance();
             this.sky.initSession(time_lim_large.first, time_lim_large.last);
+        end
+        
+        function initMeteoNetwork(this)
+            % Init hte meteo network
+            [~, time_lim_large] = this.rec.getTimeSpan();
+            mn = Meteo_Network.getInstance();
+            mn.initSession(time_lim_large.first, time_lim_large.last);
+            
         end
         
         function go(this, session_num)

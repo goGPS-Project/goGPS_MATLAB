@@ -1252,10 +1252,14 @@ classdef Receiver < Exportable
         end
         
         function importMeteoData(this)
-            %DESCRIPTION: load meteo data from met file
+            %DESCRIPTION: load meteo data from Meteo Network object
             %and get a virtual station at receiver positions
-            
-            
+            mn = Meteo_Network.getInstance();
+            if ~isempty(mn.mds)
+                this.log.addMarkedMessage('importing meteo data');
+                this.meteo_data = mn.getVMS(this.marker_name, this.xyz, this.time);
+                this.updateErrTropo;
+            end
         end
         
         function parseRinHead(this, txt, lim, eoh)
@@ -5786,6 +5790,7 @@ classdef Receiver < Exportable
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
+                
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
                 % correct for raw estimate of clock error based on the phase measure
@@ -5820,6 +5825,7 @@ classdef Receiver < Exportable
                 
                 this.removeOutlierMarkCycleSlip();
                 this.pp_status = true;
+                this.importMeteoData();
             end
         end
         
