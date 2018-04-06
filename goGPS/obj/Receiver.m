@@ -6019,7 +6019,7 @@ classdef Receiver < Exportable
                             degCtoK = 273.15;
                             
                             % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                            Tm = (Tall + degCtoK)*0.72 + 70.2;
                             
                             % Askne and Nordius formula (from Bevis et al., 1994)
                             Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
