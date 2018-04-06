@@ -3372,6 +3372,48 @@ classdef Receiver < Exportable
             end
         end
         
+        function [pwv, p_time, id_sync] = getPWV_mr(this)
+            % MultiRec: works on an array of receivers
+            % SYNTAX:
+            %  [pwv, p_time, id_sync] = this.getPWV_mr()
+            [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
+            
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+            
+            n_rec = numel(this);
+            pwv = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                pwv(~isnan(id_rec), r) = this(r).pwv(id_rec(~isnan(id_rec)));
+            end
+        end
+        
+        function [pwv, time] = getPWV(this)
+            % SYNTAX:
+            %  [pwv, p_time, id_sync] = this.getPWV()
+            
+            pwv = {};
+            time = {};
+            for r = 1 : size(this, 2)
+                pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    pwv_tmp = this(s, r).pwv(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    pwv{r} = [pwv{r}; pwv_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
+            end
+            
+            if numel(pwv) == 1
+                pwv = pwv{1};
+                time = time{1};
+            end
+        end
+        
         function [zhd, time] = getZHD(this)
             % SYNTAX:
             %  [zhd, p_time, id_sync] = this.getZHD()
@@ -7253,7 +7295,11 @@ classdef Receiver < Exportable
                 this(1).log.addWarning('ZTD and slants have not been computed');
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: Ztd %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: ZTD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    old_legend = {};
+                else
+                    l = legend;
+                    old_legend = get(l,'String');
                 end
                 for r = 1 : size(this, 2)
                     if new_fig
@@ -7263,9 +7309,6 @@ classdef Receiver < Exportable
                     end
                     outm{r} = this(1, r).getMarkerName();
                 end
-                
-                l = legend;
-                old_legend = get(l,'String');
                 
                 outm = [old_legend, outm];
                 [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
@@ -7282,6 +7325,54 @@ classdef Receiver < Exportable
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
                 h = title('Receiver ZTD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
+        end
+        
+        function showPwv(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            [pwv, t] = this.getPWV();
+            if ~isempty(pwv)
+                if ~iscell(pwv)
+                    pwv = {pwv};
+                    t = {t};
+                end
+                if isempty(pwv)
+                    this(1).log.addWarning('PWV and slants have not been computed');
+                else
+                    if new_fig
+                        f = figure; f.Name = sprintf('%03d: PWV %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                        old_legend = {};
+                    else
+                        l = legend;
+                        old_legend = get(l,'String');
+                    end
+                    for r = 1 : size(this, 2)
+                        if new_fig
+                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                        else
+                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4); hold on;
+                        end
+                        outm{r} = this(1, r).getMarkerName();
+                    end
+                                        
+                    outm = [old_legend, outm];
+                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                    n_entry = numel(outm);
+                    icons = icons(n_entry + 2 : 2 : end);
+                    
+                    for i = 1 : numel(icons)
+                        icons(i).MarkerSize = 16;
+                    end
+                    
+                    %ylim(yl);
+                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                    h = ylabel('PWV [mm]'); h.FontWeight = 'bold';
+                    grid on;
+                    h = title('Receiver PWV'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                end
             end
         end
         

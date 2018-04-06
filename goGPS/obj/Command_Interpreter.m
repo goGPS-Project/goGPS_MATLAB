@@ -86,6 +86,7 @@ classdef Command_Interpreter < handle
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
+        PAR_S_PWV       % PWV
         PAR_S_STD       % ZTD Slant
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
         PAR_E_TROPO_SNX % Tropo paramters sinex format
@@ -216,6 +217,10 @@ classdef Command_Interpreter < handle
             this.PAR_S_ZTD.descr = 'ZTD              Zenithal Total Delay';
             this.PAR_S_ZTD.par = '(ztd)|(ZTD)';
 
+            this.PAR_S_PWV.name = 'PWV';
+            this.PAR_S_PWV.descr = 'PWV              Precipitable Water Vapour';
+            this.PAR_S_PWV.par = '(pwv)|(PWV)';
+
             this.PAR_S_STD.name = 'ZTD Slant';
             this.PAR_S_STD.descr = 'STD              Zenithal Total Delay with slants';
             this.PAR_S_STD.par = '(std)|(STD)';
@@ -273,7 +278,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export_results', 'export_results'};
             this.CMD_EXPORT.descr = 'Export results';
@@ -571,6 +576,8 @@ classdef Command_Interpreter < handle
                             rec(id_trg).showMap();
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
                             rec(id_trg).showZtd();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
+                            rec(id_trg).showPwv();
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
                             rec(id_trg).showZtdSlant();
                         end
