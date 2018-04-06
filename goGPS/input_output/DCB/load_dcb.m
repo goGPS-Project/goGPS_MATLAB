@@ -1,4 +1,4 @@
-function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellations)
+function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, cc)
 
 % SYNTAX:
 %   [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellations);
@@ -48,30 +48,31 @@ function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellatio
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-if (isempty(constellations)) %then use only GPS as default
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+if (isempty(cc)) %then use only GPS as default
+    state = Global_Configuration.getCurrentSettings;
+    cc = state.getCC;
 end
 
 %starting index in the total array for the various constellations
-idGPS = constellations.GPS.indexes(1);
-idGLONASS = constellations.GLONASS.indexes(1);
-idGalileo = constellations.Galileo.indexes(1);
-idBeiDou = constellations.BeiDou.indexes(1);
-idQZSS = constellations.QZSS.indexes(1);
+idGPS = cc.gps.getOffset + 1;
+idGLONASS = cc.glo.getOffset + 1;
+idGalileo = cc.gal.getOffset + 1;
+idBeiDou = cc.bds.getOffset + 1;
+idQZSS = cc.qzs.getOffset + 1;
 
 %output initialization
 DCB = [];
 DCB.P1C1 = [];
 DCB.P1P2 = [];
 DCB.P1C1.time  = 0;
-DCB.P1C1.value = zeros(constellations.nEnabledSat, 1);
-DCB.P1C1.rms   = zeros(constellations.nEnabledSat, 1);
-DCB.P1C1.prn   = zeros(constellations.nEnabledSat, 1);
-DCB.P1C1.sys   = zeros(constellations.nEnabledSat, 1);
-DCB.P1P2.value = zeros(constellations.nEnabledSat, 1);
-DCB.P1P2.rms   = zeros(constellations.nEnabledSat, 1);
-DCB.P1P2.prn   = zeros(constellations.nEnabledSat, 1);
-DCB.P1P2.sys   = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.value = zeros(cc.getNumSat, 1);
+DCB.P1C1.rms   = zeros(cc.getNumSat, 1);
+DCB.P1C1.prn   = zeros(cc.getNumSat, 1);
+DCB.P1C1.sys   = zeros(cc.getNumSat, 1);
+DCB.P1P2.value = zeros(cc.getNumSat, 1);
+DCB.P1P2.rms   = zeros(cc.getNumSat, 1);
+DCB.P1P2.prn   = zeros(cc.getNumSat, 1);
+DCB.P1P2.sys   = zeros(cc.getNumSat, 1);
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, time_R);
@@ -158,11 +159,11 @@ for j = 1 : nmax
             end
 
             sys_id = line(1);
-            if (strcmp(sys_id,'G') && constellations.GPS.enabled || ...
-                strcmp(sys_id,'R') && constellations.GLONASS.enabled || ...
-                strcmp(sys_id,'E') && constellations.Galileo.enabled || ...
-                strcmp(sys_id,'C') && constellations.BeiDou.enabled || ...
-                strcmp(sys_id,'J') && constellations.QZSS.enabled)
+            if (strcmp(sys_id,'G') && cc.gps.isActive || ...
+                strcmp(sys_id,'R') && cc.glo.isActive || ...
+                strcmp(sys_id,'E') && cc.gal.isActive || ...
+                strcmp(sys_id,'C') && cc.bds.isActive || ...
+                strcmp(sys_id,'J') && cc.qzs.isActive)
 
                 PRN   = sscanf(line(2:3),'%f');
                 value = sscanf(line(30:35),'%f');
@@ -171,22 +172,22 @@ for j = 1 : nmax
                 switch (sys_id)
                     case 'G'
                         index = idGPS;
-                        system = 'GPS';
+                        system = 'gps';
                     case 'R'
                         index = idGLONASS;
-                        system = 'GLONASS';
+                        system = 'glo';
                     case 'E'
                         index = idGalileo;
-                        system = 'Galileo';
+                        system = 'gal';
                     case 'C'
                         index = idBeiDou;
-                        system = 'BeiDou';
+                        system = 'bds';
                     case 'J'
                         index = idQZSS;
-                        system = 'QZSS';
+                        system = 'qzs';
                 end
 
-                if(~ismember(PRN,constellations.(system).PRN))
+                if(~ismember(PRN,cc.(system).PRN))
                     continue
                 end
 

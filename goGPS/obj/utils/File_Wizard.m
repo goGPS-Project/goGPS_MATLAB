@@ -573,7 +573,7 @@ classdef File_Wizard < handle
                     mkdir(down_dir);
                 end
                 
-                log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                this.log.addMessage(this.log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                 
                 year_orig  = date_f(1) : 1 : date_l(1);
                 if (length(year_orig) < 1)

@@ -433,21 +433,21 @@ classdef Core_Sky < handle
                         case 'G'
                             idx_c1w = this.getGroupDelayIdx('GC1W');
                             idx_c2w = this.getGroupDelayIdx('GC2W');
-                            this.group_delays(s,idx_c1w) = -GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c1w) = -GD * Global_Configuration.V_LIGHT;
                             f = this.cc.getGPS().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c2w) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
                         case 'R'
                             idx_c1p = this.getGroupDelayIdx('RC1P');
                             idx_c2p = this.getGroupDelayIdx('RC2P');
-                            this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c1p) = -GD * Global_Configuration.V_LIGHT;
                             f = this.cc.getGLONASS().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
                         case 'E'
                             idx_c1p = this.getGroupDelayIdx('EC1B');
                             idx_c2p = this.getGroupDelayIdx('EC5I');
-                            this.group_delays(s,idx_c1p) = -GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c1p) = -GD * Global_Configuration.V_LIGHT;
                             f = this.cc.getGalileo().F_VEC; % frequencies
-                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * goGNSS.V_LIGHT;
+                            this.group_delays(s,idx_c2p) = - f(1)^2 / f(2)^2 * GD * Global_Configuration.V_LIGHT;
                             
                     end
                 end
@@ -920,28 +920,30 @@ classdef Core_Sky < handle
         end
         
         function importCODEDCB(this)
-            [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, goGNSS.initConstellation(true , true, true,true,true,true));
+            state = Global_Configuration.getCurrentSettings;
+            
+            [dcb] = load_dcb(this.state.getDcbDir(), double(this.time_ref_coord.getGpsWeek), this.time_ref_coord.getGpsTime, true, state.getCC);
             %%% assume that CODE dcb contains only GPS and GLONASS
             %GPS C1W - C2W
             idx_w1 =  this.getGroupDelayIdx('GC1W');
             idx_w2 =  this.getGroupDelayIdx('GC2W');
             p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'G');
             iono_free = this.cc.getGPS.getIonoFree();
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w1) = iono_free.alpha2 *p1p2*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'G') , idx_w2) = iono_free.alpha1 *p1p2*Global_Configuration.V_LIGHT*1e-9;
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
             p1c1 = dcb.P1C1.value(dcb.P1C1.sys == 'G');
-            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*goGNSS.V_LIGHT*1e-9; %semi codeless tracking
+            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*Global_Configuration.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
             p1p2 = dcb.P1P2.value(dcb.P1P2.sys == 'R');
             iono_free = this.cc.getGLONASS.getIonoFree();
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*goGNSS.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*goGNSS.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w1) = (iono_free.alpha2 *p1p2)*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(dcb.P1P2.prn(dcb.P1P2.sys == 'R') , idx_w2) = (iono_free.alpha1 *p1p2)*Global_Configuration.V_LIGHT*1e-9;
         end
         
         function importSinexDCB(this)
@@ -1800,7 +1802,7 @@ classdef Core_Sky < handle
             
             if (sat <= 32 & ~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIA')))
                 %shadow crossing affects only BLOCK IIA satellites
-                shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < goGNSS.ELL_A_GPS;
+                shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
                 eclipsed(shadowCrossing) = 1;
             end
             %noon/midnight maneuvers affect all satellites
