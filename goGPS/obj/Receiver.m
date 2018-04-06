@@ -4170,9 +4170,6 @@ classdef Receiver < Exportable
             if abs(h_full) > 1e4
                 this.log.addWarning('Height out of reasonable height for terrestrial postioning skipping tropo update')
             end
-            if nargin < 3
-                flag = this.state.tropo_model;
-            end
             
             if flag > 0
                 geoid = Global_Configuration.getInstance.getRefGeoid();
@@ -4223,8 +4220,8 @@ classdef Receiver < Exportable
                             lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             P = this.meteo_data.getPressure(this.time);
-                            T = this.meteo_data.getPressure(this.time);
-                            P = this.meteo_data.getPressure(this.time);
+                            T = this.meteo_data.getTemperature(this.time);
+                            H = this.meteo_data.getHumidity(this.time);
                             for e = find(idx)'
                                 this.sat.err_tropo(e, s) = atmo.saastamoinenModelPTH(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e),P(e),T(e),H(e));
                             end
@@ -5904,11 +5901,25 @@ classdef Receiver < Exportable
                 if isempty(this.sat.slant_td)
                     this.sat.slant_td = zeros(this.time.length(), n_sat);
                 end
-                
+                if isempty(this.meteo_data)
+                    ext_meteo = false;
+                else
+                    ext_meteo = true;
+                    Pall = this.meteo_data.getPressure(time);
+                    Tall = this.meteo_data.getTemperature(time);
+                    Hall = this.meteo_data.getHumidity(time);
+                end
                 for i = 1 : n_epoch
-                    [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                    if ~ext_meteo
+                        [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                        H = Global_Configuration.ATM.STD_HUMI;
+                    else
+                        P = Pall(i);
+                        T = Tall(i);
+                        H = Hall(i);
+                    end
                     this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
-                    this.zwd(id_sync(i)) = saast_wet(T, Global_Configuration.ATM.STD_HUMI, h_orto);
+                    this.zwd(id_sync(i)) = saast_wet(T, H, h_orto);
                 end
                 
                 rate = time.getRate();
@@ -5962,6 +5973,19 @@ classdef Receiver < Exportable
                     if this.state.flag_tropo
                         this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                        if ext_meteo
+                            degCtoK = 273.15;
+                            
+                            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                            
+                            % Askne and Nordius formula (from Bevis et al., 1994)
+                            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                            
+                            %Precipitable Water Vapor
+                            this.pwv = nan(size(this.zwd));
+                            this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q * 1e3;
+                        end
                         this.sat.amb = amb;
                         [mfh, mfw] = getSlantMF(this);
                         this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...

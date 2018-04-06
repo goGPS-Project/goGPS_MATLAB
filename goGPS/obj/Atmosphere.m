@@ -405,7 +405,7 @@ classdef Atmosphere < handle
             ZHD_R = saast_dry(P, t_h, lat);
             ZWD_R = saast_wet(T, H, t_h);
             
-            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h_ortho, (90-el)*pi/180);
+            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (90-el)*pi/180);
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
