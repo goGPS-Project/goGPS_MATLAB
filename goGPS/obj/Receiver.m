@@ -3236,10 +3236,10 @@ classdef Receiver < Exportable
             this.updateAllAvailIndex();
             this.updateErrIono();
             this.updateErrTropo();
-            
+            this.updateAllTOT();
             % for each unique go_id
             for i = u_sat'
-                this.updateTOT(colFirstNonZero(this.obs(this.go_id == i,:)),i);
+                
                 range = this.getSyntObs('I', i);
                 
                 sat_idx = find(go_id == i);
@@ -3691,7 +3691,7 @@ classdef Receiver < Exportable
             % for each receiver
             go_id = unique(this.go_id);
             for i = go_id'
-                sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
+                sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C');
                 if sum(sat_idx) > 0 % if we have an observation for the satellite
                     if nargin == 1 % obs based
                         c_obs = this.obs(sat_idx,:);
