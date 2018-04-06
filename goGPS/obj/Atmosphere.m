@@ -381,6 +381,34 @@ classdef Atmosphere < handle
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
+         function [delay] = saastamoinenModelPTH(this, gps_time,lat,lon, h, undu, el,P,T,H)
+            % SYNTAX:
+            %   [delay] = Atmosphere.saastamoinen_modelPTH(time_rx, lat, lon, h, undu, el)
+            %
+            % INPUT:
+            %   time_rx = receiver reception time
+            %   lat = receiver latitude          [degrees]
+            %   lon = receiver longitude         [degrees]
+            %   h  = receiver ellipsoidal height [meters]
+            %   el = satellite elevation         [degrees] [nx1]
+            %
+            % OUTPUT:
+            %   corr = tropospheric error correction
+            %
+            % DESCRIPTION:
+            %   Computation of the pseudorange correction due to tropospheric refraction.
+            %   Saastamoinen algorithm using P T from Global Pressure and Temperature
+            %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
+            %   --> single epoch
+            
+            t_h = h;
+            ZHD_R = saast_dry(P, t_h, lat);
+            ZWD_R = saast_wet(T, H, t_h);
+            
+            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h_ortho, (90-el)*pi/180);
+            delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
+        end
+        
         function [pres,temp,undu] = gpt(this, gps_time, dlat, dlon, dhgt, undu)
             % This subroutine determines Global Pressure and Temperature
             % based on Spherical Harmonics up to degree and order 9
@@ -914,7 +942,7 @@ classdef Atmosphere < handle
     end
     
     methods (Static)
-        
+       
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------

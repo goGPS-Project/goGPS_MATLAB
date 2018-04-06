@@ -757,7 +757,7 @@ classdef Receiver < Exportable
             end
         end
         
-
+        
         function chooseDataTypes(this)
             % get the right attribute column to be used for a certain type/band couple
             % LEGACY????
@@ -4154,12 +4154,15 @@ classdef Receiver < Exportable
             
             if nargin < 2 || strcmp(go_id,'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
-                if nargin < 3
-                    flag = this.state.tropo_model;
-                end
+                
                 go_id = unique(this.go_id)';
             end
-            
+            if nargin < 3
+                flag = this.state.tropo_model;
+                if not(isempty(this.meteo_data))
+                    flag = 3;
+                end
+            end
             this.sat.err_tropo(:, go_id) = 0;
             
             %%% compute lat lon
@@ -4214,6 +4217,16 @@ classdef Receiver < Exportable
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             for e = find(idx)'
                                 this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
+                            end
+                        case 3 % Saastamoinen with external pressure temperatre and humifdity
+                            gps_time = this.time.getGpsTime();
+                            lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
+                            lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
+                            P = this.meteo_data.getPressure(this.time);
+                            T = this.meteo_data.getPressure(this.time);
+                            P = this.meteo_data.getPressure(this.time);
+                            for e = find(idx)'
+                                this.sat.err_tropo(e, s) = atmo.saastamoinenModelPTH(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e),P(e),T(e),H(e));
                             end
                     end
                 end
@@ -4555,7 +4568,7 @@ classdef Receiver < Exportable
             end
         end
         
-       
+        
         %--------------------------------------------------------
         % Pole Tide
         % -------------------------------------------------------
