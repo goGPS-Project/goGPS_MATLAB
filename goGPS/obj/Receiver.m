@@ -2483,7 +2483,11 @@ classdef Receiver < Exportable
                 end
             else
                 idx = this.sat.avail_index(:,sat) > 0;
-                dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
+                if sum(idx) > 0
+                    dtS = this.sat.cs.clockInterpolate(this.time.getSubSet(idx), sat);
+                else
+                    dtS = zeros(0,1);
+                end
             end
         end
         
