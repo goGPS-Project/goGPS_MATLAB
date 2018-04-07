@@ -522,10 +522,12 @@ classdef Receiver < Exportable
                     this.outlier_idx_ph(bad_epochs, :) = [];
                 end
                 
-                tmp = false(max(this.id_sync), 1);
-                tmp(this.id_sync) = true;
-                tmp(bad_epochs) = false;
-                this.id_sync = find(tmp);
+                if ~isempty(this.id_sync)
+                    tmp = false(max(this.id_sync), 1);
+                    tmp(this.id_sync) = true;
+                    tmp(bad_epochs) = [];
+                    this.id_sync = find(tmp);
+                end
                 
                 if numel(this.desync) > 1
                     this.desync(bad_epochs) = [];
