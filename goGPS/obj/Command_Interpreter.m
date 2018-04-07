@@ -60,6 +60,8 @@ classdef Command_Interpreter < handle
     properties (GetAccess = public, SetAccess = private)
         % List of the supported commands
         
+        CMD_LOAD        % Load data from the linked RINEX file into the receiver
+        CMD_EMPTY       % reset the receiver content
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
@@ -94,7 +96,7 @@ classdef Command_Interpreter < handle
 
         PAR_S_SAVE      % flage for saving
         
-        CMD_LIST = {'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
+        CMD_LIST = {'LOAD', 'EMPTY', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -240,6 +242,16 @@ classdef Command_Interpreter < handle
             % definition of commands
             
             new_line = [char(10) '             ']; %#ok<CHARTEN>
+            this.CMD_LOAD.name = {'LOAD', 'load'};
+            this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
+            this.CMD_LOAD.rec = 'T';
+            this.CMD_LOAD.par = [];
+
+            this.CMD_EMPTY.name = {'EMPTY', 'empty'};
+            this.CMD_EMPTY.descr = 'Empty the receiver';
+            this.CMD_EMPTY.rec = 'T';
+            this.CMD_EMPTY.par = [];
+
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
@@ -369,6 +381,10 @@ classdef Command_Interpreter < handle
                 this.log.newLine();
                 
                 switch upper(tok{1})
+                    case this.CMD_LOAD.name                 % LOAD
+                        this.runLoad(rec, tok(2:end));
+                    case this.CMD_EMPTY.name                % EMPTY
+                        this.runEmpty(rec, tok(2:end));
                     case this.CMD_PREPRO.name               % PREPRO
                         this.runPrePro(rec, tok(2:end));
                     case this.CMD_CODEPP.name               % CODEPP
@@ -397,6 +413,46 @@ classdef Command_Interpreter < handle
     % methods to execute a set of goGPS Commands
     methods (Access = private)    
         
+        function runLoad(this, rec, tok)
+            % Load the RINEX file into the object
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.load(rec)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.addMarkedMessage(sprintf('Importing data for receiver %d', r));
+                    rec(r).load();
+                end
+            end
+        end
+        
+        function runEmpty(this, rec, tok)
+            % Reset (empty) the receiver
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %
+            % SYNTAX
+            %   this.empty(rec)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
+                    rec(r).reset();
+                end
+            end
+        end
+        
         function runPrePro(this, rec, tok)
             % Execute Pre processing
             %
@@ -407,13 +463,15 @@ classdef Command_Interpreter < handle
             % SYNTAX
             %   this.runPrePro(rec, tok)
             
-            
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
-                    this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));                    
+                    this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
+                    if rec(r).isEmpty
+                        rec(r).load();
+                    end
                     rec(r).preProcessing();
                 end
             end
@@ -502,6 +560,9 @@ classdef Command_Interpreter < handle
                 if found
                     for r = id_trg
                         this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).getMarkerName()));
+                        if rec(r).isEmpty
+                            rec(r).load();
+                        end
                         rec(r).keep(rate);
                     end
                 end
@@ -509,6 +570,9 @@ classdef Command_Interpreter < handle
                 if found
                     for r = id_trg
                         this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).getMarkerName()));
+                        if rec(r).isEmpty
+                            rec(r).load();
+                        end
                         rec(r).keep([], sys_list);
                     end
                 end

@@ -77,6 +77,8 @@ classdef Receiver < Exportable
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
+        rinex_file_name = ""; % RINEX file name
+        
         %obs_validity   % validity of the row (does it contains usable values?)
         
         obs_code       % obs code for each line of the data matrix obs
@@ -240,14 +242,27 @@ classdef Receiver < Exportable
             end
             this.w_bar = Go_Wait_Bar.getInstance();
             if nargin >= 2 && ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
-                this.importRinex(rinex_file_name);
-                this.importAntModel();
+                this.rinex_file_name = rinex_file_name;                
+            else
+                this.rinex_file_name = '';
             end
             this.rec_settings = Receiver_Settings();
             if nargin == 3
                 this.static == dyn_mode == 0;
             else
                 this.static = true;
+            end
+        end
+        
+        function load(this)
+            % Load the rinex file linked to this receiver
+            %
+            % SYNTAX:
+            %   this.load();
+            
+            if ~isempty(this.rinex_file_name)            
+                this.importRinex(this.rinex_file_name);
+                this.importAntModel();       
             end
         end
         
@@ -2147,7 +2162,8 @@ classdef Receiver < Exportable
             %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
             %
             % SYNTAX:
-            %   xyz = this.getTime()
+            %   [time_lim_small, time_lim_large] = getTimeSpan(this);
+            %
             time_lim_small = this(1).time.first;
             tmp_small = this(1).time.last;
             time_lim_large = time_lim_small.getCopy;
@@ -3294,7 +3310,7 @@ classdef Receiver < Exportable
             % receiver as to be the same
             synt_obs = zeros(size(obs_set.obs));
             xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
-            idx_ep_obs = obs_set.getTimeIdx(this.time.first,this.getRate);
+            idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
                 if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
@@ -3305,7 +3321,7 @@ classdef Receiver < Exportable
                 end
                 
                 idx_obs = obs_set.obs(:, i) ~= 0;
-                idx_obs_r = idx_ep_obs(idx_obs); % <- to wihic epoch in the receiver the observation of the satellites in obesrvation set corresponds?
+                idx_obs_r = idx_ep_obs(idx_obs); % <- to which epoch in the receiver the observation of the satellites in obesrvation set corresponds?
                 idx_obs_r_l = false(size(range)); % get the logical equivalent
                 idx_obs_r_l(idx_obs_r) = true;
                 range_idx = range ~= 0;

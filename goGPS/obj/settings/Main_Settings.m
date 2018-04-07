@@ -1142,11 +1142,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric delay (default = %.3f)', this.SIGMA0_TROPO), str_cell);
             %str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.3f)', this.STD_TROPO), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric delay [m/h] (default = %.4f)', this.STD_TROPO), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
             %str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of a priori tropospheric gradient (default = %.3f)', this.SIGMA0_TROPO_GRADIENT), str_cell);
             %str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
-            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.3f)', this.STD_TROPO_GRADIENT), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = this.export@Command_Settings(str_cell);

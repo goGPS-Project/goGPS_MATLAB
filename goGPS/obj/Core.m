@@ -158,37 +158,35 @@ classdef Core < handle
             this.log.simpleSeparator();
             this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
             this.log.simpleSeparator();
-            
-            % Init sky
-            
+                      
             clear rec;  % handle to all the receivers
+            this.log.newLine();
             for r = 1 : this.state.getRecCount()
-                this.log.newLine();
-                this.log.addMessage(sprintf('Reading receiver %d of %d', r, this.state.getRecCount()));
-                this.log.simpleSeparator();
+                this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
                 
                 rec(r) = Receiver(this.state.getConstellationCollector(), this.state.getRecPath(r, session), this.state.getDynMode(r)); %#ok<AGROW>
             end
             this.rec = rec;
-            this.initMeteoNetwork();
-            this.initSkySession();
-            
+            this.log.newLine();            
+
+            % Init Meteo and Sky objects
+            [~, time_lim_large] = Core.getRecTimeSpan(session);
+            this.initSkySession(time_lim_large);
+            this.log.newLine();
+            this.initMeteoNetwork(time_lim_large);            
             this.log.simpleSeparator();            
         end  
         
-        function initSkySession(this)
+        function initSkySession(this, time_lim)
             % Init sky for this session
-            [~, time_lim_large] = this.rec.getTimeSpan();
             this.sky = Core_Sky.getInstance();
-            this.sky.initSession(time_lim_large.first, time_lim_large.last);
+            this.sky.initSession(time_lim.first, time_lim.last);
         end
         
-        function initMeteoNetwork(this)
-            % Init hte meteo network
-            [~, time_lim_large] = this.rec.getTimeSpan();
+        function initMeteoNetwork(this, time_lim)
+            % Init the meteo network            
             mn = Meteo_Network.getInstance();
-            mn.initSession(time_lim_large.first, time_lim_large.last);
-            
+            mn.initSession(time_lim.first, time_lim.last);            
         end
         
         function go(this, session_num)
@@ -202,7 +200,7 @@ classdef Core < handle
             for s = session_list
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);
-                
+                                
                 if this.state.isKeepRecList()
                     if numel(this.rec_list) == 0
                         clear rec_list;
@@ -220,6 +218,47 @@ classdef Core < handle
         
         function exec(this, cmd)
             this.cmd.exec(this.rec, cmd);
+        end
+    end
+    
+    methods (Static)
+        function [time_lim_small, time_lim_large] = getRecTimeSpan(session)
+            % return a GPS_Time containing the first and last epoch for a session
+            %
+            % OUTPUT:
+            %   time_lim_small     GPS_Time (first and last) epoch of the smaller interval
+            %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
+            %
+            % SYNTAX:
+            %   [time_lim_small, time_lim_large] = Core.getRecTimeSpan(session)
+            
+            state = Global_Configuration.getCurrentSettings();
+            rec_files = state.getRecPath();
+            for r = 1 : numel(rec_files)
+                fr(r) = File_Rinex(rec_files{r}{session}, 100);
+            end
+            
+            time_lim_small = fr(1).first_epoch;
+            tmp_small = fr(1).last_epoch;
+            time_lim_large = time_lim_small.getCopy;
+            tmp_large = tmp_small.getCopy;
+            for r = 2 : numel(fr)
+                if time_lim_small < fr(r).first_epoch
+                    time_lim_small = fr(r).first_epoch;
+                end
+                if time_lim_large > fr(r).first_epoch
+                    time_lim_large = fr(r).first_epoch;
+                end
+                
+                if tmp_small > fr(r).last_epoch
+                    tmp_small = fr(r).last_epoch;
+                end
+                if tmp_large < fr(r).last_epoch
+                    tmp_large = fr(r).last_epoch;
+                end
+            end
+            time_lim_small.append(tmp_small);
+            time_lim_large.append(tmp_large);
         end
     end
         
