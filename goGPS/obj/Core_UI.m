@@ -960,7 +960,7 @@ classdef Core_UI < handle
                 'ForegroundColor', this.WHITE); 
             ts = state.getSessionStart();
             te = state.getSessionStop();
-            if te.isempty() || ts.isemty()
+            if te.isempty() || ts.isempty()
                 ts = GPS_Time.now();
                 te = GPS_Time.now();
             end
