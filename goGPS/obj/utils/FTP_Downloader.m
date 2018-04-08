@@ -357,7 +357,7 @@ classdef FTP_Downloader < handle
             if ispc
                 flag = ~system('ping -n 1 www.fast.com > nul');
             elseif isunix
-                flag = ~system('ping -c 1 www.fast.com > /dev/null');
+                flag = ~system('ping -c 1 www.fast.com &2>&1 > /dev/null');
             end
         end
 
