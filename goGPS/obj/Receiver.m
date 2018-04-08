@@ -6596,7 +6596,7 @@ classdef Receiver < Exportable
                 this.showPositionENU_c();
                 this.showPositionXYZ_c();
             end
-            this.showMap();
+            %this.showMap();
             this.showDataAvailability();
             this.showSNR_p();
             this.showDt();
