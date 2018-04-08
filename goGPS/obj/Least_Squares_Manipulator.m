@@ -385,7 +385,7 @@ classdef Least_Squares_Manipulator < handle
             %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
             
-            %---- Set up the date the constraint to solve the rank deficeny problem --------------
+            %---- Set up the constraint to solve the rank deficeny problem --------------
             if phase_present
                 % Ambiguity set
                 G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
@@ -537,7 +537,7 @@ classdef Least_Squares_Manipulator < handle
             %        master = 1  first is master , 2 second is master
             % NOTE: wrapper to setUPNetworkAdj function
              datum_definition.type = 'C';
-             datum_definition.station = [master 1 0 0 0]; % gard constarint on master
+             datum_definition.station = [master 1 0 0 0]; % hard constarint on master
              ls_manipulator = setUpSDNetworkAdj(receivers, datum_definition);
             
         end
