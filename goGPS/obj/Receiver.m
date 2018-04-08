@@ -77,7 +77,7 @@ classdef Receiver < Exportable
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
-        rinex_file_name = ""; % RINEX file name
+        rinex_file_name = ''; % RINEX file name
         
         %obs_validity   % validity of the row (does it contains usable values?)
         

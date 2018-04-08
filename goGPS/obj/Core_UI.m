@@ -957,9 +957,15 @@ classdef Core_UI < handle
                 'String', 'Stop', ...
                 'FontSize', this.getFontSize(8), ...
                 'BackgroundColor', session_bg, ...
-                'ForegroundColor', this.WHITE);            
-            this.ui_sss_start = this.insertDateSpinner(date_g, state.getSessionStart.toString('yyyy/mm/dd'));
-            this.ui_sss_stop = this.insertDateSpinner(date_g, state.getSessionStop.toString('yyyy/mm/dd'));
+                'ForegroundColor', this.WHITE); 
+            ts = state.getSessionStart();
+            te = state.getSessionStop();
+            if te.isempty() || ts.isemty()
+                ts = GPS_Time.now();
+                te = GPS_Time.now();
+            end
+            this.ui_sss_start = this.insertDateSpinner(date_g, ts.toString('yyyy/mm/dd'));
+            this.ui_sss_stop = this.insertDateSpinner(date_g, te.toString('yyyy/mm/dd'));
             date_g.Heights = [22 22];
             date_g.Widths = [46, -1];
 
@@ -1028,7 +1034,11 @@ classdef Core_UI < handle
             rec_path = state.getRecPath;
             str = '';
             for r = 1 : n_rec
-                name = File_Name_Processor.getFileName(rec_path{r}{1});
+                if ~isempty(rec_path{r})
+                    name = File_Name_Processor.getFileName(rec_path{r}{1});
+                else
+                    name = '    ';
+                end
                 n_session = numel(rec_path{r});
                 if n_session < 20
                     this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
