@@ -342,11 +342,13 @@ classdef Meteo_Data < handle
             this.data(invalid_epoch, :) = [];
 
             % Cut empty data types
-            invalid_data = sum(isnan(this.data)) == size(this.data, 1);
-            this.data(:, invalid_data) = [];
-            this.type(:, invalid_data) = [];
-            this.n_type = numel(this.type);
-            this.is_valid = true;
+            if ~isempty(this.data)
+                invalid_data = sum(isnan(this.data)) == size(this.data, 1);
+                this.data(:, invalid_data) = [];
+                this.type(:, invalid_data) = [];
+                this.n_type = numel(this.type);
+                this.is_valid = true;
+            end
         end
 
         function import(this, file_name, type)
