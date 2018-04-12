@@ -3118,7 +3118,7 @@ classdef Receiver < Exportable
         
         % ---------------------------------------
         %  Two Frequency observation combination
-        %  Warppers of getTwoFreqComb function
+        %  Warappers of getTwoFreqComb function
         % ---------------------------------------
         
         function [obs_set] = getIonoFree(this,flag1,flag2,system)
@@ -3131,7 +3131,7 @@ classdef Receiver < Exportable
         function [obs_set] = getNarrowLane(this,flag1,flag2,system)
             fun1 = @(wl1,wl2) wl2/(wl2+wl1);
             fun2 = @(wl1,wl2) wl1/(wl2+wl1);
-            [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2,'NL');
+            [obs_set] =  this.getTwoFreqComb([system flag1], [system flag2], fun1, fun2,'NL');
         end
         
         function [obs_set] = getWideLane(this,flag1,flag2,system)
@@ -3377,14 +3377,18 @@ classdef Receiver < Exportable
             ztd = {};
             time = {};
             for r = 1 : size(this, 2)
-                ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    ztd{r} = [ztd{r}; ztd_tmp];
-                    time{r} = time{r}.append(time_tmp);
+                if ~isempty(this(1,r).ztd)                    
+                    ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
+                    
+                    for s = 2 : size(this, 1)
+                        ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
+                        time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                        ztd{r} = [ztd{r}; ztd_tmp];
+                        time{r} = time{r}.append(time_tmp);
+                    end
+                else
+                    ztd{r} = nan(size(time{r})); %#ok<AGROW>
                 end
             end
             
@@ -6033,7 +6037,7 @@ classdef Receiver < Exportable
                 if s02 > 0.30
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
                 end
-                if s02 < 0.30
+                if s02 < 1.30
                     if this.state.flag_tropo
                         this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
