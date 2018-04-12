@@ -161,8 +161,7 @@ classdef Core_SEID < handle
                             lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
                             lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
                         end
-                    end
-                    
+                    end                    
                     trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
                     trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
                 end
@@ -240,11 +239,26 @@ classdef Core_SEID < handle
                     % consider a plane of interpolation, the coordinates of the pierce point must be considered as 
                     % spherical distances in phi/lam from the interpolation point... the reference (center) is the interpolation point
                     % ...to be done
+                    % To be tested: regularized solution for plane parameter estimation in time
+                   
+                    data_q = nan(size(lat_q));
+                    for i = 1 : size(lat_in, 1)
+                        id_ok = ~isnan(data_in(i, :)) & ~isnan(lat_in(i, :)) & ~isnan(lon_in(i, :));
+                        if sum(id_ok) == size(lat_in, 2) % require all the stations to interpolate ionosphere
+                             A = ones(sum(id_ok), 3);
+                             A(:,2) = lon_in(i, :) .* cos(lat_in(i, :));
+                             A(:,3) = lat_in(i, :);
+                             data_q(i) = [1 (lon_q(i) .* cos(lat_q(i))) lat_q(i)] * ((A'*A)\A' * data_in(i, id_ok)');
+                             % Test diffent reference frame for interpolation
+                             %data_q(i) = [1 (lon_q(i)) lat_q(i)] * ((A'*A)\A' * data_in(i, id_ok)');
+                             % mybe a 3D Kriging is better
+                        end
+                    end
                 case  {'distance'}
                     % very simple interpolation by spherical distance
                     data_q = nan(size(lat_q));
                     for i = 1 : size(lat_in, 1)
-                        id_ok = ~isnan(data_in(i, :));
+                        id_ok = ~isnan(data_in(i, :)) & ~isnan(lat_in(i, :)) & ~isnan(lon_in(i, :));
                         if sum(id_ok) == size(lat_in, 2) % require all the stations to interpolate ionosphere
                             d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
                             w = (1 ./ d(id_ok))';
