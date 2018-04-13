@@ -114,7 +114,7 @@ classdef File_Rinex < Exportable
                 full_path = fullfile(this.base_dir{f}, [this.file_name_list{f} this.ext{f}]);
 
                 % check the existence
-                this.is_valid_list(f) = exist(full_path, 'file');
+                this.is_valid_list(f) = exist(full_path, 'file') == 2;
                 if this.is_valid_list(f)
                     % try to find the first and the last epoch stored in the file
                     try
