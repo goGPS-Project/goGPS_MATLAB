@@ -6,7 +6,7 @@
 % OUTPUT:
 %   core      the core processor object containing all the goGPS structures
 %   rec       the last session array of Receivers
-%   rec_list  when enabled in SESSION settings it stores all the REceivers
+%   rec_list  when enabled in SESSION settings it stores all the Receivers
 %             for all the processed sessions
 %
 
@@ -44,3 +44,14 @@
 core = Core.getInstance;
 rec = core.rec;
 rec_list = core.rec_list;
+
+log = Logger.getInstance();
+log.addMarkedMessage('Now you should be able to see 3 new variables:');
+log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
+log.addMessage(log.indent(' - rec       the last session array of Receivers'));
+log.addMessage(log.indent(' - rec_list  when enabled in SESSION settings, it contains all the Receivers'));
+log.addMessage(log.indent('             for all the processed sessions'));
+log.newLine();
+
+
+

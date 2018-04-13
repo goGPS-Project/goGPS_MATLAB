@@ -108,5 +108,10 @@ function goGPS(ini_settings_file, use_gui)
     if ~use_gui
         close all;
     end
+    
+    if ~isdeployed
+        log = Logger.getInstance();
+        log.addMessage('Execute the script "getResults", to load the object created during the processing');
+    end
 end
 
