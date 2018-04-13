@@ -647,6 +647,9 @@ classdef Core_UI < handle
                     'BackgroundColor', this.DARK_GRAY_BG);
             catch
                 this.log.addError('Please install GUI Layout Toolbox (https://it.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox)');
+                open('GUI Layout Toolbox 2.3.1.mltbx');
+                this.log.newLine();
+                this.log.addWarning('After installation re-run goGPS');
                 close(win);
                 return;
             end
