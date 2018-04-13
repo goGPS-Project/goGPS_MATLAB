@@ -194,7 +194,6 @@ classdef FTP_Downloader < handle
 %             end
         end
 
-
         function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
             % function to download a file (or a list of files) from a ftp a server
             % SYNTAX:
@@ -357,7 +356,7 @@ classdef FTP_Downloader < handle
             if ispc
                 flag = ~system('ping -n 1 www.fast.com > nul');
             elseif isunix
-                flag = ~system('ping -c 1 www.fast.com > /dev/null');
+                flag = ~system('ping -c 1 www.fast.com > /dev/null 2>&1');
             end
         end
 
