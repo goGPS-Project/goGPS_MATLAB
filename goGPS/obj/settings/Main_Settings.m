@@ -2360,7 +2360,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function cut_off = getCutOff(this)
             % Get the cut off
             % SYNTAX: cut_off = this.getCutOff();
-            cut_off = this.cut_off();
+            cut_off = this.cut_off;
         end
 
         function proc_rate = getProcessingRate(this)

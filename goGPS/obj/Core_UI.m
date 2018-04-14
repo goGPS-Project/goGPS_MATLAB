@@ -680,8 +680,6 @@ classdef Core_UI < handle
                 'Padding', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             
-            % Main Panel -----------------------------------------------------------------------------------------------
-
             % Main Panel > tab1 settings 
             this.j_settings = this.insertEditSettings(tab_panel);            
             
@@ -819,6 +817,8 @@ classdef Core_UI < handle
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_ini);
             % Inject edit box with the Java Scroll Pane into the main_window
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], tab);
+
+            set(j_ini, 'FocusLostCallback', @this.refreshIni);
                         
             tab1_bvr = uix.VButtonBox( 'Parent', tab, ...
                 'Spacing', 5, ...

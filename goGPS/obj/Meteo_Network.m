@@ -74,18 +74,22 @@ classdef Meteo_Network < handle
     
     methods (Access = public)
         function initSession(this, date_start, date_stop)
+            % Load all the metereological data
+            %
+            % SYNTAX
+            % this.initSession(data_start, data_stop)
+            
             this.mds = [];
             % load all meteo file present in current settings
             state = Global_Configuration.getCurrentSettings();
             fnames = state.getMetFileName(date_start, date_stop);
             n_met_data = numel(fnames);
-            for  i=1:n_met_data
+            for  i = 1 : n_met_data
                 
                 md = Meteo_Data(fnames{i});
                 if md.isValid()
                     %md.setMaxBound(0);
-                    this.mds = [this.mds; md];
-                
+                    this.mds = [this.mds; md];                
                 end
 
             end

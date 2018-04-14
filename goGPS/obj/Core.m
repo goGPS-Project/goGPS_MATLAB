@@ -114,6 +114,16 @@ classdef Core < handle
     % ==================================================================================================================================================
     methods
         function init(this, force_clean)
+            % Get instances for:
+            %   - Global_Configuration
+            %   - Settings
+            %   - Wait_Bar
+            %   - Sky
+            %   - Command_Interpreter
+            %
+            % SYNTAX:
+            %   this.init(<force_clean>)
+            
             if nargin < 2
                 force_clean = false;
             end
@@ -128,10 +138,20 @@ classdef Core < handle
         end
         
         function importIniFile(this, ini_settings_file)
+            % Import Settings from ini files
+            %
+            % SYNTAX:
+            %   this.importIniFile(ini_settings_file)
+            
             this.state.importIniFile(ini_settings_file);
         end
         
         function prepareProcessing(this)
+            % Init settings, and download necessary files
+            %
+            % SYNTAX:
+            %   this.prepareProcessing()
+            
             this.log.newLine();
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
@@ -149,9 +169,12 @@ classdef Core < handle
     % ==================================================================================================================================================
     methods
         function prepareSession(this, session_number)
-            %-------------------------------------------------------------------------------------------
-            % SESSION START
-            %-------------------------------------------------------------------------------------------
+            % Check the time-limits for the files in the session
+            % Init the Sky and Meteo object
+            %
+            % SYNTAX
+            %   this.prepareSession(session_number)
+            
             session = session_number;
             
             this.log.newLine;
@@ -190,6 +213,11 @@ classdef Core < handle
         end
         
         function go(this, session_num)
+            % Run a session and execut the command list in the settings
+            %
+            % SYNTAX
+            %   this.go(session_num)
+            
             t0 = tic;
             this.rec_list = [];
             if nargin == 1

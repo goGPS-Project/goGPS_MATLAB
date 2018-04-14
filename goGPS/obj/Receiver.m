@@ -1275,7 +1275,6 @@ classdef Receiver < Exportable
             if ~isempty(mn.mds)
                 this.log.addMarkedMessage('importing meteo data');
                 this.meteo_data = mn.getVMS(this.marker_name, this.xyz, this.time);
-                this.updateErrTropo;
             end
         end
         
@@ -4289,7 +4288,7 @@ classdef Receiver < Exportable
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
                             P = this.meteo_data.getPressure(this.time);
                             T = this.meteo_data.getTemperature(this.time);
-                            H = this.meteo_data.getHumidity(this.time);
+                            H = this.meteo_data.getHumidity(this.time);                            
                             for e = find(idx)'
                                 this.sat.err_tropo(e, s) = atmo.saastamoinenModelPTH(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e),P(e),T(e),H(e));
                             end
@@ -5875,6 +5874,7 @@ classdef Receiver < Exportable
                 this.correctTimeDesync();
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
+                this.importMeteoData();
                 this.initPositioning();
                 % smooth clock estimation
                 this.smoothAndApplyDt(3);
@@ -5903,7 +5903,6 @@ classdef Receiver < Exportable
                 
                 this.removeOutlierMarkCycleSlip();
                 this.pp_status = true;
-                this.importMeteoData();
             end
         end
         
@@ -5969,25 +5968,30 @@ classdef Receiver < Exportable
                 if isempty(this.sat.slant_td)
                     this.sat.slant_td = zeros(this.time.length(), n_sat);
                 end
+                
                 if isempty(this.meteo_data)
                     ext_meteo = false;
+                    % Use standard values instead of nans
+                    [Pall, Tall, ~] = atm.gpt(gps_time, lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                    Hall = ones(size(Pall)) * Global_Configuration.ATM.STD_HUMI;
                 else
                     ext_meteo = true;
                     Pall = this.meteo_data.getPressure(time);
                     Tall = this.meteo_data.getTemperature(time);
                     Hall = this.meteo_data.getHumidity(time);
+
+                    % Use standard values instead of nans
+                    [P, T, ~] = atm.gpt(gps_time, lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
+                    H = Global_Configuration.ATM.STD_HUMI;
+
+                    Pall(isnan(Pall)) = P(isnan(Pall));
+                    Tall(isnan(Tall)) = T(isnan(Tall));
+                    Hall(isnan(Hall)) = H;                    
                 end
+                                
                 for i = 1 : n_epoch
-                    if ~ext_meteo
-                        [P, T, ~] = atm.gpt(gps_time(i), lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
-                        H = Global_Configuration.ATM.STD_HUMI;
-                    else
-                        P = Pall(i);
-                        T = Tall(i);
-                        H = Hall(i);
-                    end
-                    this.zhd(id_sync(i)) = saast_dry(P, h_orto, lat);
-                    this.zwd(id_sync(i)) = saast_wet(T, H, h_orto);
+                    this.zhd(id_sync(i)) = saast_dry(Pall(i), h_orto, lat);
+                    this.zwd(id_sync(i)) = saast_wet(Tall(i), Hall(i), h_orto);
                 end
                 
                 rate = time.getRate();

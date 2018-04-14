@@ -280,6 +280,9 @@ classdef Meteo_Data < handle
             this.is_valid = this.file.isValid();
             % Parse the data
             this.parseData(meteo_file);
+            if ~any(this.xyz)
+                this.log.addWarning(sprintf('No position found in meteorological file "%s"\n this meteorological station cannot be used correctly', File_Name_Processor.getFileName(file_name)), verbosity_lev);                
+            end
         end
     end
     
@@ -455,26 +458,26 @@ classdef Meteo_Data < handle
     % =========================================================================
     %  GETTERS
     % =========================================================================
-    methods
-
+    
+    methods        
         function validity = isValid(this)
             % Get the validity of a RINEX file or the object
             % SYNTAX: validity = isValid()
             validity = this.file.isValid();
         end
-
+                
         function name = getMarkerName(this)
             % Get the name of the station
             % SYNTAX: time = this.getMarkerName()
             name = this.marker_name;
         end
-
+        
         function time = getTime(this)
             % Get the epochs of the data
             % SYNTAX: time = this.getTime()
             time = this.time;
         end
-
+        
         function type = getType(this)
             % Get the types of data stored in the RINEX
             id = this.getTypeId();
@@ -486,18 +489,17 @@ classdef Meteo_Data < handle
             max_bound = this.max_bound;
         end
         
-
         function type = getTypeExt(this)
             % Get the description of the types of data stored in the RINEX
             id = this.getTypeId();
             type = this.DATA_TYPE_EXT(id);
         end
-
+        
         function id = getTypeId(this)
             % Get the id of the types of data stored in the RINEX
             id = this.type;
         end
-
+        
         function data = getComponent(this, id, time)
             % Get the data with id of the type wanted
             % Passing a time array as GPS_Time the object interpolate the
@@ -531,7 +533,7 @@ classdef Meteo_Data < handle
                 end
             end
         end
-
+        
         function data = getPressure(this, time, amsl)
             % Get the pressure data
             % SYNTAX: data = this.getPressure()
@@ -540,12 +542,12 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(1, time);
             end
-
+            
             if (nargin == 3)
                 data = Meteo_Data.pressure_adjustment(data, this.amsl, amsl);
             end
         end
-
+        
         function data = getTemperature(this, time, amsl)
             % Get the temperature data
             % SYNTAX: data = this.getTemperature()
@@ -554,12 +556,12 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(2, time);
             end
-
+            
             if (nargin == 3)
                 data = Meteo_Data.temperature_adjustment(data, this.amsl, amsl);
             end
         end
-
+        
         function data = getHumidity(this, time, amsl)
             % Get the humidity data
             % SYNTAX: data = this.getHumidity()
@@ -568,12 +570,12 @@ classdef Meteo_Data < handle
             else
                 data = this.getComponent(3, time);
             end
-
+            
             if (nargin == 3)
                 data = Meteo_Data.humidity_adjustment(data, this.amsl, amsl);
             end
         end
-
+        
         function [x, y, z, amsl] = getLocation(this)
             % Get meteo station location
             % SINTAX: [x, y, z, amsl] = this.getLocation();
@@ -582,7 +584,7 @@ classdef Meteo_Data < handle
             z = this.xyz(3);
             amsl = this.amsl;
         end
-
+        
         function time = getObsTime(this)
             % Get meteo station observatipon time
             % SINTAX: time = this.getObsTime();

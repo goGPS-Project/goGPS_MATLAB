@@ -52,9 +52,9 @@ classdef Atmosphere < handle
         geoid
         ionex = struct( ...
             'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
-            'first_lat',    [], ...    % first latitude
-            'first_lon',    [], ...    % first longitude
-            'd_lat',      [], ...    %lat spacing
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
             'd_lon',      [], ...    % lon_spacing
             'n_lat',      [], ...    % num lat
             'n_lon',      [], ...    % num lon
@@ -96,6 +96,7 @@ classdef Atmosphere < handle
             this.state = gs.getCurrentSettings();
             this.log = Logger.getInstance();
         end
+        
         function importIonex(this, filename)
             fid = fopen([filename],'r');
             if fid == -1
@@ -207,6 +208,7 @@ classdef Atmosphere < handle
             
             
         end
+        
         function [stec, pp,mfpp, k] = getSTEC(this,lat,lon, az,el,h, time)
             % get slant total electron component
             
@@ -381,7 +383,7 @@ classdef Atmosphere < handle
             delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
         end
         
-         function [delay] = saastamoinenModelPTH(this, gps_time,lat,lon, h, undu, el,P,T,H)
+        function [delay] = saastamoinenModelPTH(this, gps_time,lat, lon, h, undu, el, P, T, H)
             % SYNTAX:
             %   [delay] = Atmosphere.saastamoinen_modelPTH(time_rx, lat, lon, h, undu, el)
             %
@@ -399,7 +401,21 @@ classdef Atmosphere < handle
             %   Computation of the pseudorange correction due to tropospheric refraction.
             %   Saastamoinen algorithm using P T from Global Pressure and Temperature
             %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
-            %   --> single epoch
+            %   --> single epoch            
+            
+            if isnan(P) || isnan(T) || isnan(H)
+                [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
+                if isnan(P)
+                    P = pres;
+                end
+                if isnan(T)
+                    T = temp;
+                end
+                if isnan(H)
+                    H = this.STD_HUMI;
+                end
+                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f °C\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
+            end
             
             t_h = h;
             ZHD_R = saast_dry(P, t_h, lat);
@@ -941,8 +957,7 @@ classdef Atmosphere < handle
         end
     end
     
-    methods (Static)
-       
+    methods (Static)       
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
