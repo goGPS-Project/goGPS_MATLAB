@@ -331,8 +331,10 @@ classdef File_Wizard < handle
                                 f_status = exist(file_name_lst{i}, 'file') == 2;
                                 f_status_lst(i) = f_status;
                                 status = status && f_status;
-                                if status
+                                if f_status
                                     this.log.addStatusOk(sprintf('%s have been found locally',this.fnp.getFileName(file_name_lst{i})));
+                                else
+                                    this.log.addWarning(sprintf('%s have not been found locally', this.fnp.getFileName(file_name_lst{i})));
                                 end
                             end
                             if status
@@ -363,7 +365,7 @@ classdef File_Wizard < handle
                                         if status
                                             this.log.addStatusOk(sprintf('%s have been found remotely', this.fnp.getFileName(file_name)));
                                         else
-                                            this.log.addStatusOk(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
+                                            this.log.addWarning(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
                                             break
                                         end
                                     end
