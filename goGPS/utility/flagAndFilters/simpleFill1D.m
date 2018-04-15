@@ -56,7 +56,7 @@ function [data] = simpleFill1D(data, flags, method)
     end
     t = 1 : size(data, 1);
     for r = 1 : size(data, 2)
-        if any(~isnan(data(:, r))) && any(~isnan(flags(:, r)))
+        if any(~isnan(data(:, r))) && any(~isnan(flags(:, r))) && any(~flags(:, r))
             jmp = find(flags(:, r));
             flags(:, r) = flags(:, r) | isnan(data(:, r));
             data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
