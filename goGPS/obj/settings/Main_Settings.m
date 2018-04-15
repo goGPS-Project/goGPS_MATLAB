@@ -2283,7 +2283,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function date = setSessionStop(this, date)
             % SYNTAX: setSessionStop(this, date)
             this.sss_date_stop = date.getCopy();
-        end               
+        end
+        
+        function keep = setKeepRecList(this, keep)
+            % Get the flag to keep in memory all the receivers (CEBUG)
+            % SYNTAX: keep = this.isKeepRecList();
+            this.flag_keep_rec_list = keep;
+        end
 
         function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
             % Set the first/last epoch of processing

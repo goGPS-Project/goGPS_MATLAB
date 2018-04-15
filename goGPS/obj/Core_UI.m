@@ -971,7 +971,16 @@ classdef Core_UI < handle
             this.ui_sss_stop = this.insertDateSpinner(date_g, te.toString('yyyy/mm/dd'));
             date_g.Heights = [22 22];
             date_g.Widths = [46, -1];
-
+            
+            keep_session = uicontrol('Parent', this.session_g, ...
+                'Style', 'checkbox', ...
+                'String', 'Keep all sessions in memory', ...
+                'FontSize', this.getFontSize(8), ...
+                'Value', state.isKeepRecList() , ...
+                'BackgroundColor', session_bg, ...
+                'ForegroundColor', this.WHITE, ...
+                'Callback', @this.onKeepSessionChange);
+            
             % % button sync => not used autp-sync on
             % but_session = uix.HButtonBox( 'Parent', this.session_g, ...
             %     'Padding', 5, ...
@@ -985,7 +994,7 @@ classdef Core_UI < handle
             %     'Callback', @this.onSessionChange);
             % 
             % this.session_g.Heights = [26 2 5 50 30];
-            this.session_g.Heights = [26 10 5 50];
+            this.session_g.Heights = [26 10 5 50 20];
             
             
         end
@@ -1161,6 +1170,16 @@ classdef Core_UI < handle
                 this.updateRecList();
             end
         end
+        
+        function onKeepSessionChange(this, caller, event)
+            % Manage the event of session keep modification (UI)
+            %
+            % SYNTAX:
+            %   this.onKeepSessionChange()
+            %            
+            this.state.setKeepRecList(caller.Value);
+            this.updateINI();            
+        end        
         
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
