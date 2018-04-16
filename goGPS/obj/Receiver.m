@@ -362,6 +362,14 @@ classdef Receiver < Exportable
             this.obs_code   = [];         % obs code for each line of the data matrix obs
             this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
             
+            this.outlier_idx_ph = [];
+            this.cycle_slip_idx_ph = [];
+            this.ph_idx = [];
+            this.amb_idx = [];
+            this.if_amb = [];
+            this.est_slant = [];
+            this.synt_ph = [];
+            
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         end
         
@@ -3906,7 +3914,7 @@ classdef Receiver < Exportable
                 dt = splinerMat([], dt, smoothing_win(2));
             end
             
-            this.dt = simpleFill1D(zero2nan(dt), id_ko, 'spline');
+            this.dt = simpleFill1D(zero2nan(dt), id_ko, 'pchip');
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
             %this.dt_ph = this.dt_ph + this.dt;
@@ -5160,6 +5168,7 @@ classdef Receiver < Exportable
             % SYNTAX:
             %   this.correctTimeDesync()
             this.log.addMarkedMessage('Correct for time desync');
+            disable_dt_correction = true; % Skip to speed-up processing
             
             % computing nominal_time
             nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
@@ -5191,69 +5200,80 @@ classdef Receiver < Exportable
             [pr, id_pr] = this.getPseudoRanges();
             
             % apply desync
-            if any(time_desync)
-                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
-                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
-                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
-                
-                if (max(abs(time_desync)) > 1e-4)
-                    % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
-                    ddt = [0; diff(time_desync)];
-                    ddrifting = ddt - ddt_pr;
-                    drifting = cumsum(ddt - ddt_pr);
+            if disable_dt_correction
+                dt_ph = zeros(this.time.length, 1);
+                dt_pr = zeros(this.time.length, 1);
+            else
+                if any(time_desync)
+                    [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
+                    [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                    ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
                     
-                    % Linear interpolation of ddrifting
-                    jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                    jmp_fit = setdiff(find(abs(ddrifting) > 1e-7), jmp_reset); % points where desync interpolate the clock
-                    d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
-                    jmp = [jmp_reset; jmp_fit];
-                    if numel(d_points) < 3
-                        drifting = zeros(size(drifting));
+                    if (max(abs(time_desync)) > 1e-4)
+                        % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
+                        ddt = [0; diff(time_desync)];
+                        ddrifting = ddt - ddt_pr;
+                        drifting = cumsum(ddt - ddt_pr);
+                        
+                        % Linear interpolation of ddrifting
+                        jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                        lim = getOutliers(any(~isnan(ph),2));
+                        jmp_fit = setdiff([find(abs(ddrifting) > 1e-7); lim(:)], jmp_reset); % points where desync interpolate the clock
+                        jmp_fit(jmp_fit==numel(drifting)) = [];
+                        jmp_fit(jmp_fit==1) = [];
+                        d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
+                        jmp = [jmp_reset; jmp_fit];
+                        if numel(d_points) < 3
+                            drifting = zeros(size(drifting));
+                        else
+                            drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'pchip');
+                        end
+                        
+                        dt_ph = drifting + dt_ph_dj;
+                        dt_pr = drifting + dt_pr_dj;
+                        if ~isempty(jmp)
+                            t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
+                            dt_ph = dt_ph - t_offset;
+                            dt_pr = dt_pr - t_offset;
+                        end
                     else
-                        drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'spline');
+                        dt_ph = dt_ph_dj;
+                        dt_pr = dt_pr_dj;
                     end
                     
-                    dt_ph = drifting + dt_ph_dj;
-                    dt_pr = drifting + dt_pr_dj;
-                    if ~isempty(jmp)
-                        t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
-                        dt_ph = dt_ph - t_offset;
-                        dt_pr = dt_pr - t_offset;
+                    ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+                    pr = bsxfun(@minus, pr, dt_pr .* 299792458);
+                else
+                    [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
+                    [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                    ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                    jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                    jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
+                    if numel(jmp_reset) > 2
+                        drifting = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
+                    else
+                        drifting = 0;
                     end
+                    
+                    dt_pr = dt_pr_dj - drifting;
+                    t_offset = mean(dt_pr);                    
+                    dt_ph = dt_ph_dj - drifting - t_offset;
+                    dt_pr = dt_pr - t_offset;
+                    
+                    ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+                    pr = bsxfun(@minus, pr, dt_pr .* 299792458);
+                end                
+                if any(dt_ph_dj)
+                    this.log.addMessage(this.log.indent('Correcting carrier phases jumps', 6));
                 else
-                    dt_ph = dt_ph_dj;
-                    dt_pr = dt_pr_dj;
+                    this.log.addMessage(this.log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6));
                 end
-                ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                pr = bsxfun(@minus, pr, dt_pr .* 299792458);
-            else
-                [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
-                [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
-                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
-                jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                if numel(jmp_reset) > 2
-                    drifting = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(ddt_pr))', 'spline');
+                if any(dt_pr_dj)
+                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges jumps', 6));
                 else
-                    drifting = 0;
+                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6));
                 end
-                dt_pr = dt_pr_dj - drifting;
-                t_offset = mean(dt_pr);
-                dt_ph = dt_ph_dj - drifting - t_offset;
-                dt_pr = dt_pr - t_offset;
                 
-                ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                pr = bsxfun(@minus, pr, dt_pr .* 299792458);
-            end
-            
-            if any(dt_ph_dj)
-                this.log.addMessage(this.log.indent('Correcting carrier phases jumps', 6));
-            else
-                this.log.addMessage(this.log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6));
-            end
-            if any(dt_pr_dj)
-                this.log.addMessage(this.log.indent('Correcting pseudo-ranges jumps', 6));
-            else
-                this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6));
             end
             
             % Saving dt into the object properties
@@ -5625,7 +5645,7 @@ classdef Receiver < Exportable
             XS = zeros(this.getMaxSat(), 3, n_epochs);
             dist = zeros(n_epochs, this.getMaxSat());
             % get Sat orbit correctiong ony for pseudorange
-            for i = 1 : this.getMaxSat();
+            for i = 1 : this.getMaxSat()
                 [c_sys, c_prn] = this.getSysPrn(i);
                 idx_sat = sys == c_sys & prn == c_prn;
                 if sum(idx_sat) > 0 % if we have an observation for the satellite
@@ -5637,7 +5657,7 @@ classdef Receiver < Exportable
                     this.updateAvailIndex(c_l_obs,i);
                     this.updateTOT(c_l_obs,i); % update time of travel
                     
-                    [dist(:,i), XS_temp] = this.getSyntObs('I',i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
+                    [dist(:,i), XS_temp] = this.getSyntObs('I', i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
                     
                     XS(i,:,idx_obs) = rowNormalize(XS_temp)';
                 end
@@ -7418,7 +7438,7 @@ classdef Receiver < Exportable
                     t = this(r).time.getEpoch(this(r).id_sync(:)).getMatlabTime;
                     
                     sztd = this(r).getSlantZTD(this(r).slant_filter_win);
-                    sztd = bsxfun(@minus, sztd(this(r).id_sync(:), :), this(r).ztd(this(r).id_sync(:)));
+                    sztd = bsxfun(@minus, sztd, this(r).ztd(this(r).id_sync(:)));
                     if nargin >= 3
                         if isa(time_start, 'GPS_Time')
                             time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');

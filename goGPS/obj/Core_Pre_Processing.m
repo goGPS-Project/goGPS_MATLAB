@@ -1131,43 +1131,62 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function [obs, dt] = remDtJumps(obs)
+        function [obs, dt_dj] = remDtJumps(obs)
             % remove a jumps of the clock from ph/pr
             % this piece of code is very very criptic, but it seems to work
             % review this whenever possible
             obs = zero2nan(obs);
-            d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),3), 2, 'omitnan');
-            ddt = cumsum(cumsum(nan2zero(d3dt)));
-            ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
-            % check if there is any discontinuity in the clock drift
-            clock_thresh = 1e3;
-            pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
-            if sum(pos_jmp) > 0
-                ddt = ddt - simpleFill1D(ddt, pos_jmp);
-                dt = cumsum(ddt);
-                ph_bk = obs;
-                obs = bsxfun(@minus, obs, dt);
-                d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');
-                dobs = Core_Pre_Processing.diffAndPred(obs);
-                % find jmps on the median 4th derivate
-                jmp_candidate = flagExpand(abs(nan2zero(d4dt)) > clock_thresh, 2);
-                % detect the real jmp index
-                lim = getOutliers(jmp_candidate);
-                jmp = false(size(jmp_candidate));
-                for l = 1 : size(lim,1)
-                    [~, id_max] = max(nan2zero(max(abs(nan2zero(dobs(lim(l,1) : lim(l,2), :)))')));
-                    jmp(id_max + lim(l,1) - 1) = true;
-                    d4dt(id_max + lim(l,1) - 1) = median(sign(dobs(id_max + lim(l,1) - 1,:)),'omitnan') * ...
-                                                  median(zero2nan(max(zero2nan(abs(diff(nan2zero(dobs(lim(l,1) : lim(l,2), :))))))),'omitnan');
+            dt_dj = 0;
+            
+            % Iterate for very particular instable cases
+            for i = 1 : 2
+                % Try to find the biggest jumps (experimental)
+                ddt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),1), 2, 'omitnan');
+                pos_jmp = abs(ddt) > 1e5;
+                d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),3), 2, 'omitnan');
+                ddt = cumsum(cumsum(nan2zero(d3dt)));
+                dt0 = 0;
+                if sum(pos_jmp) > 0
+                    ddt = ddt - simpleFill1D(ddt, pos_jmp);
+                    dt0 = cumsum(nan2zero(ddt));
+                    ph_bk = obs;
+                    obs = bsxfun(@minus, obs, dt0);
+                    
+                    % approach on 3rd and 4th derivate (classic)
+                    ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
+                    % check if there is any discontinuity in the clock drift
+                    clock_thresh = 1e3;
+                    pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
+                    pos_jmp(1:2) = 0;
+                    if sum(pos_jmp) > 0
+                        ddt = ddt - simpleFill1D(ddt, pos_jmp);
+                        dt = cumsum(ddt);
+                        ph_bk = obs;
+                        obs = bsxfun(@minus, obs, dt);
+                        d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');
+                        dobs = Core_Pre_Processing.diffAndPred(obs);
+                        % find jmps on the median 4th derivate
+                        jmp_candidate = flagExpand(abs(nan2zero(d4dt)) > clock_thresh, 2);
+                        % detect the real jmp index
+                        lim = getOutliers(jmp_candidate);
+                        jmp = false(size(jmp_candidate));
+                        for l = 1 : size(lim,1)
+                            [~, id_max] = max(nan2zero(max(abs(nan2zero(dobs(lim(l,1) : lim(l,2), :)))')));
+                            jmp(id_max + lim(l,1) - 1) = true;
+                            d4dt(id_max + lim(l,1) - 1) = median(sign(dobs(id_max + lim(l,1) - 1,:)),'omitnan') * ...
+                                median(zero2nan(max(zero2nan(abs(diff(nan2zero(dobs(lim(l,1) : lim(l,2), :))))))),'omitnan');
+                        end
+                        % velocity offsets beteween sat
+                        d4dt(~jmp) = 0;
+                        obs = bsxfun(@minus, obs, cumsum(nan2zero(d4dt)));
+                        dt = dt + cumsum(d4dt);
+                    else
+                        dt = zeros(size(ddt));
+                    end
+                    dt_dj = dt_dj + dt0 + dt;
                 end
-                % velocity offsets beteween sat
-                d4dt(~jmp) = 0;
-                obs = bsxfun(@minus, obs, cumsum(nan2zero(d4dt)));
-                dt = dt + cumsum(d4dt);
-            else
-                dt = zeros(size(ddt));
             end
-            dt = dt / 299792458;
+            dt_dj = dt_dj / 299792458;
         end
         
         function [ph_out, dt] = remDtHF(ph)
