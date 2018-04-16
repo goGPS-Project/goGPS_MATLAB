@@ -6742,7 +6742,7 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     t = [];
                     xyz = this(:,r).getPosXYZ();
-                    xyz0 = this(:,r).getMedianPosXYZ();
+                    xyz0 = median(this(:,r).getMedianPosXYZ());
                     
                     for s = 1 : size(this, 1)
                         if this(s, r).isStatic
