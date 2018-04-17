@@ -175,6 +175,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % get reference observations and satellite positions
+            rec.updateAllAvailIndex();
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
