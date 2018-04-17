@@ -2638,11 +2638,8 @@ classdef Receiver < Exportable
             % SYNTAX:
             %   [mfh, mfw] = this.getSlantMF()
             
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
+
+            n_sat = size(this.sat.az, 2);
             
             mfh = zeros(this.length, n_sat);
             mfw = zeros(this.length, n_sat);
@@ -2661,11 +2658,11 @@ classdef Receiver < Exportable
                     mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     if isempty(this(r).id_sync)
-                        mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp;
-                        mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp;
+                        mfh(t : t + this(r).length - 1, 1 : n_sat) = mfh_tmp;
+                        mfw(t : t + this(r).length - 1, 1 : n_sat) = mfw_tmp;
                     else
-                        mfh(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfh_tmp(this(r).id_sync, :);
-                        mfw(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = mfw_tmp(this(r).id_sync, :);
+                        mfh(t : t + this(r).length - 1, 1 : n_sat) = mfh_tmp(this(r).id_sync, :);
+                        mfw(t : t + this(r).length - 1, 1 : n_sat) = mfw_tmp(this(r).id_sync, :);
                     end
                     t = t + this(r).length;
                 end
@@ -2676,8 +2673,8 @@ classdef Receiver < Exportable
                     mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     
-                    mfh(t : t + length(id_sync) - 1, 1 : this(r).getMaxSat) = mfh_tmp(id_sync, :);
-                    mfw(t : t + length(id_sync) - 1, 1 : this(r).getMaxSat) = mfw_tmp(id_sync, :);
+                    mfh(t : t + length(id_sync) - 1, 1 : n_sat) = mfh_tmp(id_sync, :);
+                    mfw(t : t + length(id_sync) - 1, 1 : n_sat) = mfw_tmp(id_sync, :);
                     t = t + this(r).length;
                 end
             end
@@ -5379,7 +5376,11 @@ classdef Receiver < Exportable
                         obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
                     end
                 end
-                while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > 50)) % checking if the selcted epochs contains at least some usabele obseravalbles
+                min_ep_thrs = 50;
+                if this.time.length < min_ep_thrs
+                    min_ep_thrs = 1;
+                end
+                while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
                     ep_coarse = ep_coarse +1;
                 end
                 
@@ -5984,7 +5985,7 @@ classdef Receiver < Exportable
                     this.ztd = zeros(this.time.length(),1);
                 end
                 
-                n_sat = this.getMaxSat();
+                n_sat = size(this.sat.el,2);
                 if isempty(this.sat.slant_td)
                     this.sat.slant_td = zeros(this.time.length(), n_sat);
                 end
@@ -6030,7 +6031,7 @@ classdef Receiver < Exportable
                 % ls.Astack2Nstack();
                 % [x, res, s02] = ls.solve();
                 
-                this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
+                this.sat.res = zeros(this.getNumEpochs, n_sat);
                 dsz = max(id_sync) - size(res,1);
                 if dsz == 0
                     this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
