@@ -45,15 +45,21 @@ classdef Remote_Resource_Manager < Ini_Manager
     end
     
     properties (Access = private)
+        local_storage = ''
     end
     
     properties (Access = private)
         log
     end
     
-    methods
+    % =========================================================================
+    %  INIT
+    % =========================================================================
+    methods (Access = public)
+        % Guard the constructor against external invocation.  We only want
+        % to allow a single instance of this class.  See description in
+        % Singleton superclass.
         function this = Remote_Resource_Manager(file_name)
-            % SYNTAX remote_resource_manager = Remote_Resource_Manager(file_name)
             if (nargin == 0)
                 file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
                 if exist(file_name, 'file') ~= 2
@@ -61,12 +67,76 @@ classdef Remote_Resource_Manager < Ini_Manager
                     %stable enough
                 end
             end
-            
             this = this@Ini_Manager(file_name);
+            
+            if ispc()
+                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
+                this.local_storage = [home '\AppData\Local\goGPS'];
+            else
+                home = getenv('HOME');
+                if ismac()
+                    this.local_storage = [home '/Library/Application Support/goGPS'];
+                else
+                    this.local_storage = [home '/.goGPS'];
+                end
+            end
+            if ~(exist(this.local_storage, 'dir'))
+                mkdir(this.local_storage)
+            end            
+            
             this.readFile();
             this.log = Logger.getInstance();
         end
-        
+                
+    end
+
+    % =========================================================================
+    %  SINGLETON GETTERS
+    % =========================================================================
+    methods (Static)
+        % Concrete implementation.  See Singleton superclass.
+        function this = getInstance(resources_file, force_clean)
+            % Get the persistent instance of the class
+            persistent unique_instance_resource_manager__
+            ini_is_present = false;
+            switch nargin
+                case 0
+                    force_clean = false;
+                case 1
+                    if ischar(resources_file)
+                        ini_is_present = true;
+                        force_clean = false;
+                    else
+                        force_clean = resources_file;
+                    end
+                case 2
+                    ini_is_present = true;
+            end
+
+            if force_clean
+                log = Logger.getInstance();
+                clear unique_instance_resource_manager__;
+                unique_instance_resource_manager__ = [];
+            end
+
+            if isempty(unique_instance_resource_manager__)
+                if ini_is_present
+                    this = Remote_Resource_Manager(ini_settings_file);
+                else
+                    this = Remote_Resource_Manager();
+                end
+                unique_instance_resource_manager__ = this;
+            else
+                if ini_is_present
+                    this = unique_instance_resource_manager__;
+                    this.ini.importIniFile(resources_file);
+                else
+                    this = unique_instance_resource_manager__;
+                end
+            end
+        end
+    end
+    methods        
         function [ip, port] = getServerIp(this, name)
             % Return the ip of a server given the server name
             %
