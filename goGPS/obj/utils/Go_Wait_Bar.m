@@ -129,11 +129,17 @@ classdef Go_Wait_Bar < Exportable
                 this.ext_h.axesTitle.Units = 'pixels';
                 this.ext_h.axesTitle.Position(2) = 34;
                 if nargin == 2
-                    this.title = title;
+                    this.msg = title;
                     this.setTitle(title);
                 end
                 this.h.Visible = 'on';
                 drawnow;
+            else
+                if nargin == 2
+                    this.msg = title;
+                else
+                    this.msg = '';
+                end
             end
         end
 
