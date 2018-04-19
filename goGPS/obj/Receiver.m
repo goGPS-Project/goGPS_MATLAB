@@ -627,7 +627,7 @@ classdef Receiver < Exportable
                 go_id = this.getGoId(go_id, prn);
             end
             if ~isempty(go_id)
-                idx = this.go_id == go_id;
+                [~, idx] = intersect(this.go_id, go_id);
                 this.remObs(idx);
             end
         end
@@ -6695,7 +6695,7 @@ classdef Receiver < Exportable
             xyz = this.getPosXYZ();
             if size(this, 1) > 1 || size(xyz, 1) > 1
                 this(1).log.addMessage('Plotting positions');
-                xyz0 = this.getMedianPosXYZ();
+                xyz0 = median(this.getMedianPosXYZ(), 'omitnan');
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                 xyz = this.getPosXYZ();
                 [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
@@ -6707,7 +6707,7 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     t = [];
                     xyz = this(:,r).getPosXYZ();
-                    xyz0 = this(:,r).getMedianPosXYZ();
+                    xyz0 = median(this(:,r).getMedianPosXYZ(), 'omitnan');
                     
                     for s = 1 : size(this, 1)
                         if this(s, r).isStatic
@@ -6721,16 +6721,16 @@ classdef Receiver < Exportable
                     [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                     
                     if ~one_plot, subplot(3,1,1); end
-                    plot(t, zero2nan(1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                    plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                     ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                     grid on;
                     h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
-                    plot(t, zero2nan(1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
+                    plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
                     grid on;
                     if ~one_plot, subplot(3,1,3); end
-                    plot(t, zero2nan(1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
+                    plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
                     ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                     grid on;
                 end
