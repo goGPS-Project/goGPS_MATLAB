@@ -2323,7 +2323,14 @@ classdef Receiver < Exportable
             % SYNTAX
             %   xyz = this.getMedianPosXYZ_mr()
             
-            xyz = this.getMedianPosXYZ();
+            xyz = [];
+            for r = 1 : numel(this)
+                if isempty(median(this(r).getPosXYZ(), 1))
+                    xyz = [xyz; nan(1,3)]; %#ok<AGROW>
+                else
+                    xyz = [xyz; median(this(r).getPosXYZ(), 1)]; %#ok<AGROW>
+                end
+            end
         end
         
         function xyz = getMedianPosXYZ(this)
@@ -2334,14 +2341,9 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   xyz = this.getMedianPosXYZ()
-            xyz = [];
-            for r = 1 : numel(this)
-                if isempty(median(this(r).getPosXYZ(), 1))
-                    xyz = [xyz; nan(1,3)]; %#ok<AGROW>
-                else
-                    xyz = [xyz; median(this(r).getPosXYZ(), 1)]; %#ok<AGROW>
-                end
-            end
+            
+            xyz = this.getPosXYZ();
+            xyz = median(xyz, 1, 'omitnan');         
         end
         
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
@@ -2393,7 +2395,7 @@ classdef Receiver < Exportable
             %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
             xyz = this.getPosXYZ();
             xyz = median(xyz, 1);
-            if ~isempty(this)
+            if ~isempty(this(1))
                 [lat, lon, h_ellips] = cart2geod(xyz);
                 if nargout == 4
                     gs = Global_Configuration.getInstance;

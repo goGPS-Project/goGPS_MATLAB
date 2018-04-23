@@ -239,7 +239,7 @@ classdef Least_Squares_Manipulator < handle
                 % remove short arcs
                 min_arc = this.state.getMinArc;
                 % ambiguity number for each satellite
-                 amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
+                amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
                 assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
                 id = 1 : numel(amb_obs_count);
                 ko_amb_list = id(amb_obs_count < min_arc);

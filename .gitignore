@@ -132,3 +132,5 @@ remote_data
 \.fuse_hidden0000392c00000001
 
 \.fuse_hidden0000392c00000002
+
+*.asv
