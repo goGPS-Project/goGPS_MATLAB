@@ -1784,6 +1784,16 @@ classdef Receiver < Exportable
             bds_prn = unique(sscanf(txt(repmat(lim(bds_line,1), 1, 2) + repmat(1 : 2, numel(bds_line), 1))', '%2d'));
             irn_prn = unique(sscanf(txt(repmat(lim(irn_line,1), 1, 2) + repmat(1 : 2, numel(irn_line), 1))', '%2d'));
             sbs_prn = unique(sscanf(txt(repmat(lim(sbs_line,1), 1, 2) + repmat(1 : 2, numel(sbs_line), 1))', '%2d'));
+            
+            gps_prn(gps_prn > this.cc.gps.N_SAT(1)) = [];
+            glo_prn(glo_prn > this.cc.glo.N_SAT(1)) = [];
+            gal_prn(gal_prn > this.cc.gal.N_SAT(1)) = [];
+            qzs_prn(qzs_prn > this.cc.qzs.N_SAT(1)) = [];
+            bds_prn(bds_prn > this.cc.bds.N_SAT(1)) = [];
+            irn_prn(irn_prn > this.cc.irn.N_SAT(1)) = [];
+            sbs_prn(sbs_prn > this.cc.sbs.N_SAT(1)) = [];
+
+            
             prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
             
             % update the maximum number of rows to store
@@ -1825,7 +1835,6 @@ classdef Receiver < Exportable
                 
                 prn_ss = repmat(prn.(sys)', n_code, 1);
                 % discarding staellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
-                if prn_ss <= this.cc.n_sat(s)
                     this.prn = [this.prn; prn_ss];
                     this.obs_code = [this.obs_code; obs_code];
                     this.n_sat = this.n_sat + n_sat;
@@ -1851,7 +1860,6 @@ classdef Receiver < Exportable
                         this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
                     end
                     this.wl = [this.wl; wl];
-                end
             end
             
             this.w_bar.createNewBar(' Parsing epochs...');
