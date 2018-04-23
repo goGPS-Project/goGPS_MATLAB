@@ -2979,7 +2979,7 @@ classdef Receiver < Exportable
                 prn = [];
                 for j = 1 : max_obs_type
                     flags = repmat(complete_flags(j,:),size(this.obs_code,1),1);
-                    idxes = [idxes  sum(this.obs_code == flags,2) == 3];
+                    idxes = [idxes  (sum(this.obs_code == flags,2) == 3) & this.system' == system];
                     prn = unique( [prn; this.prn(idxes(: , end )>0)]);
                 end
                 
@@ -2998,7 +2998,7 @@ classdef Receiver < Exportable
                     take_idx = ones(1,n_epochs)>0;
                     for i = 1 : n_opt
                         c_idx = idxes(:, i) & sat_idx;
-                        snr_idx = idxCharLines(this.obs_code, ['S' complete_flags(i,2:3)]) & sat_idx;
+                        snr_idx = (idxCharLines(this.obs_code, ['S' complete_flags(i,2:3)]) | idxCharLines(this.obs_code, ['S' complete_flags(i,2) ' '])  ) & sat_idx;
                         if sum(c_idx)>0
                             obs((s-1)*n_opt+i,take_idx) = this.obs(c_idx,take_idx);
                             if sum(snr_idx)
@@ -4220,7 +4220,7 @@ classdef Receiver < Exportable
             az = zeros(n_epoch,1); el = zeros(n_epoch,1);
             
             [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
-            XSR = XS - XR; %%% sats orbit with origon in receiver
+            XSR = XS - XR; %%% sats orbit with origin in receiver
             
             e_unit = [-sin(lam)            cos(lam)           zeros(size(lam))       ]; % East unit vector
             n_unit = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)]; % North unit vector
