@@ -61,7 +61,8 @@ classdef Command_Interpreter < handle
         % List of the supported commands
         
         CMD_LOAD        % Load data from the linked RINEX file into the receiver
-        CMD_EMPTY       % reset the receiver content
+        CMD_EMPTY       % Reset the receiver content
+        CMD_BASICPP     % Basic Point positioning with no correction (useful to compute azimuth and elevation)
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
@@ -96,7 +97,7 @@ classdef Command_Interpreter < handle
 
         PAR_S_SAVE      % flage for saving
         
-        CMD_LIST = {'LOAD', 'EMPTY', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
+        CMD_LIST = {'LOAD', 'EMPTY', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -252,6 +253,11 @@ classdef Command_Interpreter < handle
             this.CMD_EMPTY.rec = 'T';
             this.CMD_EMPTY.par = [];
 
+            this.CMD_BASICPP.name = {'BASICPP', 'PP', 'basic_pp', 'pp'};
+            this.CMD_BASICPP.descr = ['Basic Point positioning with no correction ' new_line '(useful to compute azimuth and elevation)'];
+            this.CMD_BASICPP.rec = 'T';
+            this.CMD_BASICPP.par = [];
+
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
@@ -385,6 +391,8 @@ classdef Command_Interpreter < handle
                         this.runLoad(rec, tok(2:end));
                     case this.CMD_EMPTY.name                % EMPTY
                         this.runEmpty(rec, tok(2:end));
+                    case this.CMD_BASICPP.name              % BASICPP
+                        this.basicPP(rec, tok(2:end));                        
                     case this.CMD_PREPRO.name               % PREPRO
                         this.runPrePro(rec, tok(2:end));
                     case this.CMD_CODEPP.name               % CODEPP
@@ -476,6 +484,31 @@ classdef Command_Interpreter < handle
                 end
             end
         end
+        
+        function basicPP(this, rec, tok)
+            % Execute Basic Point positioning with no correction (useful to compute azimuth and elevation)
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.basicPP(rec, tok)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for r = id_trg
+                    this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
+                    if rec(r).isEmpty
+                        rec(r).load();
+                    end
+                    rec(r).computeBasicPosition();
+                end
+            end
+        end
+
         
         function runPPP(this, rec, tok)
             % Execute Precise Point Positioning

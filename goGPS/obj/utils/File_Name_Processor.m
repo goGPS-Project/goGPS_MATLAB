@@ -263,7 +263,7 @@ classdef File_Name_Processor < handle
                 dir_up = find(strcmp(list,'..'));
                 offset = 0;
                 for i = dir_up
-                    list((i - 1 : i) - offset) = [];
+                    list(max(1, (i - 1 : i) - offset)) = [];
                     offset = offset + 2;
                 end
 

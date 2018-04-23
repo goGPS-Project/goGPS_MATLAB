@@ -223,8 +223,9 @@ classdef File_Wizard < handle
                 this.log.addMessage(this.log.indent('Some files not found locally\n'))
             end
             % check remote
-            if  this.state.flag_check_remote && not(status)
+            if  this.state.flag_check_remote && ~status
                 if n_h_passed  < latency(1)
+                    this.log.addMessage(this.log.indent(sprintf('Not enough latency for finding all the %s orbits...\n', resource_name)));
                     status = false;
                 else
                     this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
