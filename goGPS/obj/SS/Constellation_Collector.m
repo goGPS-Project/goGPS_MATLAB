@@ -720,7 +720,11 @@ classdef Constellation_Collector < Settings_Interface
         
         function name = getSysName(this, sys_c)
             % get the 3 chars name of a constellation
-            name = this.SYS_NAME{this.SYS_C == sys_c};
+            if sys_c == 'A'
+                name = 'ALL';
+            else
+                name = this.SYS_NAME{this.SYS_C == sys_c};
+            end
         end
 
         function name = getSysExtName(this, sys_c)
