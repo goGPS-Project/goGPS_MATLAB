@@ -317,6 +317,15 @@ classdef Receiver < Exportable
                 );
             this.initR2S;
             this.pp_status = false;
+            this.group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
+            this.dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
+            this.sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
+            this.pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
+            this.ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
+            this.pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
+            this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
+            this.et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
+            this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
         end
         
         function initObs(this)
@@ -5471,7 +5480,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function [dpos, s02] = codeStaticPositioning(this,id_sync, cut_off)
+        function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off)
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
@@ -5948,16 +5957,18 @@ classdef Receiver < Exportable
             end
         end
             
-        function preProcessing(this)
+        function preProcessing(this, sys_c)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX
             %   this.preProcessing();
-            
+                        
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
-                
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
                 % correct for raw estimate of clock error based on the phase measure
@@ -5965,7 +5976,7 @@ classdef Receiver < Exportable
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
-                this.initPositioning();
+                this.initPositioning(sys_c);
                 % smooth clock estimation
                 this.smoothAndApplyDt(0);
                 % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
