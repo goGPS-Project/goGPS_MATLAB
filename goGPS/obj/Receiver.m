@@ -6765,10 +6765,9 @@ classdef Receiver < Exportable
             xyz = this.getPosXYZ();
             if size(this, 1) > 1 || size(xyz, 1) > 1
                 this(1).log.addMessage('Plotting positions');
-                xyz0 = median(this.getMedianPosXYZ(), 'omitnan');
+                xyz0 = this.getMedianPosXYZ();
                 [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                 xyz = this.getPosXYZ();
-                [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                 
                 f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                 color_order = handle(gca).ColorOrder;
@@ -6777,8 +6776,9 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     t = [];
                     xyz = this(:,r).getPosXYZ();
-                    xyz0 = median(this(:,r).getMedianPosXYZ(), 'omitnan');;
-                    
+                    xyz0 = this(:,r).getMedianPosXYZ();
+                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+
                     for s = 1 : size(this, 1)
                         if this(s, r).isStatic
                             t = [t; this(s, r).getCentralTime().getMatlabTime()];
@@ -6832,7 +6832,7 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     t = [];
                     xyz = this(:,r).getPosXYZ();
-                    xyz0 = median(this(:,r).getMedianPosXYZ());
+                    xyz0 = this(:,r).getMedianPosXYZ();
                     
                     for s = 1 : size(this, 1)
                         if this(s, r).isStatic
@@ -6871,7 +6871,7 @@ classdef Receiver < Exportable
         
         function showMap(this)
             f = figure; maximizeFig(f);
-            [lat, lon] = cart2geod(this.getMedianPosXYZ());
+            [lat, lon] = cart2geod(this.getMedianPosXYZ_mr());
             
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
             hold on;
