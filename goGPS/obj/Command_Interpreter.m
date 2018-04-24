@@ -261,7 +261,7 @@ classdef Command_Interpreter < handle
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
-            this.CMD_PREPRO.par = [];
+            this.CMD_PREPRO.par = [this.PAR_RATE this.PAR_SS];
             
             this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
             this.CMD_CODEPP.descr = 'Code positioning';
@@ -475,12 +475,17 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
+                [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
                     if rec(r).isEmpty
                         rec(r).load();
                     end
-                    rec(r).preProcessing();
+                    if sys_found
+                        rec(r).preProcessing(sys_list);
+                    else
+                        rec(r).preProcessing();
+                    end
                 end
             end
         end
@@ -523,10 +528,15 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
+                [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     if rec(r).isStatic
                         this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
-                        rec(r).staticPPP();
+                        if sys_found
+                            rec(r).staticPPP(sys_list);
+                        else
+                            rec(r).staticPPP();
+                        end
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
                     end
@@ -547,9 +557,14 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
+                [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
-                    rec(r).initPositioning();
+                    if sys_found
+                        rec(r).initPositioning(sys_list);
+                    else
+                        rec(r).initPositioning();
+                    end
                 end
             end
         end

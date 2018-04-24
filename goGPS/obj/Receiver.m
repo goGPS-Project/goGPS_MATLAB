@@ -5480,7 +5480,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function [dpos, s02] = codeStaticPositioning(this,id_sync, cut_off)
+        function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off)
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
@@ -5957,16 +5957,18 @@ classdef Receiver < Exportable
             end
         end
             
-        function preProcessing(this)
+        function preProcessing(this, sys_c)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX
             %   this.preProcessing();
-            
+                        
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
-                
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
                 % correct for raw estimate of clock error based on the phase measure
@@ -5974,7 +5976,7 @@ classdef Receiver < Exportable
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
-                this.initPositioning();
+                this.initPositioning(sys_c);
                 % smooth clock estimation
                 this.smoothAndApplyDt(0);
                 % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
