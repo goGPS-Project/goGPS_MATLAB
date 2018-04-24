@@ -2287,7 +2287,8 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   xyz = this.getPosXYZ_mr()
-            xyz = this.getPosXYZ()
+            xyz = this.getPosXYZ();
+            xyz = permute(reshape(xyz', 3, n_sss, n_rec), [2 1 3]);
         end
         
         function xyz = getPosXYZ(this)
@@ -2313,6 +2314,9 @@ classdef Receiver < Exportable
             % SYNTAX
             %   enu = this.getPosENU_mr()
             enu = this.getPosENU();
+            n_rec = size(this, 2);
+            n_sss = size(this, 1);
+            enu = permute(reshape(enu', 3, n_sss, n_rec), [2 1 3]);
         end
         
         function enu = getPosENU(this)
