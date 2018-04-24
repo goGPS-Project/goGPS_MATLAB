@@ -246,7 +246,7 @@ classdef Command_Interpreter < handle
             this.CMD_LOAD.name = {'LOAD', 'load'};
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
-            this.CMD_LOAD.par = [];
+            this.CMD_LOAD.par = [this.PAR_SS];
 
             this.CMD_EMPTY.name = {'EMPTY', 'empty'};
             this.CMD_EMPTY.descr = 'Empty the receiver';
@@ -256,7 +256,7 @@ classdef Command_Interpreter < handle
             this.CMD_BASICPP.name = {'BASICPP', 'PP', 'basic_pp', 'pp'};
             this.CMD_BASICPP.descr = ['Basic Point positioning with no correction ' new_line '(useful to compute azimuth and elevation)'];
             this.CMD_BASICPP.rec = 'T';
-            this.CMD_BASICPP.par = [];
+            this.CMD_BASICPP.par = [this.PAR_RATE this.PAR_SS];
 
             this.CMD_PREPRO.name = {'PREPRO', 'pre_processing'};
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
@@ -434,8 +434,13 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
+                [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Importing data for receiver %d', r));
+                    if sys_found
+                        state = Global_Configuration.getCurrentSettings();
+                        state.cc.setActive(sys_list);
+                    end
                     rec(r).load();
                 end
             end
@@ -479,6 +484,10 @@ classdef Command_Interpreter < handle
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
                     if rec(r).isEmpty
+                        if sys_found
+                            state = Global_Configuration.getCurrentSettings();
+                            state.cc.setActive(sys_list);
+                        end
                         rec(r).load();
                     end
                     if sys_found
@@ -504,12 +513,21 @@ classdef Command_Interpreter < handle
             if ~found
                 this.log.addWarning('No target found -> nothing to do');
             else
+                [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
                     if rec(r).isEmpty
+                        if sys_found
+                            state = Global_Configuration.getCurrentSettings();
+                            state.cc.setActive(sys_list);
+                        end
                         rec(r).load();
                     end
-                    rec(r).computeBasicPosition();
+                    if sys_found
+                        rec(r).computeBasicPosition(sys_list);
+                    else
+                        rec(r).computeBasicPosition();
+                    end
                 end
             end
         end

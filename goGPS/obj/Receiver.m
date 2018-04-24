@@ -5915,14 +5915,13 @@ classdef Receiver < Exportable
                     
                 end
             end
-            %%% Remove obs for which coordinates of satellite are non
-            %%% available
+            % remove obs for which coordinates of satellite are not available
             o = 1;
             while (o <= length(prn))
                 s = this.cc.getIndex(sys(o),prn(o));
                 o_idx_l = obs(o,:)>0;
                 times = this.time.getSubSet(o_idx_l);
-                times.addSeconds(-obs(o,o_idx_l)'/Global_Configuration.V_LIGHT); % add roucg time of flight
+                times.addSeconds(-obs(o,o_idx_l)' / Global_Configuration.V_LIGHT); % add rough time of flight
                 xs = this.sat.cs.coordInterpolate(times,s);
                 to_remove = isnan(xs(:,1));
                 o_idx = find(o_idx_l);
@@ -5939,7 +5938,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function computeBasicPosition(this)
+        function computeBasicPosition(this, sys_c)
             % Compute a very simple position from code observations
             % without applying any corrections
             %
@@ -5949,11 +5948,14 @@ classdef Receiver < Exportable
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
+                if nargin < 2
+                    sys_c = this.cc.sys_c;
+                end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
                 % correct for raw estimate of clock error based on the phase measure
                 this.correctTimeDesync();
-                this.initPositioning();
+                this.initPositioning(sys_c);
             end
         end
             
@@ -5961,7 +5963,7 @@ classdef Receiver < Exportable
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX
-            %   this.preProcessing();
+            %   this.preProcessing(sys_c);
                         
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
