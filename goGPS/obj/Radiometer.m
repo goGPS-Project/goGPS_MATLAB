@@ -39,7 +39,7 @@ classdef Radiometer < handle
         zwd_21        % equivalent wet zenith delay - 21 GHz only [cm]      double   [n_epoch x 1]
         sigma_zwd_21  % zwd sigma error [cm]                                double   [n_epoch x 1]
         zwd_saast     % zenital wet delay from Saastamoinen model           double   [n_epoch x 1]
-        air_mass       % airmass of the observation in the zenith           double   [n_epoch x 1]
+        air_mass      % airmass of the observation in the zenith           double   [n_epoch x 1]
         el            % elevation of the wvr observation [deg]              double   [n_epoch x 1]
         az            % azimuth of the wvr observation [deg]                double   [n_epoch x 1]
         
