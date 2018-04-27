@@ -4216,7 +4216,12 @@ classdef Receiver < Exportable
                 show_fig = false;
             end
             
-            nppb = 100; % number of points per bin (1 degree)
+            use_median = true;
+            if use_median
+                nppb = 1; % number of points per bin (1 degree)
+            else
+                nppb = 100; % number of points per bin (1 degree)
+            end
             
             el = this.getEl;
             slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZTD());            
@@ -4231,16 +4236,19 @@ classdef Receiver < Exportable
             
             % Limit the number of points to use for spline interpolation (speedup)
             % 100 points per bin (1 degree) choosen randomly
-            bin_size = hist(el, 0.5 : 0.01 : 90);
+            bin_size = hist(el, 0.5 : 0.1 : 90);
             bin_offset = [0; cumsum(bin_size(:))];
             id_ok = [];
             for b = 1 : numel(bin_size)
                 if (bin_size(b) > nppb)
-                    id_tmp = serialize(bin_offset(b) + randperm(bin_size(b)));
-                    id_ok = [id_ok; sort(id_tmp(1 : nppb))];
-                    %bin_slant = slant_td(serialize(bin_offset(b) + (1 : bin_size(b))));
-                    %[~, id_tmp] = min(abs(bin_slant - median(bin_slant)));
-                    %id_ok = [id_ok; bin_offset(b) + id_tmp(1)];
+                    if use_median
+                        bin_slant = slant_td(serialize(bin_offset(b) + (1 : bin_size(b))));
+                        [~, id_tmp] = min(abs(bin_slant - median(bin_slant)));
+                        id_ok = [id_ok; bin_offset(b) + id_tmp(1)];
+                    else
+                        id_tmp = serialize(bin_offset(b) + randperm(bin_size(b)));
+                        id_ok = [id_ok; sort(id_tmp(1 : nppb))];
+                    end
                 else
                     id_ok = [id_ok; serialize(bin_offset(b) + (1 : bin_size(b)))];
                 end
@@ -6212,6 +6220,7 @@ classdef Receiver < Exportable
                     if this.state.flag_tropo
                         this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                        this.pwv = nan(size(this.zwd));
                         if ext_meteo
                             degCtoK = 273.15;
                             
@@ -6221,8 +6230,7 @@ classdef Receiver < Exportable
                             % Askne and Nordius formula (from Bevis et al., 1994)
                             Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
                             
-                            %Precipitable Water Vapor
-                            this.pwv = nan(size(this.zwd));
+                            % precipitable Water Vapor
                             this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q * 1e3;
                         end
                         this.sat.amb = amb;
