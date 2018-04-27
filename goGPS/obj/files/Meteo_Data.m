@@ -50,6 +50,7 @@ classdef Meteo_Data < handle
         WD_ID = sum(uint16('WD').*uint16([1 256]));     % Internal id of Wind azimuth (deg) from where the wind blows
         WS_ID = sum(uint16('WS').*uint16([1 256]));     % Internal id of Wind speed (m/s)
         RI_ID = sum(uint16('RI').*uint16([1 256]));     % Internal id of Rain increment (1/10 mm): Rain accumulation since last measurement
+        RR_ID = sum(uint16('RR').*uint16([1 256]));     % Internal id of Rain Rate (mm/h): Rain rate
         HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement
 
         % Array of all the meteorological data types
@@ -62,11 +63,12 @@ classdef Meteo_Data < handle
                         Meteo_Data.WD_ID, ...
                         Meteo_Data.WS_ID, ...
                         Meteo_Data.RI_ID, ...
+                        Meteo_Data.RR_ID, ...
                         Meteo_Data.HI_ID];
     end
 
     properties (Constant)
-        DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'HI'];
+        DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'RR'; 'HI'];
         DATA_TYPE_EXT = { 'Pressure [mbar]', ...
                           'Dry temperature [deg Celsius]', ...
                           'Relative humidity [percent]', ...
@@ -76,6 +78,7 @@ classdef Meteo_Data < handle
                           'Wind azimuth [deg] from where the wind blows', ...
                           'Wind speed [m/s]', ...
                           'Rain increment [1/10 mm]: Rain accumulation since last measurement', ...
+                          'Rain Rate (mm/h): Rain rate', ...
                           'Hail indicator non-zero: Hail detected since last measurement'};
 
         PR = 1;     % Numeric id of Pressure [mbar]
@@ -87,7 +90,8 @@ classdef Meteo_Data < handle
         WD = 7;     % Numeric id of Wind azimuth (deg) from where the wind blows
         WS = 8;     % Numeric id of Wind speed (m/s)
         RI = 9;     % Numeric id of Rain increment (1/10 mm): Rain accumulation since last measurement
-        HI = 10;    % Numeric id of Hail indicator non-zero: Hail detected since last measurement
+        RR = 10;     % Numeric id of Rain Rate (mm/h): Rain rate'
+        HI = 11;    % Numeric id of Hail indicator non-zero: Hail detected since last measurement
     end
 
     properties (SetAccess = protected, GetAccess = protected)
@@ -100,7 +104,7 @@ classdef Meteo_Data < handle
 
         marker_name = '';   % name of the station
         n_type = 0;         % number of observation types
-        type = 1:10;        % supposing to have all the fields
+        type = 1:11;        % supposing to have all the fields
 
         time = GPS_Time();  % array of observation epochs
 
@@ -397,7 +401,7 @@ classdef Meteo_Data < handle
                     cur_file_name = fnp.dateKeyRep(fnp.checkPath(file_name), this.time.getEpoch(day_start(d)));
                     
                     dir_container = fileparts(cur_file_name);
-                    if ~exist(dir_container, 'dir')
+                    if ~isempty(dir_container) && ~exist(dir_container, 'dir')
                         mkdir(dir_container);
                     end
                     
