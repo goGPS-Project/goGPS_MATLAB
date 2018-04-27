@@ -4203,15 +4203,80 @@ classdef Receiver < Exportable
             end
         end
         
+        function [mf, el_points] = computeEmpMF(this, el_points, show_fig)
+            % Compute an empirical hisotropic and homogeneous mapping function
+            %
+            % SYNTAX
+            %   [mf, el_points] = this.computeEmpMF(<el_points>)
+            %
+            % EXAMPLE
+            %   [mf, el_points] = this.computeEmpMF();
+            
+            if nargin < 3
+                show_fig = false;
+            end
+            
+            nppb = 100; % number of points per bin (1 degree)
+            
+            el = this.getEl;
+            slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZTD());            
+            
+            % keep only valid data
+            el = el(~isnan(zero2nan(slant_td)));
+            slant_td = slant_td(~isnan(zero2nan(slant_td)));
+            [el, id] = sort(el); slant_td = slant_td(id);
+            if (nargin < 2) || isempty(el_points)
+                el_points = max(0, (min(el(:)))) : 0.1 : min(90, (max(el(:))));
+            end
+            
+            % Limit the number of points to use for spline interpolation (speedup)
+            % 100 points per bin (1 degree) choosen randomly
+            bin_size = hist(el, 0.5 : 0.01 : 90);
+            bin_offset = [0; cumsum(bin_size(:))];
+            id_ok = [];
+            for b = 1 : numel(bin_size)
+                if (bin_size(b) > nppb)
+                    id_tmp = serialize(bin_offset(b) + randperm(bin_size(b)));
+                    id_ok = [id_ok; sort(id_tmp(1 : nppb))];
+                    %bin_slant = slant_td(serialize(bin_offset(b) + (1 : bin_size(b))));
+                    %[~, id_tmp] = min(abs(bin_slant - median(bin_slant)));
+                    %id_ok = [id_ok; bin_offset(b) + id_tmp(1)];
+                else
+                    id_ok = [id_ok; serialize(bin_offset(b) + (1 : bin_size(b)))];
+                end
+            end
+            if show_fig
+                figure;
+                plot(el(:), slant_td(:), '.'); hold on;
+                plot(el(id_ok), slant_td(id_ok), 'o');
+            end
+            % The mapping function at zenith is 1 => to best fit with spline I prefer to estimate
+            % it with terminal value = 0
+            el = el(id_ok);
+            slant_td = slant_td(id_ok) - 1;
+            zeinth_fill = (max(el): 0.01 : 90)';
+            el = [el; zeinth_fill];
+            slant_td = [slant_td; zeros(size(zeinth_fill))];
+            
+            [~, ~, ~, mf] = splinerMat(el, slant_td, 1, 0, el_points); % Spline base 10 degrees            
+            mf = mf + 1; % readding the removed bias
+            if show_fig
+                plot(el_points, mf, '.','MarkerSize', 10);
+            end
+        end
         
         
         function [az, el] = computeAzimuthElevation(this, go_id)
+            % Force computation of azimuth and elevation
+            %
+            % SYNTAX
+            %   [az, el] = this.computeAzimuthElevation(go_id)
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
         
         function [rate] = getRate(this)
-            % SYSTEM:
+            % SYNTAX
             %   rate = this.getRate();
             rate = this.getTime.getRate;
         end
