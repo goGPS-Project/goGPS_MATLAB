@@ -1912,51 +1912,51 @@ classdef Receiver < Exportable
         function toString(this)
             % Display on screen information about the receiver
             % SYNTAX this.toString();
-            
-            fprintf('----------------------------------------------------------------------------------\n')
-            this.log.addMarkedMessage(sprintf('Receiver %s', this.marker_name));
-            fprintf('----------------------------------------------------------------------------------\n')
-            this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
-            this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Rate of the observations [s]:            %d', this.getRate()));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this.n_sat)));
-            this.log.addMessage(sprintf(' Number of stored frequencies:            %d', this.n_freq));
-            this.log.newLine();
-            this.log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
-            this.log.newLine();
-            
-            xyz0 = this.getAPrioriPos();
-            [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-            static_dynamic = {'Dynamic', 'Static'};
-            this.log.addMessage(sprintf(' %s receiver', static_dynamic{this.static + 1}));
-            fprintf(' ----------------------------------------------------------\n')
-            this.log.addMessage(' Receiver a-priori position:');
-            this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
-            
-            if ~isempty(this.xyz)
-                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
-                enu_m = median(enu, 1, 'omitnan');
-                this.log.newLine();
-                this.log.addMessage(' Receiver median position:');
-                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                    xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+            for r = 1 : numel(this)
+                fprintf('----------------------------------------------------------------------------------\n')
+                this(r).log.addMarkedMessage(sprintf('Receiver %s', this(r).marker_name));
+                fprintf('----------------------------------------------------------------------------------\n')
+                this(r).log.addMessage(sprintf(' From     %s', this(r).time.first.toString()));
+                this(r).log.addMessage(sprintf(' to       %s', this(r).time.last.toString()));
+                this(r).log.newLine();
+                this(r).log.addMessage(sprintf(' Rate of the observations [s]:            %d', this(r).getRate()));
+                this(r).log.newLine();
+                this(r).log.addMessage(sprintf(' Maximum number of satellites seen:       %d', max(this(r).n_sat)));
+                this(r).log.addMessage(sprintf(' Number of stored frequencies:            %d', this(r).n_freq));
+                this(r).log.newLine();
+                this(r).log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this(r).system)));
+                this(r).log.newLine();
                 
-                enu = zero2nan(this.xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this.xyz(:,1)), zero2nan(this.xyz(:,2)), zero2nan(this.xyz(:,3)));
-                xyz_m = median(zero2nan(this.xyz), 1, 'omitnan');
-                enu_m = median(enu, 1, 'omitnan');
-                this.log.newLine();
-                this.log.addMessage(' Correction of the a-priori position:');
-                this.log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
-                    xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
-                this.log.newLine();
-                this.log.addMessage(sprintf('     3D distance = %+16.4f m', sqrt(sum((xyz_m - xyz0).^2))));
+                xyz0 = this(r).getAPrioriPos();
+                [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                static_dynamic = {'Dynamic', 'Static'};
+                this(r).log.addMessage(sprintf(' %s receiver', static_dynamic{this(r).static + 1}));
+                fprintf(' ----------------------------------------------------------\n')
+                this(r).log.addMessage(' Receiver a-priori position:');
+                this(r).log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                    xyz0(1), enu0(1), xyz0(2), enu0(2), xyz0(3), enu0(3)));
+                
+                if ~isempty(this(r).xyz)
+                    enu = zero2nan(this(r).xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this(r).xyz(:,1)), zero2nan(this(r).xyz(:,2)), zero2nan(this(r).xyz(:,3)));
+                    xyz_m = median(zero2nan(this(r).xyz), 1, 'omitnan');
+                    enu_m = median(enu, 1, 'omitnan');
+                    this(r).log.newLine();
+                    this(r).log.addMessage(' Receiver median position:');
+                    this(r).log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                        xyz_m(1), enu_m(1), xyz_m(2), enu_m(2), xyz_m(3), enu_m(3)));
+                    
+                    enu = zero2nan(this(r).xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this(r).xyz(:,1)), zero2nan(this(r).xyz(:,2)), zero2nan(this(r).xyz(:,3)));
+                    xyz_m = median(zero2nan(this(r).xyz), 1, 'omitnan');
+                    enu_m = median(enu, 1, 'omitnan');
+                    this(r).log.newLine();
+                    this(r).log.addMessage(' Correction of the a-priori position:');
+                    this(r).log.addMessage(sprintf('     X = %+16.4f m        E = %+16.4f m\n     Y = %+16.4f m        N = %+16.4f m\n     Z = %+16.4f m        U = %+16.4f m', ...
+                        xyz0(1) - xyz_m(1), enu0(1) - enu_m(1), xyz0(2) - xyz_m(2), enu0(2) - enu_m(2), xyz0(3) - xyz_m(3), enu0(3) - enu_m(3)));
+                    this(r).log.newLine();
+                    this(r).log.addMessage(sprintf('     3D distance = %+16.4f m', sqrt(sum((xyz_m - xyz0).^2))));
+                end
+                fprintf(' ----------------------------------------------------------\n')
             end
-            fprintf(' ----------------------------------------------------------\n')
-            
         end
         
         function marker_name = getMarkerName(this)
