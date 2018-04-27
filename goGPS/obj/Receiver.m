@@ -2694,7 +2694,7 @@ classdef Receiver < Exportable
             %   [mfh, mfw] = this.getSlantMF()
             
 
-            n_sat = size(this.sat.az, 2);
+            n_sat = this.getMaxSat;
             
             mfh = zeros(this.length, n_sat);
             mfw = zeros(this.length, n_sat);
@@ -2707,17 +2707,16 @@ classdef Receiver < Exportable
             lon = median(lon);
             h_ortho = median(h_ortho);
             if nargin == 1
-                for r = 1 : numel(this)
-                    
+                for r = 1 : numel(this)                    
                     [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
                     mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     if isempty(this(r).id_sync)
-                        mfh(t : t + this(r).length - 1, 1 : n_sat) = mfh_tmp;
-                        mfw(t : t + this(r).length - 1, 1 : n_sat) = mfw_tmp;
+                        mfh(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp;
+                        mfw(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp;
                     else
-                        mfh(t : t + this(r).length - 1, 1 : n_sat) = mfh_tmp(this(r).id_sync, :);
-                        mfw(t : t + this(r).length - 1, 1 : n_sat) = mfw_tmp(this(r).id_sync, :);
+                        mfh(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp(this(r).id_sync, :);
+                        mfw(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp(this(r).id_sync, :);
                     end
                     t = t + this(r).length;
                 end
@@ -2728,8 +2727,8 @@ classdef Receiver < Exportable
                     mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
                     
-                    mfh(t : t + length(id_sync) - 1, 1 : n_sat) = mfh_tmp(id_sync, :);
-                    mfw(t : t + length(id_sync) - 1, 1 : n_sat) = mfw_tmp(id_sync, :);
+                    mfh(t : t + length(id_sync) - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp(id_sync, :);
+                    mfw(t : t + length(id_sync) - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp(id_sync, :);
                     t = t + this(r).length;
                 end
             end
@@ -3595,7 +3594,7 @@ classdef Receiver < Exportable
             else
                 n_sat = this.getMaxSat();
             end
-            el = zeros(this.getNumEpochs, n_sat);
+            el = zeros(this.length, n_sat);
             t = 1;
             for r = 1 : numel(this)
                 el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
@@ -6999,7 +6998,7 @@ classdef Receiver < Exportable
             % SYNTAX this.plotSNR(sys_c)
             
             % SNRs
-            if nargin == 1
+            if nargin < 2
                 sys_c_list = unique(this.system);
             end
             
@@ -7019,7 +7018,7 @@ classdef Receiver < Exportable
         
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX: this.plotSNR(sys_c)
+            % SYNTAX this.plotSNR(sys_c)
             
             % SNRs
             if nargin == 1
