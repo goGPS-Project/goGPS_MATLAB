@@ -1040,6 +1040,9 @@ classdef Core_UI < handle
         
         function updateRecList(this)
             % Get file name list
+            %
+            % SYNTAX:
+            %   this.updateRecList 
             state = Global_Configuration.getCurrentSettings;
             state.updateObsFileName;
             n_rec = state.getRecCount;
@@ -1065,9 +1068,13 @@ classdef Core_UI < handle
             this.log.addMessage('Receiver files checked');
             if n_rec == 0
                 str = 'No receivers found';
-            end            
-            this.rec_list.String = str;
-            this.info_g.Heights = [26 10 this.rec_list.Extent(3)];            
+            end
+            try
+                this.rec_list.String = str;
+                this.info_g.Heights = [26 10 this.rec_list.Extent(3)];
+            catch ex
+                % probably deleted object
+            end
         end
     end
     
