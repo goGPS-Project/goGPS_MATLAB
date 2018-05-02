@@ -59,7 +59,9 @@ function [data] = simpleFill1D(data, flags, method)
         if any(~isnan(data(:, r))) && any(~isnan(flags(:, r))) && any(~flags(:, r))
             jmp = find(flags(:, r));
             flags(:, r) = flags(:, r) | isnan(data(:, r));
-            data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
+            if sum(~flags(:, r)) > 1
+                data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
+            end
         end
     end
 end

@@ -152,7 +152,7 @@ classdef Core_Sky < handle
                         gps_time = getFileStTime([name ext]);
                         end_time = this.getLastEpochCoord();
                         if isempty(end_time) || isempty(gps_time) ||  gps_time > end_time
-                            this.addSp3(eph_f_name{i},clock_in_eph);
+                            this.addSp3(eph_f_name{i}, clock_in_eph);
                         end
                         this.coord_type = 0; % center of mass
                     end
