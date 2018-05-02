@@ -1966,7 +1966,7 @@ classdef Receiver < Exportable
             % SYNTAX this.toStringPos();
             for r = 1 : numel(this)
                 if ~this(r).isempty && ~isempty(this(r).xyz)
-                    [lat, lon, h_ellips, h_ortho] = this(r).getMedianPosGeodetic_mr();                    
+                    [lat, lon, h_ellips, h_ortho] = this(r).getMedianPosGeodetic_mr();
                     this(r).log.addMarkedMessage(sprintf('Receiver (%02d) %s   %11.7f  %11.7f    %12.7f m (ellipsoidal) - %12.7f (orthometric)', r, this(r).marker_name, lat, lon, h_ellips, h_ortho));
                 end
             end
@@ -2014,7 +2014,13 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   is_empty = this.isempty();
-            is_empty =  this.time.length() == 0;
+            is_empty = true(size(this));
+            for s = 1 : size(this, 1)
+                for r = 1 : size(this, 2)
+                    is_empty(s, r) =  this(s, r).time.length() == 0;
+                end
+            end
+            
         end
         
         function is_empty = isEmpty_mr(this)
@@ -2061,7 +2067,9 @@ classdef Receiver < Exportable
         
         function n_sat = getNumSat(this, sys_c)
             % get the number of satellites stored in the object
-            % SYNTAX n_sat = getNumSat(<sys_c>)
+            %
+            % SYNTAX 
+            %   n_sat = getNumSat(<sys_c>)
             if nargin == 2
                 n_sat = numel(unique(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') )));
             else
@@ -2071,16 +2079,25 @@ classdef Receiver < Exportable
         
         function n_sat = getMaxSat(this, sys_c)
             % get the number of satellites stored in the object
-            % SYNTAX n_sat = getNumSat(<sys_c>)
-            n_sat = [];
-            for r = 1 : numel(this)
-                if nargin == 2
-                    n_sat(r) = max(this(r).go_id( (this(r).system == sys_c)' & (this(r).obs_code(:,1) == 'C' | this(r).obs_code(:,1) == 'L') ));
-                else
-                    n_sat(r) = max(this(r).go_id(this(r).obs_code(:,1) == 'C' | this(r).obs_code(:,1) == 'L'));
+            %
+            % SYNTAX 
+            %   n_sat = getNumSat(<sys_c>)
+            n_sat = zeros(size(this));
+            
+            for r = 1 : size(this, 2)
+                rec = this(~this(:,r).isempty, r);
+                
+                if ~isempty(rec)
+                    for s = 1 : size(rec, 1)
+                        if nargin == 2
+                            n_sat(s, r) = max(rec(s).go_id( (rec(s).system == sys_c)' & (rec(s).obs_code(:,1) == 'C' | rec(s).obs_code(:,1) == 'L') ));
+                        else
+                            n_sat(s, r) = max(rec(s).go_id(rec(s).obs_code(:,1) == 'C' | rec(s).obs_code(:,1) == 'L'));
+                        end
+                    end
                 end
             end
-            n_sat = max(n_sat);
+            n_sat = max(n_sat, [], 1)';
         end
         
         % constellation systems
@@ -2719,30 +2736,33 @@ classdef Receiver < Exportable
             lat = median(lat);
             lon = median(lon);
             h_ortho = median(h_ortho);
-            if nargin == 1
-                for r = 1 : numel(this)                    
-                    [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
-                    mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                    mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                    if isempty(this(r).id_sync)
-                        mfh(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp;
-                        mfw(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp;
-                    else
-                        mfh(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp(this(r).id_sync, :);
-                        mfw(t : t + this(r).length - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp(this(r).id_sync, :);
+            if nargin == 1                
+                for s = 1 : numel(this)
+                    if ~isempty(this(s))
+                        [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        if isempty(this(s).id_sync)
+                            mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp;
+                            mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp;
+                        else
+                            mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(this(s).id_sync, :);
+                            mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(this(s).id_sync, :);
+                        end
+                        t = t + this(s).length;
                     end
-                    t = t + this(r).length;
                 end
             else
-                for r = 1 : numel(this)
-                    
-                    [gmfh, gmfw] = atmo.gmf(this(r).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(r).sat.el(:))./180*pi);
-                    mfh_tmp = reshape(gmfh, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                    mfw_tmp = reshape(gmfw, size(this(r).sat.el, 1), size(this(r).sat.el, 2));
-                    
-                    mfh(t : t + length(id_sync) - 1, 1 : size(this(r).sat.el, 2)) = mfh_tmp(id_sync, :);
-                    mfw(t : t + length(id_sync) - 1, 1 : size(this(r).sat.el, 2)) = mfw_tmp(id_sync, :);
-                    t = t + this(r).length;
+                for s = 1 : numel(this)
+                    if ~isempty(this(s))
+                        [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        
+                        mfh(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(id_sync, :);
+                        mfw(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(id_sync, :);
+                        t = t + this(s).length;
+                    end
                 end
             end
         end
@@ -2781,7 +2801,7 @@ classdef Receiver < Exportable
                     end
                 end
             else
-                this.log.addWarning('ZTD and slants have not been computed');
+                this(1).log.addWarning('ZTD and slants have not been computed');
             end
         end
         
@@ -2971,7 +2991,7 @@ classdef Receiver < Exportable
         
         function [obs, idx, snr, cycle_slips] = getPrefObsCh(this, flag, system, max_obs_type)
             % get observation index corresponfing to the flag using best
-            % channel according to the feinition in GPS_SS, GLONASS_SS
+            % channel according to the definition in GPS_SS, GLONASS_SS, ...
             % SYNTAX this.getObsIdx(flag, <system>)
             
             cycle_slips = [];
@@ -3029,7 +3049,7 @@ classdef Receiver < Exportable
                     cycle_slips = sparse(size(obs,1),size(obs,2));
                 end
                 flags = zeros(length(prn)*n_opt,3);
-                for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on diffrent lines)
+                for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on different lines)
                     sat_idx = sys_idx & this.prn==prn(s);
                     
                     tmp_obs = zeros(n_opt,n_epochs);
@@ -3620,8 +3640,13 @@ classdef Receiver < Exportable
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX   this.getChalmersString();
-            xyz = this.getMedianPosXYZ();
-            fprintf('"%-24s %16.4f%16.4f%16.4f"\n', this.marker_name, xyz(1), xyz(2),xyz(3));
+            for r = 1 : size(this, 2)
+                rec = this(~this(:,r).isempty, r);
+                if ~isempty(rec)
+                    xyz = rec.getMedianPosXYZ();
+                    fprintf('%-24s %16.4f%16.4f%16.4f\n', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3));
+                end
+            end
         end
         
     end
@@ -5339,7 +5364,7 @@ classdef Receiver < Exportable
             % extract observations
             [ph, wl, id_ph] = this.getPhases();
             [pr, id_pr] = this.getPseudoRanges();
-            
+              
             % apply desync
             if disable_dt_correction
                 dt_ph = zeros(this.time.length, 1);
@@ -5348,6 +5373,12 @@ classdef Receiver < Exportable
                 if any(time_desync)
                     [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                     [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                    if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
+                        id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
+                        tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
+                        dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
+                    end
+                    
                     ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
                     
                     if (max(abs(time_desync)) > 1e-4)
@@ -5387,6 +5418,13 @@ classdef Receiver < Exportable
                 else
                     [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                     [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
+                    % epochs with no phases cannot estimate dt jumps
+                    if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
+                        id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
+                        tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
+                        dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
+                    end
+                    
                     ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
                     jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                     jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
@@ -6226,10 +6264,10 @@ classdef Receiver < Exportable
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.amb_idx = ls.amb_idx; % to test ambiguity fixing
                 this.if_amb = amb; % to test ambiguity fixing
-                if s02 > 0.30
+                if s02 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
                 end
-                if s02 < 1.30
+                if s02 < 1.50 % with over one meter of error the results are not meaningfull
                     if this.state.flag_tropo
                         this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
@@ -6273,8 +6311,6 @@ classdef Receiver < Exportable
                             + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
                             + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));  % to test ambiguity fixing
                     end
-                else
-                    this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
                 end
             end
         end
@@ -6789,8 +6825,8 @@ classdef Receiver < Exportable
         function showAll(this)
             this.toString
             if size(this.xyz, 1) > 1
-                this.showPositionENU_c();
-                this.showPositionXYZ_c();
+                this.showPositionENU();
+                this.showPositionXYZ();
             end
             %this.showMap();
             this.showDataAvailability();
@@ -6860,57 +6896,63 @@ classdef Receiver < Exportable
                 one_plot = false;
             end
             
-            xyz = this.getPosXYZ();
-            if size(this, 1) > 1 || size(xyz, 1) > 1
-                this(1).log.addMessage('Plotting positions');
-                xyz0 = this.getMedianPosXYZ();
-                [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                xyz = this.getPosXYZ();
-                
-                f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
-                color_order = handle(gca).ColorOrder;
-                
-                t = this.getCentralTime().getMatlabTime();
-                for r = 1 : size(this, 2)
-                    t = [];
-                    xyz = this(:,r).getPosXYZ();
-                    xyz0 = this(:,r).getMedianPosXYZ();
-                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-
-                    for s = 1 : size(this, 1)
-                        if this(s, r).isStatic
-                            t = [t; this(s, r).getCentralTime().getMatlabTime()];
-                        else
-                            t = [t; this(s, r).getMatlabTime()];
+            for r = 1 : size(this,2)
+                rec = this(~this(:,r).isempty, r);
+                if ~isempty(rec)
+                    xyz = rec.getPosXYZ();
+                    if size(rec, 1) > 1 || size(xyz, 1) > 1
+                        rec(1).log.addMessage('Plotting positions');
+                        xyz0 = rec.getMedianPosXYZ();
+                        enu0 = [];
+                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                        xyz = rec.getPosXYZ();
+                        
+                        f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+                        
+                        t = rec.getCentralTime().getMatlabTime();
+                        t = [];
+                        xyz = rec.getPosXYZ();
+                        xyz0 = rec.getMedianPosXYZ();
+                        enu = [];
+                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                        
+                        for s = 1 : size(rec, 1)
+                            if rec(s).isStatic
+                                t = [t; rec(s).getCentralTime().getMatlabTime()];
+                            else
+                                t = [t; rec(s).getMatlabTime()];
+                            end
                         end
+                        
+                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                        
+                        if ~one_plot, subplot(3,1,1); end
+                        plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        h = title(sprintf('Receiver %s', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if ~one_plot, subplot(3,1,2); end
+                        plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if ~one_plot, subplot(3,1,3); end
+                        plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if one_plot
+                            h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                        else
+                            linkaxes(ax, 'x');
+                        end
+                        grid on;
+                        
+                    else
+                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
-                    
-                    [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-                    
-                    if ~one_plot, subplot(3,1,1); end
-                    plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    if ~one_plot, subplot(3,1,2); end
-                    plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    if ~one_plot, subplot(3,1,3); end
-                    plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
-                    grid on;
                 end
-                if one_plot
-                    h = ylabel('ENU [m]'); h.FontWeight = 'bold';
-                else
-                    linkaxes(ax, 'x');
-                end
-            else
-                this.log.addMessage('Plotting a single point static position is not yet supported');
             end
-            grid on;
         end
         
         function showPositionXYZ(this, one_plot)
@@ -6920,50 +6962,53 @@ classdef Receiver < Exportable
                 one_plot = false;
             end
             
-            xyz = this(:,1).getPosXYZ();
-            if size(this, 1) > 1 || size(xyz, 1) > 1
-                this(1).log.addMessage('Plotting positions');
-                
-                f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
-                color_order = handle(gca).ColorOrder;
-                
-                for r = 1 : size(this, 2)
-                    t = [];
-                    xyz = this(:,r).getPosXYZ();
-                    xyz0 = this(:,r).getMedianPosXYZ();
-                    
-                    for s = 1 : size(this, 1)
-                        if this(s, r).isStatic
-                            t = [t; this(s, r).getCentralTime().getMatlabTime()];
-                        else
-                            t = [t; this(s, r).getMatlabTime()];
+            for r = 1 : size(this,2)
+                rec = this(~this(:,r).isempty, r);
+                if ~isempty(rec)
+                    xyz = rec(:,1).getPosXYZ();
+                    if size(rec, 1) > 1 || size(xyz, 1) > 1
+                        rec(1).log.addMessage('Plotting positions');
+                        
+                        f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+                        
+                        t = [];
+                        xyz = rec(:).getPosXYZ();
+                        xyz0 = rec(:).getMedianPosXYZ();
+                        
+                        for s = 1 : size(rec, 1)
+                            if rec(s).isStatic
+                                t = [t; rec(s).getCentralTime().getMatlabTime()];
+                            else
+                                t = [t; rec(s).getMatlabTime()];
+                            end
                         end
-                    end
-                    
-                    x = 1e0 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
-                    y = 1e0 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
-                    z = 1e0 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
-                    
-                    if ~one_plot, subplot(3,1,1); end
-                    plot(t, x, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [m]'); h.FontWeight = 'bold';
-                    grid on;
-                    h = title(sprintf('Receiver %s', this(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    if ~one_plot, subplot(3,1,2); end
-                    plot(t, y, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [m]'); h.FontWeight = 'bold';
-                    grid on;
-                    if ~one_plot, subplot(3,1,3); end
-                    plot(t, z, '.-', 'MarkerSize', 5, 'LineWidth', 2, 'Color', color_order(3,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [m]'); h.FontWeight = 'bold';
-                    grid on;
-                    if one_plot
-                        h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                        
+                        x = 1e3 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
+                        y = 1e3 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
+                        z = 1e3 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
+                        
+                        if ~one_plot, subplot(3,1,1); end
+                        plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        h = title(sprintf('Receiver %s', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if ~one_plot, subplot(3,1,2); end
+                        plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if ~one_plot, subplot(3,1,3); end
+                        plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if one_plot
+                            h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                        end
+                        linkaxes(ax, 'x');
+                    else
+                        rec.log.addMessage('Plotting a single point static position is not yet supported');
                     end
                 end
-                linkaxes(ax, 'x');
-            else
-                this.log.addMessage('Plotting a single point static position is not yet supported');
             end
         end
         
@@ -7057,26 +7102,32 @@ classdef Receiver < Exportable
         
         function showDt(this)
             % Plot Clock error
-            % SYNTAX this.plotDt
+            %
+            % SYNTAX 
+            %   this.plotDt
             
-            f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
-            t = this.getMatlabTime();
-            plot(t, this.getDesync, '-k', 'LineWidth', 2);
-            hold on;
-            plot(t, this.getDtPr, ':', 'LineWidth', 2);
-            plot(t, this.getDtPh, ':', 'LineWidth', 2);
-            plot(t, this.getDtIP, '-', 'LineWidth', 2);
-            plot(t, this.getDtPrePro, '-', 'LineWidth', 2);
-            if any(this.getDt)
-                plot(t, this.getDt, '-', 'LineWidth', 2);
-                plot(t, this.getTotalDt, '-', 'LineWidth', 2);
-                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
-            else
-                legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
+            for r = 1 : size(this, 2)
+                rec = this(~this(:,r).isempty, r);
+                if ~isempty(rec)
+                    f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                    t = rec.getMatlabTime();
+                    plot(t, rec.getDesync, '-k', 'LineWidth', 2);
+                    hold on;
+                    plot(t, rec.getDtPr, ':', 'LineWidth', 2);
+                    plot(t, rec.getDtPh, ':', 'LineWidth', 2);
+                    plot(t, rec.getDtIP, '-', 'LineWidth', 2);
+                    plot(t, rec.getDtPrePro, '-', 'LineWidth', 2);
+                    if any(rec.getDt)
+                        plot(t, rec.getDt, '-', 'LineWidth', 2);
+                        plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
+                        legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
+                    else
+                        legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
+                    end
+                    xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                    h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                end                
             end
-            xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
-            
-            h = title(sprintf('dt - receiver %s', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
         end
         
         function showSNR_p(this, sys_c_list)
@@ -7460,15 +7511,18 @@ classdef Receiver < Exportable
         end
         
         function showZtdSlant(this, time_start, time_stop)
-            if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
-                this(1).log.addWarning('ZTD and/or slants have not been computed');
-            else
-                for r = 1 : size(this, 2)
+            %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
+            %    this(1).log.addWarning('ZTD and/or slants have not been computed');
+            %else
+            for r = 1 : size(this, 2)
+                rec = this(~this(:,r).isempty, r);
+                if isempty(rec)
+                    this(1).log.addWarning('ZTD and/or slants have not been computed');
+                else                    
+                    f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, rec(1).cc.sys_c); f.NumberTitle = 'off';
+                    t = rec(:).getTime.getMatlabTime;
                     
-                    f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
-                    t = this(:, r).getTime.getMatlabTime;
-                    
-                    sztd = this(:, r).getSlantZTD(this(1, r).slant_filter_win);
+                    sztd = rec(:).getSlantZTD(rec(1).slant_filter_win);
                     if nargin >= 3
                         if isa(time_start, 'GPS_Time')
                             time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -7488,16 +7542,17 @@ classdef Receiver < Exportable
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
                     plot(t, sztd,'.'); hold on;
-                    plot(t, zero2nan(this(:, r).getZTD),'k', 'LineWidth', 4);
+                    plot(t, zero2nan(rec(:).getZTD),'k', 'LineWidth', 4);
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                     h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s ZTD', this(1, r).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s ZTD', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     drawnow;
                 end
             end
+            %end
         end
         
         function showZtd(this, new_fig)
@@ -7520,12 +7575,16 @@ classdef Receiver < Exportable
                     old_legend = get(l,'String');
                 end
                 for r = 1 : size(this, 2)
-                    if new_fig
-                        plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
-                    else
-                        plot(t{r}.getMatlabTime(), zero2nan(ztd{r}'), '.', 'LineWidth', 4); hold on;
+                    rec = this(~this(:,r).isempty, r);
+                    if ~isempty(rec)
+                        [ztd, t] = rec.getZTD();
+                        if new_fig
+                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                        else
+                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4); hold on;
+                        end
+                        outm{r} = rec(1).getMarkerName();
                     end
-                    outm{r} = this(1, r).getMarkerName();
                 end
                 
                 outm = [old_legend, outm];

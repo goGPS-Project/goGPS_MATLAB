@@ -1156,7 +1156,7 @@ classdef Core_Pre_Processing < handle
                     ddt_sensor = cumsum(cumsum(nan2zero(d3dt)) - medfilt_mat(cumsum(nan2zero(d3dt)), 3));
                     % check if there is any discontinuity in the clock drift
                     clock_thresh = 1e3;
-                    pos_jmp = abs(ddt_sensor-medfilt_mat(ddt_sensor,3)) > clock_thresh;
+                    pos_jmp = abs(ddt_sensor - medfilt_mat(ddt_sensor, 3)) > clock_thresh;
                     pos_jmp(1:2) = 0;
                     if sum(pos_jmp) > 0
                         ddt = ddt - simpleFill1D(ddt, pos_jmp);
@@ -1171,10 +1171,17 @@ classdef Core_Pre_Processing < handle
                         lim = getOutliers(jmp_candidate);
                         jmp = false(size(jmp_candidate));
                         for l = 1 : size(lim,1)
-                            [~, id_max] = max(nan2zero(max(abs(nan2zero(dobs(lim(l,1) : lim(l,2), :)))')));
+                            dtmp = dobs(lim(l,1) : lim(l,2), :);
+                            [~, id_max] = max(abs(nan2zero(median(dtmp, 2 ,'omitnan')))');
                             jmp(id_max + lim(l,1) - 1) = true;
+                                                        
+                            % Find the magnitude of the jump
+                            dtmp_f = simpleFill1D(dtmp, isnan(dtmp)); % fill temp data
+                            tmp_diff = diff(dtmp_f); 
+                            tmp_diff(:, isnan(dtmp(id_max,:))) = nan; % do not use filled data for estimating the magnitude of jump
+                            
                             d4dt(id_max + lim(l,1) - 1) = median(sign(dobs(id_max + lim(l,1) - 1,:)),'omitnan') * ...
-                                median(zero2nan(max(zero2nan(abs(diff(nan2zero(dobs(lim(l,1) : lim(l,2), :))))))),'omitnan');
+                                median(abs(max(tmp_diff)),'omitnan');
                         end
                         % velocity offsets beteween sat
                         d4dt(~jmp) = 0;
