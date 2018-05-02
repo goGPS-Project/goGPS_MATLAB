@@ -54,8 +54,8 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
     else
         h = scatter(x,y,point_size,color);
     end
-    
-    if nargin < 6 || plot_bg
+    hold_state = ishold();
+    if nargin < 6 || plot_bg    
         hold on
         %plot parallel
         az_l = [0:pi/200:2*pi];
@@ -86,7 +86,9 @@ function h = polarScatter(az, decl, point_size, color, flag, plot_bg)
         % ylim([-2 2])
         axis off
         set(gcf,'color','w');
-        hold off
+        if ~hold_state
+            hold off
+        end
         xlim([-1 1]); ylim([-1 1]);
     end
 end
