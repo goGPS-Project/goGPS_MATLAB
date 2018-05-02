@@ -3813,7 +3813,7 @@ classdef Receiver < Exportable
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, go_id) =   obs' / Global_Configuration.V_LIGHT + this.dt(:, 1);  %<---- check dt with all the new dts field
+            this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
         end
         
         function updateAllTOT(this)

@@ -1052,7 +1052,7 @@ classdef Core_UI < handle
                     name = '    ';
                 end
                 n_session = numel(rec_path{r});
-                if n_session < 20
+                if (n_session * n_rec) < 20
                     this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
                     fr = File_Rinex(rec_path{r}, 100);
                     n_ok = sum(fr.is_valid_list);
