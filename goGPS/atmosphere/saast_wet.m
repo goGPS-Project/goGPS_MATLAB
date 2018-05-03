@@ -49,13 +49,13 @@ function [ZWD] = saast_wet(T, H, h)
 T = T + 273.15;
 
 %height correction
-H = H * exp(-0.0006396*h);
+H = H * exp(-0.0006396 * h);
 
 % Convert humidity
 H = H./100;
 
-c = -37.2465 + 0.213166*T - 2.56908 * (10^-4) * (T.^2);
+c = -37.2465 + 0.213166 * T - 2.56908 * (10^-4) * (T.^2);
 e = H .* exp(c);
 
 %ZWD (Saastamoinen model)
-ZWD = 0.0022768*(((1255/T)+0.05)*e);
+ZWD = 0.0022768 * (((1255 ./ T) + 0.05) .* e);
