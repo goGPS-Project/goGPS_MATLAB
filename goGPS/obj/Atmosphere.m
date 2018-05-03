@@ -401,7 +401,7 @@ classdef Atmosphere < handle
             %   Computation of the pseudorange correction due to tropospheric refraction.
             %   Saastamoinen algorithm using P T from Global Pressure and Temperature
             %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
-            %   --> single epoch            
+            %   --> single epoch
             
             if isnan(P) || isnan(T) || isnan(H)
                 [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
@@ -911,7 +911,7 @@ classdef Atmosphere < handle
             % cose   = cos(pi/2 - zd);
             beta   = bh./( sine + ch  );
             gamma  = ah./( sine + beta);
-            topcon = (1.d0 + ah/(1.d0 + bh/(1.d0 + ch)));
+            topcon = (1.d0 + ah./(1.d0 + bh./(1.d0 + ch)));
             gmfh   = topcon ./ (sine+gamma);
             
             % height correction for hydrostatic mapping function from Niell (1996)

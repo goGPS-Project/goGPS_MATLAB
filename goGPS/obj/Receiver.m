@@ -4453,8 +4453,14 @@ classdef Receiver < Exportable
                             gps_time = this.time.getGpsTime();
                             lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
                             lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
-                            for e = find(idx)'
-                                this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
+                            
+                            this.sat.err_tropo(:, s) = 0;
+                            if this.isStatic
+                                this.sat.err_tropo(idx, s) = atmo.saastamoinenModelGPT(gps_time(idx), median(lat_t(idx), 'omitnan') / pi * 180, median(lon_t(idx), 'omitnan') / pi * 180, median(h_t(idx), 'omitnan'), undu, el_t(idx));
+                            else
+                                for e = find(idx)'
+                                    this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
+                                end
                             end
                         case 3 % Saastamoinen with external pressure temperatre and humifdity
                             gps_time = this.time.getGpsTime();
