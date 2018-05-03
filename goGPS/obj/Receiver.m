@@ -2777,7 +2777,7 @@ classdef Receiver < Exportable
             
             if ~isempty(this(1).ztd)
                 [mfh, mfw] = this.getSlantMF();
-                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZHD)) ./ mfw, this.getZHD);
+                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZhd)) ./ mfw, this.getZhd);
                 sztd(sztd <= 0) = nan;
                 sztd = sztd(id_extract, :);
                 
@@ -2833,7 +2833,7 @@ classdef Receiver < Exportable
             
             if ~isempty(this(1).zwd)
                 [mfh, mfw] = this.getSlantMF();
-                swtd = (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZHD)) ./ mfw;
+                swtd = (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZhd)) ./ mfw;
                 swtd(swtd <= 0) = nan;
                 swtd = swtd(id_extract, :);
                 
@@ -2849,7 +2849,7 @@ classdef Receiver < Exportable
                             for l = 1 : size(lim, 1)
                                 if (lim(l, 2) - lim(l, 1) + 1) > 3
                                     id_ok = lim(l, 1) : lim(l, 2);
-                                    ztd = this.getZWD();
+                                    ztd = this.getZwd();
                                     swtd(id_ok, s) = splinerMat(t(id_ok), swtd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
                                 end
                             end
@@ -3535,9 +3535,9 @@ classdef Receiver < Exportable
             end
         end
         
-        function [zhd, time] = getZHD(this)
+        function [zhd, time] = getZhd(this)
             % SYNTAX
-            %  [zhd, p_time, id_sync] = this.getZHD()
+            %  [zhd, p_time] = this.getZhd()
             
             zhd = {};
             time = {};
@@ -3559,10 +3559,34 @@ classdef Receiver < Exportable
             end
         end
         
-        function [zwd, p_time] = getZWD(this)
+        function [zwd, time] = getZwd(this)
+            % SYNTAX
+            %  [zwd, time] = this.getZwd()
+            
+            zwd = {};
+            time = {};
+            for r = 1 : size(this, 2)
+                zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    zhd_tmp = this(s, r).zwd(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    zwd{r} = [zwd{r}; zhd_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
+            end
+            
+            if numel(zwd) == 1
+                zwd = zwd{1};
+                time = time{1};
+            end            
+        end
+        
+        function [zwd, p_time] = getZwd_mr(this)
             % MultiRec: works on an array of receivers
             % SYNTAX
-            %  [zwd, p_time, id_sync] = this.getZWD_mr()
+            %  [zwd, p_time, id_sync] = this.getZwd_mr()
             [p_time, id_sync] = Receiver.getSyncTimeTR(this);
             n_rec = numel(this);
             zwd = nan(size(id_sync{1}));
@@ -3570,13 +3594,6 @@ classdef Receiver < Exportable
                 id_rec = id_sync{1}(:,r);
                 zwd(~isnan(id_rec),r) = this(r).zwd(id_rec(~isnan(id_rec)));
             end
-        end
-        
-        function [zwd, p_time] = getZWD_mr(this)
-            % MultiRec: works on an array of receivers
-            % SYNTAX
-            %  [zwd, p_time, id_sync] = this.getZWD_mr()
-            [zwd, p_time] = this.getZWD();
         end
         
         function [az, el] = getAzEl(this)
@@ -4309,8 +4326,7 @@ classdef Receiver < Exportable
             if show_fig
                 plot(el_points, mf, '.','MarkerSize', 10);
             end
-        end
-        
+        end        
         
         function [az, el] = computeAzimuthElevation(this, go_id)
             % Force computation of azimuth and elevation
@@ -4325,9 +4341,7 @@ classdef Receiver < Exportable
             % SYNTAX
             %   rate = this.getRate();
             rate = this.getTime.getRate;
-        end
-        
-        
+        end                
         
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX
@@ -7560,6 +7574,106 @@ classdef Receiver < Exportable
             end
             %end
         end
+        
+        function showZhd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            [zhd, t] = this.getZhd();
+            if ~iscell(zhd)
+                zhd = {zhd};
+                t = {t};
+            end
+            if isempty(zhd)
+                this(1).log.addWarning('ZHD and slants have not been computed');
+            else
+                if new_fig
+                    f = figure; f.Name = sprintf('%03d: ZHD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    old_legend = {};
+                else
+                    l = legend;
+                    old_legend = get(l,'String');
+                end
+                for r = 1 : size(this, 2)
+                    rec = this(~this(:,r).isempty, r);
+                    if ~isempty(rec)
+                        [zhd, t] = rec.getZhd();
+                        if new_fig
+                            plot(t.getMatlabTime(), zero2nan(zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                        else
+                            plot(t.getMatlabTime(), zero2nan(zhd'), '.', 'LineWidth', 4); hold on;
+                        end
+                        outm{r} = rec(1).getMarkerName();
+                    end
+                end
+                
+                outm = [old_legend, outm];
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                n_entry = numel(outm);
+                icons = icons(n_entry + 2 : 2 : end);
+                
+                for i = 1 : numel(icons)
+                    icons(i).MarkerSize = 16;
+                end
+                
+                %ylim(yl);
+                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                h = ylabel('ZHD [m]'); h.FontWeight = 'bold';
+                grid on;
+                h = title('Receiver ZHD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
+        end
+        
+        function showZwd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            [zwd, t] = this.getZwd();
+            if ~iscell(zwd)
+                zwd = {zwd};
+                t = {t};
+            end
+            if isempty(zwd)
+                this(1).log.addWarning('ZWD and slants have not been computed');
+            else
+                if new_fig
+                    f = figure; f.Name = sprintf('%03d: ZWD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    old_legend = {};
+                else
+                    l = legend;
+                    old_legend = get(l,'String');
+                end
+                for r = 1 : size(this, 2)
+                    rec = this(~this(:,r).isempty, r);
+                    if ~isempty(rec)
+                        [zwd, t] = rec.getZwd();
+                        if new_fig
+                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                        else
+                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4); hold on;
+                        end
+                        outm{r} = rec(1).getMarkerName();
+                    end
+                end
+                
+                outm = [old_legend, outm];
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                n_entry = numel(outm);
+                icons = icons(n_entry + 2 : 2 : end);
+                
+                for i = 1 : numel(icons)
+                    icons(i).MarkerSize = 16;
+                end
+                
+                %ylim(yl);
+                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                h = ylabel('ZWD [m]'); h.FontWeight = 'bold';
+                grid on;
+                h = title('Receiver ZWD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
+                end
         
         function showZtd(this, new_fig)
             if nargin == 1
