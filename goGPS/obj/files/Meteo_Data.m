@@ -115,6 +115,8 @@ classdef Meteo_Data < handle
         is_valid = false;   % Status of valitity of the file;
         
         max_bound = 90;     % Max bound to extrapolate
+        
+        smoothing = [900 300 300 0 0 0 0 0 0 0 0]; % Spline base for smoothing (in seconds)
     end
 
     methods (Access = private)
@@ -504,12 +506,12 @@ classdef Meteo_Data < handle
             id = this.type;
         end
         
-        function data = getComponent(this, id, time)
+        function data = getComponent(this, data_id, time)
             % Get the data with id of the type wanted
             % Passing a time array as GPS_Time the object interpolate the
             % data contained in the meteorological file
             % SYNTAX: data = this.getComponent(id, <time>)
-            id = find(this.type == id);
+            id = find(this.type == data_id);
             if isempty(id)
                 if nargin == 3
                     data = nan(time.length(), 1);
@@ -527,9 +529,17 @@ classdef Meteo_Data < handle
                             [~, id] = min(time_data(~isnan(data_in)) - time_pred);
                             data(id) = data_in(~isnan(data_in));
                         else
-                            data = interp1(time_data(~isnan(data_in)), data_in(~isnan(data_in)), time_pred, 'pchip');
+                            data_in = data_in(~isnan(data_in));
+                            time_data = time_data(~isnan(data_in));
+                            data_in = [data_in(1); data_in; data_in(end)];
+                            time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
+                            data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
+                            if this.smoothing(data_id) > 0
+                                data = splinerMat(time_pred, data - mean(data), this.smoothing(data_id) / 86400, 0) + mean(data);
+                            end
                             % do not extrapolate further than 20 minutes in time
                             data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + this.getMaxBound / 1440)) = NaN;
+                            % extrapoleted value 
                         end
                     end
                 else
@@ -656,7 +666,7 @@ classdef Meteo_Data < handle
 
             % getting pressure
             id_pr = find(st_type(:,1) == 1);
-            %id_pr = id_pr(real_dist(id_pr) < 20e3);
+            % id_pr = id_pr(real_dist(id_pr) < 20e3);
 
             pr_obs = zeros(numel(id_pr), time.length());
             for s = 1 : numel(id_pr)
