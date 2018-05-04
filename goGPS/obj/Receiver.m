@@ -2767,6 +2767,20 @@ classdef Receiver < Exportable
             end
         end
         
+        function [P, T, H] = getPTH(this,time)
+            % Get Pressure temperature and humidity at the receiver location
+            %
+            % OUTPUT
+            %   mfh: hydrostatic mapping function
+            %   mfw: wet mapping function
+            %
+            % SYNTAX
+            %   [mfh, mfw] = this.getSlantMF()
+            if nargin < 2
+                time = this.time;
+            end
+        end
+        
         function sztd = getSlantZTD(this, smooth_win_size, id_extract)
             % Get the "zenithalized" total delay
             % SYNTAX
@@ -6122,6 +6136,8 @@ classdef Receiver < Exportable
                 % code only solution
                 this.importMeteoData();
                 this.initPositioning(sys_c);
+                this.meteo_data = [];
+                this.importMeteoData();
                 % smooth clock estimation
                 this.smoothAndApplyDt(0);
                 % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
