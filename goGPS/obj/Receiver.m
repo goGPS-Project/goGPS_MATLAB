@@ -3732,7 +3732,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function [az] = getAz(this)
+        function [az] = getAz(this, go_id)
             % Get the azimuth (on valid id_sync)
             %
             % SYNTAX
@@ -3742,15 +3742,21 @@ classdef Receiver < Exportable
             else
                 n_sat = this.getMaxSat();
             end
-            az = zeros(this.getNumEpochs, n_sat);
+            az_tmp = zeros(this.getNumEpochs, n_sat);
             t = 1;
             for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
+                az_tmp(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
                 t = t + this(r).length;
+            end
+            
+            if nargin == 2                
+                az = az_tmp(:, go_id);
+            else
+                az = az_tmp;
             end
         end
         
-        function [el] = getEl(this)
+        function [el] = getEl(this, go_id)
             % Get the azimuth and elevation (on valid id_sync)
             %
             % SYNTAX
@@ -3760,11 +3766,17 @@ classdef Receiver < Exportable
             else
                 n_sat = this.getMaxSat();
             end
-            el = zeros(this.length, n_sat);
+            el_tmp = zeros(this.length, n_sat);
             t = 1;
             for r = 1 : numel(this)
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
+                el_tmp(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
                 t = t + this(r).length;
+            end
+            
+            if nargin == 2                
+                el = el_tmp(:, go_id);
+            else
+                el = el_tmp;
             end
         end
         
@@ -3907,15 +3919,7 @@ classdef Receiver < Exportable
     methods
         function updateCoordinates(this)
             % upadte lat lon e ortometric height
-            [lat, lon, this.h_ellips] = cart2geod(this.xyz);
-            
-            gs = Global_Configuration.getInstance;
-            gs.initGeoid();
-            ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
-            this.h_ortho = this.h_ellips - ondu;
-            
-            this.lat = lat / pi * 180;
-            this.lon = lon / pi * 180;
+            [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
         end
         
         function updateUTM(this)
