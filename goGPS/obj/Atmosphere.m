@@ -957,7 +957,7 @@ classdef Atmosphere < handle
         end
     end
     
-    methods (Static)       
+    methods (Static)
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1056,7 +1056,7 @@ classdef Atmosphere < handle
             %   iono_mf             iono mapping function
             %   k                   iono k factor ????
             %
-            % SYNTAX: 
+            % SYNTAX:
             %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
             
             % Get radius of curvature at lat
@@ -1083,7 +1083,7 @@ classdef Atmosphere < handle
             
             lon_pp = zeros(size(az_rad));
             lon_pp(id_hl) = lon_rad + pi - asin(sin(psi_pp(id_hl)) .* sin(az_rad(id_hl)) ./ cos(lat_pp(id_hl)));
-
+            
             lon_pp(~id_hl) = lon_rad + asin(sin(psi_pp(~id_hl)) .* sin(az_rad(~id_hl)) ./ cos(lat_pp((~id_hl))));
             
             % using thin shell layer mapping function (Handbook of Global
@@ -1105,6 +1105,55 @@ classdef Atmosphere < handle
             
             lat_pp = reshape(lat_pp, input_size(1), input_size(2));
             lon_pp = reshape(lon_pp, input_size(1), input_size(2));
+        end
+        function [ZWD] = saast_wet(T, H)
+            
+            % SYNTAX:
+            %   [ZWD] = saast_wet(T, H);
+            %
+            % INPUT:
+            %   T = air temperature
+            %   H = humidity
+            %
+            % OUTPUT:
+            %   ZWD = Zenith Wet Delay
+            %
+            % DESCRIPTION:
+            %   Zenith Wet Delay (ZWD) computation by Saastamoinen model.
+            
+            
+            % Convert C -> K
+            T = T + 273.15;
+            
+            
+            % Convert humidity
+            H = H./100;
+            
+            c = -37.2465 + 0.213166 * T - 2.56908 * (10^-4) * (T.^2);
+            e = H .* exp(c);
+            
+            %ZWD (Saastamoinen model)
+            ZWD = 0.0022768 * (((1255 ./ T) + 0.05) .* e);
+        end
+        function [ZHD] = saast_dry(P, h, lat)
+            
+            % SYNTAX:
+            %   [ZHD] = saast_dry(P, h, lat);
+            %
+            % INPUT:
+            %   P = atmospheric pressure [hPa]
+            %   h = orthometric height [m]
+            %   lat = latitude [deg]
+            %
+            % OUTPUT:
+            %   ZHD = Zenith Hydrostatic Delay
+            %
+            % DESCRIPTION:
+            %   Zenith Hydrostatic Delay (ZHD) computation by Saastamoinen model.
+            
+            
+            %ZHD (Saastamoinen model)
+            ZHD = 0.0022768 * P(:) .* (1 + 0.00266 * cosd(2*lat(:)) + 0.00000028 * h(:));
         end
     end
 end

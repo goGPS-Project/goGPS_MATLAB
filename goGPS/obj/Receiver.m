@@ -2780,18 +2780,107 @@ classdef Receiver < Exportable
             end
         end
         
-        function [P, T, H] = getPTH(this,time)
+        function [P, T, H] = getPTH(this,time,flag)
             % Get Pressure temperature and humidity at the receiver location
             %
             % OUTPUT
-            %   mfh: hydrostatic mapping function
-            %   mfw: wet mapping function
+            %   P : pressure [hPa] [mbar]
+            %   T : celsius degree
+            %   H : %
             %
             % SYNTAX
-            %   [mfh, mfw] = this.getSlantMF()
+            %   [P, T, H] = getPTH(this,time,flag)
             if nargin < 2
                 time = this.time;
             end
+            if nargin < 3
+                flag = this.state.tropo_model;
+                if not(isempty(this.meteo_data))
+                    flag = 3;
+                end
+            end
+            
+            l = time.length;
+            switch flag
+                case 1 % standard atmosphere
+                    
+                    this.updateCoordinates();
+                    Pr = this.STD_PRES;
+                    % temperature [K]
+                    Tr = this.STD_TEMP;
+                    % humidity [%]
+                    Hr = this.STD_HUMI;
+                    h = this.h_ortho;
+                    if this.isStatic()
+                        P = zeros(l,1);
+                        T = zeros(l,1);
+                        H = zeros(l,1);
+                        P(:) = Pr * (1-0.0000226*h).^5.225;
+                        T(:) = Tr - 0.0065*h;
+                        H(:) = Hr * exp(-0.0006396*h);
+                    else
+                        P = Pr * (1-0.0000226*h).^5.225;
+                        T = Tr - 0.0065*h;
+                        H = Hr * exp(-0.0006396*h);
+                    end
+                case 2 % gpt
+                    atmo = Atmosphere();
+                    this.updateCoordinates();
+                    time= time.getGpsTime();
+                    if this.isStatic()
+                        
+                        [P,T,undu] = atmo.gpt( time, this.lat, this.lon, this.h_ellips, this.h_ortho - this.h_ellips);
+                         H = zeros(l,1);
+                         H(:) = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
+                    else
+                        P = zeros(l,1);
+                        T = zeros(l,1);
+                       
+                        
+                        for i = 1 : l
+                        [P(l),T(l),undu] = atmo.gpt( time(l), this.lat(l), this.lon(l), this.h_ellips(l), this.h_ortho(l) - this.h_ellips(l));
+                        end
+                         H = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
+                    end
+                case 3 % local meteo data
+                    P = this.meteo_data.getPressure(time);
+                    T = this.meteo_data.getTemperature(time);
+                    H = this.meteo_data.getHumidity(time);
+            end
+        end
+        
+        function updateZhd(this,P,T,H)
+            %update zhd
+            if isempty(this.lat)
+                this.updateCoordinates()
+            end
+            flag = 1; % now fixed to saastaoinen in fututre can be other
+            if nargin < 2
+                [P, T, H] = this.getPTH();
+            end
+            switch flag
+                case 1
+                    h = this.h_ortho;
+                    lat = this.lat;
+                    this.zhd = Atmosphere.saast_dry(P,h,lat);
+            end
+            
+        end
+        
+        function updateZwd(this,P,T,H)
+            %update zwd
+            if isempty(this.lat)
+                this.updateCoordinates()
+            end
+            flag = 1; % now fixed to saastaoinen in fututre can be other
+            if nargin < 2
+                [P, T, H] = this.getPTH();
+            end
+            switch flag
+                case 1
+                    this.zwd = Atmosphere.saast_wet(T,H);
+            end
+            
         end
         
         function sztd = getSlantZTD(this, smooth_win_size, id_extract)
@@ -3818,7 +3907,15 @@ classdef Receiver < Exportable
     methods
         function updateCoordinates(this)
             % upadte lat lon e ortometric height
-            [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
+            [lat, lon, this.h_ellips] = cart2geod(this.xyz);
+            
+            gs = Global_Configuration.getInstance;
+            gs.initGeoid();
+            ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+            this.h_ortho = this.h_ellips - ondu;
+            
+            this.lat = lat / pi * 180;
+            this.lon = lon / pi * 180;
         end
         
         function updateUTM(this)
@@ -4452,70 +4549,21 @@ classdef Receiver < Exportable
             if abs(h_full) > 1e4
                 this.log.addWarning('Height out of reasonable height for terrestrial postioning skipping tropo update')
             end
-            
-            if flag > 0
-                geoid = Global_Configuration.getInstance.getRefGeoid();
-                if geoid.ncols > 0
-                    % geoid ondulation interpolation
-                    undu = getOrthometricCorr(lat_full(end), lon_full(end), geoid); % consider geoid undulation constant
-                else
-                    undu = [];
-                end
-            end
-            
-            for s = go_id
-                idx = this.sat.avail_index(:, s) > 0;
-                if sum(idx) > 0
-                    if size(this.xyz,1) > 1 % is dynamic
-                        %                         XR = this.xyz(idx,:);
-                        %                         [az, el] = this.computeAzimuthElevationXS(XS, XR);
-                        h = h_full(idx);
-                        lat = lat_full(idx);
-                        lon = lon_full(idx);
-                    else  % is static
-                        %                         [az, el] = this.computeAzimuthElevationXS(XS);
-                        h = h_full;
-                        lat = lat_full;
-                        lon = lon_full;
-                    end
-                    %%% get compute el
-                    el = this.sat.el(idx, s);
-                    switch flag
-                        case 0 % no model
-                            
-                        case 1 % Saastamoinen with standard atmosphere
-                            if isempty(undu)
-                                this.log.addWarning('Geoid not found = using undulation = 0');
-                                undu = 0;
-                            end
-                            this.sat.err_tropo(idx, s) = atmo.saastamoinenModel(h, undu, el);
-                            
-                        case 2 % Saastamoinen with GPT
-                            gps_time = this.time.getGpsTime();
-                            lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
-                            lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
-                            
-                            this.sat.err_tropo(:, s) = 0;
-                            if this.isStatic
-                                this.sat.err_tropo(idx, s) = atmo.saastamoinenModelGPT(gps_time(idx), median(lat_t(idx), 'omitnan') / pi * 180, median(lon_t(idx), 'omitnan') / pi * 180, median(h_t(idx), 'omitnan'), undu, el_t(idx));
-                            else
-                                for e = find(idx)'
-                                    this.sat.err_tropo(e, s) = atmo.saastamoinenModelGPT(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e));
-                                end
-                            end
-                        case 3 % Saastamoinen with external pressure temperatre and humifdity
-                            gps_time = this.time.getGpsTime();
-                            lat_t = zeros(size(idx)); lon_t = zeros(size(idx)); h_t = zeros(size(idx)); el_t = zeros(size(idx));
-                            lat_t(idx) = lat; lon_t(idx) = lon; h_t(idx) = h; el_t(idx) = el;
-                            P = this.meteo_data.getPressure(this.time);
-                            T = this.meteo_data.getTemperature(this.time);
-                            H = this.meteo_data.getHumidity(this.time);                            
-                            for e = find(idx)'
-                                this.sat.err_tropo(e, s) = atmo.saastamoinenModelPTH(gps_time(e), lat_t(e) / pi * 180, lon_t(e) / pi * 180, h_t(e), undu, el_t(e),P(e),T(e),H(e));
-                            end
-                    end
-                end
-            end
+           % get meteo data
+           [P,T,H] = this.getPTH();
+           
+           
+           %upadte the ztd zwd
+           this.updateZhd(P,T,H);
+           this.updateZwd(P,T,H);
+           zwd = this.getZwd;
+           zhd = this.getZhd;
+           
+           %get mapping function
+           [mfh,mfw] = this.getSlantMF();
+           for g = go_id
+               this.sat.err_tropo(:,g) = mfh(:,g).*zhd + mfw(:,g).*zwd;
+           end
             
         end
         
