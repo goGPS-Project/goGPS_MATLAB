@@ -2402,6 +2402,19 @@ classdef Receiver < Exportable
             xyz = median(xyz, 1, 'omitnan');         
         end
         
+        function xyz = getMedianPosENU(this)
+            % return the computed median position of the receiver
+            %
+            % OUTPUT
+            %   xyz     geocentric coordinates
+            %
+            % SYNTAX
+            %   xyz = this.getMedianPosXYZ()
+            
+            enu = this.getPosENU();
+            enu = median(enu, 1, 'omitnan');         
+        end
+        
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
