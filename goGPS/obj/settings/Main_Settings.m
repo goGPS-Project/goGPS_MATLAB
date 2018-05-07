@@ -2368,6 +2368,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: cut_off = this.getCutOff();
             cut_off = this.cut_off;
         end
+        
+        function snr_thr = getSnrThr(this)
+            % Get the snr threshold
+            % SYNTAX: snr_thr = this.getSnrThr();
+            snr_thr = this.snr_thr;
+        end
 
         function proc_rate = getProcessingRate(this)
             % Get the Processing Rate

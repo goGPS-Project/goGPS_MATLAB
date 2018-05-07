@@ -131,6 +131,16 @@ classdef Observation_Set < handle
             this.remObs(idx);
         end
         
+        function remUnderSnrThr(this, snr_thr)
+            % Remove observations under the selcted snr threshold
+            %
+            % SYNTAX : 
+            %   this.remUnderSnrThr(snr_thr);
+            %
+            idx = this.snr < snr_thr;
+            this.remObs(idx);
+        end
+        
         function remObs(this,idx)
             % Remove the observations identified by the index
             % idx, remove all corrsponding paramaters ( snr el az cycle

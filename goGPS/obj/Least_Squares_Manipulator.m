@@ -162,6 +162,8 @@ classdef Least_Squares_Manipulator < handle
                 if sum(sum(snr_to_fill))
                     obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
                 end
+                % remove under snr threshold
+                obs_set.remUnderSnrThr(this.state.getSnrThr());
             end
             
             % remove epochs based on desired sampling
@@ -175,9 +177,8 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % get reference observations and satellite positions
-            rec.updateAllAvailIndex();
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
-            zero2nan(xs_loc);
+            xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
             
             % Sometime code observations may contain unreasonable values -> remove them
@@ -193,12 +194,12 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
-            id_sync_out = id_sync_in;
+            id_sync_out = id_sync_in(this.true_epoch);
             id_sync_out(~idx_valid_ep_l) = [];
             
             this.true_epoch(~idx_valid_ep_l) = [];
             
-            % removing possible empty column
+            % removing possible empty column (sat)
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
             diff_obs(:, ~idx_valid_stream) = [];
             xs_loc(:, ~idx_valid_stream, :) = [];
@@ -389,8 +390,8 @@ classdef Least_Squares_Manipulator < handle
             %---- Set up the constraint to solve the rank deficeny problem --------------
             if phase_present
                 % Ambiguity set
-                G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                %G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)];
+                %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
+                G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end

@@ -115,8 +115,6 @@ classdef Receiver < Exportable
         
         % FLAGS ------------------------------
         
-        outlier_idx_ph;
-        cycle_slip_idx_ph; % 1 found not repaired , -1 found repaired
         ph_idx             % idx of outlier and cycle slip in obs
         
         amb_idx;           % temporary varibale to test PPP ambiguity fixing
@@ -131,6 +129,8 @@ classdef Receiver < Exportable
     properties (SetAccess = public, GetAccess = public)
         sat = struct( ...
             'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
+            'outlier_idx_ph',   [], ...    % logical index of outliers
+            'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
             'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
             'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
@@ -299,8 +299,10 @@ classdef Receiver < Exportable
             this.tgn = [];
             this.tge = [];
             
-            this.sat = struct( ...
+            sat = struct( ...
                 'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
+                'outlier_idx_ph',   [], ...    % logical index of outliers
+                'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
                 'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
                 'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
                 'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
@@ -315,6 +317,7 @@ classdef Receiver < Exportable
                 'res',              [], ...    % residual per staellite
                 'slant_td',         []  ...    % slant total delay (except ionosphere delay)
                 );
+            
             this.initR2S;
             this.pp_status = false;
             this.group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
@@ -371,8 +374,6 @@ classdef Receiver < Exportable
             this.obs_code   = [];         % obs code for each line of the data matrix obs
             this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
             
-            this.outlier_idx_ph = [];
-            this.cycle_slip_idx_ph = [];
             this.ph_idx = [];
             this.amb_idx = [];
             this.if_amb = [];
@@ -442,17 +443,19 @@ classdef Receiver < Exportable
             if ~isempty(this.synt_ph)
                 this.synt_ph(:,id_out) = [];
             end
-            if ~isempty(this.outlier_idx_ph)
-                this.outlier_idx_ph(:,id_out) = [];
+            if ~isempty(this.sat.outlier_idx_ph)
+                this.sat.outlier_idx_ph(:,id_out) = [];
             end
-            if ~isempty(this.cycle_slip_idx_ph)
-                this.cycle_slip_idx_ph(:,id_out) = [];
+            if ~isempty(this.sat.cycle_slip_idx_ph)
+                this.sat.cycle_slip_idx_ph(:,id_out) = [];
             end
             
             % try to remove observables from other precomputed properties of the object in sat
+            
             if ~isempty(this.sat.avail_index)
                 this.sat.avail_index(:, go_out) = [];
             end
+            
             if ~isempty(this.sat.err_tropo)
                 this.sat.err_tropo(:, go_out) = [];
             end
@@ -519,8 +522,8 @@ classdef Receiver < Exportable
                 % SYNTAX
                 %   this.remEpochs(bad_epochs)
                 
-                if ~isempty(this.cycle_slip_idx_ph)
-                    cycle_slip = this.cycle_slip_idx_ph;
+                if ~isempty(this.sat.cycle_slip_idx_ph)
+                    cycle_slip = this.sat.cycle_slip_idx_ph;
                     
                     tmp = false(max(bad_epochs), 1); tmp(bad_epochs) = true;
                     lim = getOutliers(tmp);
@@ -534,7 +537,7 @@ classdef Receiver < Exportable
                     end
                     cycle_slip(bad_epochs,:) = [];
                     
-                    this.cycle_slip_idx_ph = cycle_slip;
+                    this.sat.cycle_slip_idx_ph = cycle_slip;
                 end
                 
                 this.time.remEpoch(bad_epochs);
@@ -550,8 +553,8 @@ classdef Receiver < Exportable
                     this.obs(:, bad_epochs) = [];
                 end
                 
-                if ~isempty(this.outlier_idx_ph)
-                    this.outlier_idx_ph(bad_epochs, :) = [];
+                if ~isempty(this.sat.outlier_idx_ph)
+                    this.sat.outlier_idx_ph(bad_epochs, :) = [];
                 end
                 
                 if ~isempty(this.id_sync)
@@ -681,16 +684,6 @@ classdef Receiver < Exportable
             % SYNTAX
             %   this.remBad();
             
-            % remove testing satellites
-            this.log.addMarkedMessage('Removing satellites whose prn exceed the maximum official one')
-            for s = 1 : length(this.cc.sys_c)
-                sys_idx = (this.system == this.cc.sys_c(s));
-                prn = this.prn(sys_idx);
-                for p = unique(prn(prn > this.cc.n_sat(s)))'
-                    this.remSat(this.cc.sys_c(s), p);
-                end
-            end
-            
             % remove bad epoch in crx
             this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
             [CRX, found] = load_crx(this.state.crx_dir, this.time, this.cc);
@@ -700,6 +693,7 @@ classdef Receiver < Exportable
                     this.obs(c_sat_idx,CRX(s,:)) = 0;
                 end
             end
+            
             this.log.addMarkedMessage('Removing observations for which no ephemerid or clock is present')
             nan_coord = sum(isnan(this.sat.cs.coord) | this.sat.cs.coord == 0,3) > 0;
             nan_clock = isnan(this.sat.cs.clock) | this.sat.cs.clock == 0;
@@ -737,7 +731,8 @@ classdef Receiver < Exportable
                         this.obs(o_idx , :) = 0;
                     end
                 end
-                % remoiving near empty clock
+                
+                % removing near empty clock -> think a better solution 
                 dnanclock = diff(nan_clock(:,s));
                 st_idx = find(dnanclock == 1);
                 end_idx = find(dnanclock == -1);
@@ -783,9 +778,9 @@ classdef Receiver < Exportable
                 idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
                 idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
                 el_idx = xor(idx,idx_e);
-                this.outlier_idx_ph(el_idx) =  true;
-                this.cycle_slip_idx_ph(el_idx) = 0;
-                ph(this.outlier_idx_ph) = 0;
+                this.sat.outlier_idx_ph(el_idx) =  true;
+                this.sat.cycle_slip_idx_ph(el_idx) = 0;
+                ph(this.sat.outlier_idx_ph) = 0;
                 this.setPhases(ph, wl, id_ph);
                 this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
             end
@@ -839,8 +834,8 @@ classdef Receiver < Exportable
         function updateRemoveOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
             % old outliers and cycle-slips removed before launching a new detection
-            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
-            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
+            this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
+            this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             this.updateSyntPhases();
             this.removeOutlierMarkCycleSlip();
         end
@@ -864,8 +859,8 @@ classdef Receiver < Exportable
             
             % mark all as outlier and interpolate
             % get observed values
-            this.outlier_idx_ph = false(size(this.outlier_idx_ph));
-            this.cycle_slip_idx_ph = false(size(this.cycle_slip_idx_ph));
+            this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
+            this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             [ph, wl, id_ph_l] = this.getPhases;
             
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
@@ -997,8 +992,8 @@ classdef Receiver < Exportable
             poss_out_idx(to_short_idx) = true;
             
             n_out = sum(poss_out_idx(:));
-            this.outlier_idx_ph = sparse(poss_out_idx);
-            this.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
+            this.sat.outlier_idx_ph = sparse(poss_out_idx);
+            this.sat.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
             
             % Outlier detection for some reason is not working properly -> reperform outlier detection
             sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
@@ -1007,9 +1002,9 @@ classdef Receiver < Exportable
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             % outlier when they exceed 0.5 cycle
             poss_out_idx = abs(sensor_ph) > 0.5;
-            this.outlier_idx_ph = this.outlier_idx_ph | poss_out_idx;
+            this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
             
-            this.cycle_slip_idx_ph([false(1,size(this.outlier_idx_ph,2)); (diff(this.outlier_idx_ph) == -1)]) = 1;
+            this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
             %this.removeShortArch(this.state.getMinArc);
@@ -1021,7 +1016,7 @@ classdef Receiver < Exportable
             idx = abs(sensor) > 0.03;
             for i = 1 : size(sensor,2)
                 sat_idx = this.go_id(ph_idx) == i;
-                this.cycle_slip_idx_ph(idx(:,i), :) = 1;
+                this.sat.cycle_slip_idx_ph(idx(:,i), :) = 1;
             end
         end
         
@@ -1036,8 +1031,8 @@ classdef Receiver < Exportable
             max_window = 600; %maximum windows allowed (for computational reason)
             win_size = min(max_window,ceil(lin_time / this.getRate()/2)*2); %force even
             
-            poss_out_idx = this.outlier_idx_ph;
-            poss_slip_idx = this.cycle_slip_idx_ph;
+            poss_out_idx = this.sat.outlier_idx_ph;
+            poss_slip_idx = this.sat.cycle_slip_idx_ph;
             
             [ph, ~, id_ph_l] = this.getPhases();
             id_ph = find(id_ph_l);
@@ -1133,7 +1128,7 @@ classdef Receiver < Exportable
             
             this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
             
-            this.cycle_slip_idx_ph = poss_slip_idx;
+            this.sat.cycle_slip_idx_ph = poss_slip_idx;
             
             % save index into object
             
@@ -3003,8 +2998,8 @@ classdef Receiver < Exportable
                 id_ph = id_ph & (this.system == sys_c)';
             end
             ph = this.obs(id_ph, :);
-            if not(isempty(this.outlier_idx_ph))
-                ph(this.outlier_idx_ph(id_ph, :)') = nan;
+            if not(isempty(this.sat.outlier_idx_ph))
+                ph(this.sat.outlier_idx_ph(id_ph, :)') = nan;
             end
             wl = this.wl(id_ph);
             
@@ -3180,11 +3175,11 @@ classdef Receiver < Exportable
                             else
                                 snr((s-1)*n_opt+i,take_idx) = 1;
                             end
-                            if ~isempty(this.outlier_idx_ph) && flag(1) == 'L'% take off outlier
+                            if ~isempty(this.sat.outlier_idx_ph) && flag(1) == 'L'% take off outlier
                                 ph_idx = this.ph_idx == find(c_idx);
-                                obs((s-1)*n_opt+i,this.outlier_idx_ph(:,ph_idx)) = 0;
-                                snr((s-1)*n_opt+i,this.outlier_idx_ph(:,ph_idx)) = 0;
-                                cycle_slips((s-1)*n_opt+i,:) = this.cycle_slip_idx_ph(:,ph_idx)';
+                                obs((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
+                                snr((s-1)*n_opt+i,this.sat.outlier_idx_ph(:,ph_idx)) = 0;
+                                cycle_slips((s-1)*n_opt+i,:) = this.sat.cycle_slip_idx_ph(:,ph_idx)';
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
                         end
@@ -3402,7 +3397,7 @@ classdef Receiver < Exportable
             [obs_set]  = this.getMelWub([iono_pref(1,1)], [iono_pref(1,2)], system);
         end
         
-        function [range, XS_loc] = getSyntObs(this, obs_type, go_id)
+        function [range, XS_loc] = getSyntObs(this, obs_type, go_id_list)
             %  get the estimate of one measurmenet based on the
             % current postion
             % INPUT
@@ -3410,37 +3405,36 @@ classdef Receiver < Exportable
             % EXAMPLE:
             %   this.getSyntObs(1,go_id)
             n_epochs = size(this.obs, 2);
-            n_sat = this.getMaxSat();
             if isnumeric(obs_type)
                 obs_type = num2str(obs_type);
             end
             if nargin < 3
-                range = zeros(n_sat, n_epochs);
-                for go_id = 1 : n_sat
-                    range(go_id, :) = this.getSyntObs(obs_type, go_id);
-                end
-                XS_loc = [];
-            else
-                switch obs_type
-                    case 'I'
-                        iono_factor = 0;
-                    case '1'
-                        iono_factor = 1;
-                    otherwise
-                        % TO BE IMPLEMENTED
-                        this.log.addWarning('Receiver.getSyntObs obs_type unkonwn -> to be implemented')
-                        %                         wl_ref = this.cc.getGPS.F_VEC(1);
-                        %                         wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
-                        %                         iono_factor= wl_ref^2/ wl^2;
-                        
-                end
+                go_id_list = 1 : this.getMaxSat();
+            end
+            range = zeros(length(go_id_list), n_epochs);
+            XS_loc = [];
+            switch obs_type
+                case 'I'
+                    iono_factor = 0;
+                case '1'
+                    iono_factor = 1;
+                otherwise
+                    % TO BE IMPLEMENTED
+                    this.log.addWarning('Receiver.getSyntObs obs_type unkonwn -> to be implemented')
+                    %                         wl_ref = this.cc.getGPS.F_VEC(1);
+                    %                         wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
+                    %                         iono_factor= wl_ref^2/ wl^2;
+                    
+            end
+            for i = 1 : length(go_id_list)
+                go_id = go_id_list(i);
                 XS_loc = this.getXSLoc(go_id);
-                range = sqrt(sum(XS_loc.^2,2));
-                range = range + this.sat.err_tropo(:,go_id) + iono_factor * this.sat.err_iono(:,go_id);
+                range_tmp = sqrt(sum(XS_loc.^2,2));
+                range_tmp = range_tmp + this.sat.err_tropo(:,go_id) + iono_factor * this.sat.err_iono(:,go_id);
                 
-                XS_loc(isnan(range),:) = [];
+                XS_loc(isnan(range_tmp),:) = [];
                 %range = range';
-                range = nan2zero(range)';
+                range(i,:) = nan2zero(range_tmp)';
             end
             
         end
@@ -3466,7 +3460,7 @@ classdef Receiver < Exportable
             sys = this.system(idx_obs);
             go_id = this.go_id(idx_obs);
             u_sat = unique(go_id);
-            this.updateAllAvailIndex();
+            %this.updateAllAvailIndex();
             this.updateErrIono();
             this.updateErrTropo();
             this.updateAllTOT();
@@ -3501,7 +3495,7 @@ classdef Receiver < Exportable
                 this.updateSyntPhases();
             end
             synt_ph = this.synt_ph;
-            synt_ph(this.outlier_idx_ph) = nan;
+            synt_ph(this.sat.outlier_idx_ph) = nan;
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
@@ -3518,9 +3512,9 @@ classdef Receiver < Exportable
             %  get the syntethic twin for the observations
             % contained in obs_set
             % WARNING: the time of the observation set and the time of
-            % receiver as to be the same
+            % receiver has to be the same
             synt_obs = zeros(size(obs_set.obs));
-            xs_loc   = zeros(size(obs_set.obs,1),size(obs_set.obs,2),3);
+            xs_loc   = zeros(size(obs_set.obs,1), size(obs_set.obs,2),3);
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
@@ -3937,7 +3931,7 @@ classdef Receiver < Exportable
                 sys_c = this.cc.sys_c;
             end
             synt_ph_obs = zero2nan(this.getSyntCurObs( true, sys_c)');
-            synt_ph_obs(this.outlier_idx_ph) = nan;
+            synt_ph_obs(this.sat.outlier_idx_ph) = nan;
             this.synt_ph = synt_ph_obs;
         end
         
@@ -3987,7 +3981,7 @@ classdef Receiver < Exportable
             % OUTPUT
             % 
             %   Update the signal time of travel based on range observations.
-            % NOTE: to have satellite orbits at 1mm sysncrnonization time of
+            % NOTE: to have satellite orbits at, 1mm sysncrnonization time of
             % travel has to be know with a precision of ~100m
             %    0.001m * (3 km/s  +         2 km/s)   /       300000 km/s   ~ 100m
             %              ^                 ^                    ^
@@ -3999,39 +3993,42 @@ classdef Receiver < Exportable
             this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
         end
         
-        function updateAllTOT(this)
+        function updateAllTOT(this, synt_based)
             % upate time of travel for all satellites
             % for each receiver
             go_id = unique(this.go_id);
-            for i = go_id'
+            for i = serialize(unique(this.go_id(this.obs_code(:,1) == 'C')))' % iterating only on sats with code observation
+                
                 sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C');
-                if sum(sat_idx) > 0 % if we have an observation for the satellite
-                    if nargin == 1 % obs based
-                        c_obs = this.obs(sat_idx,:);
-                        c_l_obs = colFirstNonZero(c_obs); % all best obs one each line
-                    else
-                        c_l_obs = this.getSyntObs('I', i);
-                    end
-                    %update time of flight times
-                    this.updateTOT(c_l_obs, i); % update time of travel
+                if nargin == 1 % obs based
+                    c_obs = this.obs(sat_idx,:);
+                    c_l_obs = colFirstNonZero(c_obs); % all best obs one each line %% CONSIDER USING ONLY 1 FREQUENCY FOR mm CONSISTENCY
+                elseif synt_based % use the synteetc observation to get Time of flight
+                    c_l_obs = this.getSyntObs('I', i);
                 end
+                %update time of flight times
+                this.updateTOT(c_l_obs, i); % update time of travel
             end
+        end
+        
+        function initAvailIndex(this, ep_ok)
+            % initialize the avaliability index 
+             this.sat.avail_index = false(this.time.length, this.getMaxSat);
+             this.updateAllAvailIndex();
+             if nargin == 2
+                 this.sat.avail_index(~ep_ok,:) = false;
+             end
         end
         
         function updateAvailIndex(this, obs, go_gps)
             %  update avaliabilty of measurement on staellite
-            if isempty(this.sat.avail_index)
-                this.sat.avail_index = false(this.time.length, this.getNumSat);
-            end
             this.sat.avail_index(:, go_gps) = obs > 0;
         end
         
         function updateAllAvailIndex(this)
             %  update avaliabilty of measurement on all
             % satellite based on all code and phase
-            if isempty(this.sat.avail_index)
-                this.sat.avail_index = false(this.time.length, this.getMaxSat());
-            end
+
             for s = unique(this.go_id)'
                 obs_idx = this.go_id == s & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 if sum(obs_idx) > 0
@@ -4039,6 +4036,13 @@ classdef Receiver < Exportable
                     this.sat.avail_index(:,s) = av_idx;
                 end
             end
+        end
+        
+        function setAvIdx2Visibility(this)
+            % set the availability index to el >0
+            this.sat.avail_index = true(this.time.length, this.getMaxSat);
+            this.updateAzimuthElevation;
+            this.sat.avail_index = this.sat.el > 0;
         end
         
     end
@@ -4099,14 +4103,13 @@ classdef Receiver < Exportable
             if isempty(this.active_ids)
                 this.active_ids = false(size(this.obs,1),1);
             end
-            
+            this.initAvailIndex();
             % for each receiver
             [~, id] = unique(this.go_id);
             for i = id'
                 go_id = this.go_id(i);
                 sat_idx = (this.go_id == this.go_id(i)) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 ep_idx = logical(sum(this.obs(sat_idx,:) ~= 0,1));
-                this.updateAvailIndex(ep_idx, go_id);
                 dts_range = ( this.getDtS(go_id) + this.getRelClkCorr(go_id) ) * Global_Configuration.V_LIGHT;
                 for o = find(sat_idx)'
                     obs_idx_l = this.obs(o,:) ~= 0;
@@ -4566,7 +4569,7 @@ classdef Receiver < Exportable
            %get mapping function
            [mfh,mfw] = this.getSlantMF();
            for g = go_id
-               this.sat.err_tropo(:,g) = mfh(:,g).*zhd + mfw(:,g).*zwd;
+               this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*zhd + mfw(:,g).*zwd;
            end
             
         end
@@ -5641,8 +5644,6 @@ classdef Receiver < Exportable
                 if isempty(this.id_sync)
                     this.id_sync = 1:this.time.length;
                 end
-                last_ep_coarse = min(100,this.time.length);
-                ep_coarse = 1:last_ep_coarse;
                 % check if the epoch are presents
                 % getteing the obesrvation set that is going to be used in
                 % setUPSA
@@ -5657,23 +5658,23 @@ classdef Receiver < Exportable
                         obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
                     end
                 end
+                
                 min_ep_thrs = 50;
                 if this.time.length < min_ep_thrs
                     min_ep_thrs = 1;
                 end
+                
+                last_ep_coarse = min(100,this.time.length);
+                ep_coarse = 1:last_ep_coarse;
                 while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
                     ep_coarse = ep_coarse +1;
-                end
-                
-                
-                
-                dpos = 3000;
-                this.updateAllAvailIndex();
-                this.sat.avail_index(1:(ep_coarse(1)-1),:) = 0;
-                this.sat.avail_index(min(ep_coarse(end)+1,this.time.length):end,:) = 0;
+                end                
+                this.initAvailIndex(ep_coarse);
                 this.updateAllTOT();
+                
                 this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
                 
+                dpos = 3000; % 3 km - entry condition                
                 while max(abs(dpos)) > 10
                     dpos = this.codeStaticPositioning(ep_coarse);
                 end
@@ -5927,6 +5928,7 @@ classdef Receiver < Exportable
             end
             XS = zeros(this.getMaxSat(), 3, n_epochs);
             dist = zeros(n_epochs, this.getMaxSat());
+            this.initAvailIndex();
             % get Sat orbit correctiong ony for pseudorange
             for i = 1 : this.getMaxSat()
                 [c_sys, c_prn] = this.getSysPrn(i);
@@ -5937,7 +5939,6 @@ classdef Receiver < Exportable
                     c_l_obs = colFirstNonZero(c_obs); % all best obs one one line
                     idx_obs = c_l_obs > 0; % epoch with obseravtion from the satellite
                     % update time of flight times
-                    this.updateAvailIndex(c_l_obs,i);
                     this.updateTOT(c_l_obs,i); % update time of travel
                     
                     [dist(:,i), XS_temp] = this.getSyntObs('I', i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
@@ -5995,7 +5996,6 @@ classdef Receiver < Exportable
                 end
             end
         end
-        
         
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT
@@ -6201,6 +6201,7 @@ classdef Receiver < Exportable
                 % code only solution
                 this.importMeteoData();
                 this.initPositioning(sys_c);
+                this.setAvIdx2Visibility();
                 this.meteo_data = [];
                 this.importMeteoData();
                 % smooth clock estimation
@@ -6208,8 +6209,6 @@ classdef Receiver < Exportable
                 % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                 this.dt_ip = this.dt; % save init_positioning clock
                 this.dt(:) = 0; % reset dt field
-                % set all availability index
-                this.updateAllAvailIndex();
                 
                 % update azimuth elevation
                 this.updateAzimuthElevation();
@@ -6336,27 +6335,28 @@ classdef Receiver < Exportable
                 % ls.reweightHuber();
                 % ls.Astack2Nstack();
                 % [x, res, s02] = ls.solve();
+                this.id_sync = id_sync;
+                
                 
                 this.sat.res = zeros(this.getNumEpochs, n_sat);
-                dsz = max(id_sync) - size(res,1);
-                if dsz == 0
-                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                else
-                    if dsz > 0
-                        id_sync = id_sync(1 : end - dsz);
-                    end
-                    this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                end
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                
                 
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
-                this.id_sync = id_sync;
-                %ls.reweight(
                 
                 coo    = x(1:3,1);
                 
                 clock = x(x(:,2) == 6,1);
                 tropo = x(x(:,2) == 7,1);
                 amb = x(x(:,2) == 5,1);
+                
+                % saving matrix of float ambiguities
+                amb_mat = zeros(length(id_sync), this.getMaxSat);
+                id_ok = ~isnan(ls.amb_idx);
+                amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
+                this.sat.amb_mat = nan(this.getNumEpochs, this.getMaxSat);
+                this.sat.amb_mat(id_sync,:) = amb_mat;                 
+                
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
@@ -7287,8 +7287,8 @@ classdef Receiver < Exportable
                     el = this.sat.el(:,s);
                     
                     id_cs = find(this.go_id(this.obs_code(:,1) == 'L') == s);
-                    cs = sum(this.cycle_slip_idx_ph(:, id_cs), 2) > 0;
-                    out = sum(this.outlier_idx_ph(:, id_cs), 2) > 0;
+                    cs = sum(this.sat.cycle_slip_idx_ph(:, id_cs), 2) > 0;
+                    out = sum(this.sat.outlier_idx_ph(:, id_cs), 2) > 0;
                     
                     decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
                     x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
@@ -7331,7 +7331,7 @@ classdef Receiver < Exportable
                         subplot(2,4, ss_id);
                 end
                 
-                ep = repmat((1: this.time.length)',1, size(this.outlier_idx_ph, 2));
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
                 
                 for prn = this.cc.prn(this.cc.system == sys_c)'
                     id_ok = find(any(this.obs((this.system == sys_c)' & this.prn == prn, :),1));
@@ -7341,9 +7341,9 @@ classdef Receiver < Exportable
                     plot(id_ok, prn * ones(size(id_ok)), '.', 'Color', [0.7 0.7 0.7]);
                     s = find(this.go_id(this.obs_code(:,1) == 'L') == this.getGoId(sys_c, prn));
                     if any(s)
-                        cs = ep(this.cycle_slip_idx_ph(:, s) ~= 0);
+                        cs = ep(this.sat.cycle_slip_idx_ph(:, s) ~= 0);
                         plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20)
-                        out = ep(this.outlier_idx_ph(:, s) ~= 0);
+                        out = ep(this.sat.outlier_idx_ph(:, s) ~= 0);
                         plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                     end
                 end
@@ -7642,7 +7642,7 @@ classdef Receiver < Exportable
                     
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
-                    plot(t, sztd,'.'); hold on;
+                    plot(t, sztd,'.-'); hold on;
                     plot(t, zero2nan(rec(:).getZTD),'k', 'LineWidth', 4);
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
