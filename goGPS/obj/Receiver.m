@@ -681,17 +681,17 @@ classdef Receiver < Exportable
             % SYNTAX
             %   this.remBad();
             
+            % remove testing satellites
             this.log.addMarkedMessage('Removing satellites whose prn exceed the maximum official one')
             for s = 1 : length(this.cc.sys_c)
-                sys_idx = find(this.system == this.cc.sys_c(s));
+                sys_idx = (this.system == this.cc.sys_c(s));
                 prn = this.prn(sys_idx);
-                for p = unique(prn)'
-                    if p > this.cc.n_sat(s)
-                        this.remSat(this.cc.sys_c(s),p);
-                    end
+                for p = unique(prn(prn > this.cc.n_sat(s)))'
+                    this.remSat(this.cc.sys_c(s), p);
                 end
             end
-            %remove bad epoch in crx
+            
+            % remove bad epoch in crx
             this.log.addMarkedMessage('Removing observations marked as bad in Bernese .CRX file')
             [CRX, found] = load_crx(this.state.crx_dir, this.time, this.cc);
             if found
