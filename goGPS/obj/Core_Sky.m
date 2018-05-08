@@ -344,6 +344,51 @@ classdef Core_Sky < handle
             end
         end
         
+        function eclipsed = checkEclipseManouver(this, time)
+            eclipsed = int8(zeros(time.length,this.cc.getNumSat));
+            
+      
+            XS = this.coordInterpolate(time);
+            
+            %satellite geocentric position
+            XS_n = sqrt(sum(XS.^2,3,'omitnan'));
+
+            XS = XS./repmat(XS_n,1,1,3);
+            
+            %sun geocentric position
+            X_sun = this.sunMoonInterpolate(time, true);
+            X_sun = rowNormalize(X_sun);
+            
+            %satellite-sun angle
+            cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,this.cc.getNumSat,1),3);
+            %threshold to detect noon/midnight maneuvers
+            t = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
+            
+            
+            shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
+            
+            for i = 1:32 % only gps implemented
+                sat_type = this.ant_pcv(i).sat_type;
+                
+                if (~isempty(strfind(sat_type,'BLOCK IIA')))
+                    t(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+                elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
+                    t(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+                    shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
+                    t(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+                    shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                end
+            end
+            
+           
+            
+            %noon/midnight maneuvers affect all satellites
+            noonMidnightTurn = acos(abs(cosPhi)) < t;
+            eclipsed(shadowCrossing) = 1;
+            eclipsed(noonMidnightTurn) = 3;
+        end
+        
         function importEph(this, eph, t_st, t_end, step, clock)
             % SYNTAX:
             %   eph_tab.importEph(eph, t_st, t_end, sat, step)
@@ -1755,64 +1800,6 @@ classdef Core_Sky < handle
             this.computeSMPolyCoeff();
         end
         
-        function [eclipsed] = check_eclipse_condition(this, time, XS, sat)  %%% TO BE CORRECT
-            
-            % SYNTAX:
-            %   [eclipsed] = check_eclipse_condition(time, XS, SP3, sat, p_rate);
-            %
-            % INPUT:
-            %   time     = GPS time
-            %   XS       = satellite position (X,Y,Z)
-            %   sat      = staellite goIds
-            % OUTPUT:
-            %   eclipsed = boolean value to define satellite eclipse condition (0: OK, 1: eclipsed)
-            %
-            % DESCRIPTION:
-            %   Check if the input satellite is under eclipse condition.
-            
-            eclipsed = zeros(time.length(),1) > 1;
-            
-            X_sun = this.sunMoonInterpolate(time,true);
-            
-            %satellite geocentric position
-            XS_n = sqrt(sum(XS.^2,2));
-            XS_u = XS ./ repmat(XS_n,1,3);
-            
-            %sun geocentric position
-            X_sun_n = sqrt(sum(X_sun.^2,2));
-            X_sun_u = X_sun ./ repmat(X_sun_n,1,3);
-            
-            %satellite-sun angle
-            %cosPhi = dot(XS_u, X_sun_u);
-            % speed improvement of the above line
-            cosPhi = sum(XS_u.*X_sun_u,2);
-            
-            
-            %threshold to detect noon/midnight maneuvers
-            if sat > 32
-                t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
-            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIA')))
-                t = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
-                
-            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIR')))
-                t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-            elseif (~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIF')))
-                t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
-            end
-            
-            if (sat <= 32 & ~isempty(strfind(this.ant_pcv(sat).sat_type,'BLOCK IIA')))
-                %shadow crossing affects only BLOCK IIA satellites
-                shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
-                eclipsed(shadowCrossing) = 1;
-            end
-            %noon/midnight maneuvers affect all satellites
-            noonMidnightTurn = acos(abs(cosPhi)) < t;
-            eclipsed(noonMidnightTurn) = 3;
-            
-            
-            
-        end
-        
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
@@ -1999,312 +1986,6 @@ classdef Core_Sky < handle
             prn_name(:,3) = char(prn_num);
         end
         
-        function [ant_pcv] = readAntennaPCV(filename, antmod, date)
-            % SYNTAX:
-            %   [antPCV] = readAntennaPCV(filename, antmod, date);
-            %
-            % INPUT:
-            %   filename = antenna phase center offset/variation file
-            %   antmod   = cell-array containing antenna model strings
-            %   date     = observation dates (required only when searching for satellite entries)
-            %
-            % OUTPUT:
-            %   ant_pcv (see description below)
-            %
-            % DESCRIPTION:
-            %   Extracts antenna phase center offset/variation values from a PCO/PCV file in ATX format.
-            %
-            % RESOURCES:
-            %   ftp://igs.org/pub/station/general/antex14.txt
-            
-            % ant_pcv struct definition
-            % ant_pcv.name           : antenna name (with radome code)
-            % ant_pcv.n_frequency    : number of available frequencies
-            % ant_pcv.frequency_name : array with name of available frequencies ({'G01';'G02';'R01',...})
-            % ant_pcv.frequency      : array with list of frequencies (carrier number) corresponding to the frequencies name ({'1';'2';'1',...})
-            % ant_pcv.sys            : array with code id of the system constellation of each frequency (1: GPS, 2: GLONASS, ...)
-            % ant_pcv.sysfreq        : array with codes of the system constellation and carrier of each frequency (11: GPS L1, 12: GPS L2, 21: GLONASS L1, ...)
-            % ant_pcv.offset         : ENU (receiver) or NEU (satellite) offset (one array for each frequency)
-            % ant_pcv.dazi           : increment of the azimuth (0.0 for non-azimuth-dependent phase center variations)
-            % ant_pcv.zen1           : Definition of the grid in zenith angle: minimum zenith angle
-            % ant_pcv.zen2           : Definition of the grid in zenith angle: maximum zenith angle
-            % ant_pcv.dzen           : Definition of the grid in zenith angle: increment of the zenith angle
-            % ant_pcv.tableNOAZI     : PCV values for NOAZI, in a cell array with a vector for each frequency [m]
-            % ant_pcv.tablePCV       : PCV values elev/azim depentend, in a cell array with a matrix for each frequency [m]
-            % ant_pcv.tablePCV_zen   : zenith angles corresponding to each column of ant_pcv.tablePCV
-            % ant_pcv.tablePCV_azi   : azimutal angles corresponding to each row of ant_pcv.tablePCV
-            
-            log = Logger.getInstance();
-            
-            for m = numel(antmod) : -1 : 1
-                ant_pcv(m) = struct('name', antmod{m}, ...
-                    'sat_type',[] ,...
-                    'n_frequency', 0, ...
-                    'available', 0, ...
-                    'type', '', ...
-                    'dazi', 0, ...
-                    'zen1', 0, ...
-                    'zen2', 0, ...
-                    'dzen', 0, ...
-                    'offset', [], ...
-                    'frequency_name', [], ...
-                    'frequency', [], ...
-                    'sys', [], ...
-                    'sysfreq', [], ...
-                    'tableNOAZI', [], ...
-                    'tablePCV_zen', [], ...
-                    'tablePCV_azi', [], ...
-                    'tablePCV', []);
-            end
-            antenna_found = zeros(length(antmod),1);
-            
-            % for each PCV file
-            for file_pcv = 1 : size(filename, 1)
-                if sum(antenna_found) < length(antmod)
-                    if (~isempty(filename))
-                        fid = fopen(char(filename(file_pcv, :)),'r');
-                        if (fid ~= -1)
-                            atx_file = textscan(fid,'%s','Delimiter', '\n', 'whitespace', '');
-                            atx_file = atx_file{1};
-                            fclose(fid);
-                            
-                            found = 0;
-                            format = 0;
-                            % get format (1: ATX, 2: Bernese 5.0, 3: Bernese 5.2)
-                            l = 1;
-                            line = atx_file{l};
-                            if ~isempty(strfind(line, 'ANTEX VERSION / SYST'))
-                                format = 1;
-                            end
-                            if ~isempty(strfind(line, 'MODEL NAME:'))
-                                format = 2;
-                            end
-                            if ~isempty(strfind(line, 'ANTENNA PHASE CENTER VARIATIONS DERIVED FROM ANTEX FILE'))
-                                format = 3;
-                            end
-                            
-                            switch format
-                                %% ATX
-                                case 1
-                                    flag_stop = 0;
-                                    ant_char = strcat(antmod{:});
-                                    while (l < numel(atx_file) && found < length(antmod) && ~flag_stop)
-                                        % go to the next antenna
-                                        line = atx_file{l};
-                                        while (l < numel(atx_file)-1) && ((length(line) < 76) || isempty(strfind(line(61:76),'START OF ANTENNA')))
-                                            l = l + 1; line = atx_file{l};
-                                        end
-                                        l = l + 1; line = atx_file{l};
-                                        
-                                        if ~isempty(strfind(line,'TYPE / SERIAL NO')) %#ok<*STREMP> % antenna serial number
-                                            if (nargin == 2) % receiver
-                                                id_ant = strfind(ant_char,line(1:20));
-                                                sat_type=[];
-                                            else
-                                                id_ant = strfind(ant_char, line(21:23));
-                                                sat_type=strtrim(line(1:20));
-                                            end
-                                            if ~isempty(id_ant)
-                                                if (nargin == 2) % receiver
-                                                    m = (id_ant - 1) / 20 + 1; % I'm reading the antenna
-                                                else
-                                                    m = (id_ant - 1) / 3 + 1; % I'm reading the antenna
-                                                end
-                                                
-                                                if ~(ant_pcv(m(1)).available)
-                                                    
-                                                    for a = 1:length(m)
-                                                        log.addMessage(sprintf('Reading antenna %d => %s', m(a), antmod{m(a)}),100);
-                                                    end
-                                                    
-                                                    invalid_date = 0;
-                                                    
-                                                    validity_start = [];
-                                                    validity_end   = [];
-                                                    
-                                                    l_start = l; % line at the beginng of the antenna section
-                                                    % look for "VALID FROM" and "VALID UNTIL" lines (if satellite antenna)
-                                                    if (nargin > 2)
-                                                        while (isempty(strfind(line,'VALID FROM')))
-                                                            l = l + 1; line = atx_file{l};
-                                                        end
-                                                        validity_start = [str2num(line(3:6)) str2num(line(11:12)) str2num(line(17:18)) str2num(line(23:24)) str2num(line(29:30)) str2num(line(34:43))]; %#ok<*ST2NM>
-                                                        l = l + 1; line = atx_file{l};
-                                                        if (strfind(line, 'VALID UNTIL')) %#ok<*STRIFCND>
-                                                            validity_end = [str2num(line(3:6)) str2num(line(11:12)) str2num(line(17:18)) str2num(line(23:24)) str2num(line(29:30)) str2num(line(34:43))];
-                                                        else
-                                                            validity_end = Inf;
-                                                        end
-                                                    end
-                                                    
-                                                    if (~isempty(validity_start)) % satellite antenna
-                                                        if ~((datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end)))
-                                                            invalid_date = 1;
-                                                            ant_pcv(m(1)).n_frequency = 0;
-                                                            if isinf(validity_end)
-                                                                log.addMessage(sprintf(' - out of range -> (%s : %s) not after %s', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start)), 100)
-                                                            else
-                                                                log.addMessage(sprintf(' - out of range -> (%s : %s) not intersecting (%s : %s)', datestr(date(1,:)), datestr(date(end,:)), datestr(validity_start), datestr(validity_end)), 100)
-                                                            end
-                                                        end
-                                                    else  %receiver antenna
-                                                    end
-                                                    
-                                                    if ~(invalid_date) % continue parsing
-                                                        for a = 1:length(m)
-                                                            log.addMessage(sprintf('Found a valid antenna %s', antmod{m(a)}), 50);
-                                                        end
-                                                        l = l_start;
-                                                        
-                                                        % get TYPE
-                                                        ant_pcv(m(1)).type = line(1:20);
-                                                        
-                                                        % PUT SATELLITE
-                                                        ant_pcv(m(1)).sat_type = sat_type;
-                                                        
-                                                        % get DAZI
-                                                        while (isempty(strfind(line,'DAZI')))
-                                                            l = l + 1; line = atx_file{l};
-                                                        end
-                                                        ant_pcv(m(1)).dazi=sscanf(line(1:8),'%f');
-                                                        
-                                                        % get ZEN1 / ZEN2 / DZEN
-                                                        while (isempty(strfind(line,'ZEN1 / ZEN2 / DZEN')))
-                                                            l = l + 1; line = atx_file{l};
-                                                        end
-                                                        ant_pcv(m(1)).zen1 = sscanf(line(1:8),'%f');
-                                                        ant_pcv(m(1)).zen2 = sscanf(line(9:14),'%f');
-                                                        ant_pcv(m(1)).dzen = sscanf(line(15:20),'%f');
-                                                        
-                                                        % get FREQUENCIES
-                                                        while (isempty(strfind(line,'# OF FREQUENCIES')))
-                                                            l = l + 1; line = atx_file{l};
-                                                        end
-                                                        ant_pcv(m(1)).n_frequency=sscanf(line(1:8),'%d');
-                                                        ant_pcv(m(1)).offset = zeros(1,3,ant_pcv(m(1)).n_frequency);
-                                                        
-                                                        %get information of each frequency
-                                                        frequencies_found = 0;
-                                                        
-                                                        while frequencies_found < ant_pcv(m(1)).n_frequency
-                                                            while (isempty(strfind(line,'START OF FREQUENCY')))
-                                                                l = l + 1; line = atx_file{l};
-                                                            end
-                                                            frequencies_found=frequencies_found+1;
-                                                            ant_pcv(m(1)).frequency_name(frequencies_found,:)=sscanf(line(4:6),'%s');
-                                                            ant_pcv(m(1)).frequency(frequencies_found)=sscanf(line(6),'%d');
-                                                            
-                                                            switch sscanf(line(4),'%c')
-                                                                case 'G'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 1;
-                                                                case 'R'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 2;
-                                                                case 'E'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 3;
-                                                                case 'J'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 4;
-                                                                case 'C'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 5;
-                                                                case 'I'
-                                                                    ant_pcv(m(1)).sys(frequencies_found) = 6;
-                                                            end
-                                                            ant_pcv(m(1)).sysfreq(frequencies_found) = ant_pcv(m(1)).sys(frequencies_found)*10+ant_pcv(m(1)).frequency(frequencies_found);
-                                                            
-                                                            while (isempty(strfind(line,'NORTH / EAST / UP')))
-                                                                l = l + 1; line = atx_file{l};
-                                                            end
-                                                            if (~isempty(validity_start)) %satellite antenna
-                                                                ant_pcv(m(1)).offset(1,1:3,frequencies_found) = [sscanf(line(1:10),'%f'),sscanf(line(11:20),'%f'),sscanf(line(21:30),'%f')].*1e-3; % N,E,U
-                                                                if (frequencies_found == ant_pcv(m(1)).n_frequency)
-                                                                    ant_pcv(m(1)).available = 1;
-                                                                end
-                                                            else
-                                                                ant_pcv(m(1)).offset(1,1:3,frequencies_found) = [sscanf(line(11:20),'%f'),sscanf(line(1:10),'%f'),sscanf(line(21:30),'%f')].*1e-3; %E,N,U
-                                                                ant_pcv(m(1)).available = 1;
-                                                            end
-                                                            
-                                                            number_of_zenith=(ant_pcv(m(1)).zen2-ant_pcv(m(1)).zen1)/ant_pcv(m(1)).dzen+1;
-                                                            if ant_pcv(m(1)).dazi~=0
-                                                                number_of_azimuth=(360-0)/ant_pcv(m(1)).dazi+1;
-                                                            else
-                                                                number_of_azimuth=0;
-                                                            end
-                                                            
-                                                            % NOAZI LINE
-                                                            l = l + 1; line = atx_file{l};
-                                                            ant_pcv(m(1)).tableNOAZI(1,:,frequencies_found)=sscanf(line(9:end),'%f')'.*1e-3;
-                                                            ant_pcv(m(1)).tablePCV_zen(1,1:number_of_zenith,1)=ant_pcv(m(1)).zen1:ant_pcv(m(1)).dzen:ant_pcv(m(1)).zen2;
-                                                            
-                                                            % TABLE AZI/ZEN DEPENDENT
-                                                            if number_of_azimuth ~= 0
-                                                                ant_pcv(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(number_of_azimuth,1);
-                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(number_of_azimuth,number_of_zenith);
-                                                            else
-                                                                ant_pcv(m(1)).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(1,1);
-                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
-                                                            end
-                                                            
-                                                            l = l + 1; line = atx_file{l};
-                                                            if (isempty(strfind(line,'END OF FREQUENCY')))
-                                                                tablePCV=zeros(number_of_azimuth,number_of_zenith);
-                                                                for i=1:number_of_azimuth
-                                                                    tablePCV(i,:)=sscanf(line(9:end),'%f')'.*1e-3;
-                                                                    l = l + 1; line = atx_file{l};
-                                                                end
-                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=tablePCV;
-                                                                ant_pcv(m(1)).tablePCV_azi(:,1:number_of_azimuth,1)=0:ant_pcv(m(1)).dazi:360;
-                                                            end
-                                                            if number_of_azimuth == 0
-                                                                ant_pcv(m(1)).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
-                                                            end
-                                                        end
-                                                        found = found + length(m);
-                                                        antenna_found(m) = 1;
-                                                        for a = 2 : length(m)
-                                                            ant_pcv(m(a)) = ant_pcv(m(1));
-                                                        end
-                                                    else % invalid_date
-                                                        while (isempty(strfind(line,'END OF ANTENNA')))
-                                                            l = l + 1; line = atx_file{l};
-                                                        end
-                                                    end
-                                                elseif (nargin > 2) && strcmp(line(41:44),'    ')
-                                                    flag_stop = true;
-                                                    log.addMessage('There are no more antenna!!!',100);
-                                                end
-                                            end
-                                        end
-                                    end
-                                case 2
-                                    
-                                    
-                                case 3
-                                    
-                                    
-                                case 0
-                                    
-                            end
-                        else
-                            log.addWarning('PCO/PCV file not loaded.\n');
-                        end
-                    else
-                        log.addWarning('PCO/PCV file not loaded.\n');
-                    end
-                end
-            end
-            
-            idx_not_found = find(~antenna_found);
-            if ~isempty(idx_not_found)
-                ww_msg = sprintf('The PCO/PCV model for the following antennas has not been found\nSome models are missing or not defined at the time of processing\n');
-                for a = 1 : length(idx_not_found)
-                    ww_msg = sprintf('%s -  antenna model for "%s" is missing\n', ww_msg, cell2mat(antmod(idx_not_found(a))));
-                end
-                log.addWarning(ww_msg);
-            end
-        end
-        
-        
-        
-    end
     
+    end
 end

@@ -43,6 +43,7 @@ classdef Core_Utils < handle
             
             for m = numel(antmod) : -1 : 1
                 antenna_PCV(m) = struct('name', antmod{m}, ...
+                    'sat_type',[] ,...
                     'n_frequency', 0, ...
                     'available', 0, ...
                     'type', '', ...
@@ -103,8 +104,11 @@ classdef Core_Utils < handle
                                         if ~isempty(strfind(line,'TYPE / SERIAL NO')) %#ok<*STREMP> % antenna serial number
                                             if (nargin == 2) % receiver
                                                 id_ant = strfind(ant_char,line(1:20));
+                                                sat_type=[];
+                                                 
                                             else
                                                 id_ant = strfind(ant_char, line(21:23));
+                                                sat_type=strtrim(line(1:20));
                                             end
                                             if ~isempty(id_ant)
                                                 if (nargin == 2) % receiver
@@ -160,6 +164,9 @@ classdef Core_Utils < handle
                                                         
                                                         % get TYPE
                                                         antenna_PCV(m(1)).type = line(1:20);
+                                                        
+                                                        % PUT SATELLITE
+                                                        antenna_PCV(m(1)).sat_type = sat_type;
                                                         
                                                         % get DAZI
                                                         while (isempty(strfind(line,'DAZI')))

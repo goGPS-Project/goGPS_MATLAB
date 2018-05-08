@@ -768,8 +768,14 @@ classdef Receiver < Exportable
                     end
                 end
             end
+            % remove moon midnight or shadow crossing epoch
+            eclipsed = this.sat.cs.checkEclipseManouver(this.time);
+            for i = 1: size(eclipsed,2)
+                this.obs(this.go_id == i,eclipsed(:,i)~=0) = 0;
+            end
             % check empty lines
             this.remEmptyObs();
+            
         end
         
         function removeShortArch(this, min_arc)
