@@ -2721,6 +2721,14 @@ classdef Receiver < Exportable
             is_pp = this.pp_status;
         end
         
+        function [iono_mf] = getSlantIonoMF(this)
+            % Get Iono mapping function for all the valid elevations
+            [lat, ~, ~, h_ortho] = this.getMedianPosGeodetic_mr();
+            
+            atmo = Atmosphere();
+            [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);            
+        end        
+        
         function [mfh, mfw] = getSlantMF(this, id_sync)
             % Get Mapping function for the satellite slant
             %
@@ -6912,6 +6920,29 @@ classdef Receiver < Exportable
     end
     
     % ==================================================================================================================================================
+    %% METHODS UTILITIES
+    % ==================================================================================================================================================
+    
+    methods (Access = public)
+        function data_s = smoothSatData(this, data_in, cs_mat, spline_base)
+            if nargin < 4
+                spline_base = (300 / this.getRate); % 5 min
+            end
+            data_s = data_in;
+            for s = 1 : size(data_s, 2)
+                lim = getOutliers(~isnan(data_s(:,s)));
+                lim = limMerge(lim, 5);                                
+                % remove small intervals
+                lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                for l = 1 : size(lim, 1)
+                    if (lim(l,2) - lim(l,1)) > spline_base
+                        data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), spline_base);
+                    end
+                end
+            end
+        end
+    end
+    
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -7902,6 +7933,26 @@ classdef Receiver < Exportable
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
+                
+        function obs_num = obsCode2Num(obs_code)
+            % Convert a 3 char name into a numeric value (float)
+            % SYNTAX
+            %   obs_num = obsCode2Num(obs_code);
+            
+            obs_num = obs_code(:,1:4) * [2^16 2^8 1]';
+        end
+        
+        function obs_code = obsNum2Code(obs_num)
+            % Convert a numeric value (float) of an obs_code into a 3 char marker
+            % SYNTAX
+            %   obs_code = obsNum2Code(obs_num)
+            obs_code = char(zeros(numel(obs_num), 4));
+            obs_code(:,1) = char(floor(obs_num / 2^16));
+            obs_num = obs_num - obs_code(:,1) * 2^16;
+            obs_code(:,2) = char(floor(obs_num / 2^8));
+            obs_num = obs_num - obs_code(:,2) * 2^8;
+            obs_code(:,3) = char(obs_num);
+        end
         
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)

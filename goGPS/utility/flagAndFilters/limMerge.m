@@ -1,5 +1,5 @@
 % SYNTAX:
-%    flag = limMerge(lim, max_gap)
+%    lim = limMerge(lim, max_gap)
 %
 % DESCRIPTION:
 %    merge limits closer than max_gap
