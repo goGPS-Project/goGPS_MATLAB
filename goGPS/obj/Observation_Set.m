@@ -57,6 +57,7 @@ classdef Observation_Set < handle
         time     % GPS_Time 
         go_id    % go_ids of the observations
         sigma    % teoretical precision of the measurements [m]
+        iono_free%
     end
     
     methods
@@ -76,7 +77,7 @@ classdef Observation_Set < handle
             this.prn = prn;
             cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
             this.go_id = cc.getIndex(this.obs_code(:,1), this.prn);
-            
+                        
         end
         
         function merge(this, obs_set)

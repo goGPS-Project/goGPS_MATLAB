@@ -3342,6 +3342,21 @@ classdef Receiver < Exportable
             obs_set.sigma = sigma;
         end
         
+        function [obs_set] = getPrefObsCh_os(this, flag, system)
+            [o, i, s, cs] = this.getPrefObsCh(flag, system, 1);
+            el = this.getEl();
+            az = this.getAz();
+            if ~isempty(el)
+                el = el(: ,this.go_id(i));
+                az = az(: ,this.go_id(i));
+            end
+            ne = size(o,2);
+            obs_set = Observation_Set(this.time.getCopy(), o' .* repmat(this.wl(i,:)',ne,1) , [this.system(i)' this.obs_code(i,:)], this.wl(i,:), el, az, this.prn(i));
+            obs_set.cycle_slip = cs';
+            obs_set.snr = s';
+            obs_set.sigma = ones(size(this.prn(i)));
+        end
+        
         % ---------------------------------------
         %  Two Frequency observation combination
         %  Warappers of getTwoFreqComb function
@@ -3401,6 +3416,54 @@ classdef Receiver < Exportable
             iono_pref = iono_pref(is_present,:);
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
+        
+        function [obs_set]  = getSmoothIonoFreeAv(this, obs_type, sys_c)
+            % get Preferred Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            
+            
+            [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
+            [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
+            
+            fun1 = @(wl1,wl2) 0.65;
+            fun2 = @(wl1,wl2) 0.35;
+            [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
+        end
+        
+        function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
+            % get Preferred Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            
+            % WARNING -> AS now it works only with 1° and 2° frequency
+            
+            
+            [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
+            
+            gfsm = gf; % smoothing to be implemented !!!!
+            
+            [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
+            ifree = this.cc.getSys(sys_c).getIonoFree();
+            coeff = [ifree.alpha2 ifree.alpha1 ]; 
+            fun1 = @(wl1, wl2) 1;
+            band = this.cc.getBand(sys_c, obs_type(2));
+            fun2 = @(wl1, wl2) + coeff(band);
+            [obs_set] =  this.getTwoFreqComb(obs_set1, gfsm, fun1, fun2);
+            obs_set.iono_free = true;
+            synt_ph = this.getSyntTwin(obs_set);
+            %%%% tailored outrlier detection
+            sensor_ph = Core_Pre_Processing.diffAndPred(obs_set.obs - synt_ph);
+            sensor_ph = zero2nan(sensor_ph).\(repmat(obs_set1.wl',size(sensor_ph,1),1));
+            
+            % subtract median (clock error)
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+
+            
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > 0.5;
+            poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
+            obs_set.obs(poss_out_idx) = 0;
+        end
+        
         
         function [obs_set]  = getPrefMelWub(this, system)
             % get Preferred Iono free combination for the two selcted measurements
@@ -3538,7 +3601,7 @@ classdef Receiver < Exportable
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
-                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
+                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I' || (~isempty(obs_set.iono_free) && obs_set.iono_free)
                     [range, xs_loc_t] = this.getSyntObs('I', go_id);
                 else
                     f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
