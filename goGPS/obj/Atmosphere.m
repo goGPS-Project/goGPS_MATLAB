@@ -62,7 +62,7 @@ classdef Atmosphere < handle
             'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
             'dt',         [], ...    % time spacing
             'n_t',        [], ...    % num of epocvhs
-            'heigth',     []  ...    % heigh of the layer
+            'height',     []  ...    % heigh of the layer
             )
     end
     
@@ -955,6 +955,40 @@ classdef Atmosphere < handle
             topcon = (1.d0 + aw/(1.d0 + bw/(1.d0 + cw)));
             gmfw   = topcon ./ (sine+gamma);
         end
+        
+        %-----------------------------------------------------------
+        % IONO
+        %-----------------------------------------------------------
+        function [iono_mf] = getIonoMF(this, lat_rad, h_ortho, el_rad, rcm)
+            % Get the pierce point
+            % INPUT:
+            %   lat_rad             latitude of the receiver           [rad]
+            %   h_ortho             orthometric height of the receiver [m]
+            %   el_rad              elevation of the satellites        [rad]
+            %   rcm                 meridian radius curvature <optional>
+            %
+            % OUTPUT
+            %   iono_mf             iono mapping function
+            %
+            % SYNTAX:
+            %   [iono_mf] = getIonoMF(lat_rad, h_ortho, el_rad, rcm)
+
+            % Get radius of curvature at lat
+            if nargin < 5
+                rcm = getMeridianRadiusCurvature(lat_rad);
+            end
+            
+            if isempty(this.ionex.height)
+                thin_shell_height = 350 * 1e3; % if the ionex is not loaded use 350km
+            else
+                thin_shell_height = this.ionex.height(1) * 1e3;       % ionopshere thin shell height [km]
+            end
+            
+            id_ok = el_rad > 0 & ~isnan(el_rad);
+            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height)) * cos(el_rad(id_ok));
+            iono_mf = nan(size(el_rad));
+            iono_mf(id_ok) = (1-(k).^2).^(-1/2);
+        end
     end
     
     methods (Static)
@@ -1037,7 +1071,7 @@ classdef Atmosphere < handle
             
             index = find(abs(x) >= 1.57);
             delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
-        end
+        end        
         
         function [lat_pp, lon_pp, iono_mf, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
             % Get the pierce point
@@ -1106,6 +1140,7 @@ classdef Atmosphere < handle
             lat_pp = reshape(lat_pp, input_size(1), input_size(2));
             lon_pp = reshape(lon_pp, input_size(1), input_size(2));
         end
+        
         function [ZWD] = saast_wet(T, H)
             
             % SYNTAX:
@@ -1135,6 +1170,7 @@ classdef Atmosphere < handle
             %ZWD (Saastamoinen model)
             ZWD = 0.0022768 * (((1255 ./ T) + 0.05) .* e);
         end
+        
         function [ZHD] = saast_dry(P, h, lat)
             
             % SYNTAX:

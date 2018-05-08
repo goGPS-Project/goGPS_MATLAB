@@ -1939,7 +1939,6 @@ classdef Core_Pre_Processing < handle
                 data_out = data;
             end
         end
-
         
         function [min_std] = detect_minimum_std(time_series)
             min_std = 1e30;
