@@ -194,10 +194,11 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
-            id_sync_out = id_sync_in(this.true_epoch);
-            id_sync_out(~idx_valid_ep_l) = [];
+            
+            %id_sync_out(~idx_valid_ep_l) = [];
             
             this.true_epoch(~idx_valid_ep_l) = [];
+            id_sync_out = this.true_epoch;
             
             % removing possible empty column (sat)
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
