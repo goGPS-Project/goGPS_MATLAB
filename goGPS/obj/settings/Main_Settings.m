@@ -2434,6 +2434,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: is_tropo = this.isTropoOn();
             is_tropo = this.flag_tropo;
         end
+        
+        function is_iono_free = isIonoFree(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_iono_free = isIonoFree(this)
+            is_iono_free = this.flag_ionofree;
+        end
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled

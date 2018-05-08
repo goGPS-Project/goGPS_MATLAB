@@ -127,12 +127,18 @@ classdef Least_Squares_Manipulator < handle
             %
             
             % extract the observations to be used for the solution
+             phase_present = ~isempty(strfind(obs_type, 'L'));
             if nargin < 6
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() %% case multi frequency
                     for sys_c = rec.cc.sys_c
                         for i = 1 : length(obs_type)
-                            obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                            if this.state.isIonoFree || ~phase_present
+                                obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                            else
+                                obs_set.merge(rec.getSmoothIonoFreeAv('L', sys_c));%
+                                obs_set.iono_free = true;
+                            end
                         end
                     end
                 else
@@ -148,7 +154,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % if phase observations are present check if the computation of troposphere parameters is required
-            phase_present = strfind(obs_type, 'L');
+           
             if phase_present
                 tropo = this.state.flag_tropo;
                 tropo_g = this.state.flag_tropo_gradient;

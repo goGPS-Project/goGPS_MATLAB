@@ -3362,7 +3362,7 @@ classdef Receiver < Exportable
             obs_set = Observation_Set(this.time.getCopy(), o' .* repmat(this.wl(i,:)',ne,1) , [this.system(i)' this.obs_code(i,:)], this.wl(i,:), el, az, this.prn(i));
             obs_set.cycle_slip = cs';
             obs_set.snr = s';
-            obs_set.sigma = ones(size(this.prn(i)));
+            obs_set.sigma = this.rec_settings.getStd(system, [flag '_'])*ones(size(this.prn(i)));
         end
         
         % ---------------------------------------
@@ -3436,6 +3436,8 @@ classdef Receiver < Exportable
             fun1 = @(wl1,wl2) 0.65;
             fun2 = @(wl1,wl2) 0.35;
             [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
+            obs_set.iono_free = true;
+            obs_set.obs_code = repmat(['GL1L2AV'],length(obs_set.prn),1);
         end
         
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
@@ -3447,29 +3449,30 @@ classdef Receiver < Exportable
             
             [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
             
-            gfsm = gf; % smoothing to be implemented !!!!
+            gf.obs = smoothSatData(this, zero2nan(gf.obs), gf.cycle_slip);
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
-            coeff = [ifree.alpha2 ifree.alpha1 ]; 
+            coeff = [ifree.alpha2 ifree.alpha1]; 
             fun1 = @(wl1, wl2) 1;
             band = this.cc.getBand(sys_c, obs_type(2));
             fun2 = @(wl1, wl2) + coeff(band);
-            [obs_set] =  this.getTwoFreqComb(obs_set1, gfsm, fun1, fun2);
+            [obs_set] =  this.getTwoFreqComb(obs_set1, gf, fun1, fun2);
             obs_set.iono_free = true;
             synt_ph = this.getSyntTwin(obs_set);
-            %%%% tailored outrlier detection
-            sensor_ph = Core_Pre_Processing.diffAndPred(obs_set.obs - synt_ph);
-            sensor_ph = zero2nan(sensor_ph).\(repmat(obs_set1.wl',size(sensor_ph,1),1));
-            
-            % subtract median (clock error)
-            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-
-            
-            % outlier when they exceed 0.5 cycle
+            %%% tailored outrlier detection
+            sensor_ph = Core_Pre_Processing.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
+            sensor_ph = sensor_ph./(repmat(obs_set1.wl',size(sensor_ph,1),1));
+%             
+%             % subtract median (clock error)
+             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+% 
+%             
+%             % outlier when they exceed 0.5 cycle
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
+            obs_set.obs_code = repmat(['GL1'],length(obs_set.prn),1);
         end
         
         
