@@ -184,9 +184,10 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
-        zhd      % zenital hydrostatic delay           double   [n_epoch x 1]
-        ztd      % zenital tropospheric delay          double   [n_epoch x 1]
+        apr_zhd  % zenital hydrostatic delay           double   [n_epoch x 1]
+        ztd      % total zenital tropospheric delay    double   [n_epoch x 1]
         zwd      % zenital wet delay                   double   [n_epoch x 1]
+        apr_zwd  % apriori zenital wet delay           double   [n_epoch x 1]
         pwv      % precipitable water vapour           double   [n_epoch x 1]
         
         tgn      % tropospheric gradient north         double   [n_epoch x n_sat]
@@ -291,8 +292,9 @@ classdef Receiver < Exportable
             this.initObs;
             this.xyz = [];
             
-            this.zhd  = [];
+            this.apr_zhd  = [];
             this.zwd  = [];
+            this.apr_zwd  = [];
             this.ztd  = [];
             this.pwv  = [];
             
@@ -580,14 +582,17 @@ classdef Receiver < Exportable
                     this.dt_ip(bad_epochs) = [];
                 end
                 
-                if ~isempty(this.zhd)
-                    this.zhd(bad_epochs) = [];
+                if ~isempty(this.apr_zhd)
+                    this.apr_zhd(bad_epochs) = [];
                 end
                 if ~isempty(this.ztd)
                     this.ztd(bad_epochs) = [];
                 end
                 if ~isempty(this.zwd)
                     this.zwd(bad_epochs) = [];
+                end
+                if ~isempty(this.apr_zwd)
+                    this.apr_zwd(bad_epochs) = [];
                 end
                 if ~isempty(this.pwv)
                     this.pwv(bad_epochs) = [];
@@ -2852,7 +2857,18 @@ classdef Receiver < Exportable
             end
         end
         
-        function updateZhd(this,P,T,H)
+        function updateAprTropo(this)
+            % update arpiori z tropo delays
+            if isempty(this.tge)
+                this.tge = zeros(this.getNumEpochs,1);
+                this.tgn = zeros(this.getNumEpochs,1);
+            end
+            [P,T,H] = this.getPTH();
+            updateAprZhd(this,P,T,H);
+            updateAprZwd(this,P,T,H);
+        end
+        
+        function updateAprZhd(this,P,T,H)
             %update zhd
             if isempty(this.lat)
                 this.updateCoordinates()
@@ -2865,23 +2881,27 @@ classdef Receiver < Exportable
                 case 1
                     h = this.h_ortho;
                     lat = this.lat;
-                    this.zhd = Atmosphere.saast_dry(P,h,lat);
+                    this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
             end
             
         end
         
-        function updateZwd(this,P,T,H)
+        function updateAprZwd(this,P,T,H)
             %update zwd
             if isempty(this.lat)
                 this.updateCoordinates()
             end
+            
+            
+                
+                
             flag = 1; % now fixed to saastaoinen in fututre can be other
             if nargin < 2
                 [P, T, H] = this.getPTH();
             end
             switch flag
                 case 1
-                    this.zwd = Atmosphere.saast_wet(T,H);
+                    this.apr_zwd = Atmosphere.saast_wet(T,H);
             end
             
         end
@@ -2896,7 +2916,7 @@ classdef Receiver < Exportable
             
             if ~isempty(this(1).ztd)
                 [mfh, mfw] = this.getSlantMF();
-                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZhd)) ./ mfw, this.getZhd);
+                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw, this.getAprZhd);
                 sztd(sztd <= 0) = nan;
                 sztd = sztd(id_extract, :);
                 
@@ -2952,7 +2972,7 @@ classdef Receiver < Exportable
             
             if ~isempty(this(1).zwd)
                 [mfh, mfw] = this.getSlantMF();
-                swtd = (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getZhd)) ./ mfw;
+                swtd = (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw;
                 swtd(swtd <= 0) = nan;
                 swtd = swtd(id_extract, :);
                 
@@ -3330,6 +3350,21 @@ classdef Receiver < Exportable
             obs_set.sigma = sigma;
         end
         
+        function [obs_set] = getPrefObsCh_os(this, flag, system)
+            [o, i, s, cs] = this.getPrefObsCh(flag, system, 1);
+            el = this.getEl();
+            az = this.getAz();
+            if ~isempty(el)
+                el = el(: ,this.go_id(i));
+                az = az(: ,this.go_id(i));
+            end
+            ne = size(o,2);
+            obs_set = Observation_Set(this.time.getCopy(), o' .* repmat(this.wl(i,:)',ne,1) , [this.system(i)' this.obs_code(i,:)], this.wl(i,:), el, az, this.prn(i));
+            obs_set.cycle_slip = cs';
+            obs_set.snr = s';
+            obs_set.sigma = ones(size(this.prn(i)));
+        end
+        
         % ---------------------------------------
         %  Two Frequency observation combination
         %  Warappers of getTwoFreqComb function
@@ -3389,6 +3424,54 @@ classdef Receiver < Exportable
             iono_pref = iono_pref(is_present,:);
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
+        
+        function [obs_set]  = getSmoothIonoFreeAv(this, obs_type, sys_c)
+            % get Preferred Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            
+            
+            [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
+            [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
+            
+            fun1 = @(wl1,wl2) 0.65;
+            fun2 = @(wl1,wl2) 0.35;
+            [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
+        end
+        
+        function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
+            % get Preferred Iono free combination for the two selcted measurements
+            % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            
+            % WARNING -> AS now it works only with 1° and 2° frequency
+            
+            
+            [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
+            
+            gfsm = gf; % smoothing to be implemented !!!!
+            
+            [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
+            ifree = this.cc.getSys(sys_c).getIonoFree();
+            coeff = [ifree.alpha2 ifree.alpha1 ]; 
+            fun1 = @(wl1, wl2) 1;
+            band = this.cc.getBand(sys_c, obs_type(2));
+            fun2 = @(wl1, wl2) + coeff(band);
+            [obs_set] =  this.getTwoFreqComb(obs_set1, gfsm, fun1, fun2);
+            obs_set.iono_free = true;
+            synt_ph = this.getSyntTwin(obs_set);
+            %%%% tailored outrlier detection
+            sensor_ph = Core_Pre_Processing.diffAndPred(obs_set.obs - synt_ph);
+            sensor_ph = zero2nan(sensor_ph).\(repmat(obs_set1.wl',size(sensor_ph,1),1));
+            
+            % subtract median (clock error)
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+
+            
+            % outlier when they exceed 0.5 cycle
+            poss_out_idx = abs(sensor_ph) > 0.5;
+            poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
+            obs_set.obs(poss_out_idx) = 0;
+        end
+        
         
         function [obs_set]  = getPrefMelWub(this, system)
             % get Preferred Iono free combination for the two selcted measurements
@@ -3526,7 +3609,7 @@ classdef Receiver < Exportable
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
-                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I'
+                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I' || (~isempty(obs_set.iono_free) && obs_set.iono_free)
                     [range, xs_loc_t] = this.getSyntObs('I', go_id);
                 else
                     f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
@@ -3653,18 +3736,18 @@ classdef Receiver < Exportable
             end
         end
         
-        function [zhd, time] = getZhd(this)
+        function [zhd, time] = getAprZhd(this)
             % SYNTAX
-            %  [zhd, p_time] = this.getZhd()
+            %  [zhd, p_time] = this.getAprZhd()
             
             zhd = {};
             time = {};
             for r = 1 : size(this, 2)
-                zhd{r} = this(1, r).zhd(this(1, r).getIdSync); %#ok<AGROW>
+                zhd{r} = this(1, r).apr_zhd(this(1, r).getIdSync); %#ok<AGROW>
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
                 
                 for s = 2 : size(this, 1)
-                    zhd_tmp = this(s, r).zhd(this(s, r).getIdSync);
+                    zhd_tmp = this(s, r).apr_zhd(this(s, r).getIdSync);
                     time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
                     zhd{r} = [zhd{r}; zhd_tmp];
                     time{r} = time{r}.append(time_tmp);
@@ -3683,20 +3766,97 @@ classdef Receiver < Exportable
             
             zwd = {};
             time = {};
+            
             for r = 1 : size(this, 2)
-                zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    zhd_tmp = this(s, r).zwd(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    zwd{r} = [zwd{r}; zhd_tmp];
-                    time{r} = time{r}.append(time_tmp);
+                if isempty(this(1, r).zwd)
+                    [zwd{r}, time{r}] = this(r).getAprZwd();
+                else
+                    zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
+                    time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                    
+                    for s = 2 : size(this, 1)
+                        zhd_tmp = this(s, r).zwd(this(s, r).getIdSync);
+                        time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                        zwd{r} = [zwd{r}; zhd_tmp];
+                        time{r} = time{r}.append(time_tmp);
+                    end
                 end
             end
             
             if numel(zwd) == 1
                 zwd = zwd{1};
+                time = time{1};
+            end 
+            
+        end
+        
+        function [gn ,ge, time] = getGradient(this)
+            % SYNTAX
+            % [gn ,ge, time] = getGradient(this)
+            
+            gn = {};
+            ge = {};
+            time = {};
+            for r = 1 : size(this, 2)
+                gn{r} = this(1, r).tgn(this(1, r).getIdSync); %#ok<AGROW>
+                ge{r} = this(1, r).tge(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    gn_tmp = this(s, r).tgn(this(s, r).getIdSync);
+                    ge_tmp = this(s, r).tge(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    gn{r} = [gn{r}; gn_tmp];
+                    ge{r} = [ge{r}; ge_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
+            end
+            
+            if numel(gn) == 1
+                gn = gn{1};
+                ge = ge{1};
+                time = time{1};
+            end 
+            
+        end
+        
+        function [sgnd, sged] = getGradientSlantDelay(this)
+            % SYNTAX
+            % [sgnd, sged] = this.getGradientSlantDelay()
+            id_sync = this.id_sync;
+            cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
+            cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
+            sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
+            [gn ,ge] = this.getGradient();
+            [mfw] = this.getSlantMF();
+            n_sat = this.getMaxSat;
+            sgnd = zeros(this.getNumEpochs, n_sat);
+            sged = zeros(this.getNumEpochs, n_sat);
+            sgnd(id_sync,:) = repmat(gn,1,n_sat) .* mfw .* cotel .* cosaz; 
+            sged(id_sync,:) = repmat(ge,1,n_sat) .* mfw .* cotel .* sinaz;
+
+        end
+        
+        function [apr_zwd, time] = getAprZwd(this)
+            % SYNTAX
+            %  [apr_zwd, time] = this.getAprZwd()
+            
+            apr_zwd = {};
+            time = {};
+            for r = 1 : size(this, 2)
+                apr_zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    zwd_tmp = this(s, r).apr_zwd(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    apr_zwd{r} = [apr_zwd{r}; zwd_tmp];
+                    time{r} = time{r}.append(time_tmp);
+                end
+            end
+            
+            if numel(apr_zwd) == 1
+                apr_zwd = apr_zwd{1};
                 time = time{1};
             end            
         end
@@ -4560,26 +4720,34 @@ classdef Receiver < Exportable
             this.sat.err_tropo(:, go_id) = 0;
             
             %%% compute lat lon
-            [~, lon_full, h_full, lat_full] = cart2geod(this.xyz(:,1), this.xyz(:,2), this.xyz(:,3));
+            [~, ~, h_full] = this.getMedianPosGeodetic();
             if abs(h_full) > 1e4
                 this.log.addWarning('Height out of reasonable height for terrestrial postioning skipping tropo update')
+                return
             end
            % get meteo data
-           [P,T,H] = this.getPTH();
            
            
-           %upadte the ztd zwd
-           this.updateZhd(P,T,H);
-           this.updateZwd(P,T,H);
+           % upadte the ztd zwd
+           this.updateAprTropo();
+           
            zwd = this.getZwd;
-           zhd = this.getZhd;
-           
-           %get mapping function
-           [mfh,mfw] = this.getSlantMF();
-           for g = go_id
-               this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*zhd + mfw(:,g).*zwd;
+           apr_zhd = this.getAprZhd;
+           cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
+           cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
+           sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
+           [gn ,ge] = this.getGradient();
+           [mfw, mfh] = this.getSlantMF();
+           n_sat = this.getMaxSat;
+           if ~any(ge(:) ~= 0)
+               for g = go_id                   
+                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd;
+               end
+           else
+               for g = go_id  
+                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+               end
            end
-            
         end
         
         function updateErrIono(this, go_id)
@@ -6291,8 +6459,8 @@ classdef Receiver < Exportable
                 if isempty(this.zwd)
                     this.zwd = zeros(this.time.length(), 1);
                 end
-                if isempty(this.zhd)
-                    this.zhd = zeros(this.time.length(),1);
+                if isempty(this.apr_zhd)
+                    this.apr_zhd = zeros(this.time.length(),1);
                 end
                 if isempty(this.ztd)
                     this.ztd = zeros(this.time.length(),1);
@@ -6324,7 +6492,7 @@ classdef Receiver < Exportable
                 end
                                 
                 for i = 1 : n_epoch
-                    this.zhd(id_sync(i)) = saast_dry(Pall(i), h_orto, lat);
+                    this.apr_zhd(id_sync(i)) = saast_dry(Pall(i), h_orto, lat);
                     this.zwd(id_sync(i)) = saast_wet(Tall(i), Hall(i), h_orto);
                 end
                 
@@ -6359,11 +6527,11 @@ classdef Receiver < Exportable
                 amb = x(x(:,2) == 5,1);
                 
                 % saving matrix of float ambiguities
-                amb_mat = zeros(length(id_sync), this.getMaxSat);
+                amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
                 id_ok = ~isnan(ls.amb_idx);
                 amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
                 this.sat.amb_mat = nan(this.getNumEpochs, this.getMaxSat);
-                this.sat.amb_mat(id_sync,:) = amb_mat;                 
+                this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;                 
                 
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
@@ -6378,8 +6546,8 @@ classdef Receiver < Exportable
                 end
                 if s02 < 1.50 % with over one meter of error the results are not meaningfull
                     if this.state.flag_tropo
-                        this.zwd(valid_ep) = this.zwd(valid_ep) + tropo;
-                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.zhd(valid_ep);
+                        this.zwd(valid_ep) = this.apr_zwd(valid_ep) + tropo;
+                        this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         this.pwv = nan(size(this.zwd));
                         if ext_meteo
                             degCtoK = 273.15;
@@ -6397,7 +6565,7 @@ classdef Receiver < Exportable
                         [mfh, mfw] = getSlantMF(this);
                         this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
                             + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw) ...
-                            + zero2nan(repmat(this.zhd(id_sync, :), 1, n_sat).*mfh));
+                            + zero2nan(repmat(this.apr_zhd(id_sync, :), 1, n_sat).*mfh));
                         this.est_slant = repmat(tropo, 1, n_sat) .*mfw .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
                     end
                     if this.state.flag_tropo_gradient
@@ -6433,9 +6601,9 @@ classdef Receiver < Exportable
                 this.dt(id_rem) = nan;
                 this.dt(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.dt(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
             end
-            if ~(isempty(this.zhd))
-                this.zhd(id_rem) = nan;
-                this.zhd(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.zhd(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
+            if ~(isempty(this.apr_zhd))
+                this.apr_zhd(id_rem) = nan;
+                this.apr_zhd(id_rem) = interp1(this.time.getEpoch(this.id_sync).getRefTime, this.apr_zhd(this.id_sync), this.time.getEpoch(id_rem).getRefTime, 'pchip');
             end
             if ~(isempty(this.ztd))
                 this.ztd(id_rem) = nan;
@@ -6639,8 +6807,8 @@ classdef Receiver < Exportable
             % extract all the ZHD lines
             string_zhd = txt(repmat(lim(2:end,1),1,17) + repmat(62:78, size(lim,1)-1, 1))';
             tmp = sscanf(string_zhd,'%f')'; clear string_zhd
-            this.zhd(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.zhd(id_int, 1) = tmp(id_ext);
+            this.apr_zhd(end + 1 : size(this.xyz, 1), 1) = nan;
+            this.apr_zhd(id_int, 1) = tmp(id_ext);
             
             % extract all the ZTD lines
             string_ztd = txt(repmat(lim(2:end,1),1,17) + repmat(78:94, size(lim,1)-1, 1))';
@@ -7691,12 +7859,12 @@ classdef Receiver < Exportable
             if nargin == 1
                 new_fig = true;
             end
-            [zhd, t] = this.getZhd();
-            if ~iscell(zhd)
-                zhd = {zhd};
+            [apr_zhd, t] = this.getAprZhd();
+            if ~iscell(apr_zhd)
+                apr_zhd = {apr_zhd};
                 t = {t};
             end
-            if isempty(zhd)
+            if isempty(apr_zhd)
                 this(1).log.addWarning('ZHD and slants have not been computed');
             else
                 if new_fig
@@ -7709,11 +7877,11 @@ classdef Receiver < Exportable
                 for r = 1 : size(this, 2)
                     rec = this(~this(:,r).isempty, r);
                     if ~isempty(rec)
-                        [zhd, t] = rec.getZhd();
+                        [apr_zhd, t] = rec.getAprZhd();
                         if new_fig
-                            plot(t.getMatlabTime(), zero2nan(zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
                         else
-                            plot(t.getMatlabTime(), zero2nan(zhd'), '.', 'LineWidth', 4); hold on;
+                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
                     end

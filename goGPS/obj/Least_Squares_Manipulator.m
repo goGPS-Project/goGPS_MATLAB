@@ -59,6 +59,7 @@ classdef Least_Squares_Manipulator < handle
         A_ep % Stacked epochwise design matrices [n_obs x n_param_per_epoch]
         A_idx % index of the paramter [n_obs x n_param_per_epoch]
         amb_idx % index of the columns per satellite
+        go_id_amb % go ids of the amb idx
         out_idx % index to tell if observation is outlier [ n_obs x 1]
         N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
         G % hard constraints (Lagrange multiplier)
@@ -194,10 +195,11 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
             xs_loc(~idx_valid_ep_l, :, :) = [];
-            id_sync_out = id_sync_in(this.true_epoch);
-            id_sync_out(~idx_valid_ep_l) = [];
+            
+            %id_sync_out(~idx_valid_ep_l) = [];
             
             this.true_epoch(~idx_valid_ep_l) = [];
+            id_sync_out = this.true_epoch;
             
             % removing possible empty column (sat)
             idx_valid_stream = sum(diff_obs, 1) ~= 0;
@@ -282,6 +284,7 @@ classdef Least_Squares_Manipulator < handle
                 n_amb = max(max(amb_idx));
                 amb_flag = 1;
                 this.amb_idx = amb_idx;
+                this.go_id_amb = obs_set.go_id;
                 
                 % get ambiguity wl
                 wl_amb = zeros(size(amb_obs_count));
