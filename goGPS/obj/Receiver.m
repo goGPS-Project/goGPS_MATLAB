@@ -778,6 +778,27 @@ classdef Receiver < Exportable
             
         end
         
+        function removeUnderSnrThr(this, snr_thr)
+            % removes observations with an SNR smaller than snr_thr
+            % 
+            % SYNTAX
+            %   this.removeUnderSnrThr(snr_thr)
+            
+            if (nargin == 1)
+                snr_thr = this.state.getSnrThr();
+            end
+
+            [snr1, id_snr] = this.getObs('S1');
+            snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+            id_snr = find(id_snr);
+            if ~isempty(id_snr)
+                this.log.addMarkedMessage(sprintf('Removing data with SNR (on L1) smaller than %.1f', snr_thr));
+                for s = 1 : numel(id_snr)
+                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
+                end
+            end
+        end
+        
         function removeShortArch(this, min_arc)
             % removes arch shorter than
             % SYNTAX
@@ -1018,7 +1039,7 @@ classdef Receiver < Exportable
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
-            %this.removeShortArch(this.state.getMinArc);
+            %this.removeShortArch(this.state.getMinArc);            
         end
         
         function cycleSlipPPPres(this)
@@ -2408,14 +2429,14 @@ classdef Receiver < Exportable
             xyz = median(xyz, 1, 'omitnan');         
         end
         
-        function xyz = getMedianPosENU(this)
+        function enu = getMedianPosENU(this)
             % return the computed median position of the receiver
             %
             % OUTPUT
-            %   xyz     geocentric coordinates
+            %   enu     geocentric coordinates
             %
             % SYNTAX
-            %   xyz = this.getMedianPosXYZ()
+            %   enu = this.getMedianPosENU()
             
             enu = this.getPosENU();
             enu = median(enu, 1, 'omitnan');         
@@ -3066,7 +3087,7 @@ classdef Receiver < Exportable
             dop = bsxfun(@times, zero2nan(dop), wl');
         end
         
-        function [snr, id_snr] = getSNR(this, sys_c)
+        function [snr, id_snr] = getSNR(this, sys_c, freq_c)
             % get the doppler observations
             % SYNTAX [dop, id_dop] = this.getDoppler(<sys_c>)
             % SEE ALSO: setDoppler
@@ -3074,8 +3095,12 @@ classdef Receiver < Exportable
                 snr = [];
                 id_snr = [];
             else
-                id_snr = this.obs_code(:, 1) == 'S';
-                if (nargin == 2)
+                if nargin < 3                    
+                    id_snr = this.obs_code(:, 1) == 'S';
+                else
+                    id_snr = this.obs_code(:, 1) == 'S' & this.obs_code(:, 2) == freq_c;
+                end
+                if (nargin >= 2) && ~isempty(sys_c)
                     id_snr = id_snr & (this.system == sys_c)';
                 end
                 snr = zero2nan(this.obs(id_snr, :)');
@@ -3431,7 +3456,7 @@ classdef Receiver < Exportable
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
         
-        function [obs_set]  = getSmoothIonoFreeAv(this, obs_type, sys_c)
+        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
@@ -3443,7 +3468,7 @@ classdef Receiver < Exportable
             fun2 = @(wl1,wl2) 0.35;
             [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
             obs_set.iono_free = true;
-            obs_set.obs_code = repmat(['GL1L2AV'],length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1L2AV',length(obs_set.prn),1);
         end
         
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
@@ -3453,7 +3478,7 @@ classdef Receiver < Exportable
             % WARNING -> AS now it works only with 1° and 2° frequency
             
             
-            [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
+            [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
             
             gf.obs = smoothSatData(this, [], [], zero2nan(gf.obs), gf.cycle_slip);
             
@@ -3478,7 +3503,7 @@ classdef Receiver < Exportable
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
-            obs_set.obs_code = repmat(['GL1'],length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1',length(obs_set.prn),1);
         end
         
         
@@ -6374,12 +6399,13 @@ classdef Receiver < Exportable
                         
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
-            else
+            else                
                 if nargin < 2
                     sys_c = this.cc.sys_c;
                 end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
+                this.removeUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
                 this.correctTimeDesync();
                 % this.TEST_smoothCodeWithDoppler(51);
@@ -7101,22 +7127,29 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods (Access = public)
-        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base)
+        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
             if nargin < 7
                 spline_base = (300 / this.getRate); % 5 min
             end
             if nargin < 6 
                 method = 'spline';
             end
+            if nargin < 8
+                max_gap = 0;
+            end
             if strcmp(method,'spline')
                 data_s = data_in;
                 for s = 1 : size(data_s, 2)
                     lim = getOutliers(~isnan(data_s(:,s)));
+                    if max_gap > 0
+                        lim = limMerge(lim, max_gap);
+                    end
                     % remove small intervals
-                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
-                        if (lim(l,2) - lim(l,1)) > spline_base
-                            data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), spline_base);
+                        arc_size = lim(l,2) - lim(l,1) + 1;
+                        if (arc_size) > 3
+                            data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), min(arc_size, spline_base));
                         end
                     end
                 end
@@ -7471,25 +7504,33 @@ classdef Receiver < Exportable
             end
         end
         
-        function showSNR_p(this, sys_c_list)
+        function showSNR_p(this, sys_c_list, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
             
             % SNRs
-            if nargin < 2
+            if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
             
             for sys_c = sys_c_list
-                [snr, snr_id] = this.getSNR(sys_c);
-                f = figure; f.Name = sprintf('%03d: SNR %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                
-                id_ok = (~isnan(snr));
-                az = this.sat.az(:,this.go_id(snr_id));
-                el = this.sat.el(:,this.go_id(snr_id));
-                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-                h = title(sprintf('SNR - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                for b = 1:8
+                    [snr, snr_id] = this.getSNR(sys_c, num2str(b));
+                    if nargin > 2 && flag_smooth
+                        snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                    end
+
+                    if any(snr_id)
+                        f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        
+                        id_ok = (~isnan(snr));
+                        az = this.sat.az(:,this.go_id(snr_id));
+                        el = this.sat.el(:,this.go_id(snr_id));
+                        polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                        colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    end
+                end
             end
             
         end
@@ -7511,16 +7552,17 @@ classdef Receiver < Exportable
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                plot(x, y, '.', 'Color', [0.3 0.3 0.3]);
+                plot(x, y, '.', 'Color', [0.8 0.8 0.8]); % all sat
                 decl_n = (serialize(90 - this.sat.el(this.id_sync(:), this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
-                plot(x, y, '.', 'Color', [0.4 0.4 0.4]);
+                m = serialize(~isnan(zero2nan(this.obs(ph_id, this.id_sync(:)))'));
+                plot(x(m), y(m), '.', 'Color', [0.4 0.4 0.4]); % sat in vew
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];                
                 cut_offed = decl_n(serialize(this.sat.az(:, this.go_id(ph_id))) ~= 0) > ((90 - this.state.getCutOff) / 90);
-                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.9 0.9 0.9]);
+                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.95 0.95 0.95]);
                 
                 for s = unique(this.go_id(ph_id))'
                     az = this.sat.az(:,s);
@@ -8029,7 +8071,7 @@ classdef Receiver < Exportable
                 end
                 
                 outm = [old_legend, outm];
-                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                 n_entry = numel(outm);
                 icons = icons(n_entry + 2 : 2 : end);
                 

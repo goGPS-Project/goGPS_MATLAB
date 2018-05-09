@@ -136,8 +136,9 @@ classdef Least_Squares_Manipulator < handle
                             if this.state.isIonoFree || ~phase_present
                                 obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
                             else
-                                obs_set.merge(rec.getSmoothIonoFreeAv('L', sys_c));%
+                                obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
                                 obs_set.iono_free = true;
+                                obs_set.sigma = obs_set.sigma * 1.5;
                             end
                         end
                     end
@@ -169,8 +170,6 @@ classdef Least_Squares_Manipulator < handle
                 if sum(sum(snr_to_fill))
                     obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
                 end
-                % remove under snr threshold
-                obs_set.remUnderSnrThr(this.state.getSnrThr());
             end
             
             % remove epochs based on desired sampling
