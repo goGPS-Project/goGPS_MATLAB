@@ -1,8 +1,11 @@
-function data = nonZero(data)
+function data = noZero(data)
+% Return the array without zeros
+%
 % SYNTAX:
-%   data = nonZero(data)
-% DESCRIPTION:
-%   return the array without zeros
+%   data = zeros(data)
+%
+% SEE ALSO
+%   noZero nanRep
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
