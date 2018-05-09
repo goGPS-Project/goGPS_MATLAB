@@ -3455,7 +3455,7 @@ classdef Receiver < Exportable
             
             [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
             
-            gf.obs = smoothSatData(this, zero2nan(gf.obs), gf.cycle_slip);
+            gf.obs = smoothSatData(this, [], [], zero2nan(gf.obs), gf.cycle_slip);
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
@@ -7101,19 +7101,51 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods (Access = public)
-        function data_s = smoothSatData(this, data_in, cs_mat, spline_base)
-            if nargin < 4
+        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base)
+            if nargin < 7
                 spline_base = (300 / this.getRate); % 5 min
             end
-            data_s = data_in;
-            for s = 1 : size(data_s, 2)
-                lim = getOutliers(~isnan(data_s(:,s)));
-                lim = limMerge(lim, 5);                                
-                % remove small intervals
-                lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
-                for l = 1 : size(lim, 1)
-                    if (lim(l,2) - lim(l,1)) > spline_base
-                        data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), spline_base);
+            if nargin < 6 
+                method = 'spline';
+            end
+            if strcmp(method,'spline')
+                data_s = data_in;
+                for s = 1 : size(data_s, 2)
+                    lim = getOutliers(~isnan(data_s(:,s)));
+                    % remove small intervals
+                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    for l = 1 : size(lim, 1)
+                        if (lim(l,2) - lim(l,1)) > spline_base
+                            data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), spline_base);
+                        end
+                    end
+                end
+            elseif strcmp(method,'poly_quad')
+                data_s = data_in;
+                for s = 1 : size(data_s, 2)
+                    lim = getOutliers(~isnan(data_s(:,s)));
+                    % remove small intervals
+                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    for l = 1 : size(lim, 1)
+                        n_ep =  lim(l,2) - lim(l,1) +1;
+                        if n_ep > 4
+                            data_tmp = data_s(lim(l,1) : lim(l,2), s);
+                            el_tmp = data_el(lim(l,1) : lim(l,2), s);
+                            az_tmp = data_az(lim(l,1) : lim(l,2), s);
+                            t = [1:n_ep]';
+                            A = [ones(n_ep,1) t t.^2];
+                            %                             Qxx = cholinv(A'*A);
+                            par = A\data_tmp;
+                            %                             par = Qxx*A'*data_tmp;
+                            quad_mod = A*par;
+                            
+                            %                             data_coll = data_tmp - quad_mod;
+                            %                             s02 = mean(data_coll.^2) / (n_ep -3);
+                            %                             Cy_haty_hat = s02*A'*Qxx;
+                            %                             Cvv =  0;
+                            data_s(lim(l,1) : lim(l,2), s) = splinerMat(te, data_coll , 1) + quad_mod;
+                            data_s(lim(l,1) : lim(l,2), s) = quad_mod;
+                        end
                     end
                 end
             end
