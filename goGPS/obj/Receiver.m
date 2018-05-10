@@ -374,7 +374,7 @@ classdef Receiver < Exportable
             this.system     = '';         % char id of the satellite system corresponding to the row_id
             
             this.obs_code   = [];         % obs code for each line of the data matrix obs
-            this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
+            this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
             this.amb_idx = [];
@@ -3491,9 +3491,9 @@ classdef Receiver < Exportable
             [obs_set] =  this.getTwoFreqComb(obs_set1, gf, fun1, fun2);
             obs_set.iono_free = true;
             synt_ph = this.getSyntTwin(obs_set);
-            %%% tailored outrlier detection
+            %%% tailored outlier detection
             sensor_ph = Core_Pre_Processing.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
-            sensor_ph = sensor_ph./(repmat(obs_set1.wl',size(sensor_ph,1),1));
+            sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
 %             
 %             % subtract median (clock error)
              sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
@@ -3624,7 +3624,7 @@ classdef Receiver < Exportable
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
-        end
+        end                        
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
             if nargin < 2
@@ -4034,6 +4034,16 @@ classdef Receiver < Exportable
             this.obs(id_ph, :) = nan2zero(ph);
         end
         
+        function resetSynthPhases(this)
+            % recompute synhtesised phases
+            %
+            % SYNTAX 
+            %   this.resetSynthPhases()
+            
+            this.synt_ph = [];
+            this.updateSyntPhases();
+        end
+        
         function injectPhases(this, ph, wl, f_id, obs_code, go_id)
             % Injecting phase observations into Receiver
             % This routine have been written for Core_SEID
@@ -4075,6 +4085,7 @@ classdef Receiver < Exportable
                     assert(size(ph, 2) == numel(wl), 'Phase injection input "wl" parameters size error');
                     this.obs_code = [this.obs_code; obs_code];
                 end
+                this.resetSynthPhases();
             end
         end
         
@@ -7126,8 +7137,11 @@ classdef Receiver < Exportable
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     
-    methods (Access = public)
+    methods (Access = public)        
         function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
+            if nargin < 5
+                cs_mat = [];
+            end
             if nargin < 7
                 spline_base = (300 / this.getRate); % 5 min
             end
@@ -7140,10 +7154,15 @@ classdef Receiver < Exportable
             if strcmp(method,'spline')
                 data_s = data_in;
                 for s = 1 : size(data_s, 2)
-                    lim = getOutliers(~isnan(data_s(:,s)));
+                    if isempty(cs_mat)
+                        lim = getOutliers(~isnan(data_s(:,s)));
+                    else
+                        lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
+                    end
                     if max_gap > 0
                         lim = limMerge(lim, max_gap);
                     end
+
                     % remove small intervals
                     %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
@@ -7159,7 +7178,7 @@ classdef Receiver < Exportable
             elseif strcmp(method,'poly_quad')
                 data_s = data_in;
                 for s = 1 : size(data_s, 2)
-                    lim = getOutliers(~isnan(data_s(:,s)));
+                    lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
                     % remove small intervals
                     lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
