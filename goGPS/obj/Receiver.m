@@ -3346,7 +3346,7 @@ classdef Receiver < Exportable
                     el = [];
                 end
                 snr_out(:, p) = nan2zero(sqrt((alpha1.* zero2nan(s1(:, ii1))).^2 + (alpha2 .* zero2nan(s2(:, ii2))).^2));
-                sigma(p) = sqrt((alpha1*sigma1(ii1))^2 + (alpha2*sigma1(ii2))^2);
+                sigma(p) = sqrt((alpha1*sigma1(ii1))^2 + (alpha2*sigma2(ii2))^2);
                 if isempty(cs1) && isempty(cs2) % cycle slips only if there is at least one phase observables
                     cs_out = [];
                     wl(p) = -1;
