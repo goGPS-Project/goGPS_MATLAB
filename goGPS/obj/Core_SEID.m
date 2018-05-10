@@ -90,6 +90,11 @@ classdef Core_SEID < handle
             for r = 1 : numel(ref)
                 phase_gf(r) = ref(r).getGeometryFree('L1','L2','G');
                 code_gf(r) = ref(r).getGeometryFree('C1','C2','G');
+                
+                % Smoothing iono
+                code_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(code_gf(r).obs), [], 'spline', (900 / ref(r).getRate));
+                phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
+                
                 [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
                 [pierce_point(r).lat, pierce_point(r).lon] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
             end
@@ -156,7 +161,7 @@ classdef Core_SEID < handle
                     lat_sat = nan(size(id_sync{t},1), numel(ref));
                     lon_sat = nan(size(id_sync{t},1), numel(ref));
                     for r = 1 : numel(ref)
-                        id_sat = unique(ref(r).go_id) == trg_go_id(s);
+                        id_sat = unique(code_gf(r).go_id) == trg_go_id(s);
                         if sum(id_sat) == 1
                             lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
                             lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
@@ -167,6 +172,7 @@ classdef Core_SEID < handle
                 end
                 
                 % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                trg_ph_gf(abs(trg_ph_gf) > 0.5) = nan; % remove outliers
                 inan = isnan(trg_ph_gf);
                 trg_ph_gf = cumsum(nan2zero(trg_ph_gf));
                 trg_ph_gf(inan) = nan;
