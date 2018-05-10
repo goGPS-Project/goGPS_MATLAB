@@ -91,9 +91,13 @@ classdef Core_SEID < handle
                 phase_gf(r) = ref(r).getGeometryFree('L1','L2','G');
                 code_gf(r) = ref(r).getGeometryFree('C1','C2','G');
                 
+                %[phase_gf(r).obs, phase_gf(r).sigma] = Receiver.smoothCodeWithPhase(zero2nan(code_gf(r).obs), code_gf(r).sigma, code_gf(r).go_id, ...
+                                                                                  %zero2nan(phase_gf(r).obs), phase_gf(r).sigma, phase_gf(r).go_id, phase_gf(r).cycle_slip);
+
                 % Smoothing iono
-                code_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(code_gf(r).obs), [], 'spline', (900 / ref(r).getRate));
-                phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
+                %phase_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(phase_gf(r).obs), phase_gf(r).cycle_slip, 'spline', (300 / ref(r).getRate));
+                %code_gf(r).obs = ref(r).smoothSatData([], [], zero2nan(code_gf(r).obs), [], 'spline', (300 / ref(r).getRate), (300 / ref(r).getRate));
+                %code_gf(r).obs = phase_gf(r).obs;
                 
                 [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
                 [pierce_point(r).lat, pierce_point(r).lon] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
@@ -107,7 +111,7 @@ classdef Core_SEID < handle
             min_gap = 3;
             
             % Extract syncronized C4 L4 diff
-            for t = 1 %: numel(trg)
+            for t = 1 : numel(trg)
                 log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
                 
                 ph_gf = nan(size(id_sync{t}, 1), max_sat, numel(ref));
@@ -115,19 +119,21 @@ classdef Core_SEID < handle
                 for r = 1 : numel(ref)
                     ph_gf(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));
                     % Import CS and outliers from receivers
-                    for s = 1 : numel(ref(r).ph_idx)
-                       %ph_gf(find(ref(r).outlier_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                       %ph_gf(find(ref(r).cycle_slip_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
-                       
-                       % fill small gaps
-                       lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
-                       lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
-                       idx = false(size(ph_gf, 1), 1);
-                       for l = 1 : size(lim, 1)
-                           idx(lim(l, 1) : lim(l, 2)) = true;
-                       end
-                       ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
-                    end
+%                     for s = 1 : numel(ref(r).ph_idx)
+%                         %ph_gf(find(ref(r).outlier_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+%                         %ph_gf(find(ref(r).cycle_slip_idx_ph(id_sync{t}(:,r),s)), ref(r).go_id(ref(r).ph_idx(s)), r) = nan;
+%                         
+%                         % fill small gaps
+%                         lim = getOutliers(isnan(ph_gf(:, ref(r).go_id(s), r)));
+%                         lim(lim(:,2) - lim(:,1) > min_gap,:) = [];
+%                         idx = false(size(ph_gf, 1), 1);
+%                         for l = 1 : size(lim, 1)
+%                             idx(lim(l, 1) : lim(l, 2)) = true;
+%                         end
+%                         if sum(idx) > 0
+%                             ph_gf(:,ref(r).go_id(s), r) = simpleFill1D(ph_gf(:, ref(r).go_id(s), r), idx);
+%                         end
+%                     end
                     pr_gf(:, code_gf(r).go_id, r) = zero2nan(code_gf(r).obs(id_sync{t}(:,r), :));
                 end
                 ph_gf_diff = diff(ph_gf);
@@ -136,7 +142,7 @@ classdef Core_SEID < handle
                 % pierce_point(r).lat could have different size receiver by receiver
                 % indexes convarsion is id = phase_gf(r).go_id
                 
-                % % DEBBUG: plot
+                % % DEBUG: plot
                 % hold off;
                 % for r = 1 : numel(ref)
                 %     % Id of non nan values
@@ -168,6 +174,7 @@ classdef Core_SEID < handle
                         end
                     end                    
                     trg_pr_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(pr_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
+                    %trg_ph_gf(id_sync{t}(:,t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(ph_gf(:,trg_go_id(s),:)), lat_pp(id_sync{t}(:,t + numel(ref)), s), lon_pp(id_sync{t}(:,t + numel(ref)), s));
                     trg_ph_gf(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(ph_gf_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
                 end
                 
