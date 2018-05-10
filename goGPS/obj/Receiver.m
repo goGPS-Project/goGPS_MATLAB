@@ -7148,8 +7148,11 @@ classdef Receiver < Exportable
                     %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
                         arc_size = lim(l,2) - lim(l,1) + 1;
-                        if (arc_size) > 3
-                            data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), min(arc_size, spline_base));
+                        id_arc = lim(l,1) : lim(l,2);
+                        id_arc(isnan(data_s(id_arc, s))) = [];
+                        data_tmp = data_s(id_arc, s);
+                        if length(data_tmp) > 3
+                            data_s(id_arc, s) = splinerMat([], data_tmp, min(arc_size, spline_base));
                         end
                     end
                 end
