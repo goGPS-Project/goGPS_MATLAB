@@ -8207,6 +8207,39 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     methods (Static, Access = public)
                 
+        function [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ...
+                                                           ph, sigma_ph, ph_go_id, cs_mat)
+            % Smooth code with phase (aka estimate phase ambiguity and remove it)
+            % Pay attention that the bias between phase and code is now eliminated
+            % At the moment the sigma of the solution = sigma of phase
+            %
+            % SYNTAX
+            %   [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
+            %
+            % EXAMPLE
+            %   [ph.obs, ph.sigma] = Receiver.smoothCodeWithPhase(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
+            %                                                   zero2nan(ph.obs), ph.sigma, ph.go_id, ph.cycle_slip);
+            %            
+
+            for s = 1 : numel(ph_go_id)
+                s_c = find(pr_go_id == ph_go_id(s));
+                pr(isnan(ph(:,s)), s_c) = nan;
+                
+                lim = getOutliers(~isnan(ph(:,s)), cs_mat(:,s));
+                for l = 1 : size(lim, 1)
+                    id_arc = (lim(l,1) : lim(l,2))';
+                    
+                    len_a = length(id_arc);
+                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
+                    Q = speye(2 * len_a - 1);
+                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_ph(s).^2)], 0, Q);
+                    Tn = A'/Q;
+                    data_tmp = [pr(id_arc, s_c); diff(ph(id_arc, s))];
+                    ph(id_arc, s) = (Tn*A)\Tn * data_tmp;
+                end
+            end
+        end
+        
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
