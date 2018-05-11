@@ -602,14 +602,14 @@ classdef Core_Sky < handle
                 if this.coord_rate ~= coord_rate
                     if empty_file
                         this.coord_rate = coord_rate;
-                        if clock_flag
-                            this.clock_rate = coord_rate;
-                        end
                     else
                         this.log.addWarning(['Coord rate not match: ' num2str(coord_rate)]);
                         return
                     end
                     
+                end
+                if clock_flag
+                    this.clock_rate = coord_rate;
                 end
                 % checking overlapping and same correct syncro
                 sp3_last_ep = sp3_first_ep.getCopy();
