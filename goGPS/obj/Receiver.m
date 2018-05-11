@@ -301,7 +301,7 @@ classdef Receiver < Exportable
             this.tgn = [];
             this.tge = [];
             
-            sat = struct( ...
+            this.sat = struct( ...
                 'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
                 'outlier_idx_ph',   [], ...    % logical index of outliers
                 'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
