@@ -1,7 +1,7 @@
-function [ocean_load_disp] = load_BLQ(filename, marker)
+function [ocean_load_disp, found] = load_BLQ(filename, marker)
 
 % SYNTAX:
-%   [ocean_load_disp] = load_BLQ(filename, marker);
+%   [ocean_load_disp, found] = load_BLQ(filename, marker);
 %
 % INPUT:
 %   filename = ocean loading displacement file (.BLQ)
@@ -9,6 +9,7 @@ function [ocean_load_disp] = load_BLQ(filename, marker)
 %
 % OUTPUT:
 %   ocean_load_disp = ocean loading displacement values read from .BLQ file
+%   found = data found status flag
 %
 % DESCRIPTION:
 %   Reads ocean loading displacement values from a file in BLQ format.
