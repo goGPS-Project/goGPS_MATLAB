@@ -2395,6 +2395,18 @@ classdef Receiver < Exportable
             [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
         end
         
+        function enu = getBaselineENU(this, rec)
+            % return the baseline computed for the receiver wrt another
+            %
+            % OUTPUT
+            %   enu     enu coordinates
+            %
+            % SYNTAX
+            %   enu = this.getPosENU()
+           enu = this.getPosENU() - rec.getPosENU();
+        end
+        
+        
         function xyz = getMedianPosXYZ_mr(this)
             % return the computed median position of the receiver
             %
