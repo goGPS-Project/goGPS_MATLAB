@@ -333,6 +333,15 @@ classdef Receiver < Exportable
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
         end
         
+        function resetEstTropo(this)
+            % empty estimated tropo paramteres
+            this.zwd = [];
+            this.tge = [];
+            this.tgn = [];
+            this.updateErrTropo();
+            this.updateSyntPhases();
+        end
+        
         function initObs(this)
             % Reset the content of the receiver obj
             % SYNTAX
@@ -817,7 +826,6 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
             end
         end
-        
         
         function chooseDataTypes(this)
             % get the right attribute column to be used for a certain type/band couple
@@ -4222,6 +4230,8 @@ classdef Receiver < Exportable
             end
             if isempty(this.dt_ip) || ~any(this.dt_ip)
                 this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+            else
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT);  %<---- check dt with all the new dts field
             end
         end
         

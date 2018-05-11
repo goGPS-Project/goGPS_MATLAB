@@ -204,12 +204,12 @@ classdef Core_SEID < handle
                 %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
                 
                 % Remove the L2 stored in the object
-                [~, id_ph] = trg(t).getObs('L2','G');
+                [ph_old, id_ph] = trg(t).getObs('L2','G');
                 if ~isempty(id_ph)
                     log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
                     trg(t).remObs(id_ph);
                 end
-                [~, id_pr] = trg(t).getObs('C2','G');
+                [pr_old, id_pr] = trg(t).getObs('C2','G');
                 if ~isempty(id_pr)
                     log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
                     trg(t).remObs(id_pr);
@@ -219,6 +219,8 @@ classdef Core_SEID < handle
                 log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
                 trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2 ', trg_go_id)
                 trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2 ', trg_go_id);
+                %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
+                %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                 
                 trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                 trg(t).updateRemoveOutlierMarkCycleSlip();
