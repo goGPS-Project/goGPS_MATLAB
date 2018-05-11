@@ -1,9 +1,13 @@
-function [flagIntervals] = getOutliers(flags)
-% SYNTAX:
-%    [flagIntervals] = getOutliers(flags)
+function [flagIntervals] = getOutliers(flags, split_point)
+% INPUT
+%   flags           flag array (as logical)
+%   split_point     points with forced splits (as logical)
 %
-% DESCRIPTION:
-%    returns start and end of flagged intervals
+% SYNTAX
+%   [flagIntervals] = getOutliers(flags, <split_point>)
+%
+% DESCRIPTION
+%   Returns start and end of flagged intervals
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
@@ -39,17 +43,31 @@ function [flagIntervals] = getOutliers(flags)
 
     % convert flags into array
     if isstruct(flags)
-        flagArray = int8(struct2flagVec(flags, max(flags.pos+1)));
+        flag_array = int8(struct2flagVec(flags, max(flags.pos + 1)));
         % add padding to avoid problem with flags on the borders
     else
-        flagArray = flags;
+        flag_array = flags;
     end
-    flagArray = flagArray(:);
-    flagArray = [0; flagArray; 0];
-    flagArray(flagArray ~= 0) = 1;
-    diff = flagArray(1:end-1) - flagArray(2:end);
+    flag_array = flag_array(:);
+    flag_array = [0; flag_array; 0];
+    flag_array(flag_array ~= 0) = 1;
+    diff_tmp = flag_array(1:end-1) - flag_array(2 : end);
     clear flagArray;
-    flagIntervals = [find(diff<0), find(diff>0)-1];
+    if nargin == 2 && ~isempty(split_point)
+        split_point = split_point & flags;
+        d_tmp = diff_tmp; 
+        d_tmp(1 : end-1) = (d_tmp(1 : end-1) - 2 * split_point);
+        f_i1 = find(d_tmp < 0);
+        f_i2 = find([split_point; false] | d_tmp > 0);
+        for i = 1 : numel(f_i1)
+            if f_i1(i) == f_i2(i)
+                f_i2(i) = [];
+            end
+        end
+        flagIntervals = [f_i1, f_i2 - 1];
+    else
+        flagIntervals = [find(diff_tmp < 0), find(diff_tmp > 0) - 1];
+    end
 end
 
 function [flagArray] = struct2flagVec(flags, maxSize)

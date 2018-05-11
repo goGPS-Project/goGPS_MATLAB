@@ -301,7 +301,7 @@ classdef Receiver < Exportable
             this.tgn = [];
             this.tge = [];
             
-            sat = struct( ...
+            this.sat = struct( ...
                 'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
                 'outlier_idx_ph',   [], ...    % logical index of outliers
                 'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
@@ -331,6 +331,15 @@ classdef Receiver < Exportable
             this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
             this.et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
+        end
+        
+        function resetEstTropo(this)
+            % empty estimated tropo paramteres
+            this.zwd = [];
+            this.tge = [];
+            this.tgn = [];
+            this.updateErrTropo();
+            this.updateSyntPhases();
         end
         
         function initObs(this)
@@ -374,7 +383,7 @@ classdef Receiver < Exportable
             this.system     = '';         % char id of the satellite system corresponding to the row_id
             
             this.obs_code   = [];         % obs code for each line of the data matrix obs
-            this.obs        = [];         % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
+            this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
             this.amb_idx = [];
@@ -778,6 +787,27 @@ classdef Receiver < Exportable
             
         end
         
+        function removeUnderSnrThr(this, snr_thr)
+            % removes observations with an SNR smaller than snr_thr
+            % 
+            % SYNTAX
+            %   this.removeUnderSnrThr(snr_thr)
+            
+            if (nargin == 1)
+                snr_thr = this.state.getSnrThr();
+            end
+
+            [snr1, id_snr] = this.getObs('S1');
+            snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+            id_snr = find(id_snr);
+            if ~isempty(id_snr)
+                this.log.addMarkedMessage(sprintf('Removing data with SNR (on L1) smaller than %.1f', snr_thr));
+                for s = 1 : numel(id_snr)
+                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
+                end
+            end
+        end
+        
         function removeShortArch(this, min_arc)
             % removes arch shorter than
             % SYNTAX
@@ -796,7 +826,6 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
             end
         end
-        
         
         function chooseDataTypes(this)
             % get the right attribute column to be used for a certain type/band couple
@@ -853,8 +882,6 @@ classdef Receiver < Exportable
         
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
-            this.updateAllAvailIndex();
-            this.updateAllTOT();
             % PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
@@ -1018,7 +1045,7 @@ classdef Receiver < Exportable
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
             
-            %this.removeShortArch(this.state.getMinArc);
+            %this.removeShortArch(this.state.getMinArc);            
         end
         
         function cycleSlipPPPres(this)
@@ -2357,7 +2384,7 @@ classdef Receiver < Exportable
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   enu     geocentric coordinates
+            %   enu     enu coordinates
             %
             % SYNTAX
             %   enu = this.getPosENU_mr()
@@ -2371,13 +2398,25 @@ classdef Receiver < Exportable
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   enu     geocentric coordinates
+            %   enu     enu coordinates
             %
             % SYNTAX
             %   enu = this.getPosENU()
             xyz = this.getPosXYZ();
             [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
         end
+        
+        function enu = getBaselineENU(this, rec)
+            % return the baseline computed for the receiver wrt another
+            %
+            % OUTPUT
+            %   enu     enu coordinates
+            %
+            % SYNTAX
+            %   enu = this.getPosENU()
+           enu = this.getPosENU() - rec.getPosENU();
+        end
+        
         
         function xyz = getMedianPosXYZ_mr(this)
             % return the computed median position of the receiver
@@ -2411,14 +2450,14 @@ classdef Receiver < Exportable
             xyz = median(xyz, 1, 'omitnan');         
         end
         
-        function xyz = getMedianPosENU(this)
+        function enu = getMedianPosENU(this)
             % return the computed median position of the receiver
             %
             % OUTPUT
-            %   xyz     geocentric coordinates
+            %   enu     geocentric coordinates
             %
             % SYNTAX
-            %   xyz = this.getMedianPosXYZ()
+            %   enu = this.getMedianPosENU()
             
             enu = this.getPosENU();
             enu = median(enu, 1, 'omitnan');         
@@ -3023,6 +3062,15 @@ classdef Receiver < Exportable
             % get the wavelength of a specific phase observation
             % SYNTAX wl = this.getWavelenght(id_ph)
             wl = this.wl(id_ph);
+        end               
+        
+        function obs_code = getAvailableObsCode(this)
+            % Get all the obbservation codes stored into the receiver
+            %
+            % SYNTAX
+            %   obs_code = thisgetAvailableObsCode();
+            
+            obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code)));
         end
         
         function [ph, wl, id_ph] = getPhases(this, sys_c)
@@ -3069,16 +3117,19 @@ classdef Receiver < Exportable
             dop = bsxfun(@times, zero2nan(dop), wl');
         end
         
-        function [snr, id_snr] = getSNR(this, sys_c)
-            % get the doppler observations
-            % SYNTAX [dop, id_dop] = this.getDoppler(<sys_c>)
-            % SEE ALSO: setDoppler
+        function [snr, id_snr] = getSNR(this, sys_c, freq_c)
+            % get the SNR of the observations
+            % SYNTAX [dop, id_dop] = this.getSNR(<sys_c>)
             if isempty(this.obs_code)
                 snr = [];
                 id_snr = [];
             else
-                id_snr = this.obs_code(:, 1) == 'S';
-                if (nargin == 2)
+                if nargin < 3                    
+                    id_snr = this.obs_code(:, 1) == 'S';
+                else
+                    id_snr = this.obs_code(:, 1) == 'S' & this.obs_code(:, 2) == freq_c;
+                end
+                if (nargin >= 2) && ~isempty(sys_c)
                     id_snr = id_snr & (this.system == sys_c)';
                 end
                 snr = zero2nan(this.obs(id_snr, :)');
@@ -3095,7 +3146,7 @@ classdef Receiver < Exportable
             else
                 idx = this.getObsIdx(flag);
             end
-            obs = this.obs(idx,:);
+            obs = zero2nan(this.obs(idx,:));
         end
         
         function [idx] = getObsIdx(this, flag, system, prn)
@@ -3150,7 +3201,7 @@ classdef Receiver < Exportable
                 [obs,idx] = this.getObs(flag, system);
             elseif length(flag) >= 2
                 flags = zeros(size(this.obs_code,1),3);
-                sys_idx = [this.system == system]';
+                sys_idx = (this.system == system)';
                 sys = this.cc.getSys(system);
                 band = find(sys.CODE_RIN3_2BAND == flag(2));
                 if isempty(band)
@@ -3324,7 +3375,7 @@ classdef Receiver < Exportable
                     el = [];
                 end
                 snr_out(:, p) = nan2zero(sqrt((alpha1.* zero2nan(s1(:, ii1))).^2 + (alpha2 .* zero2nan(s2(:, ii2))).^2));
-                sigma(p) = sqrt((alpha1*sigma1(ii1))^2 + (alpha2*sigma1(ii2))^2);
+                sigma(p) = sqrt((alpha1*sigma1(ii1))^2 + (alpha2*sigma2(ii2))^2);
                 if isempty(cs1) && isempty(cs2) % cycle slips only if there is at least one phase observables
                     cs_out = [];
                     wl(p) = -1;
@@ -3434,7 +3485,7 @@ classdef Receiver < Exportable
             [obs_set]  = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
         end
         
-        function [obs_set]  = getSmoothIonoFreeAv(this, obs_type, sys_c)
+        function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
@@ -3446,7 +3497,7 @@ classdef Receiver < Exportable
             fun2 = @(wl1,wl2) 0.35;
             [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
             obs_set.iono_free = true;
-            obs_set.obs_code = repmat(['GL1L2AV'],length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1L2AV',length(obs_set.prn),1);
         end
         
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
@@ -3456,7 +3507,7 @@ classdef Receiver < Exportable
             % WARNING -> AS now it works only with 1° and 2° frequency
             
             
-            [gf] = this.getGeometryFree(['L1'],['L2'], sys_c); %widelane phase
+            [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
             
             gf.obs = smoothSatData(this, [], [], zero2nan(gf.obs), gf.cycle_slip);
             
@@ -3469,9 +3520,9 @@ classdef Receiver < Exportable
             [obs_set] =  this.getTwoFreqComb(obs_set1, gf, fun1, fun2);
             obs_set.iono_free = true;
             synt_ph = this.getSyntTwin(obs_set);
-            %%% tailored outrlier detection
+            %%% tailored outlier detection
             sensor_ph = Core_Pre_Processing.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
-            sensor_ph = sensor_ph./(repmat(obs_set1.wl',size(sensor_ph,1),1));
+            sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
 %             
 %             % subtract median (clock error)
              sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
@@ -3481,7 +3532,7 @@ classdef Receiver < Exportable
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
-            obs_set.obs_code = repmat(['GL1'],length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1',length(obs_set.prn),1);
         end
         
         
@@ -3566,7 +3617,6 @@ classdef Receiver < Exportable
             %this.updateAllAvailIndex();
             this.updateErrIono();
             this.updateErrTropo();
-            this.updateAllTOT();
             % for each unique go_id
             for i = u_sat'
                 
@@ -3602,7 +3652,7 @@ classdef Receiver < Exportable
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
-        end
+        end                        
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
             if nargin < 2
@@ -4012,34 +4062,44 @@ classdef Receiver < Exportable
             this.obs(id_ph, :) = nan2zero(ph);
         end
         
-        function injectPhases(this, ph, wl, f_id, obs_code, go_id)
-            % Injecting phase observations into Receiver
+        function resetSynthPhases(this)
+            % recompute synhtesised phases
+            %
+            % SYNTAX 
+            %   this.resetSynthPhases()
+            
+            this.synt_ph = [];
+            this.updateSyntPhases();
+        end
+        
+        function injectObs(this, obs, wl, f_id, obs_code, go_id)
+            % Injecting observations into Receiver
             % This routine have been written for Core_SEID
             %
             % SINTEX:
-            %   this.injectPhases(ph, wl, f_id, obs_code, go_id);
+            %   this.injectObs(obs, wl, f_id, obs_code, go_id);
             
-            if size(ph, 2) ~= size(this.obs, 2)
-                this.log.addError(sprintf('Phase injection not possible, input contains %d epochs while obs contains %d epochs', size(ph, 2), size(this.obs, 2)));
+            if size(obs, 2) ~= size(this.obs, 2)
+                this.log.addError(sprintf('Observation injection not possible, input contains %d epochs while obs contains %d epochs', size(obs, 2), size(this.obs, 2)));
             else
                 go_id = go_id(:);
                 f_id = f_id(:);
                 wl = wl(:);
-                assert(size(ph, 1) == numel(go_id), 'Phase injection input "go_id" parameters size error');
+                assert(size(obs, 1) == numel(go_id), 'Observation injection input "go_id" parameters size error');
                 
-                this.obs = [this.obs; ph];
+                this.obs = [this.obs; obs];
                 this.go_id = [this.go_id; go_id];
                 this.active_ids = [this.active_ids; true(size(go_id))];
                 if numel(f_id) == 1
                     this.f_id = [this.f_id; f_id * ones(size(go_id))];
                 else
-                    assert(size(ph, 1) == numel(f_id), 'Phase injection input "f_id" parameters size error');
+                    assert(size(obs, 1) == numel(f_id), 'Observation injection input "f_id" parameters size error');
                     this.f_id = [this.f_id; f_id];
                 end
                 if numel(wl) == 1
                     this.wl = [this.wl; wl * ones(size(go_id))];
                 else
-                    assert(size(ph, 1) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    assert(size(obs, 1) == numel(wl), 'Observation injection input "wl" parameters size error');
                     this.wl = [this.f_id; wl];
                 end
                 
@@ -4050,9 +4110,10 @@ classdef Receiver < Exportable
                 if size(obs_code,1) == 1
                     this.obs_code = [this.obs_code; repmat(obs_code, size(go_id, 1), 1)];
                 else
-                    assert(size(ph, 2) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    assert(size(obs, 2) == numel(wl), 'Observation injection input "wl" parameters size error');
                     this.obs_code = [this.obs_code; obs_code];
                 end
+                this.resetSynthPhases();
             end
         end
         
@@ -4170,7 +4231,11 @@ classdef Receiver < Exportable
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+            if isempty(this.dt_ip) || ~any(this.dt_ip)
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+            else
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT);  %<---- check dt with all the new dts field
+            end
         end
         
         function updateAllTOT(this, synt_based)
@@ -5887,7 +5952,7 @@ classdef Receiver < Exportable
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
-                this.updateAllTOT
+                this.updateAllTOT();
             end
         end
         
@@ -6377,12 +6442,13 @@ classdef Receiver < Exportable
                         
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
-            else
+            else                
                 if nargin < 2
                     sys_c = this.cc.sys_c;
                 end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
+                this.removeUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
                 this.correctTimeDesync();
                 % this.TEST_smoothCodeWithDoppler(51);
@@ -7103,30 +7169,48 @@ classdef Receiver < Exportable
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     
-    methods (Access = public)
-        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base)
+    methods (Access = public)        
+        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
+            if nargin < 5
+                cs_mat = [];
+            end
             if nargin < 7
                 spline_base = (300 / this.getRate); % 5 min
             end
             if nargin < 6 
                 method = 'spline';
             end
+            if nargin < 8
+                max_gap = 0;
+            end
             if strcmp(method,'spline')
                 data_s = data_in;
                 for s = 1 : size(data_s, 2)
-                    lim = getOutliers(~isnan(data_s(:,s)));
+                    if isempty(cs_mat)
+                        lim = getOutliers(~isnan(data_s(:,s)));
+                    else
+                        lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
+                    end
+                    if max_gap > 0
+                        lim = limMerge(lim, max_gap);
+                    end
+
                     % remove small intervals
-                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
-                        if (lim(l,2) - lim(l,1)) > spline_base
-                            data_s(lim(l,1) : lim(l,2), s) = splinerMat([], data_s(lim(l,1) : lim(l,2), s), spline_base);
+                        arc_size = lim(l,2) - lim(l,1) + 1;
+                        id_arc = lim(l,1) : lim(l,2);
+                        id_arc(isnan(data_s(id_arc, s))) = [];
+                        data_tmp = data_s(id_arc, s);
+                        if length(data_tmp) > 3
+                            data_s(id_arc, s) = splinerMat([], data_tmp, min(arc_size, spline_base));
                         end
                     end
                 end
             elseif strcmp(method,'poly_quad')
                 data_s = data_in;
                 for s = 1 : size(data_s, 2)
-                    lim = getOutliers(~isnan(data_s(:,s)));
+                    lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
                     % remove small intervals
                     lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
@@ -7474,25 +7558,33 @@ classdef Receiver < Exportable
             end
         end
         
-        function showSNR_p(this, sys_c_list)
+        function showSNR_p(this, sys_c_list, flag_smooth)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
             
             % SNRs
-            if nargin < 2
+            if nargin < 2 || isempty(sys_c_list)
                 sys_c_list = unique(this.system);
             end
             
             for sys_c = sys_c_list
-                [snr, snr_id] = this.getSNR(sys_c);
-                f = figure; f.Name = sprintf('%03d: SNR %s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                
-                id_ok = (~isnan(snr));
-                az = this.sat.az(:,this.go_id(snr_id));
-                el = this.sat.el(:,this.go_id(snr_id));
-                polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-                h = title(sprintf('SNR - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                for b = 1:8
+                    [snr, snr_id] = this.getSNR(sys_c, num2str(b));
+                    if nargin > 2 && flag_smooth
+                        snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                    end
+
+                    if any(snr_id)
+                        f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        
+                        id_ok = (~isnan(snr));
+                        az = this.sat.az(:,this.go_id(snr_id));
+                        el = this.sat.el(:,this.go_id(snr_id));
+                        polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                        colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    end
+                end
             end
             
         end
@@ -7514,16 +7606,17 @@ classdef Receiver < Exportable
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                plot(x, y, '.', 'Color', [0.3 0.3 0.3]);
+                plot(x, y, '.', 'Color', [0.8 0.8 0.8]); % all sat
                 decl_n = (serialize(90 - this.sat.el(this.id_sync(:), this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
-                plot(x, y, '.', 'Color', [0.4 0.4 0.4]);
+                m = serialize(~isnan(zero2nan(this.obs(ph_id, this.id_sync(:)))'));
+                plot(x(m), y(m), '.', 'Color', [0.4 0.4 0.4]); % sat in vew
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
+                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];                
                 cut_offed = decl_n(serialize(this.sat.az(:, this.go_id(ph_id))) ~= 0) > ((90 - this.state.getCutOff) / 90);
-                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.9 0.9 0.9]);
+                plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.95 0.95 0.95]);
                 
                 for s = unique(this.go_id(ph_id))'
                     az = this.sat.az(:,s);
@@ -8032,7 +8125,7 @@ classdef Receiver < Exportable
                 end
                 
                 outm = [old_legend, outm];
-                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
                 n_entry = numel(outm);
                 icons = icons(n_entry + 2 : 2 : end);
                 
@@ -8144,14 +8237,81 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
-    methods (Static, Access = public)
+    methods (Static, Access = public)        
+        function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ...
+                                                        dp, sigma_dp, dp_go_id)
+            % NOT WORKING due to iono
+            % Smooth code with phase (aka estimate phase ambiguity and remove it)
+            % Pay attention that the bias between phase and code is now eliminated
+            % At the moment the sigma of the solution = sigma of phase
+            %
+            % SYNTAX
+            %   [pr, sigma_ph] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
+            %
+            % EXAMPLE
+            %   [pr.obs, pr.sigma] = Receiver.smoothCodeWithDoppler(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
+            %                                                       zero2nan(dp.obs), dp.sigma, dp.go_id);
+            %            
+
+            for s = 1 : numel(dp_go_id)
+                s_c = find(pr_go_id == dp_go_id(s));
+                pr(isnan(dp(:,s)), s_c) = nan;
                 
+                lim = getOutliers(~isnan(pr(:,s)));
+                for l = 1 : size(lim, 1)
+                    id_arc = (lim(l,1) : lim(l,2))';
+                    
+                    len_a = length(id_arc);
+                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
+                    Q = speye(2 * len_a - 1);
+                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_dp(s).^2)], 0, Q);
+                    Tn = A'/Q;
+                    data_tmp = [pr(id_arc, s_c); dp(id_arc, s)];
+                    pr(id_arc, s) = (Tn*A)\Tn * data_tmp;
+                end
+            end
+        end
+        
+        function [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ...
+                                                           ph, sigma_ph, ph_go_id, cs_mat)
+            % NOT WORKING when iono is present
+            % Smooth code with phase (aka estimate phase ambiguity and remove it)
+            % Pay attention that the bias between phase and code is now eliminated
+            % At the moment the sigma of the solution = sigma of phase
+            %
+            % SYNTAX
+            %   [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
+            %
+            % EXAMPLE
+            %   [ph.obs, ph.sigma] = Receiver.smoothCodeWithPhase(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
+            %                                                   zero2nan(ph.obs), ph.sigma, ph.go_id, ph.cycle_slip);
+            %            
+
+            for s = 1 : numel(ph_go_id)
+                s_c = find(pr_go_id == ph_go_id(s));
+                pr(isnan(ph(:,s)), s_c) = nan;
+                
+                lim = getOutliers(~isnan(ph(:,s)), cs_mat(:,s));
+                for l = 1 : size(lim, 1)
+                    id_arc = (lim(l,1) : lim(l,2))';
+                    
+                    len_a = length(id_arc);
+                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
+                    Q = speye(2 * len_a - 1);
+                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_ph(s).^2)], 0, Q);
+                    Tn = A'/Q;
+                    data_tmp = [pr(id_arc, s_c); diff(ph(id_arc, s))];
+                    ph(id_arc, s) = (Tn*A)\Tn * data_tmp;
+                end
+            end
+        end
+        
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
             %   obs_num = obsCode2Num(obs_code);
             
-            obs_num = obs_code(:,1:4) * [2^16 2^8 1]';
+            obs_num = obs_code(:,1:3) * [2^16 2^8 1]';
         end
         
         function obs_code = obsNum2Code(obs_num)
