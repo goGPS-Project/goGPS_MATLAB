@@ -874,8 +874,6 @@ classdef Receiver < Exportable
         
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
-            this.updateAllAvailIndex();
-            this.updateAllTOT();
             % PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
@@ -2375,7 +2373,7 @@ classdef Receiver < Exportable
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   enu     geocentric coordinates
+            %   enu     enu coordinates
             %
             % SYNTAX
             %   enu = this.getPosENU_mr()
@@ -2389,7 +2387,7 @@ classdef Receiver < Exportable
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   enu     geocentric coordinates
+            %   enu     enu coordinates
             %
             % SYNTAX
             %   enu = this.getPosENU()
@@ -3041,6 +3039,15 @@ classdef Receiver < Exportable
             % get the wavelength of a specific phase observation
             % SYNTAX wl = this.getWavelenght(id_ph)
             wl = this.wl(id_ph);
+        end               
+        
+        function obs_code = getAvailableObsCode(this)
+            % Get all the obbservation codes stored into the receiver
+            %
+            % SYNTAX
+            %   obs_code = thisgetAvailableObsCode();
+            
+            obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code)));
         end
         
         function [ph, wl, id_ph] = getPhases(this, sys_c)
@@ -3088,9 +3095,8 @@ classdef Receiver < Exportable
         end
         
         function [snr, id_snr] = getSNR(this, sys_c, freq_c)
-            % get the doppler observations
-            % SYNTAX [dop, id_dop] = this.getDoppler(<sys_c>)
-            % SEE ALSO: setDoppler
+            % get the SNR of the observations
+            % SYNTAX [dop, id_dop] = this.getSNR(<sys_c>)
             if isempty(this.obs_code)
                 snr = [];
                 id_snr = [];
@@ -3117,7 +3123,7 @@ classdef Receiver < Exportable
             else
                 idx = this.getObsIdx(flag);
             end
-            obs = this.obs(idx,:);
+            obs = zero2nan(this.obs(idx,:));
         end
         
         function [idx] = getObsIdx(this, flag, system, prn)
@@ -3172,7 +3178,7 @@ classdef Receiver < Exportable
                 [obs,idx] = this.getObs(flag, system);
             elseif length(flag) >= 2
                 flags = zeros(size(this.obs_code,1),3);
-                sys_idx = [this.system == system]';
+                sys_idx = (this.system == system)';
                 sys = this.cc.getSys(system);
                 band = find(sys.CODE_RIN3_2BAND == flag(2));
                 if isempty(band)
@@ -3588,7 +3594,6 @@ classdef Receiver < Exportable
             %this.updateAllAvailIndex();
             this.updateErrIono();
             this.updateErrTropo();
-            this.updateAllTOT();
             % for each unique go_id
             for i = u_sat'
                 
@@ -4044,34 +4049,34 @@ classdef Receiver < Exportable
             this.updateSyntPhases();
         end
         
-        function injectPhases(this, ph, wl, f_id, obs_code, go_id)
-            % Injecting phase observations into Receiver
+        function injectObs(this, obs, wl, f_id, obs_code, go_id)
+            % Injecting observations into Receiver
             % This routine have been written for Core_SEID
             %
             % SINTEX:
-            %   this.injectPhases(ph, wl, f_id, obs_code, go_id);
+            %   this.injectObs(obs, wl, f_id, obs_code, go_id);
             
-            if size(ph, 2) ~= size(this.obs, 2)
-                this.log.addError(sprintf('Phase injection not possible, input contains %d epochs while obs contains %d epochs', size(ph, 2), size(this.obs, 2)));
+            if size(obs, 2) ~= size(this.obs, 2)
+                this.log.addError(sprintf('Observation injection not possible, input contains %d epochs while obs contains %d epochs', size(obs, 2), size(this.obs, 2)));
             else
                 go_id = go_id(:);
                 f_id = f_id(:);
                 wl = wl(:);
-                assert(size(ph, 1) == numel(go_id), 'Phase injection input "go_id" parameters size error');
+                assert(size(obs, 1) == numel(go_id), 'Observation injection input "go_id" parameters size error');
                 
-                this.obs = [this.obs; ph];
+                this.obs = [this.obs; obs];
                 this.go_id = [this.go_id; go_id];
                 this.active_ids = [this.active_ids; true(size(go_id))];
                 if numel(f_id) == 1
                     this.f_id = [this.f_id; f_id * ones(size(go_id))];
                 else
-                    assert(size(ph, 1) == numel(f_id), 'Phase injection input "f_id" parameters size error');
+                    assert(size(obs, 1) == numel(f_id), 'Observation injection input "f_id" parameters size error');
                     this.f_id = [this.f_id; f_id];
                 end
                 if numel(wl) == 1
                     this.wl = [this.wl; wl * ones(size(go_id))];
                 else
-                    assert(size(ph, 1) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    assert(size(obs, 1) == numel(wl), 'Observation injection input "wl" parameters size error');
                     this.wl = [this.f_id; wl];
                 end
                 
@@ -4082,7 +4087,7 @@ classdef Receiver < Exportable
                 if size(obs_code,1) == 1
                     this.obs_code = [this.obs_code; repmat(obs_code, size(go_id, 1), 1)];
                 else
-                    assert(size(ph, 2) == numel(wl), 'Phase injection input "wl" parameters size error');
+                    assert(size(obs, 2) == numel(wl), 'Observation injection input "wl" parameters size error');
                     this.obs_code = [this.obs_code; obs_code];
                 end
                 this.resetSynthPhases();
@@ -4203,7 +4208,9 @@ classdef Receiver < Exportable
             if isempty(this.sat.tot)
                 this.sat.tot = zeros(size(this.sat.avail_index));
             end
-            this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+            if isempty(this.dt_ip) || ~any(this.dt_ip)
+                this.sat.tot(:, go_id) =   nan2zero(zero2nan(obs)' / Global_Configuration.V_LIGHT + this.dt(:, 1));  %<---- check dt with all the new dts field
+            end
         end
         
         function updateAllTOT(this, synt_based)
@@ -5920,7 +5927,7 @@ classdef Receiver < Exportable
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
-                this.updateAllTOT
+                this.updateAllTOT();
             end
         end
         
@@ -8205,10 +8212,44 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
-    methods (Static, Access = public)
+    methods (Static, Access = public)        
+        function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ...
+                                                        dp, sigma_dp, dp_go_id)
+            % NOT WORKING due to iono
+            % Smooth code with phase (aka estimate phase ambiguity and remove it)
+            % Pay attention that the bias between phase and code is now eliminated
+            % At the moment the sigma of the solution = sigma of phase
+            %
+            % SYNTAX
+            %   [pr, sigma_ph] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
+            %
+            % EXAMPLE
+            %   [pr.obs, pr.sigma] = Receiver.smoothCodeWithDoppler(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
+            %                                                       zero2nan(dp.obs), dp.sigma, dp.go_id);
+            %            
+
+            for s = 1 : numel(dp_go_id)
+                s_c = find(pr_go_id == dp_go_id(s));
+                pr(isnan(dp(:,s)), s_c) = nan;
                 
+                lim = getOutliers(~isnan(pr(:,s)));
+                for l = 1 : size(lim, 1)
+                    id_arc = (lim(l,1) : lim(l,2))';
+                    
+                    len_a = length(id_arc);
+                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
+                    Q = speye(2 * len_a - 1);
+                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_dp(s).^2)], 0, Q);
+                    Tn = A'/Q;
+                    data_tmp = [pr(id_arc, s_c); dp(id_arc, s)];
+                    pr(id_arc, s) = (Tn*A)\Tn * data_tmp;
+                end
+            end
+        end
+        
         function [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ...
                                                            ph, sigma_ph, ph_go_id, cs_mat)
+            % NOT WORKING when iono is present
             % Smooth code with phase (aka estimate phase ambiguity and remove it)
             % Pay attention that the bias between phase and code is now eliminated
             % At the moment the sigma of the solution = sigma of phase
@@ -8245,7 +8286,7 @@ classdef Receiver < Exportable
             % SYNTAX
             %   obs_num = obsCode2Num(obs_code);
             
-            obs_num = obs_code(:,1:4) * [2^16 2^8 1]';
+            obs_num = obs_code(:,1:3) * [2^16 2^8 1]';
         end
         
         function obs_code = obsNum2Code(obs_num)

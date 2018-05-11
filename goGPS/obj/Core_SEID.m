@@ -217,8 +217,8 @@ classdef Core_SEID < handle
                 
                 % Inject the new synthesised phase
                 log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                trg(t).injectPhases(nan2zero(pr2), wl2, 2, 'C2 ', trg_go_id)
-                trg(t).injectPhases(nan2zero(ph2), wl2, 2, 'L2 ', trg_go_id);
+                trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2 ', trg_go_id)
+                trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2 ', trg_go_id);
                 
                 trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
                 trg(t).updateRemoveOutlierMarkCycleSlip();
@@ -270,13 +270,12 @@ classdef Core_SEID < handle
                 case  {'distance'}
                     % very simple interpolation by spherical distance
                     data_q = nan(size(lat_q));
-                    for i = 1 : size(lat_in, 1)
-                        id_ok = ~isnan(data_in(i, :)) & ~isnan(lat_in(i, :)) & ~isnan(lon_in(i, :));
-                        if sum(id_ok) == size(lat_in, 2) % require all the stations to interpolate ionosphere
-                            d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
-                            w = (1 ./ d(id_ok))';
-                            data_q(i) = (data_in(i, id_ok) * w) ./ sum(w);
-                        end
+                    id_ok = ~isnan(data_in) & ~isnan(lat_in) & ~isnan(lon_in);
+                    ep_ok = find(sum(id_ok, 2) == size(lat_in, 2)); % require all the stations to interpolate ionosphere
+                    for i = ep_ok'
+                        d = sphericalDistance(lat_in(i, :) ./ pi * 180, lon_in(i, :) ./ pi * 180, lat_q(i) ./ pi * 180, lon_q(i) ./ pi * 180);
+                        w = (1 ./ (d(id_ok(i,:)) + eps))';
+                        data_q(i) = (data_in(i, id_ok(i,:)) * w) ./ sum(w);
                     end
             end
         end
