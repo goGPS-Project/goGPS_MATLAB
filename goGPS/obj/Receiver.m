@@ -6946,7 +6946,8 @@ classdef Receiver < Exportable
             time_str_UTC = time_str_UTC(2:end-1);
             
             %write header
-            txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, 'O');
+            sys_c = unique(this.system);
+            txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, iif(numel(sys_c) == 1, sys_c, 'M: Mixed'));
             txt = sprintf('%s%-20s%-20s%-20sPGM / RUN BY / DATE \n', txt, program, agency, [date_str_UTC ' ' time_str_UTC ' UTC']);
             txt = sprintf('%s%-60sMARKER NAME         \n', txt, this.marker_name);
             txt = sprintf('%s%-20s                                        MARKER TYPE\n', txt, this.marker_type);
@@ -6965,6 +6966,20 @@ classdef Receiver < Exportable
             sys = this.getActiveSys();
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
+                % Set order CODE PHASE DOPPLER SNR
+                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
+                                     find(obs_type(:,1) == 'L') ...
+                                     find(obs_type(:,1) == 'D') ...
+                                     find(obs_type(:,1) == 'S')], :);
+                                 
+                % if the code is unknown use 'the least important code' non empty as obs code
+                % relative to the band
+                for c = find(obs_type(obs_type(:,3) == ' ', 3))'
+                    ss = this.cc.getSys(sys(s));
+                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = ss.CODE_RIN3_ATTRIB{band}(end - 1);
+                    obs_type(c, 3) = code;
+                end                 
                 n_type = length(obs_type);
                 n_line = ceil(n_type / 13);
                 tmp = char(32 * ones(n_line * 13, 4));
@@ -6981,12 +6996,13 @@ classdef Receiver < Exportable
             txt = sprintf('%sCARRIER PHASE SHIFT REMOVED BY goGPS SOFTWARE.              COMMENT\n', txt);
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
-                obs_type = obs_type(obs_type(:,1) == 'L', :);
+                % Set order CODE PHASE DOPPLER SNR
+                 obs_type = obs_type(obs_type(:,1) == 'L', :);
                 for l = 1 : size(obs_type, 1)
                     txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys(s), obs_type(l, :), 0.0);
                 end
             end
-            if ~isempty(intersect(sys, 'G'))
+            if ~isempty(intersect(sys, 'R'))
                 % If glonas is present
                 %txt = sprintf('%s C1C    0.000 C1P    0.000 C2C    0.000 C2P    0.000        GLONASS COD/PHS/BIS\n', txt);
                 txt = sprintf('%s C1C          C1P          C2C          C2P                 GLONASS COD/PHS/BIS\n', txt);
@@ -7003,10 +7019,17 @@ classdef Receiver < Exportable
             flag_ok = 0;
             clock_offset = 0;
             
-            % rin_obs_code tu num;
-            obs_code = uint32(this.obs_code * [1 2^8 2^16]');
+            obs_code = Core_Utils.code3Char2Num(this.obs_code);
             for ss = sys
-                rin_obs_code.(ss) = uint32(reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)' * [1 2^8 2^16]');
+                % rin_obs_code tu num;
+                obs_type = reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)';
+                % Set order CODE PHASE DOPPLER SNR
+                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
+                    find(obs_type(:,1) == 'L') ...
+                    find(obs_type(:,1) == 'D') ...
+                    find(obs_type(:,1) == 'S')], :);
+                                
+                rin_obs_code.(ss) = Core_Utils.code3Char2Num(obs_type);
                 for t = 1 : numel(rin_obs_code.(ss))
                     obs_code(obs_code == rin_obs_code.(ss)(t)) = t;
                 end
@@ -7019,8 +7042,8 @@ classdef Receiver < Exportable
                 id_ok = ~isnan(zero2nan(this.obs(:, e)));
                 go_id = unique(this.go_id(id_ok));
                 if ~isempty(id_ok)
-                    %txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
-                    txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
+                    %txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
+                    txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
                     for ss = sys % for each satellite system in view at this epoch
                         id_ss = id_ok & this.system' == ss;
                         for prn = unique(this.prn(id_ss))' % for each satellite in view at this epoch (of the current ss)
