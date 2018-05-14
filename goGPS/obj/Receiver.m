@@ -2859,13 +2859,13 @@ classdef Receiver < Exportable
             l = time.length;
             switch flag
                 case 1 % standard atmosphere
-                    
+                    atmo = Atmosphere();
                     this.updateCoordinates();
-                    Pr = this.STD_PRES;
+                    Pr = atmo.STD_PRES;
                     % temperature [K]
-                    Tr = this.STD_TEMP;
+                    Tr = atmo.STD_TEMP;
                     % humidity [%]
-                    Hr = this.STD_HUMI;
+                    Hr = atmo.STD_HUMI;
                     h = this.h_ortho;
                     if this.isStatic()
                         P = zeros(l,1);
@@ -3830,7 +3830,7 @@ classdef Receiver < Exportable
             time = {};
             
             for r = 1 : size(this, 2)
-                if isempty(this(1, r).zwd)
+                if isempty(this(1, r).zwd) || ~any(this(1, r).zwd)
                     [zwd{r}, time{r}] = this(r).getAprZwd();
                 else
                     zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
@@ -4404,7 +4404,7 @@ classdef Receiver < Exportable
             this.applyDtRec(dt)
             %this.dt_pr = this.dt_pr + this.dt;
             %this.dt_ph = this.dt_ph + this.dt;
-            %this.dt = zeros(size(this.dt_pr));
+            this.dt(:)  = 0;%zeros(size(this.dt_pr));
         end
         
         function applyDtRec(this, dt_pr, dt_ph)
@@ -6458,11 +6458,11 @@ classdef Receiver < Exportable
                 this.setAvIdx2Visibility();
                 this.meteo_data = [];
                 this.importMeteoData();
-                % smooth clock estimation
-                this.smoothAndApplyDt(0);
+               
                 % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                 this.dt_ip = this.dt; % save init_positioning clock
-                this.dt(:) = 0; % reset dt field
+                % smooth clock estimation
+                this.smoothAndApplyDt(0);
                 
                 % update azimuth elevation
                 this.updateAzimuthElevation();
@@ -6527,12 +6527,7 @@ classdef Receiver < Exportable
                 id_sync = ls.setUpPPP(this, id_sync);
                 ls.Astack2Nstack();
                 
-                [lat, lon, h_ellips,h_orto] = this.getMedianPosGeodetic();
                 time = this.time.getSubSet(id_sync);
-                gps_time = time.getGpsTime();
-                n_epoch = time.length;
-                
-                atm = Atmosphere();
                 
                 if isempty(this.zwd)
                     this.zwd = zeros(this.time.length(), 1);
@@ -6549,31 +6544,9 @@ classdef Receiver < Exportable
                     this.sat.slant_td = zeros(this.time.length(), n_sat);
                 end
                 
-                if isempty(this.meteo_data)
-                    ext_meteo = false;
-                    % Use standard values instead of nans
-                    [Pall, Tall, ~] = atm.gpt(gps_time, lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
-                    Hall = ones(size(Pall)) * Global_Configuration.ATM.STD_HUMI;
-                else
-                    ext_meteo = true;
-                    Pall = this.meteo_data.getPressure(time);
-                    Tall = this.meteo_data.getTemperature(time);
-                    Hall = this.meteo_data.getHumidity(time);
-
-                    % Use standard values instead of nans
-                    [P, T, ~] = atm.gpt(gps_time, lat/180*pi, lon/180*pi, h_ellips, h_ellips - h_orto);
-                    H = Global_Configuration.ATM.STD_HUMI;
-
-                    Pall(isnan(Pall)) = P(isnan(Pall));
-                    Tall(isnan(Tall)) = T(isnan(Tall));
-                    Hall(isnan(Hall)) = H;                    
-                end
+              
                                 
-                for i = 1 : n_epoch
-                    this.apr_zhd(id_sync(i)) = saast_dry(Pall(i), h_orto, lat);
-                    this.zwd(id_sync(i)) = saast_wet(Tall(i), Hall(i), h_orto);
-                end
-                
+
                 rate = time.getRate();
                 
                 ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
@@ -6624,12 +6597,13 @@ classdef Receiver < Exportable
                 end
                 if s02 < 1.50 % with over one meter of error the results are not meaningfull
                     if this.state.flag_tropo
-                        this.zwd(valid_ep) = this.apr_zwd(valid_ep) + tropo;
+                        zwd = this.getZwd();
+                        this.zwd(valid_ep) = zwd(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         this.pwv = nan(size(this.zwd));
-                        if ext_meteo
+                        if ~isempty(this.meteo_data)
                             degCtoK = 273.15;
-                            
+                            [~,Tall,H] = this.getPTH();
                             % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
                             Tm = (Tall + degCtoK)*0.72 + 70.2;
                             
@@ -6650,11 +6624,11 @@ classdef Receiver < Exportable
                         if isempty(this.tgn)
                             this.tgn = zeros(this.time.length,1);
                         end
-                        this.tgn(valid_ep) =  gntropo;
+                        this.tgn(valid_ep) =  this.tgn(valid_ep) + gntropo;
                         if isempty(this.tge)
                             this.tge = zeros(this.time.length,1);
                         end
-                        this.tge(valid_ep) =  getropo;
+                        this.tge(valid_ep) = this.tge(valid_ep)  + getropo;
                         
                         cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
                         cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
