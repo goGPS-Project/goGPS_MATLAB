@@ -2614,6 +2614,9 @@ classdef Receiver < Exportable
             %   Get Transmission time
             idx = this.sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
+            if isempty(this.sat.tot)
+                this.updateAllTOT();
+            end
             time_tx.addSeconds( - this.sat.tot(idx, sat));
         end
         
@@ -4629,6 +4632,9 @@ classdef Receiver < Exportable
                 if isempty(this.sat.az)
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
+                if isempty(this.sat.avail_index)
+                    this.sat.avail_index = true(this.getNumEpochs, this.getMaxSat);
+                end
                 av_idx = this.sat.avail_index(:, go_id) ~= 0;
                 [this.sat.az(av_idx, go_id), this.sat.el(av_idx, go_id)] = this.computeAzimuthElevation(go_id);
             end
@@ -4709,6 +4715,9 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   [az, el] = this.computeAzimuthElevation(go_id)
+            if (nargin < 2) || isempty(go_id)
+                go_id = unique(this.go_id);
+            end
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
