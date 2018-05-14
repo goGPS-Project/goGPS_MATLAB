@@ -6598,7 +6598,9 @@ classdef Receiver < Exportable
                 if s02 < 1.50 % with over one meter of error the results are not meaningfull
                     if this.state.flag_tropo
                         zwd = this.getZwd();
-                        this.zwd(valid_ep) = zwd(valid_ep) + tropo;
+                        zwd_tmp = zeros(size(this.zwd));
+                        zwd_tmp(this.id_sync) = zwd;
+                        this.zwd(valid_ep) = zwd_tmp(valid_ep) + tropo;
                         this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
                         this.pwv = nan(size(this.zwd));
                         if ~isempty(this.meteo_data)
