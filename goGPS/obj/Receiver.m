@@ -8285,43 +8285,29 @@ classdef Receiver < Exportable
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
-            %   obs_num = obsCode2Num(obs_code);
-            
-            obs_num = obs_code(:,1:3) * [2^16 2^8 1]';
+            %   obs_num = obsCode2Num(obs_code);            
+            obs_num = Core_Utils.code3Char2Num(obs_code(:,1:3));
         end
         
         function obs_code = obsNum2Code(obs_num)
             % Convert a numeric value (float) of an obs_code into a 3 char marker
             % SYNTAX
             %   obs_code = obsNum2Code(obs_num)
-            obs_code = char(zeros(numel(obs_num), 4));
-            obs_code(:,1) = char(floor(obs_num / 2^16));
-            obs_num = obs_num - obs_code(:,1) * 2^16;
-            obs_code(:,2) = char(floor(obs_num / 2^8));
-            obs_num = obs_num - obs_code(:,2) * 2^8;
-            obs_code(:,3) = char(obs_num);
+            obs_code = Core_Utils.num2Code3Char(obs_num);            
         end
         
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)
             % SYNTAX
             %   marker_num = markerName2Num(marker_name);
-            
-            marker_num = marker_name(:,1:4) * [2^24 2^16 2^8 1]';
+            marker_num = Core_Utils.code4Char2Num(marker_name(:,1:4));
         end
         
         function marker_name = markerNum2Name(marker_num)
             % Convert a numeric value (float) of a station into a 4 char marker
             % SYNTAX
             %   marker_name = markerNum2Name(marker_num)
-            marker_name = char(zeros(numel(marker_num), 4));
-            marker_name(:,1) = char(floor(marker_num / 2^24));
-            marker_num = marker_num - marker_name(:,1) * 2^24;
-            marker_name(:,2) = char(floor(marker_num / 2^16));
-            marker_num = marker_num - marker_name(:,2) * 2^16;
-            marker_name(:,3) = char(floor(marker_num / 2^8));
-            marker_num = marker_num - marker_name(:,3) * 2^8;
-            marker_name(:,4) = char(marker_num);
+            marker_name = Core_Utils.num2Code4Char(marker_num);
         end
         
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
