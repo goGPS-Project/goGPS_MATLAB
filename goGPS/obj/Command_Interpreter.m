@@ -523,7 +523,7 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
+                    this.log.addMarkedMessage(sprintf('Computing azimuth and elevation for receiver %d: %s', r, rec(r).getMarkerName()));
                     if rec(r).isEmpty
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
