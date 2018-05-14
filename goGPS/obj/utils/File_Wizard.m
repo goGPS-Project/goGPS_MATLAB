@@ -506,31 +506,35 @@ classdef File_Wizard < handle
                 provider = 'cas';
                 dcb_type = 'final';
                 dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
+                this.state.setDcbFile(dcb_name);
                 tmp_date_start = date_start.getCopy;
                 tmp_date_stop = date_stop.getCopy;
                 file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
                 names = {};
+                dcb_ok = true(length(file_list),1);
                 for i = 1 : length(file_list)
                     [~, name, ext] = fileparts(file_list{i});
                     names{end+1} = name;
                     if exist(checkPath([this.state.getDcbDir '/' name]), 'file') ~= 2
-                        dcb_ok = false;
+                        dcb_ok(i) = false;
                     end
                 end
-                this.state.setDcbFile(names);
-                if (~dcb_ok)
+                
+                if any(~dcb_ok)
                     this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getDcbDir());
                     for i = 1 : length(file_list)
-                        [~, name, ext] = fileparts(file_list{i});
-                        if (isunix())
-                            system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
-                        else
-                            try
-                                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
-                                delete([this.state.getDcbDir() '/' name ext]);
-                            catch
-                                this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
-                                compressed = 1;
+                        if not(dcb_ok(i))
+                            [~, name, ext] = fileparts(file_list{i});
+                            if (isunix())
+                                system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
+                            else
+                                try
+                                    [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
+                                    delete([this.state.getDcbDir() '/' name ext]);
+                                catch
+                                    this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
+                                    compressed = 1;
+                                end
                             end
                         end
                     end

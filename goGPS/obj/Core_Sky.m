@@ -999,7 +999,15 @@ classdef Core_Sky < handle
             
             % open SINEX dcb file
             file_name = this.state.getDcbFile();
+            % geteting object mean times
+            time_st = this.time_ref_clock.getCopy();
+            time_end = time_st.getCopy();
+            time_st.addSeconds(this.clock_rate * (size(this.clock,1) /2) -1);
+            time_end.addSeconds(this.clock_rate * (size(this.clock,1) /2) +1);
+            fnp = File_Name_Processor();
+            file_name = fnp.dateKeyRepBatch(file_name, time_st, time_end);
             file_name = file_name{1};
+
             if isempty(file_name)
                 this.log.addWarning('No dcb file found');
                 return
@@ -1089,7 +1097,7 @@ classdef Core_Sky < handle
                     const(ref_col2) = - iono_free.alpha2;
                     N = [ A'*W*A  const'; const 0];
                     gd = N \ ([A'* W * sat_dcb; 0]);
-                    if isnan(gd)
+                    if sum(isnan(gd)) > 0 || sum(abs(gd) == Inf) > 0
                         this.log.addWarning('Invalid set of DCB ignoring them')
                     else
                         gd(end) = []; %t aking off lagrange multiplier
