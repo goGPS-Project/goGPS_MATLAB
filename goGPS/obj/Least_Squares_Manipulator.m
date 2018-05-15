@@ -303,7 +303,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % get the list  of observation codes used
-            u_obs_code = Core_Utils.unique4ch(obs_set.obs_code);
+             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code))); 
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
