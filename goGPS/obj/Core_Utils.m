@@ -368,5 +368,132 @@ classdef Core_Utils < handle
                 log.addWarning(w_msg);
             end
         end
+        function [status] = downloadHttpTxtRes(filename, out_dir)
+            log = Logger.getInstance();
+            fnp = File_Name_Processor();
+            try
+                options = weboptions;
+                options.ContentType = 'text';
+                options.Timeout = 15;
+                [remote_location, filename, ext] =fileparts(filename);
+                filename = [filename ext];
+                log.addMessage(log.indent(sprintf('downloading %s ...',filename)));
+                txt = webread(['http://' remote_location '/' filename], options);
+                fid = fopen(fnp.checkPath([out_dir, '/' filename]),'w');
+                fprintf(fid,'%s',txt);
+                fclose(fid);
+                status = true;
+                log.addMessage(' Done');
+            catch
+                status = false;
+            end
+        end
+        function [status] = checkHttpTxtRes(filename)
+            if isunix() || ismac()
+                 [resp, txt] = system(['curl --head ' filename]);
+                 if strfind(txt,'HTTP/1.1 200 OK')
+                     status = true;
+                 else
+                     status = false;
+                 end
+            else
+                status = true; % !!! to be implemented
+                
+            end
+        end
+        function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)
+            % Interpolate values froma data on a gepgraphical grid with multiple epoch
+            % data structure: 
+            %        first dimension : dlat (+) south pole -> north pole
+            %        second dimension : dlon (+) west -> east
+            %        third dimension : dr (+) time usual direction
+            %        NOTE: dlat, dlon,dt do not have to be positive
+            % 
+            % INPUT:
+            %      data - the data to be interpolate
+            %      fist_lat - value of first lat value (max lat)
+            %      dlat - px size lat
+            %      first_lon - value of first lon value
+            %      dlon - px size lon
+            %      first_t - value of first time
+            %      dt - px size time
+            %      lat - lat at what we want to interpolate
+            %      lon - lon at what we ant to interpolate
+            %      gps_time - time at what we want to interpolate
+            % NOTES 1 - all lat values should have same unit of measure
+            %       2 - all lon values should have same unit of measure
+            %       3 - all time values should have same unit of measure
+            %       4 - the method will interpolate first in the dimesnion with less time
+            [nlat , nlon, nt] = size(data);
+            
+            n_in_lat = length(lat);
+            n_in_lon = length(lon);
+            n_in_t = length(t);
+            assert(n_in_lat == n_in_lon);
+            lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity 
+            % find indexes and interpolating length
+            %time
+            it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
+            st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
+            st = serialize(st);
+            
+            %lat
+            ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
+            slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
+            
+            %lon
+            ilons = max(min(floor((lon - first_lon)/ dlon)+1,nlon),1);
+            ilone = ilons +1;
+            ilone(ilone > nlon) = 1;
+            slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
+            if n_in_lat > n_in_t % time first
+                
+                it = repmat(it,1,n_in_lat);
+                % interpolate along time
+                % [ 1 2  <- index of the cell at the smae time
+                %   3 4]
+                idx1 = sub2ind([nlat nlon nt], ilat, ilons, it);
+                idx2 = sub2ind([nlat nlon nt], ilat, ilons, it+1);
+                vallu = data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt], ilat   , ilone , it);
+                idx2 = sub2ind([nlat nlon nt],ilat   , ilone , it+1);
+                valru = data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilons , it);
+                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilons , it+1);
+                valld =  data(idx1).*(1-st) + data(idx2).*st;
+                idx1 = sub2ind([nlat nlon nt],ilat+1 , ilone , it);
+                idx2 = sub2ind([nlat nlon nt],ilat+1 , ilone , it+1);
+                valrd =  data(idx1).*(1-st) + data(idx2).*st;
+                
+                %interpolate along long
+                valu = vallu.*(1-slon) + valru.*slon;
+                vald = valld.*(1-slon) + valrd.*slon;
+                
+                %interpolate along lat
+                val = valu.*(1-slat) + vald.*slat;
+                
+            else %space first
+                % interpolate along lon
+                valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
+                valau = permute(data(ilat   , ilons , it+1).*(1-slon) + data(ilat   , ilone , it+1).*slon,[3 1 2]);
+                valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
+                valad = permute(data(ilat+1 , ilons , it+1).*(1-slon) + data(ilat+1 , ilone , it+1).*slon,[3 1 2]);
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                val = valb.*(1-st) + vala.*st;
+                
+            end
+           
+            
+           
+            
+            
+           
+        end
+          
     end
 end

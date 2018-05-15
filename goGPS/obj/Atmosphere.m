@@ -64,12 +64,27 @@ classdef Atmosphere < handle
             'n_t',        [], ...    % num of epocvhs
             'height',     []  ...    % heigh of the layer
             )
+       atm_load = struct( ...
+            'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [] ...   % num of epocvhs
+            )
     end
     
     properties  (SetAccess = private, GetAccess = private)
         lat = 1e3;    % current values for lat
         lon = 1e3;    % current values for lon
-        undu;         % current values for undu
+        undu         % current values for undu
         
         P       % value of legendre polynomial at the latitude
         V       % V   saved value for GMF computation
@@ -168,6 +183,116 @@ classdef Atmosphere < handle
             vals = reshape(vals,5,length(vals)/5);
             nums = sscanf(vals,'%f');
             this.ionex.data = reshape(nums,n_lat,n_lon,nt);
+        end
+        
+        function importAtmLoadCoeffFile(this, filename)
+            % imprt data of atmospehric loading file
+             fid = fopen([filename],'r');
+            if fid == -1
+                this.log.addWarning(sprintf('      File %s not found', filename));
+                return
+            else
+                this.log.addMessage(this.log.indent(sprintf('Loading  %s', filename)));
+            end
+            [dir, file_name, ext ] = fileparts(filename);
+            year = str2num(file_name(1:4));
+            month = str2num(file_name(5:6));
+            day = str2num(file_name(7:8));
+            hour = str2num(file_name(9:10));
+            file_ref_ep = GPS_Time([year month day hour 0 0]);
+            isempty_obj = isempty(this.atm_load.data_u);
+            if not(isempty_obj) && (file_ref_ep >= this.atm_load.first_time) && (file_ref_ep - this.atm_load.first_time) < this.atm_load.dt *  this.atm_load.n_t
+                %% file is contained in the data already
+                this.log.addMessage(this.log.indent('File already present, skipping'));
+            else
+                if not(isempty_obj) && ((file_ref_ep - this.atm_load.first_time) > (this.atm_load.dt *  this.atm_load.n_t +3600*6) || (file_ref_ep - this.atm_load.first_time) < (-3600*6))
+                    %% file too far away emptying the object
+                    this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
+                    this.clearAtmLoad();
+                    isempty_obj = true;
+                end
+                %% find number of header lines
+                n_head = 0;
+                fid = fopen(filename);
+                
+                tline = fgetl(fid);
+                while ischar(tline) && tline(1) == '!'
+                    n_head = n_head + 1;
+                    tline = fgetl(fid);
+                end
+                
+                fclose(fid);
+
+                %%% read data
+                %data_tmp = dlmread(filename, ' ', n_head, 0);
+                data_tmp = importdata(filename, ' ', n_head);
+                %%% imprtant !!! we assume regualr grid
+                data_tmp_u = reshape(data_tmp.data(:,3),360,180)';
+                data_tmp_e = reshape(data_tmp.data(:,4),360,180)';
+                data_tmp_n = reshape(data_tmp.data(:,5),360,180)';
+                if isempty_obj
+                    this.atm_load.data_u = data_tmp_u;
+                    this.atm_load.data_e = data_tmp_e;
+                    this.atm_load.data_n = data_tmp_n;
+                    this.atm_load.first_lat = 89.5;
+                    this.atm_load.first_lon = 0.5;
+                    this.atm_load.d_lat = -1;
+                    this.atm_load.d_lon = 1;
+                    this.atm_load.n_lat = 180;
+                    this.atm_load.n_lon = 360;
+                    this.atm_load.first_time = file_ref_ep;
+                    this.atm_load.first_time_double = file_ref_ep.getGpsTime();
+                    this.atm_load.dt = 3600*6;
+                    this.atm_load.n_t = 1;
+                else
+                    if file_ref_ep < this.atm_load.first_time ;
+                        this.atm_load.first_time = file_ref_ep;
+                        this.atm_load.first_time_double = file_ref_ep.getGpsTime();
+                        this.atm_load.data_u = cat(3,data_tmp_u,this.atm_load.data_u);
+                        this.atm_load.data_e = cat(3,data_tmp_e,this.atm_load.data_e);
+                        this.atm_load.data_n = cat(3,data_tmp_n,this.atm_load.data_n);
+                    else
+                        this.atm_load.data_u = cat(3,this.atm_load.data_u,data_tmp_u);
+                    this.atm_load.data_e = cat(3,this.atm_load.data_e,data_tmp_e);
+                    this.atm_load.data_n = cat(3,this.atm_load.data_n,data_tmp_n);
+                    end
+                    this.atm_load.n_t = this.atm_load.n_t + 1;
+                end
+                    
+                
+                
+            end
+            
+            
+        end
+        
+        function clearAtmLoad(this)
+            this.atm_load = struct( ...
+            'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [] ...    % num of epocvhs
+            )
+        end
+        
+        function [corrxyz] = getAtmLoadCorr(this, lat,lon,h_ellips, time)
+            % get atmospheric loading corrections
+            gps_time = time.getGpsTime();
+            up = Core_Utils.linInterpLatLonTime(this.atm_load.data_u, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
+            east = Core_Utils.linInterpLatLonTime(this.atm_load.data_e, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
+            north = Core_Utils.linInterpLatLonTime(this.atm_load.data_n, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
+            [x,y,z] = geod2cart(lat,lon,h_ellips);
+            [corrxyz] = local2globalVel([east north up]', repmat([x,y,z]',1,length(east)));
+            corrxyz = corrxyz';
         end
         
         function tec = interpolateTEC(this, gps_time, lat, lon)

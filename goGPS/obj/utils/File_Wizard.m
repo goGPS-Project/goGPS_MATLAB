@@ -207,8 +207,11 @@ classdef File_Wizard < handle
             end
             [file_tree, latency] = this.rm.getFileStr(center_name, resource_name);
             if isempty(file_tree)
-                status = false;
-                return;
+                [file_tree, latency] = this.rm.getFileStr('default', resource_name);
+                if isempty(file_tree)
+                    status = false;
+                    return;
+                end
             end
             if isempty(latency)
                 latency = [-Inf +Inf];
@@ -303,11 +306,15 @@ classdef File_Wizard < handle
                                 server = server{1};
                                 file_name = strrep(file_name,['?{' server '}'],'');
                                 [s_ip, port] = this.rm.getServerIp(server);
-                                idx = this.getServerIdx(s_ip, port);
                                 out_dir = this.state.getFileDir(file_name);
                                 out_dir =  this.fnp.dateKeyRepBatch(out_dir, date_list.getEpoch(i), date_list.getEpoch(i));
                                 out_dir = out_dir{1};
-                                status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                if ~(isempty(strfind(port,'21')))
+                                    idx = this.getServerIdx(s_ip, port);
+                                    status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                else
+                                    status = status && Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir);
+                                end
                             end
                         end
                     end
@@ -361,8 +368,13 @@ classdef File_Wizard < handle
                                         server = server{1};
                                         file_name = strrep(file_name,['?{' server '}'],'');
                                         [s_ip, port] = this.rm.getServerIp(server);
-                                        idx = this.getServerIdx(s_ip, port);
-                                        status = status && this.ftp_downloaders{idx}.check(file_name);
+                                        
+                                        if ~(isempty(strfind(port,'21')))
+                                            idx = this.getServerIdx(s_ip, port);
+                                            status = status && this.ftp_downloaders{idx}.check(file_name);
+                                        else
+                                            status = status && Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                        end
                                         if status
                                             this.log.addStatusOk(sprintf('%s have been found remotely', this.fnp.getFileName(file_name)));
                                         else
@@ -455,7 +467,8 @@ classdef File_Wizard < handle
             
             this.conjureDCBFiles(dsa, dso);
             this.conjureCRXFiles(dsa, dso);
-            this.conjureIonoFiles(dsa, dso);
+            %this.conjureIonoFiles(dsa, dso);
+            this.conjureAtmLoadFiles(dsa, dso);
         end
         
         function [first_epoch, last_epoch] = conjureObsFile(this)
@@ -484,6 +497,17 @@ classdef File_Wizard < handle
             end
         end
         %}
+        function conjureAtmLoadFiles(this, date_start, date_stop)
+            status = this.conjureResource('atm_load',date_start, date_stop);
+
+            if status
+                this.log.addMarkedMessage('All atmospheric files present');
+                this.state.setAtmLoadFile('${YYYY}${MM}${DD}${6H}_ce_v004.apl');
+            else
+                this.log.addMarkedMessage('Not all atmospheric files founds');
+            end
+            
+        end
         
         function conjureDCBFiles(this, date_start, date_stop)
             % Download of CAS .DCB files from the IGN server.

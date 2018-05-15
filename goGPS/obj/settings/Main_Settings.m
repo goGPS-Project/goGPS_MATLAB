@@ -122,6 +122,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
         IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
         IONO_NAME = '';
+        ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
+        ATM_LOAD_NAME = '';
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
@@ -337,6 +339,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         iono_dir = Main_Settings.IONO_DIR;   % Path to IONO files folder
         iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
+        atm_load_dir = Main_Settings.ATM_LOAD_DIR;   % Path to IONO files folder
+        atm_load_name = Main_Settings.ATM_LOAD_NAME; % Path to IONO files folder
         iono_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
         remote_res_conf_dir = Main_Settings.REMOTE_RES_CONF_DIR;
 
@@ -549,6 +553,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.geoid_dir  = fnp.getFullDirPath(state.getData('geoid_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('geoid_dir')), this.prj_home));
                 this.geoid_name = fnp.checkPath(state.getData('geoid_name'));
                 this.iono_dir   = fnp.getFullDirPath(state.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
+                this.atm_load_dir   = fnp.getFullDirPath(state.getData('atm_load_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('atm_load_dir')), this.prj_home));
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
@@ -651,6 +656,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.geoid_dir  = state.geoid_dir;
                 this.geoid_name = state.geoid_name;
                 this.iono_dir   = state.iono_dir;
+                this.atm_load_dir   = state.atm_load_dir;
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = state.preferred_eph;
@@ -769,7 +775,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of Geoid models:                        %s\n', fnp.getRelDirPath(this.geoid_dir, this.prj_home))];
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of Iono models:                         %s\n', fnp.getRelDirPath(this.iono_dir, this.prj_home))];
-            str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n\n', this.iono_name)];
+            str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n', this.iono_name)];
+            str = [str sprintf(' Directory of Atmospehric Loading models:          %s\n', fnp.getRelDirPath(this.atn_load_dir, this.prj_home))];
+            str = [str sprintf(' Name of the Atmospehric Loading files:            %s\n\n', this.atm_load_name)];
             
             str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
@@ -944,6 +952,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Ionospheric Models files', str_cell);
             str_cell = Ini_Manager.toIniString('iono_dir', fnp.getRelDirPath(this.iono_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Atmospheric Loading Models files', str_cell);
+            str_cell = Ini_Manager.toIniString('atm_load_dir', fnp.getRelDirPath(this.atm_load_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1713,6 +1723,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir = this.getDcbDir();
             elseif strcmpi(ext,'.${YY}p') || strcmpi(ext,'.${YY}n') || strcmpi(ext,'.${YY}l') || ~isempty(regexpi(ext,'\.\d\dp')) || ~isempty(regexpi(ext,'\.\d\dn')) || ~isempty(regexp(ext,'\.\d\dl', 'once'))
                 dir = this.getNavEphDir();
+            elseif strcmpi(ext,'.apl')
+                dir = this.getAtmLoadDir();
             end
 
         end
@@ -1870,6 +1882,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the path to the DCB files
             % SYNTAX: dcb_path = this.getDcbPath()
             out = this.iono_dir;
+        end
+        
+        function out = getAtmLoadDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.atm_load_dir;
         end
 
         function out = getNavEphPath(this)
@@ -2126,6 +2144,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
+        
+        function iono_full_name = getAtmLoadFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
 
         function crx_full_name = getCrxFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
@@ -2208,6 +2239,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
             this.iono_name = iono_file;
+        end
+        
+        function setAtmLoadFile(this, atm_load_file)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.atm_load_name = atm_load_file;
         end
 
         function setIGRFFile(this, igrf_name)

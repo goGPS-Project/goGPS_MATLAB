@@ -112,6 +112,7 @@ classdef Receiver < Exportable
         pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
         et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
         hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
+        atm_load_delay_status = 0; % flag to indicate if code and phase measurement have been corrected for atmospheric loading                 (0: not corrected , 1: corrected)
         
         % FLAGS ------------------------------
         
@@ -5299,6 +5300,8 @@ classdef Receiver < Exportable
                 this.log.addMarkedMessage('Applying High Order Ionospheric Effect');
                 this.HOI(1);
                 this.hoi_delay_status = 1; %applied
+            endif nargin < 2
+                sat = 1 : this.getMaxSat();
             end
         end
         
@@ -5327,6 +5330,86 @@ classdef Receiver < Exportable
             fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
             atmo.importIonex(fname{1});
             [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
+            
+        end
+        
+        %--------------------------------------------------------
+        % Atmospheric loading
+        % -------------------------------------------------------
+        
+        function atmLoad(this,sgn)
+           %  add or subtract ocean loading from observations
+            al_corr = this.computeAtmLoading();
+            if isempty(al_corr)
+                this.log.addWarning('No ocean loading displacements matrix present for the receiver')
+                return
+            end
+            
+            for s = 1 : this.getMaxSat()
+                obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
+                obs_idx = obs_idx & this.go_id == s;
+                if sum(obs_idx) > 0
+                    for o = find(obs_idx)'
+                        o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        if  this.obs_code(o,1) == 'L'
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* al_corr(o_idx,s)' ./ this.wl(o);
+                        else
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn)* al_corr(o_idx,s)';
+                        end
+                    end
+                end
+            end
+        end
+        
+        function applyAtmLoad(this)
+            if this.hoi_delay_status == 0
+                this.log.addMarkedMessage('Applying atmospheric loading effect');
+                this.atmLoad(1);
+                this.atm_load_delay_status = 1; %applied
+            end
+        end
+        
+        function removeAtmLoad(this)
+            if this.hoi_delay_status == 1
+                this.log.addMarkedMessage('Removing atmospheric loading effect');
+                this.atmLoad(-1);
+                this.atm_load_delay_status = 0; %not applied
+            end
+        end
+        
+        function [al_corr] =  computeAtmLoading(this, sat)
+            
+            % SYNTAX
+            %
+            % INPUT
+            %
+            % OUTPUT
+            %
+            %
+            % 
+            %   Computation of atmopsheric loading
+            
+            if nargin < 2
+                sat = 1 : this.getMaxSat();
+            end
+            this.updateCoordinates();
+            atmo = Atmosphere();
+            dsa = this.time.first.getCopy();
+            dso = this.time.getSubSet(this.time.length).getCopy();
+            dso.addSeconds(6*3600);
+            fname = this.state.getAtmLoadFileName( dsa, dso);
+            for i = 1 : length(fname)
+                atmo.importAtmLoadCoeffFile(fname{i});
+            end
+            [corrXYZ] = atmo.getAtmLoadCorr(this.lat,this.lon,this.h_ellips, this.time);
+            [XS] = this.getXSLoc();
+            for i  = 1 : length(sat)
+                s = sat(i);
+                sat_idx = this.sat.avail_index(:,s);
+                XSs = permute(XS(sat_idx,s,:),[1 3 2]);
+                LOSu = rowNormalize(XSs);
+                al_corr(sat_idx,i) = sum(conj(corrXYZ(sat_idx,:)).*LOSu,2);
+            end
             
         end
         
@@ -6488,6 +6571,7 @@ classdef Receiver < Exportable
                 this.applySolidEarthTide();
                 this.applyShDelay();
                 this.applyOceanLoading();
+                this.applyAtmLoad();
                 %this.applyHOI();
                 
                 this.removeOutlierMarkCycleSlip();
