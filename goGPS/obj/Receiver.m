@@ -6974,10 +6974,10 @@ classdef Receiver < Exportable
                                  
                 % if the code is unknown use 'the least important code' non empty as obs code
                 % relative to the band
-                for c = find(obs_type(obs_type(:,3) == ' ', 3))'
+                for c = find(obs_type(:,3) == ' ')'
                     ss = this.cc.getSys(sys(s));
                     band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
-                    code = ss.CODE_RIN3_ATTRIB{band}(end - 1);
+                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
                     obs_type(c, 3) = code;
                 end                 
                 n_type = length(obs_type);
