@@ -6997,7 +6997,13 @@ classdef Receiver < Exportable
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
                 % Set order CODE PHASE DOPPLER SNR
-                 obs_type = obs_type(obs_type(:,1) == 'L', :);
+                obs_type = obs_type(obs_type(:,1) == 'L', :);
+                for c = find(obs_type(:,3) == ' ')'
+                    ss = this.cc.getSys(sys(s));
+                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
+                    obs_type(c, 3) = code;
+                end
                 for l = 1 : size(obs_type, 1)
                     txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys(s), obs_type(l, :), 0.0);
                 end
