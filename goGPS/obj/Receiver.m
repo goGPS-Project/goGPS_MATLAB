@@ -6642,8 +6642,10 @@ classdef Receiver < Exportable
                             + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
                             + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));  % to test ambiguity fixing
                     end
+                    this.updateErrTropo();
                 end
             end
+            
         end
         
         function interpResults(this)
