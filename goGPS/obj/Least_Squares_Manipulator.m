@@ -127,7 +127,7 @@ classdef Least_Squares_Manipulator < handle
             %
             
             % extract the observations to be used for the solution
-             phase_present = ~isempty(strfind(obs_type, 'L'));
+            phase_present = ~isempty(strfind(obs_type, 'L'));
             if nargin < 6
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() %% case multi frequency
@@ -303,10 +303,10 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % get the list  of observation codes used
-            u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
+            u_obs_code = Core_Utils.unique4ch(obs_set.obs_code);
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
-            for c = 1:size(u_obs_code, 1)
+            for c = 1 : size(u_obs_code, 1)
                 idx_b = idxCharLines(obs_set.obs_code, u_obs_code(c, :));
                 iob_idx(idx_b) = c - 1;
             end

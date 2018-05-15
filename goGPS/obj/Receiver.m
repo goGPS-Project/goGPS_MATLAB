@@ -2614,6 +2614,9 @@ classdef Receiver < Exportable
             %   Get Transmission time
             idx = this.sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
+            if isempty(this.sat.tot)
+                this.updateAllTOT();
+            end
             time_tx.addSeconds( - this.sat.tot(idx, sat));
         end
         
@@ -4629,6 +4632,9 @@ classdef Receiver < Exportable
                 if isempty(this.sat.az)
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
+                if isempty(this.sat.avail_index)
+                    this.sat.avail_index = true(this.getNumEpochs, this.getMaxSat);
+                end
                 av_idx = this.sat.avail_index(:, go_id) ~= 0;
                 [this.sat.az(av_idx, go_id), this.sat.el(av_idx, go_id)] = this.computeAzimuthElevation(go_id);
             end
@@ -4709,6 +4715,9 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   [az, el] = this.computeAzimuthElevation(go_id)
+            if (nargin < 2) || isempty(go_id)
+                go_id = unique(this.go_id);
+            end
             XS = this.getXSTxRot(go_id);
             [az, el] = this.computeAzimuthElevationXS(XS);
         end
@@ -6939,7 +6948,8 @@ classdef Receiver < Exportable
             time_str_UTC = time_str_UTC(2:end-1);
             
             %write header
-            txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, 'O');
+            sys_c = unique(this.system);
+            txt = sprintf('%s%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', txt, 3.03, iif(numel(sys_c) == 1, sys_c, 'M: Mixed'));
             txt = sprintf('%s%-20s%-20s%-20sPGM / RUN BY / DATE \n', txt, program, agency, [date_str_UTC ' ' time_str_UTC ' UTC']);
             txt = sprintf('%s%-60sMARKER NAME         \n', txt, this.marker_name);
             txt = sprintf('%s%-20s                                        MARKER TYPE\n', txt, this.marker_type);
@@ -6958,6 +6968,20 @@ classdef Receiver < Exportable
             sys = this.getActiveSys();
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
+                % Set order CODE PHASE DOPPLER SNR
+                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
+                                     find(obs_type(:,1) == 'L') ...
+                                     find(obs_type(:,1) == 'D') ...
+                                     find(obs_type(:,1) == 'S')], :);
+                                 
+                % if the code is unknown use 'the least important code' non empty as obs code
+                % relative to the band
+                for c = find(obs_type(:,3) == ' ')'
+                    ss = this.cc.getSys(sys(s));
+                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
+                    obs_type(c, 3) = code;
+                end                 
                 n_type = length(obs_type);
                 n_line = ceil(n_type / 13);
                 tmp = char(32 * ones(n_line * 13, 4));
@@ -6974,12 +6998,19 @@ classdef Receiver < Exportable
             txt = sprintf('%sCARRIER PHASE SHIFT REMOVED BY goGPS SOFTWARE.              COMMENT\n', txt);
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
+                % Set order CODE PHASE DOPPLER SNR
                 obs_type = obs_type(obs_type(:,1) == 'L', :);
+                for c = find(obs_type(:,3) == ' ')'
+                    ss = this.cc.getSys(sys(s));
+                    band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
+                    code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
+                    obs_type(c, 3) = code;
+                end
                 for l = 1 : size(obs_type, 1)
                     txt = sprintf('%s%-1s %-3s %8.5f                                              SYS / PHASE SHIFT \n', txt, sys(s), obs_type(l, :), 0.0);
                 end
             end
-            if ~isempty(intersect(sys, 'G'))
+            if ~isempty(intersect(sys, 'R'))
                 % If glonas is present
                 %txt = sprintf('%s C1C    0.000 C1P    0.000 C2C    0.000 C2P    0.000        GLONASS COD/PHS/BIS\n', txt);
                 txt = sprintf('%s C1C          C1P          C2C          C2P                 GLONASS COD/PHS/BIS\n', txt);
@@ -6996,10 +7027,17 @@ classdef Receiver < Exportable
             flag_ok = 0;
             clock_offset = 0;
             
-            % rin_obs_code tu num;
-            obs_code = uint32(this.obs_code * [1 2^8 2^16]');
+            obs_code = Core_Utils.code3Char2Num(this.obs_code);
             for ss = sys
-                rin_obs_code.(ss) = uint32(reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)' * [1 2^8 2^16]');
+                % rin_obs_code tu num;
+                obs_type = reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)';
+                % Set order CODE PHASE DOPPLER SNR
+                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
+                    find(obs_type(:,1) == 'L') ...
+                    find(obs_type(:,1) == 'D') ...
+                    find(obs_type(:,1) == 'S')], :);
+                                
+                rin_obs_code.(ss) = Core_Utils.code3Char2Num(obs_type);
                 for t = 1 : numel(rin_obs_code.(ss))
                     obs_code(obs_code == rin_obs_code.(ss)(t)) = t;
                 end
@@ -7012,8 +7050,8 @@ classdef Receiver < Exportable
                 id_ok = ~isnan(zero2nan(this.obs(:, e)));
                 go_id = unique(this.go_id(id_ok));
                 if ~isempty(id_ok)
-                    %txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
-                    txt = sprintf('%s> %4d %02d %02d %02d %02d %11.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
+                    %txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
+                    txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d\n', txt, date6col(e, :), flag_ok, numel(go_id));
                     for ss = sys % for each satellite system in view at this epoch
                         id_ss = id_ok & this.system' == ss;
                         for prn = unique(this.prn(id_ss))' % for each satellite in view at this epoch (of the current ss)
@@ -8287,43 +8325,29 @@ classdef Receiver < Exportable
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
-            %   obs_num = obsCode2Num(obs_code);
-            
-            obs_num = obs_code(:,1:3) * [2^16 2^8 1]';
+            %   obs_num = obsCode2Num(obs_code);            
+            obs_num = Core_Utils.code3Char2Num(obs_code(:,1:3));
         end
         
         function obs_code = obsNum2Code(obs_num)
             % Convert a numeric value (float) of an obs_code into a 3 char marker
             % SYNTAX
             %   obs_code = obsNum2Code(obs_num)
-            obs_code = char(zeros(numel(obs_num), 4));
-            obs_code(:,1) = char(floor(obs_num / 2^16));
-            obs_num = obs_num - obs_code(:,1) * 2^16;
-            obs_code(:,2) = char(floor(obs_num / 2^8));
-            obs_num = obs_num - obs_code(:,2) * 2^8;
-            obs_code(:,3) = char(obs_num);
+            obs_code = Core_Utils.num2Code3Char(obs_num);            
         end
         
         function marker_num = markerName2Num(marker_name)
             % Convert a 4 char name into a numeric value (float)
             % SYNTAX
             %   marker_num = markerName2Num(marker_name);
-            
-            marker_num = marker_name(:,1:4) * [2^24 2^16 2^8 1]';
+            marker_num = Core_Utils.code4Char2Num(marker_name(:,1:4));
         end
         
         function marker_name = markerNum2Name(marker_num)
             % Convert a numeric value (float) of a station into a 4 char marker
             % SYNTAX
             %   marker_name = markerNum2Name(marker_num)
-            marker_name = char(zeros(numel(marker_num), 4));
-            marker_name(:,1) = char(floor(marker_num / 2^24));
-            marker_num = marker_num - marker_name(:,1) * 2^24;
-            marker_name(:,2) = char(floor(marker_num / 2^16));
-            marker_num = marker_num - marker_name(:,2) * 2^16;
-            marker_name(:,3) = char(floor(marker_num / 2^8));
-            marker_num = marker_num - marker_name(:,3) * 2^8;
-            marker_name(:,4) = char(marker_num);
+            marker_name = Core_Utils.num2Code4Char(marker_num);
         end
         
         function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)

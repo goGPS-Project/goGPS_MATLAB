@@ -4,6 +4,64 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
+        function num = code3Char2Num(str3)
+            % Convert a 3 char string into a numeric value (float)
+            % SYNTAX
+            %   num = Core_Utils.code3ch2Num(str3);
+            
+            num = str3(:,1:3) * [2^16 2^8 1]';
+        end
+        
+        function str3 = num2Code3Char(num)
+            % Convert a numeric value (float) of a 3 char string
+            % SYNTAX
+            %   str3 = Core_Utils.num2Code3ch(num)
+            str3 = char(zeros(numel(num), 3));
+            str3(:,1) = char(floor(num / 2^16));
+            num = num - str3(:,1) * 2^16;
+            str3(:,2) = char(floor(num / 2^8));
+            num = num - str3(:,2) * 2^8;
+            str3(:,3) = char(num);
+        end
+        
+        function num = code4Char2Num(str4)
+            % Convert a 4 char string into a numeric value (float)
+            % SYNTAX
+            %   num = Core_Utils.code4ch2Num(str4);
+            
+            num = str4(:,1:4) * [2^24 2^16 2^8 1]';
+        end
+        
+        function str4 = num2Code4Char(num)
+            % Convert a numeric value (float) of a 4 char string
+            % SYNTAX
+            %   str4 = Core_Utils.num2Code4Char(num)
+            str4 = char(zeros(numel(num), 4));
+            str4(:,1) = char(floor(num / 2^24));
+            num = num - str4(:,1) * 2^24;
+            str4(:,2) = char(floor(num / 2^16));
+            num = num - str4(:,2) * 2^16;
+            str4(:,3) = char(floor(num / 2^8));
+            num = num - str4(:,3) * 2^8;
+            str4(:,4) = char(num);
+        end
+        
+        function str4 = unique4ch(str4)
+            % Perform unique on an array of 4 char codes
+            %
+            % SYNTAX
+            %   str4 = Core_Utilis.unique4ch(str4)
+            Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(str4)));
+        end
+        
+        function str3 = unique3ch(str3)
+            % Perform unique on an array of 3 char codes
+            %
+            % SYNTAX
+            %   str3 = Core_Utilis.unique3ch(str3)
+            Core_Utils.num2Code3Char(unique(Core_Utils.code3Char2Num(str3)));
+        end
+        
         function [antenna_PCV] = readAntennaPCV(filename, antmod, date_limits)
             % SYNTAX:
             %   [antPCV] = this.readAntennaPCV(filename, antmod, date_start, date_stop);
