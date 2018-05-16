@@ -3088,7 +3088,7 @@ classdef Receiver < Exportable
             end
             ph = this.obs(id_ph, :);
             if not(isempty(this.sat.outlier_idx_ph))
-                ph(this.sat.outlier_idx_ph(id_ph, :)') = nan;
+                ph(this.sat.outlier_idx_ph') = nan;
             end
             wl = this.wl(id_ph);
             
