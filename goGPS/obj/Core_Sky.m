@@ -211,7 +211,7 @@ classdef Core_Sky < handle
             % only data before that date
             if nargin > 1 && ~isempty(this.time_ref_coord)
                 if this.time_ref_coord < gps_date
-                    n_ep = floor((gps_date - this.time_ref_coord)/this.coord_rate);
+                    n_ep = min(floor((gps_date - this.time_ref_coord)/this.coord_rate), size(this.coord,1));
                     this.coord(1:n_ep,:,:)=[];
                     this.time_ref_coord.addSeconds(n_ep*this.coord_rate);
                     this.coord_pol_coeff = []; %!!! the coefficient have to been recomputed
@@ -239,7 +239,7 @@ classdef Core_Sky < handle
             % only data before that date
             if nargin > 1  && ~isempty(this.time_ref_clock)
                 if this.time_ref_clock < gps_date
-                    n_ep = floor((gps_date - this.time_ref_clock)/this.clock_rate);
+                    n_ep = min(floor((gps_date - this.time_ref_clock)/this.clock_rate), size(this.clock,1));
                     this.clock(1:n_ep,:)=[];
                     this.time_ref_clock.addSeconds(n_ep*this.clock_rate);
                     
