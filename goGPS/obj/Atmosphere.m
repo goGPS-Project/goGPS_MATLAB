@@ -1266,7 +1266,7 @@ classdef Atmosphere < handle
             lon_pp = reshape(lon_pp, input_size(1), input_size(2));
         end
         
-        function [ZWD] = saast_wet(T, H)
+        function [ZWD] = saast_wet(T, H,h)
             
             % SYNTAX:
             %   [ZWD] = saast_wet(T, H);
@@ -1285,7 +1285,8 @@ classdef Atmosphere < handle
             % Convert C -> K
             T = T + 273.15;
             
-            
+            %height correction
+            H = H * exp(-0.0006396 * h);
             % Convert humidity
             H = H./100;
             

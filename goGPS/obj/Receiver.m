@@ -2889,18 +2889,18 @@ classdef Receiver < Exportable
                     time= time.getGpsTime();
                     if this.isStatic()
                         
-                        [P,T,undu] = atmo.gpt( time, this.lat, this.lon, this.h_ellips, this.h_ortho - this.h_ellips);
+                        [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                          H = zeros(l,1);
-                         H(:) = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
+                         H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
                     else
                         P = zeros(l,1);
                         T = zeros(l,1);
                        
                         
                         for i = 1 : l
-                        [P(l),T(l),undu] = atmo.gpt( time(l), this.lat(l), this.lon(l), this.h_ellips(l), this.h_ortho(l) - this.h_ellips(l));
+                        [P(l),T(l),undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
                         end
-                         H = atmo.STD_HUMI * exp(-0.0006396*this.h_ortho);
+                         H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
                     end
                 case 3 % local meteo data
                     P = this.meteo_data.getPressure(time);
@@ -2953,7 +2953,7 @@ classdef Receiver < Exportable
             end
             switch flag
                 case 1
-                    this.apr_zwd = Atmosphere.saast_wet(T,H);
+                    this.apr_zwd = Atmosphere.saast_wet(T,H,this.h_ortho);
             end
             
         end
@@ -4809,7 +4809,7 @@ classdef Receiver < Exportable
             %%% compute lat lon
             [~, ~, h_full] = this.getMedianPosGeodetic();
             if abs(h_full) > 1e4
-                this.log.addWarning('Height out of reasonable height for terrestrial postioning skipping tropo update')
+                this.log.addWarning('Height out of reasonable value for terrestrial postioning skipping tropo update')
                 return
             end
            % get meteo data
@@ -6571,7 +6571,7 @@ classdef Receiver < Exportable
                 this.applySolidEarthTide();
                 this.applyShDelay();
                 this.applyOceanLoading();
-                this.applyAtmLoad();
+                %this.applyAtmLoad();
                 %this.applyHOI();
                 
                 this.removeOutlierMarkCycleSlip();
