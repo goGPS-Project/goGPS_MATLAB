@@ -7222,7 +7222,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function txt = exportGPSZTD(this, save_on_disk)
+        function txt = exportWrfLittleR(this, save_on_disk)
             % export WRF-compatible file (LITTLE_R)
             if nargin == 1
                 save_on_disk = true;
