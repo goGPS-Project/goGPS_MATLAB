@@ -7164,7 +7164,7 @@ classdef Receiver < Exportable
                     yy = num2str(year);
                     yy = yy(3:4);
                     sess_str = '0'; %think how to get the ricgt one from sss_id_list
-                    fname = sprintf('%s',[this.state.getOutDir() file_sep this.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                    fname = sprintf('%s',[this.state.getOutDir() filesep this.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
                     snx_wrt = SINEX_Writer(fname);
                     snx_wrt.writeTroSinexHeader( this.time.first, this.time.getSubSet(this.time.length), this.marker_name)
                     snx_wrt.writeFileReference()
