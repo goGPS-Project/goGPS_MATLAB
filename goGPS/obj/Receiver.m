@@ -5935,10 +5935,10 @@ classdef Receiver < Exportable
                 this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
                 this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
                 this.sat.solid_earth_corr  = zeros(this.time.length, this.getMaxSat());
-                this.log.addMessage(this.log.indent('Applying satellites Differencial Code Biases (DCB)', 6))
+                this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)', 6))
                 % if not applied apply group delay
                 this.applyGroupDelay();
-                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent realtivistic correction', 6))
+                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction', 6))
                 this.applyDtSat();
                 
                 %this.static = 0;
@@ -5975,12 +5975,12 @@ classdef Receiver < Exportable
             % obs : observations [meters]
             % prn : prn of observations
             % sys : sys of observations
-            % flag : name of obsevation [obs_code1 obs_code2 comb_code]
+            % flag : name of observation [obs_code1 obs_code2 comb_code]
             %        comb_code --> Iono Free = I
             % OUTPUTt_glo11.
             %
             % 
-            %   Get postioning using code observables
+            %   Get positioning using code observables
             
             
             if this.isEmpty()
@@ -5989,8 +5989,8 @@ classdef Receiver < Exportable
                 if isempty(this.id_sync)
                     this.id_sync = 1:this.time.length;
                 end
-                % check if the epoch are presents
-                % getteing the obesrvation set that is going to be used in
+                % check if the epochs are present
+                % getting the observation set that is going to be used in
                 % setUPSA
                 obs_set = Observation_Set();
                 if this.isMultiFreq() %% case multi frequency
