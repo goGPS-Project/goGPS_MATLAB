@@ -1137,13 +1137,18 @@ classdef Core_UI < handle
     %% METODS (static) getters
     % ==================================================================================================================================================
     methods (Static)
-        function color = getColor(color_id)
+        function color = getColor(color_id, color_num)
             % get a color taken from COLOR ORDER CONSTANT
             %
             % SYNTAX:
             %   Core_UI.getColor(id);
             %
-            color = Core_UI.COLOR_ORDER(mod(color_id - 1, size(Core_UI.COLOR_ORDER, 1)) + 1, :);
+            if (nargin == 2)
+                color = linspecer(color_num, 'sequential');
+                color = color(color_id, :);
+            else
+                color = Core_UI.COLOR_ORDER(mod(color_id - 1, size(Core_UI.COLOR_ORDER, 1)) + 1, :);
+            end
         end
     end
     

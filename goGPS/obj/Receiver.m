@@ -2984,7 +2984,7 @@ classdef Receiver < Exportable
                             for l = 1 : size(lim, 1)
                                 if (lim(l, 2) - lim(l, 1) + 1) > 3
                                     id_ok = lim(l, 1) : lim(l, 2);
-                                    ztd = this.getZTD();
+                                    ztd = this.getZtd();
                                     sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
                                 end
                             end
@@ -3714,10 +3714,10 @@ classdef Receiver < Exportable
             id_sync = thisgetIdSync_mr();
         end
         
-        function [ztd, p_time, id_sync] = getZTD_mr(this)
+        function [ztd, p_time, id_sync] = getZtd_mr(this)
             % MultiRec: works on an array of receivers
             % SYNTAX
-            %  [ztd, p_time, id_sync] = this.getZTD_mr()
+            %  [ztd, p_time, id_sync] = this.getZtd_mr()
             [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
             
             id_ok = any(~isnan(id_sync),2);
@@ -3732,9 +3732,9 @@ classdef Receiver < Exportable
             end
         end
         
-        function [ztd, time] = getZTD(this)
+        function [ztd, time] = getZtd(this)
             % SYNTAX
-            %  [ztd, p_time, id_sync] = this.getZTD()
+            %  [ztd, p_time, id_sync] = this.getZtd()
             
             ztd = {};
             time = {};
@@ -3760,10 +3760,10 @@ classdef Receiver < Exportable
             end
         end
         
-        function [pwv, p_time, id_sync] = getPWV_mr(this)
+        function [pwv, p_time, id_sync] = getPwv_mr(this)
             % MultiRec: works on an array of receivers
             % SYNTAX
-            %  [pwv, p_time, id_sync] = this.getPWV_mr()
+            %  [pwv, p_time, id_sync] = this.getPwv_mr()
             [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
             
             id_ok = any(~isnan(id_sync),2);
@@ -3778,9 +3778,9 @@ classdef Receiver < Exportable
             end
         end
         
-        function [pwv, time] = getPWV(this)
+        function [pwv, time] = getPwv(this)
             % SYNTAX
-            %  [pwv, p_time, id_sync] = this.getPWV()
+            %  [pwv, p_time, id_sync] = this.getPwv()
             
             pwv = {};
             time = {};
@@ -4662,7 +4662,7 @@ classdef Receiver < Exportable
             end
             
             el = this.getEl;
-            slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZTD());            
+            slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZtd());            
             
             % keep only valid data
             el = el(~isnan(zero2nan(slant_td)));
@@ -7209,7 +7209,7 @@ classdef Receiver < Exportable
                     lon = this(t).lon; %#ok<NASGU>
                     h_ellips = this(t).h_ellips; %#ok<NASGU>
                     h_ortho = this(t).h_ortho; %#ok<NASGU>
-                    ztd = this(t).getZTD(); %#ok<NASGU>
+                    ztd = this(t).getZtd(); %#ok<NASGU>
                     utc_time = time.getMatlabTime; %#ok<NASGU>
                     
                     fname = sprintf('%s',[this(t).state.getOutDir() '/' this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);
@@ -8079,7 +8079,7 @@ classdef Receiver < Exportable
                     %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                     
                     plot(t, sztd,'.-'); hold on;
-                    plot(t, zero2nan(rec(:).getZTD),'k', 'LineWidth', 4);
+                    plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
                     %ylim(yl);
                     %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                     setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
@@ -8093,30 +8093,37 @@ classdef Receiver < Exportable
         end
         
         function showZhd(this, new_fig)
+            
+            rec_ok = false(size(this,2), 1);
+            for r = 1 : size(this, 2); 
+                rec_ok(r) = any(~isnan(this(:,r).getZhd)); 
+            end
+            rec_list = this(:, rec_ok);
+            
             if nargin == 1
                 new_fig = true;
             end
-            [apr_zhd, t] = this.getAprZhd();
+            [apr_zhd, t] = rec_list.getAprZhd();
             if ~iscell(apr_zhd)
                 apr_zhd = {apr_zhd};
                 t = {t};
             end
             if isempty(apr_zhd)
-                this(1).log.addWarning('ZHD and slants have not been computed');
+                rec_list(1).log.addWarning('ZHD and slants have not been computed');
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZHD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: ZHD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
                     old_legend = get(l,'String');
                 end
-                for r = 1 : size(this, 2)
-                    rec = this(~this(:,r).isempty, r);
+                for r = 1 : size(rec_list, 2)
+                    rec = rec_list(~rec_list(:,r).isempty, r);
                     if ~isempty(rec)
                         [apr_zhd, t] = rec.getAprZhd();
                         if new_fig
-                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
                             plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4); hold on;
                         end
@@ -8143,30 +8150,37 @@ classdef Receiver < Exportable
         end
         
         function showZwd(this, new_fig)
+            
+            rec_ok = false(size(this,2), 1);
+            for r = 1 : size(this, 2); 
+                rec_ok(r) = any(~isnan(this(:,r).getZwd)); 
+            end
+            rec_list = this(:, rec_ok);
+            
             if nargin == 1
                 new_fig = true;
             end
-            [zwd, t] = this.getZwd();
+            [zwd, t] = rec_list.getZwd();
             if ~iscell(zwd)
                 zwd = {zwd};
                 t = {t};
             end
             if isempty(zwd)
-                this(1).log.addWarning('ZWD and slants have not been computed');
+                rec_list(1).log.addWarning('ZWD and slants have not been computed');
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZWD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: ZWD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
                     old_legend = get(l,'String');
                 end
-                for r = 1 : size(this, 2)
-                    rec = this(~this(:,r).isempty, r);
+                for r = 1 : size(rec_list, 2)
+                    rec = rec_list(~rec_list(:,r).isempty, r);
                     if ~isempty(rec)
                         [zwd, t] = rec.getZwd();
                         if new_fig
-                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
                             plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4); hold on;
                         end
@@ -8193,30 +8207,37 @@ classdef Receiver < Exportable
                 end
         
         function showZtd(this, new_fig)
+            
+            rec_ok = false(size(this,2), 1);
+            for r = 1 : size(this, 2); 
+                rec_ok(r) = any(~isnan(this(:,r).getZtd)); 
+            end
+            rec_list = this(:, rec_ok);
+            
             if nargin == 1
                 new_fig = true;
             end
-            [ztd, t] = this.getZTD();
+            [ztd, t] = rec_list.getZtd();
             if ~iscell(ztd)
                 ztd = {ztd};
                 t = {t};
             end
             if isempty(ztd)
-                this(1).log.addWarning('ZTD and slants have not been computed');
+                rec_list(1).log.addWarning('ZTD and slants have not been computed');
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZTD %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: ZTD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
                     old_legend = get(l,'String');
                 end
-                for r = 1 : size(this, 2)
-                    rec = this(~this(:,r).isempty, r);
+                for r = 1 : size(rec_list, 2)
+                    rec = rec_list(~rec_list(:,r).isempty, r);
                     if ~isempty(rec)
-                        [ztd, t] = rec.getZTD();
+                        [ztd, t] = rec.getZtd();
                         if new_fig
-                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
                             plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4); hold on;
                         end
@@ -8243,32 +8264,39 @@ classdef Receiver < Exportable
         end
         
         function showPwv(this, new_fig)
+            
+            rec_ok = false(size(this,2), 1);
+            for r = 1 : size(this, 2); 
+                rec_ok(r) = any(~isnan(this(:,r).getPwv)); 
+            end
+            rec_list = this(:, rec_ok);
+            
             if nargin == 1
                 new_fig = true;
             end
-            [pwv, t] = this.getPWV();
+            [pwv, t] = rec_list.getPwv();
             if ~isempty(pwv)
                 if ~iscell(pwv)
                     pwv = {pwv};
                     t = {t};
                 end
                 if isempty(pwv)
-                    this(1).log.addWarning('PWV and slants have not been computed');
+                    rec_list(1).log.addWarning('PWV and slants have not been computed');
                 else
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: PWV %s', f.Number, this(1).cc.sys_c); f.NumberTitle = 'off';
+                        f = figure; f.Name = sprintf('%03d: PWV %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;
                         old_legend = get(l,'String');
                     end
-                    for r = 1 : size(this, 2)
+                    for r = 1 : size(rec_list, 2)
                         if new_fig
-                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r)); hold on;
+                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
                             plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4); hold on;
                         end
-                        outm{r} = this(1, r).getMarkerName();
+                        outm{r} = rec_list(1, r).getMarkerName();
                     end
                                         
                     outm = [old_legend, outm];
