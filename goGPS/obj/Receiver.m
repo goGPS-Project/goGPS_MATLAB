@@ -7158,29 +7158,32 @@ classdef Receiver < Exportable
         end
         
         function exportTropoSINEX(this)
-            for t = 1 : numel(this)
+            for r = 1 : numel(this)
                 try
-                    [year, doy] = this.time.first.getDOY();
-                    yy = num2str(year);
-                    yy = yy(3:4);
-                    sess_str = '0'; %think how to get the ricgt one from sss_id_list
-                    fname = sprintf('%s',[this.state.getOutDir() filesep this.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
-                    snx_wrt = SINEX_Writer(fname);
-                    snx_wrt.writeTroSinexHeader( this.time.first, this.time.getSubSet(this.time.length), this.marker_name)
-                    snx_wrt.writeFileReference()
-                    snx_wrt.writeAcknoledgments()
-                    smpl_tropo = median(diff(this.id_sync)) * this.time.getRate;
-                    val_flags = {'TROTOT','TGNTOT','TGETOT'};
-                    snx_wrt.writeTropoDescription(this.state.cut_off, this.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1))
-                    snx_wrt.writeSTACoo( this.marker_name, this.xyz(1,1), this.xyz(1,2), this.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
-                    snx_wrt.writeTropoSolutionSt()
-                    snx_wrt.writeTropoSolutionStation(  this.marker_name, this.time.getSubSet(this.id_sync), [this.ztd(this.id_sync,:) this.tgn(this.id_sync,:) this.tge(this.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
-                    snx_wrt.writeTropoSolutionEnd()
-                    snx_wrt.writeTroSinexEnd();
-                    snx_wrt.close()
-                    this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                    rec = this(r);
+                    if ~isempty(rec.getZtd)
+                        [year, doy] = rec.time.first.getDOY();
+                        yy = num2str(year);
+                        yy = yy(3:4);
+                        sess_str = '0'; %think how to get the right one from sss_id_list
+                        fname = sprintf('%s',[rec.state.getOutDir() filesep rec.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                        snx_wrt = SINEX_Writer(fname);
+                        snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.marker_name)
+                        snx_wrt.writeFileReference()
+                        snx_wrt.writeAcknoledgments()
+                        smpl_tropo = median(diff(rec.id_sync)) * rec.time.getRate;
+                        val_flags = {'TROTOT','TGNTOT','TGETOT'};
+                        snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1))
+                        snx_wrt.writeSTACoo( rec.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
+                        snx_wrt.writeTropoSolutionSt()
+                        snx_wrt.writeTropoSolutionStation(  rec.marker_name, rec.time.getSubSet(rec.id_sync), [rec.ztd(rec.id_sync,:) rec.tgn(rec.id_sync,:) rec.tge(rec.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
+                        snx_wrt.writeTropoSolutionEnd()
+                        snx_wrt.writeTroSinexEnd();
+                        snx_wrt.close()
+                        rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                    end
                 catch ex
-                    this(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
+                    rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                 end
             end
         end
