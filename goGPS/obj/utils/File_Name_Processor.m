@@ -303,20 +303,24 @@ classdef File_Name_Processor < handle
 
             if iscell(dir_path)
                 for j = 1 : numel(dir_path)
-                    dir_pat{j} = fnp.getFullDirPath(dir_path{j}, dir_base);
-                    list_path = regexp(dir_path{j}, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
-                    n_dir_path = numel(list_path);
-                    i = 0;
-                    while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
-                        i = i + 1;
+                    dir_path{j} = fnp.getFullDirPath(dir_path{j}, dir_base);
+                    drive_path = regexp(dir_path{j},'.(?=\:)', 'match', 'once');
+                    drive_base = regexp(dir_base,'.(?=\:)', 'match', 'once');
+                    if (isempty(drive_path) || drive_path == drive_base)
+                        list_path = regexp(dir_path{j}, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+                        n_dir_path = numel(list_path);
+                        i = 0;
+                        while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
+                            i = i + 1;
+                        end
+                        if (n_dir_base -i) > 0
+                            list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+                        else
+                            list_path = list_path(i+1:end);
+                        end
+                        
+                        dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
                     end
-                    if (n_dir_base -i) > 0
-                        list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
-                    else
-                        list_path = list_path(i+1:end);
-                    end
-
-                    dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
                 end
             else
                 % if dir_path is a network address && dir_base is not
@@ -327,20 +331,23 @@ classdef File_Name_Processor < handle
                     prefix = '\\';
                 end
                 dir_path = fnp.getFullDirPath(dir_path, dir_base);
-                list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
-                n_dir_path = numel(list_path);
-                i = 0;
-                while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
-                    i = i + 1;
+                drive_path = regexp(dir_path,'.(?=\:)', 'match', 'once');
+                drive_base = regexp(dir_base,'.(?=\:)', 'match', 'once');
+                if (isempty(drive_path) || drive_path == drive_base)
+                    list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+                    n_dir_path = numel(list_path);
+                    i = 0;
+                    while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
+                        i = i + 1;
+                    end
+                    if (n_dir_base -i) > 0
+                        list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+                    else
+                        list_path = list_path(i+1:end);
+                    end
+                    
+                    dir_path = [prefix strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep)];
                 end
-                if (n_dir_base -i) > 0
-                    list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
-                else
-                    list_path = list_path(i+1:end);
-                end
-                
-                dir_path = [prefix strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep)];
-               
             end
         end
 
@@ -426,6 +433,10 @@ classdef File_Name_Processor < handle
                     % for each line of the cell
                     universal_path = cell(size(path));
                     for c = 1 : length(path)
+                        check_drive_win = strfind(path{c},':');
+                        if (~isempty(check_drive_win))
+                            path{c} = path{c}(max(1, check_drive_win - 1) : end);
+                        end
                         universal_path{c} = regexprep(path{c}, '(\\(?![ ]))|(\/)', filesep);
                         universal_path{c} = regexprep(universal_path{c}, ['\' filesep '\' filesep], filesep);
                     end
@@ -437,6 +448,10 @@ classdef File_Name_Processor < handle
                     end
                 else
                     if ischar(path)
+                        check_drive_win = strfind(path,':');
+                        if (~isempty(check_drive_win))
+                            path = path(max(1, check_drive_win - 1) : end);
+                        end
                         universal_path = regexprep(path, '(\\(?![ ]))|(\/)', filesep);
                         universal_path = regexprep(universal_path, ['\' filesep '\' filesep], filesep);
                         if (nargout == 2)
