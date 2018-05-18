@@ -97,5 +97,4 @@ end
 
 if (found == 0)
     ocean_load_disp=[];
-    log.addWarning('Ocean loading parameters not found.');
 end
