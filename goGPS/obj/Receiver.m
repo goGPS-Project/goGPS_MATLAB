@@ -336,11 +336,23 @@ classdef Receiver < Exportable
         
         function resetEstTropo(this)
             % empty estimated tropo paramteres
-            this.zwd = [];
-            this.tge = [];
-            this.tgn = [];
+            this.zwd = nan(n_epoch, 1);
+            this.tge = nan(n_epoch, 1);
+            this.tgn = nan(n_epoch, 1);
             this.updateErrTropo();
             this.updateSyntPhases();
+        end
+        
+        function initTropo(this)
+            % initialize tropo variables
+            n_epoch = this.time.length;
+            this.ztd = nan(n_epoch, 1);
+            this.apr_zhd = nan(n_epoch, 1);
+            this.zwd = nan(n_epoch, 1);
+            this.apr_zwd = nan(n_epoch, 1);
+            this.pwv = nan(n_epoch, 1);
+            this.tge = nan(n_epoch, 1);
+            this.tgn = nan(n_epoch, 1);
         end
         
         function initObs(this)
@@ -1318,7 +1330,8 @@ classdef Receiver < Exportable
                 [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.getMarkerName});
             end
             if not(found)
-                this.ocean_load_disp = -1; %mean not found
+                this.ocean_load_disp = -1; %ocean loading parameters not found
+                this.log.addWarning('Ocean loading parameters not found.');
             end
         end
         
@@ -2911,7 +2924,7 @@ classdef Receiver < Exportable
         
         function updateAprTropo(this)
             % update arpiori z tropo delays
-            if isempty(this.tge)
+            if isempty(this.tge) || all(isnan(this.tge))
                 this.tge = zeros(this.getNumEpochs,1);
                 this.tgn = zeros(this.getNumEpochs,1);
             end
@@ -3734,23 +3747,19 @@ classdef Receiver < Exportable
         
         function [ztd, time] = getZtd(this)
             % SYNTAX
-            %  [ztd, p_time, id_sync] = this.getZtd()
+            %  [ztd, time] = this.getZtd()
             
             ztd = {};
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                if ~isempty(this(1,r).ztd)                    
-                    ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
-                    
-                    for s = 2 : size(this, 1)
-                        ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
-                        time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                        ztd{r} = [ztd{r}; ztd_tmp];
-                        time{r} = time{r}.append(time_tmp);
-                    end
-                else
-                    ztd{r} = nan(size(time{r})); %#ok<AGROW>
+                ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
+                
+                for s = 2 : size(this, 1)
+                    ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    ztd{r} = [ztd{r}; ztd_tmp];
+                    time{r} = time{r}.append(time_tmp);
                 end
             end
             
@@ -3780,13 +3789,13 @@ classdef Receiver < Exportable
         
         function [pwv, time] = getPwv(this)
             % SYNTAX
-            %  [pwv, p_time, id_sync] = this.getPwv()
+            %  [pwv, time] = this.getPwv()
             
             pwv = {};
             time = {};
             for r = 1 : size(this, 2)
-                pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
                 
                 for s = 2 : size(this, 1)
                     pwv_tmp = this(s, r).pwv(this(s, r).getIdSync);
@@ -3809,9 +3818,9 @@ classdef Receiver < Exportable
             zhd = {};
             time = {};
             for r = 1 : size(this, 2)
-                zhd{r} = this(1, r).apr_zhd(this(1, r).getIdSync); %#ok<AGROW>
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                
+                zhd{r} = this(1, r).apr_zhd(this(1, r).getIdSync); %#ok<AGROW>
+
                 for s = 2 : size(this, 1)
                     zhd_tmp = this(s, r).apr_zhd(this(s, r).getIdSync);
                     time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
@@ -3832,20 +3841,23 @@ classdef Receiver < Exportable
             
             zwd = {};
             time = {};
-            
             for r = 1 : size(this, 2)
-                if isempty(this(1, r).zwd) || ~any(this(1, r).zwd)
-                    [zwd{r}, time{r}] = this(r).getAprZwd();
+                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
+                if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)))
+                    zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
                 else
                     zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
-                    time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                    
-                    for s = 2 : size(this, 1)
-                        zhd_tmp = this(s, r).zwd(this(s, r).getIdSync);
-                        time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                        zwd{r} = [zwd{r}; zhd_tmp];
-                        time{r} = time{r}.append(time_tmp);
+                end
+                
+                for s = 2 : size(this, 1)
+                    if (isempty(this(s, r).zwd) || all(isnan(this(s, r).zwd)))
+                        zwd_tmp = this(s, r).apr_zwd(this(s, r).getIdSync);
+                    else
+                        zwd_tmp = this(s, r).zwd(this(s, r).getIdSync);
                     end
+                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
+                    zwd{r} = [zwd{r}; zwd_tmp];
+                    time{r} = time{r}.append(time_tmp);
                 end
             end
             
@@ -6546,6 +6558,7 @@ classdef Receiver < Exportable
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
+                this.initTropo();
                 this.initPositioning(sys_c);
                 this.setAvIdx2Visibility();
                 this.meteo_data = [];
@@ -6571,7 +6584,7 @@ classdef Receiver < Exportable
                 this.applySolidEarthTide();
                 this.applyShDelay();
                 this.applyOceanLoading();
-                %this.applyAtmLoad();
+                this.applyAtmLoad();
                 %this.applyHOI();
                 
                 this.removeOutlierMarkCycleSlip();
@@ -6622,13 +6635,13 @@ classdef Receiver < Exportable
                 
                 time = this.time.getSubSet(id_sync);
                 
-                if isempty(this.zwd)
+                if isempty(this.zwd) || all(isnan(this.zwd))
                     this.zwd = zeros(this.time.length(), 1);
                 end
-                if isempty(this.apr_zhd)
+                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
                     this.apr_zhd = zeros(this.time.length(),1);
                 end
-                if isempty(this.ztd)
+                if isempty(this.ztd) || all(isnan(this.ztd))
                     this.ztd = zeros(this.time.length(),1);
                 end
                 
@@ -6716,14 +6729,14 @@ classdef Receiver < Exportable
                         this.est_slant = repmat(tropo, 1, n_sat) .*mfw .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
                     end
                     if this.state.flag_tropo_gradient
-                        if isempty(this.tgn)
-                            this.tgn = zeros(this.time.length,1);
+                        if isempty(this.tgn) || all(isnan(this.tgn))
+                            this.tgn = nan(this.time.length,1);
                         end
-                        this.tgn(valid_ep) =  this.tgn(valid_ep) + gntropo;
-                        if isempty(this.tge)
-                            this.tge = zeros(this.time.length,1);
+                        this.tgn(valid_ep) =  nan2zero(this.tgn(valid_ep)) + gntropo;
+                        if isempty(this.tge) || all(isnan(this.tge))
+                            this.tge = nan(this.time.length,1);
                         end
-                        this.tge(valid_ep) = this.tge(valid_ep)  + getropo;
+                        this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                         
                         cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
                         cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
@@ -8099,7 +8112,7 @@ classdef Receiver < Exportable
             
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2); 
-                rec_ok(r) = any(~isnan(this(:,r).getZhd)); 
+                rec_ok(r) = any(~isnan(this(:,r).getAprZhd)); 
             end
             rec_list = this(:, rec_ok);
             
