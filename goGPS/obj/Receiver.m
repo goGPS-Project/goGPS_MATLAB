@@ -38,6 +38,12 @@
 %----------------------------------------------------------------------------------------------
 classdef Receiver < Exportable
     
+    %% CONSTANTS
+    properties (Constant)
+        S02_IP_THR = 1e3;
+    end
+    
+    % ==================================================================================================================================================
     %% PROPERTIES RECEIVER
     
     properties (SetAccess = public, GetAccess = public)
@@ -202,6 +208,7 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     properties
+        s02_ip
         s02
         hdop
         khdop
@@ -285,6 +292,8 @@ classdef Receiver < Exportable
             this.h_ortho = [];
             
             this.n_sat = [];
+            this.s02_ip =  Inf;
+            this.s02 =  Inf;
             this.hdop =  [];
             this.khdop = [];
             this.a_fix = [];
@@ -5949,7 +5958,7 @@ classdef Receiver < Exportable
             this.time.addSeconds(time_desync - this.dt_pr);
         end
         
-        function initPositioning(this, sys_c)
+        function s02 = initPositioning(this, sys_c)
             % run the most appropriate init prositioning step depending on the static flag
             % calls initStaticPositioning() or initDynamicPositioning()
             % SYNTAX
@@ -5973,7 +5982,7 @@ classdef Receiver < Exportable
                 %this.static = 0;
                 if this.isStatic()
                     %this.initStaticPositioningOld(obs, prn, sys, flag)
-                    this.initStaticPositioning();
+                    s02 = this.initStaticPositioning();
                 else
                     % get best observation for all satellites and all epochs
                     this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
@@ -5991,12 +6000,12 @@ classdef Receiver < Exportable
                     sys(~sys_idx,:) = [];
                     flag(~sys_idx,:) = [];
                     
-                    this.initDynamicPositioning(obs, prn, sys, flag)
+                    s02 = this.initDynamicPositioning(obs, prn, sys, flag);
                 end
             end
         end
         
-        function initStaticPositioning(this)
+        function s02 = initStaticPositioning(this)
             % SYNTAX
             %   this.StaticPositioning(obs, prn, sys, flag)
             %
@@ -6070,6 +6079,7 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent('Final estimation',6))
                 [~, s02] = this.codeStaticPositioning(this.id_sync, 15);
                 this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.s02_ip = s02;
                 
                 % final estimation of time of flight
                 this.updateAllAvailIndex()
@@ -6121,7 +6131,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function initDynamicPositioning(this, obs, prn, sys, flag)
+        function s02 = initDynamicPositioning(this, obs, prn, sys, flag)
             % SYNTAX
             %   this.initDynamicPositioning(obs, prn, sys, flag)
             %
@@ -6351,12 +6361,13 @@ classdef Receiver < Exportable
                     b = zeros(size(y));
                     Q = speye(length(y));
                     [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
+                    this.s02_ip(e) = s02;
                     %                     x = A_temp \ y;
                     %                     res = y - A_temp * x;
                     %residuals(idx_obs,e) = res;
                     %--- robust estimation ---
                     %                     for i = 1:1
-                    %                         res = res/s02;
+                    %                         res = res/this.s02_ip;
                     %                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
                     %                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
                     %                     end
@@ -6563,7 +6574,8 @@ classdef Receiver < Exportable
                         
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
-            else                
+            else
+                this.pp_status = false;
                 if nargin < 2
                     sys_c = this.cc.sys_c;
                 end
@@ -6576,36 +6588,38 @@ classdef Receiver < Exportable
                 % code only solution
                 this.importMeteoData();
                 this.initTropo();
-                this.initPositioning(sys_c);
-                this.setAvIdx2Visibility();
-                this.meteo_data = [];
-                this.importMeteoData();
-               
-                % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-                this.dt_ip = this.dt; % save init_positioning clock
-                % smooth clock estimation
-                this.smoothAndApplyDt(0);
-                
-                % update azimuth elevation
-                this.updateAzimuthElevation();
-                % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                this.shiftToNominal()
-                this.updateAllTOT();
-                
-                % apply various corrections
-                this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
-                
-                this.applyPCV();
-                this.applyPoleTide();
-                this.applyPhaseWindUpCorr();
-                this.applySolidEarthTide();
-                this.applyShDelay();
-                this.applyOceanLoading();
-                this.applyAtmLoad();
-                %this.applyHOI();
-                
-                this.removeOutlierMarkCycleSlip();
-                this.pp_status = true;
+                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
+                if (min(s02) < this.S02_IP_THR)
+                    this.setAvIdx2Visibility();
+                    this.meteo_data = [];
+                    this.importMeteoData();
+                    
+                    % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
+                    this.dt_ip = this.dt; % save init_positioning clock
+                    % smooth clock estimation
+                    this.smoothAndApplyDt(0);
+                    
+                    % update azimuth elevation
+                    this.updateAzimuthElevation();
+                    % Add a model correction for time desync -> observations are now referred to nominal time  #14
+                    this.shiftToNominal()
+                    this.updateAllTOT();
+                    
+                    % apply various corrections
+                    this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
+                    
+                    this.applyPCV();
+                    this.applyPoleTide();
+                    this.applyPhaseWindUpCorr();
+                    this.applySolidEarthTide();
+                    this.applyShDelay();
+                    this.applyOceanLoading();
+                    this.applyAtmLoad();
+                    %this.applyHOI();
+                    
+                    this.removeOutlierMarkCycleSlip();
+                    this.pp_status = true;
+                end
             end
         end
         
@@ -6630,7 +6644,11 @@ classdef Receiver < Exportable
             if this.isEmpty()
                 this.log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
-                this.log.addError('Pre-Processing is required to compute a PPP solution');
+                if (this.s02_ip < Inf)
+                    this.log.addError('Pre-Processing is required to compute a PPP solution');
+                else
+                    this.log.addError('Pre-Processing failed: skipping PPP solution');
+                end
             else
                 if nargin >= 2
                     if ~isempty(sys_list)
