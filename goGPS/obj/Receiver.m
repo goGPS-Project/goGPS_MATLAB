@@ -2381,6 +2381,23 @@ classdef Receiver < Exportable
             end
         end
         
+        function [lat, lon, h_ellips, h_ortho] = getPosGeodetic(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT
+            %   lat_lon_he_ho     geodetic coordinates
+            %
+            % SYNTAX
+            %   [lat_lon_he_ho] = this.getPosGeodetic()
+            [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
+            if nargout == 4
+                gs = Global_Configuration.getInstance;
+                gs.initGeoid();
+                ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                h_ortho = h_ellips - ondu;
+            end
+        end
+        
         function enu = getPosENU_mr(this)
             % return the positions computed for the receiver
             %
