@@ -186,8 +186,8 @@ classdef Atmosphere < handle
         end
         
         function importAtmLoadCoeffFile(this, filename)
-            % imprt data of atmospehric loading file
-             fid = fopen([filename],'r');
+            % import data of atmospehric loading file
+            fid = fopen([filename],'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', filename));
                 return
@@ -213,20 +213,17 @@ classdef Atmosphere < handle
                 end
                 %% find number of header lines
                 n_head = 0;
-                fid = fopen(filename);
-                
+%                 fid = fopen(filename);
                 tline = fgetl(fid);
                 while ischar(tline) && tline(1) == '!'
                     n_head = n_head + 1;
                     tline = fgetl(fid);
                 end
-                
                 fclose(fid);
-
                 %%% read data
                 %data_tmp = dlmread(filename, ' ', n_head, 0);
                 data_tmp = importdata(filename, ' ', n_head);
-                %%% imprtant !!! we assume regualr grid
+                %%% important !!! we assume a regular grid
                 data_tmp_u = reshape(data_tmp.data(:,3),360,180)';
                 data_tmp_e = reshape(data_tmp.data(:,4),360,180)';
                 data_tmp_n = reshape(data_tmp.data(:,5),360,180)';
@@ -258,12 +255,7 @@ classdef Atmosphere < handle
                     end
                     this.atm_load.n_t = this.atm_load.n_t + 1;
                 end
-                    
-                
-                
             end
-            
-            
         end
         
         function clearAtmLoad(this)
