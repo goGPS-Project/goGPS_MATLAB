@@ -331,8 +331,8 @@ classdef File_Name_Processor < handle
                     prefix = '\\';
                 end
                 dir_path = fnp.getFullDirPath(dir_path, dir_base);
-                drive_path = regexp(dir_path,'.(?=\:)', 'match', 'once');
-                drive_base = regexp(dir_base,'.(?=\:)', 'match', 'once');
+                drive_path = regexp(dir_path,'.(?=\:\\)', 'match', 'once');
+                drive_base = regexp(dir_base,'.(?=\:\\)', 'match', 'once');
                 if (isempty(drive_path) || drive_path == drive_base)
                     list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
                     n_dir_path = numel(list_path);
