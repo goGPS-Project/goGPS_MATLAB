@@ -6746,9 +6746,9 @@ classdef Receiver < Exportable
                         this.pwv = nan(size(this.zwd));
                         if ~isempty(this.meteo_data)
                             degCtoK = 273.15;
-                            [~,Tall,H] = this.getPTH();
+                            [~,Tall, H] = this.getPTH();
                             % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-                            Tm = (Tall + degCtoK)*0.72 + 70.2;
+                            Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
                             
                             % Askne and Nordius formula (from Bevis et al., 1994)
                             Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
@@ -7591,8 +7591,17 @@ classdef Receiver < Exportable
             end
         end
         
-        function showMap(this)
-            f = figure; maximizeFig(f);
+        function showMap(this, new_fig)
+            if nargin < 2
+                new_fig = true;
+            end
+            if new_fig
+                f = figure;
+            else
+                f = gcf;
+                hold on;
+            end
+            maximizeFig(f);
             [lat, lon] = cart2geod(this.getMedianPosXYZ_mr());
             
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
