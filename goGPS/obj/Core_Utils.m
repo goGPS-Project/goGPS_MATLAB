@@ -368,6 +368,7 @@ classdef Core_Utils < handle
                 log.addWarning(w_msg);
             end
         end
+        
         function [status] = downloadHttpTxtRes(filename, out_dir)
             log = Logger.getInstance();
             fnp = File_Name_Processor();
@@ -388,6 +389,7 @@ classdef Core_Utils < handle
                 status = false;
             end
         end
+        
         function [status] = checkHttpTxtRes(filename)
             if isunix() || ismac()
                  [resp, txt] = system(['curl --head ' filename]);
@@ -401,6 +403,45 @@ classdef Core_Utils < handle
                 
             end
         end
+    end
+    
+    
+    methods (Static)
+        function y_out = interp1LS(x_in, y_in, degree, x_out)
+            % Least squares interpolant of a 1D dataset
+            %
+            % SYNTAX
+            %   y_out = interp1LS(x_in, y_in, degree, x_out)
+            
+            if nargin < 4
+                x_out = x_in;
+            end
+            
+            x_in = x_in(~isnan(y_in));
+            y_in = y_in(~isnan(y_in));
+            
+            n_obs = numel(x_in);
+            A = zeros(n_obs, degree + 1);            
+            A(:, 1) = ones(n_obs, 1);
+            for d = 1 : degree
+                A(:, d + 1) = x_in .^ d;
+            end
+            
+            if (nargin < 4) && numel(x_out) == numel(x_in)
+                A2 = A;
+            else
+                n_out = numel(x_out);
+                A2 = zeros(n_out, degree + 1);            
+                A2(:, 1) = ones(n_out, 1);
+                for d = 1 : degree
+                    A2(:, d + 1) = x_out .^ d;
+                end
+            end
+            
+            y_out = A2 * ((A' * A) \ (A' * y_in(:)));
+            y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));            
+        end
+        
         function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)
             % Interpolate values froma data on a gepgraphical grid with multiple epoch
             % data structure: 
@@ -493,7 +534,6 @@ classdef Core_Utils < handle
             
             
            
-        end
-          
+        end          
     end
 end
