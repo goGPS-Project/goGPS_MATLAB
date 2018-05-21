@@ -111,6 +111,22 @@ classdef Atmosphere < handle
             this.state = gs.getCurrentSettings();
             this.log = Logger.getInstance();
         end
+    end
+    methods (Static)
+        % Concrete implementation.  See Singleton superclass.
+        function this = getInstance()
+            % Get the persistent instance of the class
+            persistent unique_instance_atmosphere__
+            
+            if isempty(unique_instance_atmosphere__)
+                this = Atmosphere();
+                unique_instance_atmosphere__ = this;
+            else
+                this = unique_instance_atmosphere__;
+            end
+        end
+    end
+    methods
         
         function importIonex(this, filename)
             fid = fopen([filename],'r');
