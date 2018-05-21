@@ -4862,7 +4862,7 @@ classdef Receiver < Exportable
            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
            [gn ,ge] = this.getGradient();
-           [mfw, mfh] = this.getSlantMF();
+           [mfh, mfw] = this.getSlantMF();
            n_sat = this.getMaxSat;
            if ~any(ge(:) ~= 0)
                for g = go_id                   
