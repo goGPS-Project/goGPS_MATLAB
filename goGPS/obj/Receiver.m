@@ -5620,7 +5620,7 @@ classdef Receiver < Exportable
             %  correct measurement for PCV both of receiver
             % antenna and satellite antenna
             if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
-                this.updateAllAvailIndex();
+                % this.updateAllAvailIndex(); % not needed?
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
