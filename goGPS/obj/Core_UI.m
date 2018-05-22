@@ -1143,7 +1143,7 @@ classdef Core_UI < handle
             % SYNTAX:
             %   Core_UI.getColor(id);
             %
-            if (nargin == 2)
+            if (nargin == 2) && (color_num > 7)
                 color = linspecer(color_num, 'sequential');
                 color = color(color_id, :);
             else
