@@ -124,6 +124,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         IONO_NAME = '';
         ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
         ATM_LOAD_NAME = '';
+        VMF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'VMF' filesep];
+        VMF_NAME = '';
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
@@ -341,6 +343,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
         atm_load_dir = Main_Settings.ATM_LOAD_DIR;   % Path to IONO files folder
         atm_load_name = Main_Settings.ATM_LOAD_NAME; % Path to IONO files folder
+        vmf_dir = Main_Settings.VMF_DIR;   % Path to IONO files folder
+        vmf_name = Main_Settings.VMF_NAME; % Path to IONO files folder
         iono_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
         remote_res_conf_dir = Main_Settings.REMOTE_RES_CONF_DIR;
 
@@ -554,6 +558,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.geoid_name = fnp.checkPath(state.getData('geoid_name'));
                 this.iono_dir   = fnp.getFullDirPath(state.getData('iono_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('iono_dir')), this.prj_home));
                 this.atm_load_dir   = fnp.getFullDirPath(state.getData('atm_load_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('atm_load_dir')), this.prj_home));
+                this.vmf_dir   = fnp.getFullDirPath(state.getData('vmf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('vmf_dir')), this.prj_home));
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
@@ -657,6 +662,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.geoid_name = state.geoid_name;
                 this.iono_dir   = state.iono_dir;
                 this.atm_load_dir   = state.atm_load_dir;
+                this.vmf_dir   = state.vmf_dir;
 
                 % COMPUTATION CENTERS
                 this.preferred_eph = state.preferred_eph;
@@ -776,8 +782,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of Iono models:                         %s\n', fnp.getRelDirPath(this.iono_dir, this.prj_home))];
             str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n', this.iono_name)];
-            str = [str sprintf(' Directory of Atmospehric Loading models:          %s\n', fnp.getRelDirPath(this.atn_load_dir, this.prj_home))];
-            str = [str sprintf(' Name of the Atmospehric Loading files:            %s\n\n', this.atm_load_name)];
+            str = [str sprintf(' Directory of Atmospehric Loading models:          %s\n', fnp.getRelDirPath(this.atm_load_dir, this.prj_home))];
+            str = [str sprintf(' Name of the Atmospehric Loading files:            %s\n', this.atm_load_name)];
+            str = [str sprintf(' Directory of Vienna Mapping Function coefficients:%s\n', fnp.getRelDirPath(this.vmf_dir, this.prj_home))];
+            str = [str sprintf(' Name of Vienna Mapping Function coefficients:     %s\n\n', this.vmf_name)];
             
             str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
@@ -954,6 +962,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('iono_dir', fnp.getRelDirPath(this.iono_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Atmospheric Loading Models files', str_cell);
             str_cell = Ini_Manager.toIniString('atm_load_dir', fnp.getRelDirPath(this.atm_load_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of VMF Coeficents', str_cell);
+            str_cell = Ini_Manager.toIniString('vmf_dir', fnp.getRelDirPath(this.vmf_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1889,6 +1899,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: dcb_path = this.getDcbPath()
             out = this.atm_load_dir;
         end
+        
+        function out = getVMFDir(this)
+            % Get the path to the DCB files
+            % SYNTAX: dcb_path = this.getDcbPath()
+            out = this.vmf_dir;
+        end
 
         function out = getNavEphPath(this)
             % Get the path to the navigational files
@@ -2145,7 +2161,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
-        function iono_full_name = getAtmLoadFileName(this, date_start, date_stop)
+        function stm_load_full_name = getAtmLoadFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
             % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
@@ -2155,7 +2171,20 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 date_start = date_start.getCopy;
                 date_stop = date_stop.getCopy;
             end
-            iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            stm_load_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function vmf_full_name = getVMFFileName(this, date_start, date_stop)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name));
+
+            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy;
+                date_stop = date_stop.getCopy;
+            end
+            vmf_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
 
         function crx_full_name = getCrxFileName(this, date_start, date_stop)
@@ -2245,6 +2274,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
             this.atm_load_name = atm_load_file;
+        end
+        
+        function setVMFFile(this, vmf_file)
+            % Set the file name of the clock files
+            % SYNTAX: this.getClkFile(erp_name)
+            this.vmf_name = vmf_file;
         end
 
         function setIGRFFile(this, igrf_name)

@@ -501,10 +501,22 @@ classdef File_Wizard < handle
             status = this.conjureResource('atm_load',date_start, date_stop);
 
             if status
-                this.log.addMarkedMessage('All atmospheric files present');
+                this.log.addMarkedMessage('All atmospheric loading files present');
                 this.state.setAtmLoadFile('${YYYY}${MM}${DD}${6H}_ce_v004.apl');
             else
                 this.log.addMarkedMessage('Not all atmospheric files founds');
+            end
+            
+        end
+        
+        function conjureVmfFiles(this, date_start, date_stop)
+            status = this.conjureResource('vmf',date_start, date_stop);
+
+            if status
+                this.log.addMarkedMessage('All atmospheric loading files present');
+                this.state.setVMFFile('VMFG_${YYYY}${MM}${DD}.H${6H}');
+            else
+                this.log.addMarkedMessage('Not all vmf files founds');
             end
             
         end

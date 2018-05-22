@@ -2850,7 +2850,11 @@ classdef Receiver < Exportable
             if nargin == 1                
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
-                        [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        if atmo.isVMF()
+                            [gmfh, gmfw] = atmo.vmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el(:))./180*pi);
+                        else
+                            [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        end
                         mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         if isempty(this(s).id_sync)
@@ -2866,7 +2870,11 @@ classdef Receiver < Exportable
             else
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
-                        [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        if atmo.isVMF()
+                            [gmfh, gmfw] = atmo.vmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el(:))./180*pi);
+                        else
+                            [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                        end
                         mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         

@@ -79,6 +79,23 @@ classdef Atmosphere < handle
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
             )
+        vmf_status = false;
+        vmf_coeff = struct( ...
+            'ah',       [], ...    % alpha coefficient dry
+            'aw',       [], ...    % alpha coefficent wet
+            'zhd',       [], ...    % zhd 
+            'zwd',       [], ...    % zwd
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [] ...   % num of epocvhs
+            )
     end
     
     properties  (SetAccess = private, GetAccess = private)
@@ -127,6 +144,9 @@ classdef Atmosphere < handle
         end
     end
     methods
+        function status = isVMF(this)
+                status = this.vmf_status;
+        end
         
         function importIonex(this, filename)
             fid = fopen([filename],'r');
@@ -199,6 +219,16 @@ classdef Atmosphere < handle
             vals = reshape(vals,5,length(vals)/5);
             nums = sscanf(vals,'%f');
             this.ionex.data = reshape(nums,n_lat,n_lon,nt);
+        end
+        
+        function initVMF(this, dsa, dso)
+            dso = dso.getCopy();
+            dsa = dsa.getCopy();
+            dso.addSeconds(6*3600);
+            fname = this.state.getVMFFileName( dsa, dso);
+            for i = 1 : length(fname)
+                this.importVMFCoeffFile(fname{i});
+            end
         end
         
         function importAtmLoadCoeffFile(this, filename)
@@ -274,6 +304,83 @@ classdef Atmosphere < handle
             end
         end
         
+        function importVMFCoeffFile(this, filename)
+            % import data of atmospehric loading file
+            fid = fopen([filename],'r');
+            if fid == -1
+                this.log.addWarning(sprintf('      File %s not found', filename));
+                return
+            else
+                this.log.addMessage(this.log.indent(sprintf('Loading  %s', filename)));
+            end
+            [dir, file_name, ext ] = fileparts(filename);
+            year = str2num(file_name(1:4));
+            month = str2num(file_name(5:6));
+            day = str2num(file_name(7:8));
+            hour = str2num(file_name(9:10));
+            file_ref_ep = GPS_Time([year month day hour 0 0]);
+            isempty_obj = isempty(this.vmf_coeff.data_u);
+            if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
+                %% file is contained in the data already
+                this.log.addMessage(this.log.indent('File already present, skipping'));
+            else
+                if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
+                    %% file too far away emptying the object
+                    this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
+                    this.clearVMF();
+                    isempty_obj = true;
+                end
+                %% find number of header lines
+                n_head = 0;
+%                 fid = fopen(filename);
+                tline = fgetl(fid);
+                while ischar(tline) && tline(1) == '!'
+                    n_head = n_head + 1;
+                    tline = fgetl(fid);
+                end
+                fclose(fid);
+                %%% read data
+                %data_tmp = dlmread(filename, ' ', n_head, 0);
+                data_tmp = importdata(filename, ' ', n_head);
+                %%% important !!! we assume a regular grid
+                data_tmp_ah = reshape(data_tmp.data(:,3),144,91)';
+                data_tmp_aw = reshape(data_tmp.data(:,4),144,91)';
+                data_tmp_zhd = reshape(data_tmp.data(:,5),144,91)';
+                data_tmp_zwd = reshape(data_tmp.data(:,5),144,91)';
+                if isempty_obj
+                    this.vmf_coeff.ah = data_tmp_ah;
+                    this.vmf_coeff.aw = data_tmp_aw;
+                    this.vmf_coeff.zhd = data_tmp_zhd;
+                    this.vmf_coeff.zwd = data_tmp_zwd;
+                    this.vmf_coeff.first_lat = 90;
+                    this.vmf_coeff.first_lon = 0.0;
+                    this.vmf_coeff.d_lat = -2;
+                    this.vmf_coeff.d_lon = 2.5;
+                    this.vmf_coeff.n_lat = 91;
+                    this.vmf_coeff.n_lon = 144;
+                    this.vmf_coeff.first_time = file_ref_ep;
+                    this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
+                    this.vmf_coeff.dt = 3600*6;
+                    this.vmf_coeff.n_t = 1;
+                else
+                    if file_ref_ep < this.vmf_coeff.first_time ;
+                        this.vmf_coeff.first_time = file_ref_ep;
+                        this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
+                        this.vmf_coeff.ah = cat(3,data_tmp_ah,this.vmf_coeff.ah);
+                        this.vmf_coeff.aw = cat(3,data_tmp_aw,this.vmf_coeff.aw);
+                        this.vmf_coeff.zhd = cat(3,data_tmp_zhd,this.vmf_coeff.zhd);
+                        this.vmf_coeff.zwd = cat(3,data_tmp_zwd,this.vmf_coeff.zwd);
+                    else
+                        this.vmf_coeff.ah = cat(3,this.vmf_coeff.ah,data_tmp_ah);
+                        this.vmf_coeff.aw = cat(3,this.vmf_coeff.aw,data_tmp_aw);
+                        this.vmf_coeff.zhd = cat(3,this.vmf_coeff.zhd,data_tmp_zhd);
+                        this.vmf_coeff.zwd = cat(3,this.vmf_coeff.zwd,data_tmp_zwd);
+                    end
+                    this.vmf_coeff.n_t = this.vmf_coeff.n_t + 1;
+                end
+            end
+        end
+        
         function clearAtmLoad(this)
             this.atm_load = struct( ...
             'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
@@ -292,6 +399,25 @@ classdef Atmosphere < handle
             )
         end
         
+        function clearVMF(this)
+            this.vmf_coeff = struct( ...
+            'ah',       [], ...    % alpha coefficient dry
+            'aw',       [], ...    % alpha coefficent wet
+            'zhd',       [], ...    % zhd 
+            'zwd',       [], ...    % zwd
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [] ...   % num of epocvhs
+            )
+        end
+        
         function [corrxyz] = getAtmLoadCorr(this, lat,lon,h_ellips, time)
             % get atmospheric loading corrections
             gps_time = time.getGpsTime();
@@ -301,6 +427,11 @@ classdef Atmosphere < handle
             [x,y,z] = geod2cart(lat,lon,h_ellips);
             [corrxyz] = local2globalVel([east north up]', repmat([x,y,z]',1,length(east)));
             corrxyz = corrxyz';
+        end
+        
+        function [ah, aw] = this.interpolateAlpha(gps_time, lat, lon)
+            ah = Core_Utils.linInterpLatLonTime(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+            aw = Core_Utils.linInterpLatLonTime(this.vmf_coeff.aw, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
         function tec = interpolateTEC(this, gps_time, lat, lon)
@@ -407,7 +538,7 @@ classdef Atmosphere < handle
         %-----------------------------------------------------------
         % TROPO
         %-----------------------------------------------------------
-        function [delay] = saastamoinenModel (this, h, undu, el)
+        function [delay] = saastamoinenModel(this, h, undu, el)
             % SYNTAX:
             %   [delay] = Atmosphere.tropo_error_correction(lat, lon, h, el);
             %
@@ -486,7 +617,7 @@ classdef Atmosphere < handle
             end
         end
         
-        function [delay] = saastamoinenModelGPT (this, gps_time, lat, lon, h, undu, el)
+        function [delay] = saastamoinenModelGPT(this, gps_time, lat, lon, h, undu, el)
             % SYNTAX:
             %   [delay] = Atmosphere.saastamoinen_model_GPT(time_rx, lat, lon, h, undu, el)
             %
@@ -827,7 +958,7 @@ classdef Atmosphere < handle
             temp = temp0 - 0.0065d0 * h_ort;
         end
         
-        function [gmfh, gmfw] = gmf (this, gps_time, dlat, dlon, dhgt, zd)
+        function [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
             % This subroutine determines the Global Mapping Functions GMF
             % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
             % Global Mapping Functions (GMF): A new empirical mapping function based on numerical weather model data,
@@ -1089,6 +1220,25 @@ classdef Atmosphere < handle
             gmfw   = topcon ./ (sine+gamma);
         end
         
+        function [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
+            %angles in radians!!
+            %code based on:
+            %    Böhm, Johannes, and Harald Schuh. "Vienna mapping functions in VLBI analyses." Geophysical Research Letters 31.1 (2004).
+            [ah, aw] = this.interpolateAlpha(gps_time, lat, lon);
+            % hidrostatic b and c form Isobaric mapping function
+            bh = 0.002905;
+            ch = 0.0634 + 0.0014*cos(2*lat);
+            % wet b and c form Niell mapping function at 45° lat
+            bw = 0.00146;
+            cw = 0.04391;
+            el = pi/2 -zd;
+            [gmfh] = mfContinuedFractionForm(ah,bh,ch,el);
+            [gmfw] = mfContinuedFractionForm(aw,bw,cw,el)
+        end
+        
+        function [zhd,zwd] = vmf_zd(this, gps_time, lat, lon, h_ortho)
+        end
+        
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1125,6 +1275,13 @@ classdef Atmosphere < handle
     end
     
     methods (Static)
+        %-----------------------------------------------------------
+        % TROPO
+        %-----------------------------------------------------------
+        function [delay] = mfContinuedFractionForm(a,b,c,el)
+            sine = sin(e);
+            delay = (1 + (a ./ (1 + (b ./ (1 + c) )))) ./ (sine + (a ./ (sine + (b ./ (sine + c) ))))
+        end
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1325,5 +1482,6 @@ classdef Atmosphere < handle
             %ZHD (Saastamoinen model)
             ZHD = 0.0022768 * P(:) .* (1 + 0.00266 * cosd(2*lat(:)) + 0.00000028 * h(:));
         end
+        
     end
 end

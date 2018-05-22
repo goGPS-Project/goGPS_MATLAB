@@ -197,7 +197,11 @@ classdef Core < handle
             this.initSkySession(time_lim_large);
             this.log.newLine();
             this.initMeteoNetwork(time_lim_large);            
-            this.log.simpleSeparator();            
+            this.log.simpleSeparator();     
+            
+            % inti atmo object
+%             atmo = Atmosphere.getInstance();
+%             atmo.initVMF(time_lim_large.first,time_lim_large.first);
         end  
         
         function initSkySession(this, time_lim)
