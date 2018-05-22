@@ -6802,6 +6802,108 @@ classdef Receiver < Exportable
             
         end
         
+         function dynamicPPP(this, sys_list, id_sync)
+            % compute a static PPP solution
+            %
+            % SYNTAX
+            %   this.staticPPP(<sys_list>, <id_sync>)
+            %
+            % EXAMPLE:
+            %   Use the full dataset to compute a PPP solution
+            %    - this.staticPPP();
+            %
+            %   Use just GPS + GLONASS + Galileo to compute a PPP solution
+            %   using epochs from 501 to 2380
+            %    - this.staticPPP('GRE', 501:2380);
+            %
+            %   Use all the available satellite system to compute a PPP solution
+            %   using epochs from 501 to 2380
+            %    - this.staticPPP([], 500:2380);
+            
+            if this.isEmpty()
+                this.log.addError('staticPPP failed The receiver object is empty');
+            elseif ~this.isPreProcessed()
+                if (this.s02_ip < Inf)
+                    this.log.addError('Pre-Processing is required to compute a PPP solution');
+                else
+                    this.log.addError('Pre-Processing failed: skipping PPP solution');
+                end
+            else
+                if nargin >= 2
+                    if ~isempty(sys_list)
+                        this.setActiveSys(sys_list);
+                    end
+                end
+                
+                if nargin < 3
+                    id_sync = (1 : this.time.length())';
+                end
+                
+                this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                this.log.addMessage(this.log.indent('Preparing the system', 6));
+                %this.updateAllAvailIndex
+                %this.updateAllTOT
+                ls = Least_Squares_Manipulator();
+                id_sync = ls.setUpPPP(this, id_sync, this.state.getCutOff, true);
+                ls.Astack2Nstack();
+                
+                time = this.time.getSubSet(id_sync);
+                
+                if isempty(this.zwd) || all(isnan(this.zwd))
+                    this.zwd = zeros(this.time.length(), 1);
+                end
+                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
+                    this.apr_zhd = zeros(this.time.length(),1);
+                end
+                if isempty(this.ztd) || all(isnan(this.ztd))
+                    this.ztd = zeros(this.time.length(),1);
+                end
+                
+                n_sat = size(this.sat.el,2);
+                if isempty(this.sat.slant_td)
+                    this.sat.slant_td = zeros(this.time.length(), n_sat);
+                end
+                
+                rate = time.getRate();
+                
+                %ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_X, 1 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_Y, 1 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_Z, 1 * rate); % really small regularization
+                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo/2)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                if this.state.flag_tropo_gradient
+                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient/2)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient/2)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                end
+                this.log.addMessage(this.log.indent('Solving the system', 6));
+                [x, res, s02] = ls.solve();
+                % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
+                % enable)
+                % ls.reweightHuber();
+                % ls.Astack2Nstack();
+                % [x, res, s02] = ls.solve();
+                this.id_sync = id_sync;
+                
+                this.sat.res = zeros(this.getNumEpochs, n_sat);
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+               
+                %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
+                
+                coo_x    = x(x(:,2) == 1,1);
+                coo_y    = x(x(:,2) == 2,1);
+                coo_z    = x(x(:,2) == 3,1);
+                
+                clock = x(x(:,2) == 6,1);
+                tropo = x(x(:,2) == 7,1);
+                amb = x(x(:,2) == 5,1);
+                
+                  this.sat.res = zeros(this.getNumEpochs, n_sat);
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+                keyboard
+            end
+            
+         end
+        
         function interpResults(this)
             % When computing a solution with subsampling not all the epochs have an estimation
             id_rem = true(this.time.length, 1);

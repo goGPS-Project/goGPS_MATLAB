@@ -102,11 +102,14 @@ classdef Least_Squares_Manipulator < handle
             this.state = Global_Configuration.getCurrentSettings();
         end
         
-        function id_sync = setUpPPP(this, rec, id_sync,  cut_off)
+        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic)
             if nargin < 4
                 cut_off = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off);
+            if nargin < 5
+                dynamic = false;
+            end
+            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off,'',dynamic);
         end
         
         function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
@@ -116,7 +119,7 @@ classdef Least_Squares_Manipulator < handle
             id_sync = this.setUpSA(rec, id_sync, 'C', cut_off);
         end
         
-        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set)
+        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic)
             % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
             % INPUT:
@@ -125,10 +128,12 @@ classdef Least_Squares_Manipulator < handle
             %    obs_type : 'C' 'L' 'CL'
             %    cut_off : cut off angle [optional]
             %
-            
+            if nargin < 7
+                dynamic = false;
+            end
             % extract the observations to be used for the solution
             phase_present = ~isempty(strfind(obs_type, 'L'));
-            if nargin < 6
+            if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() %% case multi frequency
                     for sys_c = rec.cc.sys_c
@@ -219,7 +224,7 @@ classdef Least_Squares_Manipulator < handle
             n_epochs = size(obs_set.obs, 1);
             this.n_epochs = n_epochs;
             n_stream = size(diff_obs, 2); % number of satellites
-            n_coo = 3; % number of coordinates
+           
             n_clocks = n_epochs; % number of clock errors
             n_tropo = n_clocks; % number of epoch for ZTD estimation
             ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
@@ -282,7 +287,6 @@ classdef Least_Squares_Manipulator < handle
                 n_epochs = size(obs_set.obs, 1);
                 this.n_epochs = n_epochs;
                 n_stream = size(diff_obs, 2); % number of satellites
-                n_coo = 3; % number of coordinates
                 n_clocks = n_epochs; % number of clock errors
                 
                 % Store amb_idx
@@ -301,6 +305,11 @@ classdef Least_Squares_Manipulator < handle
                 amb_flag = 0;
                 this.amb_idx = [];
             end
+             if dynamic
+                n_coo = 3*n_epochs;
+            else
+                 n_coo = 3; % number of coordinates
+            end
             
             % get the list  of observation codes used
              u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code))); 
@@ -318,7 +327,7 @@ classdef Least_Squares_Manipulator < handle
             n_obs = sum(sum(diff_obs ~= 0));
             
             % Building Design matrix
-            n_par = n_coo + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = 3 + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -360,7 +369,12 @@ classdef Least_Squares_Manipulator < handle
                 variance(lines_stream) =  obs_set.sigma(s)^2;
                 % ----------- FILL IMAGE MATRIX ------------
                 % ----------- coordinates ------------------
-                A(lines_stream, 1:n_coo) = - los_stream;
+                A(lines_stream, 1:3) = - los_stream;
+                if dynamic
+                    A_idx(lines_stream, 1) = ep_p_idx(id_ok_stream);
+                    A_idx(lines_stream, 2) = n_epochs + ep_p_idx(id_ok_stream);
+                    A_idx(lines_stream, 3) = 2*n_epochs + ep_p_idx(id_ok_stream);
+                end
                 % ----------- Inster observation bias ------------------
                 if n_iob > 0
                     A(lines_stream, 4) = iob_idx(s) > 0;
@@ -368,26 +382,26 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % ----------- Abiguity ------------------
                 if phase_present
-                    amb_offset = n_coo + iob_flag + 1;
+                    amb_offset = 3 + iob_flag + 1;
                     A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
                     A_idx(lines_stream, amb_offset) = n_coo + n_iob + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
-                A(lines_stream, n_coo+iob_flag+amb_flag + 1) = 1;
-                A_idx(lines_stream, n_coo+iob_flag+amb_flag + 1) = n_coo + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                A(lines_stream, 3+iob_flag+amb_flag + 1) = 1;
+                A_idx(lines_stream, 3+iob_flag+amb_flag + 1) = n_coo + n_iob + n_amb + ep_p_idx(id_ok_stream);
                 % ----------- ZTD ------------------
                 if tropo
-                    A(lines_stream, n_coo+iob_flag+amb_flag + 2) = mfw_stream;
-                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 2) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                    A(lines_stream, 3+iob_flag+amb_flag + 2) = mfw_stream;
+                    A_idx(lines_stream, 3+iob_flag+amb_flag + 2) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     cotan_term = cot(el_stream) .* mfw_stream;
-                    A(lines_stream, n_coo+iob_flag+amb_flag + 3) = cos(az_stream) .* cotan_term; % noth gradient
-                    A(lines_stream, n_coo+iob_flag+amb_flag + 4) = sin(az_stream) .* cotan_term; % east gradient
+                    A(lines_stream, 3+iob_flag+amb_flag + 3) = cos(az_stream) .* cotan_term; % noth gradient
+                    A(lines_stream, 3+iob_flag+amb_flag + 4) = sin(az_stream) .* cotan_term; % east gradient
                     
-                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 3) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
-                    A_idx(lines_stream, n_coo+iob_flag+amb_flag + 4) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                    A_idx(lines_stream, 3+iob_flag+amb_flag + 3) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                    A_idx(lines_stream, 3+iob_flag+amb_flag + 4) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -416,7 +430,11 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = obs;
             this.sat = sat;
+            if dynamic
+                this.param_flag = [1, 1, 1, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            else
             this.param_flag = [0, 0, 0, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+            end
             this.param_class = [1, 2, 3, 4 * ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
@@ -651,7 +669,9 @@ classdef Least_Squares_Manipulator < handle
             idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
             idx_constant = find(idx_constant_l);
             idx_non_constant = find(~idx_constant_l);
-            n_constant = max(max(this.A_idx(:, idx_constant_l)));
+            a_idx_const =unique(this.A_idx(:, idx_constant_l));
+            a_idx_ep_wise = unique(this.A_idx(:, ~idx_constant_l));
+            n_constant = length(a_idx_const);
             n_class = size(this.A_ep, 2);
             n_ep_wise = max(max(this.A_idx(:, ~idx_constant_l))) - n_constant;
             if isempty(n_ep_wise)
@@ -668,6 +688,11 @@ classdef Least_Squares_Manipulator < handle
             if isempty(this.rw)
                 this.rw = ones(size(this.variance));
             end
+            %%% all costant parameters are put before in the normal matrix find the mapping between A_idx and idx in the Normal matrix
+            N2A_idx = [a_idx_const; a_idx_ep_wise];
+            A2N_idx = zeros(size(N2A_idx));
+            A2N_idx(N2A_idx) = 1:(n_constant+n_ep_wise);
+            
             for i = 1 : n_obs
                 p_idx = this.A_idx(i, :);
                 p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
@@ -678,9 +703,11 @@ classdef Least_Squares_Manipulator < handle
                 y = this.y(i);
                 e = this.epoch(i);
                 p_c_idx = p_idx(idx_constant_l);
-                p_e_idx = p_idx(~idx_constant_l) - n_constant;
+                p_e_idx = p_idx(~idx_constant_l);
                 p_e_idx(p_e_idx <= 0) = 1;  % does not matter since terms are zeros
-                
+                p_c_idx = A2N_idx(p_c_idx);
+                p_e_idx = A2N_idx(p_e_idx)-n_constant;
+                p_idx =A2N_idx(p_idx);
                 
                 % fill Ncc
                 Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + N_ep(idx_constant, idx_constant);
@@ -736,7 +763,7 @@ classdef Least_Squares_Manipulator < handle
             end
             N = [[Ncc, Nce']; [Nce, Nee]];
             if ~ isempty(this.G)
-                G = this.G;
+                G = this.G(N2A_idx);
                 N =  [[N, G']; [G, zeros(size(G,1))]];
                 B = [B; this.D];
             end
@@ -764,10 +791,13 @@ classdef Least_Squares_Manipulator < handle
             end
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
-                x_class(this.A_idx(:, c)) = this.param_class(c);
+                idx_p = A2N_idx(this.A_idx(:, c));
+                x_class(idx_p) = this.param_class(c);
             end
             if nargout > 1
-                res = this.getResiduals(x);
+                x_res = zeros(size(x));
+                x_res(N2A_idx) = x(1:end-size(this.G,1));
+                res = this.getResiduals(x_res);
                 s02 = mean(abs(res(res~=0)));
                 if nargout > 3
                     Cxx = s02 * Cxx;

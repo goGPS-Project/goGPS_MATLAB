@@ -4,6 +4,14 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
+        function idx = findMO(find_list, to_find_el)
+            % find the postion of the elements of to_find_el into find_list
+            % find list should have unique elements
+            idx = zeros(size(to_find_el));
+            for i = 1: length(to_find_el)
+                idx(i) = find(find_list == to_find_el(i),1);
+            end
+        end
         function num = code3Char2Num(str3)
             % Convert a 3 char string into a numeric value (float)
             % SYNTAX
