@@ -2820,7 +2820,7 @@ classdef Receiver < Exportable
             % Get Iono mapping function for all the valid elevations
             [lat, ~, ~, h_ortho] = this.getMedianPosGeodetic_mr();
             
-            atmo = Atmosphere();
+            atmo = Atmosphere.getInstance();
             [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);            
         end        
         
@@ -2842,7 +2842,7 @@ classdef Receiver < Exportable
             
             t = 1;
             
-            atmo = Atmosphere();
+            atmo = Atmosphere.getInstance();
             [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic_mr();
             lat = median(lat);
             lon = median(lon);
@@ -2901,7 +2901,7 @@ classdef Receiver < Exportable
             l = time.length;
             switch flag
                 case 1 % standard atmosphere
-                    atmo = Atmosphere();
+                    atmo = Atmosphere.getInstance();
                     this.updateCoordinates();
                     Pr = atmo.STD_PRES;
                     % temperature [K]
@@ -2922,7 +2922,7 @@ classdef Receiver < Exportable
                         H = Hr * exp(-0.0006396*h);
                     end
                 case 2 % gpt
-                    atmo = Atmosphere();
+                    atmo = Atmosphere.getInstance();
                     this.updateCoordinates();
                     time= time.getGpsTime();
                     if this.isStatic()
@@ -4824,7 +4824,7 @@ classdef Receiver < Exportable
             % flag: flag of the tropo model
             %DESCRIPTION update the tropospheric correction
             
-            atmo = Atmosphere();
+            atmo = Atmosphere.getInstance();
             
             if isempty(this.sat.err_tropo)
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
@@ -5363,7 +5363,7 @@ classdef Receiver < Exportable
             %   Computation of thigh order ionospheric effect
             
             this.updateCoordinates();
-            atmo = Atmosphere();
+            atmo = Atmosphere.getInstance();
             fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
             atmo.importIonex(fname{1});
             [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
@@ -5430,7 +5430,7 @@ classdef Receiver < Exportable
                 sat = 1 : this.getMaxSat();
             end
             this.updateCoordinates();
-            atmo = Atmosphere();
+            atmo = Atmosphere.getInstance();
             dsa = this.time.first.getCopy();
             dso = this.time.getSubSet(this.time.length).getCopy();
             dso.addSeconds(6*3600);
