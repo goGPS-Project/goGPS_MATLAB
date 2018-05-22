@@ -345,6 +345,7 @@ classdef Receiver < Exportable
         
         function resetEstTropo(this)
             % empty estimated tropo paramteres
+            n_epoch = this.getNumEpochs();
             this.zwd = nan(n_epoch, 1);
             this.tge = nan(n_epoch, 1);
             this.tgn = nan(n_epoch, 1);
@@ -2692,9 +2693,7 @@ classdef Receiver < Exportable
             %   Compute the satellite clock error.
             if nargin < 2
                 dtS = zeros(size(this.sat.avail_index));
-                for s = 1 : size(dtS,2)
-                    dtS(this.sat.avail_index(:,s),s) = this.sat.cs.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)),s);
-                end
+                dtS(this.sat.avail_index(:,s),s) = this.sat.cs.clockInterpolate(this.time.getSubSet(this.sat.avail_index(:,s)), 1 : size(dtS,2));
             else
                 idx = this.sat.avail_index(:,sat) > 0;
                 if sum(idx) > 0
@@ -6685,9 +6684,6 @@ classdef Receiver < Exportable
                     this.sat.slant_td = zeros(this.time.length(), n_sat);
                 end
                 
-              
-                                
-
                 rate = time.getRate();
                 
                 ls.setTimeRegularization(ls.PAR_CLK, 1e-3 * rate); % really small regularization
@@ -6705,11 +6701,9 @@ classdef Receiver < Exportable
                 % [x, res, s02] = ls.solve();
                 this.id_sync = id_sync;
                 
-                
                 this.sat.res = zeros(this.getNumEpochs, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-                
-                
+               
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 
                 coo    = x(1:3,1);

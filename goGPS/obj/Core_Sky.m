@@ -1305,7 +1305,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function [dt_S] = clockInterpolate(this, time, sat)
+        function [dts] = clockInterpolate(this, time, sat_in)
             % SYNTAX:
             %   [dt_S_SP3] = interpolate_SP3_clock(time, sat);
             %
@@ -1320,53 +1320,61 @@ classdef Core_Sky < handle
             % DESCRIPTION:
             %   SP3 (precise ephemeris) clock correction linear interpolation.
             if nargin < 3
-                sat = this.cc.index;
+                sat_in = this.cc.index;
             end
             
-            interval = this.clock_rate;
+            for sat = sat_in(:)'
+                interval = this.clock_rate;
+                
+                %find the SP3 epoch closest to the interpolation time
+                %[~, p] = min(abs(SP3_time - time));
+                % speed improvement of the above line
+                % supposing SP3_time regularly sampled
+                times = this.getClockTime();
+                
+                % find day change
+                date = times.get6ColDate;
+                day_change = find(diff(date(:,3)));
+                
+                p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
+                
+                b =  (times.getEpoch(p) - time)';
+                
+                SP3_c = zeros(time.length,2);
+                u = zeros(time.length,1);
+                
+                % extract the SP3 clocks
+                b_pos_idx = b > 0;
+                p_pos = p(b_pos_idx);
+                SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));
+                u(b_pos_idx) = 1 - b(b_pos_idx)/interval;
+                
+                b_neg_idx = not(b_pos_idx);
+                p_neg = p(b_neg_idx);
+                SP3_c( b_neg_idx,:) = cat(2, this.clock(p_neg,sat), this.clock(p_neg+1,sat));
+                u(b_neg_idx) = -b(b_neg_idx) / interval;
+                
+                dts_tmp = NaN * ones(size(SP3_c,1), size(SP3_c,2));
+                idx = (sum(SP3_c ~= 0,2) == 2 .* ~any(SP3_c >= 0.999,2)) > 0;
+                dts_tmp = (1-u) .* SP3_c(:,1) + (u) .* SP3_c(:,2);
+                dts_tmp(not(idx)) = NaN;
+                
+                %             dt_S_SP3=NaN;
+                %             if (sum(SP3_c~=0) == 2 && ~any(SP3_c >= 0.999))
+                %
+                %                 %linear interpolation (clock)
+                %                 dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
+                %
+                %                 %plot([0 1],SP3_c,'o',u,dt_S_SP3,'.')
+                %                 %pause
+                %             end
+                if numel(sat_in) == 1
+                    dts = dts_tmp(:);
+                else
+                    dts(:,sat) = dts_tmp(:);
+                end
+            end
             
-            %find the SP3 epoch closest to the interpolation time
-            %[~, p] = min(abs(SP3_time - time));
-            % speed improvement of the above line
-            % supposing SP3_time regularly sampled
-            times = this.getClockTime();
-            
-            % find day change
-            date = times.get6ColDate;
-            day_change = find(diff(date(:,3)));
-            
-            p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
-            
-            b =  (times.getEpoch(p) - time)';
-            
-            SP3_c = zeros(time.length,2);
-            u = zeros(time.length,1);
-            
-            % extract the SP3 clocks
-            b_pos_idx = b > 0;
-            p_pos = p(b_pos_idx);
-            SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));
-            u(b_pos_idx) = 1 - b(b_pos_idx)/interval;
-            
-            b_neg_idx = not(b_pos_idx);
-            p_neg = p(b_neg_idx);
-            SP3_c( b_neg_idx,:) = cat(2, this.clock(p_neg,sat), this.clock(p_neg+1,sat));
-            u(b_neg_idx) = -b(b_neg_idx) / interval;
-            
-            dt_S = NaN * ones(size(SP3_c,1), size(SP3_c,2));
-            idx = (sum(SP3_c ~= 0,2) == 2 .* ~any(SP3_c >= 0.999,2)) > 0;
-            dt_S = (1-u) .* SP3_c(:,1) + (u) .* SP3_c(:,2);
-            dt_S(not(idx)) = NaN;
-            
-            %             dt_S_SP3=NaN;
-            %             if (sum(SP3_c~=0) == 2 && ~any(SP3_c >= 0.999))
-            %
-            %                 %linear interpolation (clock)
-            %                 dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
-            %
-            %                 %plot([0 1],SP3_c,'o',u,dt_S_SP3,'.')
-            %                 %pause
-            %             end
         end
         
         function computeSatPolyCoeff(this, order, n_obs)
