@@ -6870,10 +6870,10 @@ classdef Receiver < Exportable
                 ls.setTimeRegularization(ls.PAR_X, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_Y, 1 * rate); % really small regularization
                 ls.setTimeRegularization(ls.PAR_Z, 1 * rate); % really small regularization
-                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo/2)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
+                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * rate );% this.state.std_tropo / 3600 * rate  );
                 if this.state.flag_tropo_gradient
-                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient/2)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
-                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient/2)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
+                    ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
+                    ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
                 this.log.addMessage(this.log.indent('Solving the system', 6));
                 [x, res, s02] = ls.solve();
