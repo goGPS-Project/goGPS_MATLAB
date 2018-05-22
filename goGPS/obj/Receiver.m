@@ -6607,13 +6607,32 @@ classdef Receiver < Exportable
                     % apply various corrections
                     this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                     
+                    ph0 = this.getPhases();
                     this.applyPCV();
+                    ph1 = this.getPhases();
+                    corr.pcv = ph1 - ph0;
+                    
                     this.applyPoleTide();
+                    ph2 = this.getPhases();
+                    corr.pt = ph2 - ph1;
+                    
                     this.applyPhaseWindUpCorr();
+                    ph3 = this.getPhases();
+                    corr.pwu = ph3 - ph2;
+                    
                     this.applySolidEarthTide();
+                    ph4 = this.getPhases();
+                    corr.set = ph4 - ph3;
+                    
                     this.applyShDelay();
+                    ph5 = this.getPhases();
+                    corr.shd = ph5 - ph4;
+                    
                     this.applyOceanLoading();
-                    this.applyAtmLoad();
+                    ph6 = this.getPhases();
+                    corr.ocl = ph6 - ph5;
+                    
+                    %this.applyAtmLoad();
                     %this.applyHOI();
                     
                     this.removeOutlierMarkCycleSlip();
