@@ -1281,11 +1281,11 @@ classdef Core_Sky < handle
                 %pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
 
                 % Use polynomial interpolation to smooth PCV
-                pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(5,numel(pcv_val)), zen_float);                
+                pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);                
                 pcv_delay = pco_delay - pcv_val;
             else
                 pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency (receivers)
-                
+                thislog.addWarning('Do you have PCV values for satellites that depend on az?\n Copy here the implementation of getPCV in Receiver');
                 %find azimuth indexes
                 az_pcv = sat_pcv.tablePCV_azi;
                 min_az = az_pcv(1);

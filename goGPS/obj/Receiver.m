@@ -275,6 +275,15 @@ classdef Receiver < Exportable
             end
         end
         
+        function appendRinex(this, rinex_file_name)
+            rec = Receiver(this.cc, rinex_file_name, this.getDynamicMode);
+            rec.load();
+            
+            % for the moment I merge receivers but then they need to run preProcessing again as a hole
+            this.removeAllCorrections()
+            % to do....
+        end
+        
         function reset(this)
             this.marker_name  = 'unknown';  % marker name
             this.marker_type  = '';       % marker type
@@ -5721,11 +5730,13 @@ classdef Receiver < Exportable
             end
         end
         
-        function pcv_delay = getPCV(this, idx, el, az)
+        function pcv_delay = getPCV(this, idx, el, az, method)
             % get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
-            method = 'polyLS';
+            if (nargin < 5)
+                method = 'minterp';
+            end
             pcv_delay = zeros(size(el));
             
             pcv = this.pcv;
@@ -5744,25 +5755,28 @@ classdef Receiver < Exportable
                 %pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
                 
                 % Use polynomial interpolation to smooth PCV
-                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(5,numel(pcv_val)), zen_float);                
+                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);                
             else                                                
                 % find azimuth indexes
                 az_pcv = pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
                 d_az = (max_az - min_az)/(length(az_pcv)-1);
+                az_float = (mod(az, 360) - min_az)/d_az;
                 az_idx = min(max(floor((mod(az,360) - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
                 d_f_r_az = min(max(mod(az, 360) - (az_idx-1)*d_az, 0)/d_az, 1);
                 
                 
                 if strcmp(method, 'polyLS')
+                    % Polynomial interpolation in elevation and griddedInterpolant in az
+                    % filter PCV values in elevetion - slower
                     %%
-                    tic, pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
+                    pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
                     step = 0.25;
                     zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen)/d_zen + 1;
 
                     % Interpolate with a 7th degree polinomial in elevation
-                    pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val', min(7,size(pcv_val, 2)), zen_interp);
+                    pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val', min(8,size(pcv_val, 2)), zen_interp);
                     
                     n_az = size(pcv_val, 2);
                     b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
@@ -5774,8 +5788,27 @@ classdef Receiver < Exportable
                     % Using scattered interpolant for azimuth to have a smooth interpolation
                     [zen_m, az_m] = ndgrid(zen_interp, az_val);
                     fun = griddedInterpolant(zen_m, az_m, pcv_val);
-                    pcv_delay = fun(zen_float, mod(az, 360));                   
+                    pcv_delay = fun(zen_float, mod(az, 360));
+                elseif strcmp(method, 'minterp')
+                    % Interpolation with griddedInterpolant
+                    % leinear interpolation - faster
+                    pcv_val = pcv.tablePCV(:,:,idx)'; % extract the right frequency
+                    
+                    n_az = size(pcv_val, 2);
+                    b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
+                    b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
+                    % replicate border for azimuth periodicity
+                    pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
+                    az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
+                    
+                    % Using scattered interpolant for azimuth to have a smooth interpolation
+                    [zen_m, az_m] = ndgrid(zen_pcv, az_val);
+                    fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
+                    pcv_delay = fun(zen, az);
                 elseif strcmp(method, 'lin')
+                    
+                    % linear interpolation between consecutive values 
+                    % bad performance
                     %%
                     zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
                     d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
@@ -5788,7 +5821,7 @@ classdef Receiver < Exportable
                     idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
                     pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
                     %interpolate alogn azimtuh
-                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
+                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;                    
                 end
             end
         end
@@ -5796,7 +5829,7 @@ classdef Receiver < Exportable
         function applyPCV(this)
             if this.pcv_delay_status == 0
                 this.log.addMarkedMessage('Applying PCV corrections');
-                this.applyRemovePCV(1);
+                tic, this.applyRemovePCV(1); toc
                 this.pcv_delay_status = 1; % applied
             end
         end
