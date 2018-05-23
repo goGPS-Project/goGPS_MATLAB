@@ -231,7 +231,7 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     properties
-        slant_filter_win = 900;
+        slant_filter_win = 0;
     end
     
     % ==================================================================================================================================================
@@ -5632,13 +5632,13 @@ classdef Receiver < Exportable
                 % getting sat - receiver vector for each epoch
                 XR_sat = - this.getXSLoc();
                 
+                % Receiver PCV correction
                 if ~isempty(this.pcv) && ~isempty(this.pcv.name)
-                    %TODO correct for receiver pcv
                     f_code_history = []; % save f_code checked to print only one time the warning message
                     for s = unique(this.go_id)'
                         sat_idx = this.sat.avail_index(:, s);
                         el = this.sat.el(sat_idx, s);
-                        az = this.sat.el(sat_idx, s);
+                        az = this.sat.az(sat_idx, s);
                         neu_los = [cosd(az).*cosd(el) sind(az).*cosd(el) sind(el)];
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
@@ -5674,8 +5674,8 @@ classdef Receiver < Exportable
                     end
                 end
                 
-                if ~isempty(this.sat.cs.ant_pcv)
-                    
+                % Satellite PCV correction
+                if ~isempty(this.sat.cs.ant_pcv)                    
                     % getting satellite reference frame for each epoch
                     [x, y, z] = this.sat.cs.getSatFixFrame(this.time);
                     sat_ok = unique(this.go_id)';
@@ -5695,7 +5695,7 @@ classdef Receiver < Exportable
                         obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                         obs_idx = obs_idx & this.go_id == s;
                         if sum(obs_idx) > 0
-                            freqs = unique(str2num(this.obs_code(obs_idx,2)));
+                            freqs = str2num(unique(this.obs_code(obs_idx,2)));
                             for f = freqs'
                                 obs_idx_f = obs_idx & this.obs_code(:,2) == num2str(f);
                                 az_idx = ~isnan(az(:,s));
@@ -5721,15 +5721,16 @@ classdef Receiver < Exportable
             end
         end
         
-        function pcv_delay = getPCV(this, idx, el, az) % Duplicate of method in Core_Sky consider restructuring
-            %  get the pcv correction for a given satellite and a given
+        function pcv_delay = getPCV(this, idx, el, az)
+            % get the pcv correction for a given satellite and a given
             % azimuth and elevations using linear or bilinear interpolation
             
+            method = 'polyLS';
             pcv_delay = zeros(size(el));
             
             pcv = this.pcv;
             
-            %tranform el in zen
+            % transform el in zen
             zen = 90 - el;
             % get el idx
             zen_pcv = pcv.tablePCV_zen;
@@ -5737,32 +5738,58 @@ classdef Receiver < Exportable
             min_zen = zen_pcv(1);
             max_zen = zen_pcv(end);
             d_zen = (max_zen - min_zen)/(length(zen_pcv)-1);
-            zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
-            d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
-            if nargin < 4 || isempty(pcv.tablePCV_azi) %no azimuth change
-                pcv_val = pcv.tableNOAZI(:,:,idx); %etract the right frequency
+            zen_float = (zen - min_zen)/d_zen + 1;
+            if nargin < 4 || isempty(pcv.tablePCV_azi) % no azimuth change
+                pcv_val = pcv.tableNOAZI(:,:,idx); % extract the right frequency                
+                %pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
                 
-                pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
-            else
-                pcv_val = pcv.tablePCV(:,:,idx); %etract the right frequency
-                
-                %find azimuth indexes
+                % Use polynomial interpolation to smooth PCV
+                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(5,numel(pcv_val)), zen_float);                
+            else                                                
+                % find azimuth indexes
                 az_pcv = pcv.tablePCV_azi;
                 min_az = az_pcv(1);
                 max_az = az_pcv(end);
                 d_az = (max_az - min_az)/(length(az_pcv)-1);
-                az_idx = min(max(floor((az - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
-                d_f_r_az = min(max(az - (az_idx-1)*d_az, 0)/d_az, 1);
+                az_idx = min(max(floor((mod(az,360) - min_az)/d_az) + 1, 1),length(az_pcv) - 1);
+                d_f_r_az = min(max(mod(az, 360) - (az_idx-1)*d_az, 0)/d_az, 1);
                 
-                %interpolate along zenital angle
-                idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
-                idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
-                pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
-                idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
-                pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
-                %interpolate alogn azimtuh
-                pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
+                
+                if strcmp(method, 'polyLS')
+                    %%
+                    tic, pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
+                    step = 0.25;
+                    zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen)/d_zen + 1;
+
+                    % Interpolate with a 7th degree polinomial in elevation
+                    pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val', min(7,size(pcv_val, 2)), zen_interp);
+                    
+                    n_az = size(pcv_val, 2);
+                    b_dx = (n_az - floor(n_az / 3)) : (n_az - 1); % dx border
+                    b_sx = 2 : (n_az - floor(n_az / 3));          % sx border
+                    % replicate border for azimuth periodicity
+                    pcv_val = [pcv_val(:, b_dx), pcv_val, pcv_val(:, b_sx)];
+                    az_val = [az_pcv(b_dx) - 360, az_pcv, az_pcv(b_sx) + 360];
+                    
+                    % Using scattered interpolant for azimuth to have a smooth interpolation
+                    [zen_m, az_m] = ndgrid(zen_interp, az_val);
+                    fun = griddedInterpolant(zen_m, az_m, pcv_val);
+                    pcv_delay = fun(zen_float, mod(az, 360));                   
+                elseif strcmp(method, 'lin')
+                    %%
+                    zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
+                    d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
+                    pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
+                    %interpolate along zenital angle
+                    idx1 = sub2ind(size(pcv_val),az_idx,zen_idx);
+                    idx2 = sub2ind(size(pcv_val),az_idx,zen_idx+1);
+                    pcv_delay_lf =  d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
+                    idx1 = sub2ind(size(pcv_val),az_idx+1,zen_idx);
+                    idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
+                    pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
+                    %interpolate alogn azimtuh
+                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
+                end
             end
         end
         
@@ -5770,7 +5797,7 @@ classdef Receiver < Exportable
             if this.pcv_delay_status == 0
                 this.log.addMarkedMessage('Applying PCV corrections');
                 this.applyRemovePCV(1);
-                this.pcv_delay_status = 1; %applied
+                this.pcv_delay_status = 1; % applied
             end
         end
         
@@ -5778,7 +5805,7 @@ classdef Receiver < Exportable
             if this.pcv_delay_status == 1
                 this.log.addMarkedMessage('Removing PCV corrections');
                 this.applyRemovePCV(-1);
-                this.pcv_delay_status = 0; %applied
+                this.pcv_delay_status = 0; % applied
             end
         end
         
@@ -6602,7 +6629,7 @@ classdef Receiver < Exportable
                     this.importMeteoData();
                     
                     % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-                    this.dt_ip = this.dt; % save init_positioning clock
+                    this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear'); % save init_positioning clock
                     % smooth clock estimation
                     this.smoothAndApplyDt(0);
                     
@@ -6615,6 +6642,7 @@ classdef Receiver < Exportable
                     % apply various corrections
                     this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                     
+                    this.updateAzimuthElevation();
                     ph0 = this.getPhases();
                     this.applyPCV();
                     ph1 = this.getPhases();

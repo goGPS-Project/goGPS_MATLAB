@@ -425,29 +425,42 @@ classdef Core_Utils < handle
                 x_out = x_in;
             end
             
-            x_in = x_in(~isnan(y_in));
-            y_in = y_in(~isnan(y_in));
-            
-            n_obs = numel(x_in);
-            A = zeros(n_obs, degree + 1);            
-            A(:, 1) = ones(n_obs, 1);
-            for d = 1 : degree
-                A(:, d + 1) = x_in .^ d;
-            end
-            
-            if (nargin < 4) && numel(x_out) == numel(x_in)
-                A2 = A;
-            else
-                n_out = numel(x_out);
-                A2 = zeros(n_out, degree + 1);            
-                A2(:, 1) = ones(n_out, 1);
-                for d = 1 : degree
-                    A2(:, d + 1) = x_out .^ d;
+            for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
+                if size(y_in, 1) == 1
+                    y_tmp = y_in';
+                else
+                    y_tmp = y_in(:, c);
                 end
+                x_tmp = x_in(~isnan(y_tmp));
+                y_tmp = y_tmp(~isnan(y_tmp));
+                
+                n_obs = numel(x_tmp);
+                A = zeros(n_obs, degree + 1);
+                A(:, 1) = ones(n_obs, 1);
+                for d = 1 : degree
+                    A(:, d + 1) = x_tmp .^ d;
+                end
+                
+                if (nargin < 4) && numel(x_out) == numel(x_tmp)
+                    A2 = A;
+                else
+                    n_out = numel(x_out);
+                    A2 = zeros(n_out, degree + 1);
+                    A2(:, 1) = ones(n_out, 1);
+                    for d = 1 : degree
+                        A2(:, d + 1) = x_out .^ d;
+                    end
+                end
+                
+                warning('off')
+                if min(size(y_in)) == 1
+                    y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
+                    y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
+                else
+                    y_out(:,c) = A2 * ((A' * A + eye(size(A,2))) \ (A' * y_tmp(:)));
+                end
+                warning('on')                
             end
-            
-            y_out = A2 * ((A' * A) \ (A' * y_in(:)));
-            y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));            
         end
         
         function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)

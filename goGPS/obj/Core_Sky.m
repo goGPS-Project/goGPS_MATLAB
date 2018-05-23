@@ -362,29 +362,26 @@ classdef Core_Sky < handle
             %satellite-sun angle
             cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,this.cc.getNumSat,1),3);
             %threshold to detect noon/midnight maneuvers
-            t = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
-            
-            
+            thr = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
+                        
             shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
             
             for i = 1:32 % only gps implemented
                 sat_type = this.ant_pcv(i).sat_type;
                 
                 if (~isempty(strfind(sat_type,'BLOCK IIA')))
-                    t(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+                    thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
                 elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
-                    t(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+                    thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
                     shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
                 elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
-                    t(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+                    thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
                     shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
                 end
             end
             
-           
-            
             %noon/midnight maneuvers affect all satellites
-            noonMidnightTurn = acos(abs(cosPhi)) < t;
+            noonMidnightTurn = acos(abs(cosPhi)) < thr;
             eclipsed(shadowCrossing) = 1;
             eclipsed(noonMidnightTurn) = 3;
         end
@@ -1276,14 +1273,18 @@ classdef Core_Sky < handle
             min_zen = zen_pcv(1);
             max_zen = zen_pcv(end);
             d_zen = (max_zen - min_zen)/length(zen_pcv);
+            zen_float = (zen - min_zen)/d_zen + 1;
             zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
             d_f_r_el = min(max(zen_idx*d_zen - zen, 0)/ d_zen, 1) ;
-            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) %no azimuth change
-                pcv_val = sat_pcv.tableNOAZI(:,:,freq); %etract the right frequency
-                
-                pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
+            if nargin < 4 || isempty(sat_pcv.tablePCV_azi) % no azimuth change (satellites)
+                pcv_val = sat_pcv.tableNOAZI(:,:,freq); % extract the right frequency
+                %pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
+
+                % Use polynomial interpolation to smooth PCV
+                pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(5,numel(pcv_val)), zen_float);                
+                pcv_delay = pco_delay - pcv_val;
             else
-                pcv_val = sat_pcv.tablePCV(:,:,freq); %etract the right frequency
+                pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency (receivers)
                 
                 %find azimuth indexes
                 az_pcv = sat_pcv.tablePCV_azi;
