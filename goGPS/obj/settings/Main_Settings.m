@@ -1687,6 +1687,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     %%  GETTERS IO
     % =========================================================================
     methods
+        function value = getProperty(this, prop_name)
+            value = this.(prop_name);
+        end
+        
         function file_dir = getHomeDir(this)
             % Get the base directory containing the project
             file_dir = this.prj_home;
@@ -2207,6 +2211,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     %%  SETTERS IO
     % =========================================================================
     methods
+        function value = setProperty(this, prop_name, value)
+            this.(prop_name) = value;
+        end
+        
         function setFile(this, filename)
             [~, ~, ext] = fileparts(filename);
             if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')
