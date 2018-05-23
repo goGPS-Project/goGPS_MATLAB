@@ -1718,7 +1718,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir = '';
                 return
             end
-            [~, ~,ext] = fileparts(filename);
+            [~, name,ext] = fileparts(filename);
             if strcmpi(ext,'.sp3') || strcmp(ext,'.eph')
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.erp')
@@ -1735,6 +1735,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.apl')
                 dir = this.getAtmLoadDir();
+            elseif ~isempty(strfind(name,'VMFG')) && ~isempty(strfind(ext,'.H'))
+                 dir = this.getVMFDir();
             end
 
         end

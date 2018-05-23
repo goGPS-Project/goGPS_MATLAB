@@ -145,7 +145,7 @@ classdef Atmosphere < handle
     end
     methods
         function status = isVMF(this)
-                status = this.vmf_status;
+                status = this.vmf_status && ~isempty(this.vmf_coeff.ah);
         end
         
         function importIonex(this, filename)
@@ -231,6 +231,10 @@ classdef Atmosphere < handle
             end
         end
         
+        function setVMFstatus(this, status) %temporary only for debug purposes
+            this.vmf_status = status;
+        end
+        
         function importAtmLoadCoeffFile(this, filename)
             % import data of atmospehric loading file
             fid = fopen([filename],'r');
@@ -314,12 +318,12 @@ classdef Atmosphere < handle
                 this.log.addMessage(this.log.indent(sprintf('Loading  %s', filename)));
             end
             [dir, file_name, ext ] = fileparts(filename);
-            year = str2num(file_name(1:4));
-            month = str2num(file_name(5:6));
-            day = str2num(file_name(7:8));
-            hour = str2num(file_name(9:10));
+            year = str2num(file_name(6:9));
+            month = str2num(file_name(10:11));
+            day = str2num(file_name(12:13));
+            hour = str2num(ext(3:4));
             file_ref_ep = GPS_Time([year month day hour 0 0]);
-            isempty_obj = isempty(this.vmf_coeff.data_u);
+            isempty_obj = isempty(this.vmf_coeff.ah);
             if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
                 %% file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
@@ -429,7 +433,7 @@ classdef Atmosphere < handle
             corrxyz = corrxyz';
         end
         
-        function [ah, aw] = this.interpolateAlpha(gps_time, lat, lon)
+        function [ah, aw] = interpolateAlpha(this, gps_time, lat, lon)
             ah = Core_Utils.linInterpLatLonTime(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
             aw = Core_Utils.linInterpLatLonTime(this.vmf_coeff.aw, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
@@ -1232,8 +1236,8 @@ classdef Atmosphere < handle
             bw = 0.00146;
             cw = 0.04391;
             el = pi/2 -zd;
-            [gmfh] = mfContinuedFractionForm(ah,bh,ch,el);
-            [gmfw] = mfContinuedFractionForm(aw,bw,cw,el)
+            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,ch,el);
+            [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
         end
         
         function [zhd,zwd] = vmf_zd(this, gps_time, lat, lon, h_ortho)
@@ -1279,8 +1283,8 @@ classdef Atmosphere < handle
         % TROPO
         %-----------------------------------------------------------
         function [delay] = mfContinuedFractionForm(a,b,c,el)
-            sine = sin(e);
-            delay = (1 + (a ./ (1 + (b ./ (1 + c) )))) ./ (sine + (a ./ (sine + (b ./ (sine + c) ))))
+            sine = sin(el);
+            delay = (1 + (a ./ (1 + (b ./ (1 + c) )))) ./ (sine + (a ./ (sine + (b ./ (sine + c) ))));
         end
         %-----------------------------------------------------------
         % IONO
