@@ -51,6 +51,7 @@ classdef Core_UI < handle
         LIGHT_GRAY_BG = 0.85 * ones(3, 1);
         DARK_GRAY_BG = 0.18 * ones(3, 1);
         WHITE = ones(3, 1);
+        BLACK = zeros(3, 1);
         
         COLOR_ORDER = [ ...
             0     0.447 0.741;
@@ -608,7 +609,7 @@ classdef Core_UI < handle
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
                 
-        function ok_go = openGUI(this)            
+        function ok_go = openGUI(this)
             % WIN CONFIGURATION
             % L| N|    W
             %
@@ -736,6 +737,7 @@ classdef Core_UI < handle
             session_height = sum(left_bv.Children(2).Heights);
             left_bv.Heights = [82 session_height -1];
             top_bh.Widths = [200 -1];
+            this.updateUI;
             
             this.w_main.Visible = 'on';
             t_win = toc(t0);
@@ -805,6 +807,21 @@ classdef Core_UI < handle
             logo_g.Heights = 64;
         end
         
+        function insertResources(this, container)
+            resources_BG = this.LIGHT_GRAY_BG;
+            tab = uix.Grid('Parent', container, ...
+                'Padding', 10, ...
+                'BackgroundColor', resources_BG);
+            
+            uicontrol('Parent', tab, ...
+                'Style', 'Text', ...
+                'String', 'Select Computational Center:', ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', resources_BG);
+        end
+            
         function j_ini = insertEditSettings(this, container)
             tab = uix.Grid('Parent', container);
             
@@ -941,7 +958,7 @@ classdef Core_UI < handle
                 'HorizontalAlignment', 'left', ...
                 'FontSize', this.getFontSize(9), ...
                 'FontWeight', 'bold', ...
-                'BackgroundColor', session_bg);                        
+                'BackgroundColor', session_bg);
             this.insertEmpty(v_text, session_bg);
             v_text.Heights = [-1, list_title.Extent(4), -1];
             this.insertVBar(this.session_g);
@@ -972,7 +989,8 @@ classdef Core_UI < handle
             date_g.Heights = [22 22];
             date_g.Widths = [46, -1];
             
-            keep_session = uicontrol('Parent', this.session_g, ...
+            % Keep session checkbox
+            uicontrol('Parent', this.session_g, ...
                 'Style', 'checkbox', ...
                 'String', 'Keep all sessions in memory', ...
                 'FontSize', this.getFontSize(8), ...
@@ -995,8 +1013,6 @@ classdef Core_UI < handle
             % 
             % this.session_g.Heights = [26 2 5 50 30];
             this.session_g.Heights = [26 10 5 50 20];
-            
-            
         end
         
         function insertRecList(this, container)
@@ -1204,7 +1220,7 @@ classdef Core_UI < handle
             end
         end
         
-        function updateSessionFromState(this, caller, event)                        
+        function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
             this.ui_sss_start.setDate(java.util.Date(state.getSessionStart.toString('yyyy/mm/dd')));
             this.ui_sss_stop.setDate(java.util.Date(state.getSessionStop.toString('yyyy/mm/dd')));
