@@ -2860,12 +2860,13 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if atmo.isVMF()
-                            [gmfh, gmfw] = atmo.vmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el(:))./180*pi);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
                         else
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
-                        end
-                        mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                            mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        end
+                        
                         if isempty(this(s).id_sync)
                             mfh(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp;
                             mfw(t : t + this(s).length - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp;
@@ -2880,12 +2881,13 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if atmo.isVMF()
-                            [gmfh, gmfw] = atmo.vmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el(:))./180*pi);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
                         else
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
+                            mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                            mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         end
-                        mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
-                        mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                        
                         
                         mfh(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfh_tmp(id_sync, :);
                         mfw(t : t + length(id_sync) - 1, 1 : size(this(s).sat.el, 2)) = mfw_tmp(id_sync, :);
