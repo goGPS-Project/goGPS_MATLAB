@@ -5644,7 +5644,7 @@ classdef Receiver < Exportable
                 XR_sat = - this.getXSLoc();
                 
                 % Receiver PCV correction
-                if ~isempty(this.pcv) && ~isempty(this.pcv.name)
+                if ~isempty(this.pcv) && ~isempty(this.pcv.name) && this.state.isRecPCV()
                     f_code_history = []; % save f_code checked to print only one time the warning message
                     for s = unique(this.go_id)'
                         sat_idx = this.sat.avail_index(:, s);
@@ -6682,29 +6682,38 @@ classdef Receiver < Exportable
                     this.applyPCV();
                     ph1 = this.getPhases();
                     corr.pcv = ph1 - ph0;
+                    if this.state.isPoleTide()
+                        this.applyPoleTide();
+                        ph2 = this.getPhases();
+                        corr.pt = ph2 - ph1;
+                    end
+                    if this.state.isPhaseWind()
+                        this.applyPhaseWindUpCorr();
+                        ph3 = this.getPhases();
+                        corr.pwu = ph3 - ph2;
+                    end
+                    if this.state.isSolidEarth()
+                        this.applySolidEarthTide();
+                        ph4 = this.getPhases();
+                        corr.set = ph4 - ph3;
+                    end
                     
-                    this.applyPoleTide();
-                    ph2 = this.getPhases();
-                    corr.pt = ph2 - ph1;
-                    
-                    this.applyPhaseWindUpCorr();
-                    ph3 = this.getPhases();
-                    corr.pwu = ph3 - ph2;
-                    
-                    this.applySolidEarthTide();
-                    ph4 = this.getPhases();
-                    corr.set = ph4 - ph3;
-                    
-                    this.applyShDelay();
-                    ph5 = this.getPhases();
-                    corr.shd = ph5 - ph4;
-                    
-                    this.applyOceanLoading();
-                    ph6 = this.getPhases();
-                    corr.ocl = ph6 - ph5;
-                    
-                    %this.applyAtmLoad();
-                    %this.applyHOI();
+                    if this.state.isShapiro()
+                        this.applyShDelay();
+                        ph5 = this.getPhases();
+                        corr.shd = ph5 - ph4;
+                    end
+                    if this.state.isOceanLoading();
+                        this.applyOceanLoading();
+                        ph6 = this.getPhases();
+                        corr.ocl = ph6 - ph5;
+                    end
+                    if this.state.isAtmLoading()
+                        this.applyAtmLoad();
+                    end
+                    if this.state.isHOI()
+                        this.applyHOI();
+                    end
                     
                     this.removeOutlierMarkCycleSlip();
                     this.pp_status = true;

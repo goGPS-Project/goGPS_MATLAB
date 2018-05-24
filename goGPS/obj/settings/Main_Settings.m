@@ -181,6 +181,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  - weights = 1: weight based on satellite elevation (sin)
                                                         %  - weights = 2: weight based on signal-to-noise ratio
         FLAG_IONOFREE = false;                          % Flag for enabling the usage of iono-free combination
+        FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
+        FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
+        FLAG_PHASE_WIND = true;                         % Flag to enable pahse wrap up correction
+        FLAG_SHAPIRO = true;                            % Flag to enable shapiro delay corrections
+        FLAG_OCEAN_LOAD = true;                         % Flag to enable Ocean Loading Corrections
+        FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
+        FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
+        FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
 
         % ATMOSPHERE
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
@@ -428,7 +436,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %  - weights = 4: weight based on satellite elevation (exp)
 
         % Flag for enabling the usage of iono-free combination
-        flag_ionofree = Main_Settings.FLAG_IONOFREE;
+        flag_ionofree    = Main_Settings.FLAG_IONOFREE;
+        flag_solid_earth = Main_Settings.FLAG_SOLID_EARTH;
+        flag_pole_tide   = Main_Settings.FLAG_POLE_TIDE;
+        flag_phase_wind  = Main_Settings.FLAG_PHASE_WIND;
+        flag_shapiro     = Main_Settings.FLAG_SHAPIRO;
+        flag_ocean_load  = Main_Settings.FLAG_OCEAN_LOAD;
+        flag_atm_load    = Main_Settings.FLAG_ATM_LOAD;
+        flag_hoi         = Main_Settings.FLAG_HOI;
+        flag_rec_pcv     = Main_Settings.FLAG_REC_PCV;
 
         %------------------------------------------------------------------
         % ATMOSPHERE
@@ -611,6 +627,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % PROCESSING PARAMETERS
                 this.w_mode = state.getData('w_mode');
                 this.flag_ionofree = state.getData('flag_ionofree');
+                this.flag_solid_earth = state.getData('flag_solid_earth');
+                this.flag_pole_tide = state.getData('flag_pole_tide');
+                this.flag_phase_wind = state.getData('flag_phase_wind');
+                this.flag_shapiro = state.getData('flag_shapiro');
+                this.flag_ocean_load = state.getData('flag_ocean_load');
+                this.flag_atm_load = state.getData('flag_atm_load');
+                this.flag_hoi = state.getData('flag_hoi');
+                this.flag_rec_pcv = state.getData('flag_rec_pcv');
 
                 % ATMOSPHERE
                 this.iono_model = state.getData('iono_model');
@@ -711,6 +735,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 % PROCESSING PARAMETERS
                 this.w_mode = state.w_mode;
                 this.flag_ionofree = state.flag_ionofree;
+                this.flag_solid_earth = state.flag_solid_earth;
+                this.flag_pole_tide = state.flag_pole_tide;
+                this.flag_phase_wind = state.flag_phase_wind;
+                this.flag_shapiro = state.flag_shapiro;
+                this.flag_ocean_load = state.flag_ocean_load;
+                this.flag_atm_load = state.flag_atm_load;
+                this.flag_hoi = state.flag_hoi;
+                this.flag_rec_pcv = state.flag_rec_pcv;
                
                 % ATMOSPHERE
                 this.iono_model = state.iono_model;
@@ -839,6 +871,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Enable iono free combination:                     %d\n', this.flag_ionofree)];
+            str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
+            str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
+            str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
+            str = [str sprintf(' Enable shapiro delay corrections:                 %d\n', this.flag_shapiro)];
+            str = [str sprintf(' Enable ocean loading corrections:                 %d\n', this.flag_ocean_load)];
+            str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
+            str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
+            str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n\n', this.flag_rec_pcv)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
@@ -1138,6 +1178,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable usage of iono-free combination in PPP (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_ionofree', this.flag_ionofree, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_solid_earth', this.flag_solid_earth, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_pole_tide', this.flag_pole_tide, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_phase_wind', this.flag_phase_wind, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_shapiro', this.flag_shapiro, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_ocean_load', this.flag_ocean_load, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_atm_load', this.flag_atm_load, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_hoi', this.flag_hoi, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             % ATMOSPHERE
@@ -1668,6 +1716,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % PROCESSING PARAMETERS
             this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
             this.checkLogicalField('flag_ionofree');
+            this.checkLogicalField('flag_solid_earth');
+            this.checkLogicalField('flag_pole_tide');
+            this.checkLogicalField('flag_phase_wind');
+            this.checkLogicalField('flag_shapiro');
+            this.checkLogicalField('flag_ocean_load');
+            this.checkLogicalField('flag_atm_load');
+            this.checkLogicalField('flag_hoi');
+            this.checkLogicalField('flag_rec_pcv');
 
             % ATMOSPHERE
             this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
@@ -1688,7 +1744,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % =========================================================================
     methods
         function value = getProperty(this, prop_name)
-            value = this.(prop_name);
+            props = fieldnames(this);
+            if any(strcmp(props,prop_name))
+                value = this.(prop_name);
+            else
+                value = [];
+            end
         end
         
         function file_dir = getHomeDir(this)
@@ -2522,6 +2583,55 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: is_iono_free = isIonoFree(this)
             is_iono_free = this.flag_ionofree;
         end
+        
+        function is_solid_earth = isSolidEarth(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_solid_earth = isSolidEarth(this)
+            is_solid_earth = this.flag_solid_earth;
+        end
+        
+        function is_pole_tide = isPoleTide(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_pole_tide = isPoleTide(this)
+            is_pole_tide = this.flag_pole_tide;
+        end
+        
+        function is_phase_wind = isPhaseWind(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_phase_wind = isPhaseWind(this)
+            is_phase_wind = this.flag_phase_wind;
+        end
+        
+        function is_shapiro = isShapiro(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_shapiro = isShapiro(this)
+            is_shapiro = this.flag_shapiro;
+        end
+        
+        function is_ocean_load = isOceanLoading(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_ocean_load = isOceanLoading(this)
+            is_ocean_load = this.flag_ocean_load;
+        end
+        
+         function is_atm_load = isAtmLoading(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_atm_load = isAtmLoading(this)
+            is_atm_load = this.flag_atm_load;
+        end
+        
+        function is_hoi = isHOI(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_hoi = isHOI(this)
+            is_hoi = this.flag_hoi;
+        end
+        
+        function is_rec_pcv= isRecPCV(this)
+            % Check whether the iono free combination is enabled
+            % SYNTAX: is_rec_pcv= isRecPCV(this)
+            is_rec_pcv = this.flag_rec_pcv;
+        end
+       
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled

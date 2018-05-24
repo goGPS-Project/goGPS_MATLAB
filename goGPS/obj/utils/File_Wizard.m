@@ -467,8 +467,13 @@ classdef File_Wizard < handle
             
             this.conjureDCBFiles(dsa, dso);
             this.conjureCRXFiles(dsa, dso);
-            %this.conjureIonoFiles(dsa, dso);
-            this.conjureAtmLoadFiles(dsa, dso);
+            if this.state.isHOI()
+                this.conjureIonoFiles(dsa, dso);
+            end
+            if this.state.isAtmLoading()
+                this.conjureAtmLoadFiles(dsa, dso);
+            end
+            this.conjureVmfFiles(dsa, dso);
         end
         
         function [first_epoch, last_epoch] = conjureObsFile(this)
