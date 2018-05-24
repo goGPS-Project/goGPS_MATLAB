@@ -79,7 +79,6 @@ classdef Atmosphere < handle
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
             )
-        vmf_status = false;
         vmf_coeff = struct( ...
             'ah',       [], ...    % alpha coefficient dry
             'aw',       [], ...    % alpha coefficent wet
@@ -144,10 +143,6 @@ classdef Atmosphere < handle
         end
     end
     methods
-        function status = isVMF(this)
-                status = this.vmf_status && ~isempty(this.vmf_coeff.ah);
-        end
-        
         function importIonex(this, filename)
             fid = fopen([filename],'r');
             if fid == -1
@@ -231,9 +226,6 @@ classdef Atmosphere < handle
             end
         end
         
-        function setVMFstatus(this, status) %temporary only for debug purposes
-            this.vmf_status = status;
-        end
         
         function importAtmLoadCoeffFile(this, filename)
             % import data of atmospehric loading file

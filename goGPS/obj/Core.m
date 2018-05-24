@@ -200,8 +200,10 @@ classdef Core < handle
             this.log.simpleSeparator();     
             
             % inti atmo object
-%             atmo = Atmosphere.getInstance();
-%             atmo.initVMF(time_lim_large.first,time_lim_large.first);
+            if this.state.isVMF()
+                atmo = Atmosphere.getInstance();
+                atmo.initVMF(time_lim_large.first,time_lim_large.last);
+            end
         end  
         
         function initSkySession(this, time_lim)

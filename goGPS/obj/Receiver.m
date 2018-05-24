@@ -2859,12 +2859,12 @@ classdef Receiver < Exportable
             if nargin == 1                
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
-                        if atmo.isVMF()
+                        if this.state.mapping_function == 2
                             [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
-                        else
+                        elseif this.state.mapping_function == 1
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
                             mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
-                        mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                            mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                         end
                         
                         if isempty(this(s).id_sync)
@@ -2880,9 +2880,9 @@ classdef Receiver < Exportable
             else
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
-                        if atmo.isVMF()
+                        if this.state.mapping_function == 2
                             [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
-                        else
+                        elseif this.state.mapping_function == 1
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
                             mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                             mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
@@ -2911,7 +2911,7 @@ classdef Receiver < Exportable
                 time = this.time;
             end
             if nargin < 3
-                flag = this.state.tropo_model;
+                flag = this.state.meteo_data;
                 if not(isempty(this.meteo_data))
                     flag = 3;
                 end
@@ -4837,7 +4837,7 @@ classdef Receiver < Exportable
         % Iono and Tropo
         % -------------------------------------------------------
         
-        function updateErrTropo(this, go_id, flag)
+        function updateErrTropo(this, go_id)
             %INPUT
             % sat : number of sat
             % flag: flag of the tropo model
@@ -4853,12 +4853,6 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
                 
                 go_id = unique(this.go_id)';
-            end
-            if nargin < 3
-                flag = this.state.tropo_model;
-                if not(isempty(this.meteo_data))
-                    flag = 3;
-                end
             end
             this.sat.err_tropo(:, go_id) = 0;
             

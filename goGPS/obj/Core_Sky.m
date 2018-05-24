@@ -360,7 +360,7 @@ classdef Core_Sky < handle
             X_sun = rowNormalize(X_sun);
             
             %satellite-sun angle
-            cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,this.cc.getNumSat,1),3);
+            cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,size(XS,2),1),3);
             %threshold to detect noon/midnight maneuvers
             thr = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
                         
