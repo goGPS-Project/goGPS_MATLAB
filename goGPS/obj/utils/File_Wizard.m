@@ -473,7 +473,7 @@ classdef File_Wizard < handle
             if this.state.isAtmLoading()
                 this.conjureAtmLoadFiles(dsa, dso);
             end
-            this.conjureVmfFiles(dsa, dso);
+            %this.conjureVmfFiles(dsa, dso);
         end
         
         function [first_epoch, last_epoch] = conjureObsFile(this)
