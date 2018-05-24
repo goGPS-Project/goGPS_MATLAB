@@ -7,32 +7,24 @@ function exportZtdLittleR(ztd_map, lat_map, lon_map, h_map, time, out_dir, file_
 % SYNTAX
 %   exportZtdLittleR(ztd_map, lat_map, lon_map, h_map, time, out_dir, file_name, qc_ztd)
 %
+%
+% info on LITTLE R export
+% reference: http://www2.mmm.ucar.edu/wrf/users/wrfda/OnlineTutorial/Help/littler.html#FM
 
 % qc_ztd = 0.015;
-% save_on_disk = true;
 % ztd_map = ones(1,1);
-% n_row = size(ztd_map, 1);
-% n_col = size(ztd_map, 2);
+n_row = size(ztd_map, 1);
+n_col = size(ztd_map, 2);
 % lat_map = randn(n_row,n_col);
 % lon_map = 10 + randn(n_row,n_col);
 % h_map = 100 + randn(n_row,n_col);
 % time = GPS_Time(now);
 % out_dir = 'reserved/tmp';
 % file_name = 'sar_map';
-% qc_ztd = uint32(qc_ztd * 1e4); % expressed in tenths of millimeters
-
+qc_ztd = uint32(qc_ztd * 1e4); % expressed in tenths of millimeters
 
 log = Logger.getInstance;
-
-% EXAMPLE:
-%   [data4wrf, ztd_mean, res_mean, res_std, res_passage_mean, res_passage_std] = sin.getData4Wrf(1);
-% This provide an index per day, but it's maybe better to consider an std epoch by epoch
-%             if nargin == 2
-%                 save_on_disk = false;
-%             end
-
-% LITTLE R export
-% reference: http://www2.mmm.ucar.edu/wrf/users/wrfda/OnlineTutorial/Help/littler.html#FM
+save_on_disk = true;
 no_data = -888888.00000;
 qc_no_data = -888888;
 end_data = -777777.00000;
@@ -72,12 +64,14 @@ if save_on_disk
 end
 
 if save_on_disk
-    file_name = sprintf('%s%c%s.txt', out_dir, filesep, file_name);
+    file_name = sprintf('%s%c%s', out_dir, filesep, file_name);
     fid = fopen(file_name,'w');
 end
 i = 0;
+fprintf('\n');
+wb = Go_Wait_Bar.getInstance(n_col * n_row);
+wb.createNewBar(sprintf('Exporting ZTD map into LITTLE_R format (%s)', time.toString('yyyy - mm - dd')));
 for c = 1 : n_col
-    c
     % get the closest epoch to the sar passage
     for r = 1 : n_row
         i = i+1;
@@ -134,12 +128,19 @@ for c = 1 : n_col
                 end_data_line, ...
                 tail_integers);
         end
+        if save_on_disk && (length(txt) > (4 * 1024))
+            wb.go(r + (c-1) * n_row);
+            fprintf(fid,'%s', txt);
+            txt = [];
+        end
     end
+    wb.go(r + (c-1) * n_row);    
     if save_on_disk
         fprintf(fid,'%s', txt);
         txt = [];
     end
 end
+wb.close();
 if save_on_disk
     fclose(fid);
 end
