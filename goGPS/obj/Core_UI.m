@@ -846,10 +846,7 @@ classdef Core_UI < handle
             tab = uix.Grid('Parent', container, ...
                 'Padding', 10, ...
                 'BackgroundColor', processing_BG);
-            cc_box = uix.Panel('Parent', tab, ...
-                'Title', 'Constellation Selection', ...
-                'Padding', 10, ...
-                'BackgroundColor', this.LIGHT_GRAY_BG);
+            cc_box = this.insertPanelLight(tab, 'Constellation Selection');
             h_box_cc = uix.HBox('Parent', cc_box, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             % Constellation selction
@@ -1081,11 +1078,11 @@ classdef Core_UI < handle
                 'Callback', @this.onCheckBoxCCChange ...
                 );
             h_box_cc.Widths = [100 20 -1];
+            
+            this.insertEmpty(tab);
+            
             %%% processing options
-            ppp_options = uix.Panel('Parent', tab, ...
-                'Title', 'Physical modeling', ...
-                'Padding', 10, ...
-                'BackgroundColor', this.LIGHT_GRAY_BG);
+            ppp_options = this.insertPanelLight(tab, 'Physical modeling');
             opt_grid = uix.Grid('Parent', ppp_options,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             this.check_boxes{end+1} = uicontrol('Parent',opt_grid,...
@@ -1146,7 +1143,7 @@ classdef Core_UI < handle
                 );
             set( opt_grid, 'Widths', [180 180 180 180], 'Heights', [20 20] );
            
-            tab.Heights = [160 80];
+            tab.Heights = [160 5 80];
             
         end
         
@@ -1163,22 +1160,22 @@ classdef Core_UI < handle
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(iono_opt_grid, 'Ionosphere Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
 
-            this.insertEmpty(tab, this.LIGHT_GRAY_BG);
+            this.insertEmpty(tab);
 
             %%% TROPO
             tropo_options = this.insertPanelLight(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
                 'Spacing', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimate ZTD', 'flag_tropo')
-            this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient')
+            this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimate ZTD', 'flag_tropo');
+            this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient');
             
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [~, this.edit_texts{end+1}] = this.insertFileBox(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
             
-            this.insertEmpty(tab, this.LIGHT_GRAY_BG);
+            this.insertEmpty(tab);
 
             %%% TROPO ADV
             tropo_options_adv = this.insertPanelLight(tab, 'Advanced Tropospheric options');
@@ -1271,8 +1268,11 @@ classdef Core_UI < handle
                 
                 tab_bv.Heights = [20 15 -1];
         end
-        
+                
         function insertEmpty(this, container, color)
+            if nargin == 2
+                color = this.LIGHT_GRAY_BG;
+            end
             uicontrol('Parent', container, 'Style', 'Text', 'BackgroundColor', color)
         end
         
