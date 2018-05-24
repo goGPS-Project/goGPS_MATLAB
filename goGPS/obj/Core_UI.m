@@ -704,15 +704,17 @@ classdef Core_UI < handle
             end
             
             % Main Panel > tab3 processing options
-            this.insertProcessing(tab_panel);            
+            this.insertProcessing(tab_panel);     
+            % Main Panel > tab4 atmosphere options
+            this.insertAtmosphere(tab_panel);     
             
             
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Settings', 'Resources', 'Processing'};
+                tab_panel.TabTitles = {'Settings', 'Resources', 'Processing', 'Atmosphere'};
             else
-                tab_panel.TabTitles = {'Settings','Processing'};
+                tab_panel.TabTitles = {'Settings','Processing', 'Atmosphere'};
             end
                         
             % Botton Panel ---------------------------------------------------------------------------------------------            
@@ -844,15 +846,6 @@ classdef Core_UI < handle
             tab = uix.Grid('Parent', container, ...
                 'Padding', 10, ...
                 'BackgroundColor', processing_BG);
-            
-            uicontrol('Parent', tab, ...
-                'Style', 'Text', ...
-                'String', 'Data Selection', ...
-                'ForegroundColor', this.BLACK, ...
-                'HorizontalAlignment', 'left', ...
-                'FontSize', this.getFontSize(9), ...
-                'BackgroundColor', processing_BG,...
-                'FontWeight', 'bold');
             cc_box = uix.Panel('Parent', tab, ...
                 'Title', 'Constellation Selection', ...
                 'Padding', 10, ...
@@ -1152,19 +1145,25 @@ classdef Core_UI < handle
                 'Callback', @this.onCheckBoxChange ...
                 );
             set( opt_grid, 'Widths', [180 180 180 180], 'Heights', [20 20] );
-            %%% TROPO
+           
+            tab.Heights = [180 80];
+            
+        end
+        
+        function insertAtmosphere(this, container)
+            tab = uix.Grid('Parent', container, ...
+                'Padding', 10, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+             %%% TROPO
             tropo_options = uix.Panel('Parent', tab, ...
                 'Title', 'Tropospheric options', ...
                 'Padding', 10, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             tropo_opt_grid = uix.Grid('Parent', tropo_options,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Mapping function', {'GMF','VMF_GRD'}, 'mapping_function', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Zenith delay', {'None','Saastamoinen','VMF_GRD'},'zd_model', @this.onPopUpChange);
-            
-            
-            
-            
+            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             this.check_boxes{end+1} = uicontrol('Parent',tropo_opt_grid,...
                 'Style', 'checkbox',...
                 'BackgroundColor', this.LIGHT_GRAY_BG, ...
@@ -1179,12 +1178,23 @@ classdef Core_UI < handle
                 'UserData', 'flag_tropo_gradient',...
                 'Callback', @this.onCheckBoxChange ...
                 );
-            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Meteo Data', {'Standard Atmosphere','GPT','MET file'},'meteo_data',@this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = this.insertPopUp(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [~, this.edit_texts{end+1}] = this.insertFileBox(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
             [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid, 'ZTD regularization [m/h]', 'std_tropo', @this.onEditChange);
             [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid, 'ZTD gradient regularization [m/h]', 'std_tropo_gradient', @this.onEditChange);
             set( tropo_opt_grid, 'Widths', [300 300], 'Heights', [30 30 30 30], 'Spacing', 5 );
-            tab.Heights = [30 180 80 200];
+            %%% IONO
+            iono_options = uix.Panel('Parent', tab, ...
+                'Title', 'Ionosphere options', ...
+                'Padding', 10, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            iono_opt_grid = uix.Grid('Parent', iono_options,...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            [~, this.pop_ups{end+1}] = this.insertPopUp(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = this.insertPopUp(iono_opt_grid, 'Ionosphere Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
+            set( iono_opt_grid, 'Widths', [300 300], 'Heights', [30], 'Spacing', 5 );
+            
+            tab.Heights = [200 100];
             
         end
             

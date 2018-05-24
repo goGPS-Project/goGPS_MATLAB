@@ -5350,8 +5350,6 @@ classdef Receiver < Exportable
                 this.log.addMarkedMessage('Applying High Order Ionospheric Effect');
                 this.HOI(1);
                 this.hoi_delay_status = 1; %applied
-            endif nargin < 2
-                sat = 1 : this.getMaxSat();
             end
         end
         
