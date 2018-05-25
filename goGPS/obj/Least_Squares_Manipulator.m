@@ -87,7 +87,7 @@ classdef Least_Squares_Manipulator < handle
         mean_regularization
         true_epoch % true epoch of the epochwise paramters
         sat_go_id  % go id of the satindeces
-        receiver_id % id of the receiver , in case of differenced obsercation two columns are used 
+        receiver_id % id of the receiver , in case of differenced obsercation two columns are used
     end
     
     properties(Access = private)
@@ -153,14 +153,14 @@ classdef Least_Squares_Manipulator < handle
                         for i = 1 : length(obs_type)
                             obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
                         end
-                    end               
+                    end
                 end
             else
                 obs_set = custom_obs_set;
             end
             
             % if phase observations are present check if the computation of troposphere parameters is required
-           
+            
             if phase_present
                 tropo = this.state.flag_tropo;
                 tropo_g = this.state.flag_tropo_gradient;
@@ -200,7 +200,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
-
+            
             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
             idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
             diff_obs(~idx_valid_ep_l, :) = [];
@@ -224,11 +224,11 @@ classdef Least_Squares_Manipulator < handle
             n_epochs = size(obs_set.obs, 1);
             this.n_epochs = n_epochs;
             n_stream = size(diff_obs, 2); % number of satellites
-           
+            
             n_clocks = n_epochs; % number of clock errors
             n_tropo = n_clocks; % number of epoch for ZTD estimation
             ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
-                                                
+            
             % Compute the number of ambiguities that must be computed
             cycle_slip = obs_set.cycle_slip;
             cycle_slip(diff_obs == 0) = 0;
@@ -274,7 +274,7 @@ classdef Least_Squares_Manipulator < handle
                 amb_idx(~idx_valid_ep_l, :) = [];
                 
                 this.true_epoch(~idx_valid_ep_l) = [];
-
+                
                 % removing possible empty column
                 idx_valid_stream = sum(diff_obs, 1) ~= 0;
                 diff_obs(:, ~idx_valid_stream) = [];
@@ -305,14 +305,14 @@ classdef Least_Squares_Manipulator < handle
                 amb_flag = 0;
                 this.amb_idx = [];
             end
-             if dynamic
-                n_coo = 3*n_epochs;
+            if dynamic
+                n_coo = 3 * n_epochs;
             else
-                 n_coo = 3; % number of coordinates
+                n_coo = 3; % number of coordinates
             end
             
             % get the list  of observation codes used
-             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code))); 
+            u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
@@ -433,7 +433,7 @@ classdef Least_Squares_Manipulator < handle
             if dynamic
                 this.param_flag = [1, 1, 1, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
             else
-            this.param_flag = [0, 0, 0, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
+                this.param_flag = [0, 0, 0, -1 * ones(iob_flag), -1*ones(amb_flag), 1, 1*ones(tropo), 1*ones(tropo_g), 1*ones(tropo_g)];
             end
             this.param_class = [1, 2, 3, 4 * ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
             if phase_present
@@ -456,9 +456,9 @@ classdef Least_Squares_Manipulator < handle
             %                                           case free netwrok [st_nums]
             %                                           case constarined network [ st_num (1 hard 2 soft) sigma_x sigma_y sigma_z] if hard sigma ccan be left to 0 since the will be ignored
             %      rate : rate of observations in seconds
-            %      obs_type: I : iono free, 1 first frequency, 2 second frequency, 3 third frequency 
-            % NOTE: if one wants to set up a single baseline processing he can simpy set up and hard contrsaint on the coordinates of the master see (setUpBaselineAdj)        
-            % IMPRTANT: when specifing the rate it is assumed for instance that 30 seconds observations are sampled in the vivicinity if 00 and 30 seconds of the minute, if 
+            %      obs_type: I : iono free, 1 first frequency, 2 second frequency, 3 third frequency
+            % NOTE: if one wants to set up a single baseline processing he can simpy set up and hard contrsaint on the coordinates of the master see (setUpBaselineAdj)
+            % IMPRTANT: when specifing the rate it is assumed for instance that 30 seconds observations are sampled in the vivicinity if 00 and 30 seconds of the minute, if
             %           this is not the case the method will not work
             if nargin < 5
                 sys_c = this.state.cc.getAvailableSys();
@@ -474,9 +474,9 @@ classdef Least_Squares_Manipulator < handle
             rates = nan(length(rec_list),1);
             
             min_time = GPS_Time(datenum([9999 0 0 0 0 0])); % Warning! to be updated in year 9999
-            % get Observations 
+            % get Observations
             for i = 1 : length(rec_list)
-                % chek if sampling is compatible 
+                % chek if sampling is compatible
                 rate_ratio = max(rate, rec_list(i).getRate()) / min(rate, rec_list(i).getRate());
                 st_time_ratio = rec_list(i).time.first.getSecond() / rec_list(i).getRate();
                 n_skip_epochs = [];
@@ -488,8 +488,8 @@ classdef Least_Squares_Manipulator < handle
                     obs_sets{end+1} = [];
                 else
                     if abs(st_time_ratio - round(st_time_ratio)) > 1e-3 % chek if we have to skip epochs
-                            skip_time = ceil(st_time_ratio)*rate - second;
-                            n_skip_epochs = skip_time / rec_list(i).getRate();
+                        skip_time = ceil(st_time_ratio)*rate - second;
+                        n_skip_epochs = skip_time / rec_list(i).getRate();
                     end
                     if rec_list(i).time.first < min_time % detemine the staring time to form the single diffferences
                         second = rec_list(i).time.first.getSecond();
@@ -505,7 +505,7 @@ classdef Least_Squares_Manipulator < handle
                         end
                     end
                     obs_set = Observation_Set();
-                    for j = 1 : length(obs_type) % get the observiont set 
+                    for j = 1 : length(obs_type) % get the observiont set
                         if obs_type(j) == 'I'
                             for sys_c = rec.cc.sys_c
                                 for i = 1 : length(obs_type)
@@ -544,8 +544,8 @@ classdef Least_Squares_Manipulator < handle
             num_sat = this.state.cc.getNumSat(sys_c);
             est_n_obs = max(est_num_ep,'omitnan') * num_sat/2 * sum(~isnan(rates));
             n_par = n_coo + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
-            A = zeros(est_n_obs, n_par); 
-            A_idx = zeros(est_n_obs, n_par); 
+            A = zeros(est_n_obs, n_par);
+            A_idx = zeros(est_n_obs, n_par);
             
             cond_stop = true;
             while cond_stop
@@ -555,18 +555,18 @@ classdef Least_Squares_Manipulator < handle
                 
             end
             
-           
+            
         end
         
         function setUpBaselineAdj(this, receivers, master)
-            % set up baseline adjustment 
+            % set up baseline adjustment
             % SYNTAX: ls_manipulator = Network.setUpBaselineAdj(receivers, master)
             % INPUT: receivers = {rec1 , rec2}
             %        master = 1  first is master , 2 second is master
             % NOTE: wrapper to setUPNetworkAdj function
-             datum_definition.type = 'C';
-             datum_definition.station = [master 1 0 0 0]; % hard constarint on master
-             ls_manipulator = setUpSDNetworkAdj(receivers, datum_definition);
+            datum_definition.type = 'C';
+            datum_definition.station = [master 1 0 0 0]; % hard constarint on master
+            ls_manipulator = setUpSDNetworkAdj(receivers, datum_definition);
             
         end
         
@@ -647,8 +647,8 @@ classdef Least_Squares_Manipulator < handle
             this.weightOnResidual(wfun, threshold);
         end
         function reweightHubNoThr(this)
-             wfun = @(x) 1 ./ abs(x);
-             this.weightOnResidual(wfun);
+            wfun = @(x) 1 ./ abs(x);
+            this.weightOnResidual(wfun);
         end
         function reweightTukey(this)
             threshold = 2;
@@ -806,7 +806,7 @@ classdef Least_Squares_Manipulator < handle
             x = [x, x_class];
         end
         
-         
+        
         
         function reduceNormalEquation(this, keep_param)
             % reduce number of parmeters (STUB)

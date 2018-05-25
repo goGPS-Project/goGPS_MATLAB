@@ -2865,9 +2865,9 @@ classdef Receiver < Exportable
             if nargin == 1                
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
-                        if this.state.mapping_function == 2
+                        if this(s).state.mapping_function == 2
                             [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
-                        elseif this.state.mapping_function == 1
+                        elseif this(s).state.mapping_function == 1
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
                             mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
                             mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
@@ -2950,25 +2950,28 @@ classdef Receiver < Exportable
                     atmo = Atmosphere.getInstance();
                     this.updateCoordinates();
                     time= time.getGpsTime();
-                    if this.isStatic()
-                        
+                    if this.isStatic()                        
                         [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
-                         H = zeros(l,1);
-                         H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
+                        H = zeros(l,1);
+                        H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
                     else
                         P = zeros(l,1);
                         T = zeros(l,1);
-                       
-                        
                         for i = 1 : l
-                        [P(l),T(l),undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
+                            [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
                         end
-                         H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
+                        H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
                     end
                 case 3 % local meteo data
+                    atmo = Atmosphere.getInstance();
+                    
                     P = this.meteo_data.getPressure(time);
                     T = this.meteo_data.getTemperature(time);
                     H = this.meteo_data.getHumidity(time);
+                    if any(isnan(H))
+                        % Fall back to std values
+                        H(isnan(H)) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
+                    end
             end
         end
         
