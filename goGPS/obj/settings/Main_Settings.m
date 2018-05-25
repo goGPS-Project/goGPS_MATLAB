@@ -193,14 +193,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % ATMOSPHERE
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
         FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
-        IONO_MANAGEMENT = 1;                         % Flag for enabling the usage of iono-free combination
+        IONO_MANAGEMENT = 1;                            % Flag for enabling the usage of iono-free combination
         IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 0: no model
                                                         % - iono_model = 1: Geckle and Feen model
                                                         % - iono_model = 2: Klobuchar model
                                                         % - iono_model = 3: SBAS grid
                                                         
-        ZD_MODEL  = 1;                                  % Tropospheric Zenith delay model to be used (0: none, 1: Saastamoinen , 2: Vienna mapping function gridded delays)
+        ZD_MODEL  = 2;                                  % A-priori Tropospheric Zenith delay model to be used (0: none, 1: Saastamoinen , 2: Vienna mapping function gridded delays)
                                                         % - zd_model = 1: no model
                                                         % - zd_model = 2: Saastamoinen
                                                         % - zd_model = 3:  Vienna mapping function gridded delay
@@ -482,7 +482,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % - iono_model = 2: Klobuchar model
         % - iono_model = 3: SBAS grid
 
-        % Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
+        % A-priori Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
         zd_model = Main_Settings.ZD_MODEL;
         mapping_function = Main_Settings.MAPPING_FUNCTION;
         meteo_data = Main_Settings.METEO_DATA;
@@ -645,7 +645,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % PROCESSING PARAMETERS
                 this.w_mode = state.getData('w_mode');
-                this.iono_management = state.getData('iono_management');
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
                 this.flag_phase_wind = state.getData('flag_phase_wind');
@@ -656,12 +655,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
 
                 % ATMOSPHERE
+                this.flag_tropo = state.getData('flag_tropo');
+                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
+                this.iono_management = state.getData('iono_management');
                 this.iono_model = state.getData('iono_model');
                 this.zd_model = state.getData('zd_model');
                 this.mapping_function = state.getData('mapping_function');
-                this.zd_model = state.getData('zd_model');
                 this.meteo_data = state.getData('meteo_data');
-                this.flag_tropo_gradient = state.getData('flag_tropo_gradient');
 
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo  = state.getData('sigma0_tropo');
@@ -755,7 +755,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % PROCESSING PARAMETERS
                 this.w_mode = state.w_mode;
-                this.iono_management = state.iono_management;
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
                 this.flag_phase_wind = state.flag_phase_wind;
@@ -766,12 +765,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_rec_pcv = state.flag_rec_pcv;
                
                 % ATMOSPHERE
+                this.flag_tropo = state.flag_tropo;
+                this.flag_tropo_gradient = state.flag_tropo_gradient;
+                this.iono_management = state.iono_management;
                 this.iono_model = state.iono_model;
                 this.zd_model = state.zd_model;
                 this.mapping_function = state.mapping_function;
                 this.meteo_data = state.meteo_data;
-                this.flag_tropo = state.flag_tropo;
-                this.flag_tropo_gradient = state.flag_tropo_gradient;
 
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo = state.sigma0_tropo;
@@ -903,13 +903,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n\n', this.flag_rec_pcv)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
-            str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
-            str = [str sprintf(' Iono Mangement %s\n\n', this.IE_SMODE{this.iono_management})];
-            str = [str sprintf(' Tropospheric model %s\n\n', this.ZD_SMODE{this.zd_model})];
-            str = [str sprintf(' Tropospheric model %s\n\n', this.MF_SMODE{this.mapping_function})];
-            str = [str sprintf(' Tropospheric model %s\n\n', this.MD_SMODE{this.meteo_data})];
-            str = [str sprintf(' Estimate tropospheric delay                       %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Estimate tropospheric delay                       %d\n', this.flag_tropo)];
             str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
+            str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model+1})];
+            str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
+            str = [str sprintf(' A-priori Zenith model                             %s\n', this.ZD_SMODE{this.zd_model})];
+            str = [str sprintf(' Tropospheric model                                %s\n', this.MF_SMODE{this.mapping_function})];
+            str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
             
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
             %str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
@@ -1235,9 +1235,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_SMODE{i}), str_cell);
             end
             
-           
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);           
+            str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Zenith delay model', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('A-priori zenith delay model', str_cell);
             str_cell = Ini_Manager.toIniString('zd_model', this.zd_model, str_cell);
             for i = 1 : numel(this.ZD_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.ZD_SMODE{i}), str_cell);
@@ -1254,10 +1257,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             for i = 1 : numel(this.MD_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MD_SMODE{i}), str_cell);
             end
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
-            str_cell = Ini_Manager.toIniString('flag_tropo_gradient', this.flag_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ADV ATMOSPHERE', str_cell);

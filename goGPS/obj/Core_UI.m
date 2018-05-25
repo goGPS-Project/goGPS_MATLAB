@@ -1047,7 +1047,7 @@ classdef Core_UI < handle
             this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient');
             
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [met, this.edit_texts{end+1}] = this.insertFileBox(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
             met.Widths(1:2) = [100 -1];
