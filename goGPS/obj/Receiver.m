@@ -273,6 +273,12 @@ classdef Receiver < Exportable
                 this.importRinex(this.rinex_file_name);
                 this.importAntModel();       
             end
+            rf = Core_Reference_Frame.getInstance();
+            coo = rf.getCoo(this.getMarkerName4Ch, this.getCentralTime);
+            if ~isempty(coo)
+                this.xyz = coo;
+            end
+            
         end
         
         function appendRinex(this, rinex_file_name)
@@ -5852,6 +5858,8 @@ classdef Receiver < Exportable
             this.removeSolidEarthTide();
             this.removeShDelay();
             this.removeOceanLoading();
+            this.removeHOI();
+            this.removeAtmload();
         end
         
         function applyAllCorrections(this)
@@ -5867,6 +5875,7 @@ classdef Receiver < Exportable
             this.applyShDelay();
             this.applyOceanLoading();
             %this.applyHOI();
+            %this.applyAtmload();
         end
     end
     

@@ -41,7 +41,12 @@ classdef Core_Reference_Frame < handle
         station_code
         xyz
         vxvyvz
+        
         ref_epoch
+        end_validity_epoch
+        start_validity_epoch
+        
+        flag
     end
      methods (Access = 'private')
         % Creator
@@ -50,6 +55,7 @@ classdef Core_Reference_Frame < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.log = Logger.getInstance();
             this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
+            this.loadCrd();
         end
     end
     
@@ -69,7 +75,8 @@ classdef Core_Reference_Frame < handle
     end
     
     methods
-        function loadCrd(this, fname)
+        function loadCrd(this)
+            fname = this.state.getCrdFile();
             fid = fopen([fname],'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', fname));
@@ -98,19 +105,63 @@ classdef Core_Reference_Frame < handle
                 end
             end
             lim(header_line,:) = [];
-            cols = 1:4;
-            idx_sta_cd = repmat(lim(:,1)-1,1,length(cols)) + repmat(cols,size(lim,1),1);
-            this.station_code = reshape(txt(idx_sta_cd),size(lim,1),length(cols));
-            cols = 8:96;
-            idx_vals = repmat(lim(:,1)-1,1,length(cols)) + repmat(cols,size(lim,1),1);
-            vals = reshape(sscanf(txt(idx_vals)','%f'),6,size(lim,1))';
-            this.xyz = vals(:,1:3);
-            this.vxvyvz = vals(:,4:6);
+            %initilaize array
+            n_sta = size(lim,1);
+            
+            this.station_code=char(' '*ones(n_sta,4));
+            this.xyz = zeros(n_sta,3);
+            this.vxvyvz = zeros(n_sta,3);
+            this.flag = zeros(n_sta,1);
+            re_date = zeros(n_sta,1);
+            st_date = zeros(n_sta,1);
+            en_date = zeros(n_sta,1);
+            for i = 1:n_sta
+                line = txt(lim(i,1):lim(i,2));
+                parts = strsplit(line);
+                l = length(parts);
+                this.station_code(i,:) = parts{1};
+                this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
+                if l > 4
+                    this.flag(i) = str2double(parts{5});
+                    if l > 5
+                        this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
+                        if l > 8
+                            re_date(i) = datenum([parts{9} ' ' parts{10}]);
+                            if l > 10
+                                st_date(i) = datenum([parts{11} ' ' parts{12}]);
+                                if l> 12
+                                    en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            this.ref_epoch            = GPS_Time(re_date);
+            this.start_validity_epoch = GPS_Time(st_date);
+            en_date(en_date == 0)     = datenum(2099, 1,1);
+            this.end_validity_epoch   = GPS_Time(en_date);
+            
+            
+            
         end
+
         function [xyz] = getCoo(this, sta_name, epoch)
-            idx_sta = idxCharLines(this.station_code,sta_name);
-            dt = epoch - this.ref_epoch;
-            xyz = this.xyz(idx_sta,:) + dt/(365.25*86400)*this.vxvyvz(idx_sta,:);
+            xyz = [];
+            if ~isempty(this.station_code) && length(sta_name) == 4
+                idx_sta = idxCharLines(lower(this.station_code), lower(sta_name));
+                if sum(idx_sta) > 0
+                    st_validity_time = this.start_validity_epoch.getSubSet(idx_sta).getGpsTime();
+                    end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
+                    epoch_gps = epoch.getGpsTime();
+                    idx_sta2 = st_validity_time < epoch_gps && end_validity_time > epoch_gps;
+                    idx_sta = find(idx_sta);
+                    idx_sta = idx_sta(idx_sta2);
+                    dt = epoch - this.ref_epoch.getEpoch(idx_sta);
+                    xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
+                end
+                
+            end
         end
     end
     
