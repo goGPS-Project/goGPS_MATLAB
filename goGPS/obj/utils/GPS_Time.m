@@ -1269,8 +1269,7 @@ classdef GPS_Time < Exportable & handle
                     this.time_diff = this.time_diff + n_seconds(:);
             end
         end
-                
-        
+                        
         function res = lt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<' function
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();

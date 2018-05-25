@@ -1,13 +1,13 @@
-%   CLASS Meteo_Data
+%   CLASS Meteo_Data_Old
 % =========================================================================
 %
 % DESCRIPTION
 %   Class to store receiver data (observations, and characteristics
 %
 % EXAMPLE
-%   settings = Meteo_Data();
+%   settings = Meteo_Data_Old();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Meteo_Data
+% FOR A LIST OF CONSTANTs and METHODS use doc Meteo_Data_Old
 %
 % REFERENCE
 
@@ -38,7 +38,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Meteo_Data < handle
+classdef Meteo_Data_Old < handle
 
     properties (Constant, GetAccess = private)
         PR_ID = sum(uint16('PR').*uint16([1 256]));     % Internal id of Pressure [mbar]
@@ -54,17 +54,17 @@ classdef Meteo_Data < handle
         HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement
 
         % Array of all the meteorological data types
-        DATA_TYPE_ID = [Meteo_Data.PR_ID, ...
-                        Meteo_Data.TD_ID, ...
-                        Meteo_Data.HR_ID, ...
-                        Meteo_Data.ZW_ID, ...
-                        Meteo_Data.ZD_ID, ...
-                        Meteo_Data.ZT_ID, ...
-                        Meteo_Data.WD_ID, ...
-                        Meteo_Data.WS_ID, ...
-                        Meteo_Data.RI_ID, ...
-                        Meteo_Data.RR_ID, ...
-                        Meteo_Data.HI_ID];
+        DATA_TYPE_ID = [Meteo_Data_Old.PR_ID, ...
+                        Meteo_Data_Old.TD_ID, ...
+                        Meteo_Data_Old.HR_ID, ...
+                        Meteo_Data_Old.ZW_ID, ...
+                        Meteo_Data_Old.ZD_ID, ...
+                        Meteo_Data_Old.ZT_ID, ...
+                        Meteo_Data_Old.WD_ID, ...
+                        Meteo_Data_Old.WS_ID, ...
+                        Meteo_Data_Old.RI_ID, ...
+                        Meteo_Data_Old.RR_ID, ...
+                        Meteo_Data_Old.HI_ID];
     end
 
     properties (Constant)
@@ -101,14 +101,12 @@ classdef Meteo_Data < handle
     properties (SetAccess = private, GetAccess = protected)
         % contains an object to read the RINEX file
         file;   % init this with File_Rinex('filename')
-        rin_type       % rinex version format
 
         marker_name = '';   % name of the station
         n_type = 0;         % number of observation types
         type = 1:11;        % supposing to have all the fields
 
         time = GPS_Time();  % array of observation epochs
-        rate                % observations rate;
 
         data = [];          % Meteorological file
 
@@ -122,150 +120,101 @@ classdef Meteo_Data < handle
     end
 
     methods (Access = private)
-        function parseRinHead(this, txt, lim, eoh)
-            % Parse header and update the object, having as input the meteo_file in txt
-            %
-            % SYNTAX
-            %    this.parseRinHead(txt, nl)
-            %
-            % INPUT
-            %    txt    raw txt of the RINEX
-            %    lim    indexes to determine start-stop of a line in "txt"  [n_line x 2/<3>]
-            %    eoh    end of header line
-            
-            h_std{1} = 'RINEX VERSION / TYPE';                  %  1
-            h_std{2} = 'MARKER NAME';                           %  2
-            h_std{3} = 'SENSOR MOD/TYPE/ACC';                   %  4
-            h_std{4} = 'SENSOR POS XYZ/H';                      %  5
-            h_std{5} = '# / TYPES OF OBSERV';                   %  6
-            
-            h_opt{1} = 'MARKER NUMBER';                         %  7
-            head_field = {h_std{:} h_opt{:}}';
-            
-            try
-                % read RINEX type 3 or 2 ---------------------------------------------------------------------------------------------------------------------------
-                l = 0;
-                type_found = false;
-                while ~type_found && l < eoh
-                    l = l + 1;
-                    if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
-                        type_found = true;
-                        dataset = textscan(txt(lim(1,1):lim(1,2)), '%f%c%18c%c');
+        function parseHeader(this, meteo_file)
+            % Parse header and update the object, having as input the meteo_file
+            % as read with textscan (cell array of string lines)
+            % SYNTAX: this.parseHeader(meteo_file)
+
+            if ~this.file.isValid(1)
+                this.log.addWarning('Meteorological file with no header or corrupted');
+                this.log.addWarning(sprintf('Try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
+            else
+                % Try to parse header
+                try
+                    % Check for file description to verify the header
+                    if isempty(strfind(meteo_file{1}(61:end),'VERSION / TYPE')) || isempty(strfind(meteo_file{1},'METEOROLOGICAL DATA'))
+                        throw(MException('MeteorologicalFile:InvalidHeader', 'file type is not described as "METEOROLOGICAL DATA"'));
                     end
+                catch ex
+                    this.log.addWarning(sprintf('Problem detected in header of %s: %s', file.getFileName(), ex.message))
                 end
-                this.rin_type = dataset{1};
-                if dataset{2} == 'M'
-                    % OK
-                else
-                    throw(MException('VerifyINPUTInvalidObservationFile', 'This RINEX seems corrupted - RINEX header parsing error'));
-                end
-                
-                % parsing ------------------------------------------------------------------------------------------------------------------------------------------
-                
-                % retriving the kind of header information is contained on each line
-                line2head = zeros(eoh, 1);
-                l = 0;
-                while l < eoh
-                    l = l + 1;
-                    %DEBUG: txt((lim(l,1) + 60) : lim(l,2))
-                    tmp = find(strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), head_field));
-                    if ~isempty(tmp)
-                        % if the field have been recognized (it's not a comment)
-                        line2head(l) = tmp;
+
+                % Scan the file header
+                try
+                    l = 1;
+                    this.type = [];
+                    type_is_present = false;
+                    pos_is_present = false;
+                    marker_name_is_present = false;
+                    while (l < this.file.getEOH)
+                        l = l + 1;
+                        line = meteo_file{l};
+                        if (~type_is_present)
+                            % Check for type of observations
+                            type_is_present = ~isempty(strfind(line(61:end),'# / TYPES OF OBSERV'));
+
+                            if type_is_present
+                                % Read types of obs
+                                this.n_type = sscanf(line(1:6),'%d');
+                                if (this.n_type >= 10)
+                                    this.log.addWarning('Reading more than 10 fields is not yet supported');
+                                end
+                                for t = 0 : (this.n_type - 1)
+                                    str_type = line(8 + (3:4) + t * 6);
+                                    this.type = [this.type find(this.DATA_TYPE_ID == (sum(uint16(str_type) .* uint16([1 256]))))];
+                                end
+                                if this.n_type > numel(this.type)
+                                    throw(MException('MeteorologicalFile:InvalidHeader', 'unrecognized data type'));
+                                end
+                            end
+                        end
+                        if (~pos_is_present)
+                            % Check for sensor position
+                            pos_is_present = ~isempty(strfind(line(61:end),'SENSOR POS XYZ/H'));
+
+                            if pos_is_present
+                                this.xyz = sscanf(line(1:42), '%14f%14f%14f');
+                                if sum(abs(this.xyz)) > 0
+                                    [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
+                                    this.amsl = h - getOrthometricCorr(phiC, lam);
+                                else
+                                    this.amsl = 0;
+                                end
+                            end
+                        end
+                        if (~marker_name_is_present)
+                            % Check for sensor position
+                            marker_name_is_present = ~isempty(strfind(line(61:end),'MARKER NAME'));
+                            if marker_name_is_present
+                                this.marker_name = strtrim(line(1:60));
+                            end
+                        end
                     end
-                end
-                
-                % reading parameters -------------------------------------------------------------------------------------------------------------------------------
-                
-                % 1) 'RINEX VERSION / TYPE'
-                % already parsed
-                % 2) 'MARKER NAME'
-                fln = find(line2head == 2, 1, 'first'); % get field line
-                if isempty(fln)
-                    this.marker_name = 'NO_NAME';
-                else
-                    this.marker_name = strtrim(txt(lim(fln, 1) + (0:59)));
-                end
-                % 3) 'SENSOR MOD/TYPE/ACC'
-                % ignoring
-                % 4) 'SENSOR POS XYZ/H'
-                fln = find(line2head == 4, 1, 'first'); % get field line
-                if isempty(fln)
-                    this.xyz = [0 0 0];
-                else
-                    tmp = sscanf(txt(lim(fln, 1) + (0:41)),'%f')';                                               % read value
-                    this.xyz = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 3), [0 0 0], tmp);          % check value integrity
-                    if sum(abs(this.xyz)) > 0
-                        [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                        this.amsl = h - getOrthometricCorr(phiC, lam);
-                    else
+
+                    % set default (empty) values if the following paremeters are not found in header
+                    if ~pos_is_present
+                        this.xyz = [0 0 0];
                         this.amsl = 0;
                     end
-                end
-                % 5) '# / TYPES OF OBSERV'
-                fln = find(line2head == 5, 1, 'first'); % get field line
-                % Read types of obs
-                if isempty(fln)
-                    throw(MException('MeteorologicalFile:InvalidHeader', 'unrecognized data type'));
-                else
-                    this.n_type = sscanf(txt(lim(fln, 1) + (0 : 5)),'%d');
-                    if (this.n_type >= 10)
-                        this.log.addWarning('Reading more than 10 fields is not yet supported');
+
+                    if ~marker_name_is_present
+                        this.marker_name = '';
                     end
-                    this.type = [];
-                    for t = 0 : (this.n_type - 1)
-                        str_type = txt(lim(fln, 1) + 7 + (3 : 4) + t * 6);
-                        this.type = [this.type find(this.DATA_TYPE_ID == (sum(uint16(str_type) .* uint16([1 256]))))];
-                    end
-                    if this.n_type > numel(this.type)
-                        throw(MException('MeteorologicalFile:InvalidHeader', 'unrecognized data type'));
-                    end
+
                     if isempty(this.type)
+                        this.type = 1 : 10;
+                        this.n_type = numel(this.type);
+                    end
+                    if ~type_is_present
                         throw(MException('MeteorologicalFile:InvalidHeader', 'file does not contain the header field "# / TYPES OF OBSERV"'));
                     end
+                catch ex
+                    this.log.addWarning(sprintf('Problem detected in the header: %s', ex.message))
+                    this.log.addWarning(sprintf('try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
                 end
-            catch ex
-                this.log.addWarning(sprintf('Problem detected in the header: %s', ex.message))
-                this.log.addWarning(sprintf('try to read it as it contains date (6 fields) + %s', sprintf('%c%c ', this.getType()')));
             end
         end
-        
-        function parseRin2Data(this, txt, lim, eoh)
-            % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX this.parseRin2Data(txt, lim, eoh)
-            % remove comment line from lim
-            
-            % Read the data
-            try
-            comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
-            comment_line(1:eoh) = false;
-            lim(comment_line,:) = [];
-            
-            % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
-            t_line(lim(t_line,3) ~= lim(t_line(1),3)) = [];
-            
-            n_epo = numel(t_line);
-            % extract all the epoch lines
-            string_time = txt(repmat(lim(t_line,1),1,17) + repmat(1:17, n_epo, 1))';
-            % convert the times into a 6 col time
-            date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %2f'));
-            after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
-            % import it as a GPS_Time obj
-            this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            this.rate = this.time.getRate();
-            
-            this.data = nan(this.n_type, n_epo);
-            line = txt(repmat(lim(t_line,1),1, lim(t_line(1),3) - 17) + 17 + repmat(1 : (lim(t_line,3) - 17), n_epo, 1))';
-            data = sscanf(line, '%f');
-            this.data(1:end) = data;
-            catch ex
-                this.log.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
-                this.is_valid = false;
-            end
-            this.data = this.data'; % keep one column per data type
-        end
-        
+
         function parseData(this, meteo_file)
             % Parse data and update the object, having as input the meteo_file
             % as read with textscan (cell array of string lines)
@@ -311,37 +260,17 @@ classdef Meteo_Data < handle
             try
                 this.time = GPS_Time(); % empty the time
                 this.file = File_Rinex(file_name, verbosity_lev);
-                
-                                fid = fopen(file_name,'r');
-                txt = fread(fid,'*char')';
-                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                fid = fopen(this.file.getFileName(), 'r');
+                meteo_file = textscan(fid,'%s','Delimiter', '\n', 'whitespace', '');
                 fclose(fid);
-                
-                % get new line separators
-                nl = regexp(txt, '\n')';
-                if nl(end) <  numel(txt)
-                    nl = [nl; numel(txt)];
-                end
-                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-                lim = [lim lim(:,2) - lim(:,1)];
-                while lim(end,3) < 3
-                    lim(end,:) = [];
-                end
-                
-                % removing empty lines at end of file
-                while (lim(end,1) - lim(end-1,1))  < 2
-                    lim(end,:) = [];
-                end
-                
-                % importing header informations
-                eoh = this.file.eoh;
+                meteo_file = meteo_file{1};
             catch ex
                 this.log.addError(sprintf('Error reading meteorological file "%s" (%s)', file_name, ex.message));
                 return
             end
 
             % Parse the header and detect the types of data contained in the meteorological file
-            this.parseRinHead(txt, lim, eoh);
+            this.parseHeader(meteo_file);
 
             if (nargin == 3) && ~isempty(type)
                 this.log.addWarning('Meteorological file - overriding the file data types with custom types');
@@ -356,7 +285,7 @@ classdef Meteo_Data < handle
             end
             this.is_valid = this.file.isValid();
             % Parse the data
-            this.parseRin2Data(txt, lim, eoh);
+            this.parseData(meteo_file);
             if ~any(this.xyz)
                 this.log.addWarning(sprintf('No position found in meteorological file "%s"\n this meteorological station cannot be used correctly', File_Name_Processor.getFileName(file_name)), verbosity_lev);                
             end
@@ -378,8 +307,8 @@ classdef Meteo_Data < handle
     %  INIT / READER
     % =========================================================================
     methods
-        function this = Meteo_Data(file_name, type, verbosity_lev)
-            % Creator Meteo_Data(file_name, <type = empty>, <verbosity_lev>)
+        function this = Meteo_Data_Old(file_name, type, verbosity_lev)
+            % Creator Meteo_Data_Old(file_name, <type = empty>, <verbosity_lev>)
 
             % The function calls all its creation methods within try and
             % catch statements, reading the Meteo file should not be
@@ -403,7 +332,7 @@ classdef Meteo_Data < handle
 
         function importRaw(this, obs_time, data, type, marker_name, pos_xyz)
             % Import a meteorological file
-            % EXAMPLE: this.importRaw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
+            % EXAMPLE: this.importRaw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data_Old.PR Meteo_Data_Old.TD Meteo_Data_Old.HR Meteo_Data_Old.RT], 'GReD', xyz);
             narginchk(6, 6);
 
             % Skip NaN epochs
@@ -482,7 +411,7 @@ classdef Meteo_Data < handle
                     try
                         fid = fopen(cur_file_name, 'w');
                         str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
-                            'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
+                            'EXPORTED MET FILE FROM Meteo_Data_Old MATLAB CLASS              COMMENT', 10];
                         if ~isempty(this.marker_name)
                             str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
                         end
@@ -606,7 +535,7 @@ classdef Meteo_Data < handle
                             time_data = [ (min(time_pred(1), time_data(1)) - 1/86400); time_data; (max(time_pred(end), time_data(end)) + 1/86400)];
                             data = interp1(time_data, data_in, time_pred, 'pchip','extrap');
                             if this.smoothing(data_id) > 0
-                                data = splinerMat(time_pred * 86400, data - mean(data), (this.smoothing(data_id)), 0) + mean(data);
+                                data = splinerMat(time_pred, data - mean(data), this.smoothing(data_id) / 86400, 0) + mean(data);
                             end
                             % do not extrapolate further than 20 minutes in time
                             data((time_pred < time_data(1) - this.getMaxBound / 1440) | (time_pred > time_data(end) + this.getMaxBound / 1440)) = NaN;
@@ -629,7 +558,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.pressure_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data_Old.pressure_adjustment(data, this.amsl, amsl);
             end
         end
         
@@ -643,7 +572,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.temperature_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data_Old.temperature_adjustment(data, this.amsl, amsl);
             end
         end
         
@@ -657,7 +586,7 @@ classdef Meteo_Data < handle
             end
             
             if (nargin == 3)
-                data = Meteo_Data.humidity_adjustment(data, this.amsl, amsl);
+                data = Meteo_Data_Old.humidity_adjustment(data, this.amsl, amsl);
             end
         end
         
@@ -685,25 +614,25 @@ classdef Meteo_Data < handle
             % Get Virtual Meteo Station
             %
             % INPUT
-            %   name    name of the new Meteo_Data virtual station
+            %   name    name of the new Meteo_Data_Old virtual station
             %   xyz     coordinates of the new meteo station
             %   time    time of interpolation
             %
-            %   station list of Meteo_Data station to use for the interpolation
+            %   station list of Meteo_Data_Old station to use for the interpolation
             %   
             % OUTPUT
-            %   md      virtual Meteo_Data station generated at xyz coordinates
+            %   md      virtual Meteo_Data_Old station generated at xyz coordinates
             %   
             % SYNTAX
             %   md = this.getVMS(name, xyz, time, station)
             %
             % EXAMPLE
             %   [x, y, z, amsl] = station(1).getLocation();
-            %   md1 = Meteo_Data.getVMS('test', [x y z], station(1).getObsTime, md)
+            %   md1 = Meteo_Data_Old.getVMS('test', [x y z], station(1).getObsTime, md)
 
             log = Logger.getInstance();
 
-            md = Meteo_Data();
+            md = Meteo_Data_Old();
             [~, lam, h, phiC] = cart2geod(xyz(1), xyz(2), xyz(3));
             [e, n] = cart2plan(xyz(1), xyz(2), xyz(3));
 
@@ -812,7 +741,7 @@ classdef Meteo_Data < handle
             data = [pres temp hum];
             id_ok = (sum(isnan(data)) < time.length());
             data = data(:, id_ok);
-            type = [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR];
+            type = [Meteo_Data_Old.PR Meteo_Data_Old.TD Meteo_Data_Old.HR];
             type = type(:, id_ok);
             md.importRaw(time, data, type, name, xyz);
         end

@@ -1366,7 +1366,7 @@ classdef Receiver < Exportable
             mn = Meteo_Network.getInstance();
             if ~isempty(mn.mds)
                 this.log.addMarkedMessage('importing meteo data');
-                this.meteo_data = mn.getVMS(this.marker_name, this.xyz, this.time);
+                this.meteo_data = mn.getVMS(this.marker_name, this.xyz, this.getNominalTime);
             end
         end
         

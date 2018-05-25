@@ -2225,12 +2225,25 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
-         function eph_full_name = getMetFileName(this, date_start, date_stop)
+         function met_full_name = getMetFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.met_dir, filesep, this.met_name));
-            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            if ~iscell(this.met_name)
+                met_name = {this.met_name};
+            else
+                met_name = this.met_name;
+            end
+            step_sec = fnp.getStepSec(met_name);
+
+            if (~isempty(strfind(this.met_dir, fnp.GPS_WD)) || ~isempty(strfind(this.met_dir, fnp.GPS_WEEK)))
+                date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            end
+            met_full_name = {};
+            for i = 1 : numel(met_name)
+                met_full_name = [met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+            end
         end
 
         function clk_full_name = getClkFileName(this, date_start, date_stop)
