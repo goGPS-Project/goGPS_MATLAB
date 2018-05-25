@@ -71,7 +71,7 @@ classdef GPS_SS < Satellite_System
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'PWXSYLMCN ' 'PWXSYLMCDN ' 'XIQ '}; % last letter of the observation code
-        CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'C ' 'Q'}; % last letter of the observation code
+        CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'C' 'Q'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '125'; % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['12';'15';'25'];
     end
@@ -89,13 +89,13 @@ classdef GPS_SS < Satellite_System
 
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
-        ORBITAL_P = struct('GM', 3.986005e14, ...                  % Gravitational constant * (mass of Earth) [m^3/s^2]
-                                    'OMEGAE_DOT', 7.2921151467e-5, ...      % Angular velocity of the Earth rotation [rad/s]
-                                    'ELL',struct( ...                       % Ellipsoidal parameters GPS (WGS84)
-                                    'A', GPS_SS.ELL_A, ...              % Ellipsoid semi-major axis [m]
-                                    'F', GPS_SS.ELL_F, ...              % Ellipsoid flattening
-                                    'E', GPS_SS.ELL_E, ...              % Eccentricity
-                                    'e2', GPS_SS.ELL_E2));              % Eccentricity^2
+        ORBITAL_P = struct('GM', 3.986005e14, ...   % Gravitational constant * (mass of Earth) [m^3/s^2]
+            'OMEGAE_DOT', 7.2921151467e-5, ...      % Angular velocity of the Earth rotation [rad/s]
+            'ELL',struct( ...                       % Ellipsoidal parameters GPS (WGS84)
+            'A', GPS_SS.ELL_A, ...                  % Ellipsoid semi-major axis [m]
+            'F', GPS_SS.ELL_F, ...                  % Ellipsoid flattening
+            'E', GPS_SS.ELL_E, ...                  % Eccentricity
+            'e2', GPS_SS.ELL_E2));                  % Eccentricity^2
     end
 
     methods

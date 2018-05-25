@@ -42,12 +42,12 @@
 %--------------------------------------------------------------------------
 
 classdef Core_UI < handle
-
+    
     properties (Constant)
         FONT_SIZE_CONVERSION_LNX = 1.05;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
-
+        
         LIGHT_GRAY_BG = 0.85 * ones(3, 1);
         DARK_GRAY_BG = 0.18 * ones(3, 1);
         WHITE = ones(3, 1);
@@ -55,7 +55,7 @@ classdef Core_UI < handle
         BLUE = [0 0 1];
         RED  = [1 0 0];
         GREEN = [0 1 0];
-
+        
         COLOR_ORDER = [ ...
             0     0.447 0.741;
             0.85  0.325 0.098;
@@ -81,12 +81,14 @@ classdef Core_UI < handle
         session_g   % Session group
         ui_sss_start
         ui_sss_stop
-
+        
         j_settings  % java settings panel
         check_boxes % list of chgoGPS
         pop_ups     % list of drop down menu
         edit_texts  % list of editable text
-        eckboxes
+        ceckboxes
+        
+        uip         % User Interface Pointers
     end
     %% PROPERTIES STATUS
     % ==================================================================================================================================================
@@ -107,7 +109,7 @@ classdef Core_UI < handle
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core_ui__
-
+            
             if isempty(unique_instance_core_ui__)
                 this = Core_UI();
                 unique_instance_core_ui__ = this;
@@ -117,7 +119,7 @@ classdef Core_UI < handle
             end
             this.init();
         end
-
+        
         function showTextHeader()
             this.log = Logger.getInstance();
             if this.log.getColorMode()
@@ -132,7 +134,7 @@ classdef Core_UI < handle
             this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
             fprintf('--------------------------------------------------------------------------\n\n');
         end
-
+        
         function [logo, transparency] = getLogo()
             transparency = uint8([ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 80 223 223 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 48 191 255 255 255 255 191 48 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -198,7 +200,7 @@ classdef Core_UI < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16 159 255 255 255 255 255 255 255 255 159 16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 48 191 255 255 255 255 191 48 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 80 223 223 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]);
-
+            
             logo = uint8(zeros(size(transparency,1), size(transparency,2), 3));
             logo(:,:,1) = uint8([ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -330,7 +332,7 @@ classdef Core_UI < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 ]);
         end
-
+        
         function [logo, transparency] = getLogoDarkBg()
             transparency = uint8([ ...
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 48 192 174 34 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -398,7 +400,7 @@ classdef Core_UI < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 21 153 252 255 255 247 134 12 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 48 192 174 34 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 ]);
-
+            
             logo = uint8(zeros(size(transparency,1), size(transparency,2), 3));
             logo(:,:,1) = uint8([
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -466,7 +468,7 @@ classdef Core_UI < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 ]);
-
+            
             logo(:,:,2) = uint8([
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -533,7 +535,7 @@ classdef Core_UI < handle
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 ]);
-
+            
             logo(:,:,3) = uint8([
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
                 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
@@ -610,7 +612,7 @@ classdef Core_UI < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
-
+        
         function ok_go = openGUI(this)
             % WIN CONFIGURATION
             % L| N|    W
@@ -619,20 +621,20 @@ classdef Core_UI < handle
             % ----------
             % b      b b
             %
-
+            
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 close(this.w_main);
             end
-
+            
             t0 = tic();
             this.ok_go = false;
             % empty check boxes
             this.check_boxes = {};
             this.pop_ups = {};
             this.edit_texts = {};
-
+            
             % Main Window ----------------------------------------------------------------------------------------------
-
+            
             win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
                 'Visible', 'on', ...
                 'MenuBar', 'none', ...
@@ -647,7 +649,7 @@ classdef Core_UI < handle
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
             this.w_main = win;
-
+            
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
@@ -661,112 +663,112 @@ classdef Core_UI < handle
                 return;
             end
             top_bh = uix.HBox( 'Parent', main_bv);
-
+            
             left_bv = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', this.DARK_GRAY_BG);
-
+            
             % Logo/title box -------------------------------------------------------------------------------------------
-
+            
             this.insertLogo(left_bv);
-
+            
             this.insertSessionDate(left_bv);
             this.insertRecList(left_bv);
-
+            
             %this.updateRec(left_bv);
-
-
+            
+            
             % Main Panel -----------------------------------------------------------------------------------------------
-
+            
             panel_g_border = uix.Grid('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', this.DARK_GRAY_BG);
             %panel = uix.BoxPanel('Parent', panel_border, 'Title', 'Settings' );
-
+            
             tab_panel = uix.TabPanel('Parent', panel_g_border, ...
                 'TabWidth', 100, ...
                 'Padding', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
-
+            
+            
             % Main Panel > tab1 settings
             this.j_settings = this.insertEditSettings(tab_panel);
-
+            
             % Main Panel > tab2 remote resource ini
             enable_rri = true;
             if enable_rri
                 insertRemoteResource(this, tab_panel)
             end
-
+            
             % Main Panel > tab3 processing options
             this.insertProcessing(tab_panel);
             % Main Panel > tab4 atmosphere options
             this.insertAtmosphere(tab_panel);
-
-
+            
+            
             % Tabs settings --------------------------------------------------------------------------------------------
-
+            
             if enable_rri
                 tab_panel.TabTitles = {'Settings', 'Resources', 'Processing', 'Atmosphere'};
             else
                 tab_panel.TabTitles = {'Settings','Processing', 'Atmosphere'};
             end
-
+            
             % Botton Panel ---------------------------------------------------------------------------------------------
             bottom_bh = uix.HBox( 'Parent', main_bv, ...
                 'Padding', 5, ...
                 'Spacing', 5, ...
                 'BackgroundColor', 0.14 * [1 1 1]);
-
+            
             bottom_bhl = uix.HButtonBox( 'Parent', bottom_bh, ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', 0.14 * [1 1 1]);
-
+            
             bottom_bhr = uix.HButtonBox( 'Parent', bottom_bh, ...
                 'Spacing', 5, ...
                 'HorizontalAlignment', 'right', ...
                 'BackgroundColor', 0.14 * [1 1 1]);
-
+            
             exit_but = uicontrol( 'Parent', bottom_bhl, ...
                 'String', 'Exit', ...
-                'Callback', @this.close);
-
+                'Callback', @this.close); %#ok<NASGU>
+            
             load_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'Load', ...
-                'Callback', @this.loadState);
+                'Callback', @this.loadState); %#ok<NASGU>
             save_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'Save', ...
-                'Callback', @this.saveState);
+                'Callback', @this.saveState); %#ok<NASGU>
             go_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'go!', ...
                 'FontAngle', 'italic', ...
                 'Callback', @this.go, ...
-                'FontWeight', 'bold');
-
+                'FontWeight', 'bold'); %#ok<NASGU>
+            
             % Manage dimension -------------------------------------------------------------------------------------------
-
+            
             main_bv.Heights = [-1 30];
             %session_height = sum(left_bv.Children(2).Children(1).Heights);
             session_height = sum(left_bv.Children(2).Heights);
             left_bv.Heights = [82 session_height -1];
             top_bh.Widths = [200 -1];
             this.updateUI;
-
+            
             this.w_main.Visible = 'on';
             t_win = toc(t0);
             this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
             uiwait(this.w_main);
         end
     end
-
+    
     %% METODS INSERT
     % ==================================================================================================================================================
     methods
         function insertLogo(this, container)
             % Logo
             logo_bg_color = this.LIGHT_GRAY_BG;
-
+            
             logo_g_border0 = uix.Grid('Parent', container, ...
                 'Padding', 2, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
@@ -776,7 +778,7 @@ classdef Core_UI < handle
             logo_g = uix.Grid('Parent', logo_g_border1, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_bg_color);
-
+            
             logo_ax = axes( 'Parent', logo_g);
             [logo, transparency] = Core_UI.getLogo();
             logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
@@ -785,7 +787,7 @@ classdef Core_UI < handle
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
             axis off;
-
+            
             % Title and description
             descr_bv = uix.VBox('Parent', logo_g, ...
                 'BackgroundColor', logo_bg_color);
@@ -818,17 +820,17 @@ classdef Core_UI < handle
                 'FontWeight', 'bold');
             uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', logo_bg_color);
             descr_bv.Heights = [-3.5 -2 -1.3 -0.5];
-
+            
             logo_g.Widths = [64 -1];
             logo_g.Heights = 64;
         end
-
+        
         function insertResources(this, container)
             resources_BG = this.LIGHT_GRAY_BG;
             tab = uix.Grid('Parent', container, ...
-                'Padding', 10, ...
+                'Padding', 5, ...
                 'BackgroundColor', resources_BG);
-
+            
             uicontrol('Parent', tab, ...
                 'Style', 'Text', ...
                 'String', 'Select Computational Center:', ...
@@ -836,21 +838,90 @@ classdef Core_UI < handle
                 'HorizontalAlignment', 'left', ...
                 'FontSize', this.getFontSize(8), ...
                 'BackgroundColor', resources_BG);
+            
+            this.uip.tab_res = tab;
         end
-
+                
         function insertProcessing(this, container)
             processing_BG = this.LIGHT_GRAY_BG;
             tab = uix.Grid('Parent', container, ...
-                'Padding', 10, ...
+                'Padding', 5, ...
                 'BackgroundColor', processing_BG);
-            cc_box = this.insertPanelLight(tab, 'Constellation Selection');
-            h_box_cc = uix.HBox('Parent', cc_box, ...
+            
+            % --------------------------------------------------------
+            
+            ds_box = this.insertPanelLight(tab, 'Data Selection');
+            
+            % --------------------------------------------------------
+            ds_box_g = uix.VBox('Parent', ds_box, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            % Constellation selction
+            
+            uicontrol('Parent', ds_box_g, ...
+                'Style', 'Text', ...
+                'String', 'Data to keep during processing (if present in the receiver data)', ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', processing_BG);
+            
+            this.insertHBarLight(ds_box_g);            
+            
+            ds_h_box = uix.HBox('Parent', ds_box_g, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            err_box_g = uix.VBox('Parent', ds_h_box, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [155 40 5 35]);
+            this.insertEmpty(err_box_g);
+
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [155 40 5 35]);
+            this.insertEmpty(err_box_g);
+            err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
+            
+            this.insertEmpty(ds_h_box);
+            
+            ss_panel  = this.insertSatSelector(ds_h_box); %#ok<NASGU>
+            
+            ds_h_box.Widths = [245 5 -1];
+
+            %this.insertEmpty(ds_box_g);
+             
+            % --------------------------------------------------------
+            
+            this.insertEmpty(tab);
+
+            % --------------------------------------------------------
+            
+            ppp_panel = this.insertPPPOptions(tab); %#ok<NASGU>
+            
+            % --------------------------------------------------------
+            
+            ds_box_g.Heights = [18 15 -1];
+                        
+            tab.Heights = [230 5 200];
+            
+            this.uip.tab_proc = tab;
+        end
+
+        function ss_panel = insertSatSelector(this, container)
+            % Constellation selection
+            ss_panel = this.insertPanelLight(container, 'Constellation Selection');
+            ss_panel.FontWeight = 'normal';
+            
+            h_box_cc = uix.HBox('Parent', ss_panel, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+
             v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
                 'ButtonSize', [100 20], ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'GPS',     'G_is_active');
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active');
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active');
@@ -858,86 +929,87 @@ classdef Core_UI < handle
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'Beidouu', 'C_is_active');
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active');
             this.check_boxes{end+1} = this.insertChxBoxCC(v_but_bx_cc, 'SBS',     'S_is_active');
+            this.check_boxes{end}.Enable = 'off';
 
             this.insertVBarLight(h_box_cc);
-
+            
             %%% frequency selection
             v_bx_freq = uix.VBox('Parent', h_box_cc, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             n_b_gps = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gps, '(L1) L1', 'GPS_L1');
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gps, '(L2) L2', 'GPS_L2');
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gps, '(L5) L5', 'GPS_L5');
-
+            
             n_b_glo = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_glo, '(L1) R1', 'GLO_R1');
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_glo, '(L2) R2', 'GLO_R2');
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_glo, '(L3) R5', 'GLO_R5');
-
+            
             n_b_gal = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L1) E1 ', 'GAL_E1');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L5) E5a', 'GAL_E2');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L7) E5b', 'GAL_E5');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L8) E5 ', 'GAL_E6');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L6) E6 ', 'GAL_E5');
-
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L5) E5a', 'GAL_E5a');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L7) E5b', 'GAL_E5b');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L8) E5 ', 'GAL_E5');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_gal, '(L6) E6 ', 'GAL_E6');
+            
             n_b_qzs = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L1) L1', 'QZS_J1');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L2) L2', 'QZS_J5');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L5) L5', 'QZS_J5');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L6) L6', 'QZS_J6');
-
+            
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L5) L5', 'QZS_L5');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_qzs, '(L6) L6', 'QZS_L6');
+            
             n_b_bei = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L1) B1', 'BDS_C1');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L7) B2', 'BDS_C2');
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L6) B3', 'BDS_C3');
-
+            
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L2) B1', 'BDS_B1');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L7) B2', 'BDS_B2');
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_bei, '(L6) B3', 'BDS_B3');
+            
             n_b_irn = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
-            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_irn, '(L5) L1', 'IRN_L1');
+            
+            this.check_boxes{end+1} = this.insertChxBoxCC(n_b_irn, '(L5) L5', 'IRN_L5');
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_irn, '(L9) S ', 'IRN_S');
-
+            
             n_b_sbs = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_sbs, '(L1) L1', 'SBS_L1');
             this.check_boxes{end}.Enable = 'off';
             this.check_boxes{end+1} = this.insertChxBoxCC(n_b_sbs, '(L5) L5', 'SBS_L5');
             this.check_boxes{end}.Enable = 'off';
-
-            n_b_gps.ButtonSize(1) = 75;
-            n_b_glo.ButtonSize(1) = 75;
-            n_b_gal.ButtonSize(1) = 75;
-            n_b_qzs.ButtonSize(1) = 75;
-            n_b_bei.ButtonSize(1) = 75;
-            n_b_irn.ButtonSize(1) = 75;
-            n_b_sbs.ButtonSize(1) = 75;
-
+            
+            n_b_gps.ButtonSize(1) = 72;
+            n_b_glo.ButtonSize(1) = 72;
+            n_b_gal.ButtonSize(1) = 72;
+            n_b_qzs.ButtonSize(1) = 72;
+            n_b_bei.ButtonSize(1) = 72;
+            n_b_irn.ButtonSize(1) = 72;
+            n_b_sbs.ButtonSize(1) = 72;
+            
             h_box_cc.Widths = [100 20 -1];
-
-            this.insertEmpty(tab);
-
+        end
+        
+        function ppp_panel = insertPPPOptions(this, container)
             %%% processing options
-            ppp_options = this.insertPanelLight(tab, 'Observations "corrections"');
-            opt_grid = uix.Grid('Parent', ppp_options,...
+            ppp_panel = this.insertPanelLight(container, 'Observations "corrections"');
+            opt_grid = uix.Grid('Parent', ppp_panel,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Receiver PCO/PCV',      'flag_rec_pcv');
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Solid Earth Tide',      'flag_solid_earth');
@@ -946,18 +1018,16 @@ classdef Core_UI < handle
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Shapiro Delay',         'flag_shapiro');
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Ocean Loading',         'flag_ocean_load');
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load');
-            this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi');           
+            this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi');
             
             opt_grid.Widths = -1;
-
-            tab.Heights = [160 5 200];
         end
 
         function insertAtmosphere(this, container)
             tab = uix.Grid('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             %%% IONO
             iono_options = this.insertPanelLight(tab, 'Ionosphere options');
             iono_opt_grid = uix.VBox('Parent', iono_options,...
@@ -965,9 +1035,9 @@ classdef Core_UI < handle
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(iono_opt_grid, 'Ionosphere Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
-
+            
             this.insertEmpty(tab);
-
+            
             %%% TROPO
             tropo_options = this.insertPanelLight(tab, 'Tropospheric options');
             tropo_opt_grid = uix.VBox('Parent', tropo_options,...
@@ -975,77 +1045,81 @@ classdef Core_UI < handle
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimate ZTD', 'flag_tropo');
             this.check_boxes{end+1} = this.insertCheckBoxLight(tropo_opt_grid, 'Estimates ZTD gradients', 'flag_tropo_gradient');
-
+            
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
             [met, this.edit_texts{end+1}] = this.insertFileBox(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
             met.Widths(1:2) = [100 -1];
-
+            
             this.insertEmpty(tab);
-
+            
             %%% TROPO ADV
             tropo_options_adv = this.insertPanelLight(tab, 'Advanced Tropospheric options');
             tropo_opt_grid_adv = uix.VBox('Parent', tropo_options_adv,...
                 'Spacing', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization [m/h]', 'std_tropo', @this.onEditChange);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization [m/h]', 'std_tropo_gradient', @this.onEditChange);
-
+            [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/h', @this.onEditChange, [-1 80 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/h', @this.onEditChange, [-1 80 5 35]);
+            
             tab.Heights = [80 5 180 5 80];
             tab.Widths = 440;
+            
+            this.uip.tab_atmo = tab;
         end
-
+        
         function insertRemoteResource(this, container)
-                tab = uix.Grid('Parent', container);
-
-                tab_bv = uix.VBox( 'Parent', tab, ...
-                    'Spacing', 5, ...
-                    'BackgroundColor', this.LIGHT_GRAY_BG);
-
-                uicontrol('Parent', tab_bv, ...
-                    'Style', 'Text', ...
-                    'String', 'Remote Resources ini file - not editable from GUI', ...
-                    'BackgroundColor', this.LIGHT_GRAY_BG, ...
-                    'ForegroundColor', 0 * ones(3, 1), ...
-                    'FontName', 'arial', ...
-                    'FontSize', this.getFontSize(10), ...
-                    'FontWeight', 'bold');
-
-                uicontrol('Parent', tab_bv, ...
-                    'Style', 'Text', ...
-                    'String', this.state.getRemoteSourceFile, ...
-                    'BackgroundColor', this.LIGHT_GRAY_BG, ...
-                    'ForegroundColor', 0.3 * ones(3, 1), ...
-                    'FontName', 'arial', ...
-                    'FontSize', this.getFontSize(7));
-
-                j_rrini = com.mathworks.widgets.SyntaxTextPane;
-                codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
-                j_rrini.setContentType(codeType);
-                try
-                    file_name = this.state.getRemoteSourceFile;
-                    fid = fopen(file_name);
-                    str = fread(fid, '*char')';
-                    str = strrep(str,'#','%');
-                    fclose(fid);
-                catch
-                    str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
-                end
-
-                j_rrini.setText(str);
-                j_rrini.setEditable(0)
-                % Create the ScrollPanel containing the widget
-                j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_rrini);
-                % Inject edit box with the Java Scroll Pane into the main_window
-                javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
-
-                tab_bv.Heights = [20 15 -1];
+            tab = uix.Grid('Parent', container);
+            
+            tab_bv = uix.VBox( 'Parent', tab, ...
+                'Spacing', 5, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', tab_bv, ...
+                'Style', 'Text', ...
+                'String', 'Remote Resources ini file - not editable from GUI', ...
+                'BackgroundColor', this.LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0 * ones(3, 1), ...
+                'FontName', 'arial', ...
+                'FontSize', this.getFontSize(10), ...
+                'FontWeight', 'bold');
+            
+            uicontrol('Parent', tab_bv, ...
+                'Style', 'Text', ...
+                'String', this.state.getRemoteSourceFile, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG, ...
+                'ForegroundColor', 0.3 * ones(3, 1), ...
+                'FontName', 'arial', ...
+                'FontSize', this.getFontSize(7));
+            
+            j_rrini = com.mathworks.widgets.SyntaxTextPane;
+            codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            j_rrini.setContentType(codeType);
+            try
+                file_name = this.state.getRemoteSourceFile;
+                fid = fopen(file_name);
+                str = fread(fid, '*char')';
+                str = strrep(str,'#','%');
+                fclose(fid);
+            catch
+                str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', this.state.getRemoteSourceFile);
+            end
+            
+            j_rrini.setText(str);
+            j_rrini.setEditable(0)
+            % Create the ScrollPanel containing the widget
+            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_rrini);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            javacomponent(j_scroll_rri, [1 1 1 1], tab_bv);
+            
+            tab_bv.Heights = [20 15 -1];
+            this.uip.tab_rr = tab;
+            
         end
-
+        
         function insertSessionDate(this, container)
             state = Global_Configuration.getCurrentSettings;
-
+            
             session_bg = this.DARK_GRAY_BG;
             %session_p = uix.Panel('Parent', container, ...
             %    'Padding', 0, ...
@@ -1053,7 +1127,7 @@ classdef Core_UI < handle
             this.session_g = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
                 'BackgroundColor', session_bg);
-
+            
             v_text = uix.VBox( 'Parent', this.session_g, ...
                 'Padding', 5, ...
                 'BackgroundColor', session_bg);
@@ -1070,7 +1144,7 @@ classdef Core_UI < handle
             v_text.Heights = [-1, list_title.Extent(4), -1];
             this.insertHBarDark(this.session_g);
             this.insertEmpty(this.session_g, session_bg);
-
+            
             date_g = uix.Grid( 'Parent', this.session_g, ...
                 'BackgroundColor', session_bg);
             uicontrol('Parent', date_g, ...
@@ -1095,7 +1169,7 @@ classdef Core_UI < handle
             this.ui_sss_stop = this.insertDateSpinner(date_g, te.toString('yyyy/mm/dd'));
             date_g.Heights = [22 22];
             date_g.Widths = [46, -1];
-
+            
             % Keep session checkbox
             uicontrol('Parent', this.session_g, ...
                 'Style', 'checkbox', ...
@@ -1105,7 +1179,7 @@ classdef Core_UI < handle
                 'BackgroundColor', session_bg, ...
                 'ForegroundColor', this.WHITE, ...
                 'Callback', @this.onKeepSessionChange);
-
+            
             % % button sync => not used autp-sync on
             % but_session = uix.HButtonBox( 'Parent', this.session_g, ...
             %     'Padding', 5, ...
@@ -1121,12 +1195,12 @@ classdef Core_UI < handle
             % this.session_g.Heights = [26 2 5 50 30];
             this.session_g.Heights = [26 10 5 50 20];
         end
-
+        
         function insertRecList(this, container)
             this.info_g = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
                 'BackgroundColor', this.DARK_GRAY_BG);
-
+            
             v_text = uix.VBox( 'Parent', this.info_g, ...
                 'Padding', 5, ...
                 'BackgroundColor', this.DARK_GRAY_BG);
@@ -1141,13 +1215,13 @@ classdef Core_UI < handle
                 'BackgroundColor', this.DARK_GRAY_BG);
             this.insertEmpty(v_text, this.DARK_GRAY_BG);
             this.insertHBarDark(this.info_g);
-
+            
             v_text.Heights = [-1, list_title.Extent(4), -1];
-
+            
             rec_g = uix.Grid('Parent', this.info_g, ...
                 'Padding', 0, ...
                 'BackgroundColor', this.DARK_GRAY_BG);
-
+            
             this.rec_list = uicontrol('Parent', rec_g, ...
                 'Style', 'Text', ...
                 'String', 'No receivers loaded', ...
@@ -1157,12 +1231,12 @@ classdef Core_UI < handle
                 'FontSize', this.getFontSize(9), ...
                 'FontWeight', 'bold', ...
                 'BackgroundColor', this.DARK_GRAY_BG);
-
+            
             this.updateRecList();
         end
-
+        
         % Single element insert ----------------------------------------------------------------
-
+        
         function chxbox_handle = insertChxBoxCC(this, parent, title, but_tag)
             chxbox_handle = uicontrol('Parent', parent,...
                 'Style', 'checkbox',...
@@ -1172,7 +1246,7 @@ classdef Core_UI < handle
                 'Callback', @this.onCheckBoxCCChange ...
                 );
         end
-
+        
         function chxbox_handle = insertCheckBoxLight(this, container, title, state_field)
             chxbox_handle = uicontrol('Parent', container,...
                 'Style', 'checkbox',...
@@ -1186,7 +1260,7 @@ classdef Core_UI < handle
         
         function j_ini = insertEditSettings(this, container)
             tab = uix.Grid('Parent', container);
-
+            
             j_ini = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_ini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
             j_ini.setContentType(codeType);
@@ -1196,34 +1270,34 @@ classdef Core_UI < handle
             j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_ini);
             % Inject edit box with the Java Scroll Pane into the main_window
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], tab);
-
+            
             set(j_ini, 'FocusLostCallback', @this.refreshIni);
-
+            
             tab1_bvr = uix.VButtonBox( 'Parent', tab, ...
                 'Spacing', 5, ...
                 'VerticalAlignment', 'top', ...
                 'HorizontalAlignment', 'center', ...
                 'ButtonSize', [120 20], ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-
+            
             refresh_but = uicontrol( 'Parent', tab1_bvr, ...
                 'String', 'Refresh INI => UI', ...
                 'Callback', @this.refreshIni);
-
+            
             check_rec = uicontrol( 'Parent', tab1_bvr, ...
                 'String', 'Check receiver files', ...
                 'Callback', @this.updateAndCheckRecList);
-
+            
             tab.Widths = [-1 128];
         end
-
+        
         function insertEmpty(this, container, color)
             if nargin == 2
                 color = this.LIGHT_GRAY_BG;
             end
             uicontrol('Parent', container, 'Style', 'Text', 'BackgroundColor', color)
         end
-
+        
         function panel_handle = insertPanelLight(this, container, title)
             panel_handle = uix.Panel('Parent', container, ...
                 'Title', title, ...
@@ -1232,7 +1306,7 @@ classdef Core_UI < handle
                 'Padding', 5, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
         end
-
+        
         function insertHBarDark(this, container)
             bar_v = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1243,7 +1317,7 @@ classdef Core_UI < handle
             this.insertEmpty(bar_v, this.DARK_GRAY_BG);
             bar_v.Heights = [-1 1 -1];
         end
-
+        
         function insertVBarDark(this, container)
             bar_h = uix.HBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1254,7 +1328,7 @@ classdef Core_UI < handle
             this.insertEmpty(bar_h, this.DARK_GRAY_BG);
             bar_h.Widths = [-1 1 -1];
         end
-
+        
         function insertHBarLight(this, container)
             bar_v = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1265,7 +1339,7 @@ classdef Core_UI < handle
             this.insertEmpty(bar_v, this.LIGHT_GRAY_BG);
             bar_v.Heights = [-1 1 -1];
         end
-
+        
         function insertVBarLight(this, container)
             bar_h = uix.HBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1276,18 +1350,18 @@ classdef Core_UI < handle
             this.insertEmpty(bar_h, this.LIGHT_GRAY_BG);
             bar_h.Widths = [-1 1 -1];
         end
-
+        
         function date = insertDateSpinner(this, container, date_in)
             % Initialize JIDE's usage within Matlab
             com.mathworks.mwswing.MJUtilities.initJIDE;
-
+            
             % Display a DateChooserPanel
             date = com.jidesoft.combobox.DateSpinnerComboBox;
-
+            
             [h_panel, h_container] = javacomponent(date,[10,10,140,20], container);
-
+            
             set(h_panel, 'ItemStateChangedCallback', @this.onSessionChange);
-
+            
             date.setBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
             date.setDisabledBackground(java.awt.Color(this.DARK_GRAY_BG(1),this.DARK_GRAY_BG(2),this.DARK_GRAY_BG(3)));
             date.setShowWeekNumbers(false);     % Java syntax
@@ -1317,7 +1391,7 @@ classdef Core_UI < handle
                 'Callback', callback);
             box_handle.Widths = widths;
         end
-
+        
         function [box_handle, editable_handle] = insertFileBox(this, parent, description, property_name, callback, widths)
             if nargin < 6
                 widths  = [-1 -1 25];
@@ -1344,17 +1418,22 @@ classdef Core_UI < handle
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
-
-        function [box_handle, editable_handle] = insertEditBox(this, parent, description, property_name, callback, widths)
-            if nargin < 6
-                widths  = [-1 -1];
+        
+        function [box_handle, editable_handle] = insertEditBox(this, parent, text_left, property_name, text_right, callback, widths)
+            if nargin < 7
+                if nargin < 5 || isempty(text_right)
+                    widths  = [-1 -1];
+                else
+                    widths  = [-1 -1 5 -1];
+                end                    
             end
+            
             box_handle = uix.Grid('Parent', parent, ...
                 'Padding', 0, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             uicontrol('Parent', box_handle, ...
                 'Style', 'Text', ...
-                'String', description, ...
+                'String', text_left, ...
                 'ForegroundColor', this.BLACK, ...
                 'HorizontalAlignment', 'left', ...
                 'FontSize', this.getFontSize(8), ...
@@ -1363,6 +1442,14 @@ classdef Core_UI < handle
                 'Style', 'edit',...
                 'UserData', property_name, ...
                 'Callback', callback);
+            this.insertEmpty(box_handle, this.LIGHT_GRAY_BG);
+            uicontrol('Parent', box_handle, ...
+                'Style', 'Text', ...
+                'String', text_right, ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
@@ -1373,7 +1460,7 @@ classdef Core_UI < handle
         function ok_go = isGo(this)
             ok_go = this.ok_go;
         end
-
+        
         function os_size = getSizeConversion(this)
             if isunix()
                 if ismac()
@@ -1382,10 +1469,10 @@ classdef Core_UI < handle
                     os_size = this.FONT_SIZE_CONVERSION_LNX;
                 end
             else
-                 os_size = this.FONT_SIZE_CONVERSION_WIN;
+                os_size = this.FONT_SIZE_CONVERSION_WIN;
             end
         end
-
+        
         function font_o = getFontSize(this, font_i)
             font_o = round(font_i * this.getSizeConversion());
         end
@@ -1402,7 +1489,7 @@ classdef Core_UI < handle
             %
             state = Global_Configuration.getCurrentSettings;
             validity_check = true;
-
+            
             date = this.ui_sss_start.getDate;
             if isempty(date)
                 sss_start = state.getSessionStart;
@@ -1448,11 +1535,11 @@ classdef Core_UI < handle
             %   this.onSessionChange()
             %
             [sss_start, sss_stop, validity_check] = getSessionLimits(this);
-
+            
             if ~validity_check
                 this.ui_sss_stop.setDate(java.util.Date(sss_stop.toString('yyyy/mm/dd')));
             end
-
+            
             state = Global_Configuration.getCurrentSettings;
             status_change = false;
             if sss_start - state.getSessionStart() ~= 0
@@ -1468,7 +1555,7 @@ classdef Core_UI < handle
                 this.updateRecList();
             end
         end
-
+        
         function onKeepSessionChange(this, caller, event)
             % Manage the event of session keep modification (UI)
             %
@@ -1478,7 +1565,7 @@ classdef Core_UI < handle
             this.state.setKeepRecList(caller.Value);
             this.updateINI();
         end
-
+        
         function onCheckBoxCCChange(this, caller, event)
             if ~isempty(strfind(caller.UserData,'is_active'))
                 active_list = this.state.cc.getActive();
@@ -1488,7 +1575,7 @@ classdef Core_UI < handle
                 this.updateINI();
             end
         end
-
+        
         function onFileSearchFileBox(this, caller, event)
             [file,path] = uigetfile(this.state.getHomeDir);
             if file ~= 0
@@ -1498,46 +1585,46 @@ classdef Core_UI < handle
                 callbackCell(caller.Parent.Children(2));
             end
         end
-
+        
         function onCheckBoxChange(this, caller, event)
-                this.state.setProperty(caller.UserData, caller.Value);
-                this.updateINI();
+            this.state.setProperty(caller.UserData, caller.Value);
+            this.updateINI();
         end
-
+        
         function onPopUpChange(this, caller, event)
-                this.state.setProperty(caller.UserData, caller.Value);
-                this.updateINI();
+            this.state.setProperty(caller.UserData, caller.Value);
+            this.updateINI();
         end
-
+        
         function onEditChange(this, caller, event)
-                prop = this.state.getProperty(caller.UserData);
-                if ~isnumeric(prop)
-                    this.state.setProperty(caller.UserData, caller.String);
-                else
-                    this.state.setProperty(caller.UserData, str2num(caller.String));
-                end
-                this.state.check();
-                caller.String = this.state.getProperty(caller.UserData);
-                this.updateINI();
+            prop = this.state.getProperty(caller.UserData);
+            if ~isnumeric(prop)
+                this.state.setProperty(caller.UserData, caller.String);
+            else
+                this.state.setProperty(caller.UserData, str2num(caller.String));
+            end
+            this.state.check();
+            caller.String = this.state.getProperty(caller.UserData);
+            this.updateINI();
         end
-
+        
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
-
+                
                 if this.j_settings.isValid
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     this.j_settings.setText(str);
                 end
             end
         end
-
+        
         function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
             this.ui_sss_start.setDate(java.util.Date(state.getSessionStart.toString('yyyy/mm/dd')));
             this.ui_sss_stop.setDate(java.util.Date(state.getSessionStop.toString('yyyy/mm/dd')));
         end
-
+        
         function updateCCFromState(this)
             active = this.state.cc.getActive();
             sys_c = this.state.cc.SYS_C;
@@ -1545,7 +1632,7 @@ classdef Core_UI < handle
                 this.setCheckBox([sys_c(i) '_is_active'],active(i));
             end
         end
-
+        
         function updateCheckBoxFromState(this)
             for i = 1 : length(this.check_boxes)
                 value = this.state.getProperty(this.check_boxes{i}.UserData);
@@ -1554,7 +1641,7 @@ classdef Core_UI < handle
                 end
             end
         end
-
+        
         function updateEditFromState(this)
             for i = 1 : length(this.edit_texts)
                 value = this.state.getProperty(this.edit_texts{i}.UserData);
@@ -1563,7 +1650,7 @@ classdef Core_UI < handle
                 end
             end
         end
-
+        
         function updatePopUpsState(this)
             for i = 1 : length(this.pop_ups)
                 value = this.state.getProperty(this.pop_ups{i}.UserData);
@@ -1572,13 +1659,13 @@ classdef Core_UI < handle
                 end
             end
         end
-
+        
         function refreshIni(this, caller, event)
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
             this.state.import(Ini_Manager(txt{1}));
             this.updateUI();
         end
-
+        
         function updateAndCheckRecList(this, caller, event)
             % Get file name list
             state = Global_Configuration.getCurrentSettings;
@@ -1586,7 +1673,7 @@ classdef Core_UI < handle
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
             str = '';
-
+            
             for r = 1 : n_rec
                 name = File_Name_Processor.getFileName(rec_path{r}{1});
                 this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
@@ -1602,24 +1689,24 @@ classdef Core_UI < handle
             this.rec_list.String = str;
             this.info_g.Heights = [1*26 2 this.rec_list.Extent(3)];
         end
-
+        
         function loadState(this, caller, event)
             % Load state settings
-
+            
             config_dir = this.state.getHomeDir();
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
             % On MacOS this doesn't work anymore: [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file goGPS < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
             [file_name, path_name] = uigetfile('*.ini', 'Choose file with saved settings', config_dir);
-
+            
             if path_name ~= 0 % if the user pressed cancelled, then we exit this callback
                 % get the extension (mat/ini):
                 [~, ~, ext] = fileparts(file_name);
-
+                
                 % build the path name of the file to be loaded
                 settings_file = fullfile(path_name, file_name);
-
+                
                 if strcmp(ext, '.ini')
                     this.state.importIniFile(settings_file);
                     this.updateUI();
@@ -1628,7 +1715,7 @@ classdef Core_UI < handle
                 end
             end
         end
-
+        
         function saveState(this, caller, event)
             % Save state settings
             config_dir = this.state.getHomeDir();
@@ -1636,13 +1723,13 @@ classdef Core_UI < handle
                 config_dir = [config_dir filesep 'config'];
             end
             [file_name, path_name] = uiputfile('*.ini','Save your settings', config_dir);
-
+            
             if path_name == 0 %if the user pressed cancelled, then we exit this callback
                 return
             end
             % build the path name of the save location
             settings_file = fullfile(path_name,file_name);
-
+            
             try
                 if this.j_settings.isValid
                     txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
@@ -1658,11 +1745,11 @@ classdef Core_UI < handle
                 this.log.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
-
+        
         function close(this, caller, event)
             close(this.w_main);
         end
-
+        
         function go(this, caller, event)
             this.log.addMarkedMessage('Starting computation!');
             txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
@@ -1671,7 +1758,7 @@ classdef Core_UI < handle
             close(this.w_main);
             this.ok_go = true;
         end
-
+        
         function updateUI(this)
             this.updateINI();
             this.updateRecList();
@@ -1719,8 +1806,8 @@ classdef Core_UI < handle
             catch ex
                 % probably deleted object
             end
-                end
-
+        end
+        
         function setCheckBox(this, name_prop, value)
             for i = 1:length(this.check_boxes)
                 if strcmp(name_prop,this.check_boxes{i}.UserData)
@@ -1729,12 +1816,12 @@ classdef Core_UI < handle
             end
         end
     end
-
+    
     methods % Public Access (Legacy support)
-
+        
     end
-
+    
     methods (Static)
-
+        
     end
 end

@@ -80,7 +80,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
         
-        FLAG_KEEP_REC_LIST = false; % Flag to store the receivers for all the sessions
+        FLAG_KEEP_REC_LIST = true; % Flag to store the receivers for all the sessions
         
         % STATIONS
         OBS_DIR = 'RINEX';
@@ -171,7 +171,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
-        PP_SPP_THR = 4;                                 % Threshold on the code point-positioning least squares estimation error [m]
+        PP_SPP_THR = 100;                               % Threshold on the code point-positioning least squares estimation error [m]
         PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
@@ -2558,12 +2558,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the snr threshold
             % SYNTAX: snr_thr = this.getSnrThr();
             snr_thr = this.snr_thr;
-        end
-
-        function proc_rate = getProcessingRate(this)
-            % Get the Processing Rate
-            % SYNTAX: proc_rate = this.getProcessingRate()
-            proc_rate = this.p_rate;
         end
 
         function min_arc = getMinArc(this)
