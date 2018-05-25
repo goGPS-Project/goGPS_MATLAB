@@ -245,7 +245,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                     '2: Vienna Mapping Function gridded'}
         MF_LABEL = {'None','Saastamoinen','VMF_GRD'}
         % id to string of meteo dtata
-        MD_SMODE = {'1: standard atmopsherel', ...
+        MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
                        '3: MET file'}
         MD_LABEL = {'Standard Atmosphere','GPT','MET file'}
@@ -1223,16 +1223,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Management of ionosphere', str_cell);
+            str_cell = Ini_Manager.toIniString('iono_management', this.iono_management, str_cell);
+             for i = 1 : numel(this.IE_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IE_SMODE{i}), str_cell);
+             end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('iono_model', this.iono_model, str_cell);
              for i = 1 : numel(this.IONO_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_SMODE{i}), str_cell);
             end
-            str_cell = Ini_Manager.toIniStringComment('Management of ionosphere', str_cell);
-            str_cell = Ini_Manager.toIniString('iono_management', this.iono_management, str_cell);
-             for i = 1 : numel(this.IE_SMODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IE_SMODE{i}), str_cell);
-            end
+            
            
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Zenith delay model', str_cell);
@@ -1240,11 +1242,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             for i = 1 : numel(this.ZD_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.ZD_SMODE{i}), str_cell);
             end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Mapping function', str_cell);
             str_cell = Ini_Manager.toIniString('mapping_function', this.mapping_function, str_cell);
             for i = 1 : numel(this.MF_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MF_SMODE{i}), str_cell);
             end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteo data', str_cell);
             str_cell = Ini_Manager.toIniString('meteo_data', this.meteo_data, str_cell);
             for i = 1 : numel(this.MD_SMODE)
