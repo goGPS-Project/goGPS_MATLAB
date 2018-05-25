@@ -104,6 +104,29 @@ classdef Settings_Interface < Exportable
     end
 
     % =========================================================================
+    %%  SETTERS IO
+    % =========================================================================
+    methods
+        function value = setProperty(this, prop_name, value)
+            this.(prop_name) = value;
+        end
+    end
+    
+    % =========================================================================
+    %%  GETTERS IO
+    % =========================================================================
+    methods
+        function value = getProperty(this, prop_name)
+            props = fieldnames(this);
+            if any(strcmp(props,prop_name))
+                value = this.(prop_name);
+            else
+                value = [];
+            end
+        end
+    end
+    
+    % =========================================================================
     %  TEST PARAMETERS VALIDITY
     % =========================================================================
     methods (Access = 'protected')
