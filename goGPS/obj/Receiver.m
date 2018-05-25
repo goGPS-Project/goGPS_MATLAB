@@ -109,16 +109,16 @@ classdef Receiver < Exportable
         
         pp_status = false;      % flag is pre-proccesed / not pre-processed
         
-        group_delay_status = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
-        dts_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
-        sh_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
-        pcv_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
-        ol_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
-        pt_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
-        pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
-        et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
-        hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
-        atm_load_delay_status = 0; % flag to indicate if code and phase measurement have been corrected for atmospheric loading                 (0: not corrected , 1: corrected)
+        group_delay_status    = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
+        dts_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
+        sh_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
+        pcv_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for pcv variations                (0: not corrected , 1: corrected)
+        ol_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for ocean loading                 (0: not corrected , 1: corrected)
+        pt_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for pole tides                    (0: not corrected , 1: corrected)
+        pw_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
+        et_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
+        hoi_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect (0: not corrected , 1: corrected)
+        atm_load_delay_status = 0; % flag to indicate if code and phase measurement have been corrected for atmospheric loading           (0: not corrected , 1: corrected)
         
         % FLAGS ------------------------------
         
@@ -4964,7 +4964,7 @@ classdef Receiver < Exportable
         end
         
         function applySolidEarthTide(this)
-            if this.et_delay_status == 0
+            if this.et_delay_status == 0 && this.state.isSolidEarth
                 this.log.addMarkedMessage('Applying Solid Earth Tide corrections');
                 this.solidEarthTide(1);
                 this.et_delay_status = 1; %applied
@@ -5115,7 +5115,7 @@ classdef Receiver < Exportable
         end
         
         function applyOceanLoading(this)
-            if this.ol_delay_status == 0
+            if this.ol_delay_status == 0 && this.state.isOceanLoading
                 this.log.addMarkedMessage('Applying Ocean Loading corrections');
                 this.oceanLoading(1);
                 this.ol_delay_status = 1; %applied
@@ -5257,7 +5257,7 @@ classdef Receiver < Exportable
         end
         
         function applyPoleTide(this)
-            if this.pt_delay_status == 0
+            if this.pt_delay_status == 0 && this.state.isPoleTide
                 this.log.addMarkedMessage('Applying Pole Tide corrections');
                 this.poleTide(1);
                 this.pt_delay_status = 1; %applied
@@ -5352,7 +5352,7 @@ classdef Receiver < Exportable
         end
         
         function applyHOI(this)
-            if this.hoi_delay_status == 0
+            if this.hoi_delay_status == 0 && this.state.isHOI
                 this.log.addMarkedMessage('Applying High Order Ionospheric Effect');
                 this.HOI(1);
                 this.hoi_delay_status = 1; %applied
@@ -5393,7 +5393,7 @@ classdef Receiver < Exportable
         
         function atmLoad(this,sgn)
            %  add or subtract ocean loading from observations
-            al_corr = this.computeAtmLoading();
+            al_corr = this.computeAtmLoading(); 
             if isempty(al_corr)
                 this.log.addWarning('No ocean loading displacements matrix present for the receiver')
                 return
@@ -5416,7 +5416,7 @@ classdef Receiver < Exportable
         end
         
         function applyAtmLoad(this)
-            if this.hoi_delay_status == 0
+            if this.atm_load_delay_status == 0  && this.state.isAtmLoading
                 this.log.addMarkedMessage('Applying atmospheric loading effect');
                 this.atmLoad(1);
                 this.atm_load_delay_status = 1; %applied
@@ -5424,7 +5424,7 @@ classdef Receiver < Exportable
         end
         
         function removeAtmLoad(this)
-            if this.hoi_delay_status == 1
+            if this.atm_load_delay_status == 1
                 this.log.addMarkedMessage('Removing atmospheric loading effect');
                 this.atmLoad(-1);
                 this.atm_load_delay_status = 0; %not applied
@@ -5488,7 +5488,7 @@ classdef Receiver < Exportable
         end
         
         function applyPhaseWindUpCorr(this)
-            if this.pw_delay_status == 0
+            if this.pw_delay_status == 0 && this.state.isPhaseWind
                 this.log.addMarkedMessage('Applying Phase Wind Up corrections');
                 this.phaseWindUpCorr(1);
                 this.pw_delay_status = 1; %applied
@@ -5577,7 +5577,7 @@ classdef Receiver < Exportable
         end
         
         function applyShDelay(this)
-            if this.sh_delay_status == 0
+            if this.sh_delay_status == 0 && this.state.isShapiro
                 this.log.addMarkedMessage('Applying Shapiro delay corrections');
                 this.shDelay(1);
                 this.sh_delay_status = 1; %applied
@@ -5827,7 +5827,7 @@ classdef Receiver < Exportable
         end
         
         function applyPCV(this)
-            if this.pcv_delay_status == 0
+            if (this.pcv_delay_status == 0) && this.state.isRecPCV
                 this.log.addMarkedMessage('Applying PCV corrections');
                 tic, this.applyRemovePCV(1); toc
                 this.pcv_delay_status = 1; % applied
@@ -6683,38 +6683,23 @@ classdef Receiver < Exportable
                     this.applyPCV();
                     ph1 = this.getPhases();
                     corr.pcv = ph1 - ph0;
-                    if this.state.isPoleTide()
-                        this.applyPoleTide();
-                        ph2 = this.getPhases();
-                        corr.pt = ph2 - ph1;
-                    end
-                    if this.state.isPhaseWind()
-                        this.applyPhaseWindUpCorr();
-                        ph3 = this.getPhases();
-                        corr.pwu = ph3 - ph2;
-                    end
-                    if this.state.isSolidEarth()
-                        this.applySolidEarthTide();
-                        ph4 = this.getPhases();
-                        corr.set = ph4 - ph3;
-                    end
-                    
-                    if this.state.isShapiro()
-                        this.applyShDelay();
-                        ph5 = this.getPhases();
-                        corr.shd = ph5 - ph4;
-                    end
-                    if this.state.isOceanLoading();
-                        this.applyOceanLoading();
-                        ph6 = this.getPhases();
-                        corr.ocl = ph6 - ph5;
-                    end
-                    if this.state.isAtmLoading()
-                        this.applyAtmLoad();
-                    end
-                    if this.state.isHOI()
-                        this.applyHOI();
-                    end
+                    this.applyPoleTide();
+                    ph2 = this.getPhases();
+                    corr.pt = ph2 - ph1;
+                    this.applyPhaseWindUpCorr();
+                    ph3 = this.getPhases();
+                    corr.pwu = ph3 - ph2;
+                    this.applySolidEarthTide();
+                    ph4 = this.getPhases();
+                    corr.set = ph4 - ph3;
+                    this.applyShDelay();
+                    ph5 = this.getPhases();
+                    corr.shd = ph5 - ph4;
+                    this.applyOceanLoading();
+                    ph6 = this.getPhases();
+                    corr.ocl = ph6 - ph5;
+                    this.applyAtmLoad();
+                    this.applyHOI();
                     
                     this.removeOutlierMarkCycleSlip();
                     this.pp_status = true;
@@ -7584,8 +7569,7 @@ classdef Receiver < Exportable
                 end
             end
         end
-    end
-    
+    end    
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     

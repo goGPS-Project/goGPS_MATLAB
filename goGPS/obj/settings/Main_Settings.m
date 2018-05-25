@@ -2663,7 +2663,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_hoi = this.flag_hoi;
         end
         
-        function is_rec_pcv= isRecPCV(this)
+        function is_rec_pcv = isRecPCV(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
