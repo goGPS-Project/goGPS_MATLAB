@@ -2903,7 +2903,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function [P, T, H] = getPTH(this,time,flag)
+        function [P, T, H] = getPTH(this, time, flag)
             % Get Pressure temperature and humidity at the receiver location
             %
             % OUTPUT
@@ -2949,7 +2949,7 @@ classdef Receiver < Exportable
                 case 2 % gpt
                     atmo = Atmosphere.getInstance();
                     this.updateCoordinates();
-                    time= time.getGpsTime();
+                    time = time.getGpsTime();
                     if this.isStatic()                        
                         [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                         H = zeros(l,1);
@@ -2968,6 +2968,21 @@ classdef Receiver < Exportable
                     P = this.meteo_data.getPressure(time);
                     T = this.meteo_data.getTemperature(time);
                     H = this.meteo_data.getHumidity(time);
+                    
+                    if any(isnan(P)) || any(isnan(T))
+                        this.updateCoordinates();
+                        time = time.getGpsTime();
+                        if this.isStatic()
+                            [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
+                        else
+                            P = zeros(l,1);
+                            T = zeros(l,1);
+                            for i = 1 : l
+                                [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
+                            end
+                        end
+                    end
+                        
                     if any(isnan(H))
                         % Fall back to std values
                         H(isnan(H)) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
@@ -3654,7 +3669,7 @@ classdef Receiver < Exportable
                 go_id = go_id_list(i);
                 XS_loc = this.getXSLoc(go_id);
                 range_tmp = sqrt(sum(XS_loc.^2,2));
-                range_tmp = range_tmp + this.sat.err_tropo(:,go_id) + iono_factor * this.sat.err_iono(:,go_id);
+                range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:,go_id)) + iono_factor * this.sat.err_iono(:,go_id);
                 
                 XS_loc(isnan(range_tmp),:) = [];
                 %range = range';
