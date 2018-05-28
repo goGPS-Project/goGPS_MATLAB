@@ -1049,8 +1049,9 @@ classdef Core_UI < handle
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
-            [met, this.edit_texts{end+1}] = this.insertFileBox(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
+            [met, this.edit_texts{end+1}] = this.insertFileBoxML(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
             met.Widths(1:2) = [100 -1];
+            tropo_opt_grid.Heights = [20 * ones(5,1); -1];
             
             this.insertEmpty(tab);
             
@@ -1062,7 +1063,7 @@ classdef Core_UI < handle
             [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/h', @this.onEditChange, [-1 80 5 35]);
             [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/h', @this.onEditChange, [-1 80 5 35]);
             
-            tab.Heights = [80 5 180 5 80];
+            tab.Heights = [80 5 250 5 80];
             tab.Widths = 440;
             
             this.uip.tab_atmo = tab;
@@ -1417,6 +1418,35 @@ classdef Core_UI < handle
                 'Callback', @this.onFileSearchFileBox)
             box_handle.Widths = widths;
             box_handle.Heights = 23;
+        end
+        
+        function [box_handle, editable_handle] = insertFileBoxML(this, parent, description, property_name, callback, widths)
+            if nargin < 6
+                widths  = [-1 -1 25];
+            end
+            box_handle = uix.Grid('Parent', parent, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            uicontrol('Parent', box_handle, ...
+                'Style', 'Text', ...
+                'String', description, ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(8), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle = uicontrol('Parent', box_handle,...
+                'Style','edit',...
+                'Min',0,'Max',2,...  % This is the key to multiline edits.
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name, ...
+                'Callback', callback);
+            uicontrol('Parent', box_handle,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onFileSearchFileBox)
+            box_handle.Widths = widths;
+            box_handle.Heights = -1;
         end
         
         function [box_handle, editable_handle] = insertEditBox(this, parent, text_left, property_name, text_right, callback, widths)
