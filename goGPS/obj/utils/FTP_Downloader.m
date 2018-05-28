@@ -109,6 +109,11 @@ classdef FTP_Downloader < handle
             if (this.checkNet)
                 try
                     this.ftp_server = ftp(strcat(this.addr, ':', this.port));
+                    cd(this.ftp_server);
+                    %warning('off')
+                    %sf = struct(this.ftp_server);
+                    %warning('on')
+                    %sf.jobject.enterLocalPassiveMode();
                 catch
                     this.ftp_server = [];
                 end
@@ -163,7 +168,17 @@ classdef FTP_Downloader < handle
                 if ~(7 ==exist(out_dir,'dir'))
                     mkdir(out_dir);
                 end
-                fpath = mget(this.ftp_server, [fname '*'], out_dir);
+                retry = 0;
+                while(retry < 2)
+                    try
+                        fpath = mget(this.ftp_server, [fname '*'], out_dir);
+                        retry = 10;
+                    catch ex
+                        pause(0.5 * (retry - 1));
+                        this.log.addError(sprintf('%s - %s', fname, ex.message));
+                        retry = retry + 1;
+                    end
+                end
                 if isempty(fpath)
                     status = false;
                     return
