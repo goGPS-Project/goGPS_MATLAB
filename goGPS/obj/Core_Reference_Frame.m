@@ -47,6 +47,7 @@ classdef Core_Reference_Frame < handle
         start_validity_epoch
         
         flag
+        is_valid
     end
      methods (Access = 'private')
         % Creator
@@ -76,91 +77,99 @@ classdef Core_Reference_Frame < handle
     
     methods
         function loadCrd(this)
-            fname = this.state.getCrdFile();
-            fid = fopen([fname],'r');
-            if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', fname));
-                return
-            end
-            this.log.addMessage(sprintf('      Opening file %s for reading', fname));
-            txt = fread(fid,'*char')';
-            fclose(fid);
-            
-            % get new line separators
-            nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            if lim(end,3) < 3
-                lim(end,:) = [];
-            end
-            header_line = find(txt(lim(:,1)) == '#');
-            for i = header_line
-                line = txt(lim(i,1):lim(i,2));
-                idx = strfind(line,'Reference epoch');
-                if ~isempty(idx)
-                    this.ref_epoch = GPS_Time( sscanf(line((idx+15):end),'%f %f %f %f %f %f')');
+            this.is_valid = true;
+            try
+                fname = this.state.getCrdFile();
+                fid = fopen([fname],'r');
+                if fid == -1
+                    this.log.addWarning(sprintf('      File %s not found', fname));
+                    return
                 end
-            end
-            lim(header_line,:) = [];
-            %initilaize array
-            n_sta = size(lim,1);
-            
-            this.station_code=char(' '*ones(n_sta,4));
-            this.xyz = zeros(n_sta,3);
-            this.vxvyvz = zeros(n_sta,3);
-            this.flag = zeros(n_sta,1);
-            re_date = zeros(n_sta,1);
-            st_date = zeros(n_sta,1);
-            en_date = zeros(n_sta,1);
-            for i = 1:n_sta
-                line = txt(lim(i,1):lim(i,2));
-                parts = strsplit(line);
-                l = length(parts);
-                this.station_code(i,:) = parts{1};
-                this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
-                if l > 4
-                    this.flag(i) = str2double(parts{5});
-                    if l > 5
-                        this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
-                        if l > 8
-                            re_date(i) = datenum([parts{9} ' ' parts{10}]);
-                            if l > 10
-                                st_date(i) = datenum([parts{11} ' ' parts{12}]);
-                                if l> 12
-                                    en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                this.log.addMessage(sprintf('      Opening file %s for reading', fname));
+                txt = fread(fid,'*char')';
+                fclose(fid);
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                if lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                header_line = find(txt(lim(:,1)) == '#');
+                for i = header_line
+                    line = txt(lim(i,1):lim(i,2));
+                    idx = strfind(line,'Reference epoch');
+                    if ~isempty(idx)
+                        this.ref_epoch = GPS_Time( sscanf(line((idx+15):end),'%f %f %f %f %f %f')');
+                    end
+                end
+                lim(header_line,:) = [];
+                %initilaize array
+                n_sta = size(lim,1);
+                
+                this.station_code=char(' '*ones(n_sta,4));
+                this.xyz = zeros(n_sta,3);
+                this.vxvyvz = zeros(n_sta,3);
+                this.flag = zeros(n_sta,1);
+                re_date = zeros(n_sta,1);
+                st_date = zeros(n_sta,1);
+                en_date = zeros(n_sta,1);
+                for i = 1:n_sta
+                    line = txt(lim(i,1):lim(i,2));
+                    parts = strsplit(line);
+                    l = length(parts);
+                    this.station_code(i,:) = parts{1};
+                    this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
+                    if l > 4
+                        this.flag(i) = str2double(parts{5});
+                        if l > 7
+                            this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
+                            if l > 9
+                                re_date(i) = datenum([parts{9} ' ' parts{10}]);
+                                if l > 11
+                                    st_date(i) = datenum([parts{11} ' ' parts{12}]);
+                                    if l > 13
+                                        en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                                    end
                                 end
                             end
                         end
                     end
                 end
+                this.ref_epoch            = GPS_Time(re_date);
+                this.start_validity_epoch = GPS_Time(st_date);
+                en_date(en_date == 0)     = datenum(2099, 1,1);
+                this.end_validity_epoch   = GPS_Time(en_date);
+            catch
+                this.is_valid = false;
+                log = Logger.getInstance();
+                log.addError('CRD file seems to be corrupted');
             end
-            this.ref_epoch            = GPS_Time(re_date);
-            this.start_validity_epoch = GPS_Time(st_date);
-            en_date(en_date == 0)     = datenum(2099, 1,1);
-            this.end_validity_epoch   = GPS_Time(en_date);
-            
-            
-            
         end
-
-        function [xyz] = getCoo(this, sta_name, epoch)
+        
+        function [xyz, is_valid] = getCoo(this, sta_name, epoch)
             xyz = [];
-            if ~isempty(this.station_code) && length(sta_name) == 4
-                idx_sta = idxCharLines(lower(this.station_code), lower(sta_name));
-                if sum(idx_sta) > 0
-                    st_validity_time = this.start_validity_epoch.getSubSet(idx_sta).getGpsTime();
-                    end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
-                    epoch_gps = epoch.getGpsTime();
-                    idx_sta2 = st_validity_time < epoch_gps && end_validity_time > epoch_gps;
-                    idx_sta = find(idx_sta);
-                    idx_sta = idx_sta(idx_sta2);
-                    dt = epoch - this.ref_epoch.getEpoch(idx_sta);
-                    xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
-                end
+            is_valid = false;
+            if this.is_valid
                 
+                if ~isempty(this.station_code) && length(sta_name) == 4
+                    idx_sta = idxCharLines(lower(this.station_code), lower(sta_name));
+                    if sum(idx_sta) > 0
+                        st_validity_time = this.start_validity_epoch.getSubSet(idx_sta).getGpsTime();
+                        end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
+                        epoch_gps = epoch.getGpsTime();
+                        idx_sta2 = st_validity_time < epoch_gps && end_validity_time > epoch_gps;
+                        idx_sta = find(idx_sta);
+                        idx_sta = idx_sta(idx_sta2);
+                        dt = epoch - this.ref_epoch.getEpoch(idx_sta);
+                        xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
+                        is_valid = true
+                    end
+                end
             end
         end
     end
