@@ -221,7 +221,7 @@ classdef File_Wizard < handle
             this.log.addMessage(this.log.indent('Checking local folders ...\n'))
             [status, file_tree] = this.navigateTree(file_tree, 'local_check');
             if status
-                this.log.addMessage(this.log.indent('All files has been found locally\n'))
+                this.log.addMessage(this.log.indent('All files have been found locally\n'))
             else
                 this.log.addMessage(this.log.indent('Some files not found locally\n'))
             end
@@ -234,7 +234,7 @@ classdef File_Wizard < handle
                     this.log.addMessage(this.log.indent('Checking remote folders ...\n'))
                     [status, file_tree] = this.navigateTree(file_tree, 'remote_check');
                     if status
-                        this.log.addMessage(this.log.indent('All files has been found remotely\n'));
+                        this.log.addMessage(this.log.indent('All files have been found remotely\n'));
                     else
                         this.log.addMessage(this.log.indent('Some files not found remotely\n'))
                     end
@@ -296,7 +296,7 @@ classdef File_Wizard < handle
                         dsa.addIntSeconds(-step_s);
                         dso.addIntSeconds(+step_s);
                         [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
-                        
+                        file_name_lst = flipud(file_name_lst);
                         status = true;
                         f_status_lst = file_tree{4};
                         for i = 1 : length(file_name_lst)
@@ -332,7 +332,7 @@ classdef File_Wizard < handle
                             dso = this.date_stop.getCopy();
                             dsa.addIntSeconds(-step_s);
                             dso.addIntSeconds(+step_s);
-                            file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
+                            file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso));
                             status = true;
                             f_status_lst = false(length(file_name_lst),1); %file list to be saved in tree with flag of downloaded or not
                             for i = 1 : length(file_name_lst)
@@ -340,7 +340,7 @@ classdef File_Wizard < handle
                                 f_status_lst(i) = f_status;
                                 status = status && f_status;
                                 if f_status
-                                    this.log.addStatusOk(sprintf('%s have been found locally',this.fnp.getFileName(file_name_lst{i})));
+                                    this.log.addStatusOk(sprintf('%s ready',this.fnp.getFileName(file_name_lst{i})));
                                 else
                                     this.log.addWarning(sprintf('%s have not been found locally', this.fnp.getFileName(file_name_lst{i})));
                                 end
@@ -358,7 +358,7 @@ classdef File_Wizard < handle
                                 dso = this.date_stop.getCopy();
                                 dsa.addIntSeconds(-step_s);
                                 dso.addIntSeconds(+step_s);
-                                file_name_lst = this.fnp.dateKeyRepBatch(f_path, dsa, dso);
+                                file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso));
                                 status = true;
                                 f_status_lst = file_tree{4};
                                 for j = 1 : length(file_name_lst)
@@ -376,7 +376,7 @@ classdef File_Wizard < handle
                                             status = status && Core_Utils.checkHttpTxtRes([s_ip file_name]);
                                         end
                                         if status
-                                            this.log.addStatusOk(sprintf('%s have been found remotely', this.fnp.getFileName(file_name)));
+                                            this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server));
                                         else
                                             this.log.addWarning(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
                                             break
@@ -581,15 +581,10 @@ classdef File_Wizard < handle
                             end
                         end
                     end
-                    
-                    
                 else
                     this.log.addStatusOk('Dcb files are present ^_^');
                     this.log.newLine();
                 end
-                
-                
-                
                 
             else % use DCB from CODE
                 gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
