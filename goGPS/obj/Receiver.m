@@ -2221,7 +2221,7 @@ classdef Receiver < Exportable
                     prn(i) = this.prn(tmp_id);
                 end
             end
-        end
+        end        
         
         function go_id = getActiveGoIds(this)
             % return go_id present in the receiver of the active constellations
@@ -2438,10 +2438,10 @@ classdef Receiver < Exportable
             % return the positions computed for the receiver
             %
             % OUTPUT
-            %   lat_lon_he_ho     geodetic coordinates
+            %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat_lon_he_ho] = this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho] = this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -3633,8 +3633,7 @@ classdef Receiver < Exportable
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
             obs_set.obs_code = repmat('GL1',length(obs_set.prn),1);
-        end
-        
+        end        
         
         function [obs_set]  = getPrefMelWub(this, system)
             % get Preferred Iono free combination for the two selcted measurements
@@ -8365,141 +8364,38 @@ classdef Receiver < Exportable
             %end
         end
         
-        function showZhd(this, new_fig)
-            
+        function showTropoPar(this, par_name, new_fig)
+            % one function to rule them all            
             rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2); 
-                rec_ok(r) = any(~isnan(this(:,r).getAprZhd)); 
-            end
-            rec_list = this(:, rec_ok);
-            
-            if nargin == 1
-                new_fig = true;
-            end
-            [apr_zhd, t] = rec_list.getAprZhd();
-            if ~iscell(apr_zhd)
-                apr_zhd = {apr_zhd};
-                t = {t};
-            end
-            if isempty(apr_zhd)
-                rec_list(1).log.addWarning('ZHD and slants have not been computed');
-            else
-                if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZHD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
-                    old_legend = {};
-                else
-                    l = legend;
-                    old_legend = get(l,'String');
-                end
-                for r = 1 : size(rec_list, 2)
-                    rec = rec_list(~rec_list(:,r).isempty, r);
-                    if ~isempty(rec)
-                        [apr_zhd, t] = rec.getAprZhd();
-                        if new_fig
-                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                        else
-                            plot(t.getMatlabTime(), zero2nan(apr_zhd'), '.', 'LineWidth', 4); hold on;
-                        end
-                        outm{r} = rec(1).getMarkerName();
-                    end
-                end
-                
-                outm = [old_legend, outm];
-                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
-                n_entry = numel(outm);
-                icons = icons(n_entry + 2 : 2 : end);
-                
-                for i = 1 : numel(icons)
-                    icons(i).MarkerSize = 16;
-                end
-                
-                %ylim(yl);
-                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                h = ylabel('ZHD [m]'); h.FontWeight = 'bold';
-                grid on;
-                h = title('Receiver ZHD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-            end
-        end
-        
-        function showZwd(this, new_fig)
-            
-            rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2); 
-                rec_ok(r) = any(~isnan(this(:,r).getZwd)); 
-            end
-            rec_list = this(:, rec_ok);
-            
-            if nargin == 1
-                new_fig = true;
-            end
-            [zwd, t] = rec_list.getZwd();
-            if ~iscell(zwd)
-                zwd = {zwd};
-                t = {t};
-            end
-            if isempty(zwd)
-                rec_list(1).log.addWarning('ZWD and slants have not been computed');
-            else
-                if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZWD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
-                    old_legend = {};
-                else
-                    l = legend;
-                    old_legend = get(l,'String');
-                end
-                for r = 1 : size(rec_list, 2)
-                    rec = rec_list(~rec_list(:,r).isempty, r);
-                    if ~isempty(rec)
-                        [zwd, t] = rec.getZwd();
-                        if new_fig
-                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                        else
-                            plot(t.getMatlabTime(), zero2nan(zwd'), '.', 'LineWidth', 4); hold on;
-                        end
-                        outm{r} = rec(1).getMarkerName();
-                    end
-                end
-                
-                outm = [old_legend, outm];
-                [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
-                n_entry = numel(outm);
-                icons = icons(n_entry + 2 : 2 : end);
-                
-                for i = 1 : numel(icons)
-                    icons(i).MarkerSize = 16;
-                end
-                
-                %ylim(yl);
-                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                h = ylabel('ZWD [m]'); h.FontWeight = 'bold';
-                grid on;
-                h = title('Receiver ZWD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-            end
-                end
-        
-        function showZtd(this, new_fig)
-            
-            rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2); 
+            for r = 1 : size(this, 2)
                 rec_ok(r) = any(~isnan(this(:,r).getZtd)); 
             end
             rec_list = this(:, rec_ok);
             
-            if nargin == 1
+            if nargin < 3
                 new_fig = true;
             end
-            [ztd, t] = rec_list.getZtd();
-            if ~iscell(ztd)
-                ztd = {ztd};
+            
+            switch lower(par_name)
+                case 'ztd'
+                    [tropo, t] = rec_list.getZtd();
+                case 'zwd'
+                    [tropo, t] = rec_list.getZwd();
+                case 'pwv'
+                    [tropo, t] = rec_list.getPwv();
+                case 'zhd'
+                    [tropo, t] = rec_list.getAprZhd();
+            end
+                    
+            if ~iscell(tropo)
+                tropo = {tropo};
                 t = {t};
             end
-            if isempty(ztd)
-                rec_list(1).log.addWarning('ZTD and slants have not been computed');
+            if isempty(tropo)
+                rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
             else
                 if new_fig
-                    f = figure; f.Name = sprintf('%03d: ZTD %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
+                    f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
                     old_legend = {};
                 else
                     l = legend;
@@ -8508,11 +8404,20 @@ classdef Receiver < Exportable
                 for r = 1 : size(rec_list, 2)
                     rec = rec_list(~rec_list(:,r).isempty, r);
                     if ~isempty(rec)
-                        [ztd, t] = rec.getZtd();
+                        switch lower(par_name)
+                            case 'ztd'
+                                [tropo, t] = rec.getZtd();
+                            case 'zwd'
+                                [tropo, t] = rec.getZwd();
+                            case 'pwv'
+                                [tropo, t] = rec.getPwv();
+                            case 'zhd'
+                                [tropo, t] = rec.getAprZhd();
+                        end
                         if new_fig
-                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
+                            plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
                         else
-                            plot(t.getMatlabTime(), zero2nan(ztd'), '.', 'LineWidth', 4); hold on;
+                            plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
                         end
                         outm{r} = rec(1).getMarkerName();
                     end
@@ -8530,67 +8435,145 @@ classdef Receiver < Exportable
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
+                h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
                 grid on;
-                h = title('Receiver ZTD'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         
-        function showPwv(this, new_fig)
-            
-            rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2); 
-                rec_ok(r) = any(~isnan(this(:,r).getPwv)); 
-            end
-            rec_list = this(:, rec_ok);
-            
+        function showZhd(this, new_fig)
             if nargin == 1
                 new_fig = true;
             end
-            [pwv, t] = rec_list.getPwv();
-            if ~isempty(pwv)
-                if ~iscell(pwv)
-                    pwv = {pwv};
-                    t = {t};
-                end
-                if isempty(pwv)
-                    rec_list(1).log.addWarning('PWV and slants have not been computed');
-                else
-                    if new_fig
-                        f = figure; f.Name = sprintf('%03d: PWV %s', f.Number, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
-                        old_legend = {};
-                    else
-                        l = legend;
-                        old_legend = get(l,'String');
-                    end
-                    for r = 1 : size(rec_list, 2)
-                        if new_fig
-                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                        else
-                            plot(t{r}.getMatlabTime(), zero2nan(pwv{r}'), '.', 'LineWidth', 4); hold on;
-                        end
-                        outm{r} = rec_list(1, r).getMarkerName();
-                    end
-                                        
-                    outm = [old_legend, outm];
-                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside');
-                    n_entry = numel(outm);
-                    icons = icons(n_entry + 2 : 2 : end);
-                    
-                    for i = 1 : numel(icons)
-                        icons(i).MarkerSize = 16;
-                    end
-                    
-                    %ylim(yl);
-                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                    h = ylabel('PWV [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    h = title('Receiver PWV'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                end
-            end
+            this.showTropoPar('ZHD', new_fig)
         end
         
+        function showZwd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('ZWD', new_fig)
+        end
+        
+        function showZtd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('ZTD', new_fig)
+        end
+        
+        function showPwv(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showTropoPar('PWV', new_fig)
+        end
+        
+        function showMedianTropoPar(this, par_name, new_fig)
+            % one function to rule them all            
+            rec_ok = false(size(this,2), 1);
+            for r = 1 : size(this, 2)
+                rec_ok(r) = any(~isnan(this(:,r).getZtd)); 
+            end
+            rec_list = this(:, rec_ok);
+            
+            if nargin < 3
+                new_fig = true;
+            end
+            
+            switch lower(par_name)
+                case 'ztd'
+                    [tropo] = rec_list.getZtd();
+                case 'zwd'
+                    [tropo] = rec_list.getZwd();
+                case 'pwv'
+                    [tropo] = rec_list.getPwv();
+                case 'zhd'
+                    [tropo] = rec_list.getAprZhd();
+            end
+                    
+            if ~iscell(tropo)
+                tropo = {tropo};
+            end
+            if isempty(tropo)
+                rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
+            else
+                if new_fig
+                    f = figure; f.Name = sprintf('%03d: Median %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
+                    old_legend = {};
+                else
+                    l = legend;
+                    old_legend = get(l,'String');
+                end
+                for r = 1 : size(rec_list, 2)
+                    rec = rec_list(~rec_list(:,r).isempty, r);
+                    if ~isempty(rec)
+                        switch lower(par_name)
+                            case 'ztd'
+                                [tropo] = rec.getZtd();
+                            case 'zwd'
+                                [tropo] = rec.getZwd();
+                            case 'pwv'
+                                [tropo] = rec.getPwv();
+                            case 'zhd'
+                                [tropo] = rec.getAprZhd();
+                        end
+                        [~, ~, ~, h_o] = rec(1).getPosGeodetic();
+                        if new_fig
+                            plot(h_o, median(tropo,'omitnan'), '.', 'MarkerSize', 25, 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
+                        else
+                            plot(h_o, median(tropo,'omitnan'), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
+                        end
+                        outm{r} = rec(1).getMarkerName();
+                    end
+                end
+                
+                outm = [old_legend, outm];
+                [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                n_entry = numel(outm);
+                icons = icons(n_entry + 2 : 2 : end);
+                
+                for i = 1 : numel(icons)
+                    icons(i).MarkerSize = 16;
+                end
+                
+                %ylim(yl);
+                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
+                h = xlabel('Elevation [m]'); h.FontWeight = 'bold';
+                grid on;
+                h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
+        end
+
+        function showMedianZhd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showMedianTropoPar('ZHD', new_fig)
+        end
+        
+        function showMedianZwd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showMedianTropoPar('ZWD', new_fig)
+        end
+        
+        function showMedianZtd(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showMedianTropoPar('ZTD', new_fig)
+        end
+        
+        function showMedianPwv(this, new_fig)
+            if nargin == 1
+                new_fig = true;
+            end
+            this.showMedianTropoPar('PWV', new_fig)
+        end
+                
         function showZtdSlantRes_p(this, time_start, time_stop)
             if isempty(this.ztd) || ~any(this.sat.slant_td(:))
                 this.log.addWarning('ZTD and slants have not been computed');
