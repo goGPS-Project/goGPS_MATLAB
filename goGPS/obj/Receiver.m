@@ -5891,7 +5891,7 @@ classdef Receiver < Exportable
             this.removeShDelay();
             this.removeOceanLoading();
             this.removeHOI();
-            this.removeAtmload();
+            this.removeAtmLoad();
         end
         
         function applyAllCorrections(this)
@@ -6666,8 +6666,8 @@ classdef Receiver < Exportable
                 this.correctTimeDesync();
                 this.initPositioning(sys_c);
             end
-        end
-            
+        end        
+        
         function preProcessing(this, sys_c)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
