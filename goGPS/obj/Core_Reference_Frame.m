@@ -167,7 +167,7 @@ classdef Core_Reference_Frame < handle
                         idx_sta = idx_sta(idx_sta2);
                         dt = epoch - this.ref_epoch.getEpoch(idx_sta);
                         xyz = this.xyz(idx_sta,:) + (this.vxvyvz(idx_sta,:)' * (dt./(365.25 * 86400))')';
-                        is_valid = true
+                        is_valid = true;
                     end
                 end
             end
