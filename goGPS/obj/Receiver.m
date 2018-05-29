@@ -2330,6 +2330,19 @@ classdef Receiver < Exportable
             end
         end
         
+        
+        function missing_epochs = getMissingEpochs(this)
+            % return a logical array of missing (code) epochs
+            %
+            % SYNTAX
+            %   missing_epochs = this.getMissingEpochs()
+            %
+            missing_epochs = [];
+            for s = 1 : size(this, 1)
+                missing_epochs = [missing_epochs; all(isnan(this(s).getPseudoRanges)')'];
+            end
+        end
+        
         function [time_lim_small, time_lim_large] = getTimeSpan(this)
             % return a GPS_Time containing the first and last epoch stored in the Receiver
             %
@@ -2973,7 +2986,7 @@ classdef Receiver < Exportable
                         P = zeros(l,1);
                         T = zeros(l,1);
                         for i = 1 : l
-                            [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(l)/180*pi, this.lon(l)/180*pi, this.h_ellips(l), this.h_ellips(l) - this.h_ortho(l));
+                            [P(l), T(l), undu] = atmo.gpt( time(l), this.lat(min(l, numel(this.lat)))/180*pi, this.lon(min(l, numel(this.lat)))/180*pi, this.h_ellips(min(l, numel(this.lat))), this.h_ellips(min(l, numel(this.lat))) - this.h_ortho(min(l, numel(this.lat))));
                         end
                         H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
                     end
@@ -7911,15 +7924,16 @@ classdef Receiver < Exportable
                 if ~isempty(rec)
                     f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                     t = rec.getMatlabTime();
-                    plot(t, rec.getDesync, '-k', 'LineWidth', 2);
+                    nans = zero2nan(double(~rec.getMissingEpochs()));
+                    plot(t, rec.getDesync .* nans, '-k', 'LineWidth', 2);
                     hold on;
-                    plot(t, rec.getDtPr, ':', 'LineWidth', 2);
-                    plot(t, rec.getDtPh, ':', 'LineWidth', 2);
-                    plot(t, rec.getDtIP, '-', 'LineWidth', 2);
-                    plot(t, rec.getDtPrePro, '-', 'LineWidth', 2);
+                    plot(t, rec.getDtPr .* nans, ':', 'LineWidth', 2);
+                    plot(t, rec.getDtPh .* nans, ':', 'LineWidth', 2);
+                    plot(t, rec.getDtIP .* nans, '-', 'LineWidth', 2);
+                    plot(t, rec.getDtPrePro .* nans, '-', 'LineWidth', 2);
                     if any(rec.getDt)
-                        plot(t, rec.getDt, '-', 'LineWidth', 2);
-                        plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
+                        plot(t, rec.getDt .* nans, '-', 'LineWidth', 2);
+                        plot(t, rec.getTotalDt .* nans, '-', 'LineWidth', 2);
                         legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
                     else
                         legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
