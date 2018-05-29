@@ -2047,6 +2047,21 @@ classdef Receiver < Exportable
             end
         end
         
+        function req_rec = get(rec_list, marker_name)
+            % Get the receivers with a certain Marker name
+            % case unsensitive
+            %
+            % SYNTAX
+            %   req_rec = rec_list.get(marker_name) 
+            req_rec = [];
+            for r = 1 : size(rec_list,2)
+                rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
+                if strcmpi(rec(1).getMarkerName, marker_name)
+                    req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
+                end
+            end                
+        end
+        
         function marker_name = getMarkerName(this)
             % Get the Marker name as specified in the RINEX file
             %
