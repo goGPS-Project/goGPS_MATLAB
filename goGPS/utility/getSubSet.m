@@ -1,8 +1,9 @@
-function data = nonNaN(data)
-% SYNTAX:
-%   data = nonNaN(data)
-% DESCRIPTION:
-%   return the array without NaN
+function data = getSubSet(data, id_subset)
+% SYNTAX
+%   data = getSubSet(data, id_subset)
+%
+% DESCRIPTION
+%   return the array with the given ids
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -35,5 +36,5 @@ function data = nonNaN(data)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    data = data(~isnan(data));
+    data = data(id_subset);
 end
