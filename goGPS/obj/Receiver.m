@@ -225,6 +225,7 @@ classdef Receiver < Exportable
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
         log                                    % handle to log
+        rf                                     % handle to reference farme
     end
     % ==================================================================================================================================================
     %% PROPERTIES PLOTS
@@ -244,6 +245,7 @@ classdef Receiver < Exportable
             this.reset();
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
+            this.rf = Core_Reference_Frame.getInstance();
             if nargin >= 1 && ~isempty(cc)
                 this.cc = cc;
             else
@@ -2122,6 +2124,14 @@ classdef Receiver < Exportable
             for r = 1 : numel(this)
                 is_empty(r) =  this(r).time.length() == 0;
             end
+        end
+        
+        function is_fixed = isFixed(this)
+            is_fixed = this.rf.isFixed(this.getMarkerName4Ch);
+        end
+        
+        function has_apr = hasAPriori(this)
+            has_apr = this.rf.hasAPriori(this.getMarkerName4Ch);
         end
         
         function len = length(this)
@@ -6157,30 +6167,8 @@ classdef Receiver < Exportable
                     end
                 end
                 
-                if sum(this.xyz) == 0 %%% if no apriori information on the position
-                    min_ep_thrs = 50;
-                    if this.time.length < min_ep_thrs
-                        min_ep_thrs = 1;
-                    end
-                    
-                    last_ep_coarse = min(100,this.time.length);
-                    ep_coarse = 1:last_ep_coarse;
-                    while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
-                        ep_coarse = ep_coarse +1;
-                    end
-                    this.initAvailIndex(ep_coarse);
-                    this.updateAllTOT();
-                    
-                    this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
-                    
-                    dpos = 3000; % 3 km - entry condition
-                    while max(abs(dpos)) > 10
-                        dpos = this.codeStaticPositioning(ep_coarse);
-                    end
-                    this.updateAzimuthElevation()
-                    this.updateErrTropo();
-                    this.updateErrIono();
-                    this.codeStaticPositioning(ep_coarse, 15);
+                if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
+                    coarsePositioning(this, obs_set)
                 end
                 
                 
@@ -6202,6 +6190,46 @@ classdef Receiver < Exportable
                 this.updateAllAvailIndex()
                 this.updateAllTOT();
             end
+        end
+        
+        function coarsePositioning(this, obs_set)
+            % get a very coarse postioning for the receiver
+            if nargin < 2
+                obs_set = Observation_Set();
+                if this.isMultiFreq() %% case multi frequency
+                    for sys_c = this.cc.sys_c
+                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
+                    end
+                else
+                    for sys_c = this.cc.sys_c
+                        f = this.getFreqs(sys_c);
+                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                    end
+                end
+            end
+            min_ep_thrs = 50;
+            if this.time.length < min_ep_thrs
+                min_ep_thrs = 1;
+            end
+            
+            last_ep_coarse = min(100,this.time.length);
+            ep_coarse = 1:last_ep_coarse;
+            while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
+                ep_coarse = ep_coarse +1;
+            end
+            this.initAvailIndex(ep_coarse);
+            this.updateAllTOT();
+            
+            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
+            
+            dpos = 3000; % 3 km - entry condition
+            while max(abs(dpos)) > 10
+                dpos = this.codeStaticPositioning(ep_coarse);
+            end
+            this.updateAzimuthElevation()
+            this.updateErrTropo();
+            this.updateErrIono();
+            this.codeStaticPositioning(ep_coarse, 15);
         end
         
         function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off)

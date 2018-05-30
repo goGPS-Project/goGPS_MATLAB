@@ -41,13 +41,14 @@
 classdef Meteo_Network < handle
     properties
         mds % list of meteo data
+        log % handfle of logger
     end
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Meteo_Network()
-            
+            this.log = Logger.getInstance();
         end
     end
     

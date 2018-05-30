@@ -197,6 +197,18 @@ classdef Core_Reference_Frame < handle
             end
         end
         
+        function [status] = hasAPriori(this, sta_code)
+            % tell if station coordiantes are meant to be fixed
+            % in case sation not sound return false
+            status = false;
+            if size(this.station_code) >0
+                sta_idx  = idxCharLines(this.station_code, sta_code);
+                if sum(sta_idx) > 0
+                    status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1;
+                end
+            end
+        end
+        
         function setFlag(this, sta_code, flag)
             sta_idx  = idxCharLines(this.station_code, sta_code);
             if sum(sta_idx) > 0

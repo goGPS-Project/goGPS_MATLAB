@@ -308,7 +308,8 @@ classdef Least_Squares_Manipulator < handle
                 this.amb_idx = [];
             end
             
-            n_coo =  ~this.rf.isFixed(rec.getMarkerName4Ch) * 3; % number of coordinates
+            n_coo =  ~rec.isFixed() * 3; % number of coordinates
+            
             if dynamic
                 n_coo = n_coo * n_epochs;              
             end
