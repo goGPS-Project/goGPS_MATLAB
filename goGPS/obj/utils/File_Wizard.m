@@ -243,7 +243,7 @@ classdef File_Wizard < handle
                     this.log.addMessage(this.log.indent('Downloading Resources ...\n'));
                     [status, ~] = this.navigateTree(file_tree, 'download');
                     if not(status)
-                        this.log.addWarning('Not all file have been found or uncopress\n');
+                        this.log.addWarning('Not all file have been found or unconpressed\n');
                     end
                 end
             end
@@ -307,9 +307,9 @@ classdef File_Wizard < handle
                                 file_name = strrep(file_name,['?{' server '}'],'');
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 out_dir = this.state.getFileDir(file_name);
-                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, date_list.getEpoch(i), date_list.getEpoch(i));
+                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, date_list.getEpoch(date_list.length - i + 1), date_list.getEpoch(date_list.length - i + 1));
                                 out_dir = out_dir{1};
-                                if ~(isempty(strfind(port,'21')))
+                                if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port);
                                     status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
                                 else
@@ -334,7 +334,7 @@ classdef File_Wizard < handle
                             dso.addIntSeconds(+step_s);
                             file_name_lst = flipud(this.fnp.dateKeyRepBatch(f_path, dsa, dso));
                             status = true;
-                            f_status_lst = false(length(file_name_lst),1); %file list to be saved in tree with flag of downloaded or not
+                            f_status_lst = false(length(file_name_lst),1); % file list to be saved in tree with flag of downloaded or not
                             for i = 1 : length(file_name_lst)
                                 f_status = exist(file_name_lst{i}, 'file') == 2;
                                 f_status_lst(i) = f_status;
@@ -369,7 +369,7 @@ classdef File_Wizard < handle
                                         file_name = strrep(file_name,['?{' server '}'],'');
                                         [s_ip, port] = this.rm.getServerIp(server);
                                         
-                                        if ~(isempty(strfind(port,'21')))
+                                        if instr(port,'21')
                                             idx = this.getServerIdx(s_ip, port);
                                             status = status && this.ftp_downloaders{idx}.check(file_name);
                                         else
