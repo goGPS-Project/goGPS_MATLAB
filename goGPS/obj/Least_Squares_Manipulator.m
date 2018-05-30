@@ -398,7 +398,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % ----------- Abiguity ------------------
                 if phase_present
-                    amb_offset = n_coo + iob_flag + 1;
+                    amb_offset = n_coo_par + iob_flag + 1;
                     A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
                     A_idx(lines_stream, amb_offset) = n_coo + n_iob + amb_idx(id_ok_stream, s);
                 end
