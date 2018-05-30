@@ -56,7 +56,7 @@ classdef Core_Reference_Frame < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.log = Logger.getInstance();
             this.cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
-            this.loadCrd();
+            this.init();
         end
     end
     
@@ -76,7 +76,8 @@ classdef Core_Reference_Frame < handle
     end
     
     methods
-        function loadCrd(this)
+        function init(this)
+            this.clear();
             this.is_valid = true;
             try
                 fname = this.state.getCrdFile();
@@ -151,6 +152,17 @@ classdef Core_Reference_Frame < handle
             end
         end
         
+        function clear(this)
+            this.is_valid = false;
+            this.xyz = [];
+            this.vxvyvz = [];
+            this.station_code = [];
+            this.flag = [];
+            this.start_validity_epoch = [];
+            this.end_validity_epoch = [];
+            this.ref_epoch = [];
+        end
+        
         function [xyz, is_valid] = getCoo(this, sta_name, epoch)
             xyz = [];
             is_valid = false;
@@ -170,6 +182,25 @@ classdef Core_Reference_Frame < handle
                         is_valid = true;
                     end
                 end
+            end
+        end
+        
+        function [status] = isFixed(this, sta_code)
+            % tell if station coordiantes are meant to be fixed
+            % in case sation not sound return false
+            status = false;
+            if size(this.station_code) >0
+                sta_idx  = idxCharLines(this.station_code, sta_code);
+                if sum(sta_idx) > 0
+                    status  = this.flag(sta_idx) == 2;
+                end
+            end
+        end
+        
+        function setFlag(this, sta_code, flag)
+            sta_idx  = idxCharLines(this.station_code, sta_code);
+            if sum(sta_idx) > 0
+                this.flag(sta_idx) = flag;
             end
         end
     end

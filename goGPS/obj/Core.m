@@ -204,6 +204,7 @@ classdef Core < handle
                 atmo = Atmosphere.getInstance();
                 atmo.initVMF(time_lim_large.first,time_lim_large.last);
             end
+            
         end  
         
         function initSkySession(this, time_lim)
@@ -231,6 +232,9 @@ classdef Core < handle
             else
                 session_list = session_num;
             end
+            % init refererecne frame object
+            rf = Core_Reference_Frame.getInstance();
+            rf.init();
             for s = session_list
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);

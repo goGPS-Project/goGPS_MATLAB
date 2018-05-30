@@ -958,11 +958,23 @@ classdef Core_UI < handle
             
             % --------------------------------------------------------
             
+            crd_panel = this.insertCrdOptions(tab);
+            
+             % --------------------------------------------------------
+            
             ds_box_g.Heights = [18 15 -1];
                         
-            tab.Heights = [230 5 200];
+            tab.Heights = [230 5 200 50];
             
             this.uip.tab_proc = tab;
+        end
+        
+        function crd_panel = insertCrdOptions(this, container)
+            crd_panel = this.insertPanelLight(container, 'Observations "corrections"');
+            opt_grid = uix.Grid('Parent', crd_panel,...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            [~, this.edit_texts{end+1}] = this.insertFileBoxML(opt_grid, 'CRD filename', 'crd_name', @this.onEditChange);
+            opt_grid.Widths = -1;
         end
 
         function ss_panel = insertSatSelector(this, container)

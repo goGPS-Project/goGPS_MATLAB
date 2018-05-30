@@ -6157,30 +6157,32 @@ classdef Receiver < Exportable
                     end
                 end
                 
-                min_ep_thrs = 50;
-                if this.time.length < min_ep_thrs
-                    min_ep_thrs = 1;
+                if sum(this.xyz) == 0 %%% if no apriori information on the position
+                    min_ep_thrs = 50;
+                    if this.time.length < min_ep_thrs
+                        min_ep_thrs = 1;
+                    end
+                    
+                    last_ep_coarse = min(100,this.time.length);
+                    ep_coarse = 1:last_ep_coarse;
+                    while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
+                        ep_coarse = ep_coarse +1;
+                    end
+                    this.initAvailIndex(ep_coarse);
+                    this.updateAllTOT();
+                    
+                    this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
+                    
+                    dpos = 3000; % 3 km - entry condition
+                    while max(abs(dpos)) > 10
+                        dpos = this.codeStaticPositioning(ep_coarse);
+                    end
+                    this.updateAzimuthElevation()
+                    this.updateErrTropo();
+                    this.updateErrIono();
+                    this.codeStaticPositioning(ep_coarse, 15);
                 end
                 
-                last_ep_coarse = min(100,this.time.length);
-                ep_coarse = 1:last_ep_coarse;
-                while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
-                    ep_coarse = ep_coarse +1;
-                end                
-                this.initAvailIndex(ep_coarse);
-                this.updateAllTOT();
-                
-                this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
-                
-                dpos = 3000; % 3 km - entry condition                
-                while max(abs(dpos)) > 10
-                    dpos = this.codeStaticPositioning(ep_coarse);
-                end
-                
-                this.updateAzimuthElevation()
-                this.updateErrTropo();
-                this.updateErrIono();
-                this.codeStaticPositioning(ep_coarse, 15);
                 
                 this.updateAllAvailIndex();
                 this.updateAllTOT();
@@ -6224,7 +6226,10 @@ classdef Receiver < Exportable
             %             ls.Astack2Nstack();
             %             [x, res, s02] = ls.solve();
             
-            dpos = x(1:3);
+            dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+            if isempty(dpos)
+                dpos = [0 0 0];
+            end
             this.xyz = this.getMedianPosXYZ() + dpos;
             dt = x(x(:,2) == 6,1);
             this.dt = zeros(this.time.length,1);
@@ -6836,7 +6841,10 @@ classdef Receiver < Exportable
                
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 
-                coo    = x(1:3,1);
+                coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                if isempty(coo)
+                    coo = [0 0 0];
+                end
                 
                 clock = x(x(:,2) == 6,1);
                 tropo = x(x(:,2) == 7,1);
@@ -6852,7 +6860,7 @@ classdef Receiver < Exportable
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
-                this.xyz = this.xyz + coo';
+                this.xyz = this.xyz + coo;
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.amb_idx = ls.amb_idx; % to test ambiguity fixing
