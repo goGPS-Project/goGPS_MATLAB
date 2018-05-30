@@ -6108,24 +6108,8 @@ classdef Receiver < Exportable
                 if this.isStatic()
                     %this.initStaticPositioningOld(obs, prn, sys, flag)
                     s02 = this.initStaticPositioning();
-                else
-                    % get best observation for all satellites and all epochs
-                    this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
-                    [obs, prn, sys, flag] = this.getBestCodeObs;
-                    % remove unwanted system
-                    if nargin < 2
-                        sys_c = this.cc.sys_c;
-                    end
-                    sys_idx = false(size(sys));
-                    for s = 1:length(sys_c)
-                        sys_idx = sys_idx | sys == sys_c(s);
-                    end
-                    obs(~sys_idx,:) = [];
-                    prn(~sys_idx,:) = [];
-                    sys(~sys_idx,:) = [];
-                    flag(~sys_idx,:) = [];
-                    
-                    s02 = this.initDynamicPositioning(obs, prn, sys, flag);
+                else                    
+                    s02 = this.initDynamicPositioning();
                 end
             end
         end
@@ -6242,7 +6226,7 @@ classdef Receiver < Exportable
                 end
             end
             if nargin < 3
-                cut_off = [];
+                cut_off = this.state.getCutOff();
             end
             ls.setUpCodeSatic( this, id_sync, cut_off);
             ls.Astack2Nstack();
@@ -6278,258 +6262,115 @@ classdef Receiver < Exportable
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
             end
         end
-        
-        function s02 = initDynamicPositioning(this, obs, prn, sys, flag)
+        function [dpos, s02] = codeDynamicPositioning(this, id_sync, cut_off)
+            ls = Least_Squares_Manipulator();
+            if nargin < 2
+                if ~isempty(this.id_sync)
+                    id_sync = this.id_sync;
+                else
+                    id_sync = 1:this.getNumEpochs();
+                end
+            end
+            if nargin < 3
+                cut_off = this.state.getCutOff();
+            end
+            ls.setUpCodeDynamic( this, id_sync, cut_off);
+            ls.Astack2Nstack();
+            [x, res, s02] = ls.solve();
+            
+            % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
+            % enable)
+            %             ls.reweightHuber();
+            %             ls.Astack2Nstack();
+            %             [x, res, s02] = ls.solve();
+            
+            dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+            if size(this.xyz,1) == 1
+                this.xyz = repmat(this.xyz,this.time.length,1);
+            end
+            this.xyz = this.xyz(id_sync,:) + dpos;
+            dt = x(x(:,2) == 6,1);
+            this.dt = zeros(this.time.length,1);
+            this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
+            isb = x(x(:,2) == 4,1);
+            this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
+            % LS does not know the max number of satellite stored
+            
+            
+            this.sat.res = zeros(this.getNumEpochs, this.getMaxSat());
+            dsz = max(id_sync) - size(res,1);
+            if dsz == 0
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+            else
+                if dsz > 0
+                    id_sync = id_sync(1 : end - dsz);
+                end
+                this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
+            end
+        end
+        function s02 = initDynamicPositioning(this)
             % SYNTAX
-            %   this.initDynamicPositioning(obs, prn, sys, flag)
+            %   this.StaticPositioning(obs, prn, sys, flag)
             %
             % INPUT
             % obs : observations [meters]
             % prn : prn of observations
             % sys : sys of observations
-            % flag : name of obsevation [obs_code1 obs_code2 comb_code]
+            % flag : name of observation [obs_code1 obs_code2 comb_code]
             %        comb_code --> Iono Free = I
-            % OUTPUT
+            % OUTPUTt_glo11.
             %
-            %  get dynamic postion using code observables
-            % (independent epochs, no kalman filters or regularization)
+            % 
+            %   Get positioning using code observables
             
-            if nargin == 1
-                % get best observation for all satellites and all epochs
-                this.log.addMessage(this.log.indent('Get best code combination available for each satellites and epoch', 6))
-                [obs, prn, sys, flag] = this.getBestCodeObs;
-                % remove unwanted system
-                if nargin < 2
-                    sys_c = this.cc.sys_c;
-                end
-                sys_idx = false(size(sys));
-                for s = 1:length(sys_c)
-                    sys_idx = sys_idx | sys == sys_c(s);
-                end
-                obs(~sys_idx,:) = [];
-                prn(~sys_idx,:) = [];
-                sys(~sys_idx,:) = [];
-                flag(~sys_idx,:) = [];
-            end
             
-            %initialize modeled error matrix
-            this.log.addMessage(this.log.indent('Starting dynamic positioning', 6))
-            if isempty(this.sat.avail_index)
-                this.sat.avail_index = zeros(this.time.length, this.getMaxSat());
-            end
-            this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
-            this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
-            this.sat.solid_earth_corr  = zeros(this.time.length, this.getMaxSat());
-            
-            %check if the combination is ionofree
-            iono_free = flag(1,7) == 'I';
-            n_epochs         = this.time.length;
-            code_bias_flag = [sys flag];
-            % compute a column with an integer that indicate whice
-            % code_bias to estimate for each obs
-            code_bias_ord = zeros(size(code_bias_flag,1),1);
-            u_code_bias_flag = unique(cellstr(code_bias_flag),'stable');
-            n_clocks = length(u_code_bias_flag);
-            for i = 1 : n_clocks
-                ch_idx_sat = sum([sys flag] == repmat( sprintf('%-8s',u_code_bias_flag{i}),length(sys),1),2) == 8;
-                code_bias_ord(ch_idx_sat) = i;
-            end
-            sat = zeros(size(prn));
-            for i = 1 : length(sat)
-                sat(i) = this.getGoId(sys(i),prn(i));
-            end
-            
-            this.dt = zeros(n_epochs,n_clocks);
-            this.flag_rid = u_code_bias_flag;
-            if ~isempty(this.xyz_approx) && sum(this.xyz_approx) ~= 0
-                this.xyz = repmat(this.xyz_approx, n_epochs, 1);
+            if this.isEmpty()
+                this.log.addError('Static positioning failed: the receiver object is empty');
             else
-                this.xyz = zeros(n_epochs,3);
-            end
-            
-            XS = zeros(this.getMaxSat(), 3, n_epochs);
-            % get Sat orbit correctiong ony for pseudorange
-            for i = 1 : this.getMaxSat()
-                [c_sys, c_prn] = this.getSysPrn(i);
-                idx_sat = sys == c_sys & prn == c_prn;
-                if sum(idx_sat) > 0 % if we have an obesrvation for the satellite
-                    c_obs = obs(idx_sat,:);
-                    
-                    c_l_obs = colFirstNonZero(c_obs); %all best obs one one line
-                    idx_obs = c_l_obs > 0; %epoch with obseravtion from the satellite
-                    %update time of flight times
-                    this.updateAvailIndex(c_l_obs,i);
-                    this.updateTOT(c_l_obs,i); % update time of travel
-                    
-                    [XS_temp , ~] = this.getXSTxRot(i);
-                    XS(i,:,idx_obs) = XS_temp';
+                if isempty(this.id_sync)
+                    this.id_sync = 1:this.time.length;
                 end
-            end
-            this.log.addMessage(this.log.indent('Getting very coarse postion from first valid epoch', 6))
-            % get coarse postion from first valid epoch
-            %find first valid epoch
-            not_found = true;
-            e = 0;
-            while not_found && e < n_epochs
-                e = e + 1;
-                idx_obs = obs(:,e) > 0;
-                clock_temp = unique(code_bias_ord(idx_obs));
-                if sum(idx_obs) >= (3 + length(clock_temp));
-                    not_found = false;
-                end
-            end
-            
-            x = [999 999 999];
-            n_obs_ep = sum(idx_obs);
-            v_clocks = 1 : n_clocks;
-            while max(abs(x(1:3))) > 10
-                clock_ep = code_bias_ord(idx_obs);
-                pres_clock = (sum(repmat(clock_ep, 1, n_clocks) == repmat(v_clocks, n_obs_ep, 1), 1) > 0) .* v_clocks;
-                pres_clock(pres_clock == 0) = [];
-                XS_temp = XS(sat(idx_obs),:,e);
-                XS_temp = XS_temp - repmat(this.xyz(e,:),sum(idx_obs),1);
-                dist = sqrt(sum(XS_temp.^2,2));
-                XS_temp_norm = XS_temp./repmat(dist,1,3);
-                A_dcb = zeros(n_obs_ep, length(pres_clock));
-                for i = 1:length(pres_clock)
-                    A_dcb(clock_ep == pres_clock(i),i) = 1;
-                end
-                A_temp = [- XS_temp_norm A_dcb];
-                y = obs(idx_obs, e) - dist;
-                x = A_temp \ y;
-                this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                this.dt(e,pres_clock) = x(4:end)';
-                cur_xyz_est = this.xyz(e,:);
-            end
-            % if combination is not ionofree compute iono using coarse
-            % postion estimation computed with the first valid epoch
-            if ~iono_free
-                for i = 1 : this.getMaxSat()
-                    this.updateErrIono(i);
-                end
-            end
-            residuals = zeros(size(obs));
-            this.log.addMessage(this.log.indent('Getting coarse position for all epoch',6))
-            for e = 1 : n_epochs
-                idx_obs = obs(:,e) > 0;
-                n_obs_ep = sum(idx_obs);
-                v_clocks= 1:n_clocks;
-                clock_ep = code_bias_ord(idx_obs);
-                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
-                pres_clock(pres_clock == 0) = [];
-                if   sum(idx_obs) >= (3 + length(pres_clock)) % if system is solvable
-                    this.xyz(e,:) = cur_xyz_est;
-                    XS_temp = XS(sat(idx_obs),:,e);
-                    XS_temp = XS_temp - repmat(cur_xyz_est,sum(idx_obs),1);
-                    dist = sqrt(sum(XS_temp.^2,2));
-                    XS_temp_norm = XS_temp./repmat(dist,1,3);
-                    A_dcb = zeros(n_obs_ep, length(pres_clock));
-                    for i = 1:length(pres_clock)
-                        A_dcb(clock_ep == pres_clock(i),i) = 1;
-                    end
-                    A_temp = [- XS_temp_norm A_dcb];
-                    
-                    y = obs(idx_obs, e) - dist;
-                    x = A_temp \ y;
-                    res = y - A_temp * x;
-                    residuals(idx_obs,e) = res;
-                    if not(isnan(this.xyz(e,:))) %& sum(abs(x(1:3))) < 300
-                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                        cur_xyz_est = this.xyz(e,:);
-                        this.dt(e,pres_clock) = x(4:end)'/Global_Configuration.V_LIGHT;
+                % check if the epochs are present
+                % getting the observation set that is going to be used in
+                % setUPSA
+                obs_set = Observation_Set();
+                if this.isMultiFreq() %% case multi frequency
+                    for sys_c = this.cc.sys_c
+                        obs_set.merge(this.getPrefIonoFree('C', sys_c));
                     end
                 else
-                    % keyboard
+                    for sys_c = this.cc.sys_c
+                        f = this.getFreqs(sys_c);
+                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                    end
                 end
-            end
-            
-            %%% COMPUTE AGAIN XS BASED ON CURRENT CLOCK ESTIMATE
-            %remove cut off
-            this.updateAllAvailIndex();
-            this.updateAzimuthElevation();
-            this.updateErrTropo();
-            if ~iono_free
+                
+                if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
+                    coarsePositioning(this, obs_set)
+                end
+                
+                
+                this.updateAllAvailIndex();
+                this.updateAllTOT();
+                this.updateAzimuthElevation()
+                this.updateErrTropo();
                 this.updateErrIono();
-            end
-            this.updateSolidEarthCorr();
-            cut_off = 15;
-            [obs, sys, prn, flag] = this.removeUndCutOff(obs, sys, prn, flag, cut_off);
-            sat = zeros(size(prn));
-            for i = 1 : length(sat)
-                sat(i) = this.getGoId(sys(i),prn(i));
-            end
-            XS = zeros(this.getMaxSat(), 3, n_epochs);
-            dist = zeros(n_epochs, this.getMaxSat());
-            this.initAvailIndex();
-            % get Sat orbit correctiong ony for pseudorange
-            for i = 1 : this.getMaxSat()
-                [c_sys, c_prn] = this.getSysPrn(i);
-                idx_sat = sys == c_sys & prn == c_prn;
-                if sum(idx_sat) > 0 % if we have an observation for the satellite
-                    c_obs = obs(idx_sat,:);
-                    
-                    c_l_obs = colFirstNonZero(c_obs); % all best obs one one line
-                    idx_obs = c_l_obs > 0; % epoch with obseravtion from the satellite
-                    % update time of flight times
-                    this.updateTOT(c_l_obs,i); % update time of travel
-                    
-                    [dist(:,i), XS_temp] = this.getSyntObs('I', i); %%% consider multiple combinations (different iono corrections) on the same satellite, not handled yet
-                    
-                    XS(i,:,idx_obs) = rowNormalize(XS_temp)';
-                end
-            end
-            this.log.addMessage(this.log.indent('Getting final estimation for all epoch',6))
-            for e = 1 : n_epochs
-                idx_obs = obs(:,e) > 0;
-                n_obs_ep = sum(idx_obs);
-                v_clocks= 1:n_clocks;
-                clock_ep = code_bias_ord(idx_obs);
-                pres_clock = (sum(repmat(clock_ep,1,n_clocks) == repmat(v_clocks,n_obs_ep,1),1) > 0).*v_clocks;
-                pres_clock(pres_clock == 0) = [];
-                if   sum(idx_obs) >= (3 + length(pres_clock)); % if system is solvable
-                    XS_temp = XS(sat(idx_obs),:,e);
-                    A_dcb = zeros(n_obs_ep, length(pres_clock));
-                    for i = 1:length(pres_clock)
-                        A_dcb(clock_ep == pres_clock(i),i) = 1;
-                    end
-                    A_temp = [- XS_temp A_dcb];
-                    
-                    y = obs(idx_obs, e) - dist(e, sat(idx_obs))';
-                    % remove parmater with one clock only, they add no
-                    % value create problem for the robust sdjustment
-                    %                     one_idx = sum(A_temp(:,4:end),1) == 1;
-                    %                     rm_col = 3+find(one_idx);
-                    %                     rm_idx = A_temp(:,rm_col) > 0;
-                    %                     y(rm_idx) = [];
-                    %                     n_obs_ep = length(y);
-                    %                     A_temp(rm_idx,:) = [];
-                    %                     A_temp(:,rm_col) = [];
-                    %                     pres_clock(rm_col-3) = [];
-                    
-                    b = zeros(size(y));
-                    Q = speye(length(y));
-                    [x, res, s02] = Least_Squares.solver(y, b, A_temp, Q);
-                    this.s02_ip(e) = s02;
-                    %                     x = A_temp \ y;
-                    %                     res = y - A_temp * x;
-                    %residuals(idx_obs,e) = res;
-                    %--- robust estimation ---
-                    %                     for i = 1:1
-                    %                         res = res/this.s02_ip;
-                    %                         Q = spdiags(min(res.^2,1000) ,0 ,n_obs_ep ,n_obs_ep);
-                    %                         [x, res] = Least_Squares.solver(y, b, A_temp, Q);
-                    %                     end
-                    if max(abs(x(1:3))) <100;
-                        this.xyz(e,:) = this.xyz(e,:) +x(1:3)';
-                        this.dt(e,pres_clock) = x(4:end)'/Global_Configuration.V_LIGHT;
-                    else
-                        this.dt(e,pres_clock) = 0;
-                        this.xyz(e,:) = 0;
-                    end
-                end
+                this.log.addMessage(this.log.indent('Improving estimation',6))
+                this.codeDynamicPositioning(this.id_sync, 15);
+                
+                this.updateAllTOT();
+                this.log.addMessage(this.log.indent('Final estimation',6))
+                [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.s02_ip = s02;
+                
+                % final estimation of time of flight
+                this.updateAllAvailIndex()
+                this.updateAllTOT();
+                [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
             end
         end
-        
+       
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT
             % OUPUT:
