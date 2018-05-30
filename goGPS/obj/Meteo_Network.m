@@ -86,10 +86,16 @@ classdef Meteo_Network < handle
             n_met_data = numel(fnames);
             for  i = 1 : n_met_data
                 
-                md = Meteo_Data(fnames{i});
-                if md.isValid()
-                    %md.setMaxBound(0);
-                    this.mds = [this.mds; md];                
+                if ~isempty(File_Name_Processor.getFileName(fnames{i}))
+                    if ~exist(fnames{i}, 'file')
+                        this.log.addWarning(sprintf('Skipping %s - file not found', fnames{i}));
+                    else
+                        md = Meteo_Data(fnames{i});
+                        if md.isValid()
+                            %md.setMaxBound(0);
+                            this.mds = [this.mds; md];
+                        end
+                    end
                 end
 
             end
