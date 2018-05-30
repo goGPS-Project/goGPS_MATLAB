@@ -237,28 +237,65 @@ classdef Meteo_Data < handle
             
             % Read the data
             try
-            comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
-            comment_line(1:eoh) = false;
-            lim(comment_line,:) = [];
+                % search for lines containing comments (to be ignored)
+                comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
+                comment_line(1 : eoh) = false;
+                lim(comment_line, :) = [];
+                
+                % find all the observation lines
+                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
+                t_line(lim(t_line,3) ~= lim(t_line(1),3)) = [];
+                
+                n_epo = numel(t_line);
+                % extract all the epoch lines
+                string_time = txt(repmat(lim(t_line,1),1,17) + repmat(1:17, n_epo, 1))';
+                % convert the times into a 6 col time
+                date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %2f'));
+                after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
+                % import it as a GPS_Time obj
+                this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
+                this.rate = this.time.getRate();
+                
+                this.data = nan(this.n_type, n_epo);
+                line = txt(repmat(lim(t_line,1),1, lim(t_line(1),3) - 17) + 17 + repmat(1 : (lim(t_line,3) - 17), n_epo, 1))';
+                data = sscanf(line, '%f');
+                this.data(1:end) = data;
+            catch ex
+                this.log.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
+                this.is_valid = false;
+            end
+            this.data = this.data'; % keep one column per data type
+        end
+        
+        function parseRin3Data(this, txt, lim, eoh)
+            % Parse the data part of a RINEX 2 file -  the header must already be parsed
+            % SYNTAX this.parseRin2Data(txt, lim, eoh)
+            % remove comment line from lim
             
-            % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
-            t_line(lim(t_line,3) ~= lim(t_line(1),3)) = [];
-            
-            n_epo = numel(t_line);
-            % extract all the epoch lines
-            string_time = txt(repmat(lim(t_line,1),1,17) + repmat(1:17, n_epo, 1))';
-            % convert the times into a 6 col time
-            date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %2f'));
-            after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
-            % import it as a GPS_Time obj
-            this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            this.rate = this.time.getRate();
-            
-            this.data = nan(this.n_type, n_epo);
-            line = txt(repmat(lim(t_line,1),1, lim(t_line(1),3) - 17) + 17 + repmat(1 : (lim(t_line,3) - 17), n_epo, 1))';
-            data = sscanf(line, '%f');
-            this.data(1:end) = data;
+            % Read the data
+            try
+                % search for lines containing comments (to be ignored)
+                comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
+                comment_line(1 : eoh) = false;
+                lim(comment_line, :) = [];
+                
+                % find all the observation lines
+                t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 3) ~= ' ')' & (txt(lim(eoh+1:end,1) + 5) == ' ')' & lim(eoh+1:end,3) > 25]);
+                t_line(lim(t_line,3) ~= lim(t_line(1),3)) = [];
+                
+                n_epo = numel(t_line);
+                % extract all the epoch lines
+                string_time = txt(repmat(lim(t_line,1),1,19) + repmat(1:19, n_epo, 1))';
+                % convert the times into a 6 col time
+                date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %2f'));
+                % import it as a GPS_Time obj
+                this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
+                this.rate = this.time.getRate();
+                
+                this.data = nan(this.n_type, n_epo);
+                line = txt(repmat(lim(t_line,1),1, lim(t_line(1),3) - 19) + 19 + repmat(1 : (lim(t_line,3) - 19), n_epo, 1))';
+                data = sscanf(line, '%f');
+                this.data(1:end) = data;
             catch ex
                 this.log.addWarning(sprintf('Problem detected while reading meteorological data: %s', ex.message));
                 this.is_valid = false;
@@ -356,7 +393,11 @@ classdef Meteo_Data < handle
             end
             this.is_valid = this.file.isValid();
             % Parse the data
-            this.parseRin2Data(txt, lim, eoh);
+            if this.rin_type < 3
+                this.parseRin2Data(txt, lim, eoh);
+            else
+                this.parseRin3Data(txt, lim, eoh);
+            end
             if ~any(this.xyz)
                 this.log.addWarning(sprintf('No position found in meteorological file "%s"\n this meteorological station cannot be used correctly', File_Name_Processor.getFileName(file_name)), verbosity_lev);                
             end
