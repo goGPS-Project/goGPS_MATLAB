@@ -1833,7 +1833,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.erp')
                 dir = this.getErpDir();
-            elseif contains(lower(ext),'.clk')
+            elseif instr(lower(ext),'.clk')
                 dir = this.getNavClkDir();
             elseif strcmpi(ext,'.CRX')
 
@@ -2336,7 +2336,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
-            elseif contains(lower(ext),'.clk')
+            elseif instr(lower(ext),'.clk')
                 this.setNavClkFile(filename);
             elseif strcmpi(ext,'.CRX')
 
