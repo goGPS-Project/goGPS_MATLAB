@@ -1334,8 +1334,8 @@ classdef Core_Sky < handle
                 times = this.getClockTime();
                 
                 % find day change
-                date = times.get6ColDate;
-                day_change = find(diff(date(:,3)));
+                %date = times.get6ColDate;
+                %day_change = find(diff(date(:,3)));
                 
                 p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
                 
