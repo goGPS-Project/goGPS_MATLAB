@@ -613,7 +613,7 @@ classdef Core_UI < handle
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
         
-        function ok_go = openGUI(this)
+        function openGUI(this)
             % WIN CONFIGURATION
             % L| N|    W
             %
@@ -636,7 +636,7 @@ classdef Core_UI < handle
             % Main Window ----------------------------------------------------------------------------------------------
             
             win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                'Visible', 'on', ...
+                'Visible', 'off', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
@@ -1295,7 +1295,7 @@ classdef Core_UI < handle
                 'FontWeight', 'bold', ...
                 'BackgroundColor', this.DARK_GRAY_BG);
             
-            this.updateRecList();
+            % this.updateRecList(); % this is done at the end of interface loading
         end
         
         % Single element insert ----------------------------------------------------------------
