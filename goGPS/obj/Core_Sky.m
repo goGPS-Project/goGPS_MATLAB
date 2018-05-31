@@ -76,6 +76,8 @@ classdef Core_Sky < handle
         
         avail                 % availability flag
         coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]     
+        
+        wsb                   % widelane satellite biases (only cnes orbits)
     end
     
     properties (Access = private)
