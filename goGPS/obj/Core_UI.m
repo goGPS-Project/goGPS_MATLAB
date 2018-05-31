@@ -961,19 +961,29 @@ classdef Core_UI < handle
             crd_panel = this.insertCrdOptions(tab);
             
              % --------------------------------------------------------
+              ocean_panel = this.insertOceanOptions(tab)
+              % --------------------------------------------------------
             
             ds_box_g.Heights = [18 15 -1];
                         
-            tab.Heights = [230 5 200 50];
+            tab.Heights = [230 5 70 50 50];
             
             this.uip.tab_proc = tab;
         end
         
-        function crd_panel = insertCrdOptions(this, container)
-            crd_panel = this.insertPanelLight(container, 'Observations "corrections"');
-            opt_grid = uix.Grid('Parent', crd_panel,...
+        function ocean_panel = insertOceanOptions(this, container)
+            ocean_panel = this.insertPanelLight(container, 'Observations "corrections"');
+            opt_grid = uix.Grid('Parent', ocean_panel,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}] = this.insertFileBoxML(opt_grid, 'CRD filename', 'crd_name', @this.onEditChange);
+            opt_grid.Widths = -1;
+        end
+        
+        function crd_panel = insertCrdOptions(this, container)
+            crd_panel = this.insertPanelLight(container, 'Ocean loading file');
+            opt_grid = uix.Grid('Parent', crd_panel,...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            [~, this.edit_texts{end+1}] = this.insertFileBoxML(opt_grid, 'Ocean loading filename', 'ocean_name', @this.onEditChange);
             opt_grid.Widths = -1;
         end
 
@@ -1088,7 +1098,7 @@ classdef Core_UI < handle
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load');
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi');
             
-            opt_grid.Widths = -1;
+            opt_grid.Widths = [150 150 150 -1];
         end
 
         function insertAtmosphere(this, container)
