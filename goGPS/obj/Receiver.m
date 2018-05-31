@@ -6018,31 +6018,34 @@ classdef Receiver < Exportable
                     end
                     
                     ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
-                    
+
                     if (max(abs(time_desync)) > 1e-4)
                         % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
                         ddt = [0; diff(time_desync)];
-                        ddrifting = ddt - ddt_pr;
-                        drifting = cumsum(ddt - ddt_pr);
+                        ddrifting_pr = ddt - ddt_pr;
+                        drifting_pr = cumsum(ddt - ddt_pr);
                         
                         % Linear interpolation of ddrifting
                         jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                         lim = getOutliers(any(~isnan(ph),2));
-                        jmp_fit = setdiff([find(abs(ddrifting) > 1e-7); lim(:)], jmp_reset); % points where desync interpolate the clock
-                        jmp_fit(jmp_fit==numel(drifting)) = [];
+                        jmp_fit = setdiff([find(abs(ddrifting_pr) > 1e-7); lim(:)], jmp_reset); % points where desync interpolate the clock
+                        jmp_fit(jmp_fit==numel(drifting_pr)) = [];
                         jmp_fit(jmp_fit==1) = [];
-                        d_points = [drifting(jmp_reset); drifting(jmp_fit) - ddrifting(jmp_fit)/2];
+                        d_points_pr = [drifting_pr(jmp_reset); drifting_pr(jmp_fit) - ddrifting_pr(jmp_fit)/2];
                         jmp = [jmp_reset; jmp_fit];
-                        if numel(d_points) < 3
-                            drifting = zeros(size(drifting));
+                        if numel(d_points_pr) < 3
+                            drifting_pr = zeros(size(drifting_pr));
                         else
-                            drifting = interp1(jmp, d_points, (1 : numel(drifting))', 'pchip');
+                            %lim = interp1(jmp, d_points_pr, [1 numel(drifting_pr)]', 'linear', 'extrap');
+                            %drifting_pr = interp1([1; jmp; numel(drifting_pr)], [lim(1); d_points_pr; lim(2)], 'pchip');
+                            drifting_pr = interp1(jmp, d_points_pr, (1 : numel(drifting_pr))', 'pchip');
                         end
                         
-                        dt_ph = drifting + dt_ph_dj;
-                        dt_pr = drifting + dt_pr_dj;
+                        dt_ph = drifting_pr + dt_ph_dj;
+                        %dt_ph = drifting_pr * double(numel(dt_ph_dj) <= 1) + detrend(drifting_pr) * double(numel(dt_ph_dj) > 1) + dt_ph_dj;
+                        dt_pr = drifting_pr + dt_pr_dj;
                         if ~isempty(jmp)
-                            t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting(jmp)/2) * 1e7) * 1e-7;
+                            t_offset = round(mean(dt_pr(jmp) - time_desync(jmp) + ddrifting_pr(jmp)/2) * 1e7) * 1e-7;
                             dt_ph = dt_ph - t_offset;
                             dt_pr = dt_pr - t_offset;
                         end
@@ -6067,14 +6070,14 @@ classdef Receiver < Exportable
                     jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                     jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
                     if numel(jmp_reset) > 2
-                        drifting = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
+                        drifting_pr = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
                     else
-                        drifting = 0;
+                        drifting_pr = 0;
                     end
                     
-                    dt_pr = dt_pr_dj - drifting;
+                    dt_pr = dt_pr_dj - drifting_pr;
                     t_offset = mean(dt_pr);                    
-                    dt_ph = dt_ph_dj - drifting - t_offset;
+                    dt_ph = dt_ph_dj - drifting_pr - t_offset;
                     dt_pr = dt_pr - t_offset;
                     
                     ph = bsxfun(@minus, ph, dt_ph .* 299792458);
