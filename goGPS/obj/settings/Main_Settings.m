@@ -1791,6 +1791,41 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1]);
         end
+        
+        function [status, n_missing] = checkDir(this, field_name, field_text)
+            % Check the validity of the fields
+            %
+            % SYNTAX: 
+            %   this.checkDir(field_name, field_text));
+            
+            dir_name = File_Name_Processor.getFullDirPath(this.(field_name), this.getHomeDir);
+            
+            fnp = File_Name_Processor();
+            step_sec = fnp.getStepSec(dir_name);
+            
+            date_start = this.getSessionStart.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+            date_stop = this.getSessionStart.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+            dir_name = fnp.dateKeyRepBatch(dir_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            
+            if ~iscell(dir_name)
+                dir_name = {dir_name};
+            end
+            
+            n_missing = numel(dir_name);
+            for d = 1 : numel(dir_name)
+                if exist(dir_name{d}, 'file')
+                    n_missing = n_missing - 1;
+                end
+            end
+            
+            if n_missing == 0
+                status = true;
+                this.log.addStatusOk([field_text ' is present']);
+            else
+                status = false;
+                this.log.addWarning([field_text ' is missing']);
+            end
+        end
     end
 
     % =========================================================================

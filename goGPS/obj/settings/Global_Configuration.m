@@ -250,6 +250,56 @@ classdef Global_Configuration < Settings_Interface
                 this.geoid.nrows = 0;
             end
         end
+        
+        function is_ok = checkValidity(this)            
+            % Check validity of requiremets
+            is_ok.go = true; % Global ok check
+            
+            state = this.getCurrentSettings;
+            is_ok.home  = state.checkDir('prj_home', 'Home dir');
+            is_ok.obs   = state.checkDir('obs_dir', 'Observation dir');
+            is_ok.crd   = state.checkDir('crd_dir', 'Coordinate dir');
+            is_ok.met   = state.checkDir('met_dir', 'Meteorological dir');
+            is_ok.ocean = state.checkDir('ocean_dir', 'Ocean loading dir');
+
+            is_ok.atx   = state.checkDir('atx_dir', 'Antenna dir');
+            is_ok.eph   = state.checkDir('eph_dir', 'Ephemerides dir');
+            is_ok.clk   = state.checkDir('clk_dir', 'Clock Offset dir');
+            is_ok.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir');
+            is_ok.crx   = state.checkDir('crx_dir', 'Satellite Manouvers dir');
+            is_ok.dcb   = state.checkDir('dcb_dir', 'Differential Code Biases dir');
+            is_ok.ems   = state.checkDir('ems_dir', 'EGNOS Message Center dir');
+            
+            is_ok.geoid = state.checkDir('geoid_dir', 'Geoid loading dir');
+            
+            geoid = this.getRefGeoid();
+            if isempty(geoid) || isempty(geoid.grid)
+                is_ok.geoid = false;
+                this.log.addWarning('Geoid is missing');
+            else
+                is_ok.geoid = true;
+                this.log.addStatusOk('Geoid is present');                
+            end
+            
+            if state.isHOI
+                is_ok.iono = state.checkDir('iono_dir', 'Ionospheric map dir');
+                is_ok.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir');
+            else
+                is_ok.iono = true;
+                is_ok.igrf = true;
+            end
+            if state.isVMF
+                is_ok.vmf = state.checkDir('vmf_dir', 'Vienna Mapping Function dir');
+            else
+                is_ok.vmf = true;
+            end
+            if state.isAtmLoading
+                is_ok.atm = state.checkDir('atm_load_dir', 'Atmospheric loading dir');
+            else
+                is_ok.atm = true;
+            end
+            
+        end
     end
 
     % =========================================================================
@@ -290,7 +340,7 @@ classdef Global_Configuration < Settings_Interface
     end
 
     % =========================================================================
-    %  ADDITIONAL GETTERS
+    %  ADDITIONAL SETTERS
     % =========================================================================
     methods
         function setAdvanced(this, mode)
