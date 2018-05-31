@@ -698,6 +698,31 @@ classdef Receiver < Exportable
             end
         end
         
+        
+        function remBadPrObs(this, thr)
+            % remove bad pseudo-ranges 
+            % and isolated observations
+            %
+            % INPUT
+            %   thr is a threshold in meters (default = 80)
+            %
+            % SYNTAX
+            %   this.remBadPrObs(thr)
+            if nargin == 1
+                thr = 80; % meters
+            end
+            [pr, id_pr] = this.getPseudoRanges;
+            inan = isnan(pr);
+            pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
+            med_pr = median(Core_Pre_Processing.diffAndPred(pr_fill,2),2,'omitnan');
+            out = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(pr_fill, 2), med_pr)) > thr;
+            pr(out) = nan;
+            pr = zero2nan(Core_Pre_Processing.remShortArcs(pr', 1))';
+            this.setPseudoRanges(pr, id_pr);
+            n_out = sum(out(:) & ~inan(:));
+            this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out), 6));
+        end
+        
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
             %  remove obs under cut off
             for i = 1 : length(prn)
@@ -827,19 +852,22 @@ classdef Receiver < Exportable
             
         end
         
-        function removeUnderSnrThr(this, snr_thr)
+        function remUnderSnrThr(this, snr_thr)
             % removes observations with an SNR smaller than snr_thr
             % 
             % SYNTAX
-            %   this.removeUnderSnrThr(snr_thr)
+            %   this.remUnderSnrThr(snr_thr)
             
             if (nargin == 1)
                 snr_thr = this.state.getSnrThr();
             end
+            this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
 
             [snr1, id_snr] = this.getObs('S1');
             snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
             id_snr = find(id_snr);
+            this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr)), 6));
+
             if ~isempty(id_snr)
                 this.log.addMarkedMessage(sprintf('Removing data with SNR (on L1) smaller than %.1f', snr_thr));
                 for s = 1 : numel(id_snr)
@@ -6570,15 +6598,22 @@ classdef Receiver < Exportable
                 end
                 this.setActiveSys(intersect(this.getActiveSys, this.sat.cs.getAvailableSys));
                 this.remBad();
-                this.removeUnderSnrThr(this.state.getSnrThr());
+                this.remUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
                 this.correctTimeDesync();
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
                 this.initTropo();
+                
+                if (this.state.isOutlierRejectionOn())
+                    this.remBadPrObs(80);
+                end
+
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
-                if (min(s02) < this.S02_IP_THR)
+                if (min(s02) > this.S02_IP_THR)
+                    this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
+                else
                     this.setAvIdx2Visibility();
                     this.meteo_data = [];
                     this.importMeteoData();
