@@ -137,13 +137,40 @@ classdef Core < handle
             this.cmd = Command_Interpreter.getInstance;            
         end
         
+        function import(this, state)
+            % Import Settings from ini files
+            % 
+            % INPUT:
+            %   state       can be a string to the path of the settings file
+            %               or a state object
+            %
+            % SYNTAX:
+            %   this.import(state)
+            
+            if ischar(state)
+                this.importIniFile(state);
+            else
+                this.importState(state);
+            end
+        end
+            
         function importIniFile(this, ini_settings_file)
             % Import Settings from ini files
             %
             % SYNTAX:
             %   this.importIniFile(ini_settings_file)
+            if  exist(ini_settings_file, 'file')
+                this.importIniFile(ini_settings_file);
+            end
+        end
+        
+        function importState(this, state)
+            % Import Settings from state
+            %
+            % SYNTAX:
+            %   this.importState(state)
             
-            this.state.importIniFile(ini_settings_file);
+            this.state.import(state);
         end
         
         function prepareProcessing(this, flag_rem_check)

@@ -1,4 +1,4 @@
-function goGPS(ini_settings_file, use_gui)
+function goGPS(ini_settings, use_gui)
 % SYNTAX:
 %   goGPS(<ini_settings_file>, <use_gui =false>);
 %
@@ -70,11 +70,7 @@ function goGPS(ini_settings_file, use_gui)
     core = Core.getInstance(true); % Init Core
 
     if nargin >= 1
-        if  ~exist(ini_settings_file,'file')
-            clear ini_settings_file;
-        else            
-            core.importIniFile(ini_settings_file);
-        end
+        core.import(ini_settings);
     end
     if nargin < 2
         if isdeployed
