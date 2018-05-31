@@ -810,11 +810,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Definition of the file names to be parsed\n')];
             if ~(this.sss_date_start.isempty)
                 str = [str sprintf(' Session start at                              %s \n', this.sss_date_start.toString())];
-                str = [str sprintf(' Session end at                                %s \n', this.sss_date_start.toString())];
+                str = [str sprintf(' Session end at                                %s \n', this.sss_date_stop.toString())];
             end
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
-            str = [str sprintf(' Last session char                                 %c \n', this.sss_id_start)];
+            str = [str sprintf(' Last session char                                 %c \n', this.sss_id_stop)];
             
             str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
