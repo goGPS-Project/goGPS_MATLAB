@@ -1,14 +1,14 @@
-%   CLASS Least_Square_Manipulator
+%   CLASS SINEX_Writer
 % =========================================================================
 %
 % DESCRIPTION
-%   Efficently manipulate sparse least squares system
+%   Collection of methods to produce a sinex file
 %
 % EXAMPLE
-%   LSM = Least_Square_Manipulator();
+%   
 %
 % SEE ALSO
-%   - Least_Square
+%  
 % FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
 
 %--------------------------------------------------------------------------

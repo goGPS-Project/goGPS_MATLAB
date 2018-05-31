@@ -1365,6 +1365,13 @@ classdef GPS_Time < Exportable & handle
             this = GPS_Time.fromWeekDow(week, (dow) / 86400);
         end
         
+        function this = fromDoySod(year, doy, sod)
+            % construct from year doy ad second of day
+            unix_s = uint32((datenum(year , 1, doy)  - datenum(1970,1,1))*86400) + uint32(floor(sod));
+            unix_s_f = sod - floor(sod);
+            this = GPS_Time(unix_s, unix_s_f);
+        end
+        
     end
     
     

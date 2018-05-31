@@ -1872,16 +1872,12 @@ classdef Core_UI < handle
             settings_file = fullfile(path_name,file_name);
             
             try
-                if this.j_settings.isValid
-                    txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-                    this.state.import(Ini_Manager(txt{1}));
-                    this.state.setFilePath(settings_file);
-                    this.state.save(settings_file);
-                    this.updateUI();
-                    this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
-                else
-                    this.log.addError(sprintf('File not saved, GUI have been closed\n%s'));
-                end
+                txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
+                this.state.import(Ini_Manager(txt{1}));
+                this.state.setFilePath(settings_file);
+                this.state.save(settings_file);
+                this.updateUI();
+                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
             catch ex
                 this.log.addError(sprintf('Export failed!\n%s', ex.message));
             end
