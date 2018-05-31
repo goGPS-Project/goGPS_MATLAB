@@ -146,11 +146,14 @@ classdef Core < handle
             this.state.importIniFile(ini_settings_file);
         end
         
-        function prepareProcessing(this)
+        function prepareProcessing(this, flag_rem_check)
             % Init settings, and download necessary files
             %
             % SYNTAX:
-            %   this.prepareProcessing()
+            %   this.prepareProcessing(flag_rem_check)
+            if nargin == 2
+                this.state.setRemCheck(flag_rem_check);
+            end
             
             this.log.newLine();
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));

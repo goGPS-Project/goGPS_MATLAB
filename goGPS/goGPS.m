@@ -103,7 +103,7 @@ function goGPS(ini_settings_file, use_gui)
     %% GO goGPS - here the computations start
     ok_go = true; % here a check on the validity of the parameters should be done
 
-    core.prepareProcessing(); % download important files
+    core.prepareProcessing(true); % download important files
     
     ok_go = true; % here a check on the validity of the resources should be done
 

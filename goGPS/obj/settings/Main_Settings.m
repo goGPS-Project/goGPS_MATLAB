@@ -2502,7 +2502,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_date_stop = last_epoch.getCopy();
             end
         end
-
+        
+        function setRemCheck(this, flag)
+            % Set the Remote Check flag
+            % SYNTAX: this.setRemoteCheck(flag)
+            this.flag_check_remote = flag;
+        end
+ 
         function setPrjHome(this, prj_home)
             % Set home folder of the project
             % SYNTAX: dir = this.setPrjHome(prj_home)
@@ -2589,9 +2595,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX: err_thr = this.getMaxPhaseErrThr()
             err_thr = this.pp_max_phase_err_thr;
         end
+        
+        function is_rem_check = isRemCheck(this)
+            % Get the Remote Check flag
+            % SYNTAX: is_rem_check = this.isRemCheck()
+            is_rem_check = this.flag_check_remote;
+        end
+        
         function is_vmf = isVMF(this)
+            % Get the VMF flag
+            % SYNTAX: is_vmf = this.isVMF()
             is_vmf = this.mapping_function == 2;
         end
+        
         function is_seamless = isSeamlessKF(this)
             % Get the Seamless Rate flag
             % SYNTAX: is_seamless = this.isSeamlessKF();
@@ -2664,7 +2680,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_ocean_load = this.flag_ocean_load;
         end
         
-         function is_atm_load = isAtmLoading(this)
+        function is_atm_load = isAtmLoading(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_atm_load = isAtmLoading(this)
             is_atm_load = this.flag_atm_load;
