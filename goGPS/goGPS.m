@@ -101,15 +101,22 @@ function goGPS(ini_settings_file, use_gui)
     end
     
     %% GO goGPS - here the computations start
+    ok_go = true; % here a check on the validity of the parameters should be done
+
     core.prepareProcessing(); % download important files
-    core.go(); % execute all
+    
+    ok_go = true; % here a check on the validity of the resources should be done
+
+    if ok_go
+        core.go(); % execute all
+    end
 
     %% Closing all
     if ~use_gui
         close all;
     end
     
-    if ~isdeployed
+    if ~isdeployed && ok_go
         log = Logger.getInstance();
         log.addMessage('Execute the script "getResults", to load the object created during the processing');
     end
