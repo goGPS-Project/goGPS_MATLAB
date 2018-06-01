@@ -44,7 +44,7 @@
 classdef Core_UI < handle
     
     properties (Constant)
-        FONT_SIZE_CONVERSION_LNX = 1.05;
+        FONT_SIZE_CONVERSION_LNX = 0.9;
         FONT_SIZE_CONVERSION_MAC = 1.45;
         FONT_SIZE_CONVERSION_WIN = 1;
         
@@ -636,7 +636,7 @@ classdef Core_UI < handle
             % Main Window ----------------------------------------------------------------------------------------------
             
             win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                'Visible', 'off', ...
+                'Visible', 'on', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
@@ -674,6 +674,7 @@ classdef Core_UI < handle
             this.insertLogo(left_bv);
             
             this.insertSessionDate(left_bv);
+            
             this.insertRecList(left_bv);
             
             %this.updateRec(left_bv);
@@ -839,7 +840,7 @@ classdef Core_UI < handle
                 'String', 'Select Computational Center:', ...
                 'ForegroundColor', this.BLACK, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', this.getFontSize(8), ...
+                'FontSize', this.getFontSize(9), ...
                 'BackgroundColor', resources_BG);
             
             this.uip.tab_res = tab;
@@ -856,7 +857,6 @@ classdef Core_UI < handle
             prj_box = this.insertPanelLight(tab, 'Project');
             [~, this.edit_texts{end+1}] = this.insertDirBox(prj_box, 'Project home directory', 'prj_home', @this.onEditChange, [200 -1 25]);
             this.edit_texts{end}.FontSize = this.getFontSize(9);
-            this.edit_texts{end}.HorizontalAlignment = 'left';
             
             % --------------------------------------------------------
 
@@ -873,18 +873,18 @@ classdef Core_UI < handle
             
             [~, this.edit_texts{end+1}] = this.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [200 -1 0 0]);
             %this.edit_texts{end}.HorizontalAlignment = 'left';
-            this.edit_texts{end}.FontName = 'Courier';
+            this.edit_texts{end}.FontName = 'Courier New';
             this.edit_texts{end}.FontSize = this.getFontSize(9);
             this.edit_texts{end}.FontWeight = 'bold';
             
             this.insertEmpty(sss_list_box_g);
             [~, this.edit_texts{end+1}] = this.insertEditBox(sss_list_box_g, 'First', 'sss_id_start', '', @this.onEditChange, [30 20 0 0]);
-            this.edit_texts{end}.FontName = 'Courier';
+            this.edit_texts{end}.FontName = 'Courier New';
             this.edit_texts{end}.FontSize = this.getFontSize(9);
             this.edit_texts{end}.FontWeight = 'bold';
             this.insertEmpty(sss_list_box_g);
             [~, this.edit_texts{end+1}] = this.insertEditBox(sss_list_box_g, 'Last', 'sss_id_stop', '', @this.onEditChange, [30 20 0 0]);
-            this.edit_texts{end}.FontName = 'Courier';
+            this.edit_texts{end}.FontName = 'Courier New';
             this.edit_texts{end}.FontSize = this.getFontSize(9);
             this.edit_texts{end}.FontWeight = 'bold';
             sss_list_box_g.Widths = [-1 5 50 5 50];
@@ -895,7 +895,27 @@ classdef Core_UI < handle
             
             % --------------------------------------------------------
             
-            tab.Heights = [55  5 -1];
+            this.insertEmpty(tab);
+            
+            % --------------------------------------------------------
+            
+            this.insertStations(tab);
+            
+            % --------------------------------------------------------
+            
+            tab.Heights = [55  5 80 5 -1];
+        end
+        
+        function insertStations(this, container)
+            box = this.insertPanelLight(container, 'Stations');
+            
+            box_g = uix.VBox('Parent', box, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);  
+            
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = this.insertDirFileBoxObsML(box_g, 'Observations', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
+            this.insertEmpty(box_g);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = this.insertDirFileBox(box_g, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
+            box_g.Heights = [-1 5 23];
         end
         
         function insertProcessing(this, container)
@@ -917,7 +937,7 @@ classdef Core_UI < handle
                 'String', 'Data to keep during processing (if present in the receiver data)', ...
                 'ForegroundColor', this.BLACK, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', this.getFontSize(8), ...
+                'FontSize', this.getFontSize(9), ...
                 'BackgroundColor', data_selection_bg);
             
             this.insertHBarLight(ds_box_g);            
@@ -928,15 +948,15 @@ classdef Core_UI < handle
             err_box_g = uix.VBox('Parent', ds_h_box, ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [155 40 5 35]);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [155 40 5 35]);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [155 40 5 35]);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [170 40 5 40]);
             this.insertEmpty(err_box_g);
 
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [155 40 5 35]);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [155 40 5 35]);
-            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [155 40 5 35]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = this.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [170 40 5 40]);
             this.insertEmpty(err_box_g);
             err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
             
@@ -944,47 +964,54 @@ classdef Core_UI < handle
             
             ss_panel  = this.insertSatSelector(ds_h_box); %#ok<NASGU>
             
-            ds_h_box.Widths = [245 5 -1];
+            ds_h_box.Widths = [270 5 -1];
 
             %this.insertEmpty(ds_box_g);
              
             % --------------------------------------------------------
             
             this.insertEmpty(tab);
-
-            % --------------------------------------------------------
-            
-            ppp_panel = this.insertPPPOptions(tab); %#ok<NASGU>
             
             % --------------------------------------------------------
+                        
+            opt_h = uix.HBox('Parent', tab, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
             
-            crd_panel = this.insertCrdOptions(tab);
+            ppp_panel = this.insertPPPOptions(opt_h); %#ok<NASGU>
             
-             % --------------------------------------------------------
-              ocean_panel = this.insertOceanOptions(tab)
-              % --------------------------------------------------------
+            this.insertEmpty(opt_h);
+            
+            opt_r = uix.VBox('Parent', opt_h, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            ocean_panel = this.insertOceanOptions(opt_r);
+            this.insertEmpty(opt_r);
+            
+            opt_r.Heights = [50, -1];
+            
+            opt_h.Widths = [200 5 -1];
+            
+            % --------------------------------------------------------            
             
             ds_box_g.Heights = [18 15 -1];
-                        
-            tab.Heights = [230 5 70 50 50];
+            
+            tab.Heights = [230 5 210];
             
             this.uip.tab_proc = tab;
         end
         
         function ocean_panel = insertOceanOptions(this, container)
-            ocean_panel = this.insertPanelLight(container, 'Observations "corrections"');
+            ocean_panel = this.insertPanelLight(container, 'Ocean loading file');
             opt_grid = uix.Grid('Parent', ocean_panel,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = this.insertFileBoxML(opt_grid, 'CRD filename', 'crd_name', @this.onEditChange);
-            opt_grid.Widths = -1;
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = this.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
         
-        function crd_panel = insertCrdOptions(this, container)
-            crd_panel = this.insertPanelLight(container, 'Ocean loading file');
+        function crd_panel = insertCrdFile(this, container)
+            crd_panel = this.insertPanelLight(container, 'Stations a-priori coordinates');
             opt_grid = uix.Grid('Parent', crd_panel,...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = this.insertFileBoxML(opt_grid, 'Ocean loading filename', 'ocean_name', @this.onEditChange);
-            opt_grid.Widths = -1;
+            [~, this.edit_texts{end+1}, this.edit_texts{end+1}] = this.insertDirFileBox(opt_grid, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange);
         end
 
         function ss_panel = insertSatSelector(this, container)
@@ -1081,7 +1108,7 @@ classdef Core_UI < handle
             n_b_irn.ButtonSize(1) = 72;
             n_b_sbs.ButtonSize(1) = 72;
             
-            h_box_cc.Widths = [100 20 -1];
+            h_box_cc.Widths = [80 20 -1];
         end
         
         function ppp_panel = insertPPPOptions(this, container)
@@ -1098,7 +1125,7 @@ classdef Core_UI < handle
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load');
             this.check_boxes{end+1} = this.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi');
             
-            opt_grid.Widths = [150 150 150 -1];
+            opt_grid.Widths = [ -1];            
         end
 
         function insertAtmosphere(this, container)
@@ -1127,8 +1154,7 @@ classdef Core_UI < handle
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Mapping function', this.state.ZD_LABEL, 'mapping_function', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'A-priori zenith delay',this.state.MF_LABEL ,'zd_model', @this.onPopUpChange);
             [~, this.pop_ups{end+1}] = this.insertPopUpLight(tropo_opt_grid, 'Meteo Data',this.state.MD_LABEL ,'meteo_data',@this.onPopUpChange);
-            [met, this.edit_texts{end+1}] = this.insertFileBoxML(tropo_opt_grid, 'MET filename', 'met_name', @this.onEditChange);
-            met.Widths(1:2) = [100 -1];
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = this.insertDirFileBoxMetML(tropo_opt_grid, 'MET', 'met_dir', 'met_name', @this.onEditChange,  {[100 -1 25], [100 -1 25]});
             tropo_opt_grid.Heights = [20 * ones(5,1); -1];
             
             this.insertEmpty(tab);
@@ -1142,7 +1168,7 @@ classdef Core_UI < handle
             [~, this.edit_texts{end+1}] = this.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/h', @this.onEditChange, [-1 80 5 35]);
             
             tab.Heights = [80 5 250 5 80];
-            tab.Widths = 440;
+            tab.Widths = 600;
             
             this.uip.tab_atmo = tab;
         end
@@ -1267,7 +1293,7 @@ classdef Core_UI < handle
             %
             % this.session_g.Heights = [26 2 5 50 30];
             this.session_g.Heights = [26 10 5 50 20];
-        end
+        end        
         
         function insertRecList(this, container)
             this.info_g = uix.VBox('Parent', container, ...
@@ -1324,7 +1350,7 @@ classdef Core_UI < handle
             chxbox_handle = uicontrol('Parent', container,...
                 'Style', 'checkbox',...
                 'BackgroundColor', this.LIGHT_GRAY_BG, ...
-                'FontSize', this.getFontSize(8), ...
+                'FontSize', this.getFontSize(9), ...
                 'String', title, ...
                 'UserData', state_field,...
                 'Callback', @this.onCheckBoxChange ...
@@ -1466,7 +1492,7 @@ classdef Core_UI < handle
                 'String', description, ...
                 'ForegroundColor', this.BLACK, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', this.getFontSize(8), ...
+                'FontSize', this.getFontSize(9), ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             pop_up_handle = uicontrol('Parent', box_handle,...
                 'Style', 'popup',...
@@ -1492,6 +1518,9 @@ classdef Core_UI < handle
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             editable_handle = uicontrol('Parent', box_handle,...
                 'Style', 'edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
                 'UserData', property_name, ...
                 'Callback', callback);
             uicontrol('Parent', box_handle,...
@@ -1519,6 +1548,9 @@ classdef Core_UI < handle
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             editable_handle = uicontrol('Parent', box_handle,...
                 'Style', 'edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
                 'UserData', property_name, ...
                 'Callback', callback);
             uicontrol('Parent', box_handle,...
@@ -1529,6 +1561,164 @@ classdef Core_UI < handle
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
+        
+        function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBox(this, parent, description, property_name_dir, property_name_file, callback, widths)
+            if nargin < 7
+                widths  = [-1 -3 5 -1 25];
+            end
+            box_handle = uix.Grid('Parent', parent, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            uicontrol('Parent', box_handle, ...
+                'Style', 'Text', ...
+                'String', description, ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle_dir = uicontrol('Parent', box_handle,...
+                'Style', 'edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_dir, ...
+                'Callback', callback);
+            this.insertEmpty(box_handle);
+            editable_handle_file = uicontrol('Parent', box_handle,...
+                'Style', 'edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_file, ...
+                'Callback', callback);
+            uicontrol('Parent', box_handle,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onSearchDirFileBox)
+            box_handle.Widths = widths;
+            box_handle.Heights = 23;
+        end        
+        
+        function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxObsML(this, parent, description, property_name_dir, property_name_file, callback, widths)
+            if nargin < 7
+                widths  = {[-1 -1 25], [-1 -1 25]};
+            end
+            box_handle = uix.VBox('Parent', parent, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            box_top = uix.HBox('Parent', box_handle, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            box_bot = uix.HBox('Parent', box_handle, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', box_top, ...
+                'Style', 'Text', ...
+                'String', [description ' directory'], ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle_dir = uicontrol('Parent', box_top,...
+                'Style','edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_dir, ...
+                'Callback', callback);
+            uicontrol('Parent', box_top,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onSearchDirBoxMLStationObs)
+            
+            uicontrol('Parent', box_bot, ...
+                'Style', 'Text', ...
+                'String', [description ' files'], ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle_file = uicontrol('Parent', box_bot,...
+                'Style','edit',...
+                'FontName', 'Courier New', ...
+                'FontWeight', 'bold', ...
+                'Min',0,'Max',2,...  % This is the key to multiline edits.
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_file, ...
+                'Callback', callback);
+            uicontrol('Parent', box_bot,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onSearchDirFileBoxML)
+            
+            box_top.Widths = widths{1};
+            box_bot.Widths = widths{1};
+            box_handle.Heights = [23 -1];
+        end
+        
+        function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxMetML(this, parent, description, property_name_dir, property_name_file, callback, widths)
+            if nargin < 7
+                widths  = {[-1 -1 25], [-1 -1 25]};
+            end
+            box_handle = uix.VBox('Parent', parent, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            box_top = uix.HBox('Parent', box_handle, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            box_bot = uix.HBox('Parent', box_handle, ...
+                'Padding', 0, ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            
+            uicontrol('Parent', box_top, ...
+                'Style', 'Text', ...
+                'String', [description ' directory'], ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle_dir = uicontrol('Parent', box_top,...
+                'Style','edit', ...
+            	'FontName', 'Courier New', ...
+                'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_dir, ...
+                'Callback', callback);
+            uicontrol('Parent', box_top,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onSearchDirBoxMLStationMet)
+            
+            uicontrol('Parent', box_bot, ...
+                'Style', 'Text', ...
+                'String', [description ' files'], ...
+                'ForegroundColor', this.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', this.getFontSize(9), ...
+                'BackgroundColor', this.LIGHT_GRAY_BG);
+            editable_handle_file = uicontrol('Parent', box_bot,...
+                'Style','edit',...
+                'FontName', 'Courier New', ...
+                'FontWeight', 'bold', ...
+                'Min',0,'Max',2,...  % This is the key to multiline edits.
+                'HorizontalAlignment', 'left', ...
+                'UserData', property_name_file, ...
+                'Callback', callback);
+            uicontrol('Parent', box_bot,...
+                'Style', 'pushbutton', ...
+                'FontSize', this.getFontSize(7), ...
+                'String', '...',...
+                'Callback', @this.onSearchDirFileBoxML)
+            
+            box_top.Widths = widths{1};
+            box_bot.Widths = widths{2};
+            box_handle.Heights = [23 -1];
+                end
         
         function [box_handle, editable_handle] = insertFileBoxML(this, parent, description, property_name, callback, widths)
             if nargin < 6
@@ -1546,6 +1736,8 @@ classdef Core_UI < handle
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             editable_handle = uicontrol('Parent', box_handle,...
                 'Style','edit',...
+                'FontName', 'Courier New', ...  
+                'FontWeight', 'bold', ...
                 'Min',0,'Max',2,...  % This is the key to multiline edits.
                 'HorizontalAlignment', 'left', ...
                 'UserData', property_name, ...
@@ -1588,7 +1780,7 @@ classdef Core_UI < handle
                 'String', text_right, ...
                 'ForegroundColor', this.BLACK, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', this.getFontSize(8), ...
+                'FontSize', this.getFontSize(9), ...
                 'BackgroundColor', this.LIGHT_GRAY_BG);
             box_handle.Widths = widths;
             box_handle.Heights = 23;
@@ -1716,8 +1908,36 @@ classdef Core_UI < handle
             end
         end
         
+        function onSearchDirFileBox(this, caller, event)
+            % [file, path] = uigetfile({'*.*',  'All Files (*.*)'}, this.state.getHomeDir);
+            [file, path] = uigetfile([caller.Parent.Children(4).String filesep '*.*']);
+            if file ~= 0
+                caller.Parent.Children(2).String = file;
+                caller.Parent.Children(4).String = path;
+                % trigger the edit of the field
+                callbackCell = get(caller.Parent.Children(2),'Callback');
+                callbackCell(caller.Parent.Children(2));
+                callbackCell = get(caller.Parent.Children(4),'Callback');
+                callbackCell(caller.Parent.Children(4));
+            end
+        end
+        
+        function onSearchDirFileBoxML(this, caller, event)
+            % [file, path] = uigetfile({'*.*',  'All Files (*.*)'}, this.state.getHomeDir);
+            [file, path] = uigetfile([caller.Parent.Parent.Children(2).Children(2).String filesep '*.*'], 'MultiSelect', 'on');
+            if file ~= 0
+                caller.Parent.Children(2).String = file;
+                caller.Parent.Parent.Children(2).Children(2).String = path;
+                % trigger the edit of the field
+                callbackCell = get(caller.Parent.Children(2),'Callback');
+                callbackCell(caller.Parent.Children(2));
+                callbackCell = get(caller.Parent.Parent.Children(2).Children(2),'Callback');
+                callbackCell(caller.Parent.Parent.Children(2).Children(2));
+            end
+        end
+        
         function onFileSearchBox(this, caller, event)
-            [file, path] = uigetfile(this.state.getHomeDir);
+            [file, path] = uigetfile([this.state.getHomeDir filesep '*.*']);
             if file ~= 0
                 caller.Parent.Children(2).String = file;
                 % trigger the edit of the field
@@ -1727,13 +1947,49 @@ classdef Core_UI < handle
         end
         
         function onSearchDirBox(this, caller, event)
-            dir_path = uigetdir(this.state.getHomeDir);
+            dir_path = uigetdir(caller.Parent.Children(2).String);
             if dir_path ~= 0
                 caller.Parent.Children(2).String = dir_path;
                 % trigger the edit of the field
                 callbackCell = get(caller.Parent.Children(2),'Callback');
                 callbackCell(caller.Parent.Children(2));
             end
+        end
+        
+        function onSearchDirBoxMLStationObs(this, caller, event)
+            dir_path = uigetdir(caller.Parent.Children(2).String);
+            station_list = Core_Utils.getStationList(dir_path,'oO');
+            
+            if dir_path ~= 0
+                caller.Parent.Children(2).String = dir_path;
+                % trigger the edit of the field
+                callbackCell = get(caller.Parent.Children(2),'Callback');
+                callbackCell(caller.Parent.Children(2));
+                if ~isempty(station_list)
+                    caller.Parent.Parent.Children(1).Children(2).String = station_list;
+                    % trigger the edit of the field
+                    callbackCell = get(caller.Parent.Parent.Children(1).Children(2),'Callback');
+                    callbackCell(caller.Parent.Parent.Children(1).Children(2));
+                end
+            end
+        end
+        
+        function onSearchDirBoxMLStationMet(this, caller, event)
+            dir_path = uigetdir(caller.Parent.Children(2).String);
+            station_list = Core_Utils.getStationList(dir_path,'mM');
+            
+            if dir_path ~= 0
+                caller.Parent.Children(2).String = dir_path;
+                % trigger the edit of the field
+                callbackCell = get(caller.Parent.Children(2),'Callback');
+                callbackCell(caller.Parent.Children(2));
+                if ~isempty(station_list)
+                    caller.Parent.Parent.Children(1).Children(2).String = station_list;
+                    % trigger the edit of the field
+                    callbackCell = get(caller.Parent.Parent.Children(1).Children(2),'Callback');
+                    callbackCell(caller.Parent.Parent.Children(1).Children(2));
+                end
+            end            
         end
         
         function onCheckBoxChange(this, caller, event)
