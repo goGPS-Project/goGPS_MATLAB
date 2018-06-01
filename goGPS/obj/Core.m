@@ -278,6 +278,7 @@ classdef Core < handle
                         this.rec_list(s,:) = this.rec;
                     end
                 end
+                if ~isunix, fclose('all'); end
             end
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
