@@ -12,6 +12,7 @@ classdef Core_Utils < handle
                 idx(i) = find(find_list == to_find_el(i),1);
             end
         end
+        
         function num = code3Char2Num(str3)
             % Convert a 3 char string into a numeric value (float)
             % SYNTAX
@@ -59,7 +60,7 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   str4 = Core_Utilis.unique4ch(str4)
-            Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(str4)));
+            str4 = Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(str4)));
         end
         
         function str3 = unique3ch(str3)
@@ -67,7 +68,7 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   str3 = Core_Utilis.unique3ch(str3)
-            Core_Utils.num2Code3Char(unique(Core_Utils.code3Char2Num(str3)));
+            str3 = Core_Utils.num2Code3Char(unique(Core_Utils.code3Char2Num(str3)));
         end
         
         function [antenna_PCV] = readAntennaPCV(filename, antmod, date_limits)
@@ -409,6 +410,65 @@ classdef Core_Utils < handle
             else
                 status = true; % !!! to be implemented
                 
+            end
+        end
+        
+        function station_list = getStationList(dir_path, file_ext)
+            % Get the list of stations present in a folder (with keys substituted)
+            %
+            % SYNTAX
+            %   station_list = Core_Utilis.getStationList(dir_path)
+            
+            try
+                % Calling dos is faster than dir with large directories
+                if isunix
+                    [~, d] = dos(['ls ' dir_path]); dir_list = strsplit(d);
+                else
+                    [~, d] = dos(['dir ' dir_path]); dir_list = strsplit(d);
+                end
+            catch
+                dir_list = dir(dir_path);
+                dir_list = {dir_list.name};
+            end                                   
+            
+            % search for station files STAT${DOY}${S}${QQ}.${YY}
+            if nargin == 1
+                file_ext = '.';
+            else
+                file_ext = ['[' file_ext ']'];
+            end
+            file_list = [];
+            for d = 1 : numel(dir_list)
+                file_name_len = numel(dir_list{d});
+                if (file_name_len == 14) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[0-9]{2}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
+                    file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}${QQ}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
+                    %file_list = [file_list; dir_list{d}(1:4)];
+                end                    
+            end
+            station_list = {};
+            if size(file_list, 2) > 1
+                station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
+                station_name = unique(station_num);
+                for s = 1 : numel(station_name)
+                    station_list = [station_list; {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
+                end
+            end
+            
+            % search for station files STAT${DOY}${S}${QQ}.${YY}
+            file_list = [];
+            for d = 1 : numel(dir_list)
+                file_name_len = numel(dir_list{d});
+                if (file_name_len == 12) && ~isempty(regexp(dir_list{d}, ['.{4}[0-9]{3}.{1}[\.]{1}[0-9]{2}' file_ext '{1}'], 'once'))
+                    file_list = [file_list; [dir_list{d}(1:4) '${DOY}${S}.${YY}' dir_list{d}(end)]]; %#ok<AGROW>
+                    %file_list = [file_list; dir_list{d}(1:4)];
+                end                    
+            end
+            if size(file_list, 2) > 1
+                station_num = Core_Utils.code4Char2Num(file_list(:,1:4));
+                station_name = unique(station_num);
+                for s = 1 : numel(station_name)
+                    station_list = [station_list {file_list(find(station_num == station_name(s), 1, 'first'),:)}]; %#ok<AGROW>
+                end
             end
         end
     end
