@@ -62,7 +62,7 @@ classdef File_Name_Processor < handle
         GPS_SESSION = '${S}';
         GPS_MM = '${MM}';
         GPS_DD = '${DD}';
-        GPS_QQ = '${DD}';
+        GPS_QQ = '${QQ}';
     end
 
     properties (SetAccess = private, GetAccess = public)
@@ -93,7 +93,7 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_DOW, sprintf('%01d', gps_dow(1)));
             file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
             file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
-            file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', 15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))) / 4);
+            file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', 15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900))));
             [year, doy] = date.getDOY();
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
             file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));

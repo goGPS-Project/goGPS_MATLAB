@@ -528,7 +528,6 @@ classdef Atmosphere < handle
                     bending_coeff(t,idx_sat) = A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax .* stec .* 1e16;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
             end
-            keyboard;
         end
     end
     
