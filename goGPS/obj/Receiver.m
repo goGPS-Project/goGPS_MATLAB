@@ -4509,10 +4509,12 @@ classdef Receiver < Exportable
                     obs_idx_l = this.obs(o,:) ~= 0;
                     obs_idx = find(obs_idx_l);
                     dts_idx = obs_idx_l(ep_idx);
-                    if this.obs_code(o,1) == 'C'
-                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
-                    else
-                        this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
+                    if ~isempty(dts_range(dts_idx))
+                        if this.obs_code(o,1) == 'C'
+                            this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)';
+                        else
+                            this.obs(o, obs_idx_l) = this.obs(o,obs_idx_l) + sign(flag) * dts_range(dts_idx)'./this.wl(o);
+                        end
                     end
                     dts_range_2 = dts_range(dts_idx);
                     nan_idx = obs_idx(isnan(dts_range_2));
