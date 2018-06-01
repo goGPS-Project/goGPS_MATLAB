@@ -1925,7 +1925,12 @@ classdef Core_UI < handle
         function onSearchDirFileBoxML(this, caller, event)
             % [file, path] = uigetfile({'*.*',  'All Files (*.*)'}, this.state.getHomeDir);
             [file, path] = uigetfile([caller.Parent.Parent.Children(2).Children(2).String filesep '*.*'], 'MultiSelect', 'on');
-            if file ~= 0
+            if ~iscell(file)
+                if file ~= 0
+                    file = {file};
+                end     
+            end
+            if ~isempty(file) && iscell(file)
                 caller.Parent.Children(2).String = file;
                 caller.Parent.Parent.Children(2).Children(2).String = path;
                 % trigger the edit of the field
