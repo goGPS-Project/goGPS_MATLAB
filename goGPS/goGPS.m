@@ -97,7 +97,9 @@ function goGPS(ini_settings, use_gui)
     end
     
     %% GO goGPS - here the computations start
-    ok_go = true; % here a check on the validity of the parameters should be done
+    err_code = core.gc.checkValidity();
+    
+    ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
 
     core.prepareProcessing(true); % download important files
     

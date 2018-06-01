@@ -251,54 +251,97 @@ classdef Global_Configuration < Settings_Interface
             end
         end
         
-        function is_ok = checkValidity(this)            
+        function err_code = checkValidity(this, flag_verbose)  
+            if nargin == 1
+                flag_verbose = true;
+            end
+                        
             % Check validity of requiremets
-            is_ok.go = true; % Global ok check
+            
+            this.log.newLine();
+            this.log.addMessage('Checking input files and folders...');
+            this.log.newLine();
+
+            err_code.go = 0; % Global ok check
             
             state = this.getCurrentSettings;
-            is_ok.home  = state.checkDir('prj_home', 'Home dir');
-            is_ok.obs   = state.checkDir('obs_dir', 'Observation dir');
-            is_ok.crd   = state.checkDir('crd_dir', 'Coordinate dir');
-            is_ok.met   = state.checkDir('met_dir', 'Meteorological dir');
-            is_ok.ocean = state.checkDir('ocean_dir', 'Ocean loading dir');
+            err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
+            err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);
+            err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
+            err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
+            if state.isOceanLoading                
+                err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Ocean loading disabled');
+                end
+                err_code.ocean = 0;
+            end            
 
-            is_ok.atx   = state.checkDir('atx_dir', 'Antenna dir');
-            is_ok.eph   = state.checkDir('eph_dir', 'Ephemerides dir');
-            is_ok.clk   = state.checkDir('clk_dir', 'Clock Offset dir');
-            is_ok.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir');
-            is_ok.crx   = state.checkDir('crx_dir', 'Satellite Manouvers dir');
-            is_ok.dcb   = state.checkDir('dcb_dir', 'Differential Code Biases dir');
-            is_ok.ems   = state.checkDir('ems_dir', 'EGNOS Message Center dir');
+            if state.isAtmLoading
+                err_code.atm = state.checkDir('atm_load_dir', 'Atmospheric loading dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Athmospheric loading disabled');
+                end
+                err_code.atm = 0;
+            end            
+
+            err_code.atx   = state.checkDir('atx_dir', 'Antenna dir', flag_verbose);
+            err_code.eph   = state.checkDir('eph_dir', 'Ephemerides dir', flag_verbose);
+            err_code.clk   = state.checkDir('clk_dir', 'Clock Offset dir', flag_verbose);
+            err_code.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir', flag_verbose);
+            err_code.crx   = state.checkDir('crx_dir', 'Satellite Manouvers dir', flag_verbose);
+            err_code.dcb   = state.checkDir('dcb_dir', 'Differential Code Biases dir', flag_verbose);
+            err_code.ems   = state.checkDir('ems_dir', 'EGNOS Message Center dir', flag_verbose);
             
-            is_ok.geoid = state.checkDir('geoid_dir', 'Geoid loading dir');
+            %err_code.geoid = state.checkDir('geoid_dir', 'Geoid loading dir', flag_verbose);
+            err_code.geoid_f = state.checkFile({'geoid_dir', 'geoid_name'}, 'Geoid file', flag_verbose);
             
             geoid = this.getRefGeoid();
             if isempty(geoid) || isempty(geoid.grid)
-                is_ok.geoid = false;
-                this.log.addWarning('Geoid is missing');
+                err_code.geoid = -1;
+                if flag_verbose
+                    this.log.addWarning('The Geoid is missing');
+                end
             else
-                is_ok.geoid = true;
-                this.log.addStatusOk('Geoid is present');                
+                err_code.geoid = 0;
+                if flag_verbose
+                    this.log.addStatusOk('The Geoid is loaded');
+                end
             end
             
             if state.isHOI
-                is_ok.iono = state.checkDir('iono_dir', 'Ionospheric map dir');
-                is_ok.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir');
+                err_code.iono = state.checkDir('iono_dir', 'Ionospheric map dir', flag_verbose);
+                err_code.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir', flag_verbose);
             else
-                is_ok.iono = true;
-                is_ok.igrf = true;
-            end
-            if state.isVMF
-                is_ok.vmf = state.checkDir('vmf_dir', 'Vienna Mapping Function dir');
-            else
-                is_ok.vmf = true;
-            end
-            if state.isAtmLoading
-                is_ok.atm = state.checkDir('atm_load_dir', 'Atmospheric loading dir');
-            else
-                is_ok.atm = true;
+                if flag_verbose
+                    this.log.addStatusDisabled('Ionospheric corrections disabled');
+                end
+                err_code.iono = 1;
+                err_code.igrf = 1;
             end
             
+            if state.isVMF
+                err_code.vmf = state.checkDir('vmf_dir', 'Vienna Mapping Function dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Not using Vienna Mapping functions');
+                end
+                err_code.vmf = 1;
+            end   
+            
+            this.log.newLine();
+            
+            err_code.go = err_code.home + ...
+                          err_code.obs + ...
+                          (err_code.ocean < 0) + ...
+                          (err_code.atm < 0) + ...
+                          err_code.atx + ...
+                          err_code.eph + ...
+                          (err_code.iono < 0)  + ...
+                          (err_code.igrf < 0) + ...
+                          (err_code.vmf < 0);
         end
     end
 

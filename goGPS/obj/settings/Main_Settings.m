@@ -1792,38 +1792,83 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('std_tropo_gradient',[1e-12 1]);
         end
         
-        function [status, n_missing] = checkDir(this, field_name, field_text)
+        function n_missing = checkDir(this, field_name, field_text, flag_verbose)
+            % Check the validity of the fields
+            %
+            % SYNTAX:
+            %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
+            
+            if nargin < 4
+                flag_verbose = true;
+            end
+            n_missing = checkPath(this, field_name, field_text, flag_verbose, false);
+        end
+        
+        function n_missing = checkFile(this, field_name, field_text, flag_verbose)
+            % Check the validity of the fields
+            %
+            % SYNTAX:
+            %   n_missing = this.checkFile(field_name, field_text, flag_verbose);
+            %   n_missing = this.checkFile({field_dir, field_name}, field_text, flag_verbose);
+            
+            if nargin < 4
+                flag_verbose = true;
+            end
+            n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
+        end
+        
+        function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file)
             % Check the validity of the fields
             %
             % SYNTAX: 
-            %   this.checkDir(field_name, field_text));
+            %   n_missing = this.checkPath(field_name, field_text, flag_verbose);
+            %   n_missing = this.checkPath({field_dir, field_name}, field_text, flag_verbose);
             
-            dir_name = File_Name_Processor.getFullDirPath(this.(field_name), this.getHomeDir);
-            
-            fnp = File_Name_Processor();
-            step_sec = fnp.getStepSec(dir_name);
-            
-            date_start = this.getSessionStart.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
-            date_stop = this.getSessionStart.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
-            dir_name = fnp.dateKeyRepBatch(dir_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
-            
-            if ~iscell(dir_name)
-                dir_name = {dir_name};
+            if nargin < 4
+                flag_verbose = true;
             end
             
-            n_missing = numel(dir_name);
-            for d = 1 : numel(dir_name)
-                if exist(dir_name{d}, 'file')
-                    n_missing = n_missing - 1;
+            if ~iscell(field_name)
+                field_name = {field_name};                
+            end
+            
+            fnp = File_Name_Processor();
+            date_start = this.getSessionStart.getCopy;
+            date_stop = this.getSessionStart.getCopy;
+            if numel(field_name) == 2
+                file_name = this.(field_name{end});
+                if ~iscell(file_name)
+                    file_name = {file_name};
+                end
+                
+                file_path = {};
+                for i = 1 : numel(file_name)
+                    file_path(i) = fnp.dateKeyRepBatch(fnp.checkPath(strcat(File_Name_Processor.getFullDirPath(this.(field_name{1}), this.getHomeDir), filesep, file_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop); %#ok<AGROW>
+                end
+            else
+                file_path = File_Name_Processor.getFullDirPath(this.(field_name{end}), this.getHomeDir);
+                file_path = fnp.dateKeyRepBatch(file_path, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            end
+                        
+            if ~iscell(file_path)
+                file_path = {file_path};
+            end
+            
+            n_missing = -numel(file_path);
+            for d = 1 : numel(file_path)
+                if exist(file_path{d}, 'file') == iif(is_file, 2, 7)
+                    n_missing = n_missing + 1;
                 end
             end
             
             if n_missing == 0
-                status = true;
-                this.log.addStatusOk([field_text ' is present']);
+                if flag_verbose
+                    this.log.addStatusOk([field_text ' is present']);
+                end
             else
-                status = false;
-                this.log.addWarning([field_text ' is missing']);
+                if flag_verbose
+                    this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                end
             end
         end
     end

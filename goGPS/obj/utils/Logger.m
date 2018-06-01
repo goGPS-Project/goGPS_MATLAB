@@ -140,6 +140,7 @@ classdef Logger < handle
                 fprintf('  ***************************************************\n');
             end
         end
+        
         function addMarkedMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -183,6 +184,19 @@ classdef Logger < handle
             end
         end
 
+        function addStatusDisabled(this, text, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 3)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (nargin < 2)
+                text = '';
+            end
+            if (verbosity_level <= this.verbosity)
+                this.printStatusDisabled(text);
+            end
+        end
+        
         function addWarning(this, text, verbosity_level)
             % Send a warning through the standard interface
             if (nargin < 3)
@@ -232,6 +246,29 @@ classdef Logger < handle
             end
 
             this.opStatus(0, color_mode);
+
+            if (color_mode)
+                cprintf('text', [text '\n']);
+            else
+                fprintf([text '\n']);
+            end
+        end
+        
+        function printStatusDisabled(this, text, color_mode)
+            % Display Warnings
+            if (nargin == 2)
+                color_mode = this.color_mode;
+            end
+
+            if isempty(text)
+                fprintf('\b');
+            else
+                text = strrep(text, char(10), char([10, 32]));
+                text = strrep(text, '\n', char([10, 32]));
+                text = strrep(text, '\', '\\');
+            end
+
+            this.opStatus(2, color_mode);
 
             if (color_mode)
                 cprintf('text', [text '\n']);
@@ -291,6 +328,7 @@ classdef Logger < handle
                 switch (status)
                     case 0, cprintf('Green','ok');
                     case 1, cprintf([1 0.65 0],'WW');
+                    case 2, cprintf([0.5 0.5 0.5],'--');
                     otherwise, cprintf('Red','!!');
                 end
                 cprintf('blue',' ] ');
@@ -299,6 +337,7 @@ classdef Logger < handle
                 switch (status)
                     case 0, fprintf('ok');
                     case 1, fprintf('WW');
+                    case 2, fprintf('--');
                     otherwise, fprintf('!!');
                 end
                 fprintf(' ] ');
