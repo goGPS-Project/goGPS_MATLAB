@@ -667,7 +667,7 @@ classdef File_Wizard < handle
                         
                         for p = 1 : length(ff)
                             %target file
-                            s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
+                            s2 = [ff{p} num2str(two_digit_year(year(y)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
                             if not(exist([down_dir '/' s2(1:end-2)]) == 2)
                                 try
                                     mget(ftp_server,s2,down_dir);
