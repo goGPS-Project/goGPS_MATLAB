@@ -5426,10 +5426,13 @@ classdef Receiver < Exportable
                 if sum(obs_idx) > 0
                     for o = find(obs_idx)'
                         o_idx = this.obs(o, :) ~=0; %find where apply corrections
+                        wl = this.wl(o);
+                        wl3 = wl^3;
+                        wl4 = wl^4;
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)' +  hoi3(o_idx,s)' +  bending(o_idx,s)') ./ this.wl(o);;
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 +  hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + 2 * sign(sgn)* hoi2(o_idx,s)' +3 * sign(sgn)* hoi3(o_idx,s)' - sign(sgn)* bending(o_idx,s)';
+                            this.obs(o,o_idx) = this.obs(o,o_idx) + 2 * sign(sgn)* hoi2(o_idx,s)'*wl3 +3 * sign(sgn)* hoi3(o_idx,s)'*wl4 - sign(sgn)* bending(o_idx,s)'*wl4;
                         end
                     end
                 end
@@ -5452,7 +5455,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function [hoi_delay2, hoi_delay3, bending] =  computeHOI(this)
+        function [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff] =  computeHOI(this)
             
             % SYNTAX
             %
@@ -5468,7 +5471,7 @@ classdef Receiver < Exportable
             atmo = Atmosphere.getInstance();
             fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
             atmo.importIonex(fname{1});
-            [hoi_delay2, hoi_delay3, bending] = atmo.getHOIdelay(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time,this.wl);
+            [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff] = atmo.getHOIdelayCoeff(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time);
             
         end
         

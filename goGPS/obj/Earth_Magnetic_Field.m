@@ -186,7 +186,7 @@ classdef Earth_Magnetic_Field < handle
                 end
             end
             if ~this.cache
-                iy = max(min(floor(y-1900)/5+1,24),1);
+                iy = max(min(floor((y-1900)/5)+1,24),1);
                 int_time = ((y - this.years(iy))*365.25 + doy-1)/(365.25*5);
                 H = this.H(:,:,iy) * (1 - int_time) + int_time *  this.H(:,:,iy+1);
                 G = this.G(:,:,iy) * (1 - int_time) + int_time *  this.G(:,:,iy+1);
@@ -234,7 +234,7 @@ classdef Earth_Magnetic_Field < handle
             P = this.P(:,:,n1) * (1 - d) + this.P(:,:,n2) * d;
         end
         function dP = interpolatedP(this, x)
-            n1 = floor((x + 1 - this.P_d_length) / this.P_d_length) + 1;
+            n1 = max(0,floor((x + 1 - this.P_d_length) / this.P_d_length)) + 1;
             n2 = min(n1+1, 2/this.P_d_length - 1);
             d = ((x +1) - (n1) * this.P_d_length) / this.P_d_length;
             dP = this.dP(:,:,n1) * (1 - d) + this.dP(:,:,n2) * d;

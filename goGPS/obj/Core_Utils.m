@@ -546,6 +546,7 @@ classdef Core_Utils < handle
             %       2 - all lon values should have same unit of measure
             %       3 - all time values should have same unit of measure
             %       4 - the method will interpolate first in the dimesnion with less time
+            % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
             [nlat , nlon, nt] = size(data);
             
             n_in_lat = length(lat);
@@ -570,7 +571,7 @@ classdef Core_Utils < handle
             slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
             if n_in_lat > n_in_t % time first
                 
-                it = repmat(it,1,n_in_lat);
+                it = it*ones(size(ilat));
                 % interpolate along time
                 % [ 1 2  <- index of the cell at the smae time
                 %   3 4]
