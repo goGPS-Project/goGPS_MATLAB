@@ -59,7 +59,7 @@ function download_igs(gpsweek, dow, items, path_download)
 %--------------------------------------------------------------------------
 
 
-addpath(genpath(pwd));
+addPathGoGPS;
 
 fprintf('\n');
 fprintf('--> IGSDownload <--\n');

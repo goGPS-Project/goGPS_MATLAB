@@ -64,7 +64,7 @@ function goGPS(ini_settings, use_gui)
 
     %% Preparing execution and settings
     if (~isdeployed)
-        addpath(genpath(pwd));
+        addPathGoGPS;
     end
     
     core = Core.getInstance(true); % Init Core
