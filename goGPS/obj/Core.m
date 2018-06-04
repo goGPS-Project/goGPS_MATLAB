@@ -190,9 +190,7 @@ classdef Core < handle
             fw = File_Wizard;
             c_mode = this.log.getColorMode();
             this.log.setColorMode(0);
-            if this.state.isRemCheck()
-                fw.conjureFiles();
-            end
+            fw.conjureFiles();
             this.log.setColorMode(c_mode);
         end
     end

@@ -464,9 +464,10 @@ classdef File_Wizard < handle
             this.state.updateNavFileName();
             this.state.updateErpFileName();
             this.conjureNavFiles(dsa, dso);
-            
-            this.conjureDCBFiles(dsa, dso);
-            this.conjureCRXFiles(dsa, dso);
+            if this.state.isRemCheck()
+                this.conjureDCBFiles(dsa, dso);
+                this.conjureCRXFiles(dsa, dso);
+            end
             if this.state.isHOI()
                 this.conjureIonoFiles(dsa, dso);
             end
