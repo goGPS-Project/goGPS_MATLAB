@@ -147,7 +147,7 @@ classdef Core_Sky < handle
                     this.clearOrbit(to_clear_date);
                 end
                 
-                if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) % assuming all files have the same endings
+                if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph'))  || ~isempty(strfind(lower(eph_f_name{1}), '.pre'))% assuming all files have the same endings
                     this.log.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
                         [~,name,ext] = fileparts(eph_f_name{i});

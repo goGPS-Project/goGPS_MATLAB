@@ -519,12 +519,12 @@ classdef Atmosphere < handle
                     end
                     bok = sum(b.*k,2); %to Tesla
                     c = Global_Configuration.V_LIGHT ;
-                    Nemax = (3* 1e12);
+                    Nemax = (3*1e12);
                     vtec =  1e18;
                     ni = 0.66;
                     zi = acos(1./mfpp);
-                    hoi_delay2_coeff(t,idx_sat) = - 1 ./ 2 .* 7527 / c^2 .* bok .* stec .* 1e16;% Eq (10) (11) in [1]
-                    hoi_delay3_coeff(t,idx_sat) = - 1 ./ 3 .* 2437 / c^4  .* Nemax./vtec .* ni .* (stec  .* 1e16).^2;% Eq (1g) (15) (14) in [1]
+                    hoi_delay2_coeff(t,idx_sat) =  7527 / c^2 .* bok .* stec .* 1e16;% Eq (10) (11) in [1]
+                    hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax./vtec .* ni .* (stec  .* 1e16).^2;% Eq (1g) (15) (14) in [1]
                     bending_coeff(t,idx_sat) = A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax .* stec .* 1e16;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
             end

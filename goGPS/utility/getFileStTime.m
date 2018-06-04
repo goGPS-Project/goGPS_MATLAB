@@ -35,7 +35,7 @@ function time = getFileStTime(filename)
 % xGiulio: This function must be changed in such a way that the epoch is read from the file
 
     [~,name, ext] = fileparts(filename);
-    if strcmpi(ext,'.eph') || strcmpi(ext,'.sp3') || strcmpi(ext,'.clk') || strcmpi(ext,'.clk_30s') || strcmpi(ext,'.clk_05s')
+    if strcmpi(ext,'.eph') || strcmpi(ext,'.sp3') || strcmpi(ext,'.pre') || strcmpi(ext,'.clk') || strcmpi(ext,'.clk_30s') || strcmpi(ext,'.clk_05s')
         % name should be : cccwwwwd
         if length(name) == 8
             week = str2double(name(4:7));

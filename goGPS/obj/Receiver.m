@@ -5430,9 +5430,9 @@ classdef Receiver < Exportable
                         wl3 = wl^3;
                         wl4 = wl^4;
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 +  hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( -1/2 *hoi2(o_idx,s)'*wl3 -1/3* hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) + 2 * sign(sgn)* hoi2(o_idx,s)'*wl3 +3 * sign(sgn)* hoi3(o_idx,s)'*wl4 - sign(sgn)* bending(o_idx,s)'*wl4;
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 + sign(sgn)* hoi3(o_idx,s)'*wl4 + sign(sgn)* bending(o_idx,s)'*wl4);
                         end
                     end
                 end

@@ -1909,7 +1909,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 return
             end
             [~, name,ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph')
+            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre')
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.erp')
                 dir = this.getErpDir();
@@ -2411,19 +2411,22 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % =========================================================================
     methods        
         function setFile(this, filename)
-            [~, ~, ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')
+            [~, fname, ext] = fileparts(filename);
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
             elseif instr(lower(ext),'.clk')
                 this.setNavClkFile(filename);
             elseif strcmpi(ext,'.CRX')
-
+            elseif strcmpi(ext,'.apl')
+                this.setAtmLoadFile(filename);
             elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
                 this.setIonoFile(filename);
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);
+            elseif ~isempty(strfind(fname,'VMFG_'))
+                this.setVMFFile(filename);
             end
         end
 
