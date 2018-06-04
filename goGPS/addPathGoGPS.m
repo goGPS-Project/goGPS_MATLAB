@@ -35,31 +35,31 @@ function addPathGoGPS()
     p = genpath(pwd);
 
     % GACOS folder
-    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
+   [l1, l2] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
 
-    for l = size(lim, 1) : -1 : 1
-        p(lim(l, 1) : lim(l, 2)) = [];
+    for l = size(l1, 1) : -1 : 1
+        p(l1 : l2) = [];
     end
 
     % GACOS folder
-    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
+    [l1, l2] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
 
-    for l = size(lim, 1) : -1 : 1
-        p(lim(l, 1) : lim(l, 2)) = [];
+    for l = size(l1, 1) : -1 : 1
+        p(l1 : l2) = [];
     end
 
     % SINERGY folder
-    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
+    [l1, l2] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
 
-    for l = size(lim, 1) : -1 : 1
-        p(lim(l, 1) : lim(l, 2)) = [];
+    for l = size(l1, 1) : -1 : 1
+        p(l1 : l2) = [];
     end
 
     % GIT folders
-    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*git[^:]*:');
+    [l1, l2] = regexp(p,'(?<=:)[^:]*git[^:]*:');
 
-    for l = size(lim, 1) : -1 : 1
-        p(lim(l, 1) : lim(l, 2)) = [];
+    for l = size(l1, 1) : -1 : 1
+        p(l1 : l2) = [];
     end
 
     addpath(p);
