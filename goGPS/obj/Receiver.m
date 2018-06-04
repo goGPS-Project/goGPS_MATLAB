@@ -704,12 +704,12 @@ classdef Receiver < Exportable
             % and isolated observations
             %
             % INPUT
-            %   thr is a threshold in meters (default = 80)
+            %   thr is a threshold in meters (default = 150)
             %
             % SYNTAX
             %   this.remBadPrObs(thr)
             if nargin == 1
-                thr = 80; % meters
+                thr = 150; % meters
             end
             [pr, id_pr] = this.getPseudoRanges;
             inan = isnan(pr);
@@ -6615,7 +6615,7 @@ classdef Receiver < Exportable
                 this.initTropo();
                 
                 if (this.state.isOutlierRejectionOn())
-                    this.remBadPrObs(80);
+                    this.remBadPrObs(150);
                 end
 
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
