@@ -1887,15 +1887,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             remote_ini_path = [this.remote_res_conf_dir filesep 'remote_resource.ini'];
             remote_ini_path = fnp.getFullDirPath(remote_ini_path, this.getHomeDir);
             remote_source_file = fnp.checkPath(remote_ini_path);
-        end
-
-        function flag = getRemCheck(this)
-            % Get the Remote Check flag
-            %
-            % SYNTAX
-            %   flag = this.getRemoteCheck()
-            flag = this.flag_check_remote;
-        end
+        end       
         
         function remote_center = getRemoteCenter(this)
             remote_center = this.preferred_center;

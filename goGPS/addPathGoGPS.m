@@ -1,4 +1,4 @@
-% addPathGoGPS
+function addPathGoGPS()
 % Script to add goGPS folders to path with black_list
 
 %--------------------------------------------------------------------------
@@ -32,34 +32,35 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-p = genpath(pwd);
+    p = genpath(pwd);
 
-% GACOS folder
-lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
+    % GACOS folder
+    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*20180416T085957[^:]*:');
 
-for l = size(lim, 1) : -1 : 1
-    p(lim(l, 1) : lim(l, 2)) = [];
+    for l = size(lim, 1) : -1 : 1
+        p(lim(l, 1) : lim(l, 2)) = [];
+    end
+
+    % GACOS folder
+    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
+
+    for l = size(lim, 1) : -1 : 1
+        p(lim(l, 1) : lim(l, 2)) = [];
+    end
+
+    % SINERGY folder
+    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
+
+    for l = size(lim, 1) : -1 : 1
+        p(lim(l, 1) : lim(l, 2)) = [];
+    end
+
+    % GIT folders
+    lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*git[^:]*:');
+
+    for l = size(lim, 1) : -1 : 1
+        p(lim(l, 1) : lim(l, 2)) = [];
+    end
+
+    addpath(p);
 end
-
-% GACOS folder
-lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*GACOS[\/|\\]example[^:]*:');
-
-for l = size(lim, 1) : -1 : 1
-    p(lim(l, 1) : lim(l, 2)) = [];
-end
-
-% SINERGY folder
-lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*Sinergy[\/|\\]maps[^:]*:');
-
-for l = size(lim, 1) : -1 : 1
-    p(lim(l, 1) : lim(l, 2)) = [];
-end
-
-% GIT folders
-lim = []; [lim(:,1), lim(:,2)] = regexp(p,'(?<=:)[^:]*git[^:]*:');
-
-for l = size(lim, 1) : -1 : 1
-    p(lim(l, 1) : lim(l, 2)) = [];
-end
-
-addpath(p);
