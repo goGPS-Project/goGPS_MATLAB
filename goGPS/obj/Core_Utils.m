@@ -555,16 +555,16 @@ classdef Core_Utils < handle
             assert(n_in_lat == n_in_lon);
             lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity 
             % find indexes and interpolating length
-            %time
+            % time
             it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
             st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
             st = serialize(st);
             
-            %lat
+            % lat
             ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
             slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
             
-            %lon
+            % lon
             ilons = max(min(floor((lon - first_lon)/ dlon)+1,nlon),1);
             ilone = ilons +1;
             ilone(ilone > nlon) = 1;
@@ -573,7 +573,7 @@ classdef Core_Utils < handle
                 
                 it = it*ones(size(ilat));
                 % interpolate along time
-                % [ 1 2  <- index of the cell at the smae time
+                % [ 1 2  <= index of the cell at the smae time
                 %   3 4]
                 idx1 = sub2ind([nlat nlon nt], ilat, ilons, it);
                 idx2 = sub2ind([nlat nlon nt], ilat, ilons, it+1);
@@ -608,14 +608,8 @@ classdef Core_Utils < handle
                 
                 %interpolate along time
                 val = valb.*(1-st) + vala.*st;
-                
             end
-           
             
-           
-            
-            
-           
-        end          
+        end
     end
 end

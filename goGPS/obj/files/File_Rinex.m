@@ -77,7 +77,7 @@ classdef File_Rinex < Exportable
             end
             this.file_name_list = {};
             this.ext = {};
-            if numel(file_name) > 20
+            if verbosity_lev < 50 && numel(file_name) > 20 
                 w_bar = Go_Wait_Bar.getInstance(numel(file_name), 'Checking rinex files');
                 w_bar.createNewBar
                 for f = 1 : numel(file_name)
@@ -194,7 +194,47 @@ classdef File_Rinex < Exportable
             end
             file_name = fullfile(this.base_dir{file_number}, [this.file_name_list{file_number} this.ext{file_number}]);
         end
+        
+        function first_epoch = getFirstEpoch(this, session)
+            %  get the first epoch of a session
+            % SYNTAX
+            %   first_epoch = this.getFirstEpoch(session)
+            if nargin == 1
+                if any(this.is_valid_list())
+                    first_epoch = this.first_epoch.getCopy;
+                else
+                    first_epoch = nan;
+                end
+            else
+                if this.is_valid_list(session)
+                    id_ss = cumsum(this.is_valid_list);
+                    first_epoch = this.first_epoch.getEpoch(id_ss(session));
+                else
+                    first_epoch = nan;
+                end
+            end
+        end
 
+        function first_epoch = getLastEpoch(this, session)
+            %  get the last epoch of a session
+            % SYNTAX
+            %   first_epoch = this.getFirstEpoch(session)
+            if nargin == 1
+                if any(this.is_valid_list())
+                    first_epoch = this.last_epoch.getCopy;
+                else
+                    first_epoch = nan;
+                end
+            else
+                if this.is_valid_list(session)
+                    id_ss = cumsum(this.is_valid_list);
+                    first_epoch = this.last_epoch.getEpoch(id_ss(session));
+                else
+                    first_epoch = nan;
+                end
+            end
+        end
+        
         function line_num = getEOH(this, file_number)
             % Get the end of header line of a RINEX file (if the object contains a list of files, the id can be specified)
             % SYNTAX: line_num = this.getEOH(<file_number = 1>)

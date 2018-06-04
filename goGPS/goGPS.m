@@ -97,26 +97,32 @@ function goGPS(ini_settings, use_gui)
     end
     
     %% GO goGPS - here the computations start
-    err_code = core.gc.checkValidity();
+    err_code = core.checkValidity();
     
     ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
-
-    core.prepareProcessing(true); % download important files
     
-    ok_go = true; % here a check on the validity of the resources should be done
-
-    if ok_go
-        core.go(); % execute all
-    end
-
-    %% Closing all
-    if ~use_gui
-        close all;
+    if ~ok_go
+        log = Logger.getInstance();
+        log.addError('Invalid configuration found!!!');
+    else
+        
+        core.prepareProcessing(true); % download important files
+        
+        ok_go = true; % here a check on the validity of the resources should be done
+        
+        if ok_go
+            core.go(); % execute all
+        end
+        
+        %% Closing all
+        if ~use_gui
+            close all;
+        end
     end
     
     if ~isdeployed && ok_go
         log = Logger.getInstance();
         log.addMessage('Execute the script "getResults", to load the object created during the processing');
-    end
+    end    
 end
 

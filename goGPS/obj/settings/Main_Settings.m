@@ -2781,8 +2781,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check whether the iono free combination is enabled
             % SYNTAX: is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
-        end
-       
+        end       
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled

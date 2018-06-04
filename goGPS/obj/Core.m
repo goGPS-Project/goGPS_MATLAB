@@ -55,20 +55,22 @@ classdef Core < handle
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        log
-        gc
-        state
-        w_bar
-        sky
-        cmd
+        log         % Logger
+        gc          % global configuration
+        state       % state (gc.state)
+        w_bar       % WaitBar
+        sky         % Core_Sky 
+        cmd         % Command_Interpreter
     end
 
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        rec      % List of all the receiver used in a session
+        rin_list  % List of observation file (as File_Rinex objects) to store minimal information on the input files
         
-        rec_list % List of all the receiver used in all the session
+        rec        % List of all the receiver used in a session
+        
+        rec_list   % List of all the receiver used in all the session
     end
 
     %% METHOD CREATOR
@@ -192,7 +194,7 @@ classdef Core < handle
             this.log.setColorMode(0);
             fw.conjureFiles();
             this.log.setColorMode(c_mode);
-        end
+        end        
     end
     
     %% METHODS RUN
@@ -223,7 +225,7 @@ classdef Core < handle
             this.log.newLine();            
 
             % Init Meteo and Sky objects
-            [~, time_lim_large] = Core.getRecTimeSpan(session);
+            [~, time_lim_large] = this.getRecTimeSpan(session);
             this.initSkySession(time_lim_large);
             this.log.newLine();
             this.initMeteoNetwork(time_lim_large);            
@@ -290,8 +292,199 @@ classdef Core < handle
         end
     end
     
-    methods (Static)
-        function [time_lim_small, time_lim_large] = getRecTimeSpan(session)
+    %% CHECK VALIDITY METHODS
+    methods
+        function err_code = checkValidity(this, flag_verbose)
+            % Check validity of requiremets
+            %
+            % SYNTAX
+            %   core.checkValidity();
+            
+            if nargin == 1
+                flag_verbose = true;
+            end            
+            
+            this.log.newLine();
+            this.log.addMessage('Checking input files and folders...');
+            this.log.newLine();
+            
+            err_code.go = 0; % Global ok check
+            
+            state = this.state;
+            err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
+            err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);
+            
+            [n_ok, n_ko] = this.checkRinFileList();
+            if sum(n_ok) > 0
+                if sum(n_ko) > 0
+                    if flag_verbose
+                        this.log.addWarning('Some observation files are missing');
+                    end
+                    err_code.obs_f = sum(n_ko);
+                else
+                    if flag_verbose
+                        this.log.addStatusOk('Observation rinex are present');
+                    end
+                    err_code.obs_f = 0;
+                end
+            else
+                if flag_verbose
+                    this.log.addError('Observation files are missing!!!');
+                end
+                err_code.obs_f = -sum(n_ko);
+            end
+            
+            err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
+            err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
+            if state.isOceanLoading
+                err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Ocean loading disabled');
+                end
+                err_code.ocean = 0;
+            end
+            
+            if state.isAtmLoading
+                err_code.atm = state.checkDir('atm_load_dir', 'Atmospheric loading dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Athmospheric loading disabled');
+                end
+                err_code.atm = 0;
+            end
+            
+            err_code.atx   = state.checkDir('atx_dir', 'Antenna dir', flag_verbose);
+            err_code.eph   = state.checkDir('eph_dir', 'Ephemerides dir', flag_verbose);
+            err_code.clk   = state.checkDir('clk_dir', 'Clock Offset dir', flag_verbose);
+            err_code.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir', flag_verbose);
+            err_code.crx   = state.checkDir('crx_dir', 'Satellite Manouvers dir', flag_verbose);
+            err_code.dcb   = state.checkDir('dcb_dir', 'Differential Code Biases dir', flag_verbose);
+            err_code.ems   = state.checkDir('ems_dir', 'EGNOS Message Center dir', flag_verbose);
+            
+            %err_code.geoid = state.checkDir('geoid_dir', 'Geoid loading dir', flag_verbose);
+            err_code.geoid_f = state.checkFile({'geoid_dir', 'geoid_name'}, 'Geoid file', flag_verbose);
+            
+            geoid = this.gc.getRefGeoid();
+            if isempty(geoid) || isempty(geoid.grid)
+                err_code.geoid = -1;
+                if flag_verbose
+                    this.log.addWarning('The Geoid is missing');
+                end
+            else
+                err_code.geoid = 0;
+                if flag_verbose
+                    this.log.addStatusOk('The Geoid is loaded');
+                end
+            end
+            
+            if state.isHOI
+                err_code.iono = state.checkDir('iono_dir', 'Ionospheric map dir', flag_verbose);
+                err_code.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Ionospheric corrections disabled');
+                end
+                err_code.iono = 1;
+                err_code.igrf = 1;
+            end
+            
+            if state.isVMF
+                err_code.vmf = state.checkDir('vmf_dir', 'Vienna Mapping Function dir', flag_verbose);
+            else
+                if flag_verbose
+                    this.log.addStatusDisabled('Not using Vienna Mapping functions');
+                end
+                err_code.vmf = 1;
+            end
+            
+            this.log.newLine();
+            
+            err_code.go = err_code.home + ...
+                err_code.obs + ...
+                (err_code.obs_f < 0) + ...
+                (err_code.ocean < 0) + ...
+                (err_code.atm < 0) + ...
+                err_code.atx + ...
+                err_code.eph + ...
+                (err_code.iono < 0)  + ...
+                (err_code.igrf < 0) + ...
+                (err_code.vmf < 0);
+        end
+    end
+    
+    %% RIN FILE LIST
+    % ==================================================================================================================================================
+    methods
+        function [n_ok, n_ko] = updateRinFileList(this, force_update, verbosity)
+            % Update and check rinex list
+            %
+            % SYNTAX
+            %   this.updateRinFileList()
+            if nargin < 2 || isempty(force_update)
+                force_update = true;
+            end
+            if nargin < 3 || isempty(verbosity)
+                verbosity = false;
+            end
+            if verbosity
+                this.log.addMarkedMessage('Checking RINEX input files');
+            end
+            this.state.updateObsFileName;
+            n_rec = this.state.getRecCount;
+            rec_path = this.state.getRecPath;
+            
+            clear fr
+            if ~force_update
+                fr = this.getRinFileList();
+            end
+            n_ok = zeros(n_rec, 1);
+            n_ko = zeros(n_rec, 1);
+            for r = 1 : n_rec
+                name = File_Name_Processor.getFileName(rec_path{r}{1});
+                if verbosity
+                    this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', upper(name(1:4)))));
+                end
+                if force_update
+                    fr(r) = File_Rinex(rec_path{r}, 100);
+                end
+                n_ok(r) = sum(fr(r).is_valid_list);
+                n_ko(r) = sum(~fr(r).is_valid_list);
+                if verbosity
+                    this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
+                end
+            end            
+            
+            this.rin_list = fr;
+            if n_rec == 0
+                % 'No receivers found';
+            end
+        end
+        
+        function [n_ok, n_ko] = checkRinFileList(this, force_update)
+            % Update and check rinex list
+            %
+            % SYNTAX
+            %   [n_ok, n_ko] = this.checkRinFileList()
+            if nargin < 2 || isempty(force_update)
+                force_update = true;
+            end            
+            [n_ok, n_ko] = this.updateRinFileList(force_update, true);            
+        end
+        
+        function rin_list = getRinFileList(this)
+            % Update and check rinex list
+            %
+            % SYNTAX
+            %   rin_list = this.getRinFileList()            
+            if isempty(this.rin_list)
+                this.updateRinFileList()
+            end
+            
+            rin_list = this.rin_list;
+        end
+        
+        function [time_lim_small, time_lim_large] = getRecTimeSpan(this, session)
             % return a GPS_Time containing the first and last epoch for a session
             %
             % OUTPUT:
@@ -299,38 +492,61 @@ classdef Core < handle
             %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
             %
             % SYNTAX:
-            %   [time_lim_small, time_lim_large] = Core.getRecTimeSpan(session)
+            %   [time_lim_small, time_lim_large] = Core.getRecTimeSpan(session)            
             
-            state = Global_Configuration.getCurrentSettings();
-            rec_files = state.getRecPath();
-            for r = 1 : numel(rec_files)
-                fr(r) = File_Rinex(rec_files{r}{session}, 100);
+            fr = this.getRinFileList();
+            if nargin == 1 % Start and stop limits of all the sessions                
+                time_lim_small = fr(1).first_epoch.first;
+                tmp_small = fr(1).last_epoch.last;
+                time_lim_large = time_lim_small.getCopy;
+                tmp_large = tmp_small.getCopy;
+                for r = 2 : numel(fr)
+                    if fr(r).isValid(session)
+                        if isnan(time_lim_small) || time_lim_small < fr(r).getFirstEpoch.first
+                            time_lim_small = fr(r).getFirstEpoch.first;
+                        end
+                        if isnan(time_lim_large) || time_lim_large > fr(r).getFirstEpoch.first
+                            time_lim_large = fr(r).getFirstEpoch.first;
+                        end
+                        
+                        if isnan(tmp_small) || tmp_small > fr(r).getLastEpoch.last
+                            tmp_small = fr(r).getLastEpoch.last;
+                        end
+                        if isnan(tmp_large) || tmp_large < fr(r).getLastEpoch.last
+                            tmp_large = fr(r).getLastEpoch.last;
+                        end
+                    end
+                end
+                time_lim_small.append(tmp_small);
+                time_lim_large.append(tmp_large);
+            else % Start and stop of a certain session
+                time_lim_small = fr(1).getFirstEpoch(session);
+                tmp_small = fr(1).getLastEpoch(session);
+                time_lim_large = time_lim_small.getCopy;
+                tmp_large = tmp_small.getCopy;
+                for r = 2 : numel(fr)
+                    if fr(r).isValid(session)
+                        if isnan(time_lim_small) || time_lim_small < fr(r).getFirstEpoch(session)
+                            time_lim_small = fr(r).getFirstEpoch(session);
+                        end
+                        if isnan(time_lim_large) || time_lim_large > fr(r).getFirstEpoch(session)
+                            time_lim_large = fr(r).getFirstEpoch(session);
+                        end
+                        
+                        if isnan(tmp_small) || tmp_small > fr(r).getLastEpoch(session)
+                            tmp_small = fr(r).getLastEpoch(session);
+                        end
+                        if isnan(tmp_large) || tmp_large < fr(r).getLastEpoch(session)
+                            tmp_large = fr(r).getLastEpoch(session);
+                        end
+                    end
+                end
+                time_lim_small.append(tmp_small);
+                time_lim_large.append(tmp_large);
             end
-            
-            time_lim_small = fr(1).first_epoch;
-            tmp_small = fr(1).last_epoch;
-            time_lim_large = time_lim_small.getCopy;
-            tmp_large = tmp_small.getCopy;
-            for r = 2 : numel(fr)
-                if time_lim_small < fr(r).first_epoch
-                    time_lim_small = fr(r).first_epoch;
-                end
-                if time_lim_large > fr(r).first_epoch
-                    time_lim_large = fr(r).first_epoch;
-                end
-                
-                if tmp_small > fr(r).last_epoch
-                    tmp_small = fr(r).last_epoch;
-                end
-                if tmp_large < fr(r).last_epoch
-                    tmp_large = fr(r).last_epoch;
-                end
-            end
-            time_lim_small.append(tmp_small);
-            time_lim_large.append(tmp_large);
         end
     end
-        
+    
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods

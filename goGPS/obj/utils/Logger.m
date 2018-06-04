@@ -151,10 +151,10 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 if this.color_mode
                     text = strrep(text, '\', '\\');
-                    cprintf('Green','   **  ');
+                    cprintf('Green','   **   ');
                     cprintf('text', strcat(text, '\n'));
                 else
-                    fprintf('   **  %s\n', text);
+                    fprintf('   **   %s\n', text);
                 end
             end
         end
@@ -348,7 +348,7 @@ classdef Logger < handle
             % Add n_spaces at the beginning of each line
             % SYNTAX: str = indent(str, n_spaces)
             if nargin < 2
-                n_spaces = 6;
+                n_spaces = 7;
             end
             str = strrep([char(ones(1,n_spaces) * 32) str], char(10), char([10 ones(1, n_spaces) * 32]));
         end
