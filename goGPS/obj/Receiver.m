@@ -5762,7 +5762,7 @@ classdef Receiver < Exportable
                                     end
                                 else
                                     if isempty(f_code_history) || ~sum(idxCharLines(f_code_history, f_code))
-                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s and frequency %s',this.ant_type,f_code),6));
+                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.ant_type, f_code),6));
                                         f_code_history = [f_code_history;f_code];
                                     end
                                 end

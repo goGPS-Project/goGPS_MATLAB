@@ -1889,6 +1889,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             remote_source_file = fnp.checkPath(remote_ini_path);
         end
 
+        function flag = getRemCheck(this)
+            % Get the Remote Check flag
+            %
+            % SYNTAX
+            %   flag = this.getRemoteCheck()
+            flag = this.flag_check_remote;
+        end
+        
         function remote_center = getRemoteCenter(this)
             remote_center = this.preferred_center;
             if ~iscell(remote_center)
@@ -2585,7 +2593,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function setRemCheck(this, flag)
             % Set the Remote Check flag
-            % SYNTAX: this.setRemoteCheck(flag)
+            %
+            % SYNTAX
+            %   this.setRemoteCheck(flag)
             this.flag_check_remote = flag;
         end
  
