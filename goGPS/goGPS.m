@@ -101,7 +101,7 @@ function goGPS(ini_settings, use_gui)
     
     ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
 
-    core.prepareProcessing(true); % download important files
+    core.prepareProcessing(false); % download important files
     
     ok_go = true; % here a check on the validity of the resources should be done
 

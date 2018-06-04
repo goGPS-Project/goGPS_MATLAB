@@ -1,7 +1,7 @@
-function [ocean_load_disp, found] = load_BLQ(filename, marker)
+function [ocean_load_disp, status] = load_BLQ(filename, marker)
 
 % SYNTAX:
-%   [ocean_load_disp, found] = load_BLQ(filename, marker);
+%   [ocean_load_disp, status] = load_BLQ(filename, marker);
 %
 % INPUT:
 %   filename = ocean loading displacement file (.BLQ)
@@ -9,7 +9,7 @@ function [ocean_load_disp, found] = load_BLQ(filename, marker)
 %
 % OUTPUT:
 %   ocean_load_disp = ocean loading displacement values read from .BLQ file
-%   found = data found status flag
+%   status = data found status flag (<0 ocean loding not found =0 marker not found >0 found)
 %
 % DESCRIPTION:
 %   Reads ocean loading displacement values from a file in BLQ format.
@@ -56,7 +56,7 @@ for m = 1 : length(marker)
     ocean_load_disp(m).available = 0;
 end
 
-found = 0;
+status = 0;
 for file_blq=1:size(filename,1)
     if (~isempty(filename))
         fid = fopen(char(filename(file_blq,:)),'r');
@@ -64,7 +64,7 @@ for file_blq=1:size(filename,1)
             if (file_blq == 1)
                 log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...'], 6));
             end
-            while (~feof(fid) && found < length(marker))
+            while (~feof(fid) && status < length(marker))
                 line = fgetl(fid);
                 for m = 1 : length(marker)
                     if (~strcmp(line(1:2),'$$'))
@@ -78,7 +78,7 @@ for file_blq=1:size(filename,1)
                                 line = fgetl(fid);
                             end
                             ocean_load_disp(m).available = 1;
-                            found = found + 1;
+                            status = status + 1;
                             break
                         end
                     end
@@ -88,13 +88,15 @@ for file_blq=1:size(filename,1)
         else
             ocean_load_disp=[];
             log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']);
+            status = -1;
         end
     else
         ocean_load_disp=[];
-        log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']);
+        log.addWarning('Ocean loading file not provided');
+        status = -2;
     end
 end
 
-if (found == 0)
+if (status == 0)
     ocean_load_disp=[];
 end

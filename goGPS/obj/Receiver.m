@@ -1381,10 +1381,10 @@ classdef Receiver < Exportable
             %DESCRIPTION load ocean loading displcement matrix from
             %ocean_loading.blq if satation is present
             [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.getMarkerName4Ch});
-            if not(found)
+            if not(found) && ~strcmp(this.getMarkerName4Ch, this.getMarkerName)
                 [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.getMarkerName});
             end
-            if not(found)
+            if found == 0
                 this.ocean_load_disp = -1; %ocean loading parameters not found
                 this.log.addWarning('Ocean loading parameters not found.');
             end
