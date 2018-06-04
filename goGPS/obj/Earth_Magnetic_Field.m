@@ -198,8 +198,8 @@ classdef Earth_Magnetic_Field < handle
             end
             n = size(H,1);
             % co to colatitude
-            lat = pi/2 - lat;
-            P = this.interpolateP(cos(lat));
+            colat = pi/2 - lat;
+            P = this.interpolateP(cos(colat));
             mphi = repmat((0:n-1)',1,n)*lon;
             cosm = cos(mphi); %some unnecesaary calculations
             sinm = sin(mphi); %some unnecesaary calculations
@@ -211,11 +211,11 @@ classdef Earth_Magnetic_Field < handle
             N = repmat((0:n-1),n,1);
             M = N';
             % X dV/dtheta
-            dP = this.interpolatedP(cos(lat));
+            dP = this.interpolatedP(cos(colat));
             X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
             % Y dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
-            Y = - re / (r * sin(lat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
+            Y = - re / (r * sin(colat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             % Z dV/dr
             darn = repmat((1:n),n,1) .* arn;
             Z = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
