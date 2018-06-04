@@ -509,7 +509,7 @@ classdef File_Wizard < handle
 
             if status
                 this.log.addMarkedMessage('All atmospheric loading files present');
-                this.state.setAtmLoadFile('${YYYY}${MM}${DD}${6H}_ce_v004.apl');
+                this.state.setAtmLoadFile('${YYYY}${MM}${DD}${6H}_cm_v004.apl');
             else
                 this.log.addMarkedMessage('Not all atmospheric files founds');
             end
