@@ -3765,7 +3765,9 @@ classdef Receiver < Exportable
             go_id = this.go_id(idx_obs);
             u_sat = unique(go_id);
             %this.updateAllAvailIndex();
-            this.updateErrIono();
+            if ~this.isMultiFreq()
+                this.updateErrIono();
+            end
             this.updateErrTropo();
             % for each unique go_id
             for i = u_sat'
@@ -4982,45 +4984,33 @@ classdef Receiver < Exportable
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
+            this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
             if nargin < 2
-                this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
-                for s = 1 : size(this.sat.avail_index,2)
-                    this.updateErrIono(s);
-                end
-            else
-                idx = this.sat.avail_index(:,go_id) > 0; % epoch for which satellite is present
-                if sum(idx) > 0
-                    
-                    XS = this.sat.cs.coordInterpolate(this.time.getSubSet(idx), go_id);
-                    %%% compute lat lon
-                    if size(this.xyz,1) > 1
-                        [~, lat, ~, lon] = cart2geod(this.xyz(idx, 1), this.xyz(idx, 2), this.xyz(idx, 3));
-                    else
-                        [~, lat, ~, lon] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                    end
-                    %%% compute az el
-                    if size(this.xyz,1)>1
-                        [az, el] = this.computeAzimuthElevationXS(this.xyz(idx,:) ,XS);
-                    else
-                        [az, el] = this.computeAzimuthElevationXS(XS);
-                    end
-                    
-                    
-                    switch this.state.iono_model
-                        case 0 %no model
-                            this.sat.err_iono(idx,go_id) = zeros(size(el));
-                        case 1 %Geckle and Feen model
-                            %corr = simplified_model(lat, lon, az, el, mjd);
-                        case 2 %Klobuchar model
-                            [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
-                            if ~isempty(this.sat.cs.iono )
-                                this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(lat, lon, az, el, sow, this.sat.cs.iono);
-                            else
-                                this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
-                            end
+                
+                go_id  = 1: this.getMaxSat();
+            end
+            
+          
+            this.updateCoordinates();       
+            switch this.state.iono_model
+                case 0 %no model
+                    this.sat.err_iono(idx,go_id) = zeros(size(el));
+                case 1 %Geckle and Feen model
+                    %corr = simplified_model(lat, lon, az, el, mjd);
+                case 2 %Klobuchar model
+                    if ~isempty(this.sat.cs.iono )
+                        for s = go_id
+                            idx = this.sat.avail_idx(:,s);
+                            [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());  
+                            this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
                             
+                        end
+                    else
+                        this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                     end
-                end
+                case 3 %IONEX
+                    atm = Atmosphere.getInstance();
+                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.h_ellips,this.time);
             end
         end
         
@@ -5430,9 +5420,9 @@ classdef Receiver < Exportable
                         wl3 = wl^3;
                         wl4 = wl^4;
                         if  this.obs_code(o,1) == 'L'
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( -1/2 *hoi2(o_idx,s)'*wl3 -1/3* hoi3(o_idx,s)'*wl4 +  bending(o_idx,s)'*wl4) ./ this.wl(o);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( -1/2 *hoi2(o_idx,s)'*wl3 -1/3* hoi3(o_idx,s)'*wl4 +  0*bending(o_idx,s)'*wl4) ./ this.wl(o);
                         else
-                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 + hoi3(o_idx,s)'*wl4 + bending(o_idx,s)'*wl4);
+                            this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)*( hoi2(o_idx,s)'*wl3 + hoi3(o_idx,s)'*wl4 + 0*bending(o_idx,s)'*wl4);
                         end
                     end
                 end
@@ -6196,7 +6186,9 @@ classdef Receiver < Exportable
                 this.updateAllTOT();
                 this.updateAzimuthElevation()
                 this.updateErrTropo();
-                this.updateErrIono();
+                if ~this.isMultiFreq()
+                    this.updateErrIono();
+                end
                 this.log.addMessage(this.log.indent('Improving estimation',6))
                 this.codeStaticPositioning(this.id_sync, 15);
                 
@@ -6248,7 +6240,9 @@ classdef Receiver < Exportable
             end
             this.updateAzimuthElevation()
             this.updateErrTropo();
-            this.updateErrIono();
+            if ~this.isMultiFreq()
+                this.updateErrIono();
+            end
             this.codeStaticPositioning(ep_coarse, 15);
         end
         
@@ -6390,7 +6384,9 @@ classdef Receiver < Exportable
                 this.updateAllTOT();
                 this.updateAzimuthElevation()
                 this.updateErrTropo();
-                this.updateErrIono();
+                if ~this.isMultiFreq()
+                    this.updateErrIono();
+                end
                 this.log.addMessage(this.log.indent('Improving estimation',6))
                 this.codeDynamicPositioning(this.id_sync, 15);
                 

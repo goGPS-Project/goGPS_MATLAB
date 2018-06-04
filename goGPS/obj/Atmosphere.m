@@ -117,6 +117,8 @@ classdef Atmosphere < handle
         
         emf     % current Earth geomagnetic field object
         log
+
+        V_LIGHT = Global_Configuration.V_LIGHT;
     end
     
     methods
@@ -480,8 +482,14 @@ classdef Atmosphere < handle
         
         function foi_delay = getFOIdelayCoeff(this,lat,lon, az,el,h,time)
             %get first horder ionosphere delay
-            [stec] = getSTEC(this,lat,lon, az,el,h, time);
-            foi_delay = 40.3 * 1e16 .* stec; % to be multipleid by f^2
+            gps_time = time.getGpsTime();
+            foi_delay = zeros(size(el));
+            for t = 1: size(el,1)
+                idx_sat = find(el(t,:) > 0);
+                t_time= gps_time(t);
+                [stec, ~,~, ~] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
+                foi_delay(t,idx_sat) = 40.3 * 1e16 .* stec ./ this.V_LIGHT^2; % to be multipleid by wavelength^2
+            end
         end
         
         function [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff, ppo] = getHOIdelayCoeff(this,lat,lon, az,el,h,time)
@@ -518,14 +526,15 @@ classdef Atmosphere < handle
                         b(s,:) = this.emf.getB(t_time, GPS_SS.ELL_A/1000 + this.ionex.height(1), pp(s,2), pp(s,1));
                     end
                     bok = sum(b.*k,2); %to Tesla
-                    c = Global_Configuration.V_LIGHT ;
+                    c = this.V_LIGHT ;
                     Nemax = (3*1e12);
                     vtec =  1e18;
                     ni = 0.66;
                     zi = acos(1./mfpp);
-                    hoi_delay2_coeff(t,idx_sat) =  7527 / c^2 .* bok .* stec .* 1e16;% Eq (10) (11) in [1]
-                    hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax./vtec .* ni .* (stec  .* 1e16).^2;% Eq (1g) (15) (14) in [1]
-                    bending_coeff(t,idx_sat) = A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax .* stec .* 1e16;% Eq(4.34) in [2]
+                    stec = stec * 1e16;
+                    hoi_delay2_coeff(t,idx_sat) =  7527 / c^2  .* bok .* stec;% Eq (10) (11) in [1]
+                    hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax ./ vtec .* ni .* (stec).^2;% Eq (1g) (15) (14) in [1]
+                    bending_coeff(t,idx_sat)    =  A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax .* stec;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
             end
         end
