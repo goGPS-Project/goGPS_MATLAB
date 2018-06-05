@@ -393,8 +393,12 @@ classdef Core_Utils < handle
                     mkdir(out_dir);
                 end
                 fid = fopen(fnp.checkPath([out_dir, filesep filename]),'w');
-                fprintf(fid,'%s',txt);
-                fclose(fid);
+                if fid < 0
+                    log.addError(sprintf('Writing of %s failed', fnp.checkPath([out_dir, filesep filename])));
+                else
+                    fprintf(fid,'%s',txt);
+                    fclose(fid);
+                end
                 status = true;
                 log.addMessage(' Done');
             catch
