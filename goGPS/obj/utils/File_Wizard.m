@@ -176,7 +176,8 @@ classdef File_Wizard < handle
             else
                 this.state = Global_Configuration.getCurrentSettings();
             end
-            this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
+            %this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile);
+            this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile());
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);
         end
         

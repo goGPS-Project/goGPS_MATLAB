@@ -698,7 +698,7 @@ classdef Core_UI < handle
             % Main Panel > tab2 remote resource ini
             enable_rri = true;
             if enable_rri
-                insertRemoteResource(this, tab_panel)
+                this.insertRemoteResource(tab_panel)
             end
             
             % Main Panel > tab3 processing options

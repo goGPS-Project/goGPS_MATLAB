@@ -40,8 +40,8 @@
 
 classdef Remote_Resource_Manager < Ini_Manager
     properties (Constant, Access = private)
-        DEFAULT_RESOURCE_FILE = '../data/goGPSconfig/remote_resource.ini';
-        DEFAULT_RESOURCE_TXT = ['to be filled'];
+        DEFAULT_RESOURCE_FILE = 'remote_resource.ini';
+        DEFAULT_RESOURCE_TXT = 'to be filled';
     end
     
     properties (Access = private)
@@ -167,8 +167,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             
             
         end
-        
-        
+               
         function [file_structure, latency] = getFileStr(this, center_name, resource_name)
             % Get the logical file structure for the desidered center and
             % resource the latecncy of the resource
