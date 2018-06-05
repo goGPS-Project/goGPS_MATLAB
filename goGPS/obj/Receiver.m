@@ -2096,8 +2096,11 @@ classdef Receiver < Exportable
             % Get the Marker name as specified in the RINEX file
             %
             % SYNTAX
-            %   marker_name = getMarkerName(this)            
+            %   marker_name = getMarkerName(this)
             marker_name = this.marker_name;
+            if isempty(marker_name)
+                marker_name = this.getMarkerName4Ch();
+            end
         end
         
         function marker_name = getMarkerName4Ch(this)
