@@ -103,8 +103,7 @@ classdef Core < handle
             else
                 this = unique_instance_core__;
                 this.init(force_clean);
-            end
-            
+            end            
         end
 
         function ok_go = openGUI()
@@ -400,16 +399,13 @@ classdef Core < handle
             
             this.log.newLine();
             
+            % Checking folder that are not created in conjure phase
             err_code.go = err_code.home + ...
                 err_code.obs + ...
                 (err_code.obs_f < 0) + ...
                 (err_code.ocean < 0) + ...
                 (err_code.atm < 0) + ...
-                err_code.atx + ...
-                err_code.eph + ...
-                (err_code.iono < 0)  + ...
-                (err_code.igrf < 0) + ...
-                (err_code.vmf < 0);
+                err_code.atx;
         end
     end
     
@@ -501,7 +497,7 @@ classdef Core < handle
                 time_lim_large = time_lim_small.getCopy;
                 tmp_large = tmp_small.getCopy;
                 for r = 2 : numel(fr)
-                    if fr(r).isValid(session)
+                    if fr(r).isValid()
                         if isnan(time_lim_small) || time_lim_small < fr(r).getFirstEpoch.first
                             time_lim_small = fr(r).getFirstEpoch.first;
                         end
