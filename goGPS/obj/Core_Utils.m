@@ -388,8 +388,11 @@ classdef Core_Utils < handle
                 [remote_location, filename, ext] =fileparts(filename);
                 filename = [filename ext];
                 log.addMessage(log.indent(sprintf('downloading %s ...',filename)));
-                txt = webread(['http://' remote_location '/' filename], options);
-                fid = fopen(fnp.checkPath([out_dir, '/' filename]),'w');
+                txt = webread(['http://' remote_location filesep filename], options);
+                if ~isempty(out_dir) && ~exist(out_dir, 'dir')
+                    mkdir(out_dir);
+                end
+                fid = fopen(fnp.checkPath([out_dir, filesep filename]),'w');
                 fprintf(fid,'%s',txt);
                 fclose(fid);
                 status = true;
