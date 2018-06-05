@@ -2291,6 +2291,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             date.append(this.sss_date_stop);
         end
 
+        function iono_management = getIonoManagement(this)
+            % SYNTAX: date = getSessionStop(this)
+            iono_management = this.iono_management;
+        end
+
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
@@ -2772,9 +2777,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
         
         function is_hoi = isHOI(this)
-            % Check whether the iono free combination is enabled
+            % Check whether high order ionspheric delays are enabled
             % SYNTAX: is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
+        end
+
+        function need_iono = needIonoMap(this)
+            % Check if ionospheric map are needed
+            % SYNTAX: need_iono = needIonoMap(this)
+            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3);
         end
         
         function is_rec_pcv = isRecPCV(this)

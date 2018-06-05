@@ -468,7 +468,7 @@ classdef File_Wizard < handle
                 this.conjureDCBFiles(dsa, dso);
                 this.conjureCRXFiles(dsa, dso);
             end
-            if this.state.isHOI()
+            if this.state.needIonoMap()
                 this.conjureIonoFiles(dsa, dso);
             end
             if this.state.isAtmLoading()

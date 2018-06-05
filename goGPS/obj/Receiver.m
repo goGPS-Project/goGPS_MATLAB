@@ -108,7 +108,7 @@ classdef Receiver < Exportable
         pcv = []                     % phase center corrections for the receiver
         
         pp_status = false;      % flag is pre-proccesed / not pre-processed
-        
+        iono_status           = 0; % flag to indicate if measurements ahave been corrected by an external ionpheric model
         group_delay_status    = 0; % flag to indicate if code measurement have been corrected using group delays                          (0: not corrected , 1: corrected)
         dts_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for the clock of the satellite    (0: not corrected , 1: corrected)
         sh_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for shapiro delay                 (0: not corrected , 1: corrected)
@@ -3701,40 +3701,23 @@ classdef Receiver < Exportable
             [obs_set]  = this.getMelWub([iono_pref(1,1)], [iono_pref(1,2)], system);
         end
         
-        function [range, XS_loc] = getSyntObs(this, obs_type, go_id_list)
+        function [range, XS_loc] = getSyntObs(this, go_id_list)
             %  get the estimate of one measurmenet based on the
             % current postion
             % INPUT
-            %   obs_type; type of obs I(ionofree) 1(first system freqeuncy) 2(second sytem frequency) 3 (third system frequency)
             % EXAMPLE:
             %   this.getSyntObs(1,go_id)
             n_epochs = size(this.obs, 2);
-            if isnumeric(obs_type)
-                obs_type = num2str(obs_type);
-            end
-            if nargin < 3
+            if nargin < 2
                 go_id_list = 1 : this.getMaxSat();
             end
             range = zeros(length(go_id_list), n_epochs);
             XS_loc = [];
-            switch obs_type
-                case 'I'
-                    iono_factor = 0;
-                case '1'
-                    iono_factor = 1;
-                otherwise
-                    % TO BE IMPLEMENTED
-                    this.log.addWarning('Receiver.getSyntObs obs_type unkonwn -> to be implemented')
-                    %                         wl_ref = this.cc.getGPS.F_VEC(1);
-                    %                         wl = this.cc.getSys(sys(j)).F_VEC(str2num(obs_type));
-                    %                         iono_factor= wl_ref^2/ wl^2;
-                    
-            end
             for i = 1 : length(go_id_list)
                 go_id = go_id_list(i);
                 XS_loc = this.getXSLoc(go_id);
                 range_tmp = sqrt(sum(XS_loc.^2,2));
-                range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:,go_id)) + iono_factor * this.sat.err_iono(:,go_id);
+                range_tmp = range_tmp + nan2zero(this.sat.err_tropo(:,go_id));
                 
                 XS_loc(isnan(range_tmp),:) = [];
                 %range = range';
@@ -3772,7 +3755,7 @@ classdef Receiver < Exportable
             % for each unique go_id
             for i = u_sat'
                 
-                range = this.getSyntObs('I', i);
+                range = this.getSyntObs( i);
                 
                 sat_idx = find(go_id == i);
                 % for all the obs with the same go_id
@@ -3780,15 +3763,7 @@ classdef Receiver < Exportable
                     o = (idx_obs == idx_obs(j));
                     c_obs_idx = idx_obs(j); % index of the observation we are currently processing
                     ep_idx = this.obs(c_obs_idx, :) ~= 0;
-                    freq = this.cc.getBand(sys(j), this.obs_code(c_obs_idx,2));
-                    if sys(j) == 'G' && freq == 1
-                        iono_factor = 1;
-                    else
-                        wl_ref = this.cc.getGPS.F_VEC(1);
-                        wl = this.cc.getSys(sys(j)).F_VEC(freq);
-                        iono_factor= wl_ref ^ 2/ wl ^ 2;
-                    end
-                    synt_pr_obs(o, ep_idx) = range(ep_idx) + iono_factor * this.sat.err_iono(ep_idx, u_sat == i)';
+                    synt_pr_obs(o, ep_idx) = range(ep_idx);
                 end
                 
             end
@@ -3823,13 +3798,7 @@ classdef Receiver < Exportable
             idx_ep_obs = obs_set.getTimeIdx(this.time.first, this.getRate);
             for i = 1 : size(synt_obs,2)
                 go_id = obs_set.go_id(i);
-                if length(obs_set.obs_code(i,:)) > 7 && obs_set.obs_code(i,8) == 'I' || (~isempty(obs_set.iono_free) && obs_set.iono_free)
-                    [range, xs_loc_t] = this.getSyntObs('I', go_id);
-                else
-                    f = find(this.cc.getSys(obs_set.obs_code(i,1)).CODE_RIN3_2BAND == obs_set.obs_code(i,3));
-                    [range, xs_loc_t] = this.getSyntObs(f, go_id );
-                end
-                
+                [range, xs_loc_t] = this.getSyntObs( go_id);
                 idx_obs = obs_set.obs(:, i) ~= 0;
                 idx_obs_r = idx_ep_obs(idx_obs); % <- to which epoch in the receiver the observation of the satellites in obesrvation set corresponds?
                 idx_obs_r_l = false(size(range)); % get the logical equivalent
@@ -4400,7 +4369,7 @@ classdef Receiver < Exportable
                     c_obs = this.obs(sat_idx,:);
                     c_l_obs = colFirstNonZero(c_obs); % all best obs one each line %% CONSIDER USING ONLY 1 FREQUENCY FOR mm CONSISTENCY
                 elseif synt_based % use the synteetc observation to get Time of flight
-                    c_l_obs = this.getSyntObs('I', i);
+                    c_l_obs = this.getSyntObs(i);
                 end
                 %update time of flight times
                 this.updateTOT(c_l_obs, i); % update time of travel
@@ -5012,6 +4981,42 @@ classdef Receiver < Exportable
                     atm = Atmosphere.getInstance();
                     this.sat.err_iono = atm.getFOIdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.h_ellips,this.time);
             end
+        end
+
+        function applyIonoModel(this)
+            if this.iono_status == 0 && this.state.getIonoManagement == 3
+                this.log.addMarkedMessage('Applying Ionosphere model');
+                this.ionoModel(1);
+                this.iono_status = 1; %applied
+            end
+        end
+        
+        function removeIonoModel(this)
+            if this.iono_status == 1
+                this.log.addMarkedMessage('Removing Ionosphere model');
+                this.ionoModel(-1);
+                this.iono_status = 0; %not applied
+            end
+        end
+
+        function ionoModel(this,sign)
+        %DESCRIPTION: apply the selcted iono model
+        %USAGE: this.applyIonoModel()
+        ph_obs = this.obs_code(:,1) == 'L';
+        pr_obs = this.obs_code(:,1) == 'C';
+        for i = 1 : size(this.sat.err_iono,2)
+            idx_sat = this.go_id == i & (ph_obs | pr_obs);
+            if sum(idx_sat) >0
+                for s = find(idx_sat)'
+                    iono_delay = this.sat.err_iono(:,i) * this.wl(s)^2;
+                    if ph_obs(s) > 0
+                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign*zero2nan(iono_delay'));
+                    else
+                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign*zero2nan(iono_delay'));
+                    end
+                end
+            end
+        end
         end
         
         %--------------------------------------------------------
