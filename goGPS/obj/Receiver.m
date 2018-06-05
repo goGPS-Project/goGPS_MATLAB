@@ -7413,7 +7413,7 @@ classdef Receiver < Exportable
                     ztd = this(t).getZtd(); %#ok<NASGU>
                     utc_time = time.getMatlabTime; %#ok<NASGU>
                     
-                    fname = sprintf('%s',[this(t).state.getOutDir() '/' this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);
+                    fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);
                     save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                     
                     this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
