@@ -3065,25 +3065,32 @@ classdef Receiver < Exportable
                 this.tge = zeros(this.getNumEpochs,1);
                 this.tgn = zeros(this.getNumEpochs,1);
             end
-            [P,T,H] = this.getPTH();
-            updateAprZhd(this,P,T,H);
-            updateAprZwd(this,P,T,H);
+            if this.state.zd_model == 1 % no vmf gridded value
+                [P,T,H] = this.getPTH();
+                updateAprZhd(this,P,T,H);
+                updateAprZwd(this,P,T,H);
+            else
+                updateAprZhd(this);
+                updateAprZwd(this);
+            end
         end
         
         function updateAprZhd(this,P,T,H)
             %update zhd
             if isempty(this.lat)
                 this.updateCoordinates()
-            end
-            flag = 1; % now fixed to saastaoinen in fututre can be other
-            if nargin < 2
-                [P, T, H] = this.getPTH();
-            end
-            switch flag
-                case 1
+            end            
+            switch this.state.zd_model
+                case 1 %% saastamoinen
+                    if nargin < 2
+                        [P, T, H] = this.getPTH();
+                    end
                     h = this.h_ortho;
                     lat = this.lat;
                     this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
+                case 2 %% vmf gridded
+                    atmo = Atmosphere.getInstance();
+                     this.apr_zhd = atmo.interpolateZhd(this.time.getGpsTime, this.lat, this.lon);
             end
             
         end
@@ -3093,17 +3100,16 @@ classdef Receiver < Exportable
             if isempty(this.lat)
                 this.updateCoordinates()
             end
-            
-            
-                
-                
-            flag = 1; % now fixed to saastaoinen in fututre can be other
-            if nargin < 2
-                [P, T, H] = this.getPTH();
-            end
-            switch flag
-                case 1
-                    this.apr_zwd = Atmosphere.saast_wet(T,H,this.h_ortho);
+            switch this.state.zd_model
+                case 1 %% saastamoinen
+                    if nargin < 2
+                        [P, T, H] = this.getPTH();
+                    end
+                    h = this.h_ortho;
+                    this.apr_zwd = Atmosphere.saast_wet(T,H,h); 
+                case 2 %% vmf gridded
+                    atmo = Atmosphere.getInstance();
+                     this.apr_zwd = atmo.interpolateZwd(this.time.getGpsTime, this.lat, this.lon);
             end
             
         end

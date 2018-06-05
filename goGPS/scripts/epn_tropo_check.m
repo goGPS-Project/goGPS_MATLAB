@@ -56,3 +56,4 @@ for r = 1 : max(size(rec))
 %         title(['TGE diff' sta_code]);
     end
 end
+figure; hist(ztd_diff(abs(ztd_diff)<0.05),30)

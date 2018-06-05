@@ -455,6 +455,14 @@ classdef Atmosphere < handle
             aw = Core_Utils.linInterpLatLonTime(this.vmf_coeff.aw, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
+        function [zhd] = interpolateZhd(this, gps_time, lat, lon)
+            zhd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zhd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+        end
+        
+        function [zwd] = interpolateZwd(this, gps_time, lat, lon)
+            zwd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zwd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+        end
+        
         function tec = interpolateTEC(this, gps_time, lat, lon)
             tec = Core_Utils.linInterpLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon,gps_time);
             
