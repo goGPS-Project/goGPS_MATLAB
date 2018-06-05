@@ -611,5 +611,36 @@ classdef Core_Utils < handle
             end
             
         end
+        
+        function createEmptyProject(base_dir, prj_name)
+            % create empty config file
+            %
+            % SYNTAX
+            %    createEmptyProject(base_dir, prj_name)
+            %    createEmptyProject(prj_name)
+            
+            fnp = File_Name_Processor();
+            state = Main_Settings();
+
+            if nargin == 1
+                prj_name = base_dir;
+                base_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
+            end
+            
+            log = Logger.getInstance();
+            log.addMarkedMessage(sprintf('Creating a new project "%s" into %s', prj_name, [base_dir filesep prj_name]));
+            
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name]));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'config']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'out']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'RINEX']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/CRD']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/MET']));
+            state.setPrjHome(fnp.checkPath([base_dir filesep prj_name]));
+            state.prj_name = prj_name;
+            config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
+            state.save(config_path);
+        end
     end
 end
