@@ -602,12 +602,12 @@ classdef Core_Utils < handle
                 %interpolate along lat
                 val = valu.*(1-slat) + vald.*slat;
                 
-            else %space first
+            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
                 % interpolate along lon
                 valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
-                valau = permute(data(ilat   , ilons , it+1).*(1-slon) + data(ilat   , ilone , it+1).*slon,[3 1 2]);
+                valau = permute(data(ilat   , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat   , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
                 valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
-                valad = permute(data(ilat+1 , ilons , it+1).*(1-slon) + data(ilat+1 , ilone , it+1).*slon,[3 1 2]);
+                valad = permute(data(ilat+1 , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat+1 , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
                 
                 %interpolate along lat
                 valb = valbd.*(1-slat) + valbu.*slat;
