@@ -330,7 +330,7 @@ classdef Atmosphere < handle
             else
                 if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
                     %% file too far away emptying the object
-                    this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
+                    this.log.addMessage(this.log.indent('File too far away, emptying old vmf coefficients'));
                     this.clearVMF();
                     isempty_obj = true;
                 end
@@ -400,7 +400,7 @@ classdef Atmosphere < handle
             'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
             'dt',         [], ...    % time spacing
             'n_t',        [] ...    % num of epocvhs
-            )
+            );
         end
         
         function clearIonex(this)
@@ -417,7 +417,7 @@ classdef Atmosphere < handle
             'dt',         [], ...    % time spacing
             'n_t',        [], ...    % num of epocvhs
             'height',     []  ...    % heigh of the layer
-            )
+            );
         end
         
         function clearVMF(this)
@@ -436,7 +436,7 @@ classdef Atmosphere < handle
             'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
-            )
+            );
         end
         
         function [corrxyz] = getAtmLoadCorr(this, lat,lon,h_ellips, time)
