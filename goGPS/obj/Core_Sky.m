@@ -978,9 +978,11 @@ classdef Core_Sky < handle
             % GPS C1W - C1C
             idx_w1 =  this.getGroupDelayIdx('GC1C');
             idx_w2 =  this.getGroupDelayIdx('GC2D');
-            p1c1 = dcb.P1C1.value(dcb.P1C1.sys == 'G');
-            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w1) = (iono_free.alpha2 *p1p2 + p1c1)*Global_Configuration.V_LIGHT*1e-9;
-            this.group_delays(dcb.P1C1.prn(dcb.P1P2.sys == 'G') , idx_w2) = (iono_free.alpha1 *p1p2 + p1c1)*Global_Configuration.V_LIGHT*1e-9; %semi codeless tracking
+            p1c1 = nan(this.cc.getGPS.N_SAT,1);
+            p1c1(dcb.P1C1.sys == 'G') = dcb.P1C1.value(dcb.P1C1.sys == 'G');
+            prns = dcb.P1C1.prn(dcb.P1P2.sys == 'G');
+            this.group_delays(prns(prns~=0) , idx_w1) = (iono_free.alpha2 *p1p2(prns~=0) + p1c1(prns~=0))*Global_Configuration.V_LIGHT*1e-9;
+            this.group_delays(prns(prns~=0) , idx_w2) = (iono_free.alpha1 *p1p2(prns~=0) + p1c1(prns~=0))*Global_Configuration.V_LIGHT*1e-9; %semi codeless tracking
             %GLONASS C1P - C2P
             idx_w1 =  this.getGroupDelayIdx('RC1P');
             idx_w2 =  this.getGroupDelayIdx('RC2P');
