@@ -6196,8 +6196,7 @@ classdef Receiver < Exportable
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     coarsePositioning(this, obs_set)
                 end
-                this.dt(:) = 0;
-                this.removeBadTracking();
+                
                 
                 
                 this.updateAllAvailIndex();
@@ -6209,6 +6208,7 @@ classdef Receiver < Exportable
                 end
                 this.log.addMessage(this.log.indent('Improving estimation',6))
                 this.codeStaticPositioning(this.id_sync, 15);
+                this.removeBadTracking();
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation',6))
@@ -6265,10 +6265,10 @@ classdef Receiver < Exportable
         end
         
         function removeBadTracking(this)
-            % requires approximate postioin
+            % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             [ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs;
+            sensor =  pr - this.getSyntPrObs -repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
             bad_track = abs(sensor) > 1e4;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
