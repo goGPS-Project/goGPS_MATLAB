@@ -124,7 +124,7 @@ classdef Receiver < Exportable
         
         ph_idx             % idx of outlier and cycle slip in obs
         
-        amb_idx;           % temporary varibale to test PPP ambiguity fixing
+        
         if_amb;            % temporary varibale to test PPP ambiguity fixing
         est_slant;         % temporary varibale to test PPP ambiguity fixing
     end
@@ -150,7 +150,8 @@ classdef Receiver < Exportable
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
             'res',              [], ...    % residual per staellite
-            'slant_td',         []  ...    % slant total delay (except ionosphere delay)
+            'slant_td',         [], ...    % slant total delay (except ionosphere delay)
+            'amb_idx',          []  ...    % temporary varibale to test PPP ambiguity fixing
             )
     end
     
@@ -426,7 +427,6 @@ classdef Receiver < Exportable
             this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
-            this.amb_idx = [];
             this.if_amb = [];
             this.est_slant = [];
             this.synt_ph = [];
@@ -6809,7 +6809,8 @@ classdef Receiver < Exportable
                 this.xyz = this.xyz + coo;
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
-                this.amb_idx = ls.amb_idx; % to test ambiguity fixing
+                this.sat.amb_idx = nan(this.getNumEpochs, this.getMaxSat);
+                this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx; 
                 this.if_amb = amb; % to test ambiguity fixing
                 if s02 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
@@ -6971,13 +6972,71 @@ classdef Receiver < Exportable
         
          function fixPPP(this)
              % coarse estimation of amb
+             this.coarseAmbEstimation();
              % apply dt
+             this.smoothAndApplyDt(0);
              % remove grupo delay
+             this.removeGroupDelay();
              % estaimet WL
              % estimate narrow lane
              % -> amb VCV ???
              % get undifferenced
              % new estimation round with fixed ambs
+         end
+         
+         function coarseAmbEstimation(this)
+             % estimate coarse ambiguities
+             %%% experimental now just for GPS L1 L2
+             
+             % get geometry free
+             wl1 = GPS_SS.L_VEC(1);
+             wl2 = GPS_SS.L_VEC(2);
+             
+             f1 = GPS_SS.F_VEC(1);
+             f2 = GPS_SS.F_VEC(2);
+             
+             gamma = f1^2 / f2^2;
+             
+             amb_idx = this.sat.amb_idx;
+             n_amb  = max(max(amb_idx));
+             geom_free = zeros(this.time.length,GPS_SS.N_SAT);
+             obs_set =  this.getGeometryFree('C2W','C1W','G');
+             geom_free(:,obs_set.go_id) = obs_set.obs;
+             iono_elong = geom_free / ( 1 -gamma); % Eq (2)
+             P1_idx = idxCharLines(this.obs_code, 'C1W')'& this.system == 'G';
+             P2_idx = idxCharLines(this.obs_code, 'C2W')'& this.system == 'G';
+             P1 = zeros(this.time.length,GPS_SS.N_SAT);
+             P2 = zeros(this.time.length,GPS_SS.N_SAT);
+             P1(:,this.go_id(P1_idx)) = this.obs(P1_idx,:)';
+             P2(:,this.go_id(P2_idx)) = this.obs(P2_idx,:)';
+             L1 = zeros(this.time.length,GPS_SS.N_SAT);
+             L2 = zeros(this.time.length,GPS_SS.N_SAT);
+             L1_idx = idxCharLines(this.obs_code, 'L1C')' & this.system == 'G';
+             L1(:,this.go_id(L1_idx)) = this.obs(L1_idx, :)';
+             L2_idx = idxCharLines(this.obs_code, 'L2W')' & this.system == 'G';
+             L2(:,this.go_id(L2_idx)) = this.obs(L2_idx, :)';
+             n1_tilde = (zero2nan(P1) - 2* zero2nan(iono_elong)) / wl1 - zero2nan(L1);
+             n2_tilde = (zero2nan(P2) - 2* gamma* zero2nan(iono_elong)) / wl2 - zero2nan(L2);
+             
+             
+             l1_amb = zeros(1,n_amb);
+             l2_amb = zeros(1,n_amb);
+             for i =1 : n_amb;
+                 l1_amb(i) = median(n1_tilde(amb_idx == i),'omitnan');
+                 l2_amb(i) = median(n2_tilde(amb_idx == i),'omitnan');
+             end
+             
+             l1_amb_round = round(l1_amb);
+             l1_amb_round(isnan(l1_amb_round)) = 0;
+             l2_amb_round = round(l2_amb);
+             l2_amb_round(isnan(l2_amb_round)) = 0;
+             for i =1 : n_amb;
+                 idx_amb = amb_idx == i;
+                 L1(idx_amb) = L1(idx_amb) + l1_amb_round(i);
+                 L2(idx_amb) = L2(idx_amb) + l2_amb_round(i);
+             end
+             this.obs(L1_idx, :) = L1(:,this.go_id(L1_idx))';
+             this.obs(L2_idx, :) = L2(:,this.go_id(L2_idx))';
          end
         function interpResults(this)
             % When computing a solution with subsampling not all the epochs have an estimation

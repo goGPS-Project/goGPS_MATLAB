@@ -383,7 +383,7 @@ classdef Core < handle
                 err_code.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir', flag_verbose);
             else
                 if flag_verbose
-                    this.log.addStatusDisabled('Ionospheric corrections disabled');
+                    this.log.addStatusDisabled('High order ionospheric corrections disabled');
                 end
                 err_code.iono = 1;
                 err_code.igrf = 1;
