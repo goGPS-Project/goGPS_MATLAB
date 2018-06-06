@@ -5545,7 +5545,7 @@ classdef Receiver < Exportable
             dsa = this.time.first.getCopy();
             dso = this.time.getSubSet(this.time.length).getCopy();
             dso.addSeconds(6*3600);
-            fname = this.state.getAtmLoadFileName( dsa, dso);
+            fname = this.state.getNTAtmLoadFileName( dsa, dso);
             for i = 1 : length(fname)
                 atmo.importAtmLoadCoeffFile(fname{i});
             end

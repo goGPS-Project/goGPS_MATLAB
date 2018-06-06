@@ -64,7 +64,7 @@ classdef Atmosphere < handle
             'n_t',        [], ...    % num of epocvhs
             'height',     []  ...    % heigh of the layer
             )
-       atm_load = struct( ...
+       atm_load_nt = struct( ...
             'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
@@ -78,6 +78,19 @@ classdef Atmosphere < handle
             'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
+            )
+        atm_load_t = struct( ...
+            'harmonics',       [], ...    % ionosphere single layer map [n_lat x _nlon n n_harmonics] 
+            'first_lat',  89.5, ...    % first latitude
+            'first_lon',  0.5, ...    % first longitude
+            'd_lat',      1, ...    % lat spacing
+            'd_lon',      1, ...    % lon_spacing
+            'n_lat',      180, ...    % num lat
+            'n_lon',      360, ...    % num lon
+            'first_time', 0, ...    % times [time] of the maps
+            'first_time_double', 0, ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         1, ...    % time spacing
+            'n_t',        0 ...   % num of epocvhs
             )
         vmf_coeff = struct( ...
             'ah',       [], ...    % alpha coefficient dry
@@ -233,7 +246,12 @@ classdef Atmosphere < handle
                 this.importVMFCoeffFile(fname{i});
             end
         end
-        
+        function importTidalAtmLoadHarmonics(this)
+            fname = this.state.getTAtmLoadFileName();
+            data = importdata(fname);
+            this.atm_load_t.harmonics = permute(reshape(data(:,3:end),360 ,180, 18),[2 1 3])/1e3;
+            
+        end
         
         function importAtmLoadCoeffFile(this, filename)
             % import data of atmospehric loading file
@@ -250,12 +268,12 @@ classdef Atmosphere < handle
             day = str2num(file_name(7:8));
             hour = str2num(file_name(9:10));
             file_ref_ep = GPS_Time([year month day hour 0 0]);
-            isempty_obj = isempty(this.atm_load.data_u);
-            if not(isempty_obj) && (file_ref_ep >= this.atm_load.first_time) && (file_ref_ep - this.atm_load.first_time) < this.atm_load.dt *  this.atm_load.n_t
+            isempty_obj = isempty(this.atm_load_nt.data_u);
+            if not(isempty_obj) && (file_ref_ep >= this.atm_load_nt.first_time) && (file_ref_ep - this.atm_load_nt.first_time) < this.atm_load_nt.dt *  this.atm_load_nt.n_t
                 %% file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
             else
-                if not(isempty_obj) && ((file_ref_ep - this.atm_load.first_time) > (this.atm_load.dt *  this.atm_load.n_t +3600*6) || (file_ref_ep - this.atm_load.first_time) < (-3600*6))
+                if not(isempty_obj) && ((file_ref_ep - this.atm_load_nt.first_time) > (this.atm_load_nt.dt *  this.atm_load_nt.n_t +3600*6) || (file_ref_ep - this.atm_load_nt.first_time) < (-3600*6))
                     %% file too far away emptying the object
                     this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
                     this.clearAtmLoad();
@@ -278,32 +296,32 @@ classdef Atmosphere < handle
                 data_tmp_e = reshape(data_tmp.data(:,4),360,180)';
                 data_tmp_n = reshape(data_tmp.data(:,5),360,180)';
                 if isempty_obj
-                    this.atm_load.data_u = data_tmp_u;
-                    this.atm_load.data_e = data_tmp_e;
-                    this.atm_load.data_n = data_tmp_n;
-                    this.atm_load.first_lat = 89.5;
-                    this.atm_load.first_lon = 0.5;
-                    this.atm_load.d_lat = -1;
-                    this.atm_load.d_lon = 1;
-                    this.atm_load.n_lat = 180;
-                    this.atm_load.n_lon = 360;
-                    this.atm_load.first_time = file_ref_ep;
-                    this.atm_load.first_time_double = file_ref_ep.getGpsTime();
-                    this.atm_load.dt = 3600*6;
-                    this.atm_load.n_t = 1;
+                    this.atm_load_nt.data_u = data_tmp_u;
+                    this.atm_load_nt.data_e = data_tmp_e;
+                    this.atm_load_nt.data_n = data_tmp_n;
+                    this.atm_load_nt.first_lat = 89.5;
+                    this.atm_load_nt.first_lon = 0.5;
+                    this.atm_load_nt.d_lat = -1;
+                    this.atm_load_nt.d_lon = 1;
+                    this.atm_load_nt.n_lat = 180;
+                    this.atm_load_nt.n_lon = 360;
+                    this.atm_load_nt.first_time = file_ref_ep;
+                    this.atm_load_nt.first_time_double = file_ref_ep.getGpsTime();
+                    this.atm_load_nt.dt = 3600*6;
+                    this.atm_load_nt.n_t = 1;
                 else
-                    if file_ref_ep < this.atm_load.first_time ;
-                        this.atm_load.first_time = file_ref_ep;
-                        this.atm_load.first_time_double = file_ref_ep.getGpsTime();
-                        this.atm_load.data_u = cat(3,data_tmp_u,this.atm_load.data_u);
-                        this.atm_load.data_e = cat(3,data_tmp_e,this.atm_load.data_e);
-                        this.atm_load.data_n = cat(3,data_tmp_n,this.atm_load.data_n);
+                    if file_ref_ep < this.atm_load_nt.first_time ;
+                        this.atm_load_nt.first_time = file_ref_ep;
+                        this.atm_load_nt.first_time_double = file_ref_ep.getGpsTime();
+                        this.atm_load_nt.data_u = cat(3,data_tmp_u,this.atm_load_nt.data_u);
+                        this.atm_load_nt.data_e = cat(3,data_tmp_e,this.atm_load_nt.data_e);
+                        this.atm_load_nt.data_n = cat(3,data_tmp_n,this.atm_load_nt.data_n);
                     else
-                        this.atm_load.data_u = cat(3,this.atm_load.data_u,data_tmp_u);
-                    this.atm_load.data_e = cat(3,this.atm_load.data_e,data_tmp_e);
-                    this.atm_load.data_n = cat(3,this.atm_load.data_n,data_tmp_n);
+                        this.atm_load_nt.data_u = cat(3,this.atm_load_nt.data_u,data_tmp_u);
+                    this.atm_load_nt.data_e = cat(3,this.atm_load_nt.data_e,data_tmp_e);
+                    this.atm_load_nt.data_n = cat(3,this.atm_load_nt.data_n,data_tmp_n);
                     end
-                    this.atm_load.n_t = this.atm_load.n_t + 1;
+                    this.atm_load_nt.n_t = this.atm_load_nt.n_t + 1;
                 end
             end
         end
@@ -386,7 +404,7 @@ classdef Atmosphere < handle
         end
         
         function clearAtmLoad(this)
-            this.atm_load = struct( ...
+            this.atm_load_nt = struct( ...
             'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_n',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
@@ -439,15 +457,63 @@ classdef Atmosphere < handle
             );
         end
         
-        function [corrxyz] = getAtmLoadCorr(this, lat,lon,h_ellips, time)
-            % get atmospheric loading corrections
+        function [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
+            % get non tidal atmospheric loading corrections
             gps_time = time.getGpsTime();
-            up = Core_Utils.linInterpLatLonTime(this.atm_load.data_u, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
-            east = Core_Utils.linInterpLatLonTime(this.atm_load.data_e, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
-            north = Core_Utils.linInterpLatLonTime(this.atm_load.data_n, this.atm_load.first_lat, this.atm_load.d_lat, this.atm_load.first_lon, this.atm_load.d_lon, this.atm_load.first_time_double, this.atm_load.dt, lat, lon,gps_time);
-            [x,y,z] = geod2cart(lat,lon,h_ellips);
+            up = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_u, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
+            east = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_e, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
+            north = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_n, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
+            [x,y,z] = geod2cart(lat, lon, h_ellips);
             [corrxyz] = local2globalVel([east north up]', repmat([x,y,z]',1,length(east)));
             corrxyz = corrxyz';
+        end
+        
+        function [corrxyz] = getTAtmLoadCorr(this, lat, lon, h_ellips, time)
+            % get non tidal atmospheric loading corrections
+            [harm_r, harm_e, harm_n] = getAtmLoadHarm(this, lat,lon);
+            T = mod(time.getMJD, 1)*2*pi;
+            [x,y,z] = geod2cart(lat, lon, h_ellips);
+            [harm_xyz] = local2globalVel([harm_n harm_e harm_r]', repmat([x,y,z]',1,length(harm_e)));
+            harm_xyz = harm_xyz';
+            corrx = harm_xyz(1,1)*sin(T) + harm_xyz(2,1)*cos(T) + harm_xyz(3,1)*sin(2*T) + harm_xyz(4,1)*cos(2*T) + harm_xyz(5,1)*sin(3*T) + harm_xyz(6,1)*cos(3*T);
+            corry = harm_xyz(1,2)*sin(T) + harm_xyz(2,2)*cos(T) + harm_xyz(3,2)*sin(2*T) + harm_xyz(4,2)*cos(2*T) + harm_xyz(5,2)*sin(3*T) + harm_xyz(6,2)*cos(3*T);
+            corrz = harm_xyz(1,3)*sin(T) + harm_xyz(2,3)*cos(T) + harm_xyz(3,3)*sin(2*T) + harm_xyz(4,3)*cos(2*T) + harm_xyz(5,3)*sin(3*T) + harm_xyz(6,3)*cos(3*T);
+            corrxyz = [corrx corry corrz];
+        end
+        
+        function [corrxyz] = getAtmLoadCorr(this, lat, lon, h_ellips, time)
+            % get atmospheric loading corrections
+            [corrxyz_nt] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time);
+            [corrxyz_t] = getTAtmLoadCorr(this, lat, lon, h_ellips, time);
+            corrxyz = corrxyz_nt + corrxyz_t;
+        end
+        
+        function [harm_r, harm_e, harm_n] = getAtmLoadHarm(this, lat,lon)
+            if isempty(this.atm_load_t.harmonics)
+                this.importTidalAtmLoadHarmonics();
+            end
+            S1SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,1), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S1CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,2), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,3), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,4), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,5), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,6), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S1SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,7), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S1CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,8), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,9), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,10), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,11), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,12), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S1SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,13), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S1CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,14), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,15), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S2CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,16), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,17), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            S3CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,18), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            
+            harm_r = [S1SR S1CR S2SR S2CR S3SR S3CR]';
+            harm_e = [S1SE S1CE S2SE S2CE S3SE S3CE]';
+            harm_n = [S1SN S1CN S2SN S2CN S3SN S3CN]';
         end
         
         function [ah, aw] = interpolateAlpha(this, gps_time, lat, lon)

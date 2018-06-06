@@ -124,7 +124,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
         IONO_NAME = '';
         ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
-        ATM_LOAD_NAME = '';
+        ATM_LOAD_NAME_NT = '';
+        ATM_LOAD_NAME_T = 's1_s2_s3_cm_noib_grid.dat';
         VMF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'VMF' filesep];
         VMF_NAME = '';
 
@@ -370,7 +371,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         iono_dir = Main_Settings.IONO_DIR;   % Path to IONO files folder
         iono_name = Main_Settings.IONO_NAME; % Path to IONO files folder
         atm_load_dir = Main_Settings.ATM_LOAD_DIR;   % Path to IONO files folder
-        atm_load_name = Main_Settings.ATM_LOAD_NAME; % Path to IONO files folder
+        atm_load_name_nt = Main_Settings.ATM_LOAD_NAME_NT; % Path to IONO files folder
+        atm_load_name_t = Main_Settings.ATM_LOAD_NAME_T;
         vmf_dir = Main_Settings.VMF_DIR;   % Path to IONO files folder
         vmf_name = Main_Settings.VMF_NAME; % Path to IONO files folder
         iono_full_name;                    % Full name of ERPs generated during runtime from the provided parameters
@@ -838,7 +840,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of Iono models:                         %s\n', fnp.getRelDirPath(this.iono_dir, this.prj_home))];
             str = [str sprintf(' Name of the iono mnodels/maps files:              %s\n', this.iono_name)];
             str = [str sprintf(' Directory of Atmospehric Loading models:          %s\n', fnp.getRelDirPath(this.atm_load_dir, this.prj_home))];
-            str = [str sprintf(' Name of the Atmospehric Loading files:            %s\n', this.atm_load_name)];
+            str = [str sprintf(' Name of the non tidal Atmospehric Loading files:  %s\n', this.atm_load_name_nt)];
+            str = [str sprintf(' Name of the tidal Atmospehric Loading files:      %s\n', this.atm_load_name_t)];
             str = [str sprintf(' Directory of Vienna Mapping Function coefficients:%s\n', fnp.getRelDirPath(this.vmf_dir, this.prj_home))];
             str = [str sprintf(' Name of Vienna Mapping Function coefficients:     %s\n\n', this.vmf_name)];
             
@@ -2374,17 +2377,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
-        function stm_load_full_name = getAtmLoadFileName(this, date_start, date_stop)
+        function stm_load_full_name = getNTAtmLoadFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
             % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name));
+            file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name_nt));
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy;
                 date_stop = date_stop.getCopy;
             end
             stm_load_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function stm_load_full_name = getTAtmLoadFileName(this)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            stm_load_full_name = fnp.checkPath(strcat(strrep(this.atm_load_dir, '${YYYY}',''), filesep, this.atm_load_name_t));
         end
         
         function vmf_full_name = getVMFFileName(this, date_start, date_stop)
@@ -2489,7 +2499,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function setAtmLoadFile(this, atm_load_file)
             % Set the file name of the clock files
             % SYNTAX: this.getClkFile(erp_name)
-            this.atm_load_name = atm_load_file;
+            this.atm_load_name_nt = atm_load_file;
         end
         
         function setVMFFile(this, vmf_file)
@@ -2703,7 +2713,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function is_vmf = isVMF(this)
             % Get the VMF flag
             % SYNTAX: is_vmf = this.isVMF()
-            is_vmf = this.mapping_function == 2;
+            is_vmf = this.mapping_function == 2 || this.zd_model == 2;
         end
         
         function is_seamless = isSeamlessKF(this)

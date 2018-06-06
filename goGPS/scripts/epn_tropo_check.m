@@ -3,7 +3,7 @@
 project_path = '../../remote_data/project/EPN_test_set';
 %goGPS([project_path '/config/config.ini'],false);
 getResults();
-asi = parseMultiStationTropoSinex([project_path '/station/eur19757.tro']);
+asi = parseMultiStationTropoSinex([project_path '/station/asi19751.tro']);
 mode = 'interpolate', % possible values : 'aggregate', 'interpolate'
 ztd_diff = [];
 tge_diff = [];
