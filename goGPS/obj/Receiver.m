@@ -789,13 +789,13 @@ classdef Receiver < Exportable
                         st_idx = 1;
                     end
                     if isempty(end_idx)
-                        end_idx = length(dnanclock);
+                        end_idx = length(dnancoord);
                     end
                     if end_idx(1) < st_idx(1);
                         st_idx = [1; st_idx];
                     end
                     if st_idx(end) > end_idx(end)
-                        end_idx = [end_idx ; length(dnanclock)];
+                        end_idx = [end_idx ; length(dnancoord)];
                     end
                     for i = 1:length(st_idx)
                         is = st_idx(i);
@@ -7659,7 +7659,8 @@ classdef Receiver < Exportable
                             end
                         end
                         
-                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+%                         [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+enu0 = [266397.414915792          2174140.75902205          1966.06863072794];
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
                         if ~one_plot, subplot(3,1,1); end
