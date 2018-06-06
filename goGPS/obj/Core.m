@@ -220,22 +220,23 @@ classdef Core < handle
                 
                 rec(r) = Receiver(this.state.getConstellationCollector(), this.state.getRecPath(r, session), this.state.getDynMode(r)); %#ok<AGROW>
             end
-            this.rec = rec;
-            this.log.newLine();            
-
-            % Init Meteo and Sky objects
-            [~, time_lim_large] = this.getRecTimeSpan(session);
-            this.initSkySession(time_lim_large);
-            this.log.newLine();
-            this.initMeteoNetwork(time_lim_large);            
-            this.log.simpleSeparator();     
-            
-            % inti atmo object
-            if this.state.isVMF()
-                atmo = Atmosphere.getInstance();
-                atmo.initVMF(time_lim_large.first,time_lim_large.last);
+            if numel(rec) > 0
+                this.rec = rec;
+                this.log.newLine();
+                
+                % Init Meteo and Sky objects
+                [~, time_lim_large] = this.getRecTimeSpan(session);
+                this.initSkySession(time_lim_large);
+                this.log.newLine();
+                this.initMeteoNetwork(time_lim_large);
+                this.log.simpleSeparator();
+                
+                % inti atmo object
+                if this.state.isVMF()
+                    atmo = Atmosphere.getInstance();
+                    atmo.initVMF(time_lim_large.first,time_lim_large.last);
+                end
             end
-            
         end  
         
         function initSkySession(this, time_lim)
@@ -480,7 +481,7 @@ classdef Core < handle
             rin_list = this.rin_list;
         end
         
-        function [time_lim_small, time_lim_large] = getRecTimeSpan(this, session)
+        function [time_lim_small, time_lim_large, is_empty] = getRecTimeSpan(this, session)
             % return a GPS_Time containing the first and last epoch for a session
             %
             % OUTPUT:
@@ -489,7 +490,7 @@ classdef Core < handle
             %
             % SYNTAX:
             %   [time_lim_small, time_lim_large] = Core.getRecTimeSpan(session)            
-            
+            is_empty = true;
             fr = this.getRinFileList();
             if nargin == 1 % Start and stop limits of all the sessions                
                 time_lim_small = fr(1).first_epoch.first;
@@ -498,17 +499,17 @@ classdef Core < handle
                 tmp_large = tmp_small.getCopy;
                 for r = 2 : numel(fr)
                     if fr(r).isValid()
-                        if isnan(time_lim_small) || time_lim_small < fr(r).getFirstEpoch.first
+                        if isempty(time_lim_small) || time_lim_small < fr(r).getFirstEpoch.first
                             time_lim_small = fr(r).getFirstEpoch.first;
                         end
-                        if isnan(time_lim_large) || time_lim_large > fr(r).getFirstEpoch.first
+                        if isempty(time_lim_large) || time_lim_large > fr(r).getFirstEpoch.first
                             time_lim_large = fr(r).getFirstEpoch.first;
                         end
                         
-                        if isnan(tmp_small) || tmp_small > fr(r).getLastEpoch.last
+                        if isempty(tmp_small) || tmp_small > fr(r).getLastEpoch.last
                             tmp_small = fr(r).getLastEpoch.last;
                         end
-                        if isnan(tmp_large) || tmp_large < fr(r).getLastEpoch.last
+                        if isempty(tmp_large) || tmp_large < fr(r).getLastEpoch.last
                             tmp_large = fr(r).getLastEpoch.last;
                         end
                     end
@@ -522,17 +523,17 @@ classdef Core < handle
                 tmp_large = tmp_small.getCopy;
                 for r = 2 : numel(fr)
                     if fr(r).isValid(session)
-                        if isnan(time_lim_small) || time_lim_small < fr(r).getFirstEpoch(session)
+                        if isempty(time_lim_small) || time_lim_small < fr(r).getFirstEpoch(session)
                             time_lim_small = fr(r).getFirstEpoch(session);
                         end
-                        if isnan(time_lim_large) || time_lim_large > fr(r).getFirstEpoch(session)
+                        if isempty(time_lim_large) || time_lim_large > fr(r).getFirstEpoch(session)
                             time_lim_large = fr(r).getFirstEpoch(session);
                         end
                         
-                        if isnan(tmp_small) || tmp_small > fr(r).getLastEpoch(session)
+                        if isempty(tmp_small) || tmp_small > fr(r).getLastEpoch(session)
                             tmp_small = fr(r).getLastEpoch(session);
                         end
-                        if isnan(tmp_large) || tmp_large < fr(r).getLastEpoch(session)
+                        if isempty(tmp_large) || tmp_large < fr(r).getLastEpoch(session)
                             tmp_large = fr(r).getLastEpoch(session);
                         end
                     end

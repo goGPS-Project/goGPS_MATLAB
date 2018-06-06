@@ -203,34 +203,34 @@ classdef File_Rinex < Exportable
                 if any(this.is_valid_list())
                     first_epoch = this.first_epoch.getCopy;
                 else
-                    first_epoch = nan;
+                    first_epoch = GPS_Time();
                 end
             else
                 if this.is_valid_list(session)
                     id_ss = cumsum(this.is_valid_list);
                     first_epoch = this.first_epoch.getEpoch(id_ss(session));
                 else
-                    first_epoch = nan;
+                    first_epoch = GPS_Time();
                 end
             end
         end
 
-        function first_epoch = getLastEpoch(this, session)
+        function last_epoch = getLastEpoch(this, session)
             %  get the last epoch of a session
             % SYNTAX
             %   first_epoch = this.getFirstEpoch(session)
             if nargin == 1
                 if any(this.is_valid_list())
-                    first_epoch = this.last_epoch.getCopy;
+                    last_epoch = this.last_epoch.getCopy;
                 else
-                    first_epoch = nan;
+                    last_epoch = GPS_Time();
                 end
             else
                 if this.is_valid_list(session)
                     id_ss = cumsum(this.is_valid_list);
-                    first_epoch = this.last_epoch.getEpoch(id_ss(session));
+                    last_epoch = this.last_epoch.getEpoch(id_ss(session));
                 else
-                    first_epoch = nan;
+                    last_epoch = GPS_Time();
                 end
             end
         end
