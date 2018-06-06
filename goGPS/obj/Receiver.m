@@ -3760,7 +3760,9 @@ classdef Receiver < Exportable
             if ~this.isMultiFreq()
                 this.updateErrIono();
             end
-            this.updateErrTropo();
+            if sum(this.xyz) ~=0
+                this.updateErrTropo();
+            end
             % for each unique go_id
             for i = u_sat'
                 
@@ -6194,6 +6196,8 @@ classdef Receiver < Exportable
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     coarsePositioning(this, obs_set)
                 end
+                this.dt(:) = 0;
+                this.removeBadTracking();
                 
                 
                 this.updateAllAvailIndex();
@@ -6260,7 +6264,22 @@ classdef Receiver < Exportable
             this.codeStaticPositioning(ep_coarse, 15);
         end
         
-        function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off)
+        function removeBadTracking(this)
+            % requires approximate postioin
+            [pr, id_pr] = this.getPseudoRanges;
+            [ph, wl, id_ph] = this.getPhases;
+            sensor =  pr - this.getSyntPrObs;
+            bad_track = abs(sensor) > 1e4;
+            bad_track = flagExpand(bad_track, 2);
+            pr(bad_track) = 0;
+            ph(bad_track) = 0;
+            this.setPseudoRanges(pr, id_pr);
+            this.setPhases(ph, wl, id_ph);
+            
+            
+        end
+        
+        function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
             ls = Least_Squares_Manipulator();
             if nargin < 2
                 if ~isempty(this.id_sync)
@@ -6272,15 +6291,20 @@ classdef Receiver < Exportable
             if nargin < 3
                 cut_off = this.state.getCutOff();
             end
+            if nargin < 4
+                num_reweight = 0;
+            end
             ls.setUpCodeSatic( this, id_sync, cut_off);
             ls.Astack2Nstack();
             [x, res, s02] = ls.solve();
             
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
-            %             ls.reweightHuber();
-            %             ls.Astack2Nstack();
-            %             [x, res, s02] = ls.solve();
+            for i = 1 : num_reweight
+                        ls.reweightHuber();
+                        ls.Astack2Nstack();
+                        [x, res, s02] = ls.solve();
+            end
             
             dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
             if isempty(dpos)
@@ -6945,6 +6969,16 @@ classdef Receiver < Exportable
             
          end
         
+         function fixPPP(this)
+             % coarse estimation of amb
+             % apply dt
+             % remove grupo delay
+             % estaimet WL
+             % estimate narrow lane
+             % -> amb VCV ???
+             % get undifferenced
+             % new estimation round with fixed ambs
+         end
         function interpResults(this)
             % When computing a solution with subsampling not all the epochs have an estimation
             id_rem = true(this.time.length, 1);
