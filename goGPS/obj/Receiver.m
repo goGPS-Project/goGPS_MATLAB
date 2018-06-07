@@ -696,8 +696,7 @@ classdef Receiver < Exportable
                 [~, idx] = intersect(this.go_id, go_id);
                 this.remObs(idx);
             end
-        end
-        
+        end        
         
         function remBadPrObs(this, thr)
             % remove bad pseudo-ranges 
@@ -876,6 +875,19 @@ classdef Receiver < Exportable
             end
         end
         
+        function remUnderCutOff(this, cut_off)
+            % removes observations with an elevation lower than cut_off
+            % 
+            % SYNTAX
+            %   this.remUnderCutOff(cut_off)
+            if nargin == 1
+                cut_off = this.state.getCutOff;
+            end
+            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', cut_off)));
+            mask = this.sat.el > cut_off;
+            this.obs = this.obs .* mask(:, this.go_id)';
+        end
+        
         function removeShortArch(this, min_arc)
             % removes arch shorter than
             % SYNTAX
@@ -957,11 +969,7 @@ classdef Receiver < Exportable
             
             %----------------------------
             % Outlier Detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
-            mask = this.sat.el > this.state.cut_off;
-            this.obs = this.obs .* mask(:, this.go_id)';
+            %----------------------------            
             
             % mark all as outlier and interpolate
             % get observed values
