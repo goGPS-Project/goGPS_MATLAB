@@ -199,42 +199,74 @@ classdef Atmosphere < handle
                     exponent = sscanf(line(1:60),'%f')';
                 end
             end
-            lim(1:l,:) = [];
-            txt(1:(lim(1,1)-1)) = [];
-            lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
-            if isempty(this.ionex.data)
-                this.ionex.first_time = first_epoch;
-                this.ionex.first_time_double = first_epoch.getGpsTime();
-                this.ionex.d_t = interval;
-                this.ionex.n_t =  round((last_epoch - first_epoch) / interval);
-                this.ionex.first_lat= lats(1);
-                this.ionex.d_lat = lats(3);
-                this.ionex.n_lat = round((lats(2)-lats(1))/lats(3))+1;
-                this.ionex.first_lon= lons(1);
-                this.ionex.d_lon = lons(3);
-                this.ionex.n_lon = round((lons(2)-lons(1))/lons(3))+1;
-                this.ionex.height = height;
-                this.ionex.data = zeros(round((lats(2)-lats(1))/lats(3))+1, round((lons(2)-lons(1))/lons(3))+1, this.ionex.n_t);
-            end
-            n_line_1_lat = ceil(size(this.ionex.data,2)*5 / 80);
-            n_lat = size(this.ionex.data,1);
-            n_lon = size(this.ionex.data,2);
-            nt = this.ionex.n_t;
-            lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
-            st_l  = lim(lines, 1);
-            cols = [0:(n_lon*5+n_line_1_lat-2)];
-            idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
-            idx(:,81:81:length(cols))   = [];
-            idx(:,366:end) = []; %% trial and error fix bug fix
-            vals = txt(serialize(idx'));
-            vals = reshape(vals,5,length(vals)/5);
-            nums = sscanf(vals,'%f');
-            this.ionex.data = permute(reshape(nums,n_lon,n_lat,nt),[2,1,3])*10^(exponent);
-            if mod(lons(1), 360) == mod(lons(2),360)
-                this.ionex.data(:,end,:) = [];
-                n_lon = n_lon -1;
-            end
+            %-------------------
+            isempty_obj = isempty(this.ionex.data);
+             if not(isempty_obj) && (first_epoch >= this.ionex.first_time) && (first_epoch - this.ionex.first_time) < this.ionex.d_t *  this.ionex.n_t
+                %% file is contained in the data already
+                this.log.addMessage(this.log.indent('File already present, skipping'));
+            else
+                if not(isempty_obj) && ((first_epoch - this.ionex.first_time) > (this.ionex.d_t *  this.ionex.n_t +3600*24) || (first_epoch - this.ionex.first_time) < (-3600*24))
+                    %% file too far away emptying the object
+                    this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
+                    this.clearAtmLoad();
+                    isempty_obj = true;
+                end
+                lim(1:l,:) = [];
+                txt(1:(lim(1,1)-1)) = [];
+                lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
+                n_lat = round((lats(2)-lats(1))/lats(3))+1;
+                n_lon = round((lons(2)-lons(1))/lons(3))+1;
+                n_line_1_lat = ceil(n_lon*5 / 80);
                 
+                nt = round((last_epoch - first_epoch) / interval);
+                lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
+                st_l  = lim(lines, 1);
+                cols = [0:(n_lon*5+n_line_1_lat-2)];
+                idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
+                idx(:,81:81:length(cols))   = [];
+                idx(:,366:end) = []; %% trial and error fix bug fix
+                vals = txt(serialize(idx'));
+                vals = reshape(vals,5,length(vals)/5);
+                nums = sscanf(vals,'%f');
+                data = permute(reshape(nums,n_lon,n_lat,nt),[2,1,3])*10^(exponent);
+                if mod(lons(1), 360) == mod(lons(2),360)
+                    data(:,end,:) = [];
+                    n_lon = n_lon -1;
+                end
+                if isempty_obj
+                    this.ionex.first_time = first_epoch;
+                    this.ionex.first_time_double = first_epoch.getGpsTime();
+                    this.ionex.d_t = interval;
+                    this.ionex.n_t =  nt;
+                    this.ionex.first_lat= lats(1);
+                    this.ionex.d_lat = lats(3);
+                    this.ionex.n_lat = n_lat ;
+                    this.ionex.first_lon= lons(1);
+                    this.ionex.d_lon = lons(3);
+                    this.ionex.n_lon = n_lon;
+                    this.ionex.height = height;
+                    this.ionex.data = data;
+                else
+                    if first_epoch < this.ionex.first_time ;
+                        this.ionex.first_time = first_epoch;
+                        this.ionex.first_time_double = first_epoch.getGpsTime();
+                        this.ionex.data = cat(3,data,this.ionex.data);
+                    else
+                        this.ionex.data = cat(3,this.ionex.data,data);
+                    end
+                    this.ionex.n_t = this.ionex.n_t + 24;
+                end
+             end         
+        end
+        
+        function initIonex(this, dsa, dso)
+            dso = dso.getCopy();
+            dsa = dsa.getCopy();
+            dso.addSeconds(6*3600);
+            fname = this.state.getIonoFileName( dsa, dso);
+            for i = 1 : length(fname)
+                this.importIonex(fname{i});
+            end
         end
         
         function initVMF(this, dsa, dso)
@@ -368,7 +400,7 @@ classdef Atmosphere < handle
                 data_tmp_ah = reshape(data_tmp.data(:,3),144,91)';
                 data_tmp_aw = reshape(data_tmp.data(:,4),144,91)';
                 data_tmp_zhd = reshape(data_tmp.data(:,5),144,91)';
-                data_tmp_zwd = reshape(data_tmp.data(:,5),144,91)';
+                data_tmp_zwd = reshape(data_tmp.data(:,6),144,91)';
                 if isempty_obj
                     this.vmf_coeff.ah = data_tmp_ah;
                     this.vmf_coeff.aw = data_tmp_aw;
