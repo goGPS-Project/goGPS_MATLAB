@@ -2218,7 +2218,7 @@ classdef Core_UI < handle
         
         function setCheckBox(this, name_prop, value)
             for i = 1:length(this.check_boxes)
-                if strcmp(name_prop,this.check_boxes{i}.UserData)
+                if this.check_boxes{i}.isvalid && strcmp(name_prop, this.check_boxes{i}.UserData)
                     this.check_boxes{i}.Value = value;
                 end
             end
