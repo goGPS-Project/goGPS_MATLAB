@@ -860,15 +860,15 @@ classdef Receiver < Exportable
             if (nargin == 1)
                 snr_thr = this.state.getSnrThr();
             end
-            this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
-
+            
             [snr1, id_snr] = this.getObs('S1');
+            
             snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
             id_snr = find(id_snr);
-            this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr))));
-
             if ~isempty(id_snr)
-                this.log.addMarkedMessage(sprintf('Removing data with SNR (on L1) smaller than %.1f', snr_thr));
+                this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr))));
+                
                 for s = 1 : numel(id_snr)
                     this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
                 end
@@ -3364,7 +3364,9 @@ classdef Receiver < Exportable
             % get observation index corresponfing to the flag using best
             % channel according to the definition in GPS_SS, GLONASS_SS, ...
             % SYNTAX this.getObsIdx(flag, <system>)
-            
+            obs = [];
+            idx = [];
+            snr = [];
             cycle_slips = [];
             if length(flag)==3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
@@ -3660,10 +3662,14 @@ classdef Receiver < Exportable
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
-            
-            
+                        
             [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
             [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
+            
+            id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
+            %if any(id_ph)
+            %    [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c);
+            %end
             
             fun1 = @(wl1,wl2) 0.65;
             fun2 = @(wl1,wl2) 0.35;
@@ -5010,7 +5016,7 @@ classdef Receiver < Exportable
             if this.iono_status == 0 && this.state.getIonoManagement == 3
                 this.log.addMarkedMessage('Applying Ionosphere model');
                 this.ionoModel(1);
-                this.iono_status = 1; %applied
+                this.iono_status = 1; % applied
             end
         end
         
@@ -5021,25 +5027,27 @@ classdef Receiver < Exportable
                 this.iono_status = 0; %not applied
             end
         end
-
+        
         function ionoModel(this,sign)
-        %DESCRIPTION: apply the selcted iono model
-        %USAGE: this.applyIonoModel()
-        ph_obs = this.obs_code(:,1) == 'L';
-        pr_obs = this.obs_code(:,1) == 'C';
-        for i = 1 : size(this.sat.err_iono,2)
-            idx_sat = this.go_id == i & (ph_obs | pr_obs);
-            if sum(idx_sat) >0
-                for s = find(idx_sat)'
-                    iono_delay = this.sat.err_iono(:,i) * this.wl(s)^2;
-                    if ph_obs(s) > 0
-                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign*zero2nan(iono_delay'));
-                    else
-                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign*zero2nan(iono_delay'));
+            % Apply the selected iono model
+            %
+            % SYNTAX
+            %   this.applyIonoModel()
+            ph_obs = this.obs_code(:,1) == 'L';
+            pr_obs = this.obs_code(:,1) == 'C';
+            for i = 1 : size(this.sat.err_iono,2)
+                idx_sat = this.go_id == i & (ph_obs | pr_obs);
+                if sum(idx_sat) >0
+                    for s = find(idx_sat)'
+                        iono_delay = this.sat.err_iono(:,i) * this.wl(s)^2;
+                        if ph_obs(s) > 0
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign*zero2nan(iono_delay'));
+                        else
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign*zero2nan(iono_delay'));
+                        end
                     end
                 end
             end
-        end
         end
         
         %--------------------------------------------------------
@@ -7049,6 +7057,7 @@ classdef Receiver < Exportable
             this.obs(L1_idx, :) = L1(:,this.go_id(L1_idx))';
             this.obs(L2_idx, :) = L2(:,this.go_id(L2_idx))';
         end
+        
         function interpResults(this)
             % When computing a solution with subsampling not all the epochs have an estimation
             id_rem = true(this.time.length, 1);

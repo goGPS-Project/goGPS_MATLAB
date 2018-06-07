@@ -2755,9 +2755,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function is_iono_free = isIonoFree(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_iono_free = isIonoFree(this)
-            is_iono_free = this.iono_management;
+            is_iono_free = this.iono_management == 1;
         end
         
+        function is_iono_ext = isIonoExtModel(this)
+            % Check whether the iono external model is enabled
+            % SYNTAX: is_iono_ext = isIonoExtModel(this)
+            is_iono_ext = this.iono_management == 3;
+        end
         function is_solid_earth = isSolidEarth(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_solid_earth = isSolidEarth(this)
