@@ -5013,7 +5013,7 @@ classdef Receiver < Exportable
         end
 
         function applyIonoModel(this)
-            if this.iono_status == 0 && this.state.getIonoManagement == 3
+            if this.iono_status == 0 
                 this.log.addMarkedMessage('Applying Ionosphere model');
                 this.ionoModel(1);
                 this.iono_status = 1; % applied
@@ -6282,17 +6282,17 @@ classdef Receiver < Exportable
             this.codeStaticPositioning(ep_coarse, 15);
         end
         
-        function removeBadTracking(this)
+        function removeBadTracking(this) %%% imprtnat check!! if ph obervation with no code are deleted elsewhere
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
-            [ph, wl, id_ph] = this.getPhases;
+            %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs -repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
             bad_track = abs(sensor) > 1e4;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
-            ph(bad_track) = 0;
+            %ph(bad_track) = 0;
             this.setPseudoRanges(pr, id_pr);
-            this.setPhases(ph, wl, id_ph);
+            %this.setPhases(ph, wl, id_ph);
             
             
         end
