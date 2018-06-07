@@ -400,7 +400,7 @@ classdef Atmosphere < handle
                 data_tmp_ah = reshape(data_tmp.data(:,3),144,91)';
                 data_tmp_aw = reshape(data_tmp.data(:,4),144,91)';
                 data_tmp_zhd = reshape(data_tmp.data(:,5),144,91)';
-                data_tmp_zwd = reshape(data_tmp.data(:,5),144,91)';
+                data_tmp_zwd = reshape(data_tmp.data(:,6),144,91)';
                 if isempty_obj
                     this.vmf_coeff.ah = data_tmp_ah;
                     this.vmf_coeff.aw = data_tmp_aw;
