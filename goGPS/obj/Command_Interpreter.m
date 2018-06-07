@@ -688,7 +688,7 @@ classdef Command_Interpreter < handle
                 [snr_thr, found] = this.getNumericPar(tok, this.PAR_SNRTHR.par);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping obs with SNR (L1) above %d dbHZ for receiver %d: %s', snr_thr, r, rec(r).getMarkerName()));
+                        % this.log.addMarkedMessage(sprintf('Keeping obs with SNR (L1) above %d dbHZ for receiver %d: %s', snr_thr, r, rec(r).getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
@@ -698,7 +698,7 @@ classdef Command_Interpreter < handle
                 [cut_off, found] = this.getNumericPar(tok, this.PAR_CUTOFF.par);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping obs with elevation above %.1f for receiver %d: %s', cut_off, r, rec(r).getMarkerName()));
+                        % this.log.addMarkedMessage(sprintf('Keeping obs with elevation above %.1f for receiver %d: %s', cut_off, r, rec(r).getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
