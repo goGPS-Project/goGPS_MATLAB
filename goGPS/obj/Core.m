@@ -236,6 +236,10 @@ classdef Core < handle
                     atmo = Atmosphere.getInstance();
                     atmo.initVMF(time_lim_large.first,time_lim_large.last);
                 end
+                if this.state.needIonoMap()
+                    atmo = Atmosphere.getInstance();
+                    atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                end
             end
         end  
         

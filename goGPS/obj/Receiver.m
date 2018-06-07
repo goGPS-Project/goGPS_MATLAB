@@ -5479,8 +5479,6 @@ classdef Receiver < Exportable
             
             this.updateCoordinates();
             atmo = Atmosphere.getInstance();
-            fname = this.state.getIonoFileName(this.time.first, this.time.getSubSet(this.time.length));
-            atmo.importIonex(fname{1});
             [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff] = atmo.getHOIdelayCoeff(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time);
             
         end
@@ -8406,79 +8404,92 @@ classdef Receiver < Exportable
         end
         
         function showTropoPar(this, par_name, new_fig)
-            % one function to rule them all            
+            % one function to rule them all
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2)
-                rec_ok(r) = any(~isnan(this(:,r).getZtd)); 
+                switch lower(par_name)
+                    case 'ztd'
+                        rec_ok(r) = any(~isnan(this(:,r).getZtd));
+                    case 'zwd'
+                        rec_ok(r) = any(~isnan(this(:,r).getZwd));
+                    case 'pwv'
+                        rec_ok(r) = any(~isnan(this(:,r).getPwv));
+                    case 'zhd'
+                        rec_ok(r) = any(~isnan(this(:,r).getAprZhd));
+                end               
             end
             rec_list = this(:, rec_ok);
-            
-            if nargin < 3
-                new_fig = true;
-            end
-            
-            switch lower(par_name)
-                case 'ztd'
-                    [tropo, t] = rec_list.getZtd();
-                case 'zwd'
-                    [tropo, t] = rec_list.getZwd();
-                case 'pwv'
-                    [tropo, t] = rec_list.getPwv();
-                case 'zhd'
-                    [tropo, t] = rec_list.getAprZhd();
-            end
-                    
-            if ~iscell(tropo)
-                tropo = {tropo};
-                t = {t};
-            end
-            if isempty(tropo)
-                rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
+            if numel(rec_list) == 0
+                this(1).log.addError('No valid troposphere is present in the receiver list');
             else
-                if new_fig
-                    f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
-                    old_legend = {};
+                
+                if nargin < 3
+                    new_fig = true;
+                end
+                
+                switch lower(par_name)
+                    case 'ztd'
+                        [tropo, t] = rec_list.getZtd();
+                    case 'zwd'
+                        [tropo, t] = rec_list.getZwd();
+                    case 'pwv'
+                        [tropo, t] = rec_list.getPwv();
+                    case 'zhd'
+                        [tropo, t] = rec_list.getAprZhd();
+                end
+                
+                if ~iscell(tropo)
+                    tropo = {tropo};
+                    t = {t};
+                end
+                if isempty(tropo)
+                    rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
                 else
-                    l = legend;
-                    old_legend = get(l,'String');
-                end
-                for r = 1 : size(rec_list, 2)
-                    rec = rec_list(~rec_list(:,r).isempty, r);
-                    if ~isempty(rec)
-                        switch lower(par_name)
-                            case 'ztd'
-                                [tropo, t] = rec.getZtd();
-                            case 'zwd'
-                                [tropo, t] = rec.getZwd();
-                            case 'pwv'
-                                [tropo, t] = rec.getPwv();
-                            case 'zhd'
-                                [tropo, t] = rec.getAprZhd();
-                        end
-                        if new_fig
-                            plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                        else
-                            plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
-                        end
-                        outm{r} = rec(1).getMarkerName();
+                    if new_fig
+                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
+                        old_legend = {};
+                    else
+                        l = legend;
+                        old_legend = get(l,'String');
                     end
+                    for r = 1 : size(rec_list, 2)
+                        rec = rec_list(~rec_list(:,r).isempty, r);
+                        if ~isempty(rec)
+                            switch lower(par_name)
+                                case 'ztd'
+                                    [tropo, t] = rec.getZtd();
+                                case 'zwd'
+                                    [tropo, t] = rec.getZwd();
+                                case 'pwv'
+                                    [tropo, t] = rec.getPwv();
+                                case 'zhd'
+                                    [tropo, t] = rec.getAprZhd();
+                            end
+                            if new_fig
+                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
+                            else
+                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
+                            end
+                            outm{r} = rec(1).getMarkerName();
+                        end
+                    end
+                    
+                    outm = [old_legend, outm];
+                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                    n_entry = numel(outm);
+                    icons = icons(n_entry + 2 : 2 : end);
+                    
+                    for i = 1 : numel(icons)
+                        icons(i).MarkerSize = 16;
+                    end
+                    
+                    %ylim(yl);
+                    %xlim(t(time_start) + [0 win_size-1] ./ 86400);
+                    setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                    h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
+                    grid on;
+                    h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 end
-                
-                outm = [old_legend, outm];
-                [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
-                n_entry = numel(outm);
-                icons = icons(n_entry + 2 : 2 : end);
-                
-                for i = 1 : numel(icons)
-                    icons(i).MarkerSize = 16;
-                end
-                
-                %ylim(yl);
-                %xlim(t(time_start) + [0 win_size-1] ./ 86400);
-                setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
-                h = ylabel([par_name ' [m]']); h.FontWeight = 'bold';
-                grid on;
-                h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         
