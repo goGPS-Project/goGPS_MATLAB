@@ -12,7 +12,25 @@ classdef Core_Utils < handle
                 idx(i) = find(find_list == to_find_el(i),1);
             end
         end
+
+        function num = code2Char2Num(str2)
+            % Convert a 2 char string into a numeric value (float)
+            % SYNTAX
+            %   num = Core_Utils.code3ch2Num(str3);
+            
+            num = str2(:,1:2) * [2^8 1]';
+        end
         
+        function str2 = num2Code2Char(num)
+            % Convert a numeric value (float) of a 2 char string
+            % SYNTAX
+            %   str3 = Core_Utils.num2Code3ch(num)
+            str2 = char(zeros(numel(num), 2));
+            str2(:,1) = char(floor(num / 2^8));
+            num = num - str2(:,2) * 2^8;
+            str2(:,2) = char(num);
+        end
+
         function num = code3Char2Num(str3)
             % Convert a 3 char string into a numeric value (float)
             % SYNTAX
@@ -69,6 +87,14 @@ classdef Core_Utils < handle
             % SYNTAX
             %   str3 = Core_Utilis.unique3ch(str3)
             str3 = Core_Utils.num2Code3Char(unique(Core_Utils.code3Char2Num(str3)));
+        end
+        
+        function str2 = unique2ch(str2)
+            % Perform unique on an array of 2 char codes
+            %
+            % SYNTAX
+            %   str2 = Core_Utilis.unique2ch(str3)
+            str2 = Core_Utils.num2Code2Char(unique(Core_Utils.code2Char2Num(str2)));
         end
         
         function [antenna_PCV] = readAntennaPCV(filename, antmod, date_limits)
