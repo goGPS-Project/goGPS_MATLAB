@@ -1887,7 +1887,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function remote_source_file = getRemoteSourceFile(this)
             fnp = File_Name_Processor();
-            remote_ini_path = [this.remote_res_conf_dir filesep 'remote_resource.ini'];
+            remote_ini_path = [this.remote_res_conf_dir iif(isempty(this.remote_res_conf_dir), '', filesep) 'remote_resource.ini'];
             remote_ini_path = fnp.getFullDirPath(remote_ini_path, this.getHomeDir);
             remote_source_file = fnp.checkPath(remote_ini_path);
             if ~exist(remote_source_file, 'file')
