@@ -789,13 +789,13 @@ classdef Receiver < Exportable
                         st_idx = 1;
                     end
                     if isempty(end_idx)
-                        end_idx = length(dnancoord);
+                        end_idx = length(nan_coord);
                     end
-                    if end_idx(1) < st_idx(1);
+                    if end_idx(1) < st_idx(1)
                         st_idx = [1; st_idx];
                     end
                     if st_idx(end) > end_idx(end)
-                        end_idx = [end_idx ; length(dnancoord)];
+                        end_idx = [end_idx ; length(nan_coord)];
                     end
                     for i = 1:length(st_idx)
                         is = st_idx(i);
@@ -820,13 +820,13 @@ classdef Receiver < Exportable
                         st_idx = 1;
                     end
                     if isempty(end_idx)
-                        end_idx = length(dnanclock);
+                        end_idx = length(nan_clock);
                     end
-                    if end_idx(1) < st_idx(1);
+                    if end_idx(1) < st_idx(1)
                         st_idx = [1; st_idx];
                     end
                     if st_idx(end) > end_idx(end)
-                        end_idx = [end_idx ; length(dnanclock)];
+                        end_idx = [end_idx ; length(nan_clock)];
                     end
                     for i = 1:length(st_idx)
                         is = st_idx(i);
@@ -2111,6 +2111,10 @@ classdef Receiver < Exportable
             %   marker_name = getMarkerName(this)            
             marker_name = File_Name_Processor.getFileName(this.rinex_file_name);
             marker_name = marker_name(1 : min(4, length(marker_name)));
+        end
+        
+        function getOutName(this)
+            
         end
         
         function out_prefix = getOutPrefix(this)
