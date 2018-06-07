@@ -86,7 +86,7 @@ classdef Core_Reference_Frame < handle
                     this.log.addWarning(sprintf('      File %s not found', fname));
                     return
                 end
-                this.log.addMessage(sprintf('      Opening file %s for reading', fname));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fname)));
                 txt = fread(fid,'*char')';
                 fclose(fid);
                 

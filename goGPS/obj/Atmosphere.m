@@ -164,7 +164,7 @@ classdef Atmosphere < handle
                 this.log.addWarning(sprintf('      File %s not found', filename));
                 return
             end
-            this.log.addMessage(sprintf('      Opening file %s for reading', filename));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', filename)));
             txt = fread(fid,'*char')';
             fclose(fid);
             

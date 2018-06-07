@@ -572,7 +572,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_SP3)));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
                 
                 txt = fread(f_sp3,'*char')';
                 fclose(f_sp3);
@@ -725,7 +725,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_clk)));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_clk))));
                 t0 = tic;
                 if isempty(this.clock)
                     empty_clk = true;
@@ -843,7 +843,7 @@ classdef Core_Sky < handle
             Xrt = [];
             Yrt = [];
             for f = 1 : length(filename)
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename{f})));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename{f}))));
                 fid = fopen(filename{f},'rt');
                 
                 if fid == -1
@@ -1018,7 +1018,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('      File %s not found', file_name));
                 return
             end
-            this.log.addMessage(sprintf('      Opening file %s for reading', file_name));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
             txt = fread(fid,'*char')';
             fclose(fid);
             
@@ -1824,7 +1824,7 @@ classdef Core_Sky < handle
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
-            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
             
             this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
             this.ant_pco = zeros(1, this.cc.getNumSat(),3);
