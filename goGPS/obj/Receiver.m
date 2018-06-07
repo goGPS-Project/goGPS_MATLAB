@@ -7969,36 +7969,41 @@ classdef Receiver < Exportable
             end
         end
         
-        function showSNR_p(this, sys_c_list, flag_smooth)
-            % Plot Signal to Noise Ration in a skyplot
-            % SYNTAX this.plotSNR(sys_c)
-            
-            % SNRs
-            if nargin < 2 || isempty(sys_c_list)
-                sys_c_list = unique(this.system);
-            end
-            
-            for sys_c = sys_c_list
-                for b = 1:8
-                    [snr, snr_id] = this.getSNR(sys_c, num2str(b));
-                    if nargin > 2 && flag_smooth
-                        snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
-                    end
+        function f_handle = showSNR_p(this, sys_c_list, flag_smooth)
+           % Plot Signal to Noise Ration in a skyplot
+           % SYNTAX f_handles = this.plotSNR(sys_c)
+           
+           % SNRs
+           if nargin < 2 || isempty(sys_c_list)
+               sys_c_list = unique(this.system);
+           end
+           
+           idx_f = 0;
+           for sys_c = sys_c_list
+               for b = 1 : 9 % try all the bands
+                   [snr, snr_id] = this.getSNR(sys_c, num2str(b));
+                   if nargin > 2 && flag_smooth
+                       snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                   end
 
-                    if any(snr_id)
-                        f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                        
-                        id_ok = (~isnan(snr));
-                        az = this.sat.az(:,this.go_id(snr_id));
-                        el = this.sat.el(:,this.go_id(snr_id));
-                        polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                        colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                    end
-                end
-            end
-            
-        end
+                   if any(snr_id) && any(snr(:))                        
+                       idx_f = idx_f +1;
+                       f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                       f_handle(idx_f) = f;
+                       id_ok = (~isnan(snr));
+                       az = this.sat.az(:,this.go_id(snr_id));
+                       el = this.sat.el(:,this.go_id(snr_id));
+                       polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                       colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                       h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                   end
+               end
+           end
+           
+           if idx_f == 0
+               f_handle = [];
+           end           
+        end       
         
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
