@@ -1240,7 +1240,7 @@ classdef Receiver < Exportable
                 end
             end
             
-            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
+            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
             
             this.sat.cycle_slip_idx_ph = poss_slip_idx;
             
@@ -3756,7 +3756,7 @@ classdef Receiver < Exportable
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
             %  get syntetic observation for code or phase
             obs_type = {'code', 'phase'};
-            this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1}),6));
+            this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1})));
             idx_obs = [];
             if nargin < 3
                 sys_c = this.cc.sys_c;
@@ -4941,7 +4941,7 @@ classdef Receiver < Exportable
             end
             
             if nargin < 2 || strcmp(go_id,'all')
-                this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
+                this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
             end
@@ -4982,7 +4982,7 @@ classdef Receiver < Exportable
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
-            this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
+            this.log.addMessage(this.log.indent('Updating ionospheric errors'))
             if nargin < 2
                 
                 go_id  = 1: this.getMaxSat();
@@ -5184,7 +5184,7 @@ classdef Receiver < Exportable
             %DESCRIPTION upadte the correction related to solid earth
             % solid tides, ocean loading, pole tides.
             if isempty(this.sat.solid_earth_corr)
-                this.log.addMessage(this.log.indent('Updating solid earth corrections',6))
+                this.log.addMessage(this.log.indent('Updating solid earth corrections'))
                 this.sat.solid_earth_corr = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
@@ -5786,7 +5786,7 @@ classdef Receiver < Exportable
                                     end
                                 else
                                     if isempty(f_code_history) || ~sum(idxCharLines(f_code_history, f_code))
-                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.ant_type, f_code),6));
+                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.ant_type, f_code)));
                                         f_code_history = [f_code_history;f_code];
                                     end
                                 end
@@ -5941,7 +5941,7 @@ classdef Receiver < Exportable
         function applyPCV(this)
             if (this.pcv_delay_status == 0) && this.state.isRecPCV
                 this.log.addMarkedMessage('Applying PCV corrections');
-                tic, this.applyRemovePCV(1); toc
+                this.applyRemovePCV(1);
                 this.pcv_delay_status = 1; % applied
             end
         end
@@ -6224,14 +6224,14 @@ classdef Receiver < Exportable
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.log.addMessage(this.log.indent('Improving estimation',6))
+                this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeStaticPositioning(this.id_sync, 15);
                 this.removeBadTracking();
                 
                 this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation',6))
+                this.log.addMessage(this.log.indent('Final estimation'))
                 [~, s02] = this.codeStaticPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ))
                 this.s02_ip = s02;
                 
                 % final estimation of time of flight
@@ -6268,7 +6268,7 @@ classdef Receiver < Exportable
             this.initAvailIndex(ep_coarse);
             this.updateAllTOT();
             
-            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
+            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data'))
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
@@ -6443,13 +6443,13 @@ classdef Receiver < Exportable
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.log.addMessage(this.log.indent('Improving estimation',6))
+                this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeDynamicPositioning(this.id_sync, 15);
                 
                 this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation',6))
+                this.log.addMessage(this.log.indent('Final estimation'))
                 [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ))
                 this.s02_ip = s02;
                 
                 % final estimation of time of flight

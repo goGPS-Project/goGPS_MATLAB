@@ -62,7 +62,7 @@ for file_blq=1:size(filename,1)
         fid = fopen(char(filename(file_blq,:)),'r');
         if (fid ~= -1)
             if (file_blq == 1)
-                log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...'], 6));
+                log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...']));
             end
             while (~feof(fid) && status < length(marker))
                 line = fgetl(fid);
