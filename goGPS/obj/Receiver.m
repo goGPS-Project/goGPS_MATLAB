@@ -4539,7 +4539,9 @@ classdef Receiver < Exportable
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);
             % lim = [lim(1) lim(end)];
-            dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'pchip');
+            dt_w_border = [this.dt(1); zero2nan(this.dt(:,1)); this.dt(end,1)];
+            dt = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
+            dt([1 end] ) = [];
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if lim(i,2) - lim(i,1) > 5
