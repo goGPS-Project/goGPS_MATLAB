@@ -962,7 +962,7 @@ classdef Receiver < Exportable
         
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
-            % PARAMETRS
+            %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
             sa_thr = this.state.getMinArc();  % short arc threshold
@@ -989,9 +989,9 @@ classdef Receiver < Exportable
             
             % test sensor variance
             tmp = sensor_ph(~isnan(sensor_ph));
-            tmp(abs(tmp)>4) = [];
+            tmp(abs(tmp) > 4) = [];
             std_sensor = mean(movstd(tmp(:),900));
-            
+            %%
             % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
             % use as a sensor the time second derivate
             if std_sensor > ol_thr
@@ -4980,7 +4980,7 @@ classdef Receiver < Exportable
            end
         end
         
-        function updateErrIono(this, go_id)
+        function updateErrIono(this, go_id, iono_model_override)
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
@@ -4990,8 +4990,11 @@ classdef Receiver < Exportable
                 go_id  = 1: this.getMaxSat();
             end            
           
+            if nargin < 3
+                iono_model_override = this.state.getIonoModel;
+            end
             this.updateCoordinates();       
-            switch this.state.getIonoModel
+            switch iono_model_override
                 case 1 % no model
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
                 case 2 % Klobuchar model
@@ -5000,14 +5003,13 @@ classdef Receiver < Exportable
                             idx = this.sat.avail_idx(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());  
                             this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
-                            
                         end
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                     end
                 case 3 % IONEX
                     atm = Atmosphere.getInstance();
-                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.h_ellips,this.time);
+                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
         end
 
@@ -5038,11 +5040,11 @@ classdef Receiver < Exportable
                 idx_sat = this.go_id == i & (ph_obs | pr_obs);
                 if sum(idx_sat) >0
                     for s = find(idx_sat)'
-                        iono_delay = this.sat.err_iono(:,i) * this.wl(s)^2;
+                        iono_delay = this.sat.err_iono(:,i) * this.wl(s).^2;
                         if ph_obs(s) > 0
-                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign*zero2nan(iono_delay'));
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay'));
                         else
-                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign*zero2nan(iono_delay'));
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign * (iono_delay'));
                         end
                     end
                 end

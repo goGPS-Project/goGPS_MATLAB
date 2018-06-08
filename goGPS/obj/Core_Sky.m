@@ -447,7 +447,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function importBrdcs(this,f_names, t_st, t_end, clock, step)
+        function importBrdcs(this, f_names, t_st, t_end, clock, step)
             if nargin < 6
                 step = 900;
             end
