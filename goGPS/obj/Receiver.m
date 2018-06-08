@@ -4986,16 +4986,13 @@ classdef Receiver < Exportable
             if nargin < 2
                 
                 go_id  = 1: this.getMaxSat();
-            end
-            
+            end            
           
             this.updateCoordinates();       
-            switch this.state.iono_model
-                case 0 %no model
+            switch this.state.getIonoModel
+                case 1 % no model
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
-                case 1 %Geckle and Feen model
-                    %corr = simplified_model(lat, lon, az, el, mjd);
-                case 2 %Klobuchar model
+                case 2 % Klobuchar model
                     if ~isempty(this.sat.cs.iono )
                         for s = go_id
                             idx = this.sat.avail_idx(:,s);
@@ -5006,7 +5003,7 @@ classdef Receiver < Exportable
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                     end
-                case 3 %IONEX
+                case 3 % IONEX
                     atm = Atmosphere.getInstance();
                     this.sat.err_iono = atm.getFOIdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.h_ellips,this.time);
             end
@@ -5028,7 +5025,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function ionoModel(this,sign)
+        function ionoModel(this, sign)
             % Apply the selected iono model
             %
             % SYNTAX
