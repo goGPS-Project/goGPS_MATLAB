@@ -78,6 +78,7 @@ classdef Core_Sky < handle
         coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]     
         
         wsb                   % widelane satellite biases (only cnes orbits)
+        wsb_date              % widelane satellite biases time
     end
     
     properties (Access = private)
@@ -250,6 +251,8 @@ classdef Core_Sky < handle
             else
                 this.clock=[];
                 this.time_ref_clock = [];
+                this.wsb = [];
+                this.wsb_date = [];
             end
         end
         
@@ -721,6 +724,7 @@ classdef Core_Sky < handle
             % the object add them, otherwise clear the object and add them
             % data that are alrady present are going to be overwritten
             f_clk = fopen(filename_clk,'r');
+            [~, fname, ~] = fileparts(filename_clk);
             if (f_clk == -1)
                 this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
@@ -749,10 +753,21 @@ classdef Core_Sky < handle
                 if lim(end,3) < 3
                     lim(end,:) = [];
                 end
+                
                 % get end pf header
                 eoh = strfind(txt,'END OF HEADER');
                 eoh = find(lim(:,1) > eoh);
                 eoh = eoh(1) - 1;
+                if strcmp(fname(1:3),'grg') % if cnes orbit loas wsb values
+                    wl_line = txt(lim(1:eoh,1)) == 'W' & txt(lim(1:eoh,1)+1) == 'L'& txt(lim(1:eoh,1)+60) == 'C' & txt(lim(1:eoh,1)+61) == 'O' & txt(lim(1:eoh,1)+62) == 'M';
+                    wsb_date = GPS_Time(cell2mat(textscan(txt(lim(find(wl_line,1,'first'),1) + [8:33]),'%f %f %f %f %f %f')));
+                    wsb_prn = sscanf(txt(bsxfun(@plus, repmat(lim(wl_line, 1),1,3), 4:6))',' %f ');
+                    wsb_value = sscanf(txt(bsxfun(@plus, repmat(lim(wl_line, 1),1,15), 39:53))','%f');
+                    wsb = zeros(1,this.cc.getGPS.N_SAT);
+                    wsb(wsb_prn) = wsb_value;
+                    this.wsb = [this.wsb ;wsb];
+                    this.wsb_date = [this.wsb_date ;wsb_date];
+                end
                 sats_line = find(txt(lim(eoh+1:end,1)) == 'A' & txt(lim(eoh+1:end,1)+1) == 'S') + eoh;
                 % clk rate
                 clk_rate = [];
@@ -1229,6 +1244,16 @@ classdef Core_Sky < handle
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
             
+        end
+        
+        function [wsb] = getWSB(this,time)
+            [year_t, month_t, day_t ] = time.getCalEpoch();
+            for i = 1: length(this.wsb_date)
+                [year, month, day ] = this.wsb_date(i).getCalEpoch();
+                if year == year_t && month == month_t && day == day_t
+                    wsb = this.wsb(i,:);
+                end
+            end
         end
         
         function COMtoAPC(this, direction)
