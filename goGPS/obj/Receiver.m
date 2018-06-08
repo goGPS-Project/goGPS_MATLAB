@@ -1714,6 +1714,9 @@ classdef Receiver < Exportable
             comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
             comment_line(1:eoh) = false;
             lim(comment_line,:) = [];
+            if lim(end,3) < 32
+                txt = [txt repmat(' ',1,32 - lim(end,3))];
+            end
             % find all the observation lines
             t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & (txt(lim(eoh+1:end,1) + 28) ~= '4')' & (txt(lim(eoh+1:end,1) + 31) ~= '1')' & lim(eoh+1:end,3) > 25]);
             n_epo = numel(t_line);
