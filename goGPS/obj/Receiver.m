@@ -1871,7 +1871,7 @@ classdef Receiver < Exportable
         
         function parseRin3Data(this, txt, lim, eoh)
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+34) ~= '1' )']);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
@@ -6996,7 +6996,18 @@ classdef Receiver < Exportable
             % remove grupo delay
             this.removeGroupDelay();
             % estaimet WL
-            
+            mwb = this.getMelWub('1','2','G');
+            wl_cycle = mwb.obs./repmat(mwb.wl,size(mwb.obs,1),1);
+            wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT);
+            wl_cycle(:,mwb.go_id) = mwb.obs;
+            wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
+            wsb = this.sat.cs.getWSB(this.getCentralTime());
+            % take off wsb
+            wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
+            % get receiver wsb
+            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan'); 
+            wl_cycle = wl_cycle - wsb_rec;
+            keyboard
             % estimate narrow lane
             % -> amb VCV ???
             % get undifferenced
