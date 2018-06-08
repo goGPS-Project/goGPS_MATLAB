@@ -6003,8 +6003,8 @@ classdef Receiver < Exportable
             disable_dt_correction = true; % Skip to speed-up processing
             
             % computing nominal_time
-            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
-            rinex_time = this.time.getRefTime(nominal_time_zero);
+            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24; % start of day 
+            rinex_time = this.time.getRefTime(nominal_time_zero); % seconds from start of day
             nominal_time = round(rinex_time / this.time.getRate) * this.time.getRate;
             ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
             
@@ -6996,6 +6996,7 @@ classdef Receiver < Exportable
             % remove grupo delay
             this.removeGroupDelay();
             % estaimet WL
+            
             % estimate narrow lane
             % -> amb VCV ???
             % get undifferenced

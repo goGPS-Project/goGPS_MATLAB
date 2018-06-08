@@ -1804,6 +1804,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, false);
         end
+                
+        function n_missing = checkDirErr(this, field_name, field_text, flag_verbose)
+            % Check the validity of the fields
+            %
+            % SYNTAX:
+            %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
+            
+            if nargin < 4
+                flag_verbose = true;
+            end
+            n_missing = checkPath(this, field_name, field_text, flag_verbose, false, true);
+        end
         
         function n_missing = checkFile(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
@@ -1818,7 +1830,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
         end
         
-        function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file)
+        function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file, flag_error)
             % Check the validity of the fields
             %
             % SYNTAX: 
@@ -1828,7 +1840,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if nargin < 4
                 flag_verbose = true;
             end
-            
+            if nargin < 6
+                flag_error = false;
+            end
             if ~iscell(field_name)
                 field_name = {field_name};                
             end
@@ -1868,7 +1882,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 end
             else
                 if flag_verbose
-                    this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    if flag_error
+                        this.log.addError(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    else
+                        this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    end
                 end
             end
         end
