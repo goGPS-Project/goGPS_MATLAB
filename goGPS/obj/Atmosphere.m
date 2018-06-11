@@ -93,6 +93,7 @@ classdef Atmosphere < handle
             'n_t',        0 ...   % num of epocvhs
             )
         vmf_coeff = struct( ...
+            'ell_height', [], ... %ellipsoidal height for the vmf values
             'ah',       [], ...    % alpha coefficient dry
             'aw',       [], ...    % alpha coefficent wet
             'zhd',       [], ...    % zhd 
@@ -295,6 +296,13 @@ classdef Atmosphere < handle
             for i = 1 : length(fname)
                 this.importVMFCoeffFile(fname{i});
             end
+            h_fname = this.state.getVMFHeightFileName();
+            fid = fopen(h_fname);
+            fgetl(fid); %skip one line header
+            formatSpec = [repmat([repmat(' %f',1,10) '\n'],1,14) repmat(' %f',1,5)];
+            h_data = cell2mat(textscan(fid,formatSpec,91));
+            h_data(:,end) = [];
+            this.vmf_coeff.ell_height = h_data;
         end
         function importTidalAtmLoadHarmonics(this)
             % importing Tidal Atm and loading Harmonics
@@ -611,7 +619,25 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [zhd] = interpolateZhd(this, gps_time, lat, lon)
+            % REFERENCE:
+            % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
             zhd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zhd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+           
+           
+        end
+        
+        function [zhd] = getVmfZhd(this, gps_time, lat, lon, h_ell_sta)
+            % get vmf Zenit hidrostatic delay
+            %
+            % SYNTAX
+            %   [zhd] = getVmfZhd(this, gps_time, lat, lon, h_ell_sta)
+            % REFERENCE:
+            % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
+            [zhd] = this.interpolateZhd( gps_time, lat, lon);
+            h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
+            p_h_vmf = (zhd / 0.0022768) .* (1 - 0.00266 * cos(2*lat/180*pi) - 0.28 * 10^-6 * h_ell_vmf);   % formula 3 in [1]
+            p_h_sta = p_h_vmf .* (1 - 0.0000226 .* (h_ell_sta - h_ell_vmf)).^5.225;   % formula 4 in [1]
+            zhd     = 0.0022768 * p_h_sta / (1 - 0.00266 * cos(2 * lat) - 0.28 * 10^-6 * h_ell_sta);   % formula 3  in [1] again
         end
         
         function [zwd] = interpolateZwd(this, gps_time, lat, lon)
@@ -620,6 +646,28 @@ classdef Atmosphere < handle
             % SYNTAX
             %   [zwd] = interpolateZwd(this, gps_time, lat, lon)
             zwd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zwd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+             % coorect for height !!!
+        end
+        
+        function [zwd] = getVmfZwd(this, gps_time, lat, lon, h_ell_sta)
+            % get vmf Zenit wet delay
+            %
+            % SYNTAX
+            %   [zhd] = getVmfZwd(this, gps_time, lat, lon, h_ell_sta)
+            % REFERENCE:
+            % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
+            [zwd] = this.interpolateZwd( gps_time, lat, lon);
+            h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
+ 
+            zwd     = zwd * exp(-(h_ell_sta - h_ell_vmf)/2000);   % formula 5  in [1] 
+        end
+        
+        function [height] = interpolateVMFElHeight(this, lat, lon)
+            % interpolate Zenit wet delay
+            %
+            % SYNTAX
+            %   [zwd] = interpolateZwd(this, gps_time, lat, lon)
+            height = Core_Utils.linInterpLatLonTime(this.vmf_coeff.ell_height, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, 1, 1, lat, lon,1);
         end
         
         function tec = interpolateTEC(this, gps_time, lat, lon)
@@ -1404,23 +1452,57 @@ classdef Atmosphere < handle
             gmfw   = topcon ./ (sine+gamma);
         end
         
-        function [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
+        function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, zd, h_ell)
             %angles in radians!!
             %code based on:
-            %    Böhm, Johannes, and Harald Schuh. "Vienna mapping functions in VLBI analyses." Geophysical Research Letters 31.1 (2004).
+            %    [1]  Boehm, J., B. Werl, H. Schuh (2006),  Troposphere mapping functions for GPS and very long baseline interferometry  from European Centre for Medium-Range Weather Forecasts operational analysis data,J. Geoph. Res., Vol. 111, B02406, doi:10.1029/2005JB003629.  
+            %    [2] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
+            %    [3] Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
+            %    [4] http://ggosatm.hg.tuwien.ac.at/DELAY/SOURCE/vmf1_grd.m
             %
             % SYNTAX
             %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
-            [ah, aw] = this.interpolateAlpha(gps_time, lat, lon);
-            % hidrostatic b and c form Isobaric mapping function
+            [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat, lon);
+            % coefficients of tab 1 in [1]
+            if (lat<0)      % southern hemisphere
+                phi_h  = pi;
+                c11_h = 0.007;
+                c10_h = 0.002;
+            else             % northern hemisphere
+                phi_h  = 0.d0;
+                c11_h = 0.005;
+                c10_h = 0.001;
+            end
+            c0_h = 0.062;
+            % hidrostatic b form Isobaric mapping function
             bh = 0.002905;
-            ch = 0.0634 + 0.0014*cos(2*lat);
-            % wet b and c form Niell mapping function at 45° lat
+            
+            doy = time.getMJD()  - 44239 + 1;
+            % c hydrostatic is taken from equation (7) in [1]
+            ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
+            % wet b and c form Niell mapping function at 45° lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
             el = pi/2 -zd;
-            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,ch,el);
+            
+%             h_ell_vmf = this.interpolateVMFElHeight(lat*180/pi,lon*180/pi); % get height of the station
+%             % eq (6) in [2]
+%             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
+            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
             [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
+            
+            % height correction for the hydrostatic part 
+            % coefficent from tab 3 in [3]
+            a_ht = 2.53d-5;
+            b_ht = 5.49d-3;
+            c_ht = 1.14d-3;
+            h_ell_km     = h_ell/1000;   % convert height to km
+            % eq (6) in [3] 
+            ht_corr_coef = 1 ./ sin(zero2nan(el))   -    this.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
+            % eq (7) in [3]
+            ht_corr      = ht_corr_coef * h_ell_km;
+            
+            gmfh       = nan2zero(gmfh + ht_corr);
         end
         %-----------------------------------------------------------
         % IONO

@@ -2307,7 +2307,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if (isempty(this.crd_name))
                 out = '';
             else
-                out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
+                crd_dir = File_Name_Processor.getFullDirPath(this.crd_dir, this.getHomeDir);
+                out = File_Name_Processor.checkPath(strcat(crd_dir, filesep, this.crd_name));
             end
         end
 
@@ -2638,6 +2639,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 date_stop = date_stop.getCopy;
             end
             vmf_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function vmf_height_name = getVMFHeightFileName(this)
+            % Get the full name of the ERP files (replacing special keywords)
+            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            vmf_height_name = fnp.checkPath(strcat(this.vmf_dir, filesep, 'orography_ell'));
+
         end
 
         function crx_full_name = getCrxFileName(this, date_start, date_stop)

@@ -2942,7 +2942,7 @@ classdef Receiver < Exportable
             t = 1;
             
             atmo = Atmosphere.getInstance();
-            [lat, lon, ~, h_ortho] = this.getMedianPosGeodetic_mr();
+            [lat, lon, h_ellipse, h_ortho] = this.getMedianPosGeodetic_mr();
             lat = median(lat);
             lon = median(lon);
             h_ortho = median(h_ortho);
@@ -2950,7 +2950,7 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if this(s).state.mapping_function == 2
-                            [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi,h_ellipse);
                         elseif this(s).state.mapping_function == 1
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
                             mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
@@ -2971,7 +2971,7 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if this.state.mapping_function == 2
-                            [mfh_tmp, mfw_tmp] = atmo.vmf(this(s).time.getGpsTime(), lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi,h_ellipse);
                         elseif this.state.mapping_function == 1
                             [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
                             mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
@@ -3105,7 +3105,7 @@ classdef Receiver < Exportable
                     this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
                 case 2 %% vmf gridded
                     atmo = Atmosphere.getInstance();
-                     this.apr_zhd = atmo.interpolateZhd(this.time.getGpsTime, this.lat, this.lon);
+                     this.apr_zhd = atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
             
         end
@@ -3124,7 +3124,7 @@ classdef Receiver < Exportable
                     this.apr_zwd = Atmosphere.saast_wet(T,H,h); 
                 case 2 %% vmf gridded
                     atmo = Atmosphere.getInstance();
-                     this.apr_zwd = atmo.interpolateZwd(this.time.getGpsTime, this.lat, this.lon);
+                     this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
             
         end

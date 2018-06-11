@@ -202,7 +202,7 @@ classdef Core_Reference_Frame < handle
             % in case sation not sound return false
             status = false;
             if size(this.station_code) >0
-                sta_idx  = idxCharLines(this.station_code, sta_code);
+                sta_idx  = idxCharLines(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1;
                 end
