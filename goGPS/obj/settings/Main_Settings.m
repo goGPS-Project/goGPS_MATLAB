@@ -504,7 +504,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods
         function this = Main_Settings(ini_settings_file)
             % Creator
-            % SYNTAX: s_obj = Main_Settings(<ini_settings_file>);
+            %
+            % SYNTAX
+            %   s_obj = Main_Settings(<ini_settings_file>);
 
             this.initLogger();
             this.log.addMarkedMessage('Building settings object...');
@@ -534,7 +536,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'public')
         function import(this, state)
             % This function import processing settings from another setting object or ini file
-            % SYNTAX: s_obj.import(state)
+            %
+            % SYNTAX
+            %   s_obj.import(state)
 
             fnp = File_Name_Processor;
             
@@ -794,7 +798,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function str = toString(this, str)
             % Display the satellite system in use
-            % SYNTAX: s_obj.toString(str)
+            %
+            % SYNTAX
+            %   s_obj.toString(str)
 
             if (nargin == 1)
                 str = '';
@@ -921,6 +927,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_project(this, str_cell)
+            % Export IO project parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_project(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -940,6 +950,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_session(this, str_cell)
+            % Export IO session parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_session(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -969,6 +983,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_station(this, str_cell)
+            % Export IO stations parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_station(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1006,6 +1024,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_reference(this, str_cell)
+            % Export IO reference parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_reference(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1034,6 +1056,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_computation_center(this, str_cell)
+            % Export IO computation center parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_computation_center(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1060,6 +1086,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_satellite(this, str_cell)
+            % Export IO satellite parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_satellite(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1086,6 +1116,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_antenna(this, str_cell)
+            % Export IO antenna parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_antenna(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1102,6 +1136,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function str_cell = exportIO_output(this, str_cell)
+            % Export IO output parameters as ini file syntax
+            %
+            % SYNTAX
+            %   str_cell = exportIO_output(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1124,6 +1162,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function str_cell = exportIO(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the obj
+            %
+            % SYNTAX
+            %   str_cell = exportIO(this, str_cell)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -1140,7 +1181,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
-            % SYNTAX: s_obj.export(str_cell)
+            %
+            % SYNTAX
+            %   s_obj.export(str_cell)
 
             if (nargin == 1)
                 str_cell = {};
@@ -1280,7 +1323,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'protected')
         function postImportInit(this)
             % Operations to run after the import of new parameters
-            % SYNTAX: this.postImportInit
+            %
+            % SYNTAX
+            %   this.postImportInit
             this.check(); % check after import
         end
     end
@@ -1291,7 +1336,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'public')
         function ini = save(this, file_path)
             % Save to a file (in INI fomat) the content of the settings object
-            % SYNTAX: <ini> = this.save(<file_path>);
+            %
+            % SYNTAX
+            %   <ini> = this.save(<file_path>);
             %
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
@@ -1312,7 +1359,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function importIniFile(this, file_path)
             % Import from an INI file the content of the settings object
-            % SYNTAX: this.importIniFile(<file_path>);
+            %
+            % SYNTAX
+            %   this.importIniFile(<file_path>);
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
             % property "cur_ini" defined in the superclass Main_Settings            if (nargin == 1)
@@ -1331,7 +1380,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function importLegacyFile(this, file_path)
             % Import from an old mat settings file the content of the Settings object
-            % SYNTAX: this.importLegacyFile(file_path);
+            %
+            % SYNTAX
+            %   this.importLegacyFile(file_path);
             try
                 load(file_path, 'state');
                 this.legacyImport(state);
@@ -1351,7 +1402,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check if a logical field of the object is a valid logical number
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkLogicalField(string_field_name);
+            %
+            % SYNTAX
+            %   this.checkLogicalField(string_field_name);
             this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
         end
 
@@ -1359,7 +1412,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            %
+            % SYNTAX
+            %   this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -1372,7 +1427,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            %
+            % SYNTAX
+            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -1385,7 +1442,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check if a string path field of the object is a valid path
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            %
+            % SYNTAX
+            %   this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             fnp = File_Name_Processor();
             this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home, [], fnp.getFullDirPath(this.(upper(field_name))));
             switch nargin
@@ -1400,7 +1459,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Check if a numeric field of the object is valid
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkNumericField(string_field_name, <limits>, <valid_values>);
+            %
+            % SYNTAX
+            %   this.checkNumericField(string_field_name, <limits>, <valid_values>);
             switch nargin
                 case 2, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits);
@@ -1413,7 +1474,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_path = checkCrdPath(this, file_path)
             % Check if the crd file exists, if not try to look for it into the default dirs
-            % SYNTAX: file_path = this.checkCrdPath(<file_path>)
+            %
+            % SYNTAX
+            %   file_path = this.checkCrdPath(<file_path>)
             fnp = File_Name_Processor();
             file_path = fnp.checkPath(file_path);
             if ~isempty(file_path) && ~exist(file_path, 'file')
@@ -1439,7 +1502,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_path = checkAtxPath(this, file_path)
             % Check if the atx file exists, if not try to look for it into the default dirs
-            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            %
+            % SYNTAX
+            %   file_path = this.checkAtxPath(<file_path>)
             fnp = File_Name_Processor();
             file_path = fnp.checkPath(file_path);
 
@@ -1466,7 +1531,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_path = checkOceanPath(this, file_path)
             % Check if the atx file exists, if not try to look for it into the default dirs
-            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            %
+            % SYNTAX
+            %   file_path = this.checkAtxPath(<file_path>)
             fnp = File_Name_Processor();
             file_path = fnp.checkPath(file_path);
 
@@ -1494,7 +1561,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_path = checkMetPath(this, file_path)
             % Check if the met file exists, if not try to look for it into the default dirs
-            % SYNTAX: file_path = this.checkMetPath(<file_path>)
+            %
+            % SYNTAX
+            %   file_path = this.checkMetPath(<file_path>)
             fnp = File_Name_Processor();
             file_path = fnp.checkPath(file_path);
 
@@ -1527,7 +1596,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'public')
         function checkIO(this)
             % Check the validity of the fields
-            % SYNTAX: this.check();
+            %
+            % SYNTAX
+            %   this.check();
             EMPTY_IS_VALID = true;
             EMPTY_IS_NOT_VALID = false;
             CHECK_EXISTENCE = true;
@@ -1590,8 +1661,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function status = checkRecFiles(this, go_verbose)
             % check the availability of all the rinex files
-            % SYNTAX: status = this.checkReceiverFiles(obs_type, go_verbose)
+            %
+            % SYNTAX
+            %   status = this.checkReceiverFiles(obs_type, go_verbose)
             % status is an array containing the file status for each receiver
+            %
             %   0: all file are present
             %  -1: no file are present
             %   1: at least one file is present but not all
@@ -1638,6 +1712,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function eph_ok = checkNavEphFiles(this)
             % check whether or not all the ephemeris files are available
+            %
+            % SYNTAX
+            %   eph_ok = checkNavEphFiles(this)
             eph_ok = true;
 
             state = Global_Configuration.getCurrentSettings();
@@ -1671,6 +1748,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function clk_ok = checkNavClkFiles(this)
             % check whether or not all the navigational clock files are available
+            %
+            % SYNTAX
+            %   clk_ok = checkNavClkFiles(this)
 
             clk_ok = true;
             state = Global_Configuration.getCurrentSettings();
@@ -1704,6 +1784,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function erp_ok = checkErpFiles(this)
             % check whether or not all the ERP files are available
+            %
+            % SYNTAX
+            %   erp_ok = checkErpFiles(this)
 
             erp_ok = true;
             state = Global_Configuration.getCurrentSettings();
@@ -1743,7 +1826,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'public')
         function check(this)
             % Check the validity of the fields
-            % SYNTAX: this.check();
+            %
+            % SYNTAX
+            %   this.check();
 
             this.checkIO();
             
@@ -1796,7 +1881,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function n_missing = checkDir(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
-            % SYNTAX:
+            % SYNTAX
             %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
             
             if nargin < 4
@@ -1808,7 +1893,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function n_missing = checkDirErr(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
-            % SYNTAX:
+            % SYNTAX
             %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
             
             if nargin < 4
@@ -1820,7 +1905,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function n_missing = checkFile(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
-            % SYNTAX:
+            % SYNTAX
             %   n_missing = this.checkFile(field_name, field_text, flag_verbose);
             %   n_missing = this.checkFile({field_dir, field_name}, field_text, flag_verbose);
             
@@ -1833,7 +1918,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file, flag_error)
             % Check the validity of the fields
             %
-            % SYNTAX: 
+            % SYNTAX 
             %   n_missing = this.checkPath(field_name, field_text, flag_verbose);
             %   n_missing = this.checkPath({field_dir, field_name}, field_text, flag_verbose);
             
@@ -1898,10 +1983,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods        
         function file_dir = getHomeDir(this)
             % Get the base directory containing the project
+            %
+            % SYNTAX
+            %   file_dir = getHomeDir(this)
             file_dir = this.prj_home;
         end
 
         function remote_source_file = getRemoteSourceFile(this)
+            % get remote source files
+            %
+            % SYNTAX
+            %   remote_source_file = getRemoteSourceFile(this)
             fnp = File_Name_Processor();
             remote_ini_path = [this.remote_res_conf_dir iif(isempty(this.remote_res_conf_dir), '', filesep) 'remote_resource.ini'];
             remote_ini_path = fnp.getFullDirPath(remote_ini_path, this.getHomeDir);
@@ -1912,6 +2004,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end       
         
         function remote_center = getRemoteCenter(this)
+            %get remote center
+            %
+            % SYNTAX
+            %   remote_center = getRemoteCenter(this)
             remote_center = this.preferred_center;
             if ~iscell(remote_center)
                 remote_center = {remote_center};
@@ -1919,6 +2015,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function preferred_eph = getPreferredEph(this)
+            % get preferred ephemeris
+            %
+            % SYNTAX
+            %   preferred_eph = getPreferredEph(this)
             preferred_eph = this.preferred_eph;
             if ~iscell(preferred_eph)
                 preferred_eph = {preferred_eph};
@@ -1926,6 +2026,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         end
 
         function dir = getFileDir(this, filename)
+            % get file dir
+            %
+            % SYNTAX
+            %   dir = getFileDir(this, filename)
             if length(filename) < 1
                 dir = '';
                 return
@@ -1955,23 +2059,35 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function base_rinex_dir = getRinexBaseDir(this)
             % Get the base directory containing RINEX files
+            %
+            % SYNTAX
+            %   base_rinex_dir = getRinexBaseDir(this)
             base_rinex_dir = this.obs_dir();
         end
 
         function num_receiver = getSessionCount(this)
             % Get the number of sessions
+            %
+            % SYNTAX
+            %   num_receiver = getSessionCount(this)
             file_name = this.getRecPath();
             num_receiver = numel(file_name{1});
         end
 
         function num_stations = getRecCount(this)
             % Get the number of the receivers
+            %
+            % SYNTAX
+            %   num_stations = getRecCount(this)
             num_stations = numel(this.getRecPath());
         end
 
         function file_name = getRecPath(this, rec_num, session)
             % Get the file list of receivers files
-            % SYNTAX: file_name = this.getRecPath()
+            %
+            % SYNTAX
+            %   file_name = this.getRecPath()
+            %
             % A cell for each receiver containing the list of names as cell
             if isempty(this.obs_full_name) || isempty(this.obs_full_name{1})
                 this.updateObsFileName();
@@ -1993,22 +2109,33 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function dyn_mode = getDynMode(this, rec_num)
             % Get the a-priori information on the motion of the receiver
+            %
+            % SYNTAX
+            %   dyn_mode = getDynMode(this, rec_num)
             dyn_mode = this.rec_dyn_mode(rec_num);
         end
 
         function out = getNavEphType(this)
             % Get the order of preference of orbits files to search for
+            %
+            % SYNTAX
+            %   out = getNavEphType(this)
             out = this.preferred_eph;
         end
 
         function out = getNavErpType(this)
             % Get the order of preference of erp files to search for
+            %
+            % SYNTAX
+            %   out = getNavErpType(this)
             out = this.preferred_erp;
         end
 
         function file_name = getFullNavEphPath(this, id)
             % Get the file list of ephemeris files
-            % SYNTAX: file_name = this.getFullNavEphPath(id)
+            %
+            % SYNTAX
+            %   file_name = this.getFullNavEphPath(id)
             if isempty(this.eph_full_name)
                 this.updateNavFileName();
             end
@@ -2020,7 +2147,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_name = getFullNavClkPath(this, id)
             % Get the file list of clock files
-            % SYNTAX: file_name = this.getFullNavClkPath(id)
+            %
+            % SYNTAX
+            %   file_name = this.getFullNavClkPath(id)
             if isempty(this.clk_full_name)
                 this.updateNavFileName();
             end
@@ -2032,7 +2161,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_name = getFullErpPath(this, id)
             % Get the file list of ephemeris files
-            % SYNTAX: file_name = this.getFullErpPath(id)
+            %
+            % SYNTAX
+            %   file_name = this.getFullErpPath(id)
             if isempty(this.erp_full_name)
                 this.updateErpFileName();
             end
@@ -2044,7 +2175,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_name = getFullIonoPath(this, id)
             % Get the file list of ephemeris files
-            % SYNTAX: file_name = this.getFullErpPath(id)
+            %
+            % SYNTAX
+            %   file_name = this.getFullErpPath(id)
             if isempty(this.erp_full_name)
                 this.updateErpFileName();
             end
@@ -2056,91 +2189,121 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function out = getNavEphFile(this)
             % Get the file name of the navigational files
-            % SYNTAX: nav_path = this.getNavPath()
+            %
+            % SYNTAX
+            %   nav_path = this.getNavPath()
             out = this.eph_name;
         end
 
         function clk_file = getNavClkFile(this)
             % Get the file name of the clock files
-            % SYNTAX: clk_path = this.getClkPath()
+            %
+            % SYNTAX
+            %   clk_path = this.getClkPath()
             clk_file = this.clk_name;
         end
 
         function erp_file = getErpFile(this)
             % Get the file name of the ERP files
-            % SYNTAX: erp_path = this.getErpPath()
+            %
+            % SYNTAX
+            %    erp_path = this.getErpPath()
             erp_file = this.erp_name;
         end
 
         function dcb_file = getDcbFile(this)
             % Get the file name of the ERP files
-            % SYNTAX: erp_path = this.getErpPath()
+            %
+            % SYNTAX
+            %   erp_path = this.getErpPath()
             dcb_file = this.dcb_name;
         end
 
         function out = getNavEphDir(this)
             % Get the path to the navigational files
-            % SYNTAX: nav_path = this.getNavEphDir()
+            %
+            % SYNTAX
+            %   nav_path = this.getNavEphDir()
             out = this.eph_dir;
         end
 
         function out = getNavClkDir(this)
             % Get the path to the clock files
-            % SYNTAX: nav_path = this.getClkPath()
+            %
+            % SYNTAX
+            %    nav_path = this.getClkPath()
             out = this.clk_dir;
         end
 
         function out = getErpDir(this)
             % Get the path to the ERP files
-            % SYNTAX: erp_path = this.getErpPath()
+            %
+            % SYNTAX
+            %   erp_path = this.getErpPath()
             out = this.erp_dir;
         end
 
         function out = getDcbDir(this)
             % Get the path to the DCB files
-            % SYNTAX: dcb_path = this.getDcbPath()
+            %
+            % SYNTAX
+            %   dcb_path = this.getDcbPath()
             out = this.dcb_dir;
         end
 
         function out = getIonoDir(this)
             % Get the path to the DCB files
-            % SYNTAX: dcb_path = this.getDcbPath()
+            %
+            % SYNTAX
+            %   dcb_path = this.getDcbPath()
             out = this.iono_dir;
         end
         
         function out = getAtmLoadDir(this)
             % Get the path to the DCB files
-            % SYNTAX: dcb_path = this.getDcbPath()
+            %
+            % SYNTAX
+            %   dcb_path = this.getDcbPath()
             out = this.atm_load_dir;
         end
         
         function out = getVMFDir(this)
             % Get the path to the DCB files
-            % SYNTAX: dcb_path = this.getDcbPath()
+            %
+            % SYNTAX
+            %   dcb_path = this.getDcbPath()
             out = this.vmf_dir;
         end
 
         function out = getNavEphPath(this)
             % Get the path to the navigational files
-            % SYNTAX: nav_path = this.getNavEphPath()
+            %
+            % SYNTAX
+            %   nav_path = this.getNavEphPath()
             out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
         end
 
         function out = getNavClkPath(this)
             % Get the path to the clock files
-            % SYNTAX: nav_path = this.getNavClkPath()
+            %
+            % SYNTAX
+            %   nav_path = this.getNavClkPath()
             out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
         end
 
         function out = getErpPath(this)
             % Get the path to the ERP files
-            % SYNTAX: erp_path = this.getErpPath()
+            %
+            % SYNTAX
+            %   erp_path = this.getErpPath()
             out = File_Name_Processor.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
         end
 
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
-            % SYNTAX: file_path = this.getCrdFile()
+            %
+            % SYNTAX
+            %   file_path = this.getCrdFile()
             if (isempty(this.crd_name))
                 out = '';
             else
@@ -2150,7 +2313,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function out = getAtxFile(this)
             % Get the path of the antex file
-            % SYNTAX: file_path = this.getAtxFile()
+            %
+            % SYNTAX
+            %   file_path = this.getAtxFile()
             if (isempty(this.atx_name))
                 out = '';
             else
@@ -2160,7 +2325,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function out = getOceanFile(this)
             % Get the path of the ocean loading file
-            % SYNTAX: file_path = this.getOceanFile()
+            %
+            % SYNTAX
+            %   file_path = this.getOceanFile()
             if (isempty(this.ocean_name))
                 out = '';
             else
@@ -2170,7 +2337,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function out = getMetDir(this)
             % Get the path of the meteorological file dir
-            % SYNTAX: file_path = this.getMetDir()
+            %
+            % SYNTAX
+            %   file_path = this.getMetDir()
             if (isempty(this.met_dir))
                 out = '';
             else
@@ -2180,7 +2349,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function out = getMetFile(this, id)
             % Get the path of the meteorological file
-            % SYNTAX: file_path = this.getMetFile()
+            %
+            % SYNTAX
+            %   file_path = this.getMetFile()
             if (isempty(this.met_name))
                 out = '';
             else
@@ -2204,38 +2375,51 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function file_path = getIgrfFile(this)
             % Get the file name of the Mg
-            % SYNTAX: file_path = this.getIgrfFile()
+            %
+            % SYNTAX
+            %   file_path = this.getIgrfFile()
             file_path = File_Name_Processor.checkPath(strcat(this.igrf_dir, filesep, this.igrf_name));
         end
 
         function out = getGeoidDir(this)
             % Get the dir of the geoid file
-            % SYNTAX: out = this.getGeoidDir()
+            %
+            % SYNTAX
+            %   out = this.getGeoidDir()
             out = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep));
         end
         
         function file_path = getGeoidFile(this)
             % Get the path of the geoid file
-            % SYNTAX: file_path = this.getGeoidFile()
+            %
+            % SYNTAX
+            %   file_path = this.getGeoidFile()
             file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
         end
 
         function out_dir = getOutDir(this)
             % Get the path of the out folder
-            % SYNTAX: out_dir = this.getOutDir()
+            %
+            % SYNTAX
+            %   out_dir = this.getOutDir()
             out_dir = File_Name_Processor.checkPath(this.out_dir);
         end
 
         function out_prefix = getOutPrefix(this)
             % Get the path of the out_prefix
-            % SYNTAX: out_prefix = this.getOutPrefix()
+            %
+            % SYNTAX
+            %   out_prefix = this.getOutPrefix()
             fnp = File_Name_Processor;
             out_prefix = fnp.checkPath(this.out_prefix);
         end
 
         function updateOutPath(this, date, session)
             % Update the full prefix of the putput files (replacing special keywords)
-            % SYNTAX: this.updateOutPath(date, session);
+            %
+            % SYNTAX
+            %   this.updateOutPath(date, session);
+            %
             % NOTE: when no date is specified special keywords are substituted considering a date 0 (0000/00/00 00:00:00)
             %       when no session is specified special keywords are substituted considering a session "0" (char)
 
@@ -2287,45 +2471,56 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function counter = getRunCounter(this)
             % Get the currGPS_Time(0)ent run counter
-            % SYNTAX: counter = getRunCounter(this)
+            %
+            % SYNTAX
+            %   counter = getRunCounter(this)
             counter = this.run_counter;
         end
         
         function keep = isKeepRecList(this)
             % Get the flag to keep in memory all the receivers (CEBUG)
-            % SYNTAX: keep = this.isKeepRecList();
+            %
+            % SYNTAX
+            %   keep = this.isKeepRecList();
             keep = this.flag_keep_rec_list;
         end
         
         function date = getSessionStart(this)
-            % SYNTAX: date = getSessionStart(this)
+            % SYNTAX
+            %   date = getSessionStart(this)
             date = this.sss_date_start;
         end
 
         function date = getSessionStop(this)
-            % SYNTAX: date = getSessionStop(this)
+            % SYNTAX
+            %   date = getSessionStop(this)
             date = this.sss_date_stop;
         end
 
         function date = getSessionLimits(this)
-            % SYNTAX: date = getSessionLimits(this)
+            % SYNTAX
+            %   date = getSessionLimits(this)
             date = this.sss_date_start.getCopy;
             date.append(this.sss_date_stop);
         end
 
         function iono_model = getIonoModel(this)
-            % SYNTAX: iono_model = this.getIonoModel()
+            % SYNTAX
+            %   iono_model = this.getIonoModel()
             iono_model = this.iono_model;
         end
         
         function iono_management = getIonoManagement(this)
-            % SYNTAX: date = getSessionStop(this)
+            % SYNTAX
+            %   date = getSessionStop(this)
             iono_management = this.iono_management;
         end
 
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
-            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
             step_sec = fnp.getStepSec(file_name);
@@ -2339,7 +2534,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
          function met_full_name = getMetFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
-            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if ~iscell(this.met_name)
                 met_name = {this.met_name};
@@ -2360,7 +2557,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function clk_full_name = getClkFileName(this, date_start, date_stop)
             % Get the full name of the clock offset files (replacing special keywords)
-            % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
             step_sec = fnp.getStepSec(file_name);
@@ -2374,7 +2573,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function erp_full_name = getErpFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name));
 
@@ -2387,7 +2588,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function iono_full_name = getIonoFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
 
@@ -2400,7 +2603,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function stm_load_full_name = getNTAtmLoadFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.atm_load_dir, filesep, this.atm_load_name_nt));
 
@@ -2413,14 +2618,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function stm_load_full_name = getTAtmLoadFileName(this)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             stm_load_full_name = fnp.checkPath(strcat(strrep(this.atm_load_dir, '${YYYY}',''), filesep, this.atm_load_name_t));
         end
         
         function vmf_full_name = getVMFFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name));
 
@@ -2433,7 +2642,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function crx_full_name = getCrxFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
-            % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
+            %
+            % SYNTAX
+            %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.crx_dir, filesep, this.crx_name));
 
@@ -2450,6 +2661,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % =========================================================================
     methods        
         function setFile(this, filename)
+            % set file
+            %
+            % SYNTAX
+            %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
             if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')
                 this.setNavEphFile(filename);
@@ -2471,79 +2686,104 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function setNavPath(this, nav_dir)
             % Set the path to the navigational files
-            % SYNTAX: this.getNavPath(nav_path)
+            %
+            % SYNTAX
+            %   this.getNavPath(nav_path)
             this.eph_dir = nav_dir;
         end
 
         function setNavEphFile(this, nav_name)
             % Set the file name of the navigational files
-            % SYNTAX: this.setNavEphFile(nav_name)
+            %
+            % SYNTAX
+            %   this.setNavEphFile(nav_name)
             this.eph_name = nav_name;
         end
 
         function setNavClkPath(this, clk_dir)
             % Set the path to the clock files
-            % SYNTAX: this.getClkPath(nav_path)
+            % 
+            % SYNTAX
+            %   this.getClkPath(nav_path)
             this.clk_dir = clk_dir;
         end
 
         function setNavClkFile(this, clk_name)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(nav_name)
+            % 
+            % SYNTAX
+            %   this.getClkFile(nav_name)
             this.clk_name = clk_name;
         end
 
         function setErpPath(this, erp_dir)
             % Set the path to the clock files
-            % SYNTAX: this.getClkPath(nav_path)
+            % 
+            % SYNTAX
+            %   this.getClkPath(nav_path)
             this.erp_dir = erp_dir;
         end
 
         function setErpFile(this, erp_name)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            %
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.erp_name = erp_name;
         end
 
         function setDcbFile(this, dcb_name)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.dcb_name = dcb_name;
         end
 
         function setIonoFile(this, iono_file)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            %
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.iono_name = iono_file;
         end
         
         function setAtmLoadFile(this, atm_load_file)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            %
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.atm_load_name_nt = atm_load_file;
         end
         
         function setVMFFile(this, vmf_file)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            %
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.vmf_name = vmf_file;
         end
 
         function setIGRFFile(this, igrf_name)
             % Set the file name of the clock files
-            % SYNTAX: this.getClkFile(erp_name)
+            %
+            % SYNTAX
+            %   this.getClkFile(erp_name)
             this.igrf_name = igrf_name;
         end
 
         function setOutPrefix(this, out_prefix)
             % Set the path of the out_prefix
-            % SYNTAX: out_prefix = this.setOutPrefix(out_prefix)
+            %
+            % SYNTAX
+            %   out_prefix = this.setOutPrefix(out_prefix)
             this.out_prefix = File_Name_Processor.checkPath(out_prefix);
         end
 
         function updateObsFileName(this)
             % Update the full name of the observations files (replacing special keywords)
-            % SYNTAX: this.updateObsFileName();
+            %
+            % SYNTAX
+            %   this.updateObsFileName();
             this.obs_full_name = {};
             fnp = File_Name_Processor();
             if ~iscell(this.obs_name)
@@ -2556,7 +2796,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function updateMetFileName(this)
             % Update the full name of the observations files (replacing special keywords)
-            % SYNTAX: this.updateObsFileName();
+            %
+            % SYNTAX
+            %   this.updateObsFileName();
             this.met_full_name = {};
             fnp = File_Name_Processor();
             if ~iscell(this.met_name)
@@ -2571,48 +2813,66 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function updateNavFileName(this)
             % Update the full name of the navigational files (replacing special keywords)
-            % SYNTAX: this.updateNavFileName();
+            %
+            % SYNTAX
+            %   this.updateNavFileName();
             this.updateEphFileName();
             this.updateClkFileName();
         end
 
         function updateEphFileName(this)
             % Update the full name of the ephemerides files (replacing special keywords)
-            % SYNTAX: this.updateEphFileName();
+            %
+            % SYNTAX
+            %   this.updateEphFileName();
             this.eph_full_name = this.getEphFileName(this.sss_date_start, this.sss_date_stop);
         end
 
         function updateClkFileName(this)
             % Update the full name of the clock offset files (replacing special keywords)
-            % SYNTAX: this.updateClkFileName();
+            %  
+            % SYNTAX
+            %   this.updateClkFileName();
             this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
         end
 
         function updateErpFileName(this)
             % Update the full name of the ERP files (replacing special keywords)
-            % SYNTAX: this.updateClkFileName();
+            %
+            % SYNTAX
+            %   this.updateClkFileName();
             this.erp_full_name = this.getErpFileName(this.sss_date_start, this.sss_date_stop);
         end
 
         function date = setSessionStart(this, date)
-            % SYNTAX: setSessionStart(this, date)
+            % set session start
+            %
+            % SYNTAX
+            %   setSessionStart(this, date)
             this.sss_date_start = date.getCopy;
         end
 
         function date = setSessionStop(this, date)
-            % SYNTAX: setSessionStop(this, date)
+            % set session stop
+            %
+            % SYNTAX
+            %   setSessionStop(this, date)
             this.sss_date_stop = date.getCopy();
         end
         
         function keep = setKeepRecList(this, keep)
             % Get the flag to keep in memory all the receivers (CEBUG)
-            % SYNTAX: keep = this.isKeepRecList();
+            %
+            % SYNTAX
+            %   keep = this.isKeepRecList();
             this.flag_keep_rec_list = keep;
         end
 
         function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
             % Set the first/last epoch of processing
-            % SYNTAX: dir = this.setProcessingTime(first_epoch, last_epoch, <update_iif_smaller == false>)
+            %
+            % SYNTAX
+            %   dir = this.setProcessingTime(first_epoch, last_epoch, <update_iif_smaller == false>)
             if nargin == 3
                 update_iif_smaller = false;
             end
@@ -2640,20 +2900,26 @@ classdef Main_Settings < Settings_Interface & Command_Settings
  
         function setPrjHome(this, prj_home)
             % Set home folder of the project
-            % SYNTAX: dir = this.setPrjHome(prj_home)
+            %
+            % SYNTAX
+            %   dir = this.setPrjHome(prj_home)
             this.prj_home = prj_home;
         end
 
         function setFilePath(this, file_path)
             % Set the file name of the current settings
-            % SYNTAX: this.setFilePath(file_path)
+            %   
+            % SYNTAX
+            %   this.setFilePath(file_path)
             [path_str, name, ~] = fileparts(file_path);
             this.cur_ini = [path_str filesep name '.ini'];
         end
 
         function updatePrj(this, file_path)
             % Set the file project name / home / file_path from file_path
-            % SYNTAX: this.autoUpdatePrj(this, file_path)
+            %
+            % SYNTAX
+            %   this.autoUpdatePrj(this, file_path)
             fnp = File_Name_Processor();
 
             [path_str, name, ~] = fileparts(fnp.checkPath(file_path));
@@ -2677,7 +2943,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Access = 'public')
         function name = getPrjName(this)
             % get the project name
-            % SYNTAX:
+            %
+            % SYNTAX
             %   name = this.getPrjName();
 
             name = this.prj_name;
@@ -2685,210 +2952,279 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function cc = getConstellationCollector(this)
             % Get the constellation collector object
-            % SYNTAX: cc = this.getConstellationCollector()
+            %
+            % SYNTAX
+            %   cc = this.getConstellationCollector()
             cc = handle(this.cc);
         end
 
         function cc = getCC(this)
             % Get the constellation collector object (short name)
-            % SYNTAX: cc = this.getCC();
+            %
+            % SYNTAX
+            %   cc = this.getCC();
             cc = handle(this.cc);
         end
 
         function cut_off = getCutOff(this)
             % Get the cut off
-            % SYNTAX: cut_off = this.getCutOff();
+            %
+            % SYNTAX
+            %   cut_off = this.getCutOff();
             cut_off = this.cut_off;
         end
         
         function snr_thr = getSnrThr(this)
             % Get the snr threshold
-            % SYNTAX: snr_thr = this.getSnrThr();
+            %
+            % SYNTAX
+            %   snr_thr = this.getSnrThr();
             snr_thr = this.snr_thr;
         end
 
         function min_arc = getMinArc(this)
             % Get the minimum arc legnth to be kept
-            % SYNTAX: min_arc = this.getMinArc()
+            %
+            % SYNTAX
+            %   min_arc = this.getMinArc()
             min_arc = this.min_arc;
         end
 
         function err_thr = getMaxCodeErrThr(this)
             % Get the maximum error acceptable on code observations
-            % SYNTAX: err_thr = this.getMaxCodeErrThr()
+            %
+            % SYNTAX
+            %   err_thr = this.getMaxCodeErrThr()
             err_thr = this.pp_max_code_err_thr;
         end
 
         function err_thr = getMaxPhaseErrThr(this)
             % Get the maximum error acceptable on phase observations
-            % SYNTAX: err_thr = this.getMaxPhaseErrThr()
+            %
+            % SYNTAX
+            %   err_thr = this.getMaxPhaseErrThr()
             err_thr = this.pp_max_phase_err_thr;
         end
         
         function is_rem_check = isRemCheck(this)
             % Get the Remote Check flag
-            % SYNTAX: is_rem_check = this.isRemCheck()
+            %
+            % SYNTAX
+            %   is_rem_check = this.isRemCheck()
             is_rem_check = this.flag_check_remote;
         end
         
         function is_vmf = isVMF(this)
             % Get the VMF flag
-            % SYNTAX: is_vmf = this.isVMF()
+            %
+            % SYNTAX
+            %   is_vmf = this.isVMF()
             is_vmf = this.mapping_function == 2 || this.zd_model == 2;
         end
         
         function is_seamless = isSeamlessKF(this)
             % Get the Seamless Rate flag
-            % SYNTAX: is_seamless = this.isSeamlessKF();
+            %
+            % SYNTAX
+            %   is_seamless = this.isSeamlessKF();
             is_seamless = this.flag_seamless_proc;
         end
 
         function is_fb = isForwardBackwardKF(this)
             % Get the Forward Backward flag
-            % SYNTAX: is_fb = this.isForwardBackwardKF();
+            %
+            % SYNTAX
+            %   is_fb = this.isForwardBackwardKF();
             is_fb = this.flag_kf_fb ~= 0;
         end
 
         function kf_fb = getForwardBackwardKF(this)
             % Get the Forward Backward flag
-            % SYNTAX: kf_fb = this.getForwardBackwardKF();
+            %
+            % SYNTAX
+            %   kf_fb = this.getForwardBackwardKF();
             kf_fb = this.flag_kf_fb;
         end
 
         function is_static = isStaticKF(this)
             % Check wether the current KF mode is static (PP)
-            % SYNTAX: is_static = this.isStaticKF();
+            %
+            % SYNTAX
+            %   is_static = this.isStaticKF();
             is_static = (~this.isModeMonitor() && this.kf_mode == 0);
         end
 
         function is_variable = isVariableKF(this)
             % Check wether the current KF mode is variable
-            % SYNTAX: is_variable = this.isVariableKF();
+            %
+            % SYNTAX
+            %   is_variable = this.isVariableKF();
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
         end
 
         function is_tropo = isTropoOn(this)
             % Check whether the tropospheric delay estimation is enabled
-            % SYNTAX: is_tropo = this.isTropoOn();
+            %
+            % SYNTAX
+            %   is_tropo = this.isTropoOn();
             is_tropo = this.flag_tropo;
         end
         
         function is_iono_free = isIonoFree(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_iono_free = isIonoFree(this)
+            %
+            % SYNTAX
+            %   is_iono_free = isIonoFree(this)
             is_iono_free = this.iono_management == 1;
         end
         
         function is_iono_ext = isIonoExtModel(this)
             % Check whether the iono external model is enabled
-            % SYNTAX: is_iono_ext = isIonoExtModel(this)
+            %
+            % SYNTAX
+            %   is_iono_ext = isIonoExtModel(this)
             is_iono_ext = this.iono_management == 3;
         end
         function is_solid_earth = isSolidEarth(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_solid_earth = isSolidEarth(this)
+            %
+            % SYNTAX
+            %   is_solid_earth = isSolidEarth(this)
             is_solid_earth = this.flag_solid_earth;
         end
         
         function is_pole_tide = isPoleTide(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_pole_tide = isPoleTide(this)
+            %
+            % SYNTAX
+            %   is_pole_tide = isPoleTide(this)
             is_pole_tide = this.flag_pole_tide;
         end
         
         function is_phase_wind = isPhaseWind(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_phase_wind = isPhaseWind(this)
+            %
+            % SYNTAX
+            %   is_phase_wind = isPhaseWind(this)
             is_phase_wind = this.flag_phase_wind;
         end
         
         function is_shapiro = isShapiro(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_shapiro = isShapiro(this)
+            %
+            % SYNTAX
+            %   is_shapiro = isShapiro(this)
             is_shapiro = this.flag_shapiro;
         end
         
         function is_ocean_load = isOceanLoading(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_ocean_load = isOceanLoading(this)
+            %
+            % SYNTAX
+            %   is_ocean_load = isOceanLoading(this)
             is_ocean_load = this.flag_ocean_load;
         end
         
         function is_atm_load = isAtmLoading(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_atm_load = isAtmLoading(this)
+            %
+            % SYNTAX
+            %   is_atm_load = isAtmLoading(this)
             is_atm_load = this.flag_atm_load;
         end
         
         function is_hoi = isHOI(this)
             % Check whether high order ionspheric delays are enabled
-            % SYNTAX: is_hoi = isHOI(this)
+            %
+            % SYNTAX
+            %   is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
         end
 
         function need_iono = needIonoMap(this)
             % Check if ionospheric map are needed
-            % SYNTAX: need_iono = needIonoMap(this)
+            %
+            % SYNTAX
+            %   need_iono = needIonoMap(this)
             need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3);
         end
         
         function is_rec_pcv = isRecPCV(this)
             % Check whether the iono free combination is enabled
-            % SYNTAX: is_rec_pcv= isRecPCV(this)
+            %
+            % SYNTAX
+            %   is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
         end       
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled
-            % SYNTAX: is_tropo_gradient = this.isTropoGradientEnabled();
+            %
+            % SYNTAX
+            %   is_tropo_gradient = this.isTropoGradientEnabled();
             is_tropo_gradient = this.flag_tropo_gradient;
         end
 
         function s_rate = getSolutionRate(this)
             % Get the solution rate to be exported (high rate) in go Block
-            % SYNTAX: s_rate = this.isTropoGradientEnabled();
+            %
+            % SYNTAX
+            %   s_rate = this.isTropoGradientEnabled();
             s_rate = this.s_rate;
         end
 
         function flag = isPreCleaningOn(this)
             % Try to correct cycle slips / discontinuities in the observations and increase spike variance
-            % SYNTAX: flag = this.isPreCleaningOn()
+            %
+            % SYNTAX
+            %   flag = this.isPreCleaningOn()
             flag = this.block_pre_cleaning;
         end
 
         function n_loop = getBlockPostCleaningLoops(this)
             % Try to correct cycle slips / discontinuities in the observations and increase spike variance
-            % SYNTAX: flag = this.useBlockPreCleaning()
+            %
+            % SYNTAX
+            %   flag = this.useBlockPreCleaning()
             n_loop = this.block_post_cleaning_loops;
         end
 
         function flag = isSeamlessHR(this)
             % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-            % SYNTAX: flag = this.useBlockSeamlessHR()
+            %
+            % SYNTAX
+            %   flag = this.useBlockSeamlessHR()
             flag = this.block_seamless_hr;
         end
 
         function flag = getFullSlipSplit(this)
             % Compute ambiguities and the high rate solution as a unique system (true) / compute independent goBlock high rate solution (false)
-            % SYNTAX: flag = this.useBlockSeamlessHR()
+            %
+            % SYNTAX
+            %   flag = this.useBlockSeamlessHR()
             flag = this.block_full_slip_split;
         end
 
         function flag = isOutlierRejectionOn(this)
             % Get the status of outlier rejection
-            % SYNTAX: flag = this.isOutlierRejectionOn()
+            %
+            % SYNTAX
+            %   flag = this.isOutlierRejectionOn()
             flag = this.flag_outlier;
         end
 
         function flag = isBlockForceStabilizationOn(this)
             % Get the status of outlier rejection OF UNSTABLE ARCS
-            % SYNTAX: flag = this.isBlockForceStabilizationOn()
+            % SYNTAX
+            %   flag = this.isBlockForceStabilizationOn()
             flag = this.block_force_stabilization;
         end
 
         function flag = isBlockOneArc(this)
             % Get the status of "one arc" approach
-            % SYNTAX: flag = this.isBlockOneArc()
+            %
+            % SYNTAX
+            %   flag = this.isBlockOneArc()
             flag = this.block_one_arc;
         end
     end
@@ -2899,7 +3235,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     methods (Static, Access = 'public')
         function test()
             % Test the class
-            % SYNTAX: state.test()
+            %
+            % SYNTAX
+            %   state.test()
             s = Main_Settings();
             s.testInterfaceRoutines();
         end
