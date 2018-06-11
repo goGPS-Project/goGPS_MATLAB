@@ -341,7 +341,7 @@ classdef Core < handle
             err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
             err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
             if state.isOceanLoading
-                err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
+                err_code.ocean = state.checkDirErr('ocean_dir', 'Ocean loading dir', flag_verbose);
             else
                 if flag_verbose
                     this.log.addStatusDisabled('Ocean loading disabled');

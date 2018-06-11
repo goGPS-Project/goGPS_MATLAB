@@ -75,6 +75,8 @@ classdef Command_Interpreter < handle
         CMD_EXPORT      % Export results
         
         PAR_RATE        % Parameter select rate
+        PAR_CUTOFF      % Parameter select cutoff
+        PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_SYNC        % Parameter sync
         
@@ -152,21 +154,35 @@ classdef Command_Interpreter < handle
             % definition of parameters (ToDo: these should be converted into objects)
             % in the definition the character "$" indicate the parameter value
             this.PAR_RATE.name = 'rate';
-            this.PAR_RATE.descr = '@<rate>          processing rate in seconds (e.g. @30s, -r=30s)';
+            this.PAR_RATE.descr = '@<rate>            processing rate in seconds (e.g. @30s, -r=30s)';
             this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
             this.PAR_RATE.class = 'double';
             this.PAR_RATE.limits = [0.000001 900];
             this.PAR_RATE.accepted_values = [];
             
+            this.PAR_CUTOFF.name = 'cut-off';
+            this.PAR_CUTOFF.descr = '-e=<elevation>     elevation in degree (e.g. -e=7)';
+            this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: @ | -e= | --cutoff= 
+            this.PAR_CUTOFF.class = 'double';
+            this.PAR_CUTOFF.limits = [0 90];
+            this.PAR_CUTOFF.accepted_values = [];
+
+            this.PAR_SNRTHR.name = 'SNR threshold';
+            this.PAR_SNRTHR.descr = '-q=<snrthr>        SNR threshold in dbHZ on L1 (e.g. -q=7)';
+            this.PAR_SNRTHR.par = '(\-q\=)|(\-\-snrthr\=)'; % (regexp) parameter prefix: @ | -q= | --snrthr= 
+            this.PAR_SNRTHR.class = 'double';
+            this.PAR_SNRTHR.limits = [0 70];
+            this.PAR_SNRTHR.accepted_values = [];
+
             this.PAR_SS.name = 'constellation';
-            this.PAR_SS.descr = '-s=<sat_list>    active constellations (e.g. -s=GRE)';
+            this.PAR_SS.descr = '-s=<sat_list>      active constellations (e.g. -s=GRE)';
             this.PAR_SS.par = '(\-s\=)|(\-\-constellation\=)'; % (regexp) parameter prefix: -s --constellation
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
             
             this.PAR_SYNC.name = 'sync results';
-            this.PAR_SYNC.descr = '--sync           use syncronized time only';
+            this.PAR_SYNC.descr = '--sync             use syncronized time only';
             this.PAR_SYNC.par = '(\-\-sync)';
             this.PAR_SYNC.class = '';
             this.PAR_SYNC.limits = [];
@@ -287,7 +303,7 @@ classdef Command_Interpreter < handle
             this.CMD_KEEP.name = {'KEEP'};
             this.CMD_KEEP.descr = ['Keep in the object the data of a certain constallation' new_line 'at a certain rate'];
             this.CMD_KEEP.rec = 'T';
-            this.CMD_KEEP.par = [this.PAR_RATE this.PAR_SS];
+            this.CMD_KEEP.par = [this.PAR_RATE this.PAR_SS this.PAR_CUTOFF this.PAR_SNRTHR];
             
             this.CMD_SYNC.name = {'SYNC'};
             this.CMD_SYNC.descr = ['Syncronize all the receivers at the same rate ' new_line '(with the minimal data span)'];
@@ -359,8 +375,12 @@ classdef Command_Interpreter < handle
                 '\n         "R" refers to reference receiver' ...
                 '\n         Receivers can be identified with their id (as defined in "obs_name")' ...
                 '\n         It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
-                '\n\n         Command example: KEEP T* @30s' ...
-                '\n                          SEID R1:4 T5' ...
+                '\n\n         Command example: cmd_001 = "LOAD T*"' ...
+                '\n                          cmd_002 = "AZEL T*"' ...
+                '\n                          cmd_003 = "KEEP T* @30s -s=G -q=40 -e=10"' ...
+                '\n                          cmd_004 = "PREPRO T*"' ...
+                '\n                          cmd_005 = "PPP T*"' ...
+                '\n                          cmd_006 = "SHOW T* ALL"' ...
                 ], str);
             
         end
@@ -659,7 +679,7 @@ classdef Command_Interpreter < handle
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
-                [rate, found] = this.getRate(tok);
+                [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 if found
                     for r = id_trg
                         this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).getMarkerName()));
@@ -667,6 +687,26 @@ classdef Command_Interpreter < handle
                             rec(r).load();
                         end
                         rec(r).keep(rate);
+                    end
+                end
+                [snr_thr, found] = this.getNumericPar(tok, this.PAR_SNRTHR.par);
+                if found
+                    for r = id_trg
+                        % this.log.addMarkedMessage(sprintf('Keeping obs with SNR (L1) above %d dbHZ for receiver %d: %s', snr_thr, r, rec(r).getMarkerName()));
+                        if rec(r).isEmpty
+                            rec(r).load();
+                        end
+                        rec(r).remUnderSnrThr(snr_thr);
+                    end
+                end
+                [cut_off, found] = this.getNumericPar(tok, this.PAR_CUTOFF.par);
+                if found
+                    for r = id_trg
+                        % this.log.addMarkedMessage(sprintf('Keeping obs with elevation above %.1f for receiver %d: %s', cut_off, r, rec(r).getMarkerName()));
+                        if rec(r).isEmpty
+                            rec(r).load();
+                        end
+                        rec(r).remUnderCutOff(cut_off);
                     end
                 end
                 [sys_list, found] = this.getConstellation(tok);
@@ -869,17 +909,17 @@ classdef Command_Interpreter < handle
             end            
         end
         
-        function [rate, found] = getRate(this, tok)
-            % Extract from a set of tokens the rate parameter
+        function [num, found] = getNumericPar(this, tok, par_regexp)
+            % Extract from a set of tokens a number for a certain parameter
             %
             % INPUT
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [rate, found] = this.getRate(tok)
+            %   [num, found] = this.getNumericPar(tok, this.PAR_RATE.par)
             found = false;            
-            rate = str2double(regexp([tok{:}], ['(?<=' this.PAR_RATE.par ')[+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match', 'once'));
-            if ~isempty(rate) && ~isnan(rate)
+            num = str2double(regexp([tok{:}], ['(?<=' par_regexp ')[+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match', 'once'));
+            if ~isempty(num) && ~isnan(num)
                 found = true;
             end
         end

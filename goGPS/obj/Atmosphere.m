@@ -134,13 +134,9 @@ classdef Atmosphere < handle
         V_LIGHT = Global_Configuration.V_LIGHT;
     end
     
-    methods
+    methods (Access = private)
         function this = Atmosphere()
             % Initialisation of the variables
-            gs = Global_Configuration.getInstance;
-            this.geoid = gs.getRefGeoid;
-            this.state = gs.getCurrentSettings();
-            this.log = Logger.getInstance();
         end
     end
     methods (Static)
@@ -155,16 +151,20 @@ classdef Atmosphere < handle
             else
                 this = unique_instance_atmosphere__;
             end
+            gs = Global_Configuration.getInstance;            
+            this.geoid = gs.getRefGeoid;
+            this.state = gs.getCurrentSettings();
+            this.log = Logger.getInstance();
         end
     end
     methods
-        function importIonex(this, filename)
-            fid = fopen([filename],'r');
+        function importIonex(this, file_name)
+            fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', filename));
+                this.log.addWarning(sprintf('      File %s not found', file_name));
                 return
             end
-            this.log.addMessage(sprintf('      Opening file %s for reading', filename));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
             txt = fread(fid,'*char')';
             fclose(fid);
             
@@ -181,21 +181,21 @@ classdef Atmosphere < handle
             % read header
             for l = 1:size(lim,1)
                 line = txt(lim(l,1):lim(l,2));
-                if strfind(line,'END OF HEADER')
+                if instr(line,'END OF HEADER')
                     break
-                elseif strfind(line,'EPOCH OF FIRST MAP')
+                elseif instr(line,'EPOCH OF FIRST MAP')
                     first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
-                elseif strfind(line,'EPOCH OF LAST MAP')
+                elseif instr(line,'EPOCH OF LAST MAP')
                     last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
-                elseif strfind(line,'INTERVAL')
+                elseif instr(line,'INTERVAL')
                     interval = sscanf(line(1:60),'%f')';
-                elseif strfind(line,'HGT1 / HGT2 / DHGT')
+                elseif instr(line,'HGT1 / HGT2 / DHGT')
                     height = sscanf(line(1:60),'%f %f %f')';
-                elseif strfind(line,'LAT1 / LAT2 / DLAT')
+                elseif instr(line,'LAT1 / LAT2 / DLAT')
                     lats = sscanf(line(1:60),'%f %f %f')';
-                elseif strfind(line,'LON1 / LON2 / DLON')
+                elseif instr(line,'LON1 / LON2 / DLON')
                     lons = sscanf(line(1:60),'%f %f %f')';
-                elseif strfind(line,'EXPONENT')
+                elseif instr(line,'EXPONENT')
                     exponent = sscanf(line(1:60),'%f')';
                 end
             end
@@ -247,7 +247,7 @@ classdef Atmosphere < handle
                     this.ionex.height = height;
                     this.ionex.data = data;
                 else
-                    if first_epoch < this.ionex.first_time ;
+                    if first_epoch < this.ionex.first_time
                         this.ionex.first_time = first_epoch;
                         this.ionex.first_time_double = first_epoch.getGpsTime();
                         this.ionex.data = cat(3,data,this.ionex.data);
@@ -567,33 +567,30 @@ classdef Atmosphere < handle
             
         end
         
-        function [stec, pp,mfpp, k] = getSTEC(this,lat,lon, az,el,h, time)
+        function [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
             % get slant total electron component
             
-            
-            thin_shell_height = this.ionex.height(1)*1000;       %ionopshere thin shell height [km]->[m]
+            thin_shell_height = this.ionex.height(1) * 1000;       % ionopshere thin shell height [km]->[m]
             % get piercing point and mapping function
-            [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az(:)/180*pi, el(:)/180*pi, thin_shell_height,6371000);
-            %inetrpolate TEC at piercing point
-            tec = this.interpolateTEC( time, latpp*180/pi, lonpp*180/pi);
+            [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az(:)/180*pi, el(:)/180*pi, thin_shell_height, 6371000);
+            % interpolate TEC at piercing point
+            tec = this.interpolateTEC( time, latpp * 180/pi, lonpp * 180/pi);
             
-            %apply mapping function
+            % apply mapping function
             stec = tec.* mfpp;
             if nargout > 1
                 pp = [latpp , lonpp];
             end
-            
-            
         end
         
         function foi_delay = getFOIdelayCoeff(this,lat,lon, az,el,h,time)
-            %get first horder ionosphere delay
+            % get first horder ionosphere delay
             gps_time = time.getGpsTime();
             foi_delay = zeros(size(el));
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
-                t_time= gps_time(t);
-                [stec, ~,~, ~] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
+                t_time = gps_time(t);
+                [stec, ~, ~, ~] = this.getSTEC(lat, lon, az(t,idx_sat), el(t,idx_sat), h, t_time);
                 foi_delay(t,idx_sat) = 40.3 * 1e16 .* stec ./ this.V_LIGHT^2; % to be multipleid by wavelength^2
             end
         end

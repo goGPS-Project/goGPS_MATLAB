@@ -78,6 +78,7 @@ classdef Core_Sky < handle
         coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]     
         
         wsb                   % widelane satellite biases (only cnes orbits)
+        wsb_date              % widelane satellite biases time
     end
     
     properties (Access = private)
@@ -250,6 +251,8 @@ classdef Core_Sky < handle
             else
                 this.clock=[];
                 this.time_ref_clock = [];
+                this.wsb = [];
+                this.wsb_date = [];
             end
         end
         
@@ -444,7 +447,7 @@ classdef Core_Sky < handle
             end
         end
         
-        function importBrdcs(this,f_names, t_st, t_end, clock, step)
+        function importBrdcs(this, f_names, t_st, t_end, clock, step)
             if nargin < 6
                 step = 900;
             end
@@ -572,7 +575,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('No ephemerides have been found at %s', filename_SP3));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_SP3)));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_SP3))));
                 
                 txt = fread(f_sp3,'*char')';
                 fclose(f_sp3);
@@ -721,11 +724,12 @@ classdef Core_Sky < handle
             % the object add them, otherwise clear the object and add them
             % data that are alrady present are going to be overwritten
             f_clk = fopen(filename_clk,'r');
+            [~, fname, ~] = fileparts(filename_clk);
             if (f_clk == -1)
                 this.log.addWarning(sprintf('No clk files have been found at %s', filename_clk));
             else
                 fnp = File_Name_Processor;
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_clk)));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_clk))));
                 t0 = tic;
                 if isempty(this.clock)
                     empty_clk = true;
@@ -749,10 +753,21 @@ classdef Core_Sky < handle
                 if lim(end,3) < 3
                     lim(end,:) = [];
                 end
+                
                 % get end pf header
                 eoh = strfind(txt,'END OF HEADER');
                 eoh = find(lim(:,1) > eoh);
                 eoh = eoh(1) - 1;
+                if strcmp(fname(1:3),'grg') % if cnes orbit loas wsb values
+                    wl_line = txt(lim(1:eoh,1)) == 'W' & txt(lim(1:eoh,1)+1) == 'L'& txt(lim(1:eoh,1)+60) == 'C' & txt(lim(1:eoh,1)+61) == 'O' & txt(lim(1:eoh,1)+62) == 'M';
+                    wsb_date = GPS_Time(cell2mat(textscan(txt(lim(find(wl_line,1,'first'),1) + [8:33]),'%f %f %f %f %f %f')));
+                    wsb_prn = sscanf(txt(bsxfun(@plus, repmat(lim(wl_line, 1),1,3), 4:6))',' %f ');
+                    wsb_value = sscanf(txt(bsxfun(@plus, repmat(lim(wl_line, 1),1,15), 39:53))','%f');
+                    wsb = zeros(1,this.cc.getGPS.N_SAT);
+                    wsb(wsb_prn) = wsb_value;
+                    this.wsb = [this.wsb ;wsb];
+                    this.wsb_date = [this.wsb_date ;wsb_date];
+                end
                 sats_line = find(txt(lim(eoh+1:end,1)) == 'A' & txt(lim(eoh+1:end,1)+1) == 'S') + eoh;
                 % clk rate
                 clk_rate = [];
@@ -843,7 +858,7 @@ classdef Core_Sky < handle
             Xrt = [];
             Yrt = [];
             for f = 1 : length(filename)
-                this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename{f})));
+                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename{f}))));
                 fid = fopen(filename{f},'rt');
                 
                 if fid == -1
@@ -1018,7 +1033,7 @@ classdef Core_Sky < handle
                 this.log.addWarning(sprintf('      File %s not found', file_name));
                 return
             end
-            this.log.addMessage(sprintf('      Opening file %s for reading', file_name));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
             txt = fread(fid,'*char')';
             fclose(fid);
             
@@ -1229,6 +1244,18 @@ classdef Core_Sky < handle
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
             
+        end
+        
+        function [wsb] = getWSB(this,time)
+            [year_t, month_t, day_t ] = time.getCalEpoch();
+            n_ep = size(this.wsb_date);
+            n_ep = n_ep(1);
+            for i = 1:n_ep 
+                [year, month, day ] = this.wsb_date(i).getCalEpoch();
+                if year == year_t && month == month_t && day == day_t
+                    wsb = this.wsb(i,:);
+                end
+            end
         end
         
         function COMtoAPC(this, direction)
@@ -1824,7 +1851,7 @@ classdef Core_Sky < handle
         function loadAntPCV(this, filename_pcv)
             % Loading antenna's phase center variations and offsets
             fnp = File_Name_Processor();
-            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
             
             this.ant_pcv = Core_Utils.readAntennaPCV(filename_pcv, this.cc.getAntennaId(), this.time_ref_coord);
             this.ant_pco = zeros(1, this.cc.getNumSat(),3);

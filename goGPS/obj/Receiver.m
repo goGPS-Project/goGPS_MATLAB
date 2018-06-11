@@ -696,8 +696,7 @@ classdef Receiver < Exportable
                 [~, idx] = intersect(this.go_id, go_id);
                 this.remObs(idx);
             end
-        end
-        
+        end        
         
         function remBadPrObs(this, thr)
             % remove bad pseudo-ranges 
@@ -720,7 +719,7 @@ classdef Receiver < Exportable
             pr = zero2nan(Core_Pre_Processing.remShortArcs(pr', 1))';
             this.setPseudoRanges(pr, id_pr);
             n_out = sum(out(:) & ~inan(:));
-            this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out), 6));
+            this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
         end
         
         function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
@@ -861,19 +860,32 @@ classdef Receiver < Exportable
             if (nargin == 1)
                 snr_thr = this.state.getSnrThr();
             end
-            this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
-
+            
             [snr1, id_snr] = this.getObs('S1');
+            
             snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
             id_snr = find(id_snr);
-            this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr)), 6));
-
             if ~isempty(id_snr)
-                this.log.addMarkedMessage(sprintf('Removing data with SNR (on L1) smaller than %.1f', snr_thr));
+                this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr))));
+                
                 for s = 1 : numel(id_snr)
                     this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
                 end
             end
+        end
+        
+        function remUnderCutOff(this, cut_off)
+            % removes observations with an elevation lower than cut_off
+            % 
+            % SYNTAX
+            %   this.remUnderCutOff(cut_off)
+            if nargin == 1
+                cut_off = this.state.getCutOff;
+            end
+            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', cut_off)));
+            mask = this.sat.el > cut_off;
+            this.obs = this.obs .* mask(:, this.go_id)';
         end
         
         function removeShortArch(this, min_arc)
@@ -891,7 +903,7 @@ classdef Receiver < Exportable
                 this.sat.cycle_slip_idx_ph(el_idx) = 0;
                 ph(this.sat.outlier_idx_ph) = 0;
                 this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:))), 6));
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:)))));
             end
         end
         
@@ -950,18 +962,14 @@ classdef Receiver < Exportable
         
         function removeOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
-            % PARAMETRS
+            %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
             cs_thr = 0.5; % CYCLE SLIP THR
             sa_thr = this.state.getMinArc();  % short arc threshold
             
             %----------------------------
             % Outlier Detection
-            %----------------------------
-            
-            this.log.addMessage(this.log.indent(sprintf('Removing observations under cut-off (%d degrees)', this.state.cut_off), 6));
-            mask = this.sat.el > this.state.cut_off;
-            this.obs = this.obs .* mask(:, this.go_id)';
+            %----------------------------            
             
             % mark all as outlier and interpolate
             % get observed values
@@ -969,7 +977,7 @@ classdef Receiver < Exportable
             this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             [ph, wl, id_ph_l] = this.getPhases;
             
-            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate', 6));
+            this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate'));
             % first time derivate
             synt_ph = this.getSyntPhases;
             sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
@@ -981,9 +989,9 @@ classdef Receiver < Exportable
             
             % test sensor variance
             tmp = sensor_ph(~isnan(sensor_ph));
-            tmp(abs(tmp)>4) = [];
+            tmp(abs(tmp) > 4) = [];
             std_sensor = mean(movstd(tmp(:),900));
-            
+            %%
             % if the sensor is too noisy (i.e. the a-priori position is probably not very accurate)
             % use as a sensor the time second derivate
             if std_sensor > ol_thr
@@ -1008,7 +1016,7 @@ classdef Receiver < Exportable
             % Cycle slip detection
             %----------------------------
             
-            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate', 6));
+            this.log.addMessage(this.log.indent('Detect cycle slips from residual phase time derivate'));
             % join the nan
             sensor_ph_cs = nan(size(sensor_ph));
             for o = 1 : size(ph2,2)
@@ -1111,7 +1119,7 @@ classdef Receiver < Exportable
             this.sat.outlier_idx_ph = this.sat.outlier_idx_ph | poss_out_idx;
             
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
-            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out), 6));
+            this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
             
             %this.removeShortArch(this.state.getMinArc);            
         end
@@ -1232,7 +1240,7 @@ classdef Receiver < Exportable
                 end
             end
             
-            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip),6));
+            this.log.addMessage(this.log.indent(sprintf(' - %d of %d cycle slip repaired',n_repaired,n_cycleslip)));
             
             this.sat.cycle_slip_idx_ph = poss_slip_idx;
             
@@ -1373,7 +1381,7 @@ classdef Receiver < Exportable
             %   this.importAntModel
             filename_pcv = this.state.getAtxFile;
             fnp = File_Name_Processor();
-            this.log.addMessage(sprintf('      Opening file %s for reading', fnp.getFileName(filename_pcv)));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(filename_pcv))));
             this.pcv = Core_Utils.readAntennaPCV(filename_pcv, {this.ant_type});
         end
         
@@ -1706,8 +1714,11 @@ classdef Receiver < Exportable
             comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
             comment_line(1:eoh) = false;
             lim(comment_line,:) = [];
+            if lim(end,3) < 32
+                txt = [txt repmat(' ',1,32 - lim(end,3))];
+            end
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & lim(eoh+1:end,3) > 25]);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & (txt(lim(eoh+1:end,1) + 28) ~= '4')' & (txt(lim(eoh+1:end,1) + 31) ~= '1')' & lim(eoh+1:end,3) > 25]);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, n_epo, 1))';
@@ -1863,7 +1874,7 @@ classdef Receiver < Exportable
         
         function parseRin3Data(this, txt, lim, eoh)
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>')']);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+34) ~= '1' )']);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
@@ -3356,7 +3367,9 @@ classdef Receiver < Exportable
             % get observation index corresponfing to the flag using best
             % channel according to the definition in GPS_SS, GLONASS_SS, ...
             % SYNTAX this.getObsIdx(flag, <system>)
-            
+            obs = [];
+            idx = [];
+            snr = [];
             cycle_slips = [];
             if length(flag)==3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
@@ -3652,10 +3665,14 @@ classdef Receiver < Exportable
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
-            
-            
+                        
             [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
             [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
+            
+            id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
+            %if any(id_ph)
+            %    [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c);
+            %end
             
             fun1 = @(wl1,wl2) 0.65;
             fun2 = @(wl1,wl2) 0.35;
@@ -3742,7 +3759,7 @@ classdef Receiver < Exportable
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
             %  get syntetic observation for code or phase
             obs_type = {'code', 'phase'};
-            this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1}),6));
+            this.log.addMessage(this.log.indent(sprintf('Synthesising %s observations', obs_type{phase + 1})));
             idx_obs = [];
             if nargin < 3
                 sys_c = this.cc.sys_c;
@@ -4518,14 +4535,16 @@ classdef Receiver < Exportable
                 smoothing_win = 3;
             end
             if any(smoothing_win)
-                this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver', 6));
+                this.log.addMessage(this.log.indent('Smooth and apply the clock error of the receiver'));
             else
-                this.log.addMessage(this.log.indent('Apply the clock error of the receiver', 6));
+                this.log.addMessage(this.log.indent('Apply the clock error of the receiver'));
             end
             id_ko = this.dt == 0;
             lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);
             % lim = [lim(1) lim(end)];
-            dt = simpleFill1D(zero2nan(this.dt(:,1)), this.dt == 0, 'pchip');
+            dt_w_border = [this.dt(1); zero2nan(this.dt(:,1)); this.dt(end,1)];
+            dt = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
+            dt([1 end] ) = [];
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if lim(i,2) - lim(i,1) > 5
@@ -4927,7 +4946,7 @@ classdef Receiver < Exportable
             end
             
             if nargin < 2 || strcmp(go_id,'all')
-                this.log.addMessage(this.log.indent('Updating tropospheric errors',6))
+                this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
             end
@@ -4964,45 +4983,44 @@ classdef Receiver < Exportable
            end
         end
         
-        function updateErrIono(this, go_id)
+        function updateErrIono(this, go_id, iono_model_override)
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
-            this.log.addMessage(this.log.indent('Updating ionospheric errors',6))
+            this.log.addMessage(this.log.indent('Updating ionospheric errors'))
             if nargin < 2
                 
                 go_id  = 1: this.getMaxSat();
-            end
-            
+            end            
           
+            if nargin < 3
+                iono_model_override = this.state.getIonoModel;
+            end
             this.updateCoordinates();       
-            switch this.state.iono_model
-                case 0 %no model
+            switch iono_model_override
+                case 1 % no model
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
-                case 1 %Geckle and Feen model
-                    %corr = simplified_model(lat, lon, az, el, mjd);
-                case 2 %Klobuchar model
+                case 2 % Klobuchar model
                     if ~isempty(this.sat.cs.iono )
                         for s = go_id
                             idx = this.sat.avail_idx(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());  
                             this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
-                            
                         end
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                     end
-                case 3 %IONEX
+                case 3 % IONEX
                     atm = Atmosphere.getInstance();
-                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat,this.lon,this.sat.az,this.sat.el,this.h_ellips,this.time);
+                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
         end
 
         function applyIonoModel(this)
-            if this.iono_status == 0 && this.state.getIonoManagement == 3
+            if this.iono_status == 0 
                 this.log.addMarkedMessage('Applying Ionosphere model');
                 this.ionoModel(1);
-                this.iono_status = 1; %applied
+                this.iono_status = 1; % applied
             end
         end
         
@@ -5013,25 +5031,27 @@ classdef Receiver < Exportable
                 this.iono_status = 0; %not applied
             end
         end
-
-        function ionoModel(this,sign)
-        %DESCRIPTION: apply the selcted iono model
-        %USAGE: this.applyIonoModel()
-        ph_obs = this.obs_code(:,1) == 'L';
-        pr_obs = this.obs_code(:,1) == 'C';
-        for i = 1 : size(this.sat.err_iono,2)
-            idx_sat = this.go_id == i & (ph_obs | pr_obs);
-            if sum(idx_sat) >0
-                for s = find(idx_sat)'
-                    iono_delay = this.sat.err_iono(:,i) * this.wl(s)^2;
-                    if ph_obs(s) > 0
-                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign*zero2nan(iono_delay'));
-                    else
-                        this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign*zero2nan(iono_delay'));
+        
+        function ionoModel(this, sign)
+            % Apply the selected iono model
+            %
+            % SYNTAX
+            %   this.applyIonoModel()
+            ph_obs = this.obs_code(:,1) == 'L';
+            pr_obs = this.obs_code(:,1) == 'C';
+            for i = 1 : size(this.sat.err_iono,2)
+                idx_sat = this.go_id == i & (ph_obs | pr_obs);
+                if sum(idx_sat) >0
+                    for s = find(idx_sat)'
+                        iono_delay = this.sat.err_iono(:,i) * this.wl(s).^2;
+                        if ph_obs(s) > 0
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay'));
+                        else
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign * (iono_delay'));
+                        end
                     end
                 end
             end
-        end
         end
         
         %--------------------------------------------------------
@@ -5168,7 +5188,7 @@ classdef Receiver < Exportable
             %DESCRIPTION upadte the correction related to solid earth
             % solid tides, ocean loading, pole tides.
             if isempty(this.sat.solid_earth_corr)
-                this.log.addMessage(this.log.indent('Updating solid earth corrections',6))
+                this.log.addMessage(this.log.indent('Updating solid earth corrections'))
                 this.sat.solid_earth_corr = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
@@ -5770,7 +5790,7 @@ classdef Receiver < Exportable
                                     end
                                 else
                                     if isempty(f_code_history) || ~sum(idxCharLines(f_code_history, f_code))
-                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.ant_type, f_code),6));
+                                        this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.ant_type, f_code)));
                                         f_code_history = [f_code_history;f_code];
                                     end
                                 end
@@ -5925,7 +5945,7 @@ classdef Receiver < Exportable
         function applyPCV(this)
             if (this.pcv_delay_status == 0) && this.state.isRecPCV
                 this.log.addMarkedMessage('Applying PCV corrections');
-                tic, this.applyRemovePCV(1); toc
+                this.applyRemovePCV(1);
                 this.pcv_delay_status = 1; % applied
             end
         end
@@ -5988,8 +6008,8 @@ classdef Receiver < Exportable
             disable_dt_correction = true; % Skip to speed-up processing
             
             % computing nominal_time
-            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
-            rinex_time = this.time.getRefTime(nominal_time_zero);
+            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24; % start of day 
+            rinex_time = this.time.getRefTime(nominal_time_zero); % seconds from start of day
             nominal_time = round(rinex_time / this.time.getRate) * this.time.getRate;
             ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
             
@@ -6097,14 +6117,14 @@ classdef Receiver < Exportable
                     pr = bsxfun(@minus, pr, dt_pr .* 299792458);
                 end                
                 if any(dt_ph_dj)
-                    this.log.addMessage(this.log.indent('Correcting carrier phases jumps', 6));
+                    this.log.addMessage(this.log.indent('Correcting carrier phases jumps'));
                 else
-                    this.log.addMessage(this.log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation', 6));
+                    this.log.addMessage(this.log.indent('Correcting carrier phases for a dt drift estimated from desync interpolation'));
                 end
                 if any(dt_pr_dj)
-                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges jumps', 6));
+                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges jumps'));
                 else
-                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation', 6));
+                    this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation'));
                 end
                 
             end
@@ -6142,10 +6162,10 @@ classdef Receiver < Exportable
                 this.sat.err_tropo = zeros(this.time.length, this.getMaxSat());
                 this.sat.err_iono  = zeros(this.time.length, this.getMaxSat());
                 this.sat.solid_earth_corr  = zeros(this.time.length, this.getMaxSat());
-                this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)', 6))
+                this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)'))
                 % if not applied apply group delay
                 this.applyGroupDelay();
-                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction', 6))
+                this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction'))
                 this.applyDtSat();
                 
                 %this.static = 0;
@@ -6208,14 +6228,14 @@ classdef Receiver < Exportable
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.log.addMessage(this.log.indent('Improving estimation',6))
+                this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeStaticPositioning(this.id_sync, 15);
                 this.removeBadTracking();
                 
                 this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation',6))
+                this.log.addMessage(this.log.indent('Final estimation'))
                 [~, s02] = this.codeStaticPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ))
                 this.s02_ip = s02;
                 
                 % final estimation of time of flight
@@ -6252,7 +6272,7 @@ classdef Receiver < Exportable
             this.initAvailIndex(ep_coarse);
             this.updateAllTOT();
             
-            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data',6))
+            this.log.addMessage(this.log.indent('Getting coarse position on subsample of data'))
             
             dpos = 3000; % 3 km - entry condition
             while max(abs(dpos)) > 10
@@ -6266,17 +6286,17 @@ classdef Receiver < Exportable
             this.codeStaticPositioning(ep_coarse, 15);
         end
         
-        function removeBadTracking(this)
+        function removeBadTracking(this) %%% imprtnat check!! if ph obervation with no code are deleted elsewhere
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
-            [ph, wl, id_ph] = this.getPhases;
+            %[ph, wl, id_ph] = this.getPhases;
             sensor =  pr - this.getSyntPrObs -repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
             bad_track = abs(sensor) > 1e4;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
-            ph(bad_track) = 0;
+            %ph(bad_track) = 0;
             this.setPseudoRanges(pr, id_pr);
-            this.setPhases(ph, wl, id_ph);
+            %this.setPhases(ph, wl, id_ph);
             
             
         end
@@ -6303,9 +6323,9 @@ classdef Receiver < Exportable
             % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
             % enable)
             for i = 1 : num_reweight
-                        ls.reweightHuber();
-                        ls.Astack2Nstack();
-                        [x, res, s02] = ls.solve();
+                ls.reweightHuber();
+                ls.Astack2Nstack();
+                [x, res, s02] = ls.solve();
             end
             
             dpos = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
@@ -6390,7 +6410,7 @@ classdef Receiver < Exportable
             %        comb_code --> Iono Free = I
             % OUTPUTt_glo11.
             %
-            % 
+            %
             %   Get positioning using code observables
             
             
@@ -6427,13 +6447,13 @@ classdef Receiver < Exportable
                 if ~this.isMultiFreq()
                     this.updateErrIono();
                 end
-                this.log.addMessage(this.log.indent('Improving estimation',6))
+                this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeDynamicPositioning(this.id_sync, 15);
                 
                 this.updateAllTOT();
-                this.log.addMessage(this.log.indent('Final estimation',6))
+                this.log.addMessage(this.log.indent('Final estimation'))
                 [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
-                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ,6))
+                this.log.addMessage(this.log.indent(sprintf('Estimation sigma02 %.3f m', s02) ))
                 this.s02_ip = s02;
                 
                 % final estimation of time of flight
@@ -6442,7 +6462,7 @@ classdef Receiver < Exportable
                 [~, s02] = this.codeDynamicPositioning(this.id_sync, 15);
             end
         end
-       
+        
         function [obs, prn, sys, flag] = getBestCodeObs(this)
             % INPUT
             % OUPUT:
@@ -6612,7 +6632,7 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   this.computeBasicPosition();
-
+            
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
@@ -6625,14 +6645,14 @@ classdef Receiver < Exportable
                 this.correctTimeDesync();
                 this.initPositioning(sys_c);
             end
-        end        
+        end
         
         function preProcessing(this, sys_c)
             % Do all operation needed in order to preprocess the data
             % remove bad observation (spare satellites or bad epochs from CRX)
             % SYNTAX
             %   this.preProcessing(sys_c);
-                        
+            
             if this.isEmpty()
                 this.log.addError('Pre-Processing failed: the receiver object is empty');
             else
@@ -6653,11 +6673,12 @@ classdef Receiver < Exportable
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-
-                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
+                
+                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>                
                 if (min(s02) > this.S02_IP_THR)
                     this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
                 else
+                    this.remUnderCutOff();
                     this.setAvIdx2Visibility();
                     this.meteo_data = [];
                     this.importMeteoData();
@@ -6743,7 +6764,7 @@ classdef Receiver < Exportable
                 end
                 
                 this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-                this.log.addMessage(this.log.indent('Preparing the system', 6));
+                this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = Least_Squares_Manipulator();
@@ -6775,7 +6796,7 @@ classdef Receiver < Exportable
                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
-                this.log.addMessage(this.log.indent('Solving the system', 6));
+                this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s02] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
                 % enable)
@@ -6786,7 +6807,7 @@ classdef Receiver < Exportable
                 
                 this.sat.res = zeros(this.getNumEpochs, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-               
+                
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 
                 coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
@@ -6803,16 +6824,16 @@ classdef Receiver < Exportable
                 id_ok = ~isnan(ls.amb_idx);
                 amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
                 this.sat.amb_mat = nan(this.getNumEpochs, this.getMaxSat);
-                this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;                 
+                this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
                 
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
-                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02), 6));
+                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s02)));
                 this.xyz = this.xyz + coo;
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.sat.amb_idx = nan(this.getNumEpochs, this.getMaxSat);
-                this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx; 
+                this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx;
                 this.if_amb = amb; % to test ambiguity fixing
                 if s02 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s02))
@@ -6870,7 +6891,7 @@ classdef Receiver < Exportable
             
         end
         
-         function dynamicPPP(this, sys_list, id_sync)
+        function dynamicPPP(this, sys_list, id_sync)
             % compute a static PPP solution
             %
             % SYNTAX
@@ -6908,7 +6929,7 @@ classdef Receiver < Exportable
                 end
                 
                 this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
-                this.log.addMessage(this.log.indent('Preparing the system', 6));
+                this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = Least_Squares_Manipulator();
@@ -6943,7 +6964,7 @@ classdef Receiver < Exportable
                     ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo / 3600 * rate );
                     ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * rate );%this.state.std_tropo  / 3600 * rate );
                 end
-                this.log.addMessage(this.log.indent('Solving the system', 6));
+                this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s02] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
                 % enable)
@@ -6954,7 +6975,7 @@ classdef Receiver < Exportable
                 
                 this.sat.res = zeros(this.getNumEpochs, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
-               
+                
                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                 
                 coo_x    = x(x(:,2) == 1,1);
@@ -6965,81 +6986,94 @@ classdef Receiver < Exportable
                 tropo = x(x(:,2) == 7,1);
                 amb = x(x(:,2) == 5,1);
                 
-                  this.sat.res = zeros(this.getNumEpochs, n_sat);
+                this.sat.res = zeros(this.getNumEpochs, n_sat);
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
                 keyboard
             end
             
-         end
+        end
         
-         function fixPPP(this)
-             % coarse estimation of amb
-             this.coarseAmbEstimation();
-             % apply dt
-             this.smoothAndApplyDt(0);
-             % remove grupo delay
-             this.removeGroupDelay();
-             % estaimet WL
-             % estimate narrow lane
-             % -> amb VCV ???
-             % get undifferenced
-             % new estimation round with fixed ambs
-         end
-         
-         function coarseAmbEstimation(this)
-             % estimate coarse ambiguities
-             %%% experimental now just for GPS L1 L2
-             
-             % get geometry free
-             wl1 = GPS_SS.L_VEC(1);
-             wl2 = GPS_SS.L_VEC(2);
-             
-             f1 = GPS_SS.F_VEC(1);
-             f2 = GPS_SS.F_VEC(2);
-             
-             gamma = f1^2 / f2^2;
-             
-             amb_idx = this.sat.amb_idx;
-             n_amb  = max(max(amb_idx));
-             geom_free = zeros(this.time.length,GPS_SS.N_SAT);
-             obs_set =  this.getGeometryFree('C2W','C1W','G');
-             geom_free(:,obs_set.go_id) = obs_set.obs;
-             iono_elong = geom_free / ( 1 -gamma); % Eq (2)
-             P1_idx = idxCharLines(this.obs_code, 'C1W')'& this.system == 'G';
-             P2_idx = idxCharLines(this.obs_code, 'C2W')'& this.system == 'G';
-             P1 = zeros(this.time.length,GPS_SS.N_SAT);
-             P2 = zeros(this.time.length,GPS_SS.N_SAT);
-             P1(:,this.go_id(P1_idx)) = this.obs(P1_idx,:)';
-             P2(:,this.go_id(P2_idx)) = this.obs(P2_idx,:)';
-             L1 = zeros(this.time.length,GPS_SS.N_SAT);
-             L2 = zeros(this.time.length,GPS_SS.N_SAT);
-             L1_idx = idxCharLines(this.obs_code, 'L1C')' & this.system == 'G';
-             L1(:,this.go_id(L1_idx)) = this.obs(L1_idx, :)';
-             L2_idx = idxCharLines(this.obs_code, 'L2W')' & this.system == 'G';
-             L2(:,this.go_id(L2_idx)) = this.obs(L2_idx, :)';
-             n1_tilde = (zero2nan(P1) - 2* zero2nan(iono_elong)) / wl1 - zero2nan(L1);
-             n2_tilde = (zero2nan(P2) - 2* gamma* zero2nan(iono_elong)) / wl2 - zero2nan(L2);
-             
-             
-             l1_amb = zeros(1,n_amb);
-             l2_amb = zeros(1,n_amb);
-             for i =1 : n_amb;
-                 l1_amb(i) = median(n1_tilde(amb_idx == i),'omitnan');
-                 l2_amb(i) = median(n2_tilde(amb_idx == i),'omitnan');
-             end
-             
-             l1_amb_round = round(l1_amb);
-             l1_amb_round(isnan(l1_amb_round)) = 0;
-             l2_amb_round = round(l2_amb);
-             l2_amb_round(isnan(l2_amb_round)) = 0;
-             for i =1 : n_amb;
-                 idx_amb = amb_idx == i;
-                 L1(idx_amb) = L1(idx_amb) + l1_amb_round(i);
-                 L2(idx_amb) = L2(idx_amb) + l2_amb_round(i);
-             end
-             this.obs(L1_idx, :) = L1(:,this.go_id(L1_idx))';
-             this.obs(L2_idx, :) = L2(:,this.go_id(L2_idx))';
-         end
+        function fixPPP(this)
+            % coarse estimation of amb
+            this.coarseAmbEstimation();
+            % apply dt
+            this.smoothAndApplyDt(0);
+            % remove grupo delay
+            this.removeGroupDelay();
+            % estaimet WL
+            mwb = this.getMelWub('1','2','G');
+            wl_cycle = mwb.obs./repmat(mwb.wl,size(mwb.obs,1),1);
+            wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT);
+            wl_cycle(:,mwb.go_id) = mwb.obs;
+            wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1);
+            wsb = this.sat.cs.getWSB(this.getCentralTime());
+            % take off wsb
+            wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
+            % get receiver wsb
+            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan'); 
+            wl_cycle = wl_cycle - wsb_rec;
+            keyboard
+            % estimate narrow lane
+            % -> amb VCV ???
+            % get undifferenced
+            % new estimation round with fixed ambs
+        end
+        
+        function coarseAmbEstimation(this)
+            % estimate coarse ambiguities
+            %%% experimental now just for GPS L1 L2
+            
+            % get geometry free
+            wl1 = GPS_SS.L_VEC(1);
+            wl2 = GPS_SS.L_VEC(2);
+            
+            f1 = GPS_SS.F_VEC(1);
+            f2 = GPS_SS.F_VEC(2);
+            
+            gamma = f1^2 / f2^2;
+            
+            amb_idx = this.sat.amb_idx;
+            n_amb  = max(max(amb_idx));
+            geom_free = zeros(this.time.length,GPS_SS.N_SAT);
+            obs_set =  this.getGeometryFree('C2W','C1W','G');
+            geom_free(:,obs_set.go_id) = obs_set.obs;
+            iono_elong = geom_free / ( 1 -gamma); % Eq (2)
+            P1_idx = idxCharLines(this.obs_code, 'C1W')'& this.system == 'G';
+            P2_idx = idxCharLines(this.obs_code, 'C2W')'& this.system == 'G';
+            P1 = zeros(this.time.length,GPS_SS.N_SAT);
+            P2 = zeros(this.time.length,GPS_SS.N_SAT);
+            P1(:,this.go_id(P1_idx)) = this.obs(P1_idx,:)';
+            P2(:,this.go_id(P2_idx)) = this.obs(P2_idx,:)';
+            L1 = zeros(this.time.length,GPS_SS.N_SAT);
+            L2 = zeros(this.time.length,GPS_SS.N_SAT);
+            L1_idx = idxCharLines(this.obs_code, 'L1C')' & this.system == 'G';
+            L1(:,this.go_id(L1_idx)) = this.obs(L1_idx, :)';
+            L2_idx = idxCharLines(this.obs_code, 'L2W')' & this.system == 'G';
+            L2(:,this.go_id(L2_idx)) = this.obs(L2_idx, :)';
+            n1_tilde = (zero2nan(P1) - 2* zero2nan(iono_elong)) / wl1 - zero2nan(L1);
+            n2_tilde = (zero2nan(P2) - 2* gamma* zero2nan(iono_elong)) / wl2 - zero2nan(L2);
+            
+            
+            l1_amb = zeros(1,n_amb);
+            l2_amb = zeros(1,n_amb);
+            for i =1 : n_amb;
+                l1_amb(i) = median(n1_tilde(amb_idx == i),'omitnan');
+                l2_amb(i) = median(n2_tilde(amb_idx == i),'omitnan');
+            end
+            
+            l1_amb_round = round(l1_amb);
+            l1_amb_round(isnan(l1_amb_round)) = 0;
+            l2_amb_round = round(l2_amb);
+            l2_amb_round(isnan(l2_amb_round)) = 0;
+            for i =1 : n_amb;
+                idx_amb = amb_idx == i;
+                L1(idx_amb) = L1(idx_amb) + l1_amb_round(i);
+                L2(idx_amb) = L2(idx_amb) + l2_amb_round(i);
+            end
+            this.obs(L1_idx, :) = L1(:,this.go_id(L1_idx))';
+            this.obs(L2_idx, :) = L2(:,this.go_id(L2_idx))';
+        end
+        
         function interpResults(this)
             % When computing a solution with subsampling not all the epochs have an estimation
             id_rem = true(this.time.length, 1);
@@ -7128,13 +7162,13 @@ classdef Receiver < Exportable
                 file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
                 marker_name = File_Name_Processor.getFileName(file_name);
                 this.marker_name = marker_name(1:4);
-                this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name)), 6));
+                this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name))));
                 if exist(file_name, 'file')
                     this.legacyAppendPosition(file_name);
                     
                     file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
                     if exist(file_name, 'file')
-                        this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name)), 6));
+                        this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name))));
                         this.legacyAppendTropo(file_name)
                     else
                         this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));

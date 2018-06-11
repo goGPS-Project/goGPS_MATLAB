@@ -196,9 +196,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
         FLAG_TROPO_GRADIENT = false;                    % Flag for enabling the estimation of tropospheric delay gradient
         IONO_MANAGEMENT = 1;                            % Flag for enabling the usage of iono-free combination
-        IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
-                                                        % - iono_model = 0: no model
-                                                        % - iono_model = 1: Geckle and Feen model
+        IONO_MODEL = 2;                                 % Ionospheric model to be used (1: none, 2: Klobuchar, 3: SBAS)
+                                                        % - iono_model = 1: no model
                                                         % - iono_model = 2: Klobuchar model
                                                         % - iono_model = 3: SBAS grid
                                                         
@@ -229,8 +228,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                    'weight based on satellite elevation (exp)'}
 
         % id to string of ionospheric models
-        IONO_SMODE = {'0: no model', ...
-                      '1: Geckle and Feen model' ...
+        IONO_SMODE = {'1: no model', ...
                       '2: Klobuchar model', ...
                       '3: IONEX'}
         IONO_LABEL = {'No model', ...
@@ -1769,7 +1767,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
 
             % PROCESSING PARAMETERS
-            this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
+            this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             this.checkNumericField('iono_management');
             this.checkLogicalField('flag_solid_earth');
             this.checkLogicalField('flag_pole_tide');
@@ -1781,7 +1779,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_rec_pcv');
 
             % ATMOSPHERE
-            this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
+            this.checkNumericField('iono_model',[1 numel(this.IONO_SMODE)]);
             this.checkNumericField('zd_model',[1 numel(this.ZD_SMODE)]);
             this.checkNumericField('mapping_function',[1 numel(this.MF_SMODE)]);
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
@@ -1806,6 +1804,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, false);
         end
+                
+        function n_missing = checkDirErr(this, field_name, field_text, flag_verbose)
+            % Check the validity of the fields
+            %
+            % SYNTAX:
+            %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
+            
+            if nargin < 4
+                flag_verbose = true;
+            end
+            n_missing = checkPath(this, field_name, field_text, flag_verbose, false, true);
+        end
         
         function n_missing = checkFile(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
@@ -1820,7 +1830,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
         end
         
-        function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file)
+        function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file, flag_error)
             % Check the validity of the fields
             %
             % SYNTAX: 
@@ -1830,7 +1840,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if nargin < 4
                 flag_verbose = true;
             end
-            
+            if nargin < 6
+                flag_error = false;
+            end
             if ~iscell(field_name)
                 field_name = {field_name};                
             end
@@ -1870,7 +1882,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 end
             else
                 if flag_verbose
-                    this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    if flag_error
+                        this.log.addError(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    else
+                        this.log.addWarning(sprintf('%s is missing (%d)',field_text, -n_missing));
+                    end
                 end
             end
         end
@@ -2297,6 +2313,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             date.append(this.sss_date_stop);
         end
 
+        function iono_model = getIonoModel(this)
+            % SYNTAX: iono_model = this.getIonoModel()
+            iono_model = this.iono_model;
+        end
+        
         function iono_management = getIonoManagement(this)
             % SYNTAX: date = getSessionStop(this)
             iono_management = this.iono_management;
@@ -2755,9 +2776,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         function is_iono_free = isIonoFree(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_iono_free = isIonoFree(this)
-            is_iono_free = this.iono_management;
+            is_iono_free = this.iono_management == 1;
         end
         
+        function is_iono_ext = isIonoExtModel(this)
+            % Check whether the iono external model is enabled
+            % SYNTAX: is_iono_ext = isIonoExtModel(this)
+            is_iono_ext = this.iono_management == 3;
+        end
         function is_solid_earth = isSolidEarth(this)
             % Check whether the iono free combination is enabled
             % SYNTAX: is_solid_earth = isSolidEarth(this)

@@ -141,10 +141,10 @@ classdef Least_Squares_Manipulator < handle
                 dynamic = false;
             end
             % extract the observations to be used for the solution
-            phase_present = ~isempty(strfind(obs_type, 'L'));
+            phase_present = instr(obs_type, 'L');
             if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
-                if rec.isMultiFreq() %% case multi frequency
+                if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
                     for sys_c = rec.cc.sys_c
                         for i = 1 : length(obs_type)
                             if this.state.isIonoFree || ~phase_present

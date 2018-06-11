@@ -151,18 +151,22 @@ classdef Receiver_Settings < Exportable
             'I9_', [3	0.003]);
     end
     methods
-        function std = getStd(this, system, obs_code)
-            
+        function std = getStd(this, system, obs_code)            
             % get std for given observation
+
             obs_code = strrep(obs_code,' ','_');
-            std = this.stds.([system obs_code(2:3)]);
-            if obs_code(1) == 'C'
-                std = std(1);
-            elseif obs_code(1) == 'L'
-                std = std(2);
+            if ~isfield(this.stds, ([system obs_code(2:3)]))
+                std = inf;
             else
-                log = Logger.getInstance();
-                log.addWarning(['No std present for obesrvation type:_',obs_code(1)])
+                std = this.stds.([system obs_code(2:3)]);
+                if obs_code(1) == 'C'
+                    std = std(1);
+                elseif obs_code(1) == 'L'
+                    std = std(2);
+                else
+                    log = Logger.getInstance();
+                    log.addWarning(['No std present for obesrvation type:_',obs_code(1)])
+                end
             end
         end
         function loadSetting(this)

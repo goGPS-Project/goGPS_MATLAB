@@ -1,4 +1,4 @@
-function goGPS(ini_settings, use_gui)
+function goGPS(ini_settings, use_gui, flag_online)
 % SYNTAX:
 %   goGPS(<ini_settings_file>, <use_gui =false>);
 %
@@ -68,18 +68,22 @@ function goGPS(ini_settings, use_gui)
     end
     
     core = Core.getInstance(true); % Init Core
-
-    if nargin >= 1
+    
+    if nargin >= 1 && ~isempty(ini_settings)
         core.import(ini_settings);
     end
-    if nargin < 2
+    if nargin < 2 || isempty(use_gui)
         if isdeployed
             use_gui = true;
-       else
+        else
             use_gui = true;
         end
     end
-
+    
+    if nargin < 3 || isempty(flag_online)
+        flag_online = true;
+    end
+    
     % Every parameters when the application is deployed are strings
     if isdeployed
         if (ischar(use_gui) && (use_gui == '1'))
@@ -106,7 +110,7 @@ function goGPS(ini_settings, use_gui)
         log.addError('Invalid configuration found!!!');
     else
         
-        core.prepareProcessing(true); % download important files
+        core.prepareProcessing(flag_online); % download important files
         
         ok_go = true; % here a check on the validity of the resources should be done
         
