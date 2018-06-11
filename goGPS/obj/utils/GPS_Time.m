@@ -123,6 +123,9 @@ classdef GPS_Time < Exportable & handle
     methods (Access = 'public')
         function this = GPS_Time_str(this, string_time, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)
+            %
+            % SYNTAX
+            %   this = GPS_Time_str(this, string_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = true;
@@ -142,6 +145,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = GPS_Time_mat(this, matlab_time, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
+            %
+            % SINTAX
+            %   this = GPS_Time_mat(this, matlab_time, is_gps)
             this.time_type = 0;
             this.mat_time = matlab_time;
             if (nargin == 3)
@@ -154,6 +160,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_unix(uint32(unix_time), fraction_of_second, is_gps)
+            %
+            % SYNTAX
+            %   this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
             this.time_type = 1;
             this.unix_time = uint32(unix_time);
             this.unix_time_f = fraction_of_second;
@@ -167,7 +176,10 @@ classdef GPS_Time < Exportable & handle
         
         function this = GPS_Time_6col(this, date, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_6col(data_6col, is_gps)
-            
+            %
+            % SYNTAX
+            %   this = GPS_Time_6col(this, date, is_gps)
+            %
             % check date format 2/4 digits
             date(date(:,1) < 70,1) = date(date(:,1) < 70,1) + 2000;
             date(date(:,1) > 2070,1) = date(date(:,1) < 70,1) - 100;
@@ -203,6 +215,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = GPS_Time_Week_Dow(this, week, dow)
             % Private constructor - simulate polymorphism - GPS_Time_Week_Dow(week, dow)
+            %
+            % SYNTAX
+            %   this = GPS_Time_Week_Dow(this, week, dow)
             this.unix_time = uint32((this.GPS_ZERO - this.UNIX_ZERO)*86400 + week*86400*7 + dow*86400);
             this.unix_time_f = zeros(size(this.unix_time));
             this.time_type = 1;
@@ -210,6 +225,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(time_matlab_reference, time_difference, is_gps)
+            %
+            % SYNTAX
+            %   this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
             this.time_type = 2;
             this.time_ref = time_matlab_reference;
             this.time_diff = time_difference(:);
@@ -223,6 +241,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = appendStrTime(this, string_time, is_gps)
             % Append elements - appendMatTime(matlab_time, is_gps)
+            %
+            % SYNTAX
+            %   this = appendStrTime(this, string_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -237,6 +258,8 @@ classdef GPS_Time < Exportable & handle
         
         function this = appendMatTime(this, matlab_time, is_gps)
             % Append elements - appendMatTime(matlab_time, is_gps)
+            % SYNTAX
+            %   this = appendMatTime(this, matlab_time, is_gps)
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -249,6 +272,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = appendUnixTime(this, unix_time, fraction_of_second, is_gps)
             % Append elements -  appendUnixTime(uint32(unix_time), fraction_of_second, is_gps)
+            %
+            % SYNTAX
+            %   this = appendUnixTime(this, unix_time, fraction_of_second, is_gps)
             if (nargin == 4)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -261,6 +287,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = append6ColDate(this, date, is_gps)
             % Append elements -  this.append6ColDate(date, is_gps)
+            %
+            % SYNTAX
+            %   this = append6ColDate(this, date, is_gps)
             
             if (nargin == 3)
                 if isempty(is_gps)
@@ -292,6 +321,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = appendRefTime(this, time_matlab_reference, time_difference, is_gps)
             % Append elements - appendRefTime(time_matlab_reference, time_difference, is_gps)
+            %
+            % SYNTAX
+            %   this = appendRefTime(this, time_matlab_reference, time_difference, is_gps)
             if (nargin == 4)
                 if isempty(is_gps)
                     is_gps = this.is_gps;
@@ -307,7 +339,8 @@ classdef GPS_Time < Exportable & handle
     methods
         function this = GPS_Time( arg1, arg2, arg3, arg4)
             % Constructor
-            % SYNTAX:
+            %
+            % SYNTAX
             %   t = GPS_Time(matlab_time, <[]>, <is_gps = 1>, <0>);
             %   t = GPS_Time(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
             %   t = GPS_Time(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
@@ -378,7 +411,8 @@ classdef GPS_Time < Exportable & handle
         
         function addEpoch(this, arg1, arg2, arg3, arg4)
             % Add epochs to the object as matlab/unix/ref time
-            % SYNTAX:
+            %
+            % SYNTAX
             %   t = t.appendEpoch(matlab_time, <[]>, <is_gps = 1>, <0>);
             %   t = t.appendEpoch(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
             %   t = t.appendEpoch(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
@@ -440,11 +474,17 @@ classdef GPS_Time < Exportable & handle
         
         function import(this, time)
             % Copy from an object of the same type (alias to copyFrom)
+            %
+            % SYNTAX
+            %   this.copyFrom(time)
             this.copyFrom(time)
         end
         
         function copyFrom(this, time)
             % Copy from an object of the same type
+            %
+            % SYNTAX
+            %   this.copyFrom(time)
             this.time_type = time.time_type;
             this.mat_time = time.mat_time;
             this.unix_time = time.unix_time;
@@ -458,12 +498,18 @@ classdef GPS_Time < Exportable & handle
         
         function copy = getCopy(this)
             % Get a copy of this
+            %
+            % SYNTAX
+            %   copy = getCopy(this)
             copy = GPS_Time();
             copy.copyFrom(this);
         end
         
         function this = append(this, time, time_type, is_gps)
             % Append a GPS_Time object into the this
+            %
+            % SYNTAX
+            %   this = append(this, time, time_type, is_gps)
             
             % check if the object is empty
             if isempty(this.time_type)
@@ -526,6 +572,9 @@ classdef GPS_Time < Exportable & handle
     methods (Access = 'private')
         function leap_seconds = computeLeapSeconds(this)
             % compute the number of leap seconds to subtract to GPS Time to obtain the UTC time
+            %
+            % SYNTAX
+            %   leap_seconds = computeLeapSeconds(this)
             if this.is_gps
                 LEAP_DATES = this.LEAP_DATES_GPS;
             else
@@ -614,6 +663,9 @@ classdef GPS_Time < Exportable & handle
     methods
         function toMatlabTime(this)
             % Convert the internal structure to Matlab Time, precision up to the 0.1 milliseconds precision
+            %
+            % SYNTAX
+            %   this.toMatlabTime
             switch this.time_type
                 case 0 % I'm already in MAT TIME
                     % do nothing
@@ -634,6 +686,9 @@ classdef GPS_Time < Exportable & handle
         
         function toUnixTime(this)
             % Convert the internal structure to Unix Time, precision up to the ps precision
+            %
+            % SYNTAX
+            %   this.toUnixTime
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.time_type = 1;
@@ -670,6 +725,9 @@ classdef GPS_Time < Exportable & handle
         
         function toRefTime(this)
             % Convert the internal structure to Reference Time, precision up to the ps precision
+            %
+            % SYNTAX
+            %   this.toRefTime
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.time_type = 2;
@@ -692,7 +750,10 @@ classdef GPS_Time < Exportable & handle
         end
         
         function toUtc(this)
-            % Transform the internal allocation in UTF format (corrects for cycle-slip
+            % Transform the internal allocation in UTF format (corrects for cycle-slip)
+            %
+            % SYNTAX
+            %   this.toUtc
             if this.isempty()
                 this.is_gps = false;
             else
@@ -709,6 +770,9 @@ classdef GPS_Time < Exportable & handle
         
         function toGps(this)
             % Transform the internal allocation in GPS format (corrects for cycle-slips)
+            %
+            % SYNTAX
+            %   this.toGps
             if this.isempty()
                 this.is_gps = true;
             else
@@ -725,6 +789,9 @@ classdef GPS_Time < Exportable & handle
         
         function leap_seconds = getLeapSeconds(this)
             % get the number of leap seconds to subtract to GPS Time to obtain the UTC time
+            %
+            % SYNTAX
+            %   this.leap_seconds = getLeapSeconds
             if (this.leap_seconds >= 999)
                 this.leap_seconds = this.computeLeapSeconds();
             end
@@ -739,16 +806,25 @@ classdef GPS_Time < Exportable & handle
     methods
         function [is_utc] = isUTC(this)
             % Get the memorization type
+            %
+            % SYNTAX
+            %   [is_utc] = isUTC(this)
             is_utc = ~this.is_gps;
         end
         
         function [is_gps] = isGPS(this)
             % Get the memorization type
+            %
+            % SYNTAX
+            %   [is_gps] = isGPS(this)
             is_gps = this.is_gps;
         end
         
         function [len] = numel(this)
             % get number of epochs
+            %
+            % SYNTAX
+            %   [len] = numel(this)
             if isempty(this.time_type)
                 len = 0;
             else
@@ -765,6 +841,9 @@ classdef GPS_Time < Exportable & handle
         
         function n_element = length(this)
             % Get the total number of element stored in the object
+            %
+            % SYNTAX
+            %   n_element = length(this)
             if isempty(this.time_type)
                 n_element = 0;
             else
@@ -781,16 +860,25 @@ classdef GPS_Time < Exportable & handle
         
         function n_element = getLen(this)
             % Get the total number of element stored in the object
+            %
+            % SYNTAX
+            %   n_element = getLen(this)
             n_element = this.length();
         end
         
         function [n_epochs] = getExpectedLen(this)
             % get the number of epochs (with constant rate) that the object should contain
+            %
+            % SYNTAX
+            %   [n_epochs] = getExpectedLen(this)
             n_epochs = round((this.last.getMatlabTime() - this.first.getMatlabTime()) * (86400 / this.getRate())) + 1;
         end
         
         function [empty]  = isempty(this)
             % return the status of emptyness of the object
+            %
+            % SYNTAX
+            %   [empty]  = isempty(this)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     empty = isempty(this.mat_time);
@@ -803,6 +891,9 @@ classdef GPS_Time < Exportable & handle
         
         function [nan_list] = isnan(this)
             % return the logical NaN of the object
+            %
+            % SYNTAX
+            %   [nan_list] = isnan(this)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     nan_list = isnan(this.mat_time);
@@ -815,6 +906,9 @@ classdef GPS_Time < Exportable & handle
         
         function [rate]  = getRate(this)
             % get observation rate approximated at 3 digits
+            %
+            % SYNTAX
+            %   [rate]  = getRate(this)
             if (this.length() == 1)
                 rate = 1;
             else
@@ -834,6 +928,9 @@ classdef GPS_Time < Exportable & handle
         
         function [mat_time] = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
+            %
+            % SYNTAX
+            %   [mat_time] = getMatlabTime(this)
             switch this.time_type
                 case 0 % I'm already in MAT TIME
                     mat_time = this.mat_time;
@@ -849,6 +946,9 @@ classdef GPS_Time < Exportable & handle
         function [unix_time, unix_time_f, second_correction] = getUnixTime(this)
             % get Unix Time, precision up to the ps precision
             second_correction = 0;
+            %
+            % SYNTAX
+            %   [unix_time, unix_time_f, second_correction] = getUnixTime(this)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     % constants in matlab are slower than copied values :-( switching to values
@@ -878,6 +978,9 @@ classdef GPS_Time < Exportable & handle
         
         function date6col = get6ColDate(this)
             % get time, 6 column format
+            %
+            % SYNTAX
+            %   date6col = get6ColDate(this)
             date6col = datevec(this.getMatlabTime);
             date6col(:,6) = floor(date6col(:,6));
             tmp = GPS_Time(date6col); tmp.toUnixTime;
@@ -887,6 +990,9 @@ classdef GPS_Time < Exportable & handle
         
         function changeRef(this, new_time_mat_ref)
             % change the reference time in use by the object to store the data
+            %
+            % SYNTAX
+            %   changeRef(this, new_time_mat_ref)
             
             this.toRefTime(); % the object should store data into ref_time data type
             this.time_diff = this.time_diff + (this.time_ref - new_time_mat_ref) * 86400;
@@ -895,7 +1001,9 @@ classdef GPS_Time < Exportable & handle
         
         function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
             % get Reference Time, precision up to the ps precision
-            % SYNTAX: [time_diff, time_ref] = this.getRefTime(new_time_mat_ref)
+            %
+            % SYNTAX
+            %   [time_diff, time_ref] = this.getRefTime(new_time_mat_ref)
             if this.length == 0
                 time_diff = [];
                 time_ref = [];
@@ -938,7 +1046,9 @@ classdef GPS_Time < Exportable & handle
         
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this,id)
             % get Reference Time, precision up to the ps precision
-            % SYNTAX: [gps_week, gps_sow, gps_dow] = this. getGpsWeek();
+            %
+            % SYNTAX
+            %   [gps_week, gps_sow, gps_dow] = this. getGpsWeek()
             gps_time = this.getCopy();
             gps_time.toGps();
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
@@ -951,6 +1061,9 @@ classdef GPS_Time < Exportable & handle
         
         function [second] = getSecond(this)
             % get second of the times,
+            %
+            % SYNTAX
+            %   [second] = getSecond(this)
             
            [seconds, fraction_of_seconds] = this.getUnixTime();
             second = seconds - floor(seconds/60)*60 + fraction_of_seconds;
@@ -959,7 +1072,9 @@ classdef GPS_Time < Exportable & handle
         
         function [gps_time] = getGpsTime(this, gps_offset)
             % Get time as number of seconds from Jan 6, 1980
-            % SYNTAX: [gps_time] = this.getGpsTime(gps_offset)
+            %
+            % SYNTAX
+            %   [gps_time] = this.getGpsTime(gps_offset)
             [unix_time, unix_time_f] = this.getUnixTime(); %#ok<PROPLC>
             if nargin == 1
                 % gps_time = double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF) + unix_time_f;
@@ -972,7 +1087,9 @@ classdef GPS_Time < Exportable & handle
         
         function [mjd] = getMJD(this, id)
             % Get Modified julian date
-            % SYNTAX: [gps_time] = this.getGpsTime()
+            %
+            % SYNTAX
+            %   [gps_time] = this.getGpsTime()
             if nargin == 2
                 date = this.getEpoch(id).get6ColDate;
             else
@@ -983,7 +1100,9 @@ classdef GPS_Time < Exportable & handle
         
         function [jd] = getJD(this, id)
             % Get  julian date
-            % SYNTAX: [gps_time] = this.getGpsTime()
+            %
+            % SYNTAX
+            %   [gps_time] = this.getGpsTime()
             if nargin == 2
                 date = this.getEpoch(id).get6ColDate;
             else
@@ -994,7 +1113,9 @@ classdef GPS_Time < Exportable & handle
         
         function [year, doy, sod] = getDOY(this)
             % get Reference Time, precision up to the ps precision
-            % SYNTAX: [year, doy] = getDOY(this)
+            %
+            % SYNTAX
+            %   [year, doy] = getDOY(this)
             utc_time = this.getCopy();
             utc_time.toGps();
             utc_time.toMatlabTime();
@@ -1006,7 +1127,9 @@ classdef GPS_Time < Exportable & handle
         
         function [year, month, day, hour, minute, second] = getCalEpoch(this, idx)
             % get year month doy hour minute second
-            % SYNTAX: [year, month, doy, hour, minute, second] = getCalEpoch(this,idx)
+            %
+            % SYNTAX
+            %   [year, month, doy, hour, minute, second] = getCalEpoch(this,idx)
             if nargin == 1
                 idx = ones(this.length(),1) > 0;
             end
@@ -1021,6 +1144,9 @@ classdef GPS_Time < Exportable & handle
         
         function date_string = toString(this, date_format)
             % Convert a date to string format
+            %
+            % SYNTAX
+            %   date_string = toString(this, date_format)
             if this.isempty()
                 date_string = '';
             else
@@ -1053,6 +1179,10 @@ classdef GPS_Time < Exportable & handle
         end
         
         function sinex_str = toSinexStrDate(this)
+            % Convert a date to a sinex format (yy:doy:sod)
+            %
+            % SYNTAX
+            %   sinex_str = toSinexStrDate(this)
             [year , doy, sod] = this.getDOY();
             yy = year;
             yy(year>= 2000) = year(year>= 2000) - 2000;
@@ -1063,6 +1193,9 @@ classdef GPS_Time < Exportable & handle
         
         function date_string = toStringGpsWeek(this)
             % Convert a date to string format
+            %
+            % SYNTAX
+            %   date_string = toStringGpsWeek(this)
             if this.isempty()
                 date_string = '';
             else
@@ -1073,8 +1206,10 @@ classdef GPS_Time < Exportable & handle
         
         function round(this, rounding)
             % round the time
-            % SYNTAX: 
+            %
+            % SYNTAX 
             %   this.round(rounding);
+            %
             % EXAMPLE:
             %   this.round(1e-5);
             switch this.time_type
@@ -1097,7 +1232,9 @@ classdef GPS_Time < Exportable & handle
         function new_obj = getEpoch(this, id)
             % Overloading of the operator index (getEpoch)
             % get a copy of the obj containing only the selected epoch id of time
-            % SYNTAX this.getEpoch(id)
+            %
+            % SYNTAX
+            %   this.getEpoch(id)
             
             if islogical(id)
                 max_id = find(id == true, 1, 'last');
@@ -1136,8 +1273,10 @@ classdef GPS_Time < Exportable & handle
         end
         
         function remEpoch(this, id)
-            %DESCRIPTION: remove epochs by index
-                    % SYNTAX this.remEpoch(id)
+            % DESCRIPTION: remove epochs by index
+            %
+            % SYNTAX
+            %   this.remEpoch(id)
             
             if islogical(id)
                 max_id = find(id == true, 1, 'last');
@@ -1164,6 +1303,9 @@ classdef GPS_Time < Exportable & handle
 
         function new_obj = first(this, id_subset)
             % Get first element stored in GPS_Time
+            %
+            % SYNTAX
+            %   new_obj = first(this, id_subset)
             if (nargin == 1)
                 new_obj = this.getEpoch(1);
             else
@@ -1177,6 +1319,9 @@ classdef GPS_Time < Exportable & handle
         
         function new_obj = last(this, id_subset)
             % Get last element stored in GPS_Time
+            %
+            % SYNTAX
+            %   new_obj = last(this, id_subset)
             if (nargin == 1)
                 new_obj = this.getEpoch(this.length());
             else
@@ -1191,6 +1336,9 @@ classdef GPS_Time < Exportable & handle
         
         function gps_time_subset = getSubSet(this, index)
             % create a copy of the object having only a subset of time_diff
+            %
+            % SYNTAX
+            %   gps_time_subset = getSubSet(this, index)
             gps_time_subset = this.getCopy();
             switch  this.time_type
                 case 0
@@ -1211,16 +1359,25 @@ classdef GPS_Time < Exportable & handle
     methods
         function setGPS(this, is_gps)
             % Set the memorization type
+            %
+            % SYNTAX
+            %   this.setGPS(is_gps)
             this.is_gps = is_gps;
         end
 
         function setDateFormat(this, date_format)
             % Change the default value for "date format"
+            %
+            % SYNTAX
+            %   this.setDateFormat(date_format)
             this.date_format = date_format;
         end
         
         function delId(this, id)
             % Delete time with id = id
+            %
+            % SYNTAX
+            %   this.delId(id)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.mat_time(id) =  [];
@@ -1234,6 +1391,9 @@ classdef GPS_Time < Exportable & handle
         
         function delLast(this)
             % Delete last element stored in GPS_Time
+            %
+            % SYNTAX
+            %   this.delLast
             this.delId(this.length());
         end
     end
@@ -1245,6 +1405,9 @@ classdef GPS_Time < Exportable & handle
     methods (Access = 'public')
         function this = addIntSeconds(this, n_seconds)
             % Add an integer number of seconds to all the times
+            %
+            % SYNTAX
+            %   this = addIntSeconds(this, n_seconds)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
@@ -1257,6 +1420,9 @@ classdef GPS_Time < Exportable & handle
         
         function this = addSeconds(this, n_seconds)
             % Add a floating point number of seconds to all the times
+            %
+            % SYNTAX
+            %   this = addSeconds(this, n_seconds)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds(:) / 86400;
@@ -1272,6 +1438,9 @@ classdef GPS_Time < Exportable & handle
                         
         function res = lt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<' function
+            %
+            % SYNTAX
+            %   res = lt(gt_1, gt_2)
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
@@ -1280,6 +1449,9 @@ classdef GPS_Time < Exportable & handle
         
         function res = gt(gt_1, gt_2)
             %%% DESCRIPTION: overload of '>' function
+            %
+            % SYNTAX
+            %   res = gt(gt_1, gt_2)
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
             
@@ -1288,17 +1460,25 @@ classdef GPS_Time < Exportable & handle
         
         function res = le(gt_1, gt_2)
             %%% DESCRIPTION: overload of '<=' function
+            %
+            % SYNTAX
+            %   res = le(gt_1, gt_2)
             res = gt_1 < gt_2 | gt_1 == gt_2;
         end
         
         function res = ge(gt_1, gt_2)
             %%% DESCRIPTION: overload of '>=' function
+            %
+            % SYNTAX
+            %   res = ge(gt_1, gt_2)
             res = gt_1 > gt_2 | gt_1 == gt_2;
         end        
         
         function res = eq(gt_1, gt_2)
             %%% DESCRIPTION: check if two time are equals up to precision
-            
+            %
+            % SYNTAX
+            %   res = eq(gt_1, gt_2)
             [~, sec, sec_f] = gt_1.minus(gt_2);
             prec = max(gt_1.getPrecision, gt_2.getPrecision);
             res = abs(sec+sec_f) < prec;
@@ -1310,6 +1490,10 @@ classdef GPS_Time < Exportable & handle
             %    sec = unit part
             %    sec_f = fractional difference in seconds
             % DESCRIPTION: overload of '-' function
+            %
+            % SYNTAX
+            %   [sec, sec_i, sec_f] = minus(gt_1, gt_2)
+            %
             %%% get unix time
             [unix_time1, unix_time_f1] = gt_1.getUnixTime();
             [unix_time2, unix_time_f2] = gt_2.getUnixTime();
@@ -1330,6 +1514,9 @@ classdef GPS_Time < Exportable & handle
         
         function prec = getPrecision(this)
             % get precison of current time
+            %
+            % SYNTAX
+            %   prec = getPrecision(this)
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     prec = eps(this.mat_time);
@@ -1346,6 +1533,9 @@ classdef GPS_Time < Exportable & handle
     methods (Static, Access = 'public')
         function this = now()
             % Static constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
+            %
+            % SYNTAX
+            %   this = now()
             mat_time = now();
             this = GPS_Time(mat_time, true);
         end
@@ -1354,6 +1544,9 @@ classdef GPS_Time < Exportable & handle
             % contruct gps time from week and day of week  
             % WARNING: dow spans [0-6] like most IGS data
             % repository
+            %
+            % SYNTAX
+            %   this = fromWeekDow(week, dow)
             this = GPS_Time(week, dow, true, 3);
             
             
@@ -1362,11 +1555,17 @@ classdef GPS_Time < Exportable & handle
         function this = fromWeekSow(week, sow)
             % construct gpstime from week and second of week 
             %[date, ~, ~] = GPS_Time.gps2date(week, sow);
+            %
+            % SYNTAX
+            %   this = fromWeekSow(week, sow)
             this = GPS_Time.fromWeekDow(week, (dow) / 86400);
         end
         
         function this = fromDoySod(year, doy, sod)
             % construct from year doy ad second of day
+            %
+            % SYNTAX
+            %   this = fromDoySod(year, doy, sod)
             unix_s = uint32((datenum(year , 1, doy)  - datenum(1970,1,1))*86400) + uint32(floor(sod));
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
@@ -1382,6 +1581,9 @@ classdef GPS_Time < Exportable & handle
     methods (Static, Access = 'public')
         function [unix_time, unix_time_f] = matToUnixTime(mat_time)
             % Conversion From MATLAB (expressed in days) type to UNIX TIME (expressed in uint32 seconds)
+            %
+            % SYNTAX
+            %   tfunction [unix_time, unix_time_f] = matToUnixTime(mat_time)
             time_s = round((mat_time - 719529) * 86400 * 1e4)/1e4; % convert mat_time in seconds
             
             if (nargout == 2)
@@ -1392,11 +1594,17 @@ classdef GPS_Time < Exportable & handle
         
         function [unix_time, unix_time_f] = dateStringToUnixTime(time_string)
             % Conversion From STRING type to UNIX TIME (expressed in uint32 seconds) max precision ~0.1 ms
+            %
+            % SYNTAX
+            %   [unix_time, unix_time_f] = dateStringToUnixTime(time_string)
             [unix_time, unix_time_f] = GPS_Time.matToUnixTime(datenum(time_string));
         end
         
         function [unix_time, unix_time_f] = gpsToUnixTime(gps_week, gps_time)
             % Conversion (shift) from GPS time (January 6, 1980) to UNIX time (January 1, 1970)
+            %
+            % SYNTAX
+            %   [unix_time, unix_time_f] = gpsToUnixTime(gps_week, gps_time)
             if (nargout == 2)
                 unix_time_f = rem(gps_time,1);
             end
@@ -1415,7 +1623,10 @@ classdef GPS_Time < Exportable & handle
         % Shift from UNIX time (January 1, 1970 - msec) to GPS time (January 6, 1980 - sec)
         function [gps_week, gps_sow, gps_dow] = unixTimeToGps(unix_time, unix_time_f)
             % Conversion (shift) from Unix Time (January 1, 1970) to GPS time (January 6, 1980)
-            
+            %
+            % SYNTAX
+            %   [gps_week, gps_sow, gps_dow] = unixTimeToGps(unix_time, unix_time_f)
+            %
             % constants in matlab are slower than copied values :-( switching to values
             % gps_time = mod(double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF, GPS_Time.SEC_IN_WEEK)) + unix_time_f;
             % gps_week = uint32(fix((unix_time - GPS_Time.UNIX_GPS_SEC_DIFF / GPS_Time.SEC_IN_WEEK));
@@ -1426,7 +1637,7 @@ classdef GPS_Time < Exportable & handle
         
         function [gps_week, gps_sow, gps_dow] = date2gps(date_vec)
             % Conversion from calendar date to GPS time.
-            % SYNTAX:
+            % SYNTAX
             %   [gps_week, gps_sow, gps_dow] = date2gps(date);
             %
             % INPUT:
@@ -1451,7 +1662,7 @@ classdef GPS_Time < Exportable & handle
         
         function [date, doy, dow] = gps2date(gps_week, gps_sow)
             
-            % SYNTAX:
+            % SYNTAX
             %   [date, doy, dow] = gps2date(gps_week, gps_sow);
             %
             % INPUT:
@@ -1498,6 +1709,9 @@ classdef GPS_Time < Exportable & handle
     methods (Static, Access = 'public')
         function test()
             % Testing function, tests some basic transformations
+            %
+            % SYNTAX
+            %   test()
             log = Logger.getInstance(); % Handler to the log object
             
             log.addMessage('Testing Class Time - single value UTC');

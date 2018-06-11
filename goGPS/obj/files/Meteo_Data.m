@@ -232,8 +232,9 @@ classdef Meteo_Data < handle
         
         function parseRin2Data(this, txt, lim, eoh)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX this.parseRin2Data(txt, lim, eoh)
-            % remove comment line from lim
+            %
+            % SYNTAX
+            %   this.parseRin2Data(txt, lim, eoh)
             
             % Read the data
             try
@@ -269,8 +270,9 @@ classdef Meteo_Data < handle
         
         function parseRin3Data(this, txt, lim, eoh)
             % Parse the data part of a RINEX 2 file -  the header must already be parsed
-            % SYNTAX this.parseRin2Data(txt, lim, eoh)
-            % remove comment line from lim
+            %
+            % SYNTAX 
+            %   this.parseRin2Data(txt, lim, eoh)
             
             % Read the data
             try
@@ -306,7 +308,9 @@ classdef Meteo_Data < handle
         function parseData(this, meteo_file)
             % Parse data and update the object, having as input the meteo_file
             % as read with textscan (cell array of string lines)
-            % SYNTAX: this.parseData(meteo_file)
+            %
+            % SYNTAX
+            %  this.parseData(meteo_file)
 
             % Read the data
             try
@@ -340,6 +344,9 @@ classdef Meteo_Data < handle
 
         function init(this, file_name, type, verbosity_lev)
             % Try to read the file
+            %
+            % SYNTAX
+            %   this.init(file_name, type, verbosity_lev)
             if (nargin < 4)
                 verbosity_lev = Logger.DEFAULT_VERBOSITY_LEV;
             end
@@ -410,6 +417,9 @@ classdef Meteo_Data < handle
     methods
         function setMaxBound(this, max_bound)
             % Set the maximum extrapolation span
+            %
+            % SYNTAX
+            %   this.setMaxBound(max_bound)
             this.max_bound = max_bound;
         end
         
@@ -425,7 +435,8 @@ classdef Meteo_Data < handle
             % The function calls all its creation methods within try and
             % catch statements, reading the Meteo file should not be
             % blocking for the processing, even if the data are not good
-
+            % SYNTAX
+            %   this = Meteo_Data(file_name, type, verbosity_lev)
             switch nargin
                 case 1
                     this.init(file_name);
@@ -445,6 +456,9 @@ classdef Meteo_Data < handle
         function importRaw(this, obs_time, data, type, marker_name, pos_xyz)
             % Import a meteorological file
             % EXAMPLE: this.importRaw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
+            
+            % SYNTAX
+            %   this.importRaw(obs_time, data, type, marker_name, pos_xyz)
             narginchk(6, 6);
 
             % Skip NaN epochs
@@ -474,6 +488,9 @@ classdef Meteo_Data < handle
 
         function import(this, file_name, type)
             % import a meteorological file
+            
+            % SYNTAX
+            %   this.import(file_name, type)
             narginchk(2,3);
 
             switch nargin
@@ -486,7 +503,9 @@ classdef Meteo_Data < handle
 
         function export(this, file_name)
             % Export data to a meteorological RINEX
-            % SYNTAX: this.toString(str)
+            
+            % SYNTAX
+            %   this.export(file_name)
             
             narginchk(1,2);
             if this.time.isempty()
@@ -549,7 +568,9 @@ classdef Meteo_Data < handle
 
         function str = toString(this, str)
             % Display the loaded meteorological data
-            % SYNTAX: this.toString(str)
+            
+            % SYNTAX
+            %   this.toString(str)
 
             if (nargin == 1)
                 str = '';
@@ -580,41 +601,59 @@ classdef Meteo_Data < handle
     methods        
         function validity = isValid(this)
             % Get the validity of a RINEX file or the object
-            % SYNTAX: validity = isValid()
+            
+            % SYNTAX
+            %   validity = isValid()
             validity = this.file.isValid();
         end
                 
         function name = getMarkerName(this)
             % Get the name of the station
-            % SYNTAX: time = this.getMarkerName()
+            %
+            % SYNTAX
+            %   time = this.getMarkerName()
             name = this.marker_name;
         end
         
         function time = getTime(this)
             % Get the epochs of the data
-            % SYNTAX: time = this.getTime()
+            %
+            % SYNTAX
+            %   time = this.getTime()
             time = this.time;
         end
         
         function type = getType(this)
             % Get the types of data stored in the RINEX
+            %
+            % SYNTAX
+            %   
             id = this.getTypeId();
             type = this.DATA_TYPE(id,:);
         end
         
         function max_bound = getMaxBound(this)
             % Get the maximum extrapolation
+            %
+            % SYNTAX
+            %   max_bound = getMaxBound(this)
             max_bound = this.max_bound;
         end
         
         function type = getTypeExt(this)
             % Get the description of the types of data stored in the RINEX
+            %
+            % SYNTAX
+            %   type = getTypeExt(this)
             id = this.getTypeId();
             type = this.DATA_TYPE_EXT(id);
         end
         
         function id = getTypeId(this)
             % Get the id of the types of data stored in the RINEX
+            %
+            % SYNTAX
+            %   id = getTypeId(this)
             id = this.type;
         end
         
@@ -622,7 +661,8 @@ classdef Meteo_Data < handle
             % Get the data with id of the type wanted
             % Passing a time array as GPS_Time the object interpolate the
             % data contained in the meteorological file
-            % SYNTAX: data = this.getComponent(id, <time>)
+            % SYNTAX
+            %   data = this.getComponent(id, <time>)
             id = find(this.type == data_id);
             if isempty(id)
                 if nargin == 3
@@ -662,7 +702,8 @@ classdef Meteo_Data < handle
         
         function data = getPressure(this, time, amsl)
             % Get the pressure data
-            % SYNTAX: data = this.getPressure()
+            % SYNTAX
+            %   data = this.getPressure()
             if (nargin == 1)
                 data = this.getComponent(1);
             else
@@ -676,7 +717,8 @@ classdef Meteo_Data < handle
         
         function data = getTemperature(this, time, amsl)
             % Get the temperature data
-            % SYNTAX: data = this.getTemperature()
+            % SYNTAX
+            %   data = this.getTemperature()
             if (nargin == 1)
                 data = this.getComponent(2);
             else
@@ -690,7 +732,8 @@ classdef Meteo_Data < handle
         
         function data = getHumidity(this, time, amsl)
             % Get the humidity data
-            % SYNTAX: data = this.getHumidity()
+            % SYNTAX
+            %   data = this.getHumidity()
             if (nargin == 1)
                 data = this.getComponent(3);
             else
@@ -704,7 +747,8 @@ classdef Meteo_Data < handle
         
         function [x, y, z, amsl] = getLocation(this)
             % Get meteo station location
-            % SINTAX: [x, y, z, amsl] = this.getLocation();
+            % SINTAX
+            %   [x, y, z, amsl] = this.getLocation();
             x = this.xyz(1);
             y = this.xyz(2);
             z = this.xyz(3);
@@ -713,7 +757,8 @@ classdef Meteo_Data < handle
         
         function time = getObsTime(this)
             % Get meteo station observatipon time
-            % SINTAX: time = this.getObsTime();
+            % SINTAX
+            %   time = this.getObsTime();
             time = this.time;
         end
     end
@@ -862,6 +907,9 @@ classdef Meteo_Data < handle
             % Barometric formula taken from Bai and Feng, 2003.
             % The parameter value is taken from Realini et al., 2014
             % Parameter definition
+            %
+            % SYNTAX
+            %   [ temperature_adj ] = temperature_adjustment( temperature , obs_h, pred_h)
             grad = 0.0065 ; % * C / m gravitational acceleration constant
             temperature_adj = temperature + grad * (obs_h - pred_h);
         end
@@ -870,6 +918,9 @@ classdef Meteo_Data < handle
             % Barometric formula taken from Berberan-Santos et al., 1997
             % The parameter values are taken from Realini et al., 2014
             % Parameters definition
+            %
+            % SYNTAX
+            % [ pressure_adj ] = pressure_adjustment( pressure , obs_h, pred_h)
             g = 9.80665 ;    % m / s^2 gravitational acceleration constant
             Md = 0.0289644 ; % kg / mol molar mass of dry air
             R = 8.31432 ;    % J(mol * K) gas constant for air
@@ -890,6 +941,9 @@ classdef Meteo_Data < handle
             % figure; plot(tmp(:,1),tmp(:,2),'o'); hold on; amsl = -10 : 3000; plot(amsl, x(1) .* amsl.^2 + x(2) .* amsl + x(3) .* ones(size(amsl))); setAllLinesWidth(2)
             %x = [ 5.25984524194874e-09; -0.000117788989855394; 0.999649177981675 ];
             %humidity_adj = humidity * ([pred_h^2 pred_h 1] * x) / ([obs_h^2 obs_h 1] * x);
+            %
+            % SYNTAX
+            %   [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
             humidity_adj = humidity / exp(-6.396e-4 * (obs_h - pred_h));
         end
     end

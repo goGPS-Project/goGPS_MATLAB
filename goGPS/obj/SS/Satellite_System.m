@@ -79,7 +79,10 @@ classdef Satellite_System < Settings_Interface
     methods (Access = public)
         function iono_free = getIonoFree(this, f_id)
             % Init iono parameters: iono-free combination is computed with the first two carriers in F_VEC (use f_id to change the frequencies to use)
-            % SYNTAX: iono_free = ss_obj.getIonoFree(<f_id>)
+            % 
+            % SYNTAX
+            %   iono_free = ss_obj.getIonoFree(<f_id>)
+            %
             % Structure of the iono free combination parameters (alpha 1, alpha 2, T ed N)
             % iono_free
             %   .alpha1
@@ -100,7 +103,9 @@ classdef Satellite_System < Settings_Interface
     methods
         function this = Satellite_System(offset)
             % Creator
-            % SYNTAX: Satellite_System(offset)
+            %
+            % SYNTAX
+            %   Satellite_System(offset)
             if (nargin == 0)
                 offset = 0;
             end
@@ -111,7 +116,9 @@ classdef Satellite_System < Settings_Interface
 
         function setActiveFrequencies(this, flag_freq)
             % Set the frequencies that are going to be use
-            % SYNTAX: setActiveFrequencies(flag_freq)
+            %
+            % SYNTAX
+            %   setActiveFrequencies(flag_freq)
             len = min(length(flag_freq), length(this.flag_f));
             flags =  false(numel(this.flag_f),1);
             flags(1:len) = flag_freq(1:len);
@@ -120,7 +127,9 @@ classdef Satellite_System < Settings_Interface
 
         function updateGoIds(this, offset)
             % Update the satellites unique id numbers in goGPS
-            % SYNTAX: updateGoIds(<offset>)
+            %
+            % SYNTAX
+            %   updateGoIds(<offset>)
             if nargin == 1
                 offset = 0;
             end
@@ -129,6 +138,9 @@ classdef Satellite_System < Settings_Interface
 
         function code = getPrCodes(this, freq_num)
             % get the list of codes containing pseudo range data
+            %
+            % SYNTAX
+            %   code = getPrCodes(this, freq_num)
             code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
             code_rin3_avail(code_rin3_avail == 'N') = []; % remove codeless observations
             code = char([ones(numel(code_rin3_avail), 1) * 'C' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
@@ -136,24 +148,36 @@ classdef Satellite_System < Settings_Interface
         
         function code = getPhCodes(this, freq_num)
             % get the list of codes containing phase data
+            %
+            % SYNTAX
+            %   code = getPhCodes(this, freq_num)
             code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
             code = char([ones(numel(code_rin3_avail), 1) * 'L' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function code = getDopCodes(this, freq_num)
             % get the list of codes containing doppler
+            %
+            % SYNTAX
+            %   code = getDopCodes(this, freq_num)
             code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
             code = char([ones(numel(code_rin3_avail), 1) * 'D' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function code = getSnrCodes(this, freq_num)
             % get the list of codes containing snr data
+            %
+            % SYNTAX
+            %   code = getSnrCodes(this, freq_num)
             code_rin3_avail = this.CODE_RIN3_ATTRIB{freq_num};
             code = char([ones(numel(code_rin3_avail), 1) * 'S' ones(numel(code_rin3_avail), 1) * this.CODE_RIN3_2BAND(freq_num) code_rin3_avail']);
         end
         
         function offset = getOffset(this)
             % Get offset of the go_ids
+            %
+            % SYNTAX
+            %   offset = getOffset(this)
             if ~isempty(this.go_ids)
                 offset = this.go_ids(1) - 1;
             else
@@ -163,6 +187,9 @@ classdef Satellite_System < Settings_Interface
 
         function id = getFirstId(this)
             % get the first goGPS id -> if constellation is inactive
+            %
+            % SYNTAX
+            %   id = getFirstId(this)
             if this.flag_enable % this.isActive()
                 id = this.go_ids(1);
             else
@@ -172,19 +199,26 @@ classdef Satellite_System < Settings_Interface
 
         function name = getFreqName(this)
             % Get the name of the frequencies for the current constellation
-            % SYNTAX: name = this.getFreqNames();
+            %
+            % SYNTAX
+            %   name = this.getFreqNames();
             name = fieldnames(this.F);
         end
 
         function flag = isActive(this)
             % Get the status of activation of the constellation
+            %
+            % SYNTAX
+            %   flag = isActive(this)
             flag = this.flag_enable;
         end
 
         function enable(this, status)
             % Enable this satellite system
             % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
-            % SYNTAX: this.enable(<status>);
+            %
+            % SYNTAX
+            %   this.enable(<status>);
             if (nargin == 2)
                 this.flag_enable = logical(status);
                 if isempty(this.flag_enable)
@@ -197,8 +231,11 @@ classdef Satellite_System < Settings_Interface
 
         function disable(this)
             % Disable this satellite system
-            % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
-            % SYNTAX: this.disable();
+            % Warning: when the obj is used within Constellation Collectore
+            % use activateXXXX deactivateXXXX functions
+            %
+            % SYNTAX
+            %   this.disable();
             this.flag_enable = false;
         end
     end
@@ -213,6 +250,9 @@ classdef Satellite_System < Settings_Interface
     methods
         function import(this, settings)
             % This function import Satellite System (only) settings from another setting object
+            %
+            % SYNTAX
+            %   this.import(settings)
             if isa(settings, 'Ini_Manager')
                 this.enable(settings.getData(sprintf('%s_is_active', this.SYS_NAME)));
                 name = this.getFreqName();
@@ -233,6 +273,9 @@ classdef Satellite_System < Settings_Interface
 
         function str = toString(this, str)
             % Display the satellite system in use
+            %
+            % SYNTAX
+            %   str = toString(this, str)
             if (nargin == 1)
                 str = '';
             end
@@ -246,6 +289,9 @@ classdef Satellite_System < Settings_Interface
 
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
+            %
+            % SYNTAX
+            %   str = toString(this, str)
             if (nargin == 1)
                 str_cell = {};
             end
@@ -266,6 +312,9 @@ classdef Satellite_System < Settings_Interface
     methods (Access = 'public')
         function legacyImport(this, state)
             % import from the state variable (saved into the old interface mat file of goGPS)
+            %
+            % SYNTAX
+            %   this.legacyImport(state)
             try
                 this.p_mode = this.gui2mode(state.mode, state.nav_mon, state.kalman_ls, state.code_dd_sa);
             catch ex

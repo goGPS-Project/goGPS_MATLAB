@@ -137,12 +137,18 @@ classdef Atmosphere < handle
     methods (Access = private)
         function this = Atmosphere()
             % Initialisation of the variables
+            %
+            % SYNTAX
+            %   this = Atmosphere()
         end
     end
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function this = getInstance()
             % Get the persistent instance of the class
+            %
+            % SYNTAX
+            %   this = getInstance()
             persistent unique_instance_atmosphere__
             
             if isempty(unique_instance_atmosphere__)
@@ -159,6 +165,10 @@ classdef Atmosphere < handle
     end
     methods
         function importIonex(this, file_name)
+            % import IONEX file
+            %
+            % SYNTAX
+            %   importIonex(this, file_name)
             fid = fopen(file_name,'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', file_name));
@@ -260,6 +270,10 @@ classdef Atmosphere < handle
         end
         
         function initIonex(this, dsa, dso)
+            % initialise Ionosphere map repository importing all the necessary IONEX files
+            %
+            % SYNTAX
+            %   initIonex(this, dsa, dso)
             dso = dso.getCopy();
             dsa = dsa.getCopy();
             dso.addSeconds(6*3600);
@@ -270,6 +284,10 @@ classdef Atmosphere < handle
         end
         
         function initVMF(this, dsa, dso)
+            % Initialize Vienna Mapping Function
+            %
+            % SYNTAX
+            %   initVMF(this, dsa, dso)
             dso = dso.getCopy();
             dsa = dsa.getCopy();
             dso.addSeconds(6*3600);
@@ -279,6 +297,10 @@ classdef Atmosphere < handle
             end
         end
         function importTidalAtmLoadHarmonics(this)
+            % importing Tidal Atm and loading Harmonics
+            %
+            % SYNTAX
+            %   importTidalAtmLoadHarmonics(this)
             fname = this.state.getTAtmLoadFileName();
             data = importdata(fname);
             this.atm_load_t.harmonics = permute(reshape(data(:,3:end),360 ,180, 18),[2 1 3])/1e3;
@@ -287,6 +309,9 @@ classdef Atmosphere < handle
         
         function importAtmLoadCoeffFile(this, filename)
             % import data of atmospehric loading file
+            %
+            % SYNTAX
+            %   importAtmLoadCoeffFile(this, filename)
             fid = fopen([filename],'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', filename));
@@ -360,6 +385,9 @@ classdef Atmosphere < handle
         
         function importVMFCoeffFile(this, filename)
             % import data of atmospehric loading file
+            %
+            % SYNTAX
+            %   importVMFCoeffFile(this, filename)
             fid = fopen([filename],'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', filename));
@@ -436,6 +464,10 @@ classdef Atmosphere < handle
         end
         
         function clearAtmLoad(this)
+            % cleaning Atmosphere loading data
+            %
+            % SYNTAX
+            %   clearAtmLoad(this)
             this.atm_load_nt = struct( ...
             'data_u',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'data_e',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
@@ -454,6 +486,10 @@ classdef Atmosphere < handle
         end
         
         function clearIonex(this)
+            % cleaning IONEX
+            %
+            % SYNTAX
+            %   clearIonex(this)
             this.ionex = struct( ...
             'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
             'first_lat',  [], ...    % first latitude
@@ -471,6 +507,10 @@ classdef Atmosphere < handle
         end
         
         function clearVMF(this)
+            % cleaning Vienna Mapping Function data
+            %
+            % SYNTAX
+            %   clearVMF(this)
             this.vmf_coeff = struct( ...
             'ah',       [], ...    % alpha coefficient dry
             'aw',       [], ...    % alpha coefficent wet
@@ -491,6 +531,9 @@ classdef Atmosphere < handle
         
         function [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
             % get non tidal atmospheric loading corrections
+            %
+            % SYNTAX
+            %   [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
             gps_time = time.getGpsTime();
             up = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_u, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
             east = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_e, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
@@ -502,6 +545,9 @@ classdef Atmosphere < handle
         
         function [corrxyz] = getTAtmLoadCorr(this, lat, lon, h_ellips, time)
             % get non tidal atmospheric loading corrections
+            %
+            % SYNTAX
+            %   [corrxyz] = getTAtmLoadCorr(this, lat, lon, h_ellips, time)
             [harm_r, harm_e, harm_n] = getAtmLoadHarm(this, lat,lon);
             T = mod(time.getMJD, 1)*2*pi;
             [x,y,z] = geod2cart(lat, lon, h_ellips);
@@ -515,6 +561,9 @@ classdef Atmosphere < handle
         
         function [corrxyz] = getAtmLoadCorr(this, lat, lon, h_ellips, time)
             % get atmospheric loading corrections
+            %
+            % SYNTAX
+            %   [corrxyz] = getAtmLoadCorr(this, lat, lon, h_ellips, time)
             [corrxyz_nt] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time);
             [corrxyz_t] = getTAtmLoadCorr(this, lat, lon, h_ellips, time);
             corrxyz = corrxyz_nt + corrxyz_t;
@@ -549,19 +598,35 @@ classdef Atmosphere < handle
         end
         
         function [ah, aw] = interpolateAlpha(this, gps_time, lat, lon)
+            % interpolate a (continued fraction form) coefficent for both wet idrostatit part
+            %
+            % SYNTAX
+            %   [ah, aw] = interpolateAlpha(this, gps_time, lat, lon)
             ah = Core_Utils.linInterpLatLonTime(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
             aw = Core_Utils.linInterpLatLonTime(this.vmf_coeff.aw, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
         function [zhd] = interpolateZhd(this, gps_time, lat, lon)
+            % interpolate Zenit hidrostatic delay
+            %
+            % SYNTAX
+            %   [zhd] = interpolateZhd(this, gps_time, lat, lon)
             zhd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zhd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
         function [zwd] = interpolateZwd(this, gps_time, lat, lon)
+            % interpolate Zenit wet delay
+            %
+            % SYNTAX
+            %   [zwd] = interpolateZwd(this, gps_time, lat, lon)
             zwd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zwd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
         function tec = interpolateTEC(this, gps_time, lat, lon)
+            %interpolate total elecro content
+            %
+            % SYNTAX
+            %   tec = interpolateTEC(this, gps_time, lat, lon)
             tec = Core_Utils.linInterpLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon,gps_time);
             
             
@@ -569,9 +634,16 @@ classdef Atmosphere < handle
         
         function [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
             % get slant total electron component
+            %
+            % SYNTAX
+            %   [stec, pp, mfpp, k] = getSTEC(this, lat, lon, az, el, h, time)
             
-            thin_shell_height = this.ionex.height(1) * 1000;       % ionopshere thin shell height [km]->[m]
+            thin_shell_height = this.ionex.height(1) * 1000;       
+            % ionopshere thin shell height [km]->[m]
             % get piercing point and mapping function
+            %
+            % SYNTAX
+            %   thin_shell_height = this.ionex.height(1) * 1000
             [latpp, lonpp, mfpp, k] = this.getPiercePoint( lat/180*pi, lon/180*pi, h, az(:)/180*pi, el(:)/180*pi, thin_shell_height, 6371000);
             % interpolate TEC at piercing point
             tec = this.interpolateTEC( time, latpp * 180/pi, lonpp * 180/pi);
@@ -727,7 +799,7 @@ classdef Atmosphere < handle
         end
         
         function [delay] = saastamoinenModelGPT(this, gps_time, lat, lon, h, undu, el)
-            % SYNTAX:
+            % SYNTAX
             %   [delay] = Atmosphere.saastamoinen_model_GPT(time_rx, lat, lon, h, undu, el)
             %
             % INPUT:
@@ -757,7 +829,7 @@ classdef Atmosphere < handle
         end
         
         function [delay] = saastamoinenModelPTH(this, gps_time,lat, lon, h, undu, el, P, T, H)
-            % SYNTAX:
+            % SYNTAX
             %   [delay] = Atmosphere.saastamoinen_modelPTH(time_rx, lat, lon, h, undu, el)
             %
             % INPUT:
@@ -1093,6 +1165,9 @@ classdef Atmosphere < handle
             
             % reference day is 28 January
             % this is taken from Niell (1996) to be consistent
+            %
+            % SYNTAX
+            %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
             doy = (gps_time/86400 - 22) / 365.25d0; % years from 28 jan 1980
             
             pi = 3.14159265359d0;
@@ -1333,6 +1408,9 @@ classdef Atmosphere < handle
             %angles in radians!!
             %code based on:
             %    Böhm, Johannes, and Harald Schuh. "Vienna mapping functions in VLBI analyses." Geophysical Research Letters 31.1 (2004).
+            %
+            % SYNTAX
+            %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
             [ah, aw] = this.interpolateAlpha(gps_time, lat, lon);
             % hidrostatic b and c form Isobaric mapping function
             bh = 0.002905;
@@ -1344,10 +1422,6 @@ classdef Atmosphere < handle
             [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,ch,el);
             [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
         end
-        
-        function [zhd,zwd] = vmf_zd(this, gps_time, lat, lon, h_ortho)
-        end
-        
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
@@ -1362,7 +1436,7 @@ classdef Atmosphere < handle
             % OUTPUT
             %   iono_mf             iono mapping function
             %
-            % SYNTAX:
+            % SYNTAX
             %   [iono_mf] = getIonoMF(lat_rad, h_ortho, el_rad, rcm)
 
             % Get radius of curvature at lat
@@ -1395,7 +1469,7 @@ classdef Atmosphere < handle
         % IONO
         %-----------------------------------------------------------
         function [delay] = klobucharModel(lat, lon, az, el, sow, ionoparams)
-            % SYNTAX:
+            % SYNTAX
             %   [delay] = Atmosphere. klobuchar_model(lat, lon, az, el, sow, ionoparams)
             %
             % INPUT:
@@ -1489,7 +1563,7 @@ classdef Atmosphere < handle
             %   iono_mf             iono mapping function
             %   k                   iono k factor ????
             %
-            % SYNTAX:
+            % SYNTAX
             %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
             
             % Get radius of curvature at lat
@@ -1542,7 +1616,7 @@ classdef Atmosphere < handle
         
         function [ZWD] = saast_wet(T, H,h)
             
-            % SYNTAX:
+            % SYNTAX
             %   [ZWD] = saast_wet(T, H);
             %
             % INPUT:
@@ -1573,7 +1647,7 @@ classdef Atmosphere < handle
         
         function [ZHD] = saast_dry(P, h, lat)
             
-            % SYNTAX:
+            % SYNTAX
             %   [ZHD] = saast_dry(P, h, lat);
             %
             % INPUT:
