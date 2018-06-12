@@ -614,6 +614,10 @@ classdef Atmosphere < handle
             aw = Core_Utils.linInterpLatLonTime(this.vmf_coeff.aw, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
+        function [ it, st, ilons, ilone, slon, ilat, slat] = getVMFIndex(this, gps_time, lat, lon)
+            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
+        end
+        
         function [zhd] = interpolateZhd(this, gps_time, lat, lon)
             % interpolate Zenit hidrostatic delay
             %
@@ -622,22 +626,62 @@ classdef Atmosphere < handle
             % REFERENCE:
             % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
             zhd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zhd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
-           
-           
         end
         
-        function [zhd] = getVmfZhd(this, gps_time, lat, lon, h_ell_sta)
+        function [zhd] = getVmfZhd(this, gps_time, lat, lon, h_ell_sta, interp_first)
             % get vmf Zenit hidrostatic delay
             %
             % SYNTAX
             %   [zhd] = getVmfZhd(this, gps_time, lat, lon, h_ell_sta)
             % REFERENCE:
             % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
-            [zhd] = this.interpolateZhd( gps_time, lat, lon);
-            h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
-            p_h_vmf = (zhd / 0.0022768) .* (1 - 0.00266 * cos(2*lat/180*pi) - 0.28 * 10^-6 * h_ell_vmf);   % formula 3 in [1]
-            p_h_sta = p_h_vmf .* (1 - 0.0000226 .* (h_ell_sta - h_ell_vmf)).^5.225;   % formula 4 in [1]
-            zhd     = 0.0022768 * p_h_sta / (1 - 0.00266 * cos(2 * lat) - 0.28 * 10^-6 * h_ell_sta);   % formula 3  in [1] again
+            if nargin < 6
+                interp_first = false;
+            end
+            if interp_first
+                [zhd] = this.interpolateZhd( gps_time, lat, lon);
+                h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
+                %             p_h_vmf = (zhd / 0.0022768) .* (1 - 0.00266 * cos(2*lat/180*pi) - 0.28 * 10^-6 * h_ell_vmf);   % formula 3 in [1]
+                %             p_h_sta = p_h_vmf .* (1 - 0.0000226 .* (h_ell_sta - h_ell_vmf)).^5.225;   % formula 4 in [1]
+                %             zhd     = 0.0022768 * p_h_sta / (1 - 0.00266 * cos(2 * lat/180*pi) - 0.28 * 10^-6 * h_ell_sta);   % formula 3  in [1] again
+                
+                par1 = 1 - 0.00266 * cos(2*lat/180*pi);
+                par2 = 0.28 * 10^-6 ;
+                zhd = zhd * (par1 -par2*h_ell_vmf)/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_ell_vmf)).^5.225; % simplification of formula 3 then formual 4 then formula 3 again
+            else
+                % get the index of the interpolating points
+                [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(gps_time, lat, lon);
+                zhd_calc_1 = this.vmf_coeff.zhd([ilat ilat+1], [ilons ilone],it);
+                zhd_calc_2 = this.vmf_coeff.zhd([ilat ilat+1], [ilons ilone],it+1);
+                h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
+                % compute the mapping function and the heoght correction for all the inteprolating points
+                par1 = 1 - 0.00266 * cos(2*lat/180*pi);
+                par2 = 0.28 * 10^-6 ;
+                zhd_calc_1(1,1,:) = zhd_calc_1(1,1,:) * (par1 -par2*h_calc(1,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,1))).^5.225;
+                zhd_calc_1(1,2,:) = zhd_calc_1(1,2,:) * (par1 -par2*h_calc(1,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,2))).^5.225;
+                zhd_calc_1(2,1,:) = zhd_calc_1(2,1,:) * (par1 -par2*h_calc(2,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,1))).^5.225;
+                zhd_calc_1(2,2,:) = zhd_calc_1(2,2,:) * (par1 -par2*h_calc(2,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,2))).^5.225;
+                
+                zhd_calc_2(1,1,:) = zhd_calc_2(1,1,:) * (par1 -par2*h_calc(1,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,1))).^5.225;
+                zhd_calc_2(1,2,:) = zhd_calc_2(1,2,:) * (par1 -par2*h_calc(1,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,2))).^5.225;
+                zhd_calc_2(2,1,:) = zhd_calc_2(2,1,:) * (par1 -par2*h_calc(2,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,1))).^5.225;
+                zhd_calc_2(2,2,:) = zhd_calc_2(2,2,:) * (par1 -par2*h_calc(2,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,2))).^5.225;
+                
+                
+                %interpolate
+                valbu = zhd_calc_1(1,1,:).*(1-slon) + zhd_calc_1(1,2,:).*slon;
+                valau = zhd_calc_2(1,1,:).*(1-slon) + zhd_calc_2(1,2,:).*slon;
+                valbd = zhd_calc_1(2,1,:)*(1-slon) + zhd_calc_1(2,2,:).*slon;
+                valad = zhd_calc_2(2,1,:)*(1-slon) + zhd_calc_2(2,2,:).*slon;
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                zhd = squeeze(valb).*(1-st) + squeeze(vala).*st;
+                
+            end
         end
         
         function [zwd] = interpolateZwd(this, gps_time, lat, lon)
@@ -645,21 +689,59 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [zwd] = interpolateZwd(this, gps_time, lat, lon)
+            
             zwd = Core_Utils.linInterpLatLonTime(this.vmf_coeff.zwd, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
-             % coorect for height !!!
+            
         end
         
-        function [zwd] = getVmfZwd(this, gps_time, lat, lon, h_ell_sta)
+        function [zwd] = getVmfZwd(this, gps_time, lat, lon, h_ell_sta, interp_first)
             % get vmf Zenit wet delay
             %
             % SYNTAX
             %   [zhd] = getVmfZwd(this, gps_time, lat, lon, h_ell_sta)
             % REFERENCE:
             % [1] Kouba, Jan. "Implementation and testing of the gridded Vienna Mapping Function 1 (VMF1)." Journal of Geodesy 82.4-5 (2008): 193-205.
-            [zwd] = this.interpolateZwd( gps_time, lat, lon);
-            h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
- 
-            zwd     = zwd * exp(-(h_ell_sta - h_ell_vmf)/2000);   % formula 5  in [1] 
+            if nargin < 6
+                interp_first = false;
+            end
+            if interp_first
+                [zwd] = this.interpolateZwd( gps_time, lat, lon);
+                h_ell_vmf = this.interpolateVMFElHeight(lat,lon); % get height of the station
+                zwd     = zwd * exp(-(h_ell_sta - h_ell_vmf)/2000);   % formula 5  in [1]
+            else
+                % get the index of the interpolating points
+                [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(gps_time, lat, lon);
+                zwd_calc_1 = this.vmf_coeff.zwd([ilat ilat+1], [ilons ilone],it);
+                zwd_calc_2 = this.vmf_coeff.zwd([ilat ilat+1], [ilons ilone],it+1);
+                h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
+                % compute the mapping function and the heoght correction for all the inteprolating points
+                zwd_calc_1(1,1,:) = zwd_calc_1(1,1,:) * exp(-(h_ell_sta - h_calc(1,1))/2000);
+                zwd_calc_1(1,2,:) = zwd_calc_1(1,2,:) * exp(-(h_ell_sta - h_calc(1,2))/2000);
+                zwd_calc_1(2,1,:) = zwd_calc_1(2,1,:) * exp(-(h_ell_sta - h_calc(2,1))/2000);
+                zwd_calc_1(2,2,:) = zwd_calc_1(2,2,:) * exp(-(h_ell_sta - h_calc(2,2))/2000);
+                
+                zwd_calc_2(1,1,:) = zwd_calc_2(1,1,:) * exp(-(h_ell_sta - h_calc(1,1))/2000);
+                zwd_calc_2(1,2,:) = zwd_calc_2(1,2,:) * exp(-(h_ell_sta - h_calc(1,2))/2000);
+                zwd_calc_2(2,1,:) = zwd_calc_2(2,1,:) * exp(-(h_ell_sta - h_calc(2,1))/2000);
+                zwd_calc_2(2,2,:) = zwd_calc_2(2,2,:) * exp(-(h_ell_sta - h_calc(2,2))/2000);
+                
+                
+                %interpolate
+                valbu = zwd_calc_1(1,1,:).*(1-slon) + zwd_calc_1(1,2,:).*slon;
+                valau = zwd_calc_2(1,1,:).*(1-slon) + zwd_calc_2(1,2,:).*slon;
+                valbd = zwd_calc_1(2,1,:)*(1-slon) + zwd_calc_1(2,2,:).*slon;
+                valad = zwd_calc_2(2,1,:)*(1-slon) + zwd_calc_2(2,2,:).*slon;
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                zwd =  squeeze(valb).*(1-st) + squeeze(vala).*st;
+                
+                
+                
+            end
         end
         
         function [height] = interpolateVMFElHeight(this, lat, lon)
@@ -1421,7 +1503,7 @@ classdef Atmosphere < handle
             gmfh       = nan2zero(gmfh + ht_corr);
         end
         
-        function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, el, h_ell)
+        function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, el, h_ell, interp_first)
             %angles in radians!!
             %code based on:
             %    [1]  Boehm, J., B. Werl, H. Schuh (2006),  Troposphere mapping functions for GPS and very long baseline interferometry  from European Centre for Medium-Range Weather Forecasts operational analysis data,J. Geoph. Res., Vol. 111, B02406, doi:10.1029/2005JB003629.  
@@ -1431,19 +1513,94 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
-            [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat, lon);
-           
-            
-%             h_ell_vmf = this.interpolateVMFElHeight(lat*180/pi,lon*180/pi); % get height of the station
-%             % eq (6) in [2]
-%             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
-            
-            [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
-            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
-            [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
-            
-            [ht_corr] = this.hydrostaticMFHeigthCorrection(h_ell,el);
-            gmfh       = nan2zero(gmfh + ht_corr);
+            if nargin < 7
+                interp_first = false;
+            end
+            if interp_first % interp first
+                [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat, lon);
+                
+                
+                %             h_ell_vmf = this.interpolateVMFElHeight(lat*180/pi,lon*180/pi); % get height of the station
+                %             % eq (6) in [2]
+                %             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
+                
+                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
+                [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
+                [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
+                
+                [ht_corr] = this.hydrostaticMFHeigthCorrection(h_ell,el);
+                gmfh       = nan2zero(gmfh + ht_corr);
+            else % compute mapping function first
+                % get the index of the interpolating points
+                [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(time.getGpsTime(), lat, lon);
+                ah_calc_1 = this.vmf_coeff.ah([ilat ilat+1], [ilons ilone],it);
+                aw_calc_1 = this.vmf_coeff.aw([ilat ilat+1], [ilons ilone],it);
+                ah_calc_2 = this.vmf_coeff.ah([ilat ilat+1], [ilons ilone],it+1);
+                aw_calc_2 = this.vmf_coeff.aw([ilat ilat+1], [ilons ilone],it+1);
+                h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
+                n_sat = size(el,2);
+                % compute the mapping function and the heoght correction for all the inteprolating points
+                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
+                [gmfh_11_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_11_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(1,1,:)),1,n_sat),bw,cw,el);
+                [gmfh_12_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_12_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(1,2,:)),1,n_sat),bw,cw,el);
+                [gmfh_21_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(2,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_21_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(2,1,:)),1,n_sat),bw,cw,el);
+                [gmfh_22_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(2,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_22_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(2,2,:)),1,n_sat),bw,cw,el);
+                
+                [gmfh_11_2] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_2(1,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_11_2] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_2(1,1,:)),1,n_sat),bw,cw,el);
+                [gmfh_12_2] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_2(1,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_12_2] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_2(1,2,:)),1,n_sat),bw,cw,el);
+                [gmfh_21_2] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_2(2,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_21_2] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_2(2,1,:)),1,n_sat),bw,cw,el);
+                [gmfh_22_2] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_2(2,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
+                [gmfw_22_2] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_2(2,2,:)),1,n_sat),bw,cw,el);
+                
+                
+                [ht_corr_11] = this.hydrostaticMFHeigthCorrection(h_calc(1,1),el);
+                [ht_corr_12] = this.hydrostaticMFHeigthCorrection(h_calc(1,2),el);
+                [ht_corr_21] = this.hydrostaticMFHeigthCorrection(h_calc(2,1),el);
+                [ht_corr_22] = this.hydrostaticMFHeigthCorrection(h_calc(2,2),el);
+                
+                gmfh_11_1 = gmfh_11_1 + ht_corr_11;
+                gmfh_12_1 = gmfh_12_1 + ht_corr_12;
+                gmfh_21_1 = gmfh_21_1 + ht_corr_21;
+                gmfh_22_1 = gmfh_22_1 + ht_corr_22;
+                
+                gmfh_11_2 = gmfh_11_2 + ht_corr_11;
+                gmfh_12_2 = gmfh_12_2 + ht_corr_12;
+                gmfh_21_2 = gmfh_21_2 + ht_corr_21;
+                gmfh_22_2 = gmfh_22_2 + ht_corr_22;
+                %interpolate
+                valbu = gmfh_11_1.*(1-slon) + gmfh_12_1.*slon;
+                valau = gmfh_11_2.*(1-slon) + gmfh_12_2.*slon;
+                valbd = gmfh_21_1.*(1-slon) + gmfh_22_1.*slon;
+                valad = gmfh_21_2.*(1-slon) + gmfh_22_2.*slon;
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                gmfh = valb.*repmat((1-st),1,n_sat) + vala.*repmat(st,1,n_sat);
+                
+                %interpolate
+                valbu = gmfw_11_1.*(1-slon) + gmfw_12_1.*slon;
+                valau = gmfw_11_2.*(1-slon) + gmfw_12_2.*slon;
+                valbd = gmfw_21_1.*(1-slon) + gmfw_22_1.*slon;
+                valad = gmfw_21_2.*(1-slon) + gmfw_22_2.*slon;
+                
+                %interpolate along lat
+                valb = valbd.*(1-slat) + valbu.*slat;
+                vala = valad.*(1-slat) + valau.*slat;
+                
+                %interpolate along time
+                gmfw = valb.*repmat((1-st),1,n_sat) + vala.*repmat(st,1,n_sat);
+                
+            end
         end
         %-----------------------------------------------------------
         % IONO

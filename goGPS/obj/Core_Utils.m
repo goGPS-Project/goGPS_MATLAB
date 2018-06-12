@@ -581,27 +581,11 @@ classdef Core_Utils < handle
             %       4 - the method will interpolate first in the dimesnion with less time
             % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
             [nlat , nlon, nt] = size(data);
-            
             n_in_lat = length(lat);
             n_in_lon = length(lon);
             n_in_t = length(t);
             assert(n_in_lat == n_in_lon);
-            lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity 
-            % find indexes and interpolating length
-            % time
-            it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
-            st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
-            st = serialize(st);
-            
-            % lat
-            ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
-            slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
-            
-            % lon
-            ilons = max(min(floor((lon - first_lon)/ dlon)+1,nlon),1);
-            ilone = ilons +1;
-            ilone(ilone > nlon) = 1;
-            slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
+            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t);
             if n_in_lat > n_in_t % time first
                 
                 it = it*ones(size(ilat));
@@ -645,6 +629,30 @@ classdef Core_Utils < handle
             
         end
         
+        
+        function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)
+            % get  interpolating index
+            [nlat , nlon, nt] = size(data);
+            
+           
+            lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity 
+            % find indexes and interpolating length
+            % time
+            it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
+            st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
+            st = serialize(st);
+            
+            % lat
+            ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
+            slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
+            
+            % lon
+            ilons = max(min(floor((lon - first_lon)/ dlon)+1,nlon),1);
+            ilone = ilons +1;
+            ilone(ilone > nlon) = 1;
+            slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;        
+        end
+            
         function createEmptyProject(base_dir, prj_name)
             % create empty config file
             %

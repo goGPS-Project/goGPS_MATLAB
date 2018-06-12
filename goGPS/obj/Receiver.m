@@ -3101,7 +3101,7 @@ classdef Receiver < Exportable
                     this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
                 case 2 %% vmf gridded
                     atmo = Atmosphere.getInstance();
-                     this.apr_zhd = atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
+                    this.apr_zhd = atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
             
         end
@@ -3975,14 +3975,14 @@ classdef Receiver < Exportable
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)))
+                if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)) || sum(this(1, r).zwd) == 0)
                     zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
                 else
                     zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
                 end
                 
                 for s = 2 : size(this, 1)
-                    if (isempty(this(s, r).zwd) || all(isnan(this(s, r).zwd)))
+                    if (isempty(this(s, r).zwd) || all(isnan(this(s, r).zwd)) || sum(this(1, r).zwd) == 0)
                         zwd_tmp = this(s, r).apr_zwd(this(s, r).getIdSync);
                     else
                         zwd_tmp = this(s, r).zwd(this(s, r).getIdSync);
