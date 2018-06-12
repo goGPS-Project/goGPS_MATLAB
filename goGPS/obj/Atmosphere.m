@@ -1187,7 +1187,7 @@ classdef Atmosphere < handle
             temp = temp0 - 0.0065d0 * h_ort;
         end
         
-        function [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
+         function [gmfh, gmfw] = gmf(this, time, lat, lon, hgt, el)
             % This subroutine determines the Global Mapping Functions GMF
             % Reference: Boehm, J., A.E. Niell, P. Tregoning, H. Schuh (2006),
             % Global Mapping Functions (GMF): A new empirical mapping function based on numerical weather model data,
@@ -1196,9 +1196,9 @@ classdef Atmosphere < handle
             % input data
             % ----------
             % time: GPS_Time
-            % dlat: ellipsoidal latitude in radians
-            % dlon: longitude in radians
-            % dhgt: orthometric height in m
+            % lat: ellipsoidal latitude in radians
+            % lon: longitude in radians
+            % hgt: orthometric height in m
             % zd:   zenith distance in radians
             %
             % output data
@@ -1216,11 +1216,14 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
-            doy = (gps_time/86400 - 22) / 365.25d0; % years from 28 jan 1980
+            doy = time.getMJD()  - 44239 + 1;
             
             pi = 3.14159265359d0;
             
-            cached = (dlon == this.lon) && (dlat == this.lat) && ~isempty(this.ahm) && ~isempty(this.aha);
+            % -------------------------------------------------------
+            % getting ah and aw  from the sperical harmonics expansion
+            % --------------------------------------------------------
+            cached = (lon == this.lon) && (lat == this.lat) && ~isempty(this.ahm) && ~isempty(this.aha);
             if cached
                 V = this.V;
                 W = this.W;
@@ -1335,9 +1338,9 @@ classdef Atmosphere < handle
                 % mmax = 9;
                 
                 % unit vector
-                x = cos(dlat)*cos(dlon);
-                y = cos(dlat)*sin(dlon);
-                z = sin(dlat);
+                x = cos(lat)*cos(lon);
+                y = cos(lat)*sin(lon);
+                z = sin(lat);
                 
                 V = zeros(nmax+1,nmax+1);
                 W = zeros(nmax+1,nmax+1);
@@ -1366,28 +1369,17 @@ classdef Atmosphere < handle
                 end
                 this.V = V;
                 this.W = W;
-                this.lat = dlat;
-                this.lon = dlon;
+                this.lat = lat;
+                this.lon = lon;
             end
-            
-            % hydrostatic
-            bh = 0.0029;
-            c0h = 0.062;
-            if (dlat < 0) % southern hemisphere
-                phh  = pi;
-                c11h = 0.007;
-                c10h = 0.002;
-            else                % northern hemisphere
-                phh  = 0;
-                c11h = 0.005;
-                c10h = 0.001;
-            end
-            ch = c0h + ((cos(doy*2d0*pi + phh)+1)*c11h/2 + c10h)*(1-cos(dlat));
-            
             if cached
                 ahm = this.ahm;
                 aha = this.aha;
+                
+                awm = this.awm;
+                awa = this.awa;
             else
+                % hysdrostatic
                 ahm = 0.d0;
                 aha = 0.d0;
                 i = 0;
@@ -1400,37 +1392,8 @@ classdef Atmosphere < handle
                 end
                 this.ahm = ahm;
                 this.aha = aha;
-            end
-            ah  = (ahm + aha*cos(doy*2.d0*pi))*1d-5;
-            
-            sine   = sin(pi/2 - zd);
-            % cose   = cos(pi/2 - zd);
-            beta   = bh./( sine + ch  );
-            gamma  = ah./( sine + beta);
-            topcon = (1.d0 + ah./(1.d0 + bh./(1.d0 + ch)));
-            gmfh   = topcon ./ (sine+gamma);
-            
-            % height correction for hydrostatic mapping function from Niell (1996)
-            a_ht = 2.53d-5;
-            b_ht = 5.49d-3;
-            c_ht = 1.14d-3;
-            hs_km  = dhgt/1000.d0;
-            
-            beta   = b_ht ./ ( sine + c_ht );
-            gamma  = a_ht ./ ( sine + beta);
-            topcon = (1.d0 + a_ht/(1.d0 + b_ht/(1.d0 + c_ht)));
-            ht_corr_coef = 1 ./ sine - topcon ./ (sine + gamma);
-            ht_corr      = ht_corr_coef * hs_km;
-            gmfh         = gmfh + ht_corr;
-            
-            % wet
-            bw = 0.00146;
-            cw = 0.04391;
-            
-            if cached
-                awm = this.awm;
-                awa = this.awa;
-            else
+                
+                % wet
                 awm = 0.d0;
                 awa = 0.d0;
                 i = 0;
@@ -1445,14 +1408,20 @@ classdef Atmosphere < handle
                 this.awa = awa;
             end
             aw =  (awm + awa*cos(doy*2*pi))*1d-5;
+            ah  = (ahm + aha*cos(doy*2.d0*pi))*1d-5;
+            % --------------------------------------------------------
+            [bh, bw, ch, cw] = this.GMFVMFBC(time, lat);
             
-            beta   = bw ./ ( sine + cw );
-            gamma  = aw ./ ( sine + beta);
-            topcon = (1.d0 + aw/(1.d0 + bw/(1.d0 + cw)));
-            gmfw   = topcon ./ (sine+gamma);
+            % compute the mapping functions
+            [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
+            [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
+            % correct hydrostatic for height
+            [ht_corr] = this.hydrostaticMFHeigthCorrection(hgt,el);
+            gmfh       = nan2zero(gmfh + ht_corr);
+            gmfh       = nan2zero(gmfh + ht_corr);
         end
         
-        function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, zd, h_ell)
+        function [gmfh, gmfw] = vmf_grd(this, time, lat, lon, el, h_ell)
             %angles in radians!!
             %code based on:
             %    [1]  Boehm, J., B. Werl, H. Schuh (2006),  Troposphere mapping functions for GPS and very long baseline interferometry  from European Centre for Medium-Range Weather Forecasts operational analysis data,J. Geoph. Res., Vol. 111, B02406, doi:10.1029/2005JB003629.  
@@ -1463,45 +1432,17 @@ classdef Atmosphere < handle
             % SYNTAX
             %   [gmfh, gmfw] = vmf(this, gps_time, lat, lon, zd)
             [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat, lon);
-            % coefficients of tab 1 in [1]
-            if (lat<0)      % southern hemisphere
-                phi_h  = pi;
-                c11_h = 0.007;
-                c10_h = 0.002;
-            else             % northern hemisphere
-                phi_h  = 0.d0;
-                c11_h = 0.005;
-                c10_h = 0.001;
-            end
-            c0_h = 0.062;
-            % hidrostatic b form Isobaric mapping function
-            bh = 0.002905;
-            
-            doy = time.getMJD()  - 44239 + 1;
-            % c hydrostatic is taken from equation (7) in [1]
-            ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45° lat tab 4 in [3]
-            bw = 0.00146;
-            cw = 0.04391;
-            el = pi/2 -zd;
+           
             
 %             h_ell_vmf = this.interpolateVMFElHeight(lat*180/pi,lon*180/pi); % get height of the station
 %             % eq (6) in [2]
 %             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
+            
+            [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
             [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
             [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
             
-            % height correction for the hydrostatic part 
-            % coefficent from tab 3 in [3]
-            a_ht = 2.53d-5;
-            b_ht = 5.49d-3;
-            c_ht = 1.14d-3;
-            h_ell_km     = h_ell/1000;   % convert height to km
-            % eq (6) in [3] 
-            ht_corr_coef = 1 ./ sin(zero2nan(el))   -    this.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
-            % eq (7) in [3]
-            ht_corr      = ht_corr_coef * h_ell_km;
-            
+            [ht_corr] = this.hydrostaticMFHeigthCorrection(h_ell,el);
             gmfh       = nan2zero(gmfh + ht_corr);
         end
         %-----------------------------------------------------------
@@ -1546,6 +1487,51 @@ classdef Atmosphere < handle
         function [delay] = mfContinuedFractionForm(a,b,c,el)
             sine = sin(el);
             delay = (1 + (a ./ (1 + (b ./ (1 + c) )))) ./ (sine + (a ./ (sine + (b ./ (sine + c) ))));
+        end
+        
+        function [ht_corr] = hydrostaticMFHeigthCorrection(h_ell,el)
+            % coorect the hysdrostatic mapping functions for the height
+            % formulas and paramaters taken from :
+            %   Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
+            
+            % height correction for the hydrostatic part 
+            
+            % coefficent from tab 3 
+            a_ht = 2.53d-5;
+            b_ht = 5.49d-3;
+            c_ht = 1.14d-3;
+            h_ell_km     = h_ell/1000;   % convert height to km
+            % eq (6) 
+            ht_corr_coef = 1 ./ sin(zero2nan(el))   -    Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
+            % eq (7) 
+            ht_corr      = ht_corr_coef * h_ell_km;
+        end
+        
+        function [bh, bw, ch, cw] = GMFVMFBC(time, lat)
+            % get the coefficients b and c of the continued fratcion form, both for GMF and VMF
+            % INPUT:
+            %    time - time GPS_Time object
+            %    lat  - latitude in radians
+             % coefficients of tab 1 in [1]
+            if (lat<0)      % southern hemisphere
+                phi_h  = pi;
+                c11_h = 0.007;
+                c10_h = 0.002;
+            else             % northern hemisphere
+                phi_h  = 0.d0;
+                c11_h = 0.005;
+                c10_h = 0.001;
+            end
+            c0_h = 0.062;
+            % hidrostatic b form Isobaric mapping function
+            bh = 0.002905;
+            
+            doy = time.getMJD()  - 44239 + 1;
+            % c hydrostatic is taken from equation (7) in [1]
+            ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
+            % wet b and c form Niell mapping function at 45° lat tab 4 in [3]
+            bw = 0.00146;
+            cw = 0.04391;
         end
         %-----------------------------------------------------------
         % IONO

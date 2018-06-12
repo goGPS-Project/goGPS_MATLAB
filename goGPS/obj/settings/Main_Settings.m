@@ -126,7 +126,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
         ATM_LOAD_NAME_NT = '';
         ATM_LOAD_NAME_T = 's1_s2_s3_cm_noib_grid.dat';
-        VMF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'VMF' filesep];
+        VMF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'VMF' filesep '${YYYY}' filesep];
         VMF_NAME = '';
 
         % COMPUTATION CENTERS
@@ -2645,7 +2645,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the full name of the ERP files (replacing special keywords)
             % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            vmf_height_name = fnp.checkPath(strcat(this.vmf_dir, filesep, 'orography_ell'));
+            vmf_height_name = fnp.checkPath(strcat(strrep(this.vmf_dir, '${YYYY}',''), filesep, 'orography_ell'));
 
         end
 

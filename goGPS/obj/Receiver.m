@@ -2950,11 +2950,9 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if this(s).state.mapping_function == 2
-                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi,h_ellipse);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
                         elseif this(s).state.mapping_function == 1
-                            [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
-                            mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
-                            mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                            [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
                         end
                         
                         if isempty(this(s).id_sync)
@@ -2971,11 +2969,9 @@ classdef Receiver < Exportable
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if this.state.mapping_function == 2
-                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (90 - this(s).sat.el)./180*pi,h_ellipse);
+                            [mfh_tmp, mfw_tmp] = atmo.vmf_grd(this(s).time, lat./180*pi, lon./180*pi, (this(s).sat.el)./180*pi,h_ellipse);
                         elseif this.state.mapping_function == 1
-                            [gmfh, gmfw] = atmo.gmf(this(s).time.first.getGpsTime(), lat./180*pi, lon./180*pi, h_ortho, (90 - this(s).sat.el(:))./180*pi);
-                            mfh_tmp = reshape(gmfh, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
-                            mfw_tmp = reshape(gmfw, size(this(s).sat.el, 1), size(this(s).sat.el, 2));
+                            [mfh_tmp, mfw_tmp] = atmo.gmf(this(s).time, lat./180*pi, lon./180*pi, h_ortho, (this(s).sat.el)./180*pi);
                         end
                         
                         
