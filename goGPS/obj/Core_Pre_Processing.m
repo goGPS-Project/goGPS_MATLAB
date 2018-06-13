@@ -1131,12 +1131,13 @@ classdef Core_Pre_Processing < handle
     % ==================================================================================================================================================
     
     methods (Static) % Public Access
-        function [obs, dt_dj] = remDtJumps(obs)
+        function [obs, dt_dj, is_jumping] = remDtJumps(obs)
             % remove a jumps of the clock from ph/pr
             % this piece of code is very very criptic, but it seems to work
             % review this whenever possible
             obs = zero2nan(obs);
             dt_dj = 0;
+            is_jumping = false;
             
             % Iterate for very particular instable cases
             for i = 1 : 2
@@ -1147,6 +1148,7 @@ classdef Core_Pre_Processing < handle
                 ddt = cumsum(cumsum(nan2zero(d3dt)));
                 dt0 = 0;
                 if sum(pos_jmp) > 0
+                    is_jumping = true;
                     ddt = ddt - simpleFill1D(ddt, pos_jmp);
                     dt0 = cumsum(nan2zero(ddt));
                     ph_bk = obs;

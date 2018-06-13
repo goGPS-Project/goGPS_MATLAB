@@ -888,22 +888,30 @@ classdef Receiver < Exportable
             this.obs = this.obs .* mask(:, this.go_id)';
         end
         
-        function removeShortArch(this, min_arc)
-            % removes arch shorter than
+        function removeShortArc(this, min_arc)
+            % removes arc shorter than
             % SYNTAX
-            %   this.removeShortArch()
+            %   this.removeShortArc()
             if min_arc > 1
                 this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
-                [ph, wl, id_ph]= this.getPhases();
+                
+                [pr, id_pr] = this.getPseudoRanges();
+                idx = ~isnan(pr);
+                idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
+                idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
+                el_idx = xor(idx,idx_e);
+                pr(el_idx) = NaN;
+                this.setPseudoRanges(pr, id_pr);
+                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been removed', sum(el_idx(:)))));
+                
+                [ph, wl, id_ph] = this.getPhases();
                 idx = ~isnan(ph);
                 idx_s = flagShrink(idx, ceil((min_arc - 1)/2));
                 idx_e = flagExpand(idx_s, ceil((min_arc - 1)/2));
                 el_idx = xor(idx,idx_e);
-                this.sat.outlier_idx_ph(el_idx) =  true;
-                this.sat.cycle_slip_idx_ph(el_idx) = 0;
-                ph(this.sat.outlier_idx_ph) = 0;
+                ph(el_idx) = NaN;
                 this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations have been removed', sum(el_idx(:)))));
+                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been removed', sum(el_idx(:)))));
             end
         end
         
@@ -1120,8 +1128,6 @@ classdef Receiver < Exportable
             
             this.sat.cycle_slip_idx_ph([false(1,size(this.sat.outlier_idx_ph,2)); (diff(this.sat.outlier_idx_ph) == -1)]) = 1;
             this.log.addMessage(this.log.indent(sprintf(' - %d phase observations marked as outlier',n_out)));
-            
-            %this.removeShortArch(this.state.getMinArc);            
         end
         
         function cycleSlipPPPres(this)
@@ -4522,7 +4528,7 @@ classdef Receiver < Exportable
             end
         end
         
-        function smoothAndApplyDt(this, smoothing_win)
+        function smoothAndApplyDt(this, smoothing_win, is_pr_jumping, is_ph_jumping)
             % Smooth dt * c correction computed from init-positioning with a spline with base 3 * rate,
             % apply the smoothed dt to pseudo-ranges and phases
             % SYNTAX
@@ -4536,24 +4542,31 @@ classdef Receiver < Exportable
                 this.log.addMessage(this.log.indent('Apply the clock error of the receiver'));
             end
             id_ko = this.dt == 0;
-            lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-8);
+            lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-7);
             % lim = [lim(1) lim(end)];
             dt_w_border = [this.dt(1); zero2nan(this.dt(:,1)); this.dt(end,1)];
-            dt = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
-            dt([1 end] ) = [];
+            dt_pr = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
+            dt_pr([1 end] ) = [];
             if smoothing_win(1) > 0
                 for i = 1 : size(lim, 1)
                     if lim(i,2) - lim(i,1) > 5
-                        dt(lim(i,1) : lim(i,2)) = splinerMat([], dt(lim(i,1) : lim(i,2)), smoothing_win(1));
+                        dt_pr(lim(i,1) : lim(i,2)) = splinerMat([], dt_pr(lim(i,1) : lim(i,2)), smoothing_win(1));
                     end
                 end
             end
             if length(smoothing_win) == 2
-                dt = splinerMat([], dt, smoothing_win(2));
+                dt_pr = splinerMat([], dt_pr, smoothing_win(2));
             end
             
-            this.dt = simpleFill1D(zero2nan(dt), id_ko, 'pchip');
-            this.applyDtRec(dt)
+            this.dt = simpleFill1D(zero2nan(dt_pr), id_ko, 'pchip');
+            if (~is_ph_jumping)
+                id_jump = abs(diff(dt_pr)) > 1e-4; %find clock resets
+                ddt = simpleFill1D(diff(dt_pr), id_jump, 'linear');
+                dt_ph = dt_pr(1) + [0; cumsum(ddt)];
+            else
+                dt_ph = dt_pr;
+            end
+            this.applyDtRec(dt_pr, dt_ph)
             %this.dt_pr = this.dt_pr + this.dt;
             %this.dt_ph = this.dt_ph + this.dt;
             this.dt(:)  = 0;%zeros(size(this.dt_pr));
@@ -5996,7 +6009,7 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     
     methods
-        function correctTimeDesync(this)
+        function [is_pr_jumping, is_ph_jumping] = correctTimeDesync(this)
             %   Correction of jumps in code and phase due to dtR and time de-sync
             % SYNTAX
             %   this.correctTimeDesync()
@@ -6031,15 +6044,15 @@ classdef Receiver < Exportable
             % extract observations
             [ph, wl, id_ph] = this.getPhases();
             [pr, id_pr] = this.getPseudoRanges();
-              
+            
+            dt_ph = zeros(this.time.length, 1);
+            dt_pr = zeros(this.time.length, 1);
+            
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_Pre_Processing.remDtJumps(ph);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_Pre_Processing.remDtJumps(pr);
             % apply desync
-            if disable_dt_correction
-                dt_ph = zeros(this.time.length, 1);
-                dt_pr = zeros(this.time.length, 1);
-            else
+            if ~disable_dt_correction
                 if any(time_desync)
-                    [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
-                    [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
                     if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
                         id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
                         tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
@@ -6047,16 +6060,19 @@ classdef Receiver < Exportable
                     end
                     
                     ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
-
+                    
                     if (max(abs(time_desync)) > 1e-4)
                         % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
+                        time_desync = simpleFill1D(time_desync, all(isnan(pr), 2), 'nearest');
                         ddt = [0; diff(time_desync)];
                         ddrifting_pr = ddt - ddt_pr;
-                        drifting_pr = cumsum(ddt - ddt_pr);
+%                         drifting_pr = cumsum(ddrifting_pr);
+                        drifting_pr = time_desync - dt_pr_dj;
                         
                         % Linear interpolation of ddrifting
                         jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                         lim = getOutliers(any(~isnan(ph),2));
+                        lim = [lim(1); lim(end)];
                         jmp_fit = setdiff([find(abs(ddrifting_pr) > 1e-7); lim(:)], jmp_reset); % points where desync interpolate the clock
                         jmp_fit(jmp_fit==numel(drifting_pr)) = [];
                         jmp_fit(jmp_fit==1) = [];
@@ -6070,6 +6086,7 @@ classdef Receiver < Exportable
                             drifting_pr = interp1(jmp, d_points_pr, (1 : numel(drifting_pr))', 'pchip');
                         end
                         
+                        dt_ph_dj = iif(is_pr_jumping == is_ph_jumping, dt_pr_dj, dt_ph_dj);
                         dt_ph = drifting_pr + dt_ph_dj;
                         %dt_ph = drifting_pr * double(numel(dt_ph_dj) <= 1) + detrend(drifting_pr) * double(numel(dt_ph_dj) > 1) + dt_ph_dj;
                         dt_pr = drifting_pr + dt_pr_dj;
@@ -6086,32 +6103,33 @@ classdef Receiver < Exportable
                     ph = bsxfun(@minus, ph, dt_ph .* 299792458);
                     pr = bsxfun(@minus, pr, dt_pr .* 299792458);
                 else
-                    [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
-                    [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
-                    % epochs with no phases cannot estimate dt jumps
-                    if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
-                        id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
-                        tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
-                        dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
+                    if (is_ph_jumping ~= is_pr_jumping)
+                        
+                        % epochs with no phases cannot estimate dt jumps
+                        if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
+                            id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
+                            tmp = diff(dt_pr_dj); tmp(~id_ko) = 0; tmp = cumsum(tmp);
+                            dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
+                        end
+                        
+                        ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                        jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
+                        jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
+                        if numel(jmp_reset) > 2
+                            drifting_pr = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
+                        else
+                            drifting_pr = 0;
+                        end
+                        
+                        dt_pr = dt_pr_dj - drifting_pr;
+                        t_offset = mean(dt_pr);
+                        dt_ph = dt_ph_dj - drifting_pr - t_offset;
+                        dt_pr = dt_pr - t_offset;
+                        
+                        ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+                        pr = bsxfun(@minus, pr, dt_pr .* 299792458);
                     end
-                    
-                    ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
-                    jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
-                    jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
-                    if numel(jmp_reset) > 2
-                        drifting_pr = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(dt_pr_dj))', 'pchip');
-                    else
-                        drifting_pr = 0;
-                    end
-                    
-                    dt_pr = dt_pr_dj - drifting_pr;
-                    t_offset = mean(dt_pr);                    
-                    dt_ph = dt_ph_dj - drifting_pr - t_offset;
-                    dt_pr = dt_pr - t_offset;
-                    
-                    ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                    pr = bsxfun(@minus, pr, dt_pr .* 299792458);
-                end                
+                end
                 if any(dt_ph_dj)
                     this.log.addMessage(this.log.indent('Correcting carrier phases jumps'));
                 else
@@ -6122,12 +6140,11 @@ classdef Receiver < Exportable
                 else
                     this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation'));
                 end
-                
             end
             
             % Saving dt into the object properties
-            this.dt_ph = dt_ph;
-            this.dt_pr = dt_pr;
+            this.dt_ph = dt_ph; %#ok<PROP>
+            this.dt_pr = dt_pr; %#ok<PROP>
             
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
@@ -6660,7 +6677,7 @@ classdef Receiver < Exportable
                 this.remBad();
                 this.remUnderSnrThr(this.state.getSnrThr());
                 % correct for raw estimate of clock error based on the phase measure
-                this.correctTimeDesync();
+                [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync();
                 % this.TEST_smoothCodeWithDoppler(51);
                 % code only solution
                 this.importMeteoData();
@@ -6669,7 +6686,8 @@ classdef Receiver < Exportable
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-                
+                this.removeShortArc(this.state.getMinArc);            
+
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>                
                 if (min(s02) > this.S02_IP_THR)
                     this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
@@ -6682,7 +6700,7 @@ classdef Receiver < Exportable
                     % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                     this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear'); % save init_positioning clock
                     % smooth clock estimation
-                    this.smoothAndApplyDt(0);
+                    this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                     
                     % update azimuth elevation
                     this.updateAzimuthElevation();
