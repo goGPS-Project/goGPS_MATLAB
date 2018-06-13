@@ -100,7 +100,7 @@ classdef Core_SEID < handle
                 %code_gf(r).obs = phase_gf(r).obs;
                 
                 [lat, lon, ~, h_ortho] = rec(r).getMedianPosGeodetic;
-                [pierce_point(r).lat, pierce_point(r).lon] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
+                [pierce_point(r).lat, pierce_point(r).lon, pierce_point(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, code_gf(r).az / 180 * pi, zero2nan(code_gf(r).el / 180 * pi), 350*1e3);
             end
              
             max_sat = 0;
@@ -157,7 +157,7 @@ classdef Core_SEID < handle
                 [ph1, id_ph] = trg(t).getObs('L1','G');
                 [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
                 trg_go_id = unique(trg(t).go_id(id_ph)');
-                [lat_pp, lon_pp] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
+                [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
 
                 % It is necessary to better sync satellites in view
                 % this part of the code needs to be improved

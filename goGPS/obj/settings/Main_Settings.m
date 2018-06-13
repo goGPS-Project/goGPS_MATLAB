@@ -2552,7 +2552,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             met_full_name = {};
             for i = 1 : numel(met_name)
-                met_full_name = [met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+                met_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
 
@@ -3126,6 +3126,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_shapiro = this.flag_shapiro;
         end
         
+        function is_met = isMet(this)
+            % Check whether the meteorological usage is active
+            %
+            % SYNTAX
+            %   is_met = isMet(this)
+            is_met = this.meteo_data == 3;
+        end             
+        
         function is_ocean_load = isOceanLoading(this)
             % Check whether the iono free combination is enabled
             %
@@ -3152,10 +3160,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function need_iono = needIonoMap(this)
             % Check if ionospheric map are needed
-            %
-            % SYNTAX
-            %   need_iono = needIonoMap(this)
-            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3);
+            % SYNTAX: need_iono = needIonoMap(this)
+            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3) || true;
         end
         
         function is_rec_pcv = isRecPCV(this)

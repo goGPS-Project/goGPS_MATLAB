@@ -276,7 +276,7 @@ classdef Command_Interpreter < handle
             this.CMD_AZEL.par = [];
 
             this.CMD_BASICPP.name = {'BASICPP', 'PP', 'basic_pp', 'pp'};
-            this.CMD_BASICPP.descr = ['Basic Point positioning with no correction '];
+            this.CMD_BASICPP.descr = 'Basic Point positioning with no correction';
             this.CMD_BASICPP.rec = 'T';
             this.CMD_BASICPP.par = [this.PAR_RATE this.PAR_SS];
 

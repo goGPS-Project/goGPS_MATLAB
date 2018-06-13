@@ -70,32 +70,36 @@ classdef File_Rinex < Exportable
     methods
         function this = File_Rinex(file_name, verbosity_lev)
             % Creator of File_Rinex (file_name)
-
-            % fill the path with the imported file names
-            if ~iscellstr(file_name)
-                file_name = {file_name};
-            end
-            this.file_name_list = {};
-            this.ext = {};
-            if verbosity_lev < 50 && numel(file_name) > 20 
-                w_bar = Go_Wait_Bar.getInstance(numel(file_name), 'Checking rinex files');
-                w_bar.createNewBar
-                for f = 1 : numel(file_name)
-                    [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
-                    w_bar.go();
-                end
-                w_bar.close();
+            
+            if nargin == 0
+                % Empty File_Rinex;
             else
-                for f = 1 : numel(file_name)
-                    [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                % fill the path with the imported file names
+                if ~iscellstr(file_name)
+                    file_name = {file_name};
                 end
+                this.file_name_list = {};
+                this.ext = {};
+                if verbosity_lev < 50 && numel(file_name) > 20
+                    w_bar = Go_Wait_Bar.getInstance(numel(file_name), 'Checking rinex files');
+                    w_bar.createNewBar
+                    for f = 1 : numel(file_name)
+                        [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                        w_bar.go();
+                    end
+                    w_bar.close();
+                else
+                    for f = 1 : numel(file_name)
+                        [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+                    end
+                end
+                
+                if nargin == 2
+                    this.verbosity_lev = verbosity_lev;
+                end
+                
+                this.checkValidity();
             end
-
-            if nargin == 2
-                this.verbosity_lev = verbosity_lev;
-            end
-
-            this.checkValidity();
         end
     end
 
@@ -248,7 +252,7 @@ classdef File_Rinex < Exportable
             % Get the validity of a RINEX file or the object (if the object contains a list of files, the id can be specified)
             % SYNTAX: validity = isValid(<file_number>)
             if (nargin == 1)
-                validity = this.is_valid;
+                validity = any([this.is_valid_list]);
             else
                 validity = this.is_valid_list(file_number);
             end

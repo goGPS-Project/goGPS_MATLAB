@@ -84,21 +84,22 @@ classdef Meteo_Network < handle
             % load all meteo file present in current settings
             state = Global_Configuration.getCurrentSettings();
             fnames = state.getMetFileName(date_start, date_stop);
-            n_met_data = numel(fnames);
-            for  i = 1 : n_met_data
-                
-                if ~isempty(File_Name_Processor.getFileName(fnames{i}))
-                    if ~exist(fnames{i}, 'file')
-                        this.log.addWarning(sprintf('Skipping %s - file not found', fnames{i}));
-                    else
-                        md = Meteo_Data(fnames{i});
-                        if md.isValid()
-                            %md.setMaxBound(0);
-                            this.mds = [this.mds; md];
+            n_stations = numel(fnames);
+            for  i = 1 : n_stations
+                n_sss = numel(fnames{i});
+                for  s = 1 : n_sss
+                    if ~isempty(File_Name_Processor.getFileName(fnames{i}{s}))
+                        if ~exist(fnames{i}{s}, 'file')
+                            this.log.addWarning(sprintf('Skipping %s - file not found', fnames{i}{s}));
+                        else
+                            md = Meteo_Data(fnames{i}{s});
+                            if md.isValid()
+                                %md.setMaxBound(0);
+                                this.mds = [this.mds; md];
+                            end
                         end
                     end
                 end
-
             end
         end
         

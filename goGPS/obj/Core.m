@@ -66,11 +66,13 @@ classdef Core < handle
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        rin_list  % List of observation file (as File_Rinex objects) to store minimal information on the input files
+        rin_list   % List of observation file (as File_Rinex objects) to store minimal information on the input files
+        met_list   % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
         rec        % List of all the receiver used in a session
         
         rec_list   % List of all the receiver used in all the session
+        
     end
 
     %% METHOD CREATOR
@@ -298,15 +300,26 @@ classdef Core < handle
     
     %% CHECK VALIDITY METHODS
     methods
-        function err_code = checkValidity(this, flag_verbose)
+        function err_code = checkValidity(this, level, flag_verbose)
             % Check validity of requiremets
             %
+            % INPUT
+            %   level        0 - check before conjure, 
+            %                1 - single files check (but not downloadable resurces)
+            %                5 - check remote resources only
+            %                15 - check all necessary files
+            %   
             % SYNTAX
-            %   core.checkValidity();
+            %   core.checkValidity(level, flag_verbosity);
             
-            if nargin == 1
+            
+            if nargin < 3
                 flag_verbose = true;
-            end            
+            end         
+            
+            if nargin < 2 
+                level = 1;
+            end
             
             this.log.newLine();
             this.log.addMessage('Checking input files and folders...');
@@ -315,31 +328,71 @@ classdef Core < handle
             err_code.go = 0; % Global ok check
             
             state = this.state;
-            err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
-            err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);
-            
-            [n_ok, n_ko] = this.checkRinFileList();
-            if sum(n_ok) > 0
-                if sum(n_ko) > 0
-                    if flag_verbose
-                        this.log.addWarning('Some observation files are missing');
-                    end
-                    err_code.obs_f = sum(n_ko);
-                else
-                    if flag_verbose
-                        this.log.addStatusOk('Observation rinex are present');
-                    end
-                    err_code.obs_f = 0;
-                end
-            else
-                if flag_verbose
-                    this.log.addError('Observation files are missing!!!');
-                end
-                err_code.obs_f = -sum(n_ko);
+            if (level < 5) || (level == 10)
+                err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
+                err_code.obs   = state.checkDir('obs_dir', 'Observation dir', flag_verbose);                
             end
             
-            err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
-            err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
+            if (level == 1) || (level > 10)
+                [n_ok, n_ko] = this.checkRinFileList();
+                if sum(n_ok) > 0
+                    if sum(n_ko) > 0
+                        if flag_verbose
+                            this.log.addWarning('Some observation files are missing');
+                        end
+                        err_code.obs_f = sum(n_ko);
+                    else
+                        if flag_verbose
+                            this.log.addStatusOk('Observation rinex are present');
+                        end
+                        err_code.obs_f = 0;
+                    end
+                else
+                    if flag_verbose
+                        this.log.addError('Observation files are missing!!!');
+                    end
+                    err_code.obs_f = -sum(n_ko);
+                end
+            end
+            
+            if (level < 5) || (level > 10)
+                err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
+            end
+            
+            if (level < 5) || (level > 10)
+                if this.state.isMet()
+                    err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
+                    
+                    if (level == 1) || (level > 10)
+                        %[n_ok, n_ko] = this.checkMetFileList();
+                        [n_ok, n_ko] = checkFileList(this, this.state.met_dir, this.state.met_name, [], 0);
+                        if sum(n_ok) > 0
+                            if sum(n_ko) > 0
+                                if flag_verbose
+                                    this.log.addWarning('Some met files are missing');
+                                end
+                                err_code.obs_f = sum(n_ko);
+                            else
+                                if flag_verbose
+                                    this.log.addStatusOk('Met rinex are present');
+                                end
+                                err_code.obs_f = 0;
+                            end
+                        else
+                            if flag_verbose
+                                this.log.addError('Met files are missing!!!');
+                            end
+                            err_code.obs_f = -sum(n_ko);
+                        end
+                    end
+                else
+                    if flag_verbose
+                        this.log.addStatusDisabled('Meteorological data not requested');
+                    end
+                    err_code.met = 0;
+                end
+            end
+            
             if state.isOceanLoading
                 err_code.ocean = state.checkDirErr('ocean_dir', 'Ocean loading dir', flag_verbose);
             else
@@ -462,6 +515,117 @@ classdef Core < handle
             end
         end
         
+        function [n_ok, n_ko] = updateMetFileList(this, force_update, verbosity)
+            % Update and check met RINEX list
+            %
+            % SYNTAX
+            %   this.updateMetFileList()
+            if nargin < 2 || isempty(force_update)
+                force_update = true;
+            end
+            if nargin < 3 || isempty(verbosity)
+                verbosity = false;
+            end
+            if verbosity
+                this.log.addMarkedMessage('Checking Meteorological RINEX input files');
+            end
+            
+            station_file_list = this.getRequiredMetFile();
+            if isempty(station_file_list)
+                n_ok = 0;
+                n_ko = 0;
+                this.met_list = [];
+            else
+                n_rec = size(station_file_list, 2);
+                n_ok = zeros(n_rec, 1);
+                n_ko = zeros(n_rec, 1);
+                for r = 1 : n_rec
+                    name = File_Name_Processor.getFileName(station_file_list{r}{1});
+                    if verbosity
+                        this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', upper(name(1:4)))));
+                    end
+                    if force_update
+                        fr(r) = File_Rinex(station_file_list{r}, 100);
+                    end
+                    n_ok(r) = sum(fr(r).is_valid_list);
+                    n_ko(r) = sum(~fr(r).is_valid_list);
+                    if verbosity
+                        this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
+                    end
+                end
+                
+                this.met_list = fr;
+                if n_rec == 0
+                    % 'No receivers found';
+                end
+            end
+        end
+        
+        function [n_ok, n_ko] = checkFileList(this, dir_path, file_name, time_par, margin)
+            % Check file list
+            %
+            % SYNTAX
+            %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name)
+            %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name, margin)
+            %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name, time_limits)                        
+            
+            verbosity = true;
+            
+            if nargin < 4 || isempty(time_par) || ~isclass(time_par, 'GPS_Time') 
+                [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+                time_lim = time_lim_large;
+            else
+                time_lim = time_par.getCopy();
+            end
+            
+            if ~isa(time_par, 'GPS_Time')
+                % is a margin!!!
+                time_lim.first.addIntSeconds(margin(1));
+                time_lim.first.addIntSeconds(margin(end));
+            end
+                        
+            file_list = {};
+            fnp = File_Name_Processor();
+            if ~iscell(file_name)
+                file_name = {file_name};
+            end
+            for i = 1 : numel(file_name)
+                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), time_lim.first,  time_lim.last, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
+            end
+            
+            if isempty(file_list)
+                n_ok = 0;
+                n_ko = 0;
+                this.met_list = [];
+            else
+                n_rec = size(file_list, 2);
+                n_ok = zeros(n_rec, 1);
+                n_ko = zeros(n_rec, 1);
+                for r = 1 : n_rec
+                    name = File_Name_Processor.getFileName(file_name{r});
+                    name = name(1:4);
+                    if verbosity
+                        this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', name)));
+                    end
+                    for s = 1 : numel(file_list{r})
+                        if (exist(file_list{r}{s}, 'file') == 2)
+                            n_ok(r) = n_ok(r) + 1;
+                        else
+                            n_ko(r) = n_ko(r) + 1;
+                        end
+                    end                    
+                    if verbosity
+                        this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
+                    end
+                end
+                
+                if n_rec == 0
+                    % 'No receivers found';
+                end
+            end
+        end
+
+        
         function [n_ok, n_ko] = checkRinFileList(this, force_update)
             % Update and check rinex list
             %
@@ -470,7 +634,18 @@ classdef Core < handle
             if nargin < 2 || isempty(force_update)
                 force_update = true;
             end            
-            [n_ok, n_ko] = this.updateRinFileList(force_update, true);            
+            [n_ok, n_ko] = this.updateRinFileList(force_update, true);
+        end
+        
+        function [n_ok, n_ko] = checkMetFileList(this, force_update)
+            % Update and check meteorological rinex list
+            %
+            % SYNTAX
+            %   [n_ok, n_ko] = this.checkMetFileList()
+            if nargin < 2 || isempty(force_update)
+                force_update = true;
+            end
+            [n_ok, n_ko] = this.updateMetFileList(force_update, true);
         end
         
         function rin_list = getRinFileList(this)
@@ -480,8 +655,7 @@ classdef Core < handle
             %   rin_list = this.getRinFileList()            
             if isempty(this.rin_list)
                 this.updateRinFileList()
-            end
-            
+            end            
             rin_list = this.rin_list;
         end
         
@@ -493,9 +667,11 @@ classdef Core < handle
             %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
             %
             % SYNTAX:
-            %   [time_lim_small, time_lim_large] = Core.getRecTimeSpan(session)            
-            is_empty = true;
+            %   [time_lim_small, time_lim_large] = this.getRecTimeSpan(session)
+            %   [time_lim_small, time_lim_large] = this.getRecTimeSpan()
+            
             fr = this.getRinFileList();
+            is_empty = ~fr.isValid;
             if nargin == 1 % Start and stop limits of all the sessions                
                 time_lim_small = fr(1).first_epoch.first;
                 tmp_small = fr(1).last_epoch.last;
@@ -546,6 +722,22 @@ classdef Core < handle
                 time_lim_large.append(tmp_large);
             end
         end
+    end
+    
+    methods
+        function file_list = getRequiredMetFile(this)
+            % Return the list of met_file local paths that will be loaded
+            % 
+            % SYNTAX 
+            %    file_list = getRequiredMetFile(this)
+            [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+            if ~is_empty
+                file_list = this.state.getMetFileName(time_lim_large.first, time_lim_large.last);
+            else
+                file_list = {};
+            end
+        end
+        
     end
     
     %% METHODS UTILITIES
