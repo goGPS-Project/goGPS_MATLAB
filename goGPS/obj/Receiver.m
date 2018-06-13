@@ -5012,7 +5012,7 @@ classdef Receiver < Exportable
             switch iono_model_override
                 case 1 % no model
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
-                case 2 % Klobuchar model
+                case 3 % Klobuchar model
                     if ~isempty(this.sat.cs.iono )
                         for s = go_id
                             idx = this.sat.avail_idx(:,s);
@@ -5022,7 +5022,7 @@ classdef Receiver < Exportable
                     else
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
                     end
-                case 3 % IONEX
+                case 4 % IONEX
                     atm = Atmosphere.getInstance();
                     this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
