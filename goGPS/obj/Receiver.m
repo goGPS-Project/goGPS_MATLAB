@@ -5999,8 +5999,8 @@ classdef Receiver < Exportable
             this.applySolidEarthTide();
             this.applyShDelay();
             this.applyOceanLoading();
-            %this.applyHOI();
-            %this.applyAtmload();
+            this.applyHOI();
+            this.applyAtmload();
         end
     end
     
