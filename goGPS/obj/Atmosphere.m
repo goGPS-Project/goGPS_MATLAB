@@ -453,7 +453,7 @@ classdef Atmosphere < handle
                     this.vmf_coeff.dt = 3600*6;
                     this.vmf_coeff.n_t = 1;
                 else
-                    if file_ref_ep < this.vmf_coeff.first_time ;
+                    if file_ref_ep < this.vmf_coeff.first_time
                         this.vmf_coeff.first_time = file_ref_ep;
                         this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
                         this.vmf_coeff.ah = cat(3,data_tmp_ah,this.vmf_coeff.ah);
@@ -1840,7 +1840,8 @@ classdef Atmosphere < handle
         end
         
         function [ZWD] = saast_wet(T, H,h)
-            
+            % Saastamoinen wet
+            %            
             % SYNTAX
             %   [ZWD] = saast_wet(T, H);
             %
@@ -1871,7 +1872,8 @@ classdef Atmosphere < handle
         end
         
         function [ZHD] = saast_dry(P, h, lat)
-            
+            % Saastamoinen dry
+            %
             % SYNTAX
             %   [ZHD] = saast_dry(P, h, lat);
             %
