@@ -121,7 +121,7 @@ classdef Ini_Manager < handle
             end
         end
 
-        % Distructor ------------------------------------------------------
+        % Destructor ------------------------------------------------------
         function delete(this) %#ok<INUSD>
             % Empty Destructor
         end
