@@ -85,14 +85,15 @@ classdef Receiver_Output < Receiver_Commons
         function reset(this)
             this.reset@Receiver_Commons();
                        
-            this.sat = struct( ...
+            this.sat = struct(  ...
             'outlier_idx_ph',   [], ...    % logical index of outliers
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+            'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation  
             'res',              [], ...    % residual per staellite
             'slant_td',         []  ...    % slant total delay (except ionosphere delay)
-            );
+            )
             
         end
         
@@ -198,28 +199,28 @@ classdef Receiver_Output < Receiver_Commons
                 [idx1, idx2] = this.time.injectBatch(work_time);
             end
             %%% inject data
-            this.dt      = Core_Utils.insertData(this.dt, rec_work.getDt(), idx1, idx2);
-            this.dt_ip   = Core_Utils.insertData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
-            this.apr_zhd = Core_Utils.insertData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
-            this.apr_zwd = Core_Utils.insertData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
-            this.ztd     = Core_Utils.insertData(this.ztd, rec_work.getZtd(), idx1, idx2);
-            this.zwd     = Core_Utils.insertData(this.zwd, rec_work.getZwd(), idx1, idx2);
-            this.pwv     = Core_Utils.insertData(this.pwv, rec_work.getPwv(), idx1, idx2);
+            this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+            this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+            this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
+            this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+            this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
+            this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
+            this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
             [gn, ge]     = this.getGradient();
-            this.tgn     = Core_Utils.insertData(this.tgn, gn, idx1, idx2);
-            this.tge     = Core_Utils.insertData(this.tge, ge, idx1, idx2);
+            this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
+            this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
             [p, t, h]  = rec_work.getPTH(true);
-            this.p     = Core_Utils.insertData(this.p, p, idx1, idx2);
-            this.t     = Core_Utils.insertData(this.t, t, idx1, idx2);
-            this.h     = Core_Utils.insertData(this.h, h, idx1, idx2);
+            this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
+            this.temperature     = Core_Utils.injectData(this.temperature, t, idx1, idx2);
+            this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
             [az, el]   = rec_work.getAzEl();
-            this.sat.az     = Core_Utils.insertData(this.sat.az, az, idx1, idx2);
-            this.sat.el     = Core_Utils.insertData(this.sat.el, el, idx1, idx2);
-            this.sat.res    = Core_Utils.insertData(this.sat.res, rec_work.getResidual(), idx1, idx2);
-            this.sat.slant_td          = Core_Utils.insertData(this.sat.slant_td, rec_work.getSlantTD(), idx1, idx2);
-            this.sat.outlier_idx_ph    = Core_Utils.insertData(this.sat.outlier_idx_ph, rec_work.getResOutPh(), idx1, idx2);
-            this.sat.cycle_slip_idx_ph = Core_Utils.insertData(this.sat.cycle_slip_idx_ph, rec_work.getCycleSlipOutPh(), idx1, idx2);
-            this.sat.quality           = Core_Utils.insertData(this.sat.quality, rec_work.getObsQuality(), idx1, idx2);
+            this.sat.az     = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
+            this.sat.el     = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
+            this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+            this.sat.slant_td          = Core_Utils.injectData(this.sat.slant_td, rec_work.getSlantTD(), idx1, idx2);
+            this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
+            this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+            this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
         end
         
         function legacyImportResults(this, file_prefix, run_start, run_stop)

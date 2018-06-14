@@ -128,6 +128,8 @@ classdef Receiver_Work_Space < Receiver_Commons
     properties (SetAccess = public, GetAccess = public)
     sat = struct( ...
             'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
+            'o_out_ph',         [], ...    % outlier    processing to be saved in result
+            'o_cs_ph',          [], ...    % cycle slip processing to be saved in result
             'outlier_idx_ph',   [], ...    % logical index of outliers
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
@@ -2003,7 +2005,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             dt =  this.dt(this.id_sync);
         end
         
-        function dt_ip = getDtIP(this)
+        function dt_ip = getDtIp(this)
             dt_ip = this.dt_ip(this.id_sync);
         end
         
@@ -2389,7 +2391,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 2
                 use_id_sync = false;
             end
-            
+            time = this.time;
             l = time.length;
             switch flag
                 case 1 % standard atmosphere
@@ -3139,6 +3141,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             iono_pref = iono_pref(is_present,:);
             [obs_set]  = this.getMelWub([iono_pref(1,1)], [iono_pref(1,2)], system);
         end
+        
+        function [rec_out_ph] = getOOutPh(this)
+            % get the phase outlier to be putted in the results
+            % default outiler are the ones on the iono free combination
+            rec_out_ph = this.sat.o_out_ph(this.getIdSync(),:);
+        end
+        
+        function [rec_cs_ph] = getOCsPh(this)
+            % get the phase outlier to be putted in the results
+            % default outiler are the ones on the iono free combination
+            rec_cs_ph = this.sat.o_cs_ph(this.getIdSync(),:);
+        end
+        
         
         function [range, XS_loc] = getSyntObs(this, go_id_list)
             %  get the estimate of one measurmenet based on the
@@ -5977,7 +5992,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                     this.updateErrTropo();
                 end
+                this.pushResult();
             end
+            
+            
             
         end
         
@@ -6360,6 +6378,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             fclose(fid);
             this.log.newLine()
             this.log.addMarkedMessage(sprintf('Receiver exported successifully into: %s', file_name));
+        end
+        
+        function pushResult(this)
+            this.parent.out.importResult(this);
         end
     end
     

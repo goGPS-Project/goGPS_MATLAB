@@ -388,13 +388,28 @@ classdef Receiver_Commons < handle
             %   zwd = this.getZwd()
             zwd = this.zwd(this.getIdSync);
          end
+         
+         function pwv = getPwv(this)
+            % get pwv
+            %
+            % SYNTAX
+            %   pwv = this.getPwv()
+            pwv = this.pwv(this.getIdSync);
+         end
         
         function [gn ,ge, time] = getGradient(this)
             % SYNTAX
             % [gn ,ge, time] = getGradient(this)
-            
-            gn = this.tgn(this.getIdSync);
-            ge = this.tge(this.getIdSync);
+            if isempty(this.tgn)
+                gn = nan(length(this.getIdSync),1);
+            else
+                gn = this.tgn(this.getIdSync);
+            end
+            if isempty(this.tgn)
+                ge = nan(length(this.getIdSync),1);
+            else
+                ge = this.tge(this.getIdSync);
+            end
             time = this.time.getSubSet(this.getIdSync);
             
         end
