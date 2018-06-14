@@ -116,11 +116,11 @@ classdef File_Name_Processor < handle
                 step_sec = 3600;
             elseif ~isempty(strfind(file_name, this.GPS_6H))
                 step_sec = 6 * 3600;
-            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY))
+            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_YYDOY))
                 step_sec = 24 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_WEEK))
                 step_sec = 24 * 3600 * 7;
-            elseif ~isempty(strfind(file_name, this.GPS_YYYY))
+            elseif ~isempty(strfind(file_name, this.GPS_YYYY)) || ~isempty(strfind(file_name, this.GPS_YY))
                 step_sec = 24 * 3600 * 365;
             end
         end
