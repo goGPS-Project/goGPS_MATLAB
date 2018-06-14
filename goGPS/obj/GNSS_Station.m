@@ -665,76 +665,49 @@ classdef GNSS_Station < handle
             %end
         end
         
-        function showTropoPar(this, par_name, new_fig)
+        function showTropoPar(sta_list, par_name, new_fig)
             % one function to rule them all
-            rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2)
-                rec_o
-                switch lower(par_name)
-                    case 'ztd'
-                        rec_ok(r) = any(~isnan(this(:,r).out.getZtd));
-                    case 'zwd'
-                        rec_ok(r) = any(~isnan(this(:,r).out.getZwd));
-                    case 'pwv'
-                        rec_ok(r) = any(~isnan(this(:,r).out.getPwv));
-                    case 'zhd'
-                        rec_ok(r) = any(~isnan(this(:,r).out.getAprZhd));
-                end               
+            
+            [tropo, t] = sta_list.getTropoPar(par_name);
+            if ~iscell(tropo)
+                tropo = {tropo};
+                t = {t};
             end
-            rec_list = this(:, rec_ok);
-            if numel(rec_list) == 0
-                this(1).log.addError('No valid troposphere is present in the receiver list');
+            
+            rec_ok = false(numel(sta_list), 1);
+            for r = 1 : size(sta_list, 2)
+                rec_ok(r) = ~isempty(tropo{r});
+            end
+            
+            sta_list = sta_list(rec_ok);
+            tropo = tropo{rec_ok};
+            t = t{rec_ok};
+            
+            if numel(sta_list) == 0
+                sta_list(1).log.addError('No valid troposphere is present in the receiver list');
             else
-                
                 if nargin < 3
                     new_fig = true;
-                end
+                end                                
                 
-                switch lower(par_name)
-                    case 'ztd'
-                        [tropo, t] = rec_list.out.getZtd();
-                    case 'zwd'
-                        [tropo, t] = rec_list.out.getZwd();
-                    case 'pwv'
-                        [tropo, t] = rec_list.out.getPwv();
-                    case 'zhd'
-                        [tropo, t] = rec_list.out.getAprZhd();
-                end
-                
-                if ~iscell(tropo)
-                    tropo = {tropo};
-                    t = {t};
-                end
                 if isempty(tropo)
-                    rec_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
+                    sta_list(1).out.log.addWarning([par_name ' and slants have not been computed']);
                 else
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, rec_list(1).out.cc.sys_c); f.NumberTitle = 'off';
+                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, sta_list(1).out.cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;
                         old_legend = get(l,'String');
                     end
-                    for r = 1 : size(rec_list, 2)
-                        rec = rec_list(~rec_list(:,r).out.isempty, r);
-                        if ~isempty(rec)
-                            switch lower(par_name)
-                                case 'ztd'
-                                    [tropo, t] = rec.out.getZtd();
-                                case 'zwd'
-                                    [tropo, t] = rec.out.getZwd();
-                                case 'pwv'
-                                    [tropo, t] = rec.out.getPwv();
-                                case 'zhd'
-                                    [tropo, t] = rec.out.getAprZhd();
-                            end
-                            if new_fig
-                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                            else
-                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
-                            end
-                            outm{r} = rec(1).getMarkerName();
+                    for r = 1 : numel(sta_list)
+                        rec = sta_list(r);
+                        if new_fig
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                        else
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4); hold on;
                         end
+                        outm{r} = rec(1).getMarkerName();
                     end
                     
                     outm = [old_legend, outm];
@@ -754,7 +727,7 @@ classdef GNSS_Station < handle
                     h = title(['Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 end
             end
-        end  % --> ask andrea
+        end
         
         function showZhd(this, new_fig)
             if nargin == 1
