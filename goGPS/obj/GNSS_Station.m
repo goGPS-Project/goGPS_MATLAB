@@ -445,16 +445,17 @@ classdef GNSS_Station < handle
             
             tropo = {};
             time = {};
-            for r = 1 : size(sta_list, 2)
+            for r = 1 : length(sta_list)
+                time{r} = sta_list(r).out.getTime();
                 switch lower(par_name)
                     case 'ztd'
-                        [tropo{r}, time{r}] = rec_list.getZtd();
+                        [tropo{r}] = sta_list(r).out.getZtd();
                     case 'zwd'
-                        [tropo{r}, time{r}] = rec_list.getZwd();
+                        [tropo{r}] = sta_list(r).out.getZwd();
                     case 'pwv'
-                        [tropo{r}, time{r}] = rec_list.getPwv();
+                        [tropo{r}] = sta_list(r).out.getPwv();
                     case 'zhd'
-                        [tropo{r}, time{r}] = rec_list.getAprZhd();
+                        [tropo{r}] = sta_list(r).out.getAprZhd();
                 end
             end
             
@@ -462,6 +463,23 @@ classdef GNSS_Station < handle
                 tropo = tropo{1};
                 time = time{1};
             end
+        end
+        
+        % wrappers to getTropoPar()
+        function [tropo, time] = getZtd(sta_list)
+            sta_list.getTropoPar('ztd');
+        end
+        
+        function [tropo, time] = getZwd(sta_list)
+            sta_list.getTropoPar('zwd');
+        end
+        
+        function [tropo, time] = getPwv(sta_list)
+            sta_list.getTropoPar('ztd');
+        end
+        
+        function [tropo, time] = getAprZhd(sta_list)
+            sta_list.getTropoPar('zhd');
         end
     end
      % ==================================================================================================================================================
@@ -680,8 +698,8 @@ classdef GNSS_Station < handle
             end
             
             sta_list = sta_list(rec_ok);
-            tropo = tropo{rec_ok};
-            t = t{rec_ok};
+            tropo = tropo(rec_ok);
+            t = t(rec_ok);
             
             if numel(sta_list) == 0
                 sta_list(1).log.addError('No valid troposphere is present in the receiver list');
