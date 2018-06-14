@@ -38,6 +38,8 @@
 %--------------------------------------------------------------------------
 classdef Receiver_Commons < handle
     properties (SetAccess = public, GetAccess = public)
+        parent         % habdle to parent object
+        
         rid            % receiver interobservation biases
         flag_rid       % clock error for each obs code {num_obs_code}
     end
@@ -46,26 +48,8 @@ classdef Receiver_Commons < handle
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
     
-    properties (SetAccess = public, GetAccess = public)
-        sat = struct( ...
-            'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
-            'outlier_idx_ph',   [], ...    % logical index of outliers
-            'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
-            'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
-            'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
-            'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
-            'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
-            'rel_clk_corr',     [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
-            'tot',              [], ...    % double  [n_epoch x n_sat] time of travel
-            'az',               [], ...    % double  [n_epoch x n_sat] azimuth
-            'el',               [], ...    % double  [n_epoch x n_sat] elevation
-            'cs',               [], ...    % Core_Sky
-            'XS_tx',            [], ...    % compute Satellite postion a t transmission time
-            'crx',              [], ...    % bad epochs based on crx file
-            'res',              [], ...    % residual per staellite
-            'slant_td',         [], ...    % slant total delay (except ionosphere delay)
-            'amb_idx',          []  ...    % temporary variable to test PPP ambiguity fixing
-            )
+    properties (Abstract, SetAccess = public, GetAccess = public)
+        sat
     end
     
     % ==================================================================================================================================================
@@ -113,8 +97,8 @@ classdef Receiver_Commons < handle
     % ==================================================================================================================================================
     
     properties
-        s02_ip
-        s02
+        s0_ip
+        s0
         hdop
         vdop
         tdop
@@ -126,7 +110,7 @@ classdef Receiver_Commons < handle
     %% PROPERTIES USEFUL HANDLES
     % ==================================================================================================================================================
     
-    properties (SetAccess = private, GetAccess = public)
+    properties (SetAccess = protected, GetAccess = public)
         cc = Constellation_Collector('G');      % local cc
         w_bar                                  % handle to waitbar
         state                                  % local handle of state;
@@ -152,8 +136,8 @@ classdef Receiver_Commons < handle
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.s02_ip =  Inf;
-            this.s02 =  Inf;
+            this.s0_ip =  Inf;
+            this.s0 =  Inf;
             this.hdop =  [];
             this.vdop =  [];
             this.tdop =  [];
@@ -201,9 +185,9 @@ classdef Receiver_Commons < handle
             % Display on screen information about the receiver position
             % SYNTAX this.toStringPos();
             for r = 1 : numel(this)
-                if ~this(r).isempty && ~isempty(this(r).xyz)
+                if ~this(r).isEmpty && ~isempty(this(r).xyz)
                     [lat, lon, h_ellips, h_ortho] = this(r).getMedianPosGeodetic_mr();
-                    this(r).log.addMarkedMessage(sprintf('Receiver (%02d) %s   %11.7f  %11.7f    %12.7f m (ellipsoidal) - %12.7f (orthometric)', r, this(r).marker_name, lat, lon, h_ellips, h_ortho));
+                    this(r).log.addMarkedMessage(sprintf('Receiver (%02d) %s   %11.7f  %11.7f    %12.7f m (ellipsoidal) - %12.7f (orthometric)', r, this(r).parent.marker_name, lat, lon, h_ellips, h_ortho));
                 end
             end
         end
@@ -225,7 +209,7 @@ classdef Receiver_Commons < handle
         end
         
         function dt = getDt(this)
-            dt =  this(r).dt;
+            dt =  this.dt;
         end
         
         function dt_ip = getDtIP(this)
@@ -233,7 +217,6 @@ classdef Receiver_Commons < handle
         end
         
         % time
-        
         function time = getCentralTime(this)
             % return the central epoch time stored in the a receiver
             %
@@ -291,7 +274,7 @@ classdef Receiver_Commons < handle
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho] = this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]�= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -380,120 +363,39 @@ classdef Receiver_Commons < handle
                 h_ortho = [];
             end
         end
+    
         
-        function [ztd, time] = getZtd(this)
-            %%
-            %
-            % * ITEM1
-            % * ITEM2
+        function ztd = getZtd(this)
+            % get ztd
             %
             % SYNTAX
-            %  [ztd, time] = this.getZtd()
-            
-            ztd = {};
-            time = {};
-            for r = 1 : size(this, 2)
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    ztd{r} = [ztd{r}; ztd_tmp];
-                    time{r} = time{r}.append(time_tmp);
-                end
-            end
-            
-            if numel(ztd) == 1
-                ztd = ztd{1};
-                time = time{1};
-            end
+            %   ztd = this.getZtd()
+            ztd = this.ztd(this.getIdSync);
         end
         
-        function [zhd, time] = getAprZhd(this)
+        function apr_zhd = getAprZhd(this)
+            % get a-priori ZHD
+            %
             % SYNTAX
-            %  [zhd, p_time] = this.getAprZhd()
-            
-            zhd = {};
-            time = {};
-            for r = 1 : size(this, 2)
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                zhd{r} = this(1, r).apr_zhd(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    zhd_tmp = this(s, r).apr_zhd(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    zhd{r} = [zhd{r}; zhd_tmp];
-                    time{r} = time{r}.append(time_tmp);
-                end
-            end
-            
-            if numel(zhd) == 1
-                zhd = zhd{1};
-                time = time{1};
-            end
+            %   zhd = this.getAprZhd()
+            apr_zhd = this.apr_zhd(this.getIdSync);
         end
         
-        function [zwd, time] = getZwd(this)
+         function zwd = getZwd(this)
+            % get zwd
+            %
             % SYNTAX
-            %  [zwd, time] = this.getZwd()
-            
-            zwd = {};
-            time = {};
-            for r = 1 : size(this, 2)
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)) || sum(this(1, r).zwd) == 0)
-                    zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
-                else
-                    zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
-                end
-                
-                for s = 2 : size(this, 1)
-                    if (isempty(this(s, r).zwd) || all(isnan(this(s, r).zwd)) || sum(this(1, r).zwd) == 0)
-                        zwd_tmp = this(s, r).apr_zwd(this(s, r).getIdSync);
-                    else
-                        zwd_tmp = this(s, r).zwd(this(s, r).getIdSync);
-                    end
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    zwd{r} = [zwd{r}; zwd_tmp];
-                    time{r} = time{r}.append(time_tmp);
-                end
-            end
-            
-            if numel(zwd) == 1
-                zwd = zwd{1};
-                time = time{1};
-            end
-            
-        end
+            %   zwd = this.getZwd()
+            zwd = this.zwd(this.getIdSync);
+         end
         
         function [gn ,ge, time] = getGradient(this)
             % SYNTAX
             % [gn ,ge, time] = getGradient(this)
             
-            gn = {};
-            ge = {};
-            time = {};
-            for r = 1 : size(this, 2)
-                gn{r} = this(1, r).tgn(this(1, r).getIdSync); %#ok<AGROW>
-                ge{r} = this(1, r).tge(this(1, r).getIdSync); %#ok<AGROW>
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    gn_tmp = this(s, r).tgn(this(s, r).getIdSync);
-                    ge_tmp = this(s, r).tge(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    gn{r} = [gn{r}; gn_tmp];
-                    ge{r} = [ge{r}; ge_tmp];
-                    time{r} = time{r}.append(time_tmp);
-                end
-            end
-            
-            if numel(gn) == 1
-                gn = gn{1};
-                ge = ge{1};
-                time = time{1};
-            end
+            gn = this.tgn(this.getIdSync);
+            ge = this.tge(this.getIdSync);
+            time = this.time.getSubSet(this.getIdSync);
             
         end
         
@@ -501,24 +403,8 @@ classdef Receiver_Commons < handle
             % SYNTAX
             %  [apr_zwd, time] = this.getAprZwd()
             
-            apr_zwd = {};
-            time = {};
-            for r = 1 : size(this, 2)
-                apr_zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
-                time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                
-                for s = 2 : size(this, 1)
-                    zwd_tmp = this(s, r).apr_zwd(this(s, r).getIdSync);
-                    time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
-                    apr_zwd{r} = [apr_zwd{r}; zwd_tmp];
-                    time{r} = time{r}.append(time_tmp);
-                end
-            end
-            
-            if numel(apr_zwd) == 1
-                apr_zwd = apr_zwd{1};
-                time = time{1};
-            end
+            apr_zwd = this.apr_zwd(this.getIdSync);
+            time = this.time.getSubSet(this.getIdSync);
         end
         
         function [az, el] = getAzEl(this)
@@ -526,19 +412,8 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   [az, el] = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
-            end
-            az = zeros(this.getNumEpochs, n_sat);
-            el = zeros(this.getNumEpochs, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                el(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
+            az = this.getAz();
+            el = this.getEl();
         end
         
         function [az] = getAz(this, go_id)
@@ -546,23 +421,10 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   az = this.getAzEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.az, 2);
-            else
-                n_sat = this.getMaxSat();
+            if nargin < 2
+                go_id = 1 : size(this.sat.az,2);
             end
-            az_tmp = zeros(this.getNumEpochs, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                az_tmp(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.az(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-            
-            if nargin == 2
-                az = az_tmp(:, go_id);
-            else
-                az = az_tmp;
-            end
+            az = this.sat.az(this.getIdSync, go_id);
         end
         
         function [el] = getEl(this, go_id)
@@ -570,23 +432,18 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   el = this.getEl();
-            if numel(this) == 1
-                n_sat = size(this.sat.el, 2);
-            else
-                n_sat = this.getMaxSat();
+            if nargin < 2
+                go_id = 1 : size(this.sat.el,2);
             end
-            el_tmp = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                el_tmp(t : t + this(r).length - 1, 1 : this(r).getMaxSat) = this(r).sat.el(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-            
-            if nargin == 2
-                el = el_tmp(:, go_id);
-            else
-                el = el_tmp;
-            end
+            el = this.sat.el(this.getIdSync, go_id);
+        end
+        
+        function res = getResidual(this)
+            % get residual
+            %
+            % SYNTAX
+            %   res = this.getResidual()
+            res = this.sat.res(this.getIdSync,:);
         end
     end
     
@@ -624,17 +481,17 @@ classdef Receiver_Commons < handle
                         yy = num2str(year);
                         yy = yy(3:4);
                         sess_str = '0'; %think how to get the right one from sss_id_list
-                        fname = sprintf('%s',[rec.state.getOutDir() filesep rec.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                        fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
                         snx_wrt = SINEX_Writer(fname);
-                        snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.marker_name)
+                        snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.marker_name)
                         snx_wrt.writeFileReference()
                         snx_wrt.writeAcknoledgments()
                         smpl_tropo = median(diff(rec.id_sync)) * rec.time.getRate;
                         val_flags = {'TROTOT','TGNTOT','TGETOT'};
                         snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1))
-                        snx_wrt.writeSTACoo( rec.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
+                        snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
                         snx_wrt.writeTropoSolutionSt()
-                        snx_wrt.writeTropoSolutionStation(  rec.marker_name, rec.time.getSubSet(rec.id_sync), [rec.ztd(rec.id_sync,:) rec.tgn(rec.id_sync,:) rec.tge(rec.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
+                        snx_wrt.writeTropoSolutionStation(  rec.parent.marker_name, rec.time.getSubSet(rec.id_sync), [rec.ztd(rec.id_sync,:) rec.tgn(rec.id_sync,:) rec.tge(rec.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
                         snx_wrt.writeTropoSolutionEnd()
                         snx_wrt.writeTroSinexEnd();
                         snx_wrt.close()
@@ -673,7 +530,7 @@ classdef Receiver_Commons < handle
                     ztd = this(t).getZtd(); %#ok<NASGU>
                     utc_time = time.getMatlabTime; %#ok<NASGU>
                     
-                    fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).marker_name sprintf('%04d%03d',year, doy) '.mat']);
+                    fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
                     save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                     
                     this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
@@ -693,7 +550,7 @@ classdef Receiver_Commons < handle
                 yy = num2str(year);
                 yy = yy(3:4);
                 sess_str = '0'; % think how to get the right one from sss_id_list
-                fname = sprintf([this.state.getOutDir() '/' this.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
+                fname = sprintf([this.state.getOutDir() '/' this.parent.marker_name '%03d' sess_str '.' yy 'GPSZTD'], doy);
                 fid = fopen(fname,'w');
             end
             this.updateCoordinates();
@@ -710,8 +567,8 @@ classdef Receiver_Commons < handle
                     '-888888.00000      0-888888.00000      0-888888.00000      0-888888.00000      0\n'],...
                     this.lat, ...
                     this.lon, ...
-                    this.marker_name, ...
-                    this.marker_type, ...
+                    this.parent.marker_name, ...
+                    this.parent.marker_type, ...
                     'FM-114 GPSZTD', ...
                     'goGPS software', ...
                     this.h_ortho, ...
@@ -743,7 +600,6 @@ classdef Receiver_Commons < handle
                 this.showPositionXYZ();
             end
             %this.showMap();
-            this.showDt();
             this.showOutliersAndCycleSlip();
             this.showOutliersAndCycleSlip_p();
             this.showResSky_p();
@@ -796,7 +652,7 @@ classdef Receiver_Commons < handle
                     plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                     ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
                     plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
@@ -854,7 +710,7 @@ classdef Receiver_Commons < handle
                     plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                     ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [mm]'); h.FontWeight = 'bold';
                     grid on;
-                    h = title(sprintf('Receiver %s', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
                     plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [mm]'); h.FontWeight = 'bold';
@@ -911,7 +767,7 @@ classdef Receiver_Commons < handle
             ylim(lat_lim);
             
             for r = 1 : numel(this)
-                name = upper(this(r).getMarkerName());
+                name = upper(this(r).parent.getMarkerName());
                 t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name ' '], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
@@ -969,36 +825,7 @@ classdef Receiver_Commons < handle
             subplot(2,3,5); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
             caxis([-1 1]);
         end
-        
-        function showDt(this)
-            % Plot Clock error
-            %
-            % SYNTAX
-            %   this.plotDt
-            
-            rec = this;
-            if ~isempty(rec)
-                f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
-                t = rec.getMatlabTime();
-                nans = zero2nan(double(~rec.getMissingEpochs()));
-                plot(t, rec.getDesync .* nans, '-k', 'LineWidth', 2);
-                hold on;
-                plot(t, rec.getDtPr .* nans, ':', 'LineWidth', 2);
-                plot(t, rec.getDtPh .* nans, ':', 'LineWidth', 2);
-                plot(t, rec.getDtIP .* nans, '-', 'LineWidth', 2);
-                plot(t, rec.getDtPrePro .* nans, '-', 'LineWidth', 2);
-                if any(rec.getDt)
-                    plot(t, rec.getDt .* nans, '-', 'LineWidth', 2);
-                    plot(t, rec.getTotalDt .* nans, '-', 'LineWidth', 2);
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
-                else
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
-                end
-                xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
-                h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-            end
-        end
-        
+               
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
@@ -1046,7 +873,7 @@ classdef Receiver_Commons < handle
                     y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
                     plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
                 end
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
             
         end
@@ -1100,7 +927,7 @@ classdef Receiver_Commons < handle
                 ax = gca(); ax.YTick = prn_ss;
                 grid on;
                 h = xlabel('epoch'); h.FontWeight = 'bold';
-                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
             end
         end
         
@@ -1126,7 +953,7 @@ classdef Receiver_Commons < handle
                     polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(res(id_ok)), 'filled');
                     caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
                     colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                 end
             end
         end
@@ -1153,7 +980,7 @@ classdef Receiver_Commons < handle
                     scatter(serialize(az(id_ok)),serialize(el(id_ok)), 45, serialize(res(id_ok)), 'filled');
                     caxis([min(abs(this.sat.res(:))) min(20, min(6*std(zero2nan(this.sat.res(:)),'omitnan'), max(abs(zero2nan(this.sat.res(:))))))]);
                     colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar(); ax = gca; ax.Color = 'none';
-                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    h = title(sprintf('Satellites residuals [m] - receiver %s - %s', this.parent.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none');  h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
                     hl = xlabel('Azimuth [deg]'); hl.FontWeight = 'bold';
                     hl = ylabel('Elevation [deg]'); hl.FontWeight = 'bold';
                 end
@@ -1166,7 +993,7 @@ classdef Receiver_Commons < handle
             else
                 f = figure; f.Name = sprintf('%03d: AniZtd', f.Number); f.NumberTitle = 'off';
                 
-                sztd = this.getSlantZTD(this.slant_filter_win);
+                sztd = this.getSlantZTD(this.parent.slant_filter_win);
                 
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1273,7 +1100,7 @@ classdef Receiver_Commons < handle
                 this.log.addWarning('ZWD and slants have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: AniZwd', f.Number); f.NumberTitle = 'off';
-                szwd = this.getSlantZWD(this.slant_filter_win);
+                szwd = this.getSlantZWD(this.parent.slant_filter_win);
                 
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1361,14 +1188,14 @@ classdef Receiver_Commons < handle
             %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
             %    this(1).log.addWarning('ZTD and/or slants have not been computed');
             %else
-            rec = this
+            rec = this;
             if isempty(rec)
                 this(1).log.addWarning('ZTD and/or slants have not been computed');
             else
                 f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, rec(1).cc.sys_c); f.NumberTitle = 'off';
                 t = rec(:).getTime.getMatlabTime;
                 
-                sztd = rec(:).getSlantZTD(rec(1).slant_filter_win);
+                sztd = rec(:).getSlantZTD(rec(1).parent.slant_filter_win);
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
                         time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -1394,7 +1221,7 @@ classdef Receiver_Commons < handle
                 setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
                 h = ylabel('ZTD [m]'); h.FontWeight = 'bold';
                 grid on;
-                h = title(sprintf('Receiver %s ZTD', rec(1).marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s ZTD', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                 drawnow;
             end
             
@@ -1451,7 +1278,7 @@ classdef Receiver_Commons < handle
                         old_legend = get(l,'String');
                     end
                     for r = 1 : size(rec_list, 2)
-                        rec = rec_list(~rec_list(:,r).isempty, r);
+                        rec = rec_list(~rec_list(:,r).isEmpty, r);
                         if ~isempty(rec)
                             switch lower(par_name)
                                 case 'ztd'
@@ -1468,7 +1295,7 @@ classdef Receiver_Commons < handle
                             else
                                 plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
                             end
-                            outm{r} = rec(1).getMarkerName();
+                            outm{r} = rec(1).parent.getMarkerName();
                         end
                     end
                     
@@ -1556,7 +1383,7 @@ classdef Receiver_Commons < handle
                     old_legend = get(l,'String');
                 end
                 for r = 1 : size(rec_list, 2)
-                    rec = rec_list(~rec_list(:,r).isempty, r);
+                    rec = rec_list(~rec_list(:,r).isEmpty, r);
                     if ~isempty(rec)
                         switch lower(par_name)
                             case 'ztd'
@@ -1574,7 +1401,7 @@ classdef Receiver_Commons < handle
                         else
                             plot(h_o, median(tropo,'omitnan'), '.', 'MarkerSize', 25, 'LineWidth', 4); hold on;
                         end
-                        outm{r} = rec(1).getMarkerName();
+                        outm{r} = rec(1).parent.getMarkerName();
                     end
                 end
                 
@@ -1629,13 +1456,13 @@ classdef Receiver_Commons < handle
                 this.log.addWarning('ZTD and slants have not been computed');
             else
                 
-                if isempty(this(r).id_sync(:))
+                if isempty(this.id_sync(:))
                     this.id_sync = (1 : this.time.length())';
                 end
                 
                 t = this.time.getEpoch(this.id_sync(:)).getMatlabTime;
                 
-                sztd = this.getSlantZTD(this.slant_filter_win);
+                sztd = this.getSlantZTD(this.parent.slant_filter_win);
                 sztd = bsxfun(@minus, sztd, this.ztd(this.id_sync(:)));
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
@@ -1657,7 +1484,7 @@ classdef Receiver_Commons < handle
                 f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
                 polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;
                 caxis(minMax(abs(sztd))); colormap(flipud(hot)); f.Color = [.95 .95 .95]; colorbar();
-                h = title(sprintf('Receiver %s ZTD - Slant difference', this.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('Receiver %s ZTD - Slant difference', this.parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
         

@@ -59,6 +59,7 @@ classdef GNSS_Station < handle
         work % handle to receiver Work Space
         out % handle to receiver outputs
         
+        cc
         state
         log
         w_bar
@@ -75,8 +76,21 @@ classdef GNSS_Station < handle
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     methods
-        function this = GNSS_Station()
+        function this = GNSS_Station(cc, static)
+            this.cc = cc;
+            this.work = Receiver_Work_Space(cc, this);
+            this.out = Receiver_Output(this);
+            this.static = static;
             this.init();
+        end
+        
+        function importRinexLegacy(this,rinex_file_name)
+            if ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
+                this.work.rinex_file_name = rinex_file_name;                
+            else
+                this.work.rinex_file_name = '';
+            end 
+            this.work.load();
         end
         
         function init(this)
@@ -101,11 +115,17 @@ classdef GNSS_Station < handle
     
     methods
         % standard utility
-        function toString(this)
+        function toString(sta_list)
             % Display on screen information about the receiver
             % SYNTAX this.toString();
-           this.work.toString();
-           this.out.toString();
+            for i = 1:length(sta_list)
+                if ~sta_list(i).work.isEmpty()
+                    sta_list(i).work.toString();
+                end
+                if ~sta_list(i).out.isEmpty()
+                    sta_list(i).out.toString();
+                end
+            end
         end
         
         function req_rec = get(rec_list, marker_name)
@@ -140,7 +160,7 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             %   marker_name = getMarkerName(this)            
-            marker_name = File_Name_Processor.getFileName(this.rinex_file_name);
+            marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
             marker_name = marker_name(1 : min(4, length(marker_name)));
         end
         
@@ -162,8 +182,18 @@ classdef GNSS_Station < handle
             %   is_empty = this.isEmpty();
             is_empty =  zeros(numel(this), 1);
             for r = 1 : numel(this)
-                is_empty(r) =  this(r).out.isEmpty() && this(r).out.isEmpty();
+                is_empty(r) =  this(r).work.isEmpty() && this(r).out.isEmpty();
             end
+        end
+        
+        function is_empty = isEmpty(this)
+            % Return if the object does not cantains any observation
+            %
+            % SYNTAX
+            %   is_empty = this.isEmpty();
+            
+            is_empty =  this.work.isEmpty() && this.out.isEmpty();
+
         end
         
         function is_empty = isEmptyOut_mr(this)
@@ -173,7 +203,7 @@ classdef GNSS_Station < handle
             %   is_empty = this.isEmpty();
             is_empty =  zeros(numel(this), 1);
             for r = 1 : numel(this)
-                is_empty(r) =  this(r).out.isEmpty() && this(r).out.isEmpty();
+                is_empty(r) =  this(r).out.isEmpty();
             end
         end
         
@@ -196,7 +226,7 @@ classdef GNSS_Station < handle
             n_sat = zeros(size(this));
             
             for r = 1 : size(this, 2)
-                rec = this(~this(:,r).isempty, r);
+                rec = this(~this(:,r).work.isEmpty, r);
                 
                 if ~isempty(rec)
                     for s = 1 : size(rec, 1)
@@ -406,6 +436,33 @@ classdef GNSS_Station < handle
                 zwd(~isnan(id_rec),r) = this(r).out.zwd(id_rec(~isnan(id_rec)));
             end
         end  
+        
+        function [tropo, time] = getTropoPar(sta_list, par_name)
+            % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getAprZhd()
+            
+            tropo = {};
+            time = {};
+            for r = 1 : size(sta_list, 2)
+                switch lower(par_name)
+                    case 'ztd'
+                        [tropo{r}, time{r}] = rec_list.getZtd();
+                    case 'zwd'
+                        [tropo{r}, time{r}] = rec_list.getZwd();
+                    case 'pwv'
+                        [tropo{r}, time{r}] = rec_list.getPwv();
+                    case 'zhd'
+                        [tropo{r}, time{r}] = rec_list.getAprZhd();
+                end
+            end
+            
+            if numel(tropo) == 1
+                tropo = tropo{1};
+                time = time{1};
+            end
+        end
     end
      % ==================================================================================================================================================
     %% SETTER
@@ -477,287 +534,7 @@ classdef GNSS_Station < handle
                 end
             end
         end
-        
-        function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, dp, sigma_dp, dp_go_id)
-            % NOT WORKING due to iono
-            % Smooth code with phase (aka estimate phase ambiguity and remove it)
-            % Pay attention that the bias between phase and code is now eliminated
-            % At the moment the sigma of the solution = sigma of phase
-            %
-            % SYNTAX
-            %   [pr, sigma_ph] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
-            %
-            % EXAMPLE
-            %   [pr.obs, pr.sigma] = Receiver.smoothCodeWithDoppler(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
-            %                                                       zero2nan(dp.obs), dp.sigma, dp.go_id);
-            %            
-
-            for s = 1 : numel(dp_go_id)
-                s_c = find(pr_go_id == dp_go_id(s));
-                pr(isnan(dp(:,s)), s_c) = nan;
-                
-                lim = getOutliers(~isnan(pr(:,s)));
-                for l = 1 : size(lim, 1)
-                    id_arc = (lim(l,1) : lim(l,2))';
-                    
-                    len_a = length(id_arc);
-                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
-                    Q = speye(2 * len_a - 1);
-                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_dp(s).^2)], 0, Q);
-                    Tn = A'/Q;
-                    data_tmp = [pr(id_arc, s_c); dp(id_arc, s)];
-                    pr(id_arc, s) = (Tn*A)\Tn * data_tmp;
-                end
-            end
-        end
-        
-        function [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
-            % NOT WORKING when iono is present
-            % Smooth code with phase (aka estimate phase ambiguity and remove it)
-            % Pay attention that the bias between phase and code is now eliminated
-            % At the moment the sigma of the solution = sigma of phase
-            %
-            % SYNTAX
-            %   [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ph, sigma_ph, ph_go_id, cs_mat)
-            %
-            % EXAMPLE
-            %   [ph.obs, ph.sigma] = Receiver.smoothCodeWithPhase(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
-            %                                                   zero2nan(ph.obs), ph.sigma, ph.go_id, ph.cycle_slip);
-            %            
-
-            for s = 1 : numel(ph_go_id)
-                s_c = find(pr_go_id == ph_go_id(s));
-                pr(isnan(ph(:,s)), s_c) = nan;
-                
-                lim = getOutliers(~isnan(ph(:,s)), cs_mat(:,s));
-                for l = 1 : size(lim, 1)
-                    id_arc = (lim(l,1) : lim(l,2))';
-                    
-                    len_a = length(id_arc);
-                    A = [speye(len_a); [-speye(len_a - 1) sparse(len_a - 1, 1)] + [sparse(len_a - 1, 1) speye(len_a - 1)]];
-                    Q = speye(2 * len_a - 1);
-                    Q = spdiags([ones(len_a,1) * sigma_pr(s_c).^2; ones(len_a-1,1) * (2 * sigma_ph(s).^2)], 0, Q);
-                    Tn = A'/Q;
-                    data_tmp = [pr(id_arc, s_c); diff(ph(id_arc, s))];
-                    ph(id_arc, s) = (Tn*A)\Tn * data_tmp;
-                end
-            end
-        end
-        
-        function obs_num = obsCode2Num(obs_code)
-            % Convert a 3 char name into a numeric value (float)
-            % SYNTAX
-            %   obs_num = obsCode2Num(obs_code);            
-            obs_num = Core_Utils.code3Char2Num(obs_code(:,1:3));
-        end
-        
-        function obs_code = obsNum2Code(obs_num)
-            % Convert a numeric value (float) of an obs_code into a 3 char marker
-            % SYNTAX
-            %   obs_code = obsNum2Code(obs_num)
-            obs_code = Core_Utils.num2Code3Char(obs_num);            
-        end
-        
-        function marker_num = markerName2Num(marker_name)
-            % Convert a 4 char name into a numeric value (float)
-            % SYNTAX
-            %   marker_num = markerName2Num(marker_name);
-            marker_num = Core_Utils.code4Char2Num(marker_name(:,1:4));
-        end
-        
-        function marker_name = markerNum2Name(marker_num)
-            % Convert a numeric value (float) of a station into a 4 char marker
-            % SYNTAX
-            %   marker_name = markerNum2Name(marker_num)
-            marker_name = Core_Utils.num2Code4Char(marker_num);
-        end
-        
-        function [y0, pc, wl, ref] = prepareY0(trg, mst, lambda, pivot)
-            % prepare y0 and pivot_correction arrays (phase only)
-            % SYNTAX [y0, pc] = prepareY0(trg, mst, lambda, pivot)
-            % WARNING: y0 contains also the pivot observations and must be reduced by the pivot corrections
-            %          use composeY0 to do it
-            y0 = [];
-            wl = [];
-            pc = [];
-            i = 0;
-            for t = 1 : trg.n_epo
-                for f = 1 : trg.n_freq
-                    sat_pr = trg.p_range(t,:,f) & mst.p_range(t,:,f);
-                    sat_ph = trg.phase(t,:,f) & mst.phase(t,:,f);
-                    sat = sat_pr & sat_ph;
-                    pc_epo = (trg.phase(t, pivot(t), f) - mst.phase(t, pivot(t), f));
-                    y0_epo = ((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
-                    ref = median((trg.phase(t, sat, f) - mst.phase(t, sat, f)));
-                    wl_epo = lambda(sat, 1);
-                    
-                    idx = i + (1 : numel(y0_epo))';
-                    y0(idx) = y0_epo;
-                    pc(idx) = pc_epo;
-                    wl(idx) = wl_epo;
-                    i = idx(end);
-                end
-            end
-        end
-        
-        function y0 = composeY0(y0, pc, wl)
-            % SYNTAX y0 = composeY0(y0, pc, wl)
-            y0 = serialize((y0 - pc) .* wl);
-            y0(y0 == 0) = []; % remove pivots
-        end
-        
-        function [p_time, id_sync] = getSyncTimeTR(rec, obs_type, p_rate)
-            % Get the common (shortest) time among all the used receivers and the target(s)
-            % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
-            % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
-            %       OUTPUT 1 sync @1Hz + 1 sync@30s
-            %
-            % SYNTAX
-            %   [p_time, id_sync] = Receiver.getSyncTimeTR(rec, obs_type, <p_rate>);
-            %
-            % SEE ALSO:
-            %   this.getSyncTimeExpanded
-            %
-            if nargin < 3
-                p_rate = 1e-6;
-            end
-            if nargin < 2
-                obs_type = ones(1, numel(rec));
-                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
-            end
-            
-            % Do the target(s) as last
-            [~, id] = sort(obs_type, 'descend');
-            
-            % prepare reference time
-            % processing time will start with the receiver with the last first epoch
-            %          and it will stop  with the receiver with the first last epoch
-            
-            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
-            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
-            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
-            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
-            
-            p_time = GPS_Time(); % empty initialization
-            
-            i = 0;
-            for r = id
-                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
-                if obs_type(r) > 0 % if it's not a target
-                    if ~rec(r).isempty
-                        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
-                    end
-                else
-                    % It's a target
-                    
-                    % recompute the parameters for the ref_time estimation
-                    % not that in principle I can have up to num_trg_rec ref_time
-                    % in case of multiple targets the reference times should be independent
-                    % so here I keep the temporary rt0 rt1 r_rate var
-                    % instead of ref_time_start, ref_time_stop, ref_rate
-                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
-                    pt0 = ceil(pt0 / pr) * pr;
-                    pt1 = floor(pt1 / pr) * pr;
-                    
-                    % return one p_time for each target
-                    i = i + 1;
-                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
-                    p_time(i).toUnixTime();
-                    
-                    id_sync{i} = nan(p_time(i).length, numel(id));
-                    for rs = id % for each rec to sync
-                        if ~rec(rs).isempty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
-                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
-                            id_sync{i}(id_rec, rs) = id_ref;
-                        end
-                    end
-                end
-            end
-        end
-                
-        function sync(rec, rate)
-            % keep epochs at a certain rate for a certain constellation
-            %
-            % SYNTAX
-            %   this.keep(rate, sys_list)
-            if nargin > 1 && ~isempty(rate)
-                [~, id_sync] = Receiver.getSyncTimeExpanded(rec, rate);
-            else
-                [~, id_sync] = Receiver.getSyncTimeExpanded(rec);
-            end
-            % Keep the epochs in common
-            % starting from the first when all the receivers are available
-            % ending whit the last when all the receivers are available
-            id_sync((find(sum(isnan(id_sync), 2) == 0, 1, 'first') : find(sum(isnan(id_sync), 2) == 0, 1, 'last')), :);
-            
-            % keep only synced epochs
-            for r = 1 : numel(rec)
-                rec(r).keepEpochs(id_sync(~isnan(id_sync(:, r)), r));
-            end
-            
-        end
-        
-        function [res_ph1, mean_res, var_res] = legacyGetResidualsPh1(res_bin_file_name)
-            %res_code1_fix  = [];                      % double differences code residuals (fixed solution)
-            %res_code2_fix  = [];                      % double differences code residuals (fixed solution)
-            %res_phase1_fix = [];                      % phase differences phase residuals (fixed solution)
-            %res_phase2_fix = [];                      % phase differences phase residuals (fixed solution)
-            %res_code1_float  = [];                    % double differences code residuals (float solution)
-            %res_code2_float  = [];                    % double differences code residuals (float solution)
-            res_phase1_float = [];                     % phase differences phase residuals (float solution)
-            %res_phase2_float = [];                    % phase differences phase residuals (float solution)
-            %outliers_code1 = [];                      % code double difference outlier? (fixed solution)
-            %outliers_code2 = [];                      % code double difference outlier? (fixed solution)
-            %outliers_phase1 = [];                     % phase double difference outlier? (fixed solution)
-            %outliers_phase2 = [];                     % phase double difference outlier? (fixed solution)
-            % observations reading
-            log = Logger.getInstance();
-            log.addMessage(['Reading: ' File_Name_Processor.getFileName(res_bin_file_name)]);
-            d = dir(res_bin_file_name);
-            fid_sat = fopen(res_bin_file_name,'r+');       % file opening
-            num_sat = fread(fid_sat, 1, 'int8');                            % read number of satellites
-            num_bytes = d.bytes-1;                                          % file size (number of bytes)
-            num_words = num_bytes / 8;                                      % file size (number of words)
-            num_packs = num_words / (2*num_sat*6);                          % file size (number of packets)
-            buf_sat = fread(fid_sat,num_words,'double');                    % file reading
-            fclose(fid_sat);                                                % file closing
-            %res_code1_fix    = [res_code1_fix    zeros(num_sat,num_packs)]; % observations concatenation
-            %res_code2_fix    = [res_code2_fix    zeros(num_sat,num_packs)];
-            %res_phase1_fix   = [res_phase1_fix   zeros(num_sat,num_packs)];
-            %res_phase2_fix   = [res_phase2_fix   zeros(num_sat,num_packs)];
-            %res_code1_float  = [res_code1_float  zeros(num_sat,num_packs)];
-            %res_code2_float  = [res_code2_float  zeros(num_sat,num_packs)];
-            res_phase1_float = [res_phase1_float zeros(num_sat,num_packs)];
-            %res_phase2_float = [res_phase2_float zeros(num_sat,num_packs)];
-            %outliers_code1   = [outliers_code1   zeros(num_sat,num_packs)];
-            %outliers_code2   = [outliers_code2   zeros(num_sat,num_packs)];
-            %outliers_phase1  = [outliers_phase1  zeros(num_sat,num_packs)];
-            %outliers_phase2  = [outliers_phase2  zeros(num_sat,num_packs)];
-            i = 0;                                                           % epoch counter
-            for j = 0 : (2*num_sat*6) : num_words-1
-                i = i+1;                                                     % epoch counter increase
-                %res_code1_fix(:,i)    = buf_sat(j + [1:num_sat]);            % observations logging
-                %res_code2_fix(:,i)    = buf_sat(j + [1*num_sat+1:2*num_sat]);
-                %res_phase1_fix(:,i)   = buf_sat(j + [2*num_sat+1:3*num_sat]);
-                %res_phase2_fix(:,i)   = buf_sat(j + [3*num_sat+1:4*num_sat]);
-                %res_code1_float(:,i)  = buf_sat(j + [4*num_sat+1:5*num_sat]);
-                %res_code2_float(:,i)  = buf_sat(j + [5*num_sat+1:6*num_sat]);
-                res_phase1_float(:,i) = buf_sat(j + (6*num_sat+1:7*num_sat));
-                %res_phase2_float(:,i) = buf_sat(j + [7*num_sat+1:8*num_sat]);
-                %outliers_code1(:,i)   = buf_sat(j + [8*num_sat+1:9*num_sat]);
-                %outliers_code2(:,i)   = buf_sat(j + [9*num_sat+1:10*num_sat]);
-                %outliers_phase1(:,i)  = buf_sat(j + [10*num_sat+1:11*num_sat]);
-                %outliers_phase2(:,i)  = buf_sat(j + [11*num_sat+1:12*num_sat]);
-            end
-            res_ph1 = res_phase1_float';
-            mean_res = mean(mean(zero2nan(res_ph1'), 'omitnan'), 'omitnan');
-            var_res = max(var(zero2nan(res_ph1'), 'omitnan'));
-        end
+      
     end
     
     %% METHODS PLOTTING FUNCTIONS
@@ -804,7 +581,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showMap(this, new_fig)
+        function showMap(sta_list, new_fig)
             if nargin < 2
                 new_fig = true;
             end
@@ -815,14 +592,14 @@ classdef GNSS_Station < handle
                 hold on;
             end
             maximizeFig(f);
-            [lat, lon] = cart2geod(this.getMedianPosXYZ_mr());
+            [lat, lon] = cart2geod(sta_list.getMedianPosXYZ_mr());
             
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
             hold on;
             plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 10);
             plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 10, 'LineWidth', 2);
             
-            if numel(this) == 1
+            if numel(sta_list) == 1
                 lon_lim = minMax(lon/pi*180);
                 lat_lim = minMax(lat/pi*180);
                 lon_lim(1) = lon_lim(1) - 0.05;
@@ -841,15 +618,15 @@ classdef GNSS_Station < handle
             xlim(lon_lim);
             ylim(lat_lim);
             
-            for r = 1 : numel(this)
-                name = upper(this(r).getMarkerName());
+            for r = 1 : numel(sta_list)
+                name = upper(sta_list(r).getMarkerName());
                 t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name ' '], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
                     'HorizontalAlignment','left');
                 t.Units = 'pixels';
-                t.Position(1) = t.Position(1) + 10 + 10 * double(numel(this) == 1);
+                t.Position(1) = t.Position(1) + 10 + 10 * double(numel(sta_list) == 1);
                 t.Units = 'data';
             end
             
@@ -892,6 +669,7 @@ classdef GNSS_Station < handle
             % one function to rule them all
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2)
+                rec_o
                 switch lower(par_name)
                     case 'ztd'
                         rec_ok(r) = any(~isnan(this(:,r).out.getZtd));

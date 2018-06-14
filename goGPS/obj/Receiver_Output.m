@@ -37,9 +37,6 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %--------------------------------------------------------------------------
 classdef Receiver_Output < Receiver_Commons
-    properties (SetAccess = public, GetAccess = public)
-        parent         % habdle to parent object
-    end
      % ==================================================================================================================================================
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
@@ -48,6 +45,7 @@ classdef Receiver_Output < Receiver_Commons
         sat = struct( ...
             'outlier_idx_ph',   [], ...    % logical index of outliers
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+            'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation  
             'res',              [], ...    % residual per staellite
@@ -94,7 +92,7 @@ classdef Receiver_Output < Receiver_Commons
             'el',               [], ...    % double  [n_epoch x n_sat] elevation  
             'res',              [], ...    % residual per staellite
             'slant_td',         []  ...    % slant total delay (except ionosphere delay)
-            )
+            );
             
         end
         
@@ -170,6 +168,19 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
+        function missing_epochs = getMissingEpochs(this)
+            % return a logical array of missing (code) epochs
+            %
+            % SYNTAX
+            %   missing_epochs = this.getMissingEpochs()
+            %
+            missing_epochs = true(this.time.length,1);
+        end
+        
+        function id_sync = getIdSync(this)
+            id_sync = true(this.time.length, 1);
+        end
+        
     end
     
      % ==================================================================================================================================================
@@ -177,6 +188,40 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
+        function importResult(this, rec_work)
+            work_time = rec_work.getTime();
+            if isempty(this.time)
+                idx1 = 0;
+                idx2 = 1;
+                this.time = work_time;
+            else
+                [idx1, idx2] = this.time.injectBatch(work_time);
+            end
+            %%% inject data
+            this.dt      = Core_Utils.insertData(this.dt, rec_work.getDt(), idx1, idx2);
+            this.dt_ip   = Core_Utils.insertData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+            this.apr_zhd = Core_Utils.insertData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
+            this.apr_zwd = Core_Utils.insertData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+            this.ztd     = Core_Utils.insertData(this.ztd, rec_work.getZtd(), idx1, idx2);
+            this.zwd     = Core_Utils.insertData(this.zwd, rec_work.getZwd(), idx1, idx2);
+            this.pwv     = Core_Utils.insertData(this.pwv, rec_work.getPwv(), idx1, idx2);
+            [gn, ge]     = this.getGradient();
+            this.tgn     = Core_Utils.insertData(this.tgn, gn, idx1, idx2);
+            this.tge     = Core_Utils.insertData(this.tge, ge, idx1, idx2);
+            [p, t, h]  = rec_work.getPTH(true);
+            this.p     = Core_Utils.insertData(this.p, p, idx1, idx2);
+            this.t     = Core_Utils.insertData(this.t, t, idx1, idx2);
+            this.h     = Core_Utils.insertData(this.h, h, idx1, idx2);
+            [az, el]   = rec_work.getAzEl();
+            this.sat.az     = Core_Utils.insertData(this.sat.az, az, idx1, idx2);
+            this.sat.el     = Core_Utils.insertData(this.sat.el, el, idx1, idx2);
+            this.sat.res    = Core_Utils.insertData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+            this.sat.slant_td          = Core_Utils.insertData(this.sat.slant_td, rec_work.getSlantTD(), idx1, idx2);
+            this.sat.outlier_idx_ph    = Core_Utils.insertData(this.sat.outlier_idx_ph, rec_work.getResOutPh(), idx1, idx2);
+            this.sat.cycle_slip_idx_ph = Core_Utils.insertData(this.sat.cycle_slip_idx_ph, rec_work.getCycleSlipOutPh(), idx1, idx2);
+            this.sat.quality           = Core_Utils.insertData(this.sat.quality, rec_work.getObsQuality(), idx1, idx2);
+        end
+        
         function legacyImportResults(this, file_prefix, run_start, run_stop)
             % Import after reset a position and tropo file (if present)
             %
@@ -411,6 +456,35 @@ classdef Receiver_Output < Receiver_Commons
         function showAll(this)
             this.toString
             this.showAll@Receiver_Commons();
+            this.showDt();
+        end
+        
+        function showDt(this)
+            % Plot Clock error
+            %
+            % SYNTAX
+            %   this.plotDt
+            
+            rec = this;
+            if ~isempty(rec)
+                f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
+                t = rec.time.getMatlabTime();
+                nans = zero2nan(double(~rec.getMissingEpochs()));
+                plot(t, rec.getDesync .* nans, '-k', 'LineWidth', 2);
+                hold on;
+                plot(t, rec.getDtPr .* nans, ':', 'LineWidth', 2);
+                plot(t, rec.getDtPh .* nans, ':', 'LineWidth', 2);
+                plot(t, (rec.getDtIP - rec.getDtPr) .* nans, '-', 'LineWidth', 2);
+                if any(rec.getDt)
+                    plot(t, rec.getDt .* nans, '-', 'LineWidth', 2);
+                    plot(t, rec.getTotalDt .* nans, '-', 'LineWidth', 2);
+                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
+                else
+                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
+                end
+                xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
+                h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+            end
         end
     end
 end
