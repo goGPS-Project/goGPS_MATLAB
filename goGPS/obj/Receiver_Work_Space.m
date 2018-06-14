@@ -2699,6 +2699,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function [quality] = getQuality(this, type)
+            % get a quality index of the satellite data
+            % type could be:
+            %   'snr'
+            %   '...'
+            %
+            % SYNTAX
+            %  [quality] = this.getQuality()
+            
+            if nargin < 2
+                type = 'snr';
+            end
+            switch lower(type)
+                case 'snr'
+                    quality = [];
+                    for c = this.cc.SYS_C(this.cc.getActive)
+                        quality = [quality; this.getSNR(c,'1')]; %#ok<AGROW>
+                    end
+            end
+        end
+        
         function [obs, idx] = getObs(this, flag, system, prn)
             % get observation and index corresponfing to the flag
             % SYNTAX this.getObsIdx(flag, <system>)
