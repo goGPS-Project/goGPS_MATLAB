@@ -221,6 +221,22 @@ classdef Receiver_Output < Receiver_Commons
             this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
             this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
             this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
+            
+            %%% single results
+            this.static_time.append(rec_work.getCentralTime());
+            this.xyz      = [this.xyz      ; rec_work.xyz     ];
+            this.enu      = [this.enu      ; rec_work.enu     ];
+            this.utm      = [this.utm      ; rec_work.utm     ];
+            this.utm_zone = [this.utm_zone ; rec_work.utm_zone];
+            
+            this.lat      = [this.lat      ; rec_work.lat     ];
+            this.lon      = [this.lon      ; rec_work.lon     ];
+            this.h_ellips = [this.h_ellips ; rec_work.h_ellips];
+            this.h_ortho  = [this.h_ortho  ; rec_work.h_ortho ];
+            
+            this.s0_ip    = [this.s0_ip    ; rec_work.s0_ip   ];
+            this.s0       = [this.s0       ; rec_work.s0      ];
+            
         end
         
         function legacyImportResults(this, file_prefix, run_start, run_stop)

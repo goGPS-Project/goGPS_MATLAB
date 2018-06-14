@@ -1350,6 +1350,21 @@ classdef GPS_Time < Exportable & handle
                     gps_time_subset.unix_time = gps_time_subset.unix_time(index);
             end
         end
+        
+         function prec = getPrecision(this)
+            % get precison of current time
+            %
+            % SYNTAX
+            %   prec = getPrecision(this)
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    prec = eps(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    prec = eps(this.unix_time_f);
+                case 2 % I'm in REF TIME
+                    prec = eps(this.time_diff);
+            end
+        end
     end
     
     % =========================================================================
@@ -1395,6 +1410,27 @@ classdef GPS_Time < Exportable & handle
             % SYNTAX
             %   this.delLast
             this.delId(this.length());
+        end
+        
+        function empty(this)
+            this = GPS_Time();
+        end
+        
+        function [idx1, idx2] = injectBatch(this,time2)
+            % inject a number of time , dleleted overlapping
+            time1 = this.getCopy;
+            idx1 = find(time1 > time2.first,1, 'first'); % first to erase
+            if isempty(idx1)
+                idx1 = time1.lenght + 1;
+            end
+            idx2 = find(time1 < time2.last,1, 'last'); % last to erase 
+            if isempty(idx2)
+                idx2 = 0;
+            end
+            this = time1.getEpoch(1 : (idx1 - 1));
+            this.append(time2);
+            this.append(time1.getEpoch([idx2 + 1 : time1.length]));
+            
         end
     end
     
@@ -1510,22 +1546,7 @@ classdef GPS_Time < Exportable & handle
             end
             sec = double(sec_i) + sec_f;
             
-        end
-        
-        function prec = getPrecision(this)
-            % get precison of current time
-            %
-            % SYNTAX
-            %   prec = getPrecision(this)
-            switch this.time_type
-                case 0 % I'm in MAT TIME
-                    prec = eps(this.mat_time);
-                case 1 % I'm in UNIX TIME
-                    prec = eps(this.unix_time_f);
-                case 2 % I'm in REF TIME
-                    prec = eps(this.time_diff);
-            end
-        end
+        end 
     end
     % =========================================================================
     %    STATIC CONSTRUCTOR

@@ -558,10 +558,10 @@ classdef GNSS_Station < handle
                 one_plot = true;
             end
             
-            for r = 1 : size(this,2)
-                rec = this(~this(:,r).isempty, r);
-                if ~isempty(rec)
-                    this.out.showPositionENU(one_plot);
+            for r = 1 : length(this)
+                rec = this(r).out;
+                if ~rec.isEmpty()
+                    rec.showPositionENU(one_plot);
                 end
             end
         end

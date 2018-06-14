@@ -504,10 +504,17 @@ classdef Core_Utils < handle
                 end
             end
         end
-    end
     
-    
-    methods (Static)
+        function data = injectData(data1, data2, idx1, idx2)
+            % isert data2 into data1 at the position definied by idx1 and idx2
+            % idx1 - 1 is the last element of data1 to be putted before data2 (0  if none)
+            % idx2 + 1 is the first element of data1 to be put after data2 (data1 length if none)
+            % 
+            % SYNTAX
+            %   data = Core_Utils.injectData(data1, data2, idx1, idx2)
+             data = [data1(1 : idx1 - 1,:); data2; data1(idx2 + 1 : end,:)];
+        end
+        
         function y_out = interp1LS(x_in, y_in, degree, x_out)
             % Least squares interpolant of a 1D dataset
             %
@@ -556,7 +563,7 @@ classdef Core_Utils < handle
             end
         end
         
-        function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)
+        function val = linInterpLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % Interpolate values froma data on a gepgraphical grid with multiple epoch
             % data structure: 
             %        first dimension : dlat (+) south pole -> north pole
@@ -628,9 +635,8 @@ classdef Core_Utils < handle
             end
             
         end
-        
-        
-        function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon,t)
+
+        function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdx(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
             % get  interpolating index
             [nlat , nlon, nt] = size(data);
             
