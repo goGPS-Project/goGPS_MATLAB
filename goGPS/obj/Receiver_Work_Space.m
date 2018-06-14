@@ -1846,6 +1846,22 @@ classdef Receiver_Work_Space < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
+        % time
+        function time = getPositionTime(this)
+            % return the time of the computed positions
+            %
+            % OUTPUT
+            %   time     GPS_Time
+            %
+            % SYNTAX
+            %   xyz = this.getPositionTime()
+            if this.isStatic()
+                this.getCentralTime;
+            else
+                this.getTime.getCopy();
+            end
+        end
+
         % standard utility
         function toString(this)
             % Display on screen information about the receiver

@@ -228,7 +228,7 @@ classdef Receiver_Commons < handle
             id = round(this(1).time.length()/2);
             time = this(1).time.getEpoch(id);
         end
-        
+                
         function [rate] = getRate(this)
             % SYNTAX
             %   rate = this.getRate();
@@ -652,13 +652,7 @@ classdef Receiver_Commons < handle
                     enu = [];
                     [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                     
-                    for s = 1 : size(rec, 1)
-                        if rec(s).isStatic
-                            t = [t; rec(s).getCentralTime().getMatlabTime()];
-                        else
-                            t = [t; rec(s).getMatlabTime()];
-                        end
-                    end
+                    t = rec(s).getPositionTime().getMatlabTime();
                     
                     [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                     [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));

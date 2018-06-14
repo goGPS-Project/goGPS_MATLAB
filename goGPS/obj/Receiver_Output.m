@@ -37,7 +37,15 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %--------------------------------------------------------------------------
 classdef Receiver_Output < Receiver_Commons
-     % ==================================================================================================================================================
+    % ==================================================================================================================================================
+    %% PROPERTIES POSITION
+    % ==================================================================================================================================================
+    
+    properties (SetAccess = public, GetAccess = public)
+        time_pos % time of the positions
+    end
+    
+    % ==================================================================================================================================================
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
     
@@ -145,6 +153,17 @@ classdef Receiver_Output < Receiver_Commons
             time = this(1).time.getCopy();
         end
         
+        function time = getPositionTime(this)
+            % return the time of the computed positions
+            %
+            % OUTPUT
+            %   time     GPS_Time
+            %
+            % SYNTAX
+            %   xyz = this.getPositionTime()            
+            time = this(1).time_pos.getCopy();
+        end
+        
         function [pwv, time] = getPwv(this)
             % SYNTAX
             %  [pwv, time] = this.getPwv()
@@ -223,7 +242,7 @@ classdef Receiver_Output < Receiver_Commons
             this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
             
             %%% single results
-            this.static_time.append(rec_work.getCentralTime());
+            this.time_pos.append(rec_work.getCentralTime());
             this.xyz      = [this.xyz      ; rec_work.xyz     ];
             this.enu      = [this.enu      ; rec_work.enu     ];
             this.utm      = [this.utm      ; rec_work.utm     ];
