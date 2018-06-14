@@ -4057,7 +4057,7 @@ classdef Receiver_Work_Space < Receiver_Commons
            [gn ,ge] = this.getGradient();
            [mfh, mfw] = this.getSlantMF();
            n_sat = this.parent.getMaxSat;
-           if ~any(ge(:) ~= 0)
+           if any(ge(:))
                for g = go_id                   
                    this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd;
                end
