@@ -1416,21 +1416,19 @@ classdef GPS_Time < Exportable & handle
             this = GPS_Time();
         end
         
-        function [idx1, idx2] = injectBatch(this,time2)
-            % inject a number of time , dleleted overlapping
-            time1 = this.getCopy;
-            idx1 = find(time1 > time2.first,1, 'first'); % first to erase
+        function [time, idx1, idx2] = injectBatch(this, time_in)
+            % inject a number of time , deleted overlapping
+            idx1 = find(this >= time_in.first, 1, 'first'); % first to erase
             if isempty(idx1)
-                idx1 = time1.lenght + 1;
+                idx1 = this.length + 1;
             end
-            idx2 = find(time1 < time2.last,1, 'last'); % last to erase 
+            idx2 = find(this <= time_in.last,1, 'last'); % last to erase 
             if isempty(idx2)
                 idx2 = 0;
             end
-            this = time1.getEpoch(1 : (idx1 - 1));
-            this.append(time2);
-            this.append(time1.getEpoch([idx2 + 1 : time1.length]));
-            
+            time = this.getEpoch(1 : (idx1 - 1));
+            time.append(time_in);
+            time.append(this.getEpoch((idx2 + 1) : this.length));
         end
     end
     
@@ -1517,7 +1515,7 @@ classdef GPS_Time < Exportable & handle
             %   res = eq(gt_1, gt_2)
             [~, sec, sec_f] = gt_1.minus(gt_2);
             prec = max(gt_1.getPrecision, gt_2.getPrecision);
-            res = abs(sec+sec_f) < prec;
+            res = abs(double(sec) + sec_f) < prec;
         end
         
         function [sec, sec_i, sec_f] = minus(gt_1, gt_2)
