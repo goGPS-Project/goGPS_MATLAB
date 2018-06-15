@@ -867,11 +867,13 @@ classdef Receiver < Exportable
             id_snr = find(id_snr);
             if ~isempty(id_snr)
                 this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr))));
-                
+                n_rem = 0;
                 for s = 1 : numel(id_snr)
-                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
+                    snr_test = snr1(:, s) < snr_thr;
+                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr_test) = 0;
+                    n_rem = n_rem + sum(snr_test(:));
                 end
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', n_rem)));
             end
         end
         
