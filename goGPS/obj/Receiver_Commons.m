@@ -387,6 +387,44 @@ classdef Receiver_Commons < handle
             ztd = this.ztd(this.getIdSync);
         end
         
+        function sztd = getSlantZTD(this, smooth_win_size, id_extract)
+            % Get the "zenithalized" total delay
+            % SYNTAX
+            %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)
+            if nargin < 3
+                id_extract = 1 : this.getTime.length;
+            end
+            
+            if ~isempty(this(1).ztd)
+                [mfh, mfw] = this.getSlantMF();
+                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw, this.getAprZhd);
+                sztd(sztd <= 0) = nan;
+                sztd = sztd(id_extract, :);
+                
+                if nargin >= 2 && smooth_win_size > 0
+                    t = this.getTime.getEpoch(id_extract).getRefTime;
+                    for s = 1 : size(sztd,2)
+                        id_ok = ~isnan(sztd(:, s));
+                        if sum(id_ok) > 3
+                            lim = getOutliers(id_ok);
+                            lim = limMerge(lim, 2 * smooth_win_size / this.getRate);
+                            
+                            %lim = [lim(1) lim(end)];
+                            for l = 1 : size(lim, 1)
+                                if (lim(l, 2) - lim(l, 1) + 1) > 3
+                                    id_ok = lim(l, 1) : lim(l, 2);
+                                    ztd = this.getZtd();
+                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                this(1).log.addWarning('ZTD and slants have not been computed');
+            end
+        end
+        
         function apr_zhd = getAprZhd(this)
             % get a-priori ZHD
             %
@@ -1473,18 +1511,16 @@ classdef Receiver_Commons < handle
         end
         
         function showZtdSlantRes_p(this, time_start, time_stop)
-            if isempty(this.ztd) || ~any(this.sat.slant_td(:))
+            if isempty(this.ztd)
                 this.log.addWarning('ZTD and slants have not been computed');
             else
                 
-                if isempty(this.id_sync(:))
-                    this.id_sync = (1 : this.time.length())';
-                end
+                id_sync = this.getIdSync();
                 
-                t = this.time.getEpoch(this.id_sync(:)).getMatlabTime;
+                t = this.time.getEpoch(id_sync).getMatlabTime;
                 
                 sztd = this.getSlantZTD(this.parent.slant_filter_win);
-                sztd = bsxfun(@minus, sztd, this.ztd(this.id_sync(:)));
+                sztd = bsxfun(@minus, sztd, this.ztd(id_sync));
                 if nargin >= 3
                     if isa(time_start, 'GPS_Time')
                         time_start = find(t >= time_start.first.getMatlabTime(), 1, 'first');
@@ -1499,8 +1535,8 @@ classdef Receiver_Commons < handle
                 
                 %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                 
-                az = (mod(this.sat.az(this.id_sync(:),:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
-                el = (90 - this.sat.el(this.id_sync(:),:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
+                az = (mod(this.sat.az(id_sync,:) + 180, 360) -180) ./ 180 * pi; az(isnan(az) | isnan(sztd)) = 1e10;
+                el = (90 - this.sat.el(id_sync,:)) ./ 180 * pi; el(isnan(el) | isnan(sztd)) = 1e10;
                 
                 f = figure; f.Name = sprintf('%03d: Slant res', f.Number); f.NumberTitle = 'off';
                 polarScatter(az(:), el(:), 25, abs(sztd(:)), 'filled'); hold on;

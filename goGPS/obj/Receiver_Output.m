@@ -56,7 +56,8 @@ classdef Receiver_Output < Receiver_Commons
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
             'el',               [], ...    % double  [n_epoch x n_sat] elevation
             'res',              [], ...    % residual per staellite
-            'slant_td',         []  ...    % slant total delay (except ionosphere delay)
+            'mfw',              [], ...    % mapping funvtion wet
+            'mfh',              []  ...    % mapping funvtion hysdrostatic
             )
     end
     % ==================================================================================================================================================
@@ -99,7 +100,8 @@ classdef Receiver_Output < Receiver_Commons
                 'az',               [], ...    % double  [n_epoch x n_sat] azimuth
                 'el',               [], ...    % double  [n_epoch x n_sat] elevation
                 'res',              [], ...    % residual per staellite
-                'slant_td',         []  ...    % slant total delay (except ionosphere delay)
+                'mfw',              [], ...    % mapping funvtion wet
+                'mfh',              []  ...    % mapping funvtion hysdrostatic
                 );
         end
         
@@ -199,6 +201,37 @@ classdef Receiver_Output < Receiver_Commons
             id_sync = true(this.time.length, 1);
         end
         
+        function [mfh, mfw] = getSlantMF(this)
+            mfh = this.sat.mfh;
+            mfw = this.sat.mfw;
+        end
+        
+         function slant_td = getSlantTD(this)
+            % Get the slant total delay
+            % SYNTAX
+            %   slant_td = this.getSlantTD();
+
+                
+                
+            [mfh, mfw] = this.getSlantMF();
+            n_sat = size(mfh,2);
+            zwd = this.getZwd();
+            apr_zhd = this.getAprZhd();
+            [az, el] = this.getAzEl();
+            [tgn, tge] = this.getGradient();
+            res = this.getResidual();
+            
+            cotel = zero2nan(cotd(el));
+            cosaz = zero2nan(cosd(az));
+            sinaz = zero2nan(sind(az));
+            slant_td = nan2zero(zero2nan(res) ...
+                     + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                     + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
+                     + zero2nan(repmat(nan2zero(tgn),1,n_sat) .* mfw .* cotel .* cosaz) ...
+                     + zero2nan(repmat(nan2zero(tge),1,n_sat) .* mfw .* cotel .* sinaz));
+            
+        end
+        
     end
     
     % ==================================================================================================================================================
@@ -234,7 +267,9 @@ classdef Receiver_Output < Receiver_Commons
             this.sat.az     = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
             this.sat.el     = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
             this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
-            this.sat.slant_td          = Core_Utils.injectData(this.sat.slant_td, rec_work.getSlantTD(), idx1, idx2);
+            [mfh, mfw]   = rec_work.getSlantMF();
+            this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
+            this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
             this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
             this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
             this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
@@ -263,225 +298,7 @@ classdef Receiver_Output < Receiver_Commons
             this.s0_ip   = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
             this.s0      = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
         end
-        
-        function legacyImportResults(this, file_prefix, run_start, run_stop)
-            % Import after reset a position and tropo file (if present)
-            %
-            % SYNTAX
-            %   this.legacyImportResults(file_prefix, <run_start>, <run_stop>)
-            %
-            % INPUT
-            %   file_name     it could include the key ${RUN} that will be substituted with a 3 digits number containing the run, from run_start to run_stop
-            %   run_start     number of the first run to load
-            %   run_stop      number of the last run to load
-            %
-            if (nargin == 1) || isempty(file_prefix)
-                [file_prefix, file_path] = uigetfile('*.txt', 'Select a _position.txt or _tropo.txt file');
-                file_prefix = [file_path file_prefix];
-            end
-            this.reset();
-            if (length(file_prefix) > 13 && strcmp(file_prefix(end - 12 : end), '_position.txt'))
-                file_prefix = file_prefix(1 : end - 13);
-            end
-            if (length(file_prefix) > 10 && strcmp(file_prefix(end - 9 : end), '_tropo.txt'))
-                file_prefix = file_prefix(1 : end - 10);
-            end
-            
-            if nargin < 4
-                run_start = 0;
-                run_stop = 0;
-            end
-            
-            GPS_RUN = '${RUN}';
-            r = 0;
-            for run = run_start : run_stop
-                r = r + 1;
-                file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_position.txt'];
-                marker_name = File_Name_Processor.getFileName(file_name);
-                this.marker_name = marker_name(1:4);
-                this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name))));
-                if exist(file_name, 'file')
-                    this.legacyAppendPosition(file_name);
-                    
-                    file_name = [strrep(file_prefix, GPS_RUN, sprintf('%03d', run)) '_tropo.txt'];
-                    if exist(file_name, 'file')
-                        this.log.addMessage(this.log.indent(sprintf('Importing %s', File_Name_Processor.getFileName(file_name))));
-                        this.legacyAppendTropo(file_name)
-                    else
-                        this.log.addMessage(sprintf('Error loading the tropo file, it does not exists'));
-                    end
-                else
-                    this.log.addMessage(sprintf('Error loading the position file, it does not exists'));
-                end
-            end
-            
-            if isempty(this.id_sync)
-                this.id_sync = 1 : this.time.length();
-            end
-        end
-        
-        function legacyAppendPosition (this, file)
-            % import and append from a position file
-            
-            % Open position file as a string stream
-            fid = fopen(file);
-            txt = fread(fid,'*char')';
-            txt(txt == 13) = [];
-            fclose(fid);
-            
-            % get new line separators
-            nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            
-            % corrupted lines
-            ko_lines = find(lim(:, 3) ~= median(lim(lim(:,3)>400,3)));
-            for l = numel(ko_lines) : -1 : 1
-                txt(lim(ko_lines(l), 1) : lim(ko_lines(l), 2) + 1) = [];
-            end
-            
-            % importing header informations
-            eoh = 1; % end of header (the header of position files contains only 1 line)
-            % File example:
-            %    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV
-            %2017/04/03    00:00:00.000             1943        86400.000      45.80216141       9.09562643         291.5094     4398305.8406      704150.1081     4550153.9697     5072071.0952      507430.9212         244.4506             32 T               10            0.870            0.472           0.0000           0.0000           0.0000                0           0.0000          2.30187          0.04934          0.00000
-            data = sscanf(txt(lim(2,1):end)','%4d/%2d/%2d    %2d:%2d:%6f             %4d %16f %16f %16f %16f %16f %16f %16f %16f %16f %16f %14d %c %16d %16f %16f %16f %16f %16f %16d %16f %16f %16f %16f\n');
-            data = reshape(data, 30, numel(data)/30)';
-            % import it as a GPS_Time obj
-            if this.time.length() == 0
-                this.time = GPS_Time(data(:,1:6));
-            else
-                this.time.append6ColDate(data(:,1:6));
-            end
-            
-            lat = data(:,9);
-            lon = data(:,10);
-            h_ellips = data(:,11);
-            h_ortho = data(:,17);
-            
-            xyz = data(:,12:14);
-            enu = data(:,[16 15 17]);
-            n_sat = data(:,20);
-            hdop =  data(:,21);
-            khdop = data(:,22);
-            a_fix = data(:,26);
-            s_rate = data(:,27);
-            
-            % Append in obj
-            this.xyz = [this.xyz; xyz];
-            this.enu = [this.enu; enu];
-            
-            this.lat = [this.lat; lat];
-            this.lon = [this.lon; lon];
-            this.h_ellips = [this.h_ellips; h_ellips];
-            this.h_ortho = [this.h_ortho; h_ortho];
-            
-            this.n_sat = [this.n_sat; n_sat];
-            this.hdop = [this.hdop; hdop];
-            this.khdop = [this.khdop; khdop];
-            this.a_fix = [this.a_fix; a_fix];
-            this.s_rate = [this.s_rate; s_rate];
-            
-            clear data;
-        end
-        
-        function legacyAppendTropo (this, file)
-            % import and append from a tropo file
-            
-            % Open tropo file as a string stream
-            fid = fopen(file);
-            txt = fread(fid,'*char')';
-            fclose(fid);
-            
-            % get new line separators
-            nl = regexp(txt, '\n')';
-            if nl(end) <  numel(txt)
-                nl = [nl; numel(txt)];
-            end
-            lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-            lim = [lim lim(:,2) - lim(:,1)];
-            
-            % importing header informations
-            eoh = 1; % end of header (the header of tropo files contains only 1 line)
-            
-            % list and count satellites in view and not in view
-            s = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d(?=-az)', 'match');
-            num_sat = length(s);
-            this.sat.id = reshape(cell2mat(s), 3, num_sat)';
-            
-            % extract all the epoch lines
-            string_time = txt(repmat(lim(2:end,1),1,26) + repmat(0:25, size(lim,1)-1, 1))';
-            % convert the times into a 6 col time
-            date = cell2mat(textscan(string_time,'%4f/%2f/%2f    %2f:%2f:%6.3f'));
-            
-            % import it as a GPS_Time obj
-            % it should be imported from the _position file
-            time = GPS_Time(date, [], 1);
-            [~, id_int, id_ext] = intersect(round(this.time.getMatlabTime() * 86400 * 1e3), round(time.getMatlabTime() * 86400 * 1e3));
-            n_epo = length(id_int);
-            
-            % extract all the ZHD lines
-            string_zhd = txt(repmat(lim(2:end,1),1,17) + repmat(62:78, size(lim,1)-1, 1))';
-            tmp = sscanf(string_zhd,'%f')'; clear string_zhd
-            this.apr_zhd(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.apr_zhd(id_int, 1) = tmp(id_ext);
-            
-            % extract all the ZTD lines
-            string_ztd = txt(repmat(lim(2:end,1),1,17) + repmat(78:94, size(lim,1)-1, 1))';
-            tmp = sscanf(string_ztd,'%f'); clear string_ztd
-            this.ztd(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.ztd(id_int, 1) = tmp(id_ext);
-            
-            % extract all the TGN lines
-            string_tgn = txt(repmat(lim(2:end,1),1,17) + repmat(95:111, size(lim,1)-1, 1))';
-            tmp = sscanf(string_tgn,'%f'); clear string_tgn
-            this.tgn(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.tgn(id_int, 1) = tmp(id_ext);
-            
-            % extract all the TGE lines
-            string_tge = txt(repmat(lim(2:end,1),1,17) + repmat(112:128, size(lim,1)-1, 1))';
-            tmp = sscanf(string_tge,'%f'); clear string_tge
-            this.tge(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.tge(id_int, 1) = tmp(id_ext);
-            
-            % extract all the ZWD lines
-            string_zwd = txt(repmat(lim(2:end,1),1,17) + repmat(129:145, size(lim,1)-1, 1))';
-            tmp = sscanf(string_zwd,'%f'); clear string_zwd
-            this.zwd(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.zwd(id_int, 1) = tmp(id_ext);
-            
-            % extract all the PWV lines
-            string_pwv = txt(repmat(lim(2:end,1),1,17) + repmat(146:162, size(lim,1)-1, 1))';
-            tmp = sscanf(string_pwv,'%f'); clear string_pwv
-            this.pwv(end + 1 : size(this.xyz, 1), 1) = nan;
-            this.pwv(id_int, 1) = tmp(id_ext);
-            
-            %  extract all STD values if present
-            slant_start = regexp(txt(lim(1,1) : lim(1,2)),'STD') - 6;
-            num_sat = numel(slant_start);
-            this.sat.slant_td(end + 1 : size(this.xyz, 1), 1 : num_sat) = nan;
-            for s = 1 : numel(slant_start)
-                tmp = sscanf(txt(bsxfun(@plus, repmat(slant_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1) - 1))', '%f');
-                this.sat.slant_td(id_int, s) = tmp(id_ext);
-            end
-            
-            % extract all azimuth and elevation lines in a matrix with 2 layers -
-            % 1st is azimuth, 2nd is elevation
-            az_start = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d-az') - 6;
-            el_start = regexp(txt(lim(1,1) : lim(1,2)),'[GREJCIS]\d\d-el') - 6;
-            num_sat = numel(az_start);
-            this.sat.az = [this.sat.az; zeros(n_epo, num_sat)];
-            this.sat.el = [this.sat.el; zeros(n_epo, num_sat)];
-            for s = 1 : num_sat
-                az = sscanf(txt(bsxfun(@plus, repmat(az_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1)))', '%f');;
-                el = sscanf(txt(bsxfun(@plus, repmat(el_start(s) + (0 : 15), size(lim, 1) - 1, 1), lim(2 : end, 1)))', '%f');;
-                this.sat.az(id_int, s) = az(id_ext);
-                this.sat.el(id_int, s) = el(id_ext);
-            end
-        end
+
     end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================

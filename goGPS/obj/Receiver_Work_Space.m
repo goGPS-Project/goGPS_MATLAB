@@ -2640,44 +2640,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function sztd = getSlantZTD(this, smooth_win_size, id_extract)
-            % Get the "zenithalized" total delay
-            % SYNTAX
-            %   sztd = this.getSlantZTD(<flag_smooth_data = 0>)
-            if nargin < 3
-                id_extract = 1 : this.getTime.length;
-            end
-            
-            if ~isempty(this(1).ztd)
-                [mfh, mfw] = this.getSlantMF();
-                sztd = bsxfun(@plus, (zero2nan(this.getSlantTD) - bsxfun(@times, mfh, this.getAprZhd)) ./ mfw, this.getAprZhd);
-                sztd(sztd <= 0) = nan;
-                sztd = sztd(id_extract, :);
-                
-                if nargin >= 2 && smooth_win_size > 0
-                    t = this.getTime.getEpoch(id_extract).getRefTime;
-                    for s = 1 : size(sztd,2)
-                        id_ok = ~isnan(sztd(:, s));
-                        if sum(id_ok) > 3
-                            lim = getOutliers(id_ok);
-                            lim = limMerge(lim, 2 * smooth_win_size / this.getRate);
-                            
-                            %lim = [lim(1) lim(end)];
-                            for l = 1 : size(lim, 1)
-                                if (lim(l, 2) - lim(l, 1) + 1) > 3
-                                    id_ok = lim(l, 1) : lim(l, 2);
-                                    ztd = this.getZtd();
-                                    sztd(id_ok, s) = splinerMat(t(id_ok), sztd(id_ok, s) - zero2nan(ztd(id_ok)), smooth_win_size, 0.05) + zero2nan(ztd(id_ok));
-                                end
-                            end
-                        end
-                    end
-                end
-            else
-                this(1).log.addWarning('ZTD and slants have not been computed');
-            end
-        end
-        
         function slant_td = getSlantTD(this)
             % Get the slant total delay
             % SYNTAX
@@ -6097,9 +6059,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
                         cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
                         sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-                        this.sat.slant_td(id_sync,:) = nan2zero(zero2nan(this.sat.slant_td(id_sync,:)) ...
-                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
-                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));
                         this.est_slant = nan2zero(zero2nan(this.est_slant) ...
                             + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
                             + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));  % to test ambiguity fixing
