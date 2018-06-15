@@ -523,7 +523,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
-                [~, id_sync] = Receiver.getSyncTimeExpanded(this, rate);
+                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(this, rate);
                 if ~isempty(id_sync)
                     this.keepEpochs(id_sync(~isnan(id_sync)));
                 end
@@ -6782,9 +6782,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
-                [~, id_sync] = Receiver.getSyncTimeExpanded(rec, rate);
+                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, rate);
             else
-                [~, id_sync] = Receiver.getSyncTimeExpanded(rec);
+                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(rec);
             end
             % Keep the epochs in common
             % starting from the first when all the receivers are available

@@ -623,13 +623,13 @@ classdef Receiver_Commons < handle
                 this.showPositionXYZ();
             end
             %this.showMap();
-            this.showOutliersAndCycleSlip();
-            this.showOutliersAndCycleSlip_p();
-            this.showResSky_p();
-            this.showResSky_c();
             this.showZtd();
             this.showZtdSlant();
             this.showZtdSlantRes_p();
+            this.showResSky_p();
+            this.showResSky_c();
+            this.showOutliersAndCycleSlip();
+            this.showOutliersAndCycleSlip_p();
             dockAllFigures();
         end
         
@@ -718,17 +718,10 @@ classdef Receiver_Commons < handle
                     f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
                     color_order = handle(gca).ColorOrder;
                     
-                    t = [];
                     xyz = rec(:).getPosXYZ();
                     xyz0 = rec(:).getMedianPosXYZ();
                     
-                    for s = 1 : size(rec, 1)
-                        if rec(s).isStatic
-                            t = [t; rec(s).getCentralTime().getMatlabTime()];
-                        else
-                            t = [t; rec(s).getMatlabTime()];
-                        end
-                    end
+                    t = rec.getPositionTime().getMatlabTime;                    
                     
                     x = 1e3 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
                     y = 1e3 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));

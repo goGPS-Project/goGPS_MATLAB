@@ -469,7 +469,7 @@ classdef Command_Interpreter < handle
                         state = Global_Configuration.getCurrentSettings();
                         state.cc.setActive(sys_list);
                     end
-                    rec(r).load();
+                    rec(r).work.load();
                 end
             end
         end
@@ -686,7 +686,7 @@ classdef Command_Interpreter < handle
                         if rec(r).isEmpty
                             rec(r).load();
                         end
-                        rec(r).keep(rate);
+                        rec(r).work.keep(rate);
                     end
                 end
                 [snr_thr, found] = this.getNumericPar(tok, this.PAR_SNRTHR.par);

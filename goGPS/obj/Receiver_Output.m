@@ -45,7 +45,6 @@ classdef Receiver_Output < Receiver_Commons
         time_pos % time of the positions
     end
     
-    % ==================================================================================================================================================
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
     
@@ -55,7 +54,7 @@ classdef Receiver_Output < Receiver_Commons
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
             'quality',          [], ...    % quality
             'az',               [], ...    % double  [n_epoch x n_sat] azimuth
-            'el',               [], ...    % double  [n_epoch x n_sat] elevation  
+            'el',               [], ...    % double  [n_epoch x n_sat] elevation
             'res',              [], ...    % residual per staellite
             'slant_td',         []  ...    % slant total delay (except ionosphere delay)
             )
@@ -65,13 +64,13 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     properties (SetAccess = public, GetAccess = public)
-     
+        
         
         pressure      % pressure           double   [n_epoch x 1]
         temperature   % temperature           double   [n_epoch x 1]
         humidity      % humidity           double   [n_epoch x 1]
     end
-      % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     
@@ -94,18 +93,18 @@ classdef Receiver_Output < Receiver_Commons
             this.reset@Receiver_Commons();
             
             this.sat = struct(  ...
-            'outlier_idx_ph',   [], ...    % logical index of outliers
-            'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
-            'quality',          [], ...    % quality
-            'az',               [], ...    % double  [n_epoch x n_sat] azimuth
-            'el',               [], ...    % double  [n_epoch x n_sat] elevation  
-            'res',              [], ...    % residual per staellite
-            'slant_td',         []  ...    % slant total delay (except ionosphere delay)
-            );
+                'outlier_idx_ph',   [], ...    % logical index of outliers
+                'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
+                'quality',          [], ...    % quality
+                'az',               [], ...    % double  [n_epoch x n_sat] azimuth
+                'el',               [], ...    % double  [n_epoch x n_sat] elevation
+                'res',              [], ...    % residual per staellite
+                'slant_td',         []  ...    % slant total delay (except ionosphere delay)
+                );
         end
         
     end
-     % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %% METHODS GETTER - TIME
     % ==================================================================================================================================================
     
@@ -115,16 +114,16 @@ classdef Receiver_Output < Receiver_Commons
             % Display on screen information about the receiver
             % SYNTAX this.toString();
             for r = 1 : numel(this)
-                if ~this(r).isempty
+                if ~this(r).isEmpty
                     fprintf('----------------------------------------------------------------------------------\n')
-                    this(r).log.addMarkedMessage(sprintf('Receiver (%d) %s', r, this(r).marker_name));
+                    this(r).log.addMarkedMessage(sprintf('Receiver (%d) %s', r, this(r).parent.getMarkerName));
                     fprintf('----------------------------------------------------------------------------------\n')
                     this(r).log.addMessage(sprintf(' From     %s', this(r).time.first.toString()));
                     this(r).log.addMessage(sprintf(' to       %s', this(r).time.last.toString()));
                     this(r).log.newLine();
                     this(r).log.addMessage(sprintf(' Rate of the observations [s]:            %d', this(r).getRate()));
                     this(r).log.newLine();
-              
+                    
                     fprintf(' ----------------------------------------------------------\n')
                     if ~isempty(this(r).xyz)
                         enu = zero2nan(this(r).xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this(r).xyz(:,1)), zero2nan(this(r).xyz(:,2)), zero2nan(this(r).xyz(:,3)));
@@ -159,7 +158,7 @@ classdef Receiver_Output < Receiver_Commons
             %   time     GPS_Time
             %
             % SYNTAX
-            %   xyz = this.getPositionTime()            
+            %   xyz = this.getPositionTime()
             time = this.time_pos.getCopy();
         end
         
@@ -202,7 +201,7 @@ classdef Receiver_Output < Receiver_Commons
         
     end
     
-     % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %% METHODS IMPORT / EXPORT
     % ==================================================================================================================================================
     
@@ -260,7 +259,7 @@ classdef Receiver_Output < Receiver_Commons
             this.lon      = Core_Utils.injectData(this.lon, lon, idx1, idx2, [data_len, 1]);
             this.h_ellips = Core_Utils.injectData(this.h_ellips, h_ellips, idx1, idx2, [data_len, 1]);
             this.h_ortho  = Core_Utils.injectData(this.h_ortho, h_ortho, idx1, idx2, [data_len, 1]);
-
+            
             this.s0_ip   = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
             this.s0      = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
         end
@@ -484,8 +483,7 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
     end
-    
-     %% METHODS PLOTTING FUNCTIONS
+    %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
     % Various debug images
@@ -528,6 +526,6 @@ classdef Receiver_Output < Receiver_Commons
                 xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
-        end
+        end        
     end
 end

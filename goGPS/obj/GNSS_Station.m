@@ -575,7 +575,7 @@ classdef GNSS_Station < handle
     %   m mixed
     methods (Access = public)
         function showAll(this)
-            this.work.showAll;
+            this.out.showAll;
         end
         
         function showPositionENU(this, one_plot)
