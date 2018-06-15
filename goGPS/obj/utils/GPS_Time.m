@@ -1551,7 +1551,7 @@ classdef GPS_Time < Exportable & handle
     % =========================================================================
     methods (Static, Access = 'public')
         function this = now()
-            % Static constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
+            % construct GPS_Time from current time
             %
             % SYNTAX
             %   this = now()
