@@ -92,7 +92,7 @@ classdef Receiver_Output < Receiver_Commons
         
         function reset(this)
             this.reset@Receiver_Commons();
-                       
+            
             this.sat = struct(  ...
             'outlier_idx_ph',   [], ...    % logical index of outliers
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
@@ -101,8 +101,7 @@ classdef Receiver_Output < Receiver_Commons
             'el',               [], ...    % double  [n_epoch x n_sat] elevation  
             'res',              [], ...    % residual per staellite
             'slant_td',         []  ...    % slant total delay (except ionosphere delay)
-            )
-            
+            );
         end
         
     end
@@ -161,7 +160,7 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX
             %   xyz = this.getPositionTime()            
-            time = this(1).time_pos.getCopy();
+            time = this.time_pos.getCopy();
         end
         
         function [pwv, time] = getPwv(this)
@@ -208,14 +207,14 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
-        function importResult(this, rec_work)
+        function injectResult(this, rec_work)
             work_time = rec_work.getTime();
             if isempty(this.time)
-                idx1 = 0;
-                idx2 = 1;
+                idx1 = 1;
+                idx2 = 0;
                 this.time = work_time;
             else
-                [idx1, idx2] = this.time.injectBatch(work_time);
+                [this.time, idx1, idx2] = this.time.injectBatch(work_time);
             end
             %%% inject data
             this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
@@ -225,7 +224,7 @@ classdef Receiver_Output < Receiver_Commons
             this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
             this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
             this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
-            [gn, ge]     = this.getGradient();
+            [gn, ge]     = rec_work.getGradient();
             this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
             this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
             [p, t, h]  = rec_work.getPTH(true);
@@ -242,20 +241,28 @@ classdef Receiver_Output < Receiver_Commons
             this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
             
             %%% single results
-            this.time_pos.append(rec_work.getCentralTime());
-            this.xyz      = [this.xyz      ; rec_work.xyz     ];
-            this.enu      = [this.enu      ; rec_work.enu     ];
-            this.utm      = [this.utm      ; rec_work.utm     ];
-            this.utm_zone = [this.utm_zone ; rec_work.utm_zone];
+            if isempty(this.time_pos)
+                idx1 = 1;
+                idx2 = 0;
+                this.time_pos = rec_work.getPositionTime();
+                data_len = rec_work.getPositionTime().length;
+            else
+                [this.time_pos, idx1, idx2] = this.time_pos.injectBatch(rec_work.getPositionTime());
+                data_len = rec_work.getPositionTime().length;
+            end
             
-            this.lat      = [this.lat      ; rec_work.lat     ];
-            this.lon      = [this.lon      ; rec_work.lon     ];
-            this.h_ellips = [this.h_ellips ; rec_work.h_ellips];
-            this.h_ortho  = [this.h_ortho  ; rec_work.h_ortho ];
+            this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
+            this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
             
-            this.s0_ip    = [this.s0_ip    ; rec_work.s0_ip   ];
-            this.s0       = [this.s0       ; rec_work.s0      ];
+            [lat, lon, h_ellips, h_ortho] = rec_work.getPosGeodetic();
             
+            this.lat      = Core_Utils.injectData(this.lat, lat, idx1, idx2, [data_len, 1]);
+            this.lon      = Core_Utils.injectData(this.lon, lon, idx1, idx2, [data_len, 1]);
+            this.h_ellips = Core_Utils.injectData(this.h_ellips, h_ellips, idx1, idx2, [data_len, 1]);
+            this.h_ortho  = Core_Utils.injectData(this.h_ortho, h_ortho, idx1, idx2, [data_len, 1]);
+
+            this.s0_ip   = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
+            this.s0      = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
         end
         
         function legacyImportResults(this, file_prefix, run_start, run_stop)

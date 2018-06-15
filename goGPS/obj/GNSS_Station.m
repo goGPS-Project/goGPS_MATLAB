@@ -77,11 +77,17 @@ classdef GNSS_Station < handle
     % ==================================================================================================================================================
     methods
         function this = GNSS_Station(cc, static)
+            if nargin <= 1 || isempty(cc)
+                cc = Constellation_Collector('G');
+            end
             this.cc = cc;
             this.work = Receiver_Work_Space(cc, this);
             this.out = Receiver_Output(this);
-            this.static = static;
+            if nargin >= 2 && ~isempty(static)
+                this.static = logical(static);
+            end
             this.init();
+            this.reset();
         end
         
         function importRinexLegacy(this,rinex_file_name)
@@ -97,9 +103,9 @@ classdef GNSS_Station < handle
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance();
-            this.reset();
+            %this.work.resetWorkSpace();
+            this.work = Receiver_Work_Space(this.cc, this);
         end
-        
         
         function reset(this)
             this.marker_name  = 'unknown';  % marker name
@@ -452,6 +458,9 @@ classdef GNSS_Station < handle
                         [tropo{r}] = sta_list(r).out.getZtd();
                     case 'zwd'
                         [tropo{r}] = sta_list(r).out.getZwd();
+                        if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
+                            [tropo{r}] = sta_list(r).out.getAprZwd();
+                        end
                     case 'pwv'
                         [tropo{r}] = sta_list(r).out.getPwv();
                     case 'zhd'
@@ -566,14 +575,14 @@ classdef GNSS_Station < handle
     %   m mixed
     methods (Access = public)
         function showAll(this)
-            this.work.showAll@Receiver_Commons();
+            this.work.showAll;
         end
         
         function showPositionENU(this, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
             if nargin == 1
-                one_plot = true;
+                one_plot = false;
             end
             
             for r = 1 : length(this)

@@ -137,7 +137,10 @@ classdef Core < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky.getInstance(force_clean);
-            this.cmd = Command_Interpreter.getInstance;            
+            this.cmd = Command_Interpreter.getInstance;
+            if force_clean
+                this.rec = [];
+            end
         end
         
         function import(this, state)
@@ -214,18 +217,25 @@ classdef Core < handle
             this.log.simpleSeparator();
             this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
             this.log.simpleSeparator();
-                      
-            clear rec;  % handle to all the receivers
+            
+            if isempty(this.rec)
+                rec = GNSS_Station;
+            else
+                rec = this.rec;
+            end
             this.log.newLine();
             for r = 1 : this.state.getRecCount()
                 this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
-                
-                rec(r) = Receiver(this.state.getConstellationCollector(), this.state.getRecPath(r, session), this.state.getDynMode(r)); %#ok<AGROW>
+                if (numel(rec) < r) || rec(r).isEmpty
+                    rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode(r) == 0); %#ok<AGROW>
+                else
+                    rec(r).work.resetWorkSpace();
+                end
+                rec(r).importRinexLegacy(this.state.getRecPath(r, session));
             end
             if numel(rec) > 0
-                this.rec = rec;
                 this.log.newLine();
-                
+                this.rec = rec;
                 % Init Meteo and Sky objects
                 [~, time_lim_large] = this.getRecTimeSpan(session);
                 this.initSkySession(time_lim_large);
@@ -275,16 +285,15 @@ classdef Core < handle
             rf.init();
             for s = session_list
                 this.prepareSession(s);
-                this.cmd.exec(this.rec);
-                                
+                this.cmd.exec(this.rec);                   
                 if this.state.isKeepRecList()
-                    if numel(this.rec_list) == 0
-                        clear rec_list;
-                        rec_list(s,:) = this.rec;
-                        this.rec_list = rec_list;
-                    else
-                        this.rec_list(s,:) = this.rec;
-                    end
+%                     if numel(this.rec_list) == 0
+%                         clear rec_list;
+%                         rec_list(s,:) = this.rec;
+%                         this.rec_list = rec_list;
+%                     else
+%                         this.rec_list(s,:) = this.rec;
+%                     end
                 end
                 if ~isunix, fclose('all'); end
             end

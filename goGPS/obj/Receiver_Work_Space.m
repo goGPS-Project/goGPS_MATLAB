@@ -145,7 +145,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             'crx',              [], ...    % bad epochs based on crx file
             'res',              [], ...    % residual per staellite
             'slant_td',         [], ...    % slant total delay (except ionosphere delay)
-            'amb_idx',          []  ...    % temporary variable to test PPP ambiguity fixing
+            'amb_idx',          [], ...    % temporary variable to test PPP ambiguity fixing
+            'amb_mat',          [], ...
+            'amb',              [] ...
             )
     end
     % ==================================================================================================================================================
@@ -213,51 +215,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
         end
         
-        function load(this)
-            % Load the rinex file linked to this receiver
-            %
-            % SYNTAX
-            %   this.load();
-            
-            if ~isempty(this.rinex_file_name)
-                this.importRinex(this.rinex_file_name);
-                this.importAntModel();
-            end
-            rf = Core_Reference_Frame.getInstance();
-            coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
-            if ~isempty(coo)
-                this.xyz = coo;
-            end
-            
-        end
-        
-        function appendRinex(this, rinex_file_name)
-            rec = Receiver(this.cc, rinex_file_name, this.getDynamicMode);
-            rec.load();
-            
-            % for the moment I merge receivers but then they need to run preProcessing again as a hole
-            this.removeAllCorrections()
-            % merge the two rinex
-            
-        end
-        
-        function injestReceiver(this, rec)
-            % assumption
-            
-        end
-        
-        function initTropo(this)
-            % initialize tropo variables
-            n_epoch = this.time.length;
-            this.ztd = nan(n_epoch, 1);
-            this.apr_zhd = nan(n_epoch, 1);
-            this.zwd = nan(n_epoch, 1);
-            this.apr_zwd = nan(n_epoch, 1);
-            this.pwv = nan(n_epoch, 1);
-            this.tge = nan(n_epoch, 1);
-            this.tgn = nan(n_epoch, 1);
-        end
-       
         function resetObs(this)
             % Reset the content of the receiver obj
             % SYNTAX
@@ -289,7 +246,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt_pr = 0;               % clock offset of the receiver
             this.dt_ip = 0;               % clock offset of the receiver
             this.dt = 0;                  % clock offset of the receiver
-            this.flag_rid = 0;         % clock offset of the receiver
+            this.flag_rid = 0;            % clock offset of the receiver
             
             this.active_ids = [];         % rows of active satellites
             this.wl         = [];         % wave-lenght of each row of row_id
@@ -309,6 +266,154 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
         end
         
+        function resetWorkSpace(this)
+            this.file = File_Rinex();
+            this.rinex_file_name = '';
+            this.rin_type = 0;
+            this.time = GPS_Time();
+            this.id_sync = [];
+            this.n_sat = [];
+            
+            this.rin_obs_code = '';       % list of types per constellation
+            this.ph_shift     = [];
+            
+            this.xyz          = [0 0 0];  % approximate position of the receiver (XYZ geocentric)
+            this.enu = [];
+            this.lat = [];
+            this.lon = [];
+            this.h_ellips = [];
+            this.h_ortho = [];
+            
+            this.n_sat = 0;               % number of satellites
+            this.n_freq = 0;              % number of stored frequencies
+            this.n_spe = [];              % number of sat per epoch
+            
+            this.rate = 0;                % observations rate;
+            
+            this.desync = 0;              % clock offset of the receiver
+            this.dt_ph = 0;               % clock offset of the receiver
+            this.dt_pr = 0;               % clock offset of the receiver
+            this.dt_ip = 0;               % clock offset of the receiver
+            this.dt = 0;                  % clock offset of the receiver
+            this.flag_rid = 0;            % clock offset of the receiver
+            
+            this.active_ids = [];         % rows of active satellites
+            this.wl         = [];         % wave-lenght of each row of row_id
+            this.f_id       = [];         % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
+            this.prn        = [];         % pseudo-range number of the satellite
+            this.go_id      = [];         % internal id for a certain satellite
+            this.system     = '';         % char id of the satellite system corresponding to the row_id
+            
+            this.obs_code   = [];         % obs code for each line of the data matrix obs
+            this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
+            
+            this.ph_idx = [];
+            this.if_amb = [];
+            this.est_slant = [];
+            this.synt_ph = [];
+            
+            this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
+            
+            this.pp_status = false;
+            this.iono_status = false;
+            this.group_delay_status = false;
+            this.dts_delay_status = false;
+            this.sh_delay_status = false;
+            this.pcv_delay_status = false;
+            this.ol_delay_status = false;
+            this.pt_delay_status = false;
+            this.pw_delay_status = false;
+            this.et_delay_status = false;
+            this.hoi_delay_status = false;
+            this.atm_load_delay_status = false;
+            
+            this.s0_ip =  [];
+            this.s0 =  [];
+            this.hdop =  [];
+            this.vdop =  [];
+            this.tdop =  [];
+            
+            this.a_fix = [];
+            this.s_rate = [];
+            
+            this.xyz = [];
+            
+            this.apr_zhd  = [];
+            this.zwd  = [];
+            this.apr_zwd  = [];
+            this.ztd  = [];
+            this.pwv  = [];
+            
+            this.tgn = [];
+            this.tge = [];
+            
+            this.sat.avail_index       = [];
+            this.sat.outlier_idx_ph    = [];
+            this.sat.cycle_slip_idx_ph = [];
+            this.sat.err_tropo         = [];
+            this.sat.err_iono          = [];
+            this.sat.solid_earth_corr  = [];
+            this.sat.dtS               = [];
+            this.sat.rel_clk_corr      = [];
+            this.sat.tot               = [];
+            this.sat.az                = [];
+            this.sat.el                = [];
+            this.sat.XS_tx             = [];
+            this.sat.crx               = [];
+            this.sat.res               = [];
+            this.sat.slant_td          = [];
+            this.sat.o_cs_ph           = [];
+            this.sat.o_out_ph          = [];
+            this.sat.amb_mat           = [];
+            this.sat.amb_idx           = [];
+            this.sat.amb               = [];
+        end
+        
+        function load(this)
+            % Load the rinex file linked to this receiver
+            %
+            % SYNTAX
+            %   this.load();
+            
+            if ~isempty(this.rinex_file_name)
+                this.importRinex(this.rinex_file_name);
+                this.importAntModel();
+            end
+            rf = Core_Reference_Frame.getInstance();
+            coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
+            if ~isempty(coo)
+                this.xyz = coo;
+            end
+            
+        end
+        
+        function appendRinex(this, rinex_file_name)
+            rec = Receiver(this.cc, rinex_file_name, this.getDynamicMode);
+            rec.load();
+            
+            % for the moment I merge receivers but then they need to run preProcessing again as a hole
+            this.remAllCorrections()
+            % merge the two rinex
+            
+        end
+        
+        function injestReceiver(this, rec)
+            % assumption
+            
+        end
+        
+        function initTropo(this)
+            % initialize tropo variables
+            n_epoch = this.time.length;
+            this.ztd = nan(n_epoch, 1);
+            this.apr_zhd = nan(n_epoch, 1);
+            this.zwd = nan(n_epoch, 1);
+            this.apr_zwd = nan(n_epoch, 1);
+            this.pwv = nan(n_epoch, 1);
+            this.tge = nan(n_epoch, 1);
+            this.tgn = nan(n_epoch, 1);
+        end
+               
         function initR2S(this)
             % initialize satellite related parameters
             % SYNTAX this.initR2S();
@@ -585,7 +690,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
         end
         
-        function [obs, sys, prn, flag] = removeUndCutOff(this, obs, sys, prn, flag, cut_off)
+        function [obs, sys, prn, flag] = remUndCutOff(this, obs, sys, prn, flag, cut_off)
             %  remove obs under cut off
             for i = 1 : length(prn)
                 go_id = this.getGoId(sys(i), prn(i)); % get go_id
@@ -715,7 +820,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remUnderSnrThr(this, snr_thr)
-            % removes observations with an SNR smaller than snr_thr
+            % remS observations with an SNR smaller than snr_thr
             % 
             % SYNTAX
             %   this.remUnderSnrThr(snr_thr)
@@ -729,17 +834,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
             id_snr = find(id_snr);
             if ~isempty(id_snr)
-                this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', numel(id_snr))));
-                
+                this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));                
+                n_rem = 0;
                 for s = 1 : numel(id_snr)
-                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr1(:, s) < snr_thr) = 0;
+                    snr_test = snr1(:, s) < snr_thr;
+                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr_test) = 0;
+                    n_rem = n_rem + sum(snr_test(:));
                 end
+                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', n_rem)));
             end
         end
         
         function remUnderCutOff(this, cut_off)
-            % removes observations with an elevation lower than cut_off
+            % remS observations with an elevation lower than cut_off
             % 
             % SYNTAX
             %   this.remUnderCutOff(cut_off)
@@ -751,10 +858,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.obs = this.obs .* mask(:, this.go_id)';
         end
         
-        function removeShortArc(this, min_arc)
-            % removes arc shorter than
+        function remShortArc(this, min_arc)
+            % remS arc shorter than
             % SYNTAX
-            %   this.removeShortArc()
+            %   this.remShortArc()
             if min_arc > 1
                 this.log.addMarkedMessage(sprintf('Removing arcs shorter than %d epochs', 1 + 2 * ceil((min_arc - 1)/2)));
                 
@@ -765,7 +872,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 pr(el_idx) = NaN;
                 this.setPseudoRanges(pr, id_pr);
-                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been removed', sum(el_idx(:)))));
+                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been remD', sum(el_idx(:)))));
                 
                 [ph, wl, id_ph] = this.getPhases();
                 idx = ~isnan(ph);
@@ -774,20 +881,20 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 ph(el_idx) = NaN;
                 this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been removed', sum(el_idx(:)))));
+                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been remD', sum(el_idx(:)))));
             end
         end
         
-        function updateRemoveOutlierMarkCycleSlip(this)
+        function updateremOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
-            % old outliers and cycle-slips removed before launching a new detection
+            % old outliers and cycle-slips remD before launching a new detection
             this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
             this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             this.updateSyntPhases();
-            this.removeOutlierMarkCycleSlip();
+            this.remOutlierMarkCycleSlip();
         end
         
-        function removeOutlierMarkCycleSlip(this)
+        function remOutlierMarkCycleSlip(this)
             this.log.addMarkedMessage('Cleaning observations');
             %% PARAMETRS
             ol_thr = 0.5; % outlier threshold
@@ -1856,9 +1963,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   xyz = this.getPositionTime()
             if this.isStatic()
-                this.getCentralTime;
+                time = this.getCentralTime;
             else
-                this.getTime.getCopy();
+                time = this.getTime.getCopy();
             end
         end
 
@@ -1953,7 +2060,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-                
         function sys_c = getAvailableSys(this)
             % get the available system stored into the object
             % SYNTAX sys_c = this.getAvailableSys()
@@ -2530,9 +2636,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.apr_zwd = Atmosphere.saast_wet(T,H,h); 
                 case 2 %% vmf gridded
                     atmo = Atmosphere.getInstance();
-                     this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
+                    this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
-            
         end
         
         function sztd = getSlantZTD(this, smooth_win_size, id_extract)
@@ -3170,7 +3275,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             rec_cs_ph = this.sat.o_cs_ph(this.getIdSync(),:);
         end
         
-        
         function [range, XS_loc] = getSyntObs(this, go_id_list)
             %  get the estimate of one measurmenet based on the
             % current postion
@@ -3193,7 +3297,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %range = range';
                 range(i,:) = nan2zero(range_tmp)';
             end
-            
         end
         
         function synt_pr_obs = getSyntCurObs(this, phase, sys_c)
@@ -3425,15 +3528,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
         end
         
-        function updateUTM(this)
-            for i = 1:numel(this)
-                xyz = this(i).getMedianPosXYZ;
-                [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
-                this(i).utm = [EAST, NORTH, h];
-                this(i).utm_zone = utm_zone;
-            end
-        end
-        
         function updateSyntPhases(this, sys_c)
             %DESCRIPTION update the content of the syntetic phase
             if nargin < 2
@@ -3529,7 +3623,11 @@ classdef Receiver_Work_Space < Receiver_Commons
              this.sat.avail_index = false(this.time.length, this.parent.getMaxSat);
              this.updateAllAvailIndex();
              if nargin == 2
-                 this.sat.avail_index(~ep_ok,:) = false;
+                 if islogical(ep_ok)
+                     this.sat.avail_index(~ep_ok,:) = false;
+                 else
+                     this.sat.avail_index(setdiff(1 : size(this.sat.avail_index, 1), ep_ok), :) = false;
+                 end
              end
         end
         
@@ -3568,7 +3666,7 @@ classdef Receiver_Work_Space < Receiver_Commons
     %  structured as follow:
     %   - A : add or subtract the correction to the observations
     %   - applyA : a warpper of A to add the correction
-    %   - removeA : a wrapper of A to subtract the correction
+    %   - remA : a wrapper of A to subtract the correction
     %   - computeA : does the numerical computation of A along the los
     %  where A is the name of the correction
     %  NOTE ON THE SIGN:
@@ -3601,7 +3699,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeDtSat(this)
+        function remDtSat(this)
             if this.dts_delay_status == 1
                 this.applyDtSatFlag(-1);
                 this.dts_delay_status = 0; %applied
@@ -3793,7 +3891,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeGroupDelay(this)
+        function remGroupDelay(this)
             if this.group_delay_status == 1
                 this.log.addMarkedMessage('Removing code group delays');
                 this.groupDelay(-1);
@@ -3979,7 +4077,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             slant_td = [slant_td; zeros(size(zeinth_fill))];
             
             [~, ~, ~, mf] = splinerMat(el, slant_td, 1, 0, el_points); % Spline base 10 degrees            
-            mf = mf + 1; % readding the removed bias
+            mf = mf + 1; % readding the remD bias
             if show_fig
                 plot(el_points, mf, '.','MarkerSize', 10);
             end
@@ -4061,7 +4159,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
             end
             
-            if nargin < 2 || strcmp(go_id,'all')
+            if nargin < 2 || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 
                 go_id = unique(this.go_id)';
@@ -4077,24 +4175,24 @@ classdef Receiver_Work_Space < Receiver_Commons
            % get meteo data
            
            
+           
            % upadte the ztd zwd
            this.updateAprTropo();
            
-           zwd = this.getZwd;
+           zwd = nan2zero(this.getZwd);
            apr_zhd = this.getAprZhd;
            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
            [gn ,ge] = this.getGradient();
            [mfh, mfw] = this.getSlantMF();
-           n_sat = this.parent.getMaxSat;
            if any(ge(:))
                for g = go_id                   
-                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd;
+                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g).*zwd;
                end
            else
                for g = go_id  
-                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g) .* apr_zhd + mfw(:,g) .* zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
                end
            end
         end
@@ -4140,7 +4238,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeIonoModel(this)
+        function remIonoModel(this)
             if this.iono_status == 1
                 this.log.addMarkedMessage('Removing Ionosphere model');
                 this.ionoModel(-1);
@@ -4202,7 +4300,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeSolidEarthTide(this)
+        function remSolidEarthTide(this)
             if this.et_delay_status == 1
                 this.log.addMarkedMessage('Removing Solid Earth Tide corrections');
                 this.solidEarthTide(-1);
@@ -4353,7 +4451,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeOceanLoading(this)
+        function remOceanLoading(this)
             if this.ol_delay_status == 1
                 this.log.addMarkedMessage('Removing Ocean Loading corrections');
                 this.oceanLoading(-1);
@@ -4494,7 +4592,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removePoleTide(this)
+        function remPoleTide(this)
             if this.pt_delay_status == 1
                 this.log.addMarkedMessage('Removing Pole Tide corrections');
                 this.poleTide(-1);
@@ -4592,7 +4690,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeHOI(this)
+        function remHOI(this)
             if this.hoi_delay_status == 1
                 this.log.addMarkedMessage('Removing High Order Ionospheric Effect');
                 this.HOI(-1);
@@ -4654,7 +4752,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeAtmLoad(this)
+        function remAtmLoad(this)
             if this.atm_load_delay_status == 1
                 this.log.addMarkedMessage('Removing atmospheric loading effect');
                 this.atmLoad(-1);
@@ -4726,7 +4824,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removePhaseWindUpCorr(this)
+        function remPhaseWindUpCorr(this)
             if this.pw_delay_status == 1
                 this.log.addMarkedMessage('Removing Phase Wind Up corrections');
                 this.phaseWindUpCorr(-1);
@@ -4815,7 +4913,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function removeShDelay(this)
+        function remShDelay(this)
             if this.sh_delay_status == 1
                 this.log.addMarkedMessage('Removing Shapiro delay corrections');
                 this.shDelay(-1);
@@ -4864,7 +4962,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         % PCV
         % -------------------------------------------------------
         
-        function applyRemovePCV(this, sgn)
+        function applyremPCV(this, sgn)
             %  correct measurement for PCV both of receiver
             % antenna and satellite antenna
             if ~isempty(this.pcv) || ~isempty(this.sat.cs.ant_pcv)
@@ -5060,15 +5158,15 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyPCV(this)
             if (this.pcv_delay_status == 0) && this.state.isRecPCV
                 this.log.addMarkedMessage('Applying PCV corrections');
-                this.applyRemovePCV(1);
+                this.applyremPCV(1);
                 this.pcv_delay_status = 1; % applied
             end
         end
         
-        function removePCV(this)
+        function remPCV(this)
             if this.pcv_delay_status == 1
                 this.log.addMarkedMessage('Removing PCV corrections');
-                this.applyRemovePCV(-1);
+                this.applyremPCV(-1);
                 this.pcv_delay_status = 0; % applied
             end
         end
@@ -5077,20 +5175,20 @@ classdef Receiver_Work_Space < Receiver_Commons
         % All
         %--------------------------------------------------------
         
-        function removeAllCorrections(this)
-            % Remove all the corrections
+        function remAllCorrections(this)
+            % rem all the corrections
             % SYNTAX
-            %   this.removeAllCorrections();
-            this.removeDtSat();
-            this.removeGroupDelay();
-            this.removePCV();
-            this.removePoleTide();
-            this.removePhaseWindUpCorr();
-            this.removeSolidEarthTide();
-            this.removeShDelay();
-            this.removeOceanLoading();
-            this.removeHOI();
-            this.removeAtmLoad();
+            %   this.remAllCorrections();
+            this.remDtSat();
+            this.remGroupDelay();
+            this.remPCV();
+            this.remPoleTide();
+            this.remPhaseWindUpCorr();
+            this.remSolidEarthTide();
+            this.remShDelay();
+            this.remOceanLoading();
+            this.remHOI();
+            this.remAtmLoad();
         end
         
         function applyAllCorrections(this)
@@ -5350,7 +5448,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.log.addMessage(this.log.indent('Improving estimation'))
                 this.codeStaticPositioning(this.id_sync, 15);
-                this.removeBadTracking();
+                this.remBadTracking();
                 
                 this.updateAllTOT();
                 this.log.addMessage(this.log.indent('Final estimation'))
@@ -5383,10 +5481,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 min_ep_thrs = 1;
             end
             
-            last_ep_coarse = min(100,this.time.length);
-            ep_coarse = 1:last_ep_coarse;
-            while(not( sum(sum(obs_set.obs(ep_coarse,:)~=0,2)> 2) > min_ep_thrs)) % checking if the selcted epochs contains at least some usabele obseravalbles
-                ep_coarse = ep_coarse +1;
+            last_ep_coarse = min(100, this.time.length);
+            ep_coarse = 1 : last_ep_coarse;
+            while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs)) % checking if the selected epochs contains at least some usabele obseravables
+                ep_coarse = ep_coarse + 1;
             end
             this.initAvailIndex(ep_coarse);
             this.updateAllTOT();
@@ -5405,7 +5503,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.codeStaticPositioning(ep_coarse, 15);
         end
         
-        function removeBadTracking(this) %%% imprtnat check!! if ph obervation with no code are deleted elsewhere
+        function remBadTracking(this) %%% imprtnat check!! if ph obervation with no code are deleted elsewhere
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
@@ -5792,7 +5890,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-                this.removeShortArc(this.state.getMinArc);            
+                this.remShortArc(this.state.getMinArc);            
 
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>                
                 if (min(s02) > this.S02_IP_THR)
@@ -5840,7 +5938,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.applyAtmLoad();
                     this.applyHOI();
                     
-                    this.removeOutlierMarkCycleSlip();
+                    this.remOutlierMarkCycleSlip();
                     this.pp_status = true;
                 end
             end
@@ -5867,7 +5965,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if this.isEmpty()
                 this.log.addError('staticPPP failed The receiver object is empty');
             elseif ~this.isPreProcessed()
-                if (this.s02_ip < Inf)
+                if ~isempty(this.s0_ip) && (this.s0_ip < Inf)
                     this.log.addError('Pre-Processing is required to compute a PPP solution');
                 else
                     this.log.addError('Pre-Processing failed: skipping PPP solution');
@@ -6123,7 +6221,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % apply dt
             this.smoothAndApplyDt(0);
             % remove grupo delay
-            this.removeGroupDelay();
+            this.remGroupDelay();
             % estaimet WL
             mwb = this.getMelWub('1','2','G');
             wl_cycle = mwb.obs./repmat(mwb.wl,size(mwb.obs,1),1);
@@ -6257,7 +6355,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.exportRinex3(file_name);
             
-            this.removeAllCorrections();
+            this.remAllCorrections();
             
             % HEADER -------------------------------------------------------------------------------------------------------------------------------------------
             txt = [];
@@ -6318,7 +6416,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
             txt = sprintf('%s%10.3f                                                  INTERVAL\n', txt, this.time.getRate());
             txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS\n', txt, this.time.first.get6ColDate());
-            txt = sprintf('%sCARRIER PHASE SHIFT REMOVED BY goGPS SOFTWARE.              COMMENT\n', txt);
+            txt = sprintf('%sCARRIER PHASE SHIFT remD BY goGPS SOFTWARE.              COMMENT\n', txt);
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
                 % Set order CODE PHASE DOPPLER SNR
@@ -6397,7 +6495,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function pushResult(this)
-            this.parent.out.importResult(this);
+            this.parent.out.injectResult(this);
         end
     end
     

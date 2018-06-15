@@ -505,14 +505,21 @@ classdef Core_Utils < handle
             end
         end
     
-        function data = injectData(data1, data2, idx1, idx2)
+        function data = injectData(data1, data2, idx1, idx2, data_size)
             % isert data2 into data1 at the position definied by idx1 and idx2
             % idx1 - 1 is the last element of data1 to be putted before data2 (0  if none)
             % idx2 + 1 is the first element of data1 to be put after data2 (data1 length if none)
-            % 
+            %
             % SYNTAX
             %   data = Core_Utils.injectData(data1, data2, idx1, idx2)
-             data = [data1(1 : idx1 - 1,:); data2; data1(idx2 + 1 : end,:)];
+            if nargin == 5
+                % check data size
+                [m, n] = size(data2);
+                if not(m == data_size(1) && n == data_size(2))
+                    data2 = nan(data_size(1), data_size(2));
+                end
+            end
+            data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
         end
         
         function y_out = interp1LS(x_in, y_in, degree, x_out)

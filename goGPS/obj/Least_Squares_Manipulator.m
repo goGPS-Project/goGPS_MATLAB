@@ -168,6 +168,34 @@ classdef Least_Squares_Manipulator < handle
                 obs_set = custom_obs_set;
             end
             
+            if phase_present
+                n_sat = size(rec.sat.el,2);
+                rec.sat.o_cs_ph = zeros(rec.time.length, n_sat);
+                rec.sat.o_cs_ph(:,obs_set.go_id) = obs_set.cycle_slip;
+                rec.sat.o_out_ph = zeros(rec.time.length, n_sat);
+                dual_freq = size(obs_set.obs_code,2) > 5;
+                [~, ~, ph_idx] = rec.getPhases();
+                obs_code_ph = rec.obs_code(ph_idx,:);
+                go_id_ph = rec.go_id(ph_idx);
+                for s = 1 : length(obs_set.go_id);
+                    g = obs_set.go_id(s);
+                    obs_code1 = obs_set.obs_code(s,2:4);
+                    if dual_freq
+                        obs_code2 = obs_set.obs_code(s,5:7);
+                    else
+                        obs_code2 = '   ';
+                    end
+                    out_idx = idxCharLines(obs_code_ph,obs_code1) & go_id_ph == g;
+                    out = rec.sat.outlier_idx_ph(:,out_idx);
+                    if strcmp(obs_code2,'   ')
+                         out_idx = idxCharLines(obs_code_ph,obs_code2) & go_id_ph == g;
+                         out = out | rec.sat.outlier_idx_ph(:,out_idx);
+                    end
+                    rec.sat.o_out_ph(:,g) = out;
+                    
+                end
+            end
+            
             % if phase observations are present check if the computation of troposphere parameters is required
             
             if phase_present
@@ -643,8 +671,8 @@ classdef Least_Squares_Manipulator < handle
             if isempty(this.rw)
                 this.rw = ones(size(this.variance));
             end
-            s02 = mean(abs(this.res).*this.rw);
-            res_n = this.res/s02;
+            s0 = mean(abs(this.res).*this.rw);
+            res_n = this.res/s0;
             if nargin > 2
                 idx_rw = abs(res_n) > threshold;
             else
@@ -677,7 +705,7 @@ classdef Least_Squares_Manipulator < handle
             this.weightOnResidual(wfun, threshold);
         end
         %------------------------------------------------------------------------
-        function [x, res, s02, Cxx] = solve(this)
+        function [x, res, s0, Cxx] = solve(this)
             % if N_ep if empty call A
             if isempty(this.N_ep)
                 this.Astack2Nstack();
@@ -814,9 +842,9 @@ classdef Least_Squares_Manipulator < handle
                 x_res = zeros(size(x));
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
                 res = this.getResiduals(x_res);
-                s02 = mean(abs(res(res~=0)));
+                s0 = mean(abs(res(res~=0)));
                 if nargout > 3
-                    Cxx = s02 * Cxx;
+                    Cxx = s0 * Cxx;
                 end
             end
             x = [x, x_class];

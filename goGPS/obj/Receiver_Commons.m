@@ -59,8 +59,6 @@ classdef Receiver_Commons < handle
     properties (SetAccess = public, GetAccess = public)
         xyz            % position of the receiver (XYZ geocentric)
         enu            % position of the receiver (ENU local)
-        utm            % position of the receiver (UTM)
-        utm_zone       % UTM zone
         
         lat            % ellipsoidal latitude
         lon            % ellipsoidal longitude
@@ -136,8 +134,8 @@ classdef Receiver_Commons < handle
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.s0_ip =  Inf;
-            this.s0 =  Inf;
+            this.s0_ip =  [];
+            this.s0 =  [];
             this.hdop =  [];
             this.vdop =  [];
             this.tdop =  [];
@@ -228,7 +226,7 @@ classdef Receiver_Commons < handle
             id = round(this(1).time.length()/2);
             time = this(1).time.getEpoch(id);
         end
-                
+        
         function [rate] = getRate(this)
             % SYNTAX
             %   rate = this.getRate();
@@ -274,7 +272,7 @@ classdef Receiver_Commons < handle
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]�= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho] = this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -294,6 +292,23 @@ classdef Receiver_Commons < handle
             %   enu = this.getPosENU()
             xyz = this.getPosXYZ();
             [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+        end
+        
+        function [utm, utm_zone] = getPosUTM(this)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT
+            %   utm          utm coordinates
+            %   utm_zone     utm zone
+            %
+            % SYNTAX
+            %   [utm, utm_zone] = this.getPosUTM()
+            for i = 1:numel(this)
+                xyz = this(i).getMedianPosXYZ;
+                [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
+                utm = [EAST, NORTH, h];
+                utm_zone = utm_zone;
+            end
         end
         
         function enu = getBaselineENU(this, rec)
@@ -363,7 +378,6 @@ classdef Receiver_Commons < handle
                 h_ortho = [];
             end
         end
-    
         
         function ztd = getZtd(this)
             % get ztd
@@ -381,21 +395,24 @@ classdef Receiver_Commons < handle
             apr_zhd = this.apr_zhd(this.getIdSync);
         end
         
-         function zwd = getZwd(this)
+        function zwd = getZwd(this)
             % get zwd
             %
             % SYNTAX
             %   zwd = this.getZwd()
             zwd = this.zwd(this.getIdSync);
-         end
-         
-         function pwv = getPwv(this)
+            if isempty(zwd) || all(isnan(zero2nan(zwd)))
+                zwd = this.apr_zwd(this.getIdSync);
+            end
+        end
+        
+        function pwv = getPwv(this)
             % get pwv
             %
             % SYNTAX
             %   pwv = this.getPwv()
             pwv = this.pwv(this.getIdSync);
-         end
+        end
         
         function [gn ,ge, time] = getGradient(this)
             % SYNTAX
@@ -469,15 +486,6 @@ classdef Receiver_Commons < handle
         function updateCoordinates(this)
             % upadte lat lon e ortometric height
             [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
-        end
-        
-        function updateUTM(this)
-            for i = 1:numel(this)
-                xyz = this(i).getMedianPosXYZ;
-                [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
-                this(i).utm = [EAST, NORTH, h];
-                this(i).utm_zone = utm_zone;
-            end
         end
     end
     
@@ -632,53 +640,64 @@ classdef Receiver_Commons < handle
                 one_plot = false;
             end
             
-            rec = this;
-            if ~isempty(rec)
-                xyz = rec.getPosXYZ();
-                if size(rec, 1) > 1 || size(xyz, 1) > 1
-                    rec(1).log.addMessage('Plotting positions');
-                    xyz0 = rec.getMedianPosXYZ();
-                    enu0 = [];
-                    [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+            for r = 1 : numel(this)
+                rec = this(r);
+                if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    
-                    f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
-                    color_order = handle(gca).ColorOrder;
-                    
-                    t = rec.getCentralTime().getMatlabTime();
-                    t = [];
-                    xyz = rec.getPosXYZ();
-                    xyz0 = rec.getMedianPosXYZ();
-                    enu = [];
-                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-                    
-                    t = rec(s).getPositionTime().getMatlabTime();
-                    
-                    [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
-                    [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
-                    
-                    if ~one_plot, subplot(3,1,1); end
-                    plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
-                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    if ~one_plot, subplot(3,1,2); end
-                    plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    if ~one_plot, subplot(3,1,3); end
-                    plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
-                    grid on;
-                    if one_plot
-                        h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                    if size(rec, 1) > 1 || size(xyz, 1) > 1
+                        rec(1).log.addMessage('Plotting positions');
+                        xyz0 = rec.getMedianPosXYZ();
+                        enu0 = [];
+                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                        
+                        f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+                        
+                        xyz = rec.getPosXYZ();
+                        xyz0 = rec.getMedianPosXYZ();
+                        enu = [];
+                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                        
+                        t = rec.getPositionTime().getMatlabTime();
+                        
+                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
+                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+                        
+                        if ~one_plot, subplot(3,1,1); end
+                        plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        ax(3) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if ~one_plot, subplot(3,1,2); end
+                        plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        ax(2) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if ~one_plot, subplot(3,1,3); end
+                        plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if one_plot
+                            h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                        else
+                            linkaxes(ax, 'x');
+                        end
+                        grid on;
+                        
                     else
-                        linkaxes(ax, 'x');
+                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                     end
-                    grid on;
-                    
-                else
-                    rec(1).log.addMessage('Plotting a single point static position is not yet supported');
                 end
             end
         end
@@ -1263,18 +1282,17 @@ classdef Receiver_Commons < handle
                 
                 switch lower(par_name)
                     case 'ztd'
-                        [tropo, t] = rec_list.getZtd();
+                        tropo = rec_list.getZtd();
                     case 'zwd'
-                        [tropo, t] = rec_list.getZwd();
+                        tropo = rec_list.getZwd();
                     case 'pwv'
-                        [tropo, t] = rec_list.getPwv();
+                        tropo = rec_list.getPwv();
                     case 'zhd'
-                        [tropo, t] = rec_list.getAprZhd();
+                        tropo = rec_list.getAprZhd();
                 end
                 
                 if ~iscell(tropo)
                     tropo = {tropo};
-                    t = {t};
                 end
                 if isempty(tropo)
                     rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
@@ -1289,15 +1307,16 @@ classdef Receiver_Commons < handle
                     for r = 1 : size(rec_list, 2)
                         rec = rec_list(~rec_list(:,r).isEmpty, r);
                         if ~isempty(rec)
+                            t = rec.getTime();
                             switch lower(par_name)
                                 case 'ztd'
-                                    [tropo, t] = rec.getZtd();
+                                    tropo = rec.getZtd();
                                 case 'zwd'
-                                    [tropo, t] = rec.getZwd();
+                                    tropo = rec.getZwd();
                                 case 'pwv'
-                                    [tropo, t] = rec.getPwv();
+                                    tropo= rec.getPwv();
                                 case 'zhd'
-                                    [tropo, t] = rec.getAprZhd();
+                                    tropo = rec.getAprZhd();
                             end
                             if new_fig
                                 plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;

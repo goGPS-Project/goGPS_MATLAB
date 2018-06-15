@@ -511,7 +511,7 @@ classdef Command_Interpreter < handle
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
-                    if rec(r).isEmpty
+                    if rec(r).work.isEmpty
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
                             state.cc.setActive(sys_list);
@@ -519,9 +519,9 @@ classdef Command_Interpreter < handle
                         rec(r).load();
                     end
                     if sys_found
-                        rec(r).preProcessing(sys_list);
+                        rec(r).work.preProcessing(sys_list);
                     else
-                        rec(r).preProcessing();
+                        rec(r).work.preProcessing();
                     end
                 end
             end
@@ -605,12 +605,12 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    if rec(r).isStatic
+                    if rec(r).work.isStatic
                         this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
                         if sys_found
-                            rec(r).staticPPP(sys_list);
+                            rec(r).work.staticPPP(sys_list);
                         else
-                            rec(r).staticPPP();
+                            rec(r).work.staticPPP();
                         end
                     else
                         this.log.addError('PPP for moving receiver not yet implemented :-(');
