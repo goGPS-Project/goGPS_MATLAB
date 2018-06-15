@@ -511,7 +511,7 @@ classdef Receiver_Commons < handle
                         snx_wrt.writeAcknoledgments()
                         smpl_tropo = median(diff(rec.id_sync)) * rec.time.getRate;
                         val_flags = {'TROTOT','TGNTOT','TGETOT'};
-                        snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, 'WET GMF',val_flags, false(3,1))
+                        snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_functions},val_flags, false(3,1))
                         snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
                         snx_wrt.writeTropoSolutionSt()
                         snx_wrt.writeTropoSolutionStation(  rec.parent.marker_name, rec.time.getSubSet(rec.id_sync), [rec.ztd(rec.id_sync,:) rec.tgn(rec.id_sync,:) rec.tge(rec.id_sync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})

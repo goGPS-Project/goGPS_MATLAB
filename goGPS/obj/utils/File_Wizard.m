@@ -517,6 +517,8 @@ classdef File_Wizard < handle
         end
         
         function conjureVmfFiles(this, date_start, date_stop)
+            date_stop = date_stop.getCopy();
+            %date_stop.addSeconds(6*3600);
             status = this.conjureResource('vmf',date_start, date_stop);
 
             if status

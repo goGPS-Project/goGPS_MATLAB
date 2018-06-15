@@ -292,7 +292,7 @@ classdef Atmosphere < handle
             %   initVMF(this, dsa, dso)
             dso = dso.getCopy();
             dsa = dsa.getCopy();
-            dso.addSeconds(6*3600);
+            %dso.addSeconds(6*3600);
             fname = this.state.getVMFFileName( dsa, dso);
             % import the coefficeints files
             for i = 1 : length(fname)
