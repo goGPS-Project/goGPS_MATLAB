@@ -167,6 +167,7 @@ classdef Atmosphere < handle
     methods
         function importIonex(this, file_name)
             % import IONEX file
+            % if the files data overlaps or touch the present data in the object the new data are appended to the old one, otherwise the old data re discarded
             %
             % SYNTAX
             %   importIonex(this, file_name)
@@ -293,6 +294,7 @@ classdef Atmosphere < handle
             dsa = dsa.getCopy();
             dso.addSeconds(6*3600);
             fname = this.state.getVMFFileName( dsa, dso);
+            % import the coefficeints files
             for i = 1 : length(fname)
                 this.importVMFCoeffFile(fname{i});
             end
@@ -335,16 +337,16 @@ classdef Atmosphere < handle
             file_ref_ep = GPS_Time([year month day hour 0 0]);
             isempty_obj = isempty(this.atm_load_nt.data_u);
             if not(isempty_obj) && (file_ref_ep >= this.atm_load_nt.first_time) && (file_ref_ep - this.atm_load_nt.first_time) < this.atm_load_nt.dt *  this.atm_load_nt.n_t
-                %% file is contained in the data already
+                % file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
             else
                 if not(isempty_obj) && ((file_ref_ep - this.atm_load_nt.first_time) > (this.atm_load_nt.dt *  this.atm_load_nt.n_t +3600*6) || (file_ref_ep - this.atm_load_nt.first_time) < (-3600*6))
-                    %% file too far away emptying the object
+                    % file too far away emptying the object
                     this.log.addMessage(this.log.indent('File too far away, emptying old atmospheric pressure loading'));
                     this.clearAtmLoad();
                     isempty_obj = true;
                 end
-                %% find number of header lines
+                % find number of header lines
                 n_head = 0;
 %                 fid = fopen(filename);
                 tline = fgetl(fid);
@@ -411,16 +413,16 @@ classdef Atmosphere < handle
             file_ref_ep = GPS_Time([year month day hour 0 0]);
             isempty_obj = isempty(this.vmf_coeff.ah);
             if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
-                %% file is contained in the data already
+                % file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
             else
                 if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
-                    %% file too far away emptying the object
+                    % file too far away emptying the object
                     this.log.addMessage(this.log.indent('File too far away, emptying old vmf coefficients'));
                     this.clearVMF();
                     isempty_obj = true;
                 end
-                %% find number of header lines
+                % find number of header lines
                 n_head = 0;
 %                 fid = fopen(filename);
                 tline = fgetl(fid);
@@ -543,9 +545,11 @@ classdef Atmosphere < handle
             % SYNTAX
             %   [corrxyz] = getNTAtmLoadCorr(this, lat, lon, h_ellips, time)
             gps_time = time.getGpsTime();
+            % interpolate the values from the downloaded grids
             up = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_u, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
             east = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_e, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
             north = Core_Utils.linInterpLatLonTime(this.atm_load_nt.data_n, this.atm_load_nt.first_lat, this.atm_load_nt.d_lat, this.atm_load_nt.first_lon, this.atm_load_nt.d_lon, this.atm_load_nt.first_time_double, this.atm_load_nt.dt, lat, lon,gps_time);
+            % pass from north east up to cartesian coordinates
             [x,y,z] = geod2cart(lat, lon, h_ellips);
             [corrxyz] = local2globalVel([east north up]', repmat([x,y,z]',1,length(east)));
             corrxyz = corrxyz';
@@ -556,11 +560,15 @@ classdef Atmosphere < handle
             %
             % SYNTAX
             %   [corrxyz] = getTAtmLoadCorr(this, lat, lon, h_ellips, time)
+            
+            %get the harmonics
             [harm_r, harm_e, harm_n] = getAtmLoadHarm(this, lat,lon);
             T = mod(time.getMJD, 1)*2*pi;
+            % convert the displcaement from local to cartesian coordinates
             [x,y,z] = geod2cart(lat, lon, h_ellips);
             [harm_xyz] = local2globalVel([harm_n harm_e harm_r]', repmat([x,y,z]',1,length(harm_e)));
             harm_xyz = harm_xyz';
+            % compute the displacents using diurnal semidiurnal and terdiurnal componenent
             corrx = harm_xyz(1,1)*sin(T) + harm_xyz(2,1)*cos(T) + harm_xyz(3,1)*sin(2*T) + harm_xyz(4,1)*cos(2*T) + harm_xyz(5,1)*sin(3*T) + harm_xyz(6,1)*cos(3*T);
             corry = harm_xyz(1,2)*sin(T) + harm_xyz(2,2)*cos(T) + harm_xyz(3,2)*sin(2*T) + harm_xyz(4,2)*cos(2*T) + harm_xyz(5,2)*sin(3*T) + harm_xyz(6,2)*cos(3*T);
             corrz = harm_xyz(1,3)*sin(T) + harm_xyz(2,3)*cos(T) + harm_xyz(3,3)*sin(2*T) + harm_xyz(4,3)*cos(2*T) + harm_xyz(5,3)*sin(3*T) + harm_xyz(6,3)*cos(3*T);
@@ -581,23 +589,42 @@ classdef Atmosphere < handle
             if isempty(this.atm_load_t.harmonics)
                 this.importTidalAtmLoadHarmonics();
             end
+            % Interpolate the harmonics at the receiver position
+            % sine diurnal radial componenet
             S1SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,1), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine diurnal radial componenet
             S1CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,2), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine semi-diurnal radial componenet
             S2SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,3), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine semi-diurnal radial componenet
             S2CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,4), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine ter-diurnal radial componenet
             S3SR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,5), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine ter-diurnal radial componenet
             S3CR = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,6), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine diurnal east componenet
             S1SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,7), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine diurnal east componenet
             S1CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,8), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine semi-diurnal east componenet
             S2SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,9), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine semi-diurnal east componenet
             S2CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,10), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine ter-diurnal east componenet
             S3SE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,11), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine ter-diurnal east componenet
             S3CE = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,12), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine diurnal north componenet
             S1SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,13), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine diurnal north componenet
             S1CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,14), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine semi-diurnal north componenet
             S2SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,15), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine semi-diurnal north componenet
             S2CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,16), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % sine ter-diurnal north componenet
             S3SN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,17), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
+            % cosine ter-diurnal north componenet
             S3CN = Core_Utils.linInterpLatLonTime(this.atm_load_t.harmonics(:,:,18), this.atm_load_t.first_lat, this.atm_load_t.d_lat, this.atm_load_t.first_lon, this.atm_load_t.d_lon, this.atm_load_t.first_time_double, this.atm_load_t.dt, lat, lon,0);
             
             harm_r = [S1SR S1CR S2SR S2CR S3SR S3CR]';
@@ -615,6 +642,10 @@ classdef Atmosphere < handle
         end
         
         function [ it, st, ilons, ilone, slon, ilat, slat] = getVMFIndex(this, gps_time, lat, lon)
+            % get the index of the elements of the vmf to be used in the trilinear interpolation
+            %
+            % SYNTAX
+            %    [ it, st, ilons, ilone, slon, ilat, slat] = his.tgetVMFIndex(gps_time, lat, lon)
             [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdx(this.vmf_coeff.ah, this.vmf_coeff.first_lat, this.vmf_coeff.d_lat, this.vmf_coeff.first_lon, this.vmf_coeff.d_lon, this.vmf_coeff.first_time_double, this.vmf_coeff.dt, lat, lon,gps_time);
         end
         
@@ -651,24 +682,27 @@ classdef Atmosphere < handle
             else
                 % get the index of the interpolating points
                 [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(gps_time, lat, lon);
+                % time t
                 zhd_calc_1 = this.vmf_coeff.zhd([ilat ilat+1], [ilons ilone],it);
+                % time t +1
                 zhd_calc_2 = this.vmf_coeff.zhd([ilat ilat+1], [ilons ilone],it+1);
                 h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
                 % compute the mapping function and the heoght correction for all the inteprolating points
                 par1 = 1 - 0.00266 * cos(2*lat/180*pi);
                 par2 = 0.28 * 10^-6 ;
+                % time t
                 zhd_calc_1(1,1,:) = zhd_calc_1(1,1,:) * (par1 -par2*h_calc(1,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,1))).^5.225;
                 zhd_calc_1(1,2,:) = zhd_calc_1(1,2,:) * (par1 -par2*h_calc(1,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,2))).^5.225;
                 zhd_calc_1(2,1,:) = zhd_calc_1(2,1,:) * (par1 -par2*h_calc(2,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,1))).^5.225;
                 zhd_calc_1(2,2,:) = zhd_calc_1(2,2,:) * (par1 -par2*h_calc(2,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,2))).^5.225;
-                
+                % time t+1
                 zhd_calc_2(1,1,:) = zhd_calc_2(1,1,:) * (par1 -par2*h_calc(1,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,1))).^5.225;
                 zhd_calc_2(1,2,:) = zhd_calc_2(1,2,:) * (par1 -par2*h_calc(1,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(1,2))).^5.225;
                 zhd_calc_2(2,1,:) = zhd_calc_2(2,1,:) * (par1 -par2*h_calc(2,1))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,1))).^5.225;
                 zhd_calc_2(2,2,:) = zhd_calc_2(2,2,:) * (par1 -par2*h_calc(2,2))/(par1 -par2*h_ell_sta) * (1 - 0.0000226 .* (h_ell_sta - h_calc(2,2))).^5.225;
                 
                 
-                %interpolate
+                %interpolate along lon
                 valbu = zhd_calc_1(1,1,:).*(1-slon) + zhd_calc_1(1,2,:).*slon;
                 valau = zhd_calc_2(1,1,:).*(1-slon) + zhd_calc_2(1,2,:).*slon;
                 valbd = zhd_calc_1(2,1,:)*(1-slon) + zhd_calc_1(2,2,:).*slon;
@@ -726,7 +760,7 @@ classdef Atmosphere < handle
                 zwd_calc_2(2,2,:) = zwd_calc_2(2,2,:) * exp(-(h_ell_sta - h_calc(2,2))/2000);
                 
                 
-                %interpolate
+                %interpolate along lon
                 valbu = zwd_calc_1(1,1,:).*(1-slon) + zwd_calc_1(1,2,:).*slon;
                 valau = zwd_calc_2(1,1,:).*(1-slon) + zwd_calc_2(1,2,:).*slon;
                 valbd = zwd_calc_1(2,1,:)*(1-slon) + zwd_calc_1(2,2,:).*slon;
@@ -753,7 +787,7 @@ classdef Atmosphere < handle
         end
         
         function tec = interpolateTEC(this, gps_time, lat, lon)
-            %interpolate total elecro content
+            %interpolate total elecron content
             %
             % SYNTAX
             %   tec = interpolateTEC(this, gps_time, lat, lon)
@@ -807,7 +841,8 @@ classdef Atmosphere < handle
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
-            % get High order ionophere delays -- Return phase group
+            
+            
             hoi_delay2_coeff = zeros(size(el));
             hoi_delay3_coeff = zeros(size(el));
             bending_coeff = zeros(size(el));
@@ -1560,6 +1595,7 @@ classdef Atmosphere < handle
                 [gmfw_22_2] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_2(2,2,:)),1,n_sat),bw,cw,el);
                 
                 
+                % copute the height correction for the mapping function with the height of the four points see [3]
                 [ht_corr_11] = this.hydrostaticMFHeigthCorrection(h_calc(1,1),el);
                 [ht_corr_12] = this.hydrostaticMFHeigthCorrection(h_calc(1,2),el);
                 [ht_corr_21] = this.hydrostaticMFHeigthCorrection(h_calc(2,1),el);
@@ -1574,7 +1610,7 @@ classdef Atmosphere < handle
                 gmfh_12_2 = gmfh_12_2 + ht_corr_12;
                 gmfh_21_2 = gmfh_21_2 + ht_corr_21;
                 gmfh_22_2 = gmfh_22_2 + ht_corr_22;
-                %interpolate
+                %interpolate along lon
                 valbu = gmfh_11_1.*(1-slon) + gmfh_12_1.*slon;
                 valau = gmfh_11_2.*(1-slon) + gmfh_12_2.*slon;
                 valbd = gmfh_21_1.*(1-slon) + gmfh_22_1.*slon;
@@ -1587,7 +1623,7 @@ classdef Atmosphere < handle
                 %interpolate along time
                 gmfh = valb.*repmat((1-st),1,n_sat) + vala.*repmat(st,1,n_sat);
                 
-                %interpolate
+                %interpolate along lon
                 valbu = gmfw_11_1.*(1-slon) + gmfw_12_1.*slon;
                 valau = gmfw_11_2.*(1-slon) + gmfw_12_2.*slon;
                 valbd = gmfw_21_1.*(1-slon) + gmfw_22_1.*slon;
@@ -1615,6 +1651,8 @@ classdef Atmosphere < handle
             %
             % OUTPUT
             %   iono_mf             iono mapping function
+            % SOURCES
+            %   [1] Handbook of Global Navigation Satellite System (2017)
             %
             % SYNTAX
             %   [iono_mf] = getIonoMF(lat_rad, h_ortho, el_rad, rcm)
@@ -1633,7 +1671,7 @@ classdef Atmosphere < handle
             id_ok = el_rad > 0 & ~isnan(el_rad);
             k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height)) * cos(el_rad(id_ok));
             iono_mf = nan(size(el_rad));
-            iono_mf(id_ok) = (1-(k).^2).^(-1/2);
+            iono_mf(id_ok) = (1-(k).^2).^(-1/2); % formula 6.99 in [1]
         end
     end
     
