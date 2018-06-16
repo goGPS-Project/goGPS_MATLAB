@@ -670,9 +670,9 @@ classdef GNSS_Station < handle
             %   this.plotDt
             
             for r = 1 : size(this, 2)
-                rec = this(~this(:,r).isempty, r);
+                rec = this(r);
                 if ~isempty(rec)
-                    rec.work.showDt();
+                    rec.out.showDt();
                 end                
             end
         end

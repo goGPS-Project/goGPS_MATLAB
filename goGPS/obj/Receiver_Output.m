@@ -153,6 +153,10 @@ classdef Receiver_Output < Receiver_Commons
             time = this(1).time.getCopy();
         end
         
+        function desync = getDesync(this)
+            desync = this.desync;
+        end        
+        
         function time = getPositionTime(this)
             % return the time of the computed positions
             %
@@ -250,6 +254,7 @@ classdef Receiver_Output < Receiver_Commons
             end
             %%% inject data
             this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+            this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
             this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
             this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
             this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
@@ -259,9 +264,9 @@ classdef Receiver_Output < Receiver_Commons
             [gn, ge]     = rec_work.getGradient();
             this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
             this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
-            [p, t, h]  = rec_work.getPTH(true);
+            [p, t, h]    = rec_work.getPTH(true);
             this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
-            this.temperature     = Core_Utils.injectData(this.temperature, t, idx1, idx2);
+            this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
             this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
             [az, el]   = rec_work.getAzEl();
             this.sat.az     = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
@@ -327,22 +332,21 @@ classdef Receiver_Output < Receiver_Commons
             if ~isempty(rec)
                 f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                 t = rec.time.getMatlabTime();
-                nans = zero2nan(double(~rec.getMissingEpochs()));
-                plot(t, rec.getDesync .* nans, '-k', 'LineWidth', 2);
+                plot(t, rec.getDesync, '-k', 'LineWidth', 2);
                 hold on;
-                plot(t, rec.getDtPr .* nans, ':', 'LineWidth', 2);
-                plot(t, rec.getDtPh .* nans, ':', 'LineWidth', 2);
-                plot(t, (rec.getDtIP - rec.getDtPr) .* nans, '-', 'LineWidth', 2);
+                plot(t, (rec.getDtIP), '-', 'LineWidth', 2);
                 if any(rec.getDt)
-                    plot(t, rec.getDt .* nans, '-', 'LineWidth', 2);
-                    plot(t, rec.getTotalDt .* nans, '-', 'LineWidth', 2);
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
+                    plot(t, rec.getDt, '-', 'LineWidth', 2);
+                    plot(t, rec.getTotalDt, '-', 'LineWidth', 2);
+                    legend('desync time', 'dt correction from LS on Code', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
                 else
-                    legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
+                    legend('desync time', 'dt correction from LS on Code', 'Location', 'NorthEastOutside');
                 end
                 xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
-                h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end        
+        
+        
     end
 end

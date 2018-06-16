@@ -72,6 +72,7 @@ classdef Receiver_Commons < handle
     
     properties (SetAccess = public, GetAccess = public)
         time           % internal time ref of the stored epochs
+        desync         % receiver clock desync (difference between nominal time and the time of the observation)
         dt_ip          % clock error correction estimated during init positioning
         dt             % reference clock error of the receiver [n_epochs x num_obs_code]
     end
@@ -213,7 +214,7 @@ classdef Receiver_Commons < handle
         function dt_ip = getDtIP(this)
             dt_ip = this.dt_ip;
         end
-        
+               
         % time
         function time = getCentralTime(this)
             % return the central epoch time stored in the a receiver
