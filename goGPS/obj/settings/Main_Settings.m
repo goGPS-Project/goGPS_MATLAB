@@ -346,7 +346,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         crx_name = Main_Settings.CRX_NAME;
         % Path to DCB folder containing files of Differential Code Biases
         dcb_dir = Main_Settings.DCB_DIR;
-        dcb_name = []; %setted in File_Wizard.ConjureDCB
+        dcb_name = []; % setted in File_Wizard.ConjureDCB
         % Path to EMS folder containing files of EGNOS Message Server.
         ems_dir = Main_Settings.EMS_DIR;
 

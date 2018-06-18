@@ -682,17 +682,17 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showPositionXYZ(this, one_plot)
+        function showPositionXYZ(sta_list, one_plot)
             % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionXYZ();
             if nargin == 1
-                one_plot = true;
+                one_plot = false;
             end
             
-            for r = 1 : size(this,2)
-                rec = this(~this(:,r).isempty, r);
+            for r = 1 : size(sta_list,2)
+                rec = sta_list(~sta_list(r).isEmpty, r);
                 if ~isempty(rec)
-                    this.out.showPositionXYZ(one_plot);
+                    sta_list.out.showPositionXYZ(one_plot);
                 end
             end
         end
@@ -766,19 +766,19 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showZtdSlant(this, time_start, time_stop)
-            %if isempty(this(1).ztd) || ~any(this(1).sat.slant_td(:))
-            %    this(1).log.addWarning('ZTD and/or slants have not been computed');
-            %else
-            for r = 1 : size(this, 2)
-                rec = this(~this(:,r).isempty, r);
+        function showZtdSlant(sta_list, time_start, time_stop)
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(~sta_list(r).isEmpty, r);
                 if isempty(rec)
-                    this(1).log.addWarning('ZTD and/or slants have not been computed');
-                else                    
-                    this.out.showZtdSlant(time_start, time_stop);
+                    rec.log.addWarning('ZTD and/or slants have not been computed');
+                else
+                    if nargin < 3
+                        rec.out.showZtdSlant();
+                    else
+                        rec.out.showZtdSlant(time_start, time_stop);
+                    end
                 end
             end
-            %end
         end
         
         function showTropoPar(sta_list, par_name, new_fig)
