@@ -1,7 +1,7 @@
 %   CLASS Receiver
 % =========================================================================
 %
-% 
+%
 %   Class to store receiver data (observations, and characteristics
 %
 % EXAMPLE
@@ -254,7 +254,7 @@ classdef Receiver < Exportable
             end
             this.w_bar = Go_Wait_Bar.getInstance();
             if nargin >= 2 && ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
-                this.rinex_file_name = rinex_file_name;                
+                this.rinex_file_name = rinex_file_name;
             else
                 this.rinex_file_name = '';
             end
@@ -272,9 +272,9 @@ classdef Receiver < Exportable
             % SYNTAX
             %   this.load();
             
-            if ~isempty(this.rinex_file_name)            
+            if ~isempty(this.rinex_file_name)
                 this.importRinex(this.rinex_file_name);
-                this.importAntModel();       
+                this.importAntModel();
             end
             rf = Core_Reference_Frame.getInstance();
             coo = rf.getCoo(this.getMarkerName4Ch, this.getCentralTime);
@@ -696,10 +696,10 @@ classdef Receiver < Exportable
                 [~, idx] = intersect(this.go_id, go_id);
                 this.remObs(idx);
             end
-        end        
+        end
         
         function remBadPrObs(this, thr)
-            % remove bad pseudo-ranges 
+            % remove bad pseudo-ranges
             % and isolated observations
             %
             % INPUT
@@ -810,7 +810,7 @@ classdef Receiver < Exportable
                     end
                 end
                 
-                % removing near empty clock -> think a better solution 
+                % removing near empty clock -> think a better solution
                 dnanclock = diff(nan_clock(:,s));
                 st_idx = find(dnanclock == 1);
                 end_idx = find(dnanclock == -1);
@@ -853,7 +853,7 @@ classdef Receiver < Exportable
         
         function remUnderSnrThr(this, snr_thr)
             % removes observations with an SNR smaller than snr_thr
-            % 
+            %
             % SYNTAX
             %   this.remUnderSnrThr(snr_thr)
             
@@ -879,7 +879,7 @@ classdef Receiver < Exportable
         
         function remUnderCutOff(this, cut_off)
             % removes observations with an elevation lower than cut_off
-            % 
+            %
             % SYNTAX
             %   this.remUnderCutOff(cut_off)
             if nargin == 1
@@ -979,7 +979,7 @@ classdef Receiver < Exportable
             
             %----------------------------
             % Outlier Detection
-            %----------------------------            
+            %----------------------------
             
             % mark all as outlier and interpolate
             % get observed values
@@ -1318,7 +1318,7 @@ classdef Receiver < Exportable
                 % importing header informations
                 eoh = this.file.eoh;
                 this.parseRinHead(txt, lim, eoh);
-                                
+                
                 if (this.rin_type < 3)
                     % considering rinex 2
                     this.parseRin2Data(txt, lim, eoh);
@@ -1928,7 +1928,7 @@ classdef Receiver < Exportable
             bds_prn(bds_prn > this.cc.bds.N_SAT(1)) = [];
             irn_prn(irn_prn > this.cc.irn.N_SAT(1)) = [];
             sbs_prn(sbs_prn > this.cc.sbs.N_SAT(1)) = [];
-
+            
             
             prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
             
@@ -1971,31 +1971,31 @@ classdef Receiver < Exportable
                 
                 prn_ss = repmat(prn.(sys)', n_code, 1);
                 % discarding staellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
-                    this.prn = [this.prn; prn_ss];
-                    this.obs_code = [this.obs_code; obs_code];
-                    this.n_sat = this.n_sat + n_sat;
-                    this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
-                    
-                    f_id = obs_code(:,2);
-                    ss = this.cc.getSys(sys);
-                    [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
-                    
-                    ismember(this.system, this.cc.SYS_C);
-                    this.f_id = [this.f_id; f_id];
-                    
-                    if sys == 'R'
-                        wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
-                        wl(prn_ss > ss.N_SAT) = NaN;
-                        wl(f_id == 0) = NaN;
-                    else
-                        wl = ss.L_VEC(max(1, f_id))';
-                        wl(f_id == 0) = NaN;
-                    end
-                    if sum(f_id == 0)
-                        [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
-                        this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
-                    end
-                    this.wl = [this.wl; wl];
+                this.prn = [this.prn; prn_ss];
+                this.obs_code = [this.obs_code; obs_code];
+                this.n_sat = this.n_sat + n_sat;
+                this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
+                
+                f_id = obs_code(:,2);
+                ss = this.cc.getSys(sys);
+                [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
+                
+                ismember(this.system, this.cc.SYS_C);
+                this.f_id = [this.f_id; f_id];
+                
+                if sys == 'R'
+                    wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                    wl(prn_ss > ss.N_SAT) = NaN;
+                    wl(f_id == 0) = NaN;
+                else
+                    wl = ss.L_VEC(max(1, f_id))';
+                    wl(f_id == 0) = NaN;
+                end
+                if sum(f_id == 0)
+                    [~, id] = unique(double(obs_code(f_id == 0, :)) * [1 10 100]');
+                    this.log.addWarning(sprintf('These codes for the %s are not recognized, ignoring data: %s', ss.SYS_EXT_NAME, sprintf('%c%c%c ', obs_code(id, :)')));
+                end
+                this.wl = [this.wl; wl];
             end
             
             this.w_bar.createNewBar(' Parsing epochs...');
@@ -2104,14 +2104,14 @@ classdef Receiver < Exportable
             % case unsensitive
             %
             % SYNTAX
-            %   req_rec = rec_list.get(marker_name) 
+            %   req_rec = rec_list.get(marker_name)
             req_rec = [];
             for r = 1 : size(rec_list,2)
                 rec = rec_list(~rec_list(:,r).isEmpty_mr ,r);
                 if strcmpi(rec(1).getMarkerName, marker_name)
                     req_rec = [req_rec rec_list(:,r)]; %#ok<AGROW>
                 end
-            end                
+            end
         end
         
         function marker_name = getMarkerName(this)
@@ -2126,11 +2126,11 @@ classdef Receiver < Exportable
         end
         
         function marker_name = getMarkerName4Ch(this)
-            % Get the Marker name as specified in the file name 
+            % Get the Marker name as specified in the file name
             % (first four characters)
             %
             % SYNTAX
-            %   marker_name = getMarkerName(this)            
+            %   marker_name = getMarkerName(this)
             marker_name = File_Name_Processor.getFileName(this.rinex_file_name);
             marker_name = marker_name(1 : min(4, length(marker_name)));
         end
@@ -2149,7 +2149,7 @@ classdef Receiver < Exportable
             [year, doy] = this.getCentralTime.getDOY();
             out_prefix = sprintf('%s_%04d_%03d_', this.getMarkerName4Ch, year, doy);
         end
-                
+        
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
             %
@@ -2225,7 +2225,7 @@ classdef Receiver < Exportable
         function n_sat = getNumSat(this, sys_c)
             % get the number of satellites stored in the object
             %
-            % SYNTAX 
+            % SYNTAX
             %   n_sat = getNumSat(<sys_c>)
             if nargin == 2
                 n_sat = numel(unique(this.go_id( (this.system == sys_c)' & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L') )));
@@ -2237,7 +2237,7 @@ classdef Receiver < Exportable
         function n_sat = getMaxSat(this, sys_c)
             % get the number of satellites stored in the object
             %
-            % SYNTAX 
+            % SYNTAX
             %   n_sat = getNumSat(<sys_c>)
             n_sat = zeros(size(this));
             
@@ -2288,7 +2288,7 @@ classdef Receiver < Exportable
                     prn(i) = this.prn(tmp_id);
                 end
             end
-        end        
+        end
         
         function go_id = getActiveGoIds(this)
             % return go_id present in the receiver of the active constellations
@@ -2396,8 +2396,7 @@ classdef Receiver < Exportable
                 end
             end
         end
-        
-        
+        ì
         function missing_epochs = getMissingEpochs(this)
             % return a logical array of missing (code) epochs
             %
@@ -2565,9 +2564,8 @@ classdef Receiver < Exportable
             %
             % SYNTAX
             %   enu = this.getPosENU()
-           enu = this.getPosENU() - rec.getPosENU();
+            enu = this.getPosENU() - rec.getPosENU();
         end
-        
         
         function xyz = getMedianPosXYZ_mr(this)
             % return the computed median position of the receiver
@@ -2598,7 +2596,7 @@ classdef Receiver < Exportable
             %   xyz = this.getMedianPosXYZ()
             
             xyz = this.getPosXYZ();
-            xyz = median(xyz, 1, 'omitnan');         
+            xyz = median(xyz, 1, 'omitnan');
         end
         
         function enu = getMedianPosENU(this)
@@ -2611,7 +2609,7 @@ classdef Receiver < Exportable
             %   enu = this.getMedianPosENU()
             
             enu = this.getPosENU();
-            enu = median(enu, 1, 'omitnan');         
+            enu = median(enu, 1, 'omitnan');
         end
         
         function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
@@ -2761,7 +2759,7 @@ classdef Receiver < Exportable
             %   time_tx = transmission time
             %   time_tx =
             %
-            % 
+            %
             %   Get Transmission time
             idx = this.sat.avail_index(:, sat) > 0;
             time_tx = this.time.getSubSet(idx);
@@ -2777,7 +2775,7 @@ classdef Receiver < Exportable
             % INPUT
             % OUTPUT
             %   time_of_travel   = time of travel
-            % 
+            %
             %   Compute the signal transmission time.
             time_of_travel = this.tot;
         end
@@ -2799,7 +2797,7 @@ classdef Receiver < Exportable
             %
             % OUTPUT
             %   dtS     = satellite clock errors
-            % 
+            %
             %   Compute the satellite clock error.
             if nargin < 2
                 dtS = zeros(size(this.sat.avail_index));
@@ -2824,7 +2822,7 @@ classdef Receiver < Exportable
             % XS_tx = satellite position computed at trasmission time
             % XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured
             % during time of travel
-            % 
+            %
             %   Compute satellite positions at transmission time and rotate them by the earth rotation
             %   occured during time of travel of the signal
             if nargin > 1
@@ -2850,7 +2848,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   XS_tx = satellite position computed at trasmission time
             %   XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured during time of travel
-            % 
+            %
             %   Compute satellite positions at transmission time and rotate them by the earth rotation
             %   occured during time of travel of the signal and subtract
             %   the postion term
@@ -2884,7 +2882,7 @@ classdef Receiver < Exportable
             %  sta : index of the satellite
             % OUTPUT
             % XS_tx = satellite position computed at trasmission time
-            % 
+            %
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
             %time_tx.addSeconds(); % rel clok neglegible
@@ -2931,8 +2929,8 @@ classdef Receiver < Exportable
             [lat, ~, ~, h_ortho] = this.getMedianPosGeodetic_mr();
             
             atmo = Atmosphere.getInstance();
-            [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);            
-        end        
+            [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);
+        end
         
         function [mfh, mfw] = getSlantMF(this, id_sync)
             % Get Mapping function for the satellite slant
@@ -2944,7 +2942,7 @@ classdef Receiver < Exportable
             % SYNTAX
             %   [mfh, mfw] = this.getSlantMF()
             
-
+            
             n_sat = this.getMaxSat;
             
             mfh = zeros(this.length, n_sat);
@@ -2957,7 +2955,7 @@ classdef Receiver < Exportable
             lat = median(lat);
             lon = median(lon);
             h_ortho = median(h_ortho);
-            if nargin == 1                
+            if nargin == 1
                 for s = 1 : numel(this)
                     if ~isempty(this(s))
                         if this(s).state.mapping_function == 2
@@ -3041,7 +3039,7 @@ classdef Receiver < Exportable
                     atmo = Atmosphere.getInstance();
                     this.updateCoordinates();
                     time = time.getGpsTime();
-                    if this.isStatic()                        
+                    if this.isStatic()
                         [P,T,undu] = atmo.gpt( time, this.lat/180*pi, this.lon/180*pi, this.h_ellips, this.h_ellips - this.h_ortho);
                         H = zeros(l,1);
                         H(:) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
@@ -3073,7 +3071,7 @@ classdef Receiver < Exportable
                             end
                         end
                     end
-                        
+                    
                     if any(isnan(H))
                         % Fall back to std values
                         H(isnan(H)) = atmo.STD_HUMI;% * exp(-0.0006396*this.h_ortho);
@@ -3101,7 +3099,7 @@ classdef Receiver < Exportable
             %update zhd
             if isempty(this.lat)
                 this.updateCoordinates()
-            end            
+            end
             switch this.state.zd_model
                 case 1 %% saastamoinen
                     if nargin < 2
@@ -3128,10 +3126,10 @@ classdef Receiver < Exportable
                         [P, T, H] = this.getPTH();
                     end
                     h = this.h_ortho;
-                    this.apr_zwd = Atmosphere.saast_wet(T,H,h); 
+                    this.apr_zwd = Atmosphere.saast_wet(T,H,h);
                 case 2 %% vmf gridded
                     atmo = Atmosphere.getInstance();
-                     this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
+                    this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
             
         end
@@ -3244,7 +3242,7 @@ classdef Receiver < Exportable
             % get the wavelength of a specific phase observation
             % SYNTAX wl = this.getWavelenght(id_ph)
             wl = this.wl(id_ph);
-        end               
+        end
         
         function obs_code = getAvailableObsCode(this)
             % Get all the obbservation codes stored into the receiver
@@ -3306,7 +3304,7 @@ classdef Receiver < Exportable
                 snr = [];
                 id_snr = [];
             else
-                if nargin < 3                    
+                if nargin < 3
                     id_snr = this.obs_code(:, 1) == 'S';
                 else
                     id_snr = this.obs_code(:, 1) == 'S' & this.obs_code(:, 2) == freq_c;
@@ -3672,7 +3670,7 @@ classdef Receiver < Exportable
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
-                        
+            
             [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
             [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
             
@@ -3701,7 +3699,7 @@ classdef Receiver < Exportable
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
-            coeff = [ifree.alpha2 ifree.alpha1]; 
+            coeff = [ifree.alpha2 ifree.alpha1];
             fun1 = @(wl1, wl2) 1;
             band = this.cc.getBand(sys_c, obs_type(2));
             fun2 = @(wl1, wl2) + coeff(band);
@@ -3711,17 +3709,17 @@ classdef Receiver < Exportable
             %%% tailored outlier detection
             sensor_ph = Core_Pre_Processing.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
             sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
-%             
-%             % subtract median (clock error)
-             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-% 
-%             
-%             % outlier when they exceed 0.5 cycle
+            %
+            %             % subtract median (clock error)
+            sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+            %
+            %
+            %             % outlier when they exceed 0.5 cycle
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
             obs_set.obs_code = repmat('GL1',length(obs_set.prn),1);
-        end        
+        end
         
         function [obs_set]  = getPrefMelWub(this, system)
             % get Preferred Iono free combination for the two selcted measurements
@@ -3818,7 +3816,7 @@ classdef Receiver < Exportable
             if nargin == 2
                 synt_ph = synt_ph(:, this.system(this.obs_code(:, 1) == 'L') == sys_c');
             end
-        end                        
+        end
         
         function synt_pr_obs = getSyntPrObs(this, sys_c)
             if nargin < 2
@@ -3963,7 +3961,7 @@ classdef Receiver < Exportable
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
                 zhd{r} = this(1, r).apr_zhd(this(1, r).getIdSync); %#ok<AGROW>
-
+                
                 for s = 2 : size(this, 1)
                     zhd_tmp = this(s, r).apr_zhd(this(s, r).getIdSync);
                     time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
@@ -4007,7 +4005,7 @@ classdef Receiver < Exportable
             if numel(zwd) == 1
                 zwd = zwd{1};
                 time = time{1};
-            end 
+            end
             
         end
         
@@ -4037,7 +4035,7 @@ classdef Receiver < Exportable
                 gn = gn{1};
                 ge = ge{1};
                 time = time{1};
-            end 
+            end
             
         end
         
@@ -4053,9 +4051,9 @@ classdef Receiver < Exportable
             n_sat = this.getMaxSat;
             sgnd = zeros(this.getNumEpochs, n_sat);
             sged = zeros(this.getNumEpochs, n_sat);
-            sgnd(id_sync,:) = repmat(gn,1,n_sat) .* mfw .* cotel .* cosaz; 
+            sgnd(id_sync,:) = repmat(gn,1,n_sat) .* mfw .* cotel .* cosaz;
             sged(id_sync,:) = repmat(ge,1,n_sat) .* mfw .* cotel .* sinaz;
-
+            
         end
         
         function [apr_zwd, time] = getAprZwd(this)
@@ -4079,7 +4077,7 @@ classdef Receiver < Exportable
             if numel(apr_zwd) == 1
                 apr_zwd = apr_zwd{1};
                 time = time{1};
-            end            
+            end
         end
         
         function [zwd, p_time] = getZwd_mr(this)
@@ -4132,7 +4130,7 @@ classdef Receiver < Exportable
                 t = t + this(r).length;
             end
             
-            if nargin == 2                
+            if nargin == 2
                 az = az_tmp(:, go_id);
             else
                 az = az_tmp;
@@ -4156,7 +4154,7 @@ classdef Receiver < Exportable
                 t = t + this(r).length;
             end
             
-            if nargin == 2                
+            if nargin == 2
                 el = el_tmp(:, go_id);
             else
                 el = el_tmp;
@@ -4176,7 +4174,6 @@ classdef Receiver < Exportable
                 end
             end
         end
-        
     end
     
     % ==================================================================================================================================================
@@ -4224,7 +4221,7 @@ classdef Receiver < Exportable
         function resetSynthPhases(this)
             % recompute synhtesised phases
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.resetSynthPhases()
             
             this.synt_ph = [];
@@ -4379,7 +4376,7 @@ classdef Receiver < Exportable
             % INPUT
             %
             % OUTPUT
-            % 
+            %
             %   Update the signal time of travel based on range observations.
             % NOTE: to have satellite orbits at, 1mm sysncrnonization time of
             % travel has to be know with a precision of ~100m
@@ -4416,12 +4413,12 @@ classdef Receiver < Exportable
         end
         
         function initAvailIndex(this, ep_ok)
-            % initialize the avaliability index 
-             this.sat.avail_index = false(this.time.length, this.getMaxSat);
-             this.updateAllAvailIndex();
-             if nargin == 2
-                 this.sat.avail_index(~ep_ok,:) = false;
-             end
+            % initialize the avaliability index
+            this.sat.avail_index = false(this.time.length, this.getMaxSat);
+            this.updateAllAvailIndex();
+            if nargin == 2
+                this.sat.avail_index(~ep_ok,:) = false;
+            end
         end
         
         function updateAvailIndex(this, obs, go_gps)
@@ -4432,7 +4429,7 @@ classdef Receiver < Exportable
         function updateAllAvailIndex(this)
             %  update avaliabilty of measurement on all
             % satellite based on all code and phase
-
+            
             for s = unique(this.go_id)'
                 obs_idx = this.go_id == s & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 if sum(obs_idx) > 0
@@ -4742,7 +4739,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   XS_r    = Satellite postions rotated by earth roattion occured
             %   during time of travel
-            % 
+            %
             %   Rotate the satellites position by the earth rotation
             %   occured during time of travel of the signal
             
@@ -4828,7 +4825,7 @@ classdef Receiver < Exportable
             end
             
             el = this.getEl;
-            slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZtd());            
+            slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZtd());
             
             % keep only valid data
             el = el(~isnan(zero2nan(slant_td)));
@@ -4870,12 +4867,12 @@ classdef Receiver < Exportable
             el = [el; zeinth_fill];
             slant_td = [slant_td; zeros(size(zeinth_fill))];
             
-            [~, ~, ~, mf] = splinerMat(el, slant_td, 1, 0, el_points); % Spline base 10 degrees            
+            [~, ~, ~, mf] = splinerMat(el, slant_td, 1, 0, el_points); % Spline base 10 degrees
             mf = mf + 1; % readding the removed bias
             if show_fig
                 plot(el_points, mf, '.','MarkerSize', 10);
             end
-        end        
+        end
         
         function [az, el] = computeAzimuthElevation(this, go_id)
             % Force computation of azimuth and elevation
@@ -4893,7 +4890,7 @@ classdef Receiver < Exportable
             % SYNTAX
             %   rate = this.getRate();
             rate = this.getTime.getRate;
-        end                
+        end
         
         function [az, el] = computeAzimuthElevationXS(this, XS, XR)
             % SYNTAX
@@ -4907,7 +4904,7 @@ classdef Receiver < Exportable
             % Az = Azimuths of satellite [n_epoch x 1]
             % El = Elevations of satellite [n_epoch x 1]
             % during time of travel
-            % 
+            %
             %   Compute Azimuth and elevation of the staellite
             n_epoch = size(XS,1);
             if nargin > 2
@@ -4972,29 +4969,29 @@ classdef Receiver < Exportable
                 this.log.addWarning('Height out of reasonable value for terrestrial postioning skipping tropo update')
                 return
             end
-           % get meteo data
-           
-           
-           % upadte the ztd zwd
-           this.updateAprTropo();
-           
-           zwd = this.getZwd;
-           apr_zhd = this.getAprZhd;
-           cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
-           cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
-           sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
-           [gn ,ge] = this.getGradient();
-           [mfh, mfw] = this.getSlantMF();
-           n_sat = this.getMaxSat;
-           if ~any(ge(:) ~= 0)
-               for g = go_id                   
-                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd;
-               end
-           else
-               for g = go_id  
-                   this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
-               end
-           end
+            % get meteo data
+            
+            
+            % upadte the ztd zwd
+            this.updateAprTropo();
+            
+            zwd = this.getZwd;
+            apr_zhd = this.getAprZhd;
+            cotel = zero2nan(cotd(this.sat.el(this.id_sync, :)));
+            cosaz = zero2nan(cosd(this.sat.az(this.id_sync, :)));
+            sinaz = zero2nan(sind(this.sat.az(this.id_sync, :)));
+            [gn ,ge] = this.getGradient();
+            [mfh, mfw] = this.getSlantMF();
+            n_sat = this.getMaxSat;
+            if ~any(ge(:) ~= 0)
+                for g = go_id
+                    this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd;
+                end
+            else
+                for g = go_id
+                    this.sat.err_tropo(this.id_sync,g) = mfh(:,g).*apr_zhd + mfw(:,g).*zwd + gn .* mfw(:,g) .* cotel(:,g) .* cosaz(:,g) + ge .* mfw(:,g) .* cotel(:,g) .* sinaz(:,g);
+                end
+            end
         end
         
         function updateErrIono(this, go_id, iono_model_override)
@@ -5005,12 +5002,12 @@ classdef Receiver < Exportable
             if nargin < 2
                 
                 go_id  = 1: this.getMaxSat();
-            end            
-          
+            end
+            
             if nargin < 3
                 iono_model_override = this.state.getIonoModel;
             end
-            this.updateCoordinates();       
+            this.updateCoordinates();
             switch iono_model_override
                 case 1 % no model
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
@@ -5018,7 +5015,7 @@ classdef Receiver < Exportable
                     if ~isempty(this.sat.cs.iono )
                         for s = go_id
                             idx = this.sat.avail_idx(:,s);
-                            [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());  
+                            [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
                             this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
                         end
                     else
@@ -5029,9 +5026,9 @@ classdef Receiver < Exportable
                     this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
         end
-
+        
         function applyIonoModel(this)
-            if this.iono_status == 0 
+            if this.iono_status == 0
                 this.log.addMarkedMessage('Applying Ionosphere model');
                 this.ionoModel(1);
                 this.iono_status = 1; % applied
@@ -5118,7 +5115,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
             %
-            % 
+            %
             %   Computation of the solid Earth tide displacement terms.
             if nargin < 2
                 sat  = 1 : this.getMaxSat();
@@ -5269,7 +5266,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   oceanloadcorr = ocean loading correction terms (along the satellite-receiver line-of-sight)
             %
-            % 
+            %
             %   Computation of the ocean loading displacement terms.
             % NOTES:
             %  Inefficent to compute them separate by staellites always call
@@ -5411,7 +5408,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   poletidecorr = pole tide correction terms (along the satellite-receiver line-of-sight)
             %
-            % 
+            %
             %   Computation of the pole tide displacement terms.
             
             if nargin < 2
@@ -5508,7 +5505,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %
             %
-            % 
+            %
             %   Computation of thigh order ionospheric effect
             
             this.updateCoordinates();
@@ -5522,8 +5519,8 @@ classdef Receiver < Exportable
         % -------------------------------------------------------
         
         function atmLoad(this,sgn)
-           %  add or subtract ocean loading from observations
-            al_corr = this.computeAtmLoading(); 
+            %  add or subtract ocean loading from observations
+            al_corr = this.computeAtmLoading();
             if isempty(al_corr)
                 this.log.addWarning('No ocean loading displacements matrix present for the receiver')
                 return
@@ -5570,7 +5567,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %
             %
-            % 
+            %
             %   Computation of atmopsheric loading
             
             if nargin < 2
@@ -5734,7 +5731,7 @@ classdef Receiver < Exportable
             % OUTPUT
             %   corr = relativistic range error correction term (Shapiro delay)
             %   dist = dist
-            % 
+            %
             %   Compute distance from satellite ot reciever considering
             %   (Shapiro delay) - copied from
             %   relativistic_range_error_correction.m
@@ -5814,7 +5811,7 @@ classdef Receiver < Exportable
                 end
                 
                 % Satellite PCV correction
-                if ~isempty(this.sat.cs.ant_pcv)                    
+                if ~isempty(this.sat.cs.ant_pcv)
                     % getting satellite reference frame for each epoch
                     [x, y, z] = this.sat.cs.getSatFixFrame(this.time);
                     sat_ok = unique(this.go_id)';
@@ -5881,12 +5878,12 @@ classdef Receiver < Exportable
             d_zen = (max_zen - min_zen)/(length(zen_pcv)-1);
             zen_float = (zen - min_zen)/d_zen + 1;
             if nargin < 4 || isempty(pcv.tablePCV_azi) % no azimuth change
-                pcv_val = pcv.tableNOAZI(:,:,idx); % extract the right frequency                
+                pcv_val = pcv.tableNOAZI(:,:,idx); % extract the right frequency
                 %pcv_delay = d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)';
                 
                 % Use polynomial interpolation to smooth PCV
-                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);                
-            else                                                
+                pcv_delay = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);
+            else
                 % find azimuth indexes
                 az_pcv = pcv.tablePCV_azi;
                 min_az = az_pcv(1);
@@ -5904,7 +5901,7 @@ classdef Receiver < Exportable
                     pcv_val = pcv.tablePCV(:,:,idx); % extract the right frequency
                     step = 0.25;
                     zen_interp = (((floor(min(zen)/step)*step) : step : (ceil(max(zen)/step)*step))' - min_zen)/d_zen + 1;
-
+                    
                     % Interpolate with a 7th degree polinomial in elevation
                     pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val', min(8,size(pcv_val, 2)), zen_interp);
                     
@@ -5937,7 +5934,7 @@ classdef Receiver < Exportable
                     pcv_delay = fun(zen, az);
                 elseif strcmp(method, 'lin')
                     
-                    % linear interpolation between consecutive values 
+                    % linear interpolation between consecutive values
                     % bad performance
                     %%
                     zen_idx = min(max(floor((zen - min_zen)/d_zen) + 1 , 1),length(zen_pcv) - 1);
@@ -5951,7 +5948,7 @@ classdef Receiver < Exportable
                     idx2 = sub2ind(size(pcv_val),az_idx+1,zen_idx+1);
                     pcv_delay1_rg = d_f_r_el .* pcv_val(idx1) + (1 - d_f_r_el) .* pcv_val(idx2);
                     %interpolate alogn azimtuh
-                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;                    
+                    pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
                 end
             end
         end
@@ -6022,7 +6019,7 @@ classdef Receiver < Exportable
             disable_dt_correction = true; % Skip to speed-up processing
             
             % computing nominal_time
-            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24; % start of day 
+            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24; % start of day
             rinex_time = this.time.getRefTime(nominal_time_zero); % seconds from start of day
             nominal_time = round(rinex_time / this.time.getRate) * this.time.getRate;
             ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
@@ -6071,7 +6068,7 @@ classdef Receiver < Exportable
                         time_desync = simpleFill1D(time_desync, all(isnan(pr), 2), 'nearest');
                         ddt = [0; diff(time_desync)];
                         ddrifting_pr = ddt - ddt_pr;
-%                         drifting_pr = cumsum(ddrifting_pr);
+                        %                         drifting_pr = cumsum(ddrifting_pr);
                         drifting_pr = time_desync - dt_pr_dj;
                         
                         % Linear interpolation of ddrifting
@@ -6190,7 +6187,7 @@ classdef Receiver < Exportable
                 if this.isStatic()
                     %this.initStaticPositioningOld(obs, prn, sys, flag)
                     s02 = this.initStaticPositioning();
-                else                    
+                else
                     s02 = this.initDynamicPositioning();
                 end
             end
@@ -6208,7 +6205,7 @@ classdef Receiver < Exportable
             %        comb_code --> Iono Free = I
             % OUTPUTt_glo11.
             %
-            % 
+            %
             %   Get positioning using code observables
             
             
@@ -6691,9 +6688,9 @@ classdef Receiver < Exportable
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-                this.removeShortArc(this.state.getMinArc);            
-
-                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>                
+                this.removeShortArc(this.state.getMinArc);
+                
+                s02 = this.initPositioning(sys_c); %#ok<*PROPLC>
                 if (min(s02) > this.S02_IP_THR)
                     this.log.addWarning(sprintf('Very BAD code solution => something is proably wrong (s02 = %.2f)', s02));
                 else
@@ -7029,7 +7026,7 @@ classdef Receiver < Exportable
             % take off wsb
             wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1);
             % get receiver wsb
-            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan'); 
+            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan');
             wl_cycle = wl_cycle - wsb_rec;
             keyboard
             % estimate narrow lane
@@ -7406,10 +7403,10 @@ classdef Receiver < Exportable
                 obs_type = this.getAvailableCode(sys(s));
                 % Set order CODE PHASE DOPPLER SNR
                 obs_type = obs_type([find(obs_type(:,1) == 'C') ...
-                                     find(obs_type(:,1) == 'L') ...
-                                     find(obs_type(:,1) == 'D') ...
-                                     find(obs_type(:,1) == 'S')], :);
-                                 
+                    find(obs_type(:,1) == 'L') ...
+                    find(obs_type(:,1) == 'D') ...
+                    find(obs_type(:,1) == 'S')], :);
+                
                 % if the code is unknown use 'the least important code' non empty as obs code
                 % relative to the band
                 for c = find(obs_type(:,3) == ' ')'
@@ -7417,7 +7414,7 @@ classdef Receiver < Exportable
                     band = (ss.CODE_RIN3_2BAND == obs_type(c,2));
                     code = ss.CODE_RIN3_DEFAULT_ATTRIB{band}(1);
                     obs_type(c, 3) = code;
-                end                 
+                end
                 n_type = length(obs_type);
                 n_line = ceil(n_type / 13);
                 tmp = char(32 * ones(n_line * 13, 4));
@@ -7472,7 +7469,7 @@ classdef Receiver < Exportable
                     find(obs_type(:,1) == 'L') ...
                     find(obs_type(:,1) == 'D') ...
                     find(obs_type(:,1) == 'S')], :);
-                                
+                
                 rin_obs_code.(ss) = Core_Utils.code3Char2Num(obs_type);
                 for t = 1 : numel(rin_obs_code.(ss))
                     obs_code(obs_code == rin_obs_code.(ss)(t)) = t;
@@ -7624,7 +7621,7 @@ classdef Receiver < Exportable
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     
-    methods (Access = public)        
+    methods (Access = public)
         function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
             if nargin < 5
                 cs_mat = [];
@@ -7632,7 +7629,7 @@ classdef Receiver < Exportable
             if nargin < 7
                 spline_base = (300 / this.getRate); % 5 min
             end
-            if nargin < 6 
+            if nargin < 6
                 method = 'spline';
             end
             if nargin < 8
@@ -7649,7 +7646,7 @@ classdef Receiver < Exportable
                     if max_gap > 0
                         lim = limMerge(lim, max_gap);
                     end
-
+                    
                     % remove small intervals
                     %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
                     for l = 1 : size(lim, 1)
@@ -7692,7 +7689,7 @@ classdef Receiver < Exportable
                 end
             end
         end
-    end    
+    end
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -7994,7 +7991,7 @@ classdef Receiver < Exportable
         function showDt(this)
             % Plot Clock error
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.plotDt
             
             for r = 1 : size(this, 2)
@@ -8018,45 +8015,45 @@ classdef Receiver < Exportable
                     end
                     xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                     h = title(sprintf('dt - receiver %s', rec.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                end                
+                end
             end
         end
         
         function f_handle = showSNR_p(this, sys_c_list, flag_smooth)
-           % Plot Signal to Noise Ration in a skyplot
-           % SYNTAX f_handles = this.plotSNR(sys_c)
-           
-           % SNRs
-           if nargin < 2 || isempty(sys_c_list)
-               sys_c_list = unique(this.system);
-           end
-           
-           idx_f = 0;
-           for sys_c = sys_c_list
-               for b = 1 : 9 % try all the bands
-                   [snr, snr_id] = this.getSNR(sys_c, num2str(b));
-                   if nargin > 2 && flag_smooth
-                       snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
-                   end
-
-                   if any(snr_id) && any(snr(:))                        
-                       idx_f = idx_f +1;
-                       f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                       f_handle(idx_f) = f;
-                       id_ok = (~isnan(snr));
-                       az = this.sat.az(:,this.go_id(snr_id));
-                       el = this.sat.el(:,this.go_id(snr_id));
-                       polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
-                       colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
-                       h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
-                   end
-               end
-           end
-           
-           if idx_f == 0
-               f_handle = [];
-           end           
-        end       
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX f_handles = this.plotSNR(sys_c)
+            
+            % SNRs
+            if nargin < 2 || isempty(sys_c_list)
+                sys_c_list = unique(this.system);
+            end
+            
+            idx_f = 0;
+            for sys_c = sys_c_list
+                for b = 1 : 9 % try all the bands
+                    [snr, snr_id] = this.getSNR(sys_c, num2str(b));
+                    if nargin > 2 && flag_smooth
+                        snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                    end
+                    
+                    if any(snr_id) && any(snr(:))
+                        idx_f = idx_f +1;
+                        f = figure; f.Name = sprintf('%03d: SNR%d %s', f.Number, b, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
+                        f_handle(idx_f) = f;
+                        id_ok = (~isnan(snr));
+                        az = this.sat.az(:,this.go_id(snr_id));
+                        el = this.sat.el(:,this.go_id(snr_id));
+                        polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 45, serialize(snr(id_ok)), 'filled');
+                        colormap(jet);  cax = caxis(); caxis([min(cax(1), 10), max(cax(2), 55)]); setColorMap([10 55], 0.9); colorbar();
+                        h = title(sprintf('SNR%d - receiver %s - %s', b, this.marker_name, this.cc.getSysExtName(sys_c)),'interpreter', 'none'); h.FontWeight = 'bold'; h.Units = 'pixels'; h.Position(2) = h.Position(2) + 20; h.Units = 'data';
+                    end
+                end
+            end
+            
+            if idx_f == 0
+                f_handle = [];
+            end
+        end
         
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
@@ -8083,7 +8080,7 @@ classdef Receiver < Exportable
                 plot(x(m), y(m), '.', 'Color', [0.4 0.4 0.4]); % sat in vew
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
-                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];                
+                y = cos(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];
                 cut_offed = decl_n(serialize(this.sat.az(:, this.go_id(ph_id))) ~= 0) > ((90 - this.state.getCutOff) / 90);
                 plot(x(cut_offed), y(cut_offed), '.', 'Color', [0.95 0.95 0.95]);
                 
@@ -8424,7 +8421,7 @@ classdef Receiver < Exportable
                 rec = this(~this(:,r).isempty, r);
                 if isempty(rec)
                     this(1).log.addWarning('ZTD and/or slants have not been computed');
-                else                    
+                else
                     f = figure; f.Name = sprintf('%03d: Ztd Slant %s', f.Number, rec(1).cc.sys_c); f.NumberTitle = 'off';
                     t = rec(:).getTime.getMatlabTime;
                     
@@ -8474,7 +8471,7 @@ classdef Receiver < Exportable
                         rec_ok(r) = any(~isnan(this(:,r).getPwv));
                     case 'zhd'
                         rec_ok(r) = any(~isnan(this(:,r).getAprZhd));
-                end               
+                end
             end
             rec_list = this(:, rec_ok);
             if numel(rec_list) == 0
@@ -8580,10 +8577,10 @@ classdef Receiver < Exportable
         end
         
         function showMedianTropoPar(this, par_name, new_fig)
-            % one function to rule them all            
+            % one function to rule them all
             rec_ok = false(size(this,2), 1);
             for r = 1 : size(this, 2)
-                rec_ok(r) = any(~isnan(this(:,r).getZtd)); 
+                rec_ok(r) = any(~isnan(this(:,r).getZtd));
             end
             rec_list = this(:, rec_ok);
             
@@ -8601,7 +8598,7 @@ classdef Receiver < Exportable
                 case 'zhd'
                     [tropo] = rec_list.getAprZhd();
             end
-                    
+            
             if ~iscell(tropo)
                 tropo = {tropo};
             end
@@ -8655,7 +8652,7 @@ classdef Receiver < Exportable
                 h = title(['Median Receiver ' par_name]); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
         end
-
+        
         function showMedianZhd(this, new_fig)
             if nargin == 1
                 new_fig = true;
@@ -8683,7 +8680,7 @@ classdef Receiver < Exportable
             end
             this.showMedianTropoPar('PWV', new_fig)
         end
-                
+        
         function showZtdSlantRes_p(this, time_start, time_stop)
             if isempty(this.ztd) || ~any(this.sat.slant_td(:))
                 this.log.addWarning('ZTD and slants have not been computed');
@@ -8731,9 +8728,9 @@ classdef Receiver < Exportable
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
-    methods (Static, Access = public)        
+    methods (Static, Access = public)
         function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, ...
-                                                        dp, sigma_dp, dp_go_id)
+                dp, sigma_dp, dp_go_id)
             % NOT WORKING due to iono
             % Smooth code with phase (aka estimate phase ambiguity and remove it)
             % Pay attention that the bias between phase and code is now eliminated
@@ -8745,8 +8742,8 @@ classdef Receiver < Exportable
             % EXAMPLE
             %   [pr.obs, pr.sigma] = Receiver.smoothCodeWithDoppler(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
             %                                                       zero2nan(dp.obs), dp.sigma, dp.go_id);
-            %            
-
+            %
+            
             for s = 1 : numel(dp_go_id)
                 s_c = find(pr_go_id == dp_go_id(s));
                 pr(isnan(dp(:,s)), s_c) = nan;
@@ -8767,7 +8764,7 @@ classdef Receiver < Exportable
         end
         
         function [ph, sigma_ph] = smoothCodeWithPhase(pr, sigma_pr, pr_go_id, ...
-                                                           ph, sigma_ph, ph_go_id, cs_mat)
+                ph, sigma_ph, ph_go_id, cs_mat)
             % NOT WORKING when iono is present
             % Smooth code with phase (aka estimate phase ambiguity and remove it)
             % Pay attention that the bias between phase and code is now eliminated
@@ -8779,8 +8776,8 @@ classdef Receiver < Exportable
             % EXAMPLE
             %   [ph.obs, ph.sigma] = Receiver.smoothCodeWithPhase(zero2nan(pr.obs), pr.sigma, pr.go_id, ...
             %                                                   zero2nan(ph.obs), ph.sigma, ph.go_id, ph.cycle_slip);
-            %            
-
+            %
+            
             for s = 1 : numel(ph_go_id)
                 s_c = find(pr_go_id == ph_go_id(s));
                 pr(isnan(ph(:,s)), s_c) = nan;
@@ -8803,7 +8800,7 @@ classdef Receiver < Exportable
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
-            %   obs_num = obsCode2Num(obs_code);            
+            %   obs_num = obsCode2Num(obs_code);
             obs_num = Core_Utils.code3Char2Num(obs_code(:,1:3));
         end
         
@@ -8811,7 +8808,7 @@ classdef Receiver < Exportable
             % Convert a numeric value (float) of an obs_code into a 3 char marker
             % SYNTAX
             %   obs_code = obsNum2Code(obs_num)
-            obs_code = Core_Utils.num2Code3Char(obs_num);            
+            obs_code = Core_Utils.num2Code3Char(obs_num);
         end
         
         function marker_num = markerName2Num(marker_name)
@@ -9069,5 +9066,4 @@ classdef Receiver < Exportable
             var_res = max(var(zero2nan(res_ph1'), 'omitnan'));
         end
     end
-    
 end
