@@ -490,6 +490,19 @@ classdef GNSS_Station < handle
         function [tropo, time] = getAprZhd(sta_list)
             sta_list.getTropoPar('zhd');
         end
+        
+        function rec_works = getWork(sta_list, id)
+            % return the working receiver for a gnss station array
+            %
+            % SYNTAX
+            %  rec_works = sta_list.getWork(<id>)
+            if nargin < 2
+                rec_works= [sta_list.work];
+            else
+                id(id > numel(sta_list)) = [];
+                rec_works= [sta_list(id).work];
+            end
+        end
     end
      % ==================================================================================================================================================
     %% SETTER
@@ -561,6 +574,80 @@ classdef GNSS_Station < handle
                 end
             end
         end
+        
+        function [p_time, id_sync] = getSyncTimeTR(rec, obs_type, p_rate)
+            % Get the common (shortest) time among all the used receivers and the target(s)
+            % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
+            % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
+            %       OUTPUT 1 sync @1Hz + 1 sync@30s
+            %
+            % SYNTAX
+            %   [p_time, id_sync] = Receiver.getSyncTimeTR(rec, obs_type, <p_rate>);
+            %
+            % SEE ALSO:
+            %   this.getSyncTimeExpanded
+            %
+            if nargin < 3
+                p_rate = 1e-6;
+            end
+            if nargin < 2
+                obs_type = ones(1, numel(rec));
+                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
+            end
+            
+            % Do the target(s) as last
+            [~, id] = sort(obs_type, 'descend');
+            
+            % prepare reference time
+            % processing time will start with the receiver with the last first epoch
+            %          and it will stop  with the receiver with the first last epoch
+            
+            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
+            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            
+            p_time = GPS_Time(); % empty initialization
+            
+            i = 0;
+            for r = id
+                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
+                if obs_type(r) > 0 % if it's not a target
+                    if ~rec(r).isEmpty
+                        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    end
+                else
+                    % It's a target
+                    
+                    % recompute the parameters for the ref_time estimation
+                    % not that in principle I can have up to num_trg_rec ref_time
+                    % in case of multiple targets the reference times should be independent
+                    % so here I keep the temporary rt0 rt1 r_rate var
+                    % instead of ref_time_start, ref_time_stop, ref_rate
+                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
+                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = ceil(pt0 / pr) * pr;
+                    pt1 = floor(pt1 / pr) * pr;
+                    
+                    % return one p_time for each target
+                    i = i + 1;
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
+                    p_time(i).toUnixTime();
+                    
+                    id_sync{i} = nan(p_time(i).length, numel(id));
+                    for rs = id % for each rec to sync
+                        if ~rec(rs).isEmpty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
+                            id_sync{i}(id_rec, rs) = id_ref;
+                        end
+                    end
+                end
+            end
+        end
       
     end
     
@@ -574,8 +661,10 @@ classdef GNSS_Station < handle
     %   p polar
     %   m mixed
     methods (Access = public)
-        function showAll(this)
-            this.out.showAll;
+        function showAll(sta_list)
+            for i = 1:numel(sta_list)
+                sta_list(i).out.showAll;
+            end
         end
         
         function showPositionENU(this, one_plot)

@@ -83,7 +83,7 @@ classdef Core_SEID < handle
                 rec(numel(ref) + (1 : numel(trg))) = trg;
                 obs_type(1:numel(ref)) = 2;
                 obs_type(numel(ref) + (1 : numel(trg))) = 0;
-                [p_time, id_sync] = Receiver.getSyncTimeTR(rec, obs_type);
+                [p_time, id_sync] = GNSS_Station.getSyncTimeTR(rec, obs_type);
                 log = Logger.getInstance();
                 
                 log.addMarkedMessage('Starting SEID processing')
@@ -225,7 +225,7 @@ classdef Core_SEID < handle
                     %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                     
                     trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
-                    trg(t).updateRemoveOutlierMarkCycleSlip();
+                    trg(t).updateRemOutlierMarkCycleSlip();
                 end
                 
                 log.addMarkedMessage('Syncing times, computing reference time');

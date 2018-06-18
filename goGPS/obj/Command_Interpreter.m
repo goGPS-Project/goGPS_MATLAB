@@ -661,7 +661,7 @@ classdef Command_Interpreter < handle
                 if ~found_ref
                     this.log.addWarning('No reference SEID station found -> nothing to do');
                 else
-                    tic; Core_SEID.getSyntL2(rec(id_ref), rec(id_trg)); toc;
+                    tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
                 end
             end
         end
