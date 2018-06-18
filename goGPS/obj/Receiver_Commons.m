@@ -248,7 +248,7 @@ classdef Receiver_Commons < handle
         % position
         
         function dt = getTotalDt(this)
-            dt = this.getDt + this.getDtIP;
+            dt = this.getDt + this.getDtPrePro;
         end
         
         function xyz = getPosXYZ_mr(this)
