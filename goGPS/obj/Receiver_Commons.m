@@ -693,7 +693,7 @@ classdef Receiver_Commons < handle
                 rec = this(r);
                 if ~isempty(rec)
                     xyz = rec.getPosXYZ();
-                    if size(rec, 1) > 1 || size(xyz, 1) > 1
+                    if size(xyz, 1) > 1
                         rec(1).log.addMessage('Plotting positions');
                         xyz0 = rec.getMedianPosXYZ();
                         enu0 = [];
@@ -760,8 +760,8 @@ classdef Receiver_Commons < handle
             
             rec = this;
             if ~isempty(rec)
-                xyz = rec(:,1).getPosXYZ();
-                if size(rec, 1) > 1 || size(xyz, 1) > 1
+                xyz = rec(1).getPosXYZ();
+                if size(xyz, 1) > 1
                     rec(1).log.addMessage('Plotting positions');
                     
                     f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
@@ -798,6 +798,47 @@ classdef Receiver_Commons < handle
                 end
             end
         end
+        
+         function showPositionSigmas(this, one_plot)
+            % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
+            % SYNTAX this.plotPositionXYZ();
+            if nargin == 1
+                one_plot = false;
+            end
+            
+            rec = this;
+            if ~isempty(rec)
+                xyz = rec(1).getPosXYZ();
+                if size(xyz, 1) > 1
+                    rec(1).log.addMessage('Plotting sigmas');
+                    
+                    f = figure; f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
+                    color_order = handle(gca).ColorOrder;
+                    
+                    s0 = rec.s0;
+                    s0_ip = rec.s0_ip;
+                    
+                    t = rec.getPositionTime().getMatlabTime;                    
+
+                    if ~one_plot, subplot(2,1,2); end
+                    plot(t, s0*1e3, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 [mm]'); h.FontWeight = 'bold';
+                    grid on;
+                    if ~one_plot, subplot(2,1,1); end
+                    plot(t, s0_ip, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 ip [m]'); h.FontWeight = 'bold';
+                    h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                    grid on;
+                    if one_plot
+                        h = ylabel('Sigmas of the processing [mm]'); h.FontWeight = 'bold';
+                    end
+                    linkaxes(ax, 'x');
+                else
+                    rec.log.addMessage('Plotting a single point static position is not yet supported');
+                end
+            end
+        end
+        
         
         function showMap(this, new_fig)
             if nargin < 2
