@@ -430,7 +430,7 @@ classdef Command_Interpreter < handle
                     case this.CMD_SEID.name                 % SEID
                         this.runSEID(rec, tok(2:end));
                     case this.CMD_KEEP.name                 % KEEP
-                        this.runKeep(rec, tok(2:end));
+                        this.runKeep(rec.getWork(), tok(2:end));
                     case this.CMD_SYNC.name                 % SYNC
                         this.runSync(rec, tok(2:end));                        
                     case this.CMD_OUTDET.name               % OUTDET
@@ -682,11 +682,11 @@ classdef Command_Interpreter < handle
                 [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).getMarkerName()));
+                        this.log.addMarkedMessage(sprintf('Keeping a rate of %ds for receiver %d: %s', rate, r, rec(r).parent.getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end
-                        rec(r).work.keep(rate);
+                        rec(r).keep(rate);
                     end
                 end
                 [snr_thr, found] = this.getNumericPar(tok, this.PAR_SNRTHR.par);
@@ -712,7 +712,7 @@ classdef Command_Interpreter < handle
                 [sys_list, found] = this.getConstellation(tok);
                 if found
                     for r = id_trg
-                        this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).getMarkerName()));
+                        this.log.addMarkedMessage(sprintf('Keeping constellations "%s" for receiver %d: %s', sys_list, r, rec(r).parent.getMarkerName()));
                         if rec(r).isEmpty
                             rec(r).load();
                         end

@@ -543,16 +543,16 @@ classdef GNSS_Station < handle
                 % processing time will start with the receiver with the last first epoch
                 %          and it will stop  with the receiver with the first last epoch
                 
-                first_id_ok = find(~rec.isEmptyOut_mr, 1, 'first');
+                first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
                 if ~isempty(first_id_ok)
-                    p_time_zero = round(rec(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
+                    p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
                 end
                 
                 % Get all the common epochs
                 t = [];
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).out.time.getRate);
-                    t = [t; round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                    rec_rate = min(1, rec(r).time.getRate);
+                    t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
                     % p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
                 end
                 t = unique(t);
@@ -568,8 +568,8 @@ classdef GNSS_Station < handle
                 
                 % Get intersected times
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).out.time.getRate);
-                    [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    rec_rate = min(1, rec(r).time.getRate);
+                    [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
                     id_sync(id1 ,r) = id2;
                 end
             end
