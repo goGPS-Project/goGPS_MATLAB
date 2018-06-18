@@ -366,7 +366,7 @@ classdef Core < handle
                     
                     if (level == 1) || (level > 10)
                         %[n_ok, n_ko] = this.checkMetFileList();
-                        [n_ok, n_ko] = checkFileList(this, this.state.met_dir, this.state.met_name, [], 0);
+                        [n_ok, n_ko] = this.checkFileList(this.state.met_dir, this.state.met_name, [], 0);
                         if sum(n_ok) > 0
                             if sum(n_ko) > 0
                                 if flag_verbose

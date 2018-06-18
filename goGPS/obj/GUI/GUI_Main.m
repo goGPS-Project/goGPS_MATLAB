@@ -1074,16 +1074,26 @@ classdef GUI_Main < handle
                 else
                     name = '    ';
                 end
-                n_session = numel(rec_path{r});
-                if (n_session * n_rec) < 20
-                    this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
-                    fr = File_Rinex(rec_path{r}, 100);
-                    n_ok = sum(fr.is_valid_list);
-                    n_ko = sum(~fr.is_valid_list);
+                %n_session = numel(rec_path{r});
+                %if (n_session * n_rec) < 20
+                    %this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+                    
+                    n_ok = 0; n_ko = 0;
+                    for s = 1 : numel(rec_path{r})
+                        if (exist(rec_path{r}{s}, 'file') == 2)
+                            n_ok = n_ok + 1;
+                        else
+                            n_ko = n_ko + 1;
+                        end
+                    end
+
+                    %fr = File_Rinex(rec_path{r}, 100);
+                    %n_ok = sum(fr.is_valid_list);
+                    %n_ko = sum(~fr.is_valid_list);
                     str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
-                else
-                    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
-                end
+                %else
+                %    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
+                %end
             end
             this.log.addMessage('Receiver files checked');
             if n_rec == 0

@@ -106,7 +106,9 @@ classdef File_Rinex < Exportable
     methods
         function checkValidity(this)
             % Update the status of validity of the files here pointed
-            % SYNTAX: this.checkValidity();
+            %
+            % SYNTAX
+            %   this.checkValidity();
 
             % pre allocate
             this.is_valid_list = false(1, numel(this.file_name_list));
@@ -143,7 +145,7 @@ classdef File_Rinex < Exportable
 
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
-                        fseek(fid,-10000,'eof');
+                        fseek(fid, -10000,'eof');
                         fgetl(fid); % Probably i'm not at the beginning of a line -> disregard the first reading
                         % Start searching for a valid epoch
                         line = fgetl(fid);
@@ -170,7 +172,7 @@ classdef File_Rinex < Exportable
                                 line = fgetl(fid);
                             end
                             loop_n = loop_n + 1;
-                            fseek(fid, loop_n * -10000, 'eof');
+                            fseek(fid, loop_n * -10000, 'eof'); % If no valid time have been found try to go back more...
                             line = fgetl(fid);
                         end
                         %%
