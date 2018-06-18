@@ -214,7 +214,7 @@ classdef Receiver_Output < Receiver_Commons
             mfw = this.sat.mfw;
         end
         
-         function slant_td = getSlantTD(this)
+        function slant_td = getSlantTD(this)
             % Get the slant total delay
             % SYNTAX
             %   slant_td = this.getSlantTD();
@@ -238,6 +238,23 @@ classdef Receiver_Output < Receiver_Commons
                      + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
                      + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
             
+        end
+        
+        function [day_lim] = getDayLim(this)
+            % get the start index and end index of the days presents in the object
+            %
+            % SYNTAX
+            %  [day_lim] = this.getDayLim()
+            mat_time = this.time.getMatlabTime();
+            day = floor(mat_time);
+            days = unique(day)';
+            n_days = length(days);
+            day_lim = zeros(n_days,2);
+            for i = 1:n_days
+                d = days(i);
+                day_lim(i,1) = find(mat_time > d,1,'first');
+                day_lim(i,2) = find(mat_time < (d+1),1,'last');
+            end
         end
         
     end
