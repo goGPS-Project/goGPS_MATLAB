@@ -644,7 +644,6 @@ classdef Receiver_Commons < handle
             end
         end
     end
-    
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -800,7 +799,7 @@ classdef Receiver_Commons < handle
                 hold on;
             end
             maximizeFig(f);
-            [lat, lon] = cart2geod(this.getMedianPosXYZ_mr());
+            [lat, lon] = cart2geod(this.getMedianPosXYZ());
             
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
             hold on;
@@ -843,49 +842,7 @@ classdef Receiver_Commons < handle
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
         end
-        
-        function showObsVsSynt_m(this, sys_c)
-            % Plots phases and pseudo-ranges aginst their synthesised values
-            % SYNTAX
-            %   this.plotVsSynt_m(<sys_c>)
-            
-            % Phases
-            if nargin == 1
-                [ph, ~, id_ph] = this.getPhases;
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                f = figure; f.Name = sprintf('%03d: VsSynt', f.Number); f.NumberTitle = 'off';
-            else
-                [ph, ~, id_ph] = this.getPhases(sys_c);
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
-            end
-            
-            subplot(2,3,1); plot(sensor_ph); title('Phases observed vs synthesised');
-            
-            this.updateAzimuthElevation()
-            id_ok = (~isnan(sensor_ph));
-            az = this.sat.az(:,this.go_id(id_ph));
-            el = this.sat.el(:,this.go_id(id_ph));
-            %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            h1 = subplot(2,3,3);  polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_ph(id_ok)), 'filled');
-            caxis([-1 1]); colormap(gat); setColorMapGat([-1 1], 0.8, [-0.15 0.15]); colorbar();
-            subplot(2,3,2); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_ph(id_ok))) > 0.2, 'filled'); caxis([-1 1]);
-            
-            % Pseudo Ranges
-            [pr, id_pr] = this.getPseudoRanges;
-            sensor_pr = Core_Pre_Processing.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
-            subplot(2,3,4); plot(sensor_pr); title('Pseudo-ranges observed vs synthesised');
-            
-            id_ok = (~isnan(sensor_pr));
-            az = this.sat.az(:,this.go_id(id_pr));
-            el = this.sat.el(:,this.go_id(id_pr));
-            %flag = flagExpand(abs(sensor1(id_ok)) > 0.2, 1);
-            h1 = subplot(2,3,6); polarScatter(serialize(az(id_ok))/180*pi,serialize(90-el(id_ok))/180*pi, 30, serialize(sensor_pr(id_ok)), 'filled');
-            caxis([-20 20]); colorbar();
-            subplot(2,3,5); scatter(serialize(az(id_ok)), serialize(el(id_ok)), 50, abs(serialize(sensor_pr(id_ok))) > 5, 'filled');
-            caxis([-1 1]);
-        end
-               
+                       
         function showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
