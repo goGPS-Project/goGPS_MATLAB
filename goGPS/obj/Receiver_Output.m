@@ -76,7 +76,11 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     
     methods
-        function this = Receiver_Output(parent)
+        function this = Receiver_Output(cc, parent)
+            if nargin < 2
+                cc = Constellation_Collector('G');
+            end
+            this.cc = cc;
             this.parent = parent;
             this.init();
         end
@@ -407,7 +411,7 @@ classdef Receiver_Output < Receiver_Commons
                 polarScatter([],[],1,[]);
                 hold on;
                 
-                for s = 1:size(this.sat.cycle_slip_idx_ph,2)
+                for s = this.cc.getGoIds(sys_c)
                     az = this.sat.az(:,s);
                     el = this.sat.el(:,s);
                     

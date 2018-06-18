@@ -82,7 +82,7 @@ classdef GNSS_Station < handle
             end
             this.cc = cc;
             this.work = Receiver_Work_Space(cc, this);
-            this.out = Receiver_Output(this);
+            this.out = Receiver_Output(cc, this);
             if nargin >= 2 && ~isempty(static)
                 this.static = logical(static);
             end
