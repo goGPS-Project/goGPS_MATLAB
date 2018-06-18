@@ -971,7 +971,7 @@ classdef Core_Sky < handle
             if iscell(dcb_name)
                 dcb_name = dcb_name{1};
             end
-            if strfind(dcb_name,'CAS')
+            if instr(dcb_name,'CAS')
                 this.importSinexDCB();
             else
                 this.importCODEDCB();
@@ -1028,7 +1028,7 @@ classdef Core_Sky < handle
                 this.log.addWarning('No dcb file found');
                 return
             end
-            fid = fopen([this.state.getDcbDir() filesep file_name],'r');
+            fid = fopen(file_name,'r');
             if fid == -1
                 this.log.addWarning(sprintf('      File %s not found', file_name));
                 return

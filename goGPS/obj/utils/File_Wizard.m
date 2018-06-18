@@ -550,7 +550,8 @@ classdef File_Wizard < handle
                 provider = 'cas';
                 dcb_type = 'final';
                 dcb_name = this.source.(archive).par.(ss).center.(provider).dcb.(dcb_type);
-                this.state.setDcbFile(dcb_name);
+                [~, dcb_file_name, ext] = fileparts(dcb_name);
+                this.state.setDcbFile([this.state.getDcbDir filesep dcb_file_name]);
                 tmp_date_start = date_start.getCopy;
                 tmp_date_stop = date_stop.getCopy;
                 file_list = fnp.dateKeyRepBatch(dcb_name, tmp_date_start, tmp_date_stop);
@@ -559,7 +560,7 @@ classdef File_Wizard < handle
                 for i = 1 : length(file_list)
                     [~, name, ext] = fileparts(file_list{i});
                     names{end+1} = name;
-                    if exist(checkPath([this.state.getDcbDir '/' name]), 'file') ~= 2
+                    if exist(fnp.checkPath([this.state.getDcbDir filesep name]), 'file') ~= 2
                         dcb_ok(i) = false;
                     end
                 end
@@ -570,11 +571,11 @@ classdef File_Wizard < handle
                         if not(dcb_ok(i))
                             [~, name, ext] = fileparts(file_list{i});
                             if (isunix())
-                                system(['gzip -fd ' this.state.getDcbDir() '/' name ext]);
+                                system(['gzip -fd ' this.state.getDcbDir() filesep name ext]);
                             else
                                 try
-                                    [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() '/' name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
-                                    delete([this.state.getDcbDir() '/' name ext]);
+                                    [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' this.state.getDcbDir() filesep name ext '"' ' -o' '"' this.state.getDcbDir() '"']); %#ok<ASGLU>
+                                    delete([this.state.getDcbDir() filesep name ext]);
                                 catch
                                     this.log.addWarning(sprintf(['Please decompress the ' name ext ' file before trying to use it in goGPS.\n']));
                                     compressed = 1;
@@ -586,7 +587,6 @@ classdef File_Wizard < handle
                     this.log.addStatusOk('Dcb files are present ^_^');
                     this.log.newLine();
                 end
-                
             else % use DCB from CODE
                 gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
                 gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
