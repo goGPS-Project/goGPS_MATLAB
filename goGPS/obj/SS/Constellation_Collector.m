@@ -414,6 +414,18 @@ classdef Constellation_Collector < Settings_Interface
             ss = this.getSys(sys);
             band = find(ss.CODE_RIN3_2BAND' == freq);
         end
+        
+        function go_ids = getGoIds(this, sys_c)
+            % gte the go ids for the desidered constellation
+            %
+            % SYNTAX:
+            %  go_ids = this.getGoIds(sys_c)
+            if this.active_list(this.SYS_C == sys_c)
+                go_ids = this.getSys(sys_c).go_ids;
+            else
+                go_ids = [];
+            end
+        end
 
     end
 

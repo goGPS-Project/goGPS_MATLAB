@@ -1,5 +1,4 @@
 %%%% comaprison file 
-%close all
 project_path = '../../remote_data/project/EPN_test_set';
 %goGPS([project_path '/config/config.ini'],false);
 getResults();

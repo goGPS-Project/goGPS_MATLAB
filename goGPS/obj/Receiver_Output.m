@@ -231,8 +231,8 @@ classdef Receiver_Output < Receiver_Commons
             slant_td = nan2zero(zero2nan(res) ...
                      + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
                      + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                     + zero2nan(repmat(nan2zero(tgn),1,n_sat) .* mfw .* cotel .* cosaz) ...
-                     + zero2nan(repmat(nan2zero(tge),1,n_sat) .* mfw .* cotel .* sinaz));
+                     + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
+                     + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
             
         end
         
@@ -345,7 +345,89 @@ classdef Receiver_Output < Receiver_Commons
                 xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('receiver clock error [s]'); h.FontWeight = 'bold';
                 h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
             end
-        end        
+        end   
+        
+        function showOutliersAndCycleSlip(this, sys_c_list)
+            % Plot the outliers found
+            % SYNTAX this.showOutliers()
+            
+            if nargin == 1
+                sys_c_list = this.cc.getAvailableSys;
+            end
+            f = figure; f.Name = sprintf('%03d: CS, Outlier', f.Number); f.NumberTitle = 'off';
+            for sys_c = sys_c_list
+                ss_id = find(this.cc.sys_c == sys_c);
+                switch numel(sys_c_list)
+                    case 2
+                        subplot(1,2, ss_id);
+                    case 3
+                        subplot(2,2, ss_id);
+                    case 4
+                        subplot(2,2, ss_id);
+                    case 5
+                        subplot(2,3, ss_id);
+                    case 6
+                        subplot(2,3, ss_id);
+                    case 7
+                        subplot(2,4, ss_id);
+                end
+                
+                ep = repmat((1: this.time.length)',1, size(this.sat.outlier_idx_ph, 2));
+                
+                for prn = this.cc.prn(this.cc.system == sys_c)'
+                    s = this.cc.getIndex(sys_c, prn);
+                    cs = ep(this.sat.cycle_slip_idx_ph(:, s) ~= 0);
+                    plot(cs,  prn * ones(size(cs)), '.k', 'MarkerSize', 20);
+                    hold on;
+                    out = ep(this.sat.outlier_idx_ph(:, s) ~= 0);
+                    plot(out,  prn * ones(size(out)), '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                end
+                prn_ss = this.cc.prn(this.cc.system == sys_c);
+                xlim([1 this.time.length]);
+                ylim([min(prn_ss) - 1 max(prn_ss) + 1]);
+                h = ylabel('PRN'); h.FontWeight = 'bold';
+                ax = gca(); ax.YTick = prn_ss;
+                grid on;
+                h = xlabel('epoch'); h.FontWeight = 'bold';
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+            end
+        end
+        
+            function showOutliersAndCycleSlip_p(this, sys_c_list)
+            % Plot Signal to Noise Ration in a skyplot
+            % SYNTAX this.plotSNR(sys_c)
+            
+            % SNRs
+            if nargin == 1
+                sys_c_list = this.cc.getAvailableSys;
+            end
+            
+            for sys_c = sys_c_list
+                f = figure; f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
+                polarScatter([],[],1,[]);
+                hold on;
+                
+                for s = 1:size(this.sat.cycle_slip_idx_ph,2)
+                    az = this.sat.az(:,s);
+                    el = this.sat.el(:,s);
+                    
+                    cs = sum(this.sat.cycle_slip_idx_ph(:, s), 2) > 0;
+                    out = sum(this.sat.outlier_idx_ph(:, s), 2) > 0;
+                    
+                    decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
+                    x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
+                    y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
+                    plot(x, y, '.k', 'MarkerSize', 20)
+                    
+                    decl_n = (serialize(90 - el(out)) / 180*pi) / (pi/2);
+                    x = sin(az(out)/180*pi) .* decl_n; x(az(out) == 0) = [];
+                    y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];
+                    plot(x, y, '.', 'MarkerSize', 20, 'Color', [1 0.4 0]);
+                end
+                h = title(sprintf('%s %s cycle-slip(b) & outlier(o)', this.cc.getSysName(sys_c), this.parent.marker_name), 'interpreter', 'none'); h.FontWeight = 'bold';
+            end
+            
+        end
         
         
     end
