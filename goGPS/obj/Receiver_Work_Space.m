@@ -2820,7 +2820,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 'snr'
                     quality = [];
                     for c = this.cc.SYS_C(this.cc.getActive)
-                        quality = [quality this.getSNR(c,'1')]; %#ok<AGROW>
+                        [snr, id_snr] = this.getSNR(c,'1');
+                        snr_temp = nan(size(snr,1),this.cc.getMaxNumSat(c));
+                        [~, prn] = this.getSysPrn(this.go_id(id_snr));
+                        snr_temp(:, prn) = snr;
+                        quality = [quality snr_temp]; %#ok<AGROW>
                     end
             end
         end
@@ -3248,13 +3252,21 @@ classdef Receiver_Work_Space < Receiver_Commons
         function [rec_out_ph] = getOOutPh(this)
             % get the phase outlier to be putted in the results
             % default outiler are the ones on the iono free combination
-            rec_out_ph = this.sat.o_out_ph(this.getIdSync(),:);
+            if ~isempty( this.sat.o_out_ph)
+                rec_out_ph = this.sat.o_out_ph(this.getIdSync(),:);
+            else
+                rec_out_ph = zeros(length(this.getIdSync()), this.cc.getMaxNumSat());
+            end
         end
         
         function [rec_cs_ph] = getOCsPh(this)
             % get the phase outlier to be putted in the results
             % default outiler are the ones on the iono free combination
-            rec_cs_ph = this.sat.o_cs_ph(this.getIdSync(),:);
+            if ~isempty( this.sat.o_cs_ph)
+                rec_cs_ph = this.sat.o_cs_ph(this.getIdSync(),:);
+            else
+                rec_cs_ph = zeros(length(this.getIdSync()), this.cc.getMaxNumSat());
+            end
         end
         
         function [range, XS_loc] = getSyntObs(this, go_id_list)
@@ -3639,7 +3651,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
     end
     
-       % ==================================================================================================================================================
+    % ==================================================================================================================================================
     %% METHODS CORRECTIONS
     % ==================================================================================================================================================
     %  FUNCTIONS TO COMPUTE APPLY AND REMOVE VARIOUS MODELED CORRECTIONS

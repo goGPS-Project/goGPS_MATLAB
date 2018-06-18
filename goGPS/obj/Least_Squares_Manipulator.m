@@ -169,7 +169,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             if phase_present
-                n_sat = size(rec.sat.el,2);
+                n_sat = rec.cc.getMaxNumSat();
                 rec.sat.o_cs_ph = zeros(rec.time.length, n_sat);
                 rec.sat.o_cs_ph(:,obs_set.go_id) = obs_set.cycle_slip;
                 rec.sat.o_out_ph = zeros(rec.time.length, n_sat);
