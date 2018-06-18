@@ -69,10 +69,7 @@ classdef Core < handle
         rin_list   % List of observation file (as File_Rinex objects) to store minimal information on the input files
         met_list   % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
-        rec        % List of all the receiver used in a session
-        
-        rec_list   % List of all the receiver used in all the session
-        
+        rec        % List of all the receiver used                
     end
 
     %% METHOD CREATOR
@@ -274,7 +271,6 @@ classdef Core < handle
             %   this.go(session_num)
             
             t0 = tic;
-            this.rec_list = [];
             if nargin == 1
                 session_list = 1 : this.state.getSessionCount();
             else
@@ -286,14 +282,10 @@ classdef Core < handle
             for s = session_list
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);                   
-                if this.state.isKeepRecList()
-%                     if numel(this.rec_list) == 0
-%                         clear rec_list;
-%                         rec_list(s,:) = this.rec;
-%                         this.rec_list = rec_list;
-%                     else
-%                         this.rec_list(s,:) = this.rec;
-%                     end
+                if ~this.state.isKeepRecList()
+                    for r = 1 : numel(this.rec)
+                        this.rec(r).resetOut();
+                    end                    
                 end
                 if ~isunix, fclose('all'); end
             end

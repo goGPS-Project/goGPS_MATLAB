@@ -418,7 +418,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX this.initR2S();
             
             this.sat.cs           = Core_Sky.getInstance();
-            %this.sat.avail_index  = false(this.length, this.cc.getNumSat);
+            %this.sat.avail_index  = false(this.length, this.cc.getMaxNumSat);
             %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
@@ -747,7 +747,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             first_epoch = this.time.first;
             coord_ref_time_diff = first_epoch - this.sat.cs.time_ref_coord;
             clock_ref_time_diff = first_epoch - this.sat.cs.time_ref_clock;
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 o_idx = this.go_id == s;
                 dnancoord = diff(nan_coord(:,s));
                 st_idx = find(dnancoord == 1);
@@ -2061,6 +2061,26 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function n_sat = getMaxSat(sta_list, sys_c)
+            % get the number of satellites stored in the object
+            %
+            % SYNTAX 
+            %   n_sat = getNumSat(<sys_c>)
+            n_sat = zeros(size(sta_list));
+            
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(~sta_list(r).isEmpty, r);
+                
+                if ~isempty(rec)
+                    if nargin == 2
+                        n_sat(r) = max(rec.go_id( (rec.system == sys_c)' & (rec.obs_code(:,1) == 'C' | rec.obs_code(:,1) == 'L') ));
+                    else
+                        n_sat(r) = max(rec.go_id(rec.obs_code(:,1) == 'C' | rec.obs_code(:,1) == 'L'));
+                    end
+                end
+            end
+        end
+        
         function sys_c = getAvailableSys(this)
             % get the available system stored into the object
             % SYNTAX sys_c = this.getAvailableSys()
@@ -2196,7 +2216,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function is_mf = isMultiFreq(this)
             is_mf = false;
-            for i = 1 : this.parent.getMaxSat()
+            for i = 1 : this.parent.cc.getMaxNumSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
                 if not(isempty(cur_sat_id))
                     sat_idx = this.getObsIdx('C',cur_sat_id);
@@ -2378,7 +2398,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 XS_loc = XS_loc - XR;
             else
-                n_sat = this.parent.getMaxSat();
+                n_sat = this.parent.cc.getMaxNumSat();
                 XS_loc = zeros(n_epochs, n_sat,3);
                 for i = unique(this.go_id)'
                     XS_loc(:,i ,:) = this.getXSLoc(i);
@@ -2647,7 +2667,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if numel(this) == 1
                 n_sat = size(this.sat.slant_td, 2);
             else
-                n_sat = this.parent.getMaxSat();
+                n_sat = this.parent.cc.getMaxNumSat();
             end
             slant_td = zeros(this.length, n_sat);
             t = 1;
@@ -3245,7 +3265,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   this.getSyntObs(1,go_id)
             n_epochs = size(this.obs, 2);
             if nargin < 2
-                go_id_list = 1 : this.parent.getMaxSat();
+                go_id_list = 1 : this.parent.cc.getMaxNumSat();
             end
             range = zeros(length(go_id_list), n_epochs);
             XS_loc = [];
@@ -3524,7 +3544,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.active_ids = any(this.obs, 2);
             
-            %this.sat.avail_index = false(this.time.length, this.parent.getMaxSat());
+            %this.sat.avail_index = false(this.time.length, this.parent.cc.getMaxNumSat());
         end
         
         function updateRinObsCode(this)
@@ -3582,7 +3602,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function initAvailIndex(this, ep_ok)
             % initialize the avaliability index 
-             this.sat.avail_index = false(this.time.length, this.parent.getMaxSat);
+             this.sat.avail_index = false(this.time.length, this.parent.cc.getMaxNumSat);
              this.updateAllAvailIndex();
              if nargin == 2
                  if islogical(ep_ok)
@@ -3613,7 +3633,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function setAvIdx2Visibility(this)
             % set the availability index to el >0
-            this.sat.avail_index = true(this.time.length, this.parent.getMaxSat);
+            this.sat.avail_index = true(this.time.length, this.parent.cc.getMaxNumSat);
             this.updateAzimuthElevation;
             this.sat.avail_index = this.sat.el > 0;
         end
@@ -3968,7 +3988,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.sat.az = zeros(size(this.sat.avail_index));
                 end
                 if isempty(this.sat.avail_index)
-                    this.sat.avail_index = true(this.length, this.parent.getMaxSat);
+                    this.sat.avail_index = true(this.length, this.parent.cc.getMaxNumSat);
                 end
                 av_idx = this.sat.avail_index(:, go_id) ~= 0;
                 [this.sat.az(av_idx, go_id), this.sat.el(av_idx, go_id)] = this.computeAzimuthElevation(go_id);
@@ -4166,7 +4186,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMessage(this.log.indent('Updating ionospheric errors'))
             if nargin < 2
                 
-                go_id  = 1: this.parent.getMaxSat();
+                go_id  = 1 : this.parent.cc.getMaxNumSat();
             end            
           
             if nargin < 3
@@ -4238,7 +4258,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  add or subtract ocean loading from observations
             et_corr = this.computeSolidTideCorr();
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4283,7 +4303,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % 
             %   Computation of the solid Earth tide displacement terms.
             if nargin < 2
-                sat  = 1 : this.parent.getMaxSat();
+                sat  = 1 : this.parent.cc.getMaxNumSat();
             end
             solid_earth_corr = zeros(this.time.length, length(sat));
             XR = this.getXR();
@@ -4389,7 +4409,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 return
             end
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4438,7 +4458,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  as a block
             
             if nargin < 2
-                sat = 1 : this.parent.getMaxSat();
+                sat = 1 : this.parent.cc.getMaxNumSat();
             end
             
             
@@ -4530,7 +4550,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 return
             end
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4576,7 +4596,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   Computation of the pole tide displacement terms.
             
             if nargin < 2
-                sat = 1 : this.parent.getMaxSat();
+                sat = 1 : this.parent.cc.getMaxNumSat();
             end
             
             XR = this.getXR;
@@ -4625,7 +4645,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  add or subtract ocean loading from observations
             [hoi2, hoi3, bending] = this.computeHOI();
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4690,7 +4710,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 return
             end
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4735,7 +4755,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   Computation of atmopsheric loading
             
             if nargin < 2
-                sat = 1 : this.parent.getMaxSat();
+                sat = 1 : this.parent.cc.getMaxNumSat();
             end
             this.updateCoordinates();
             atmo = Atmosphere.getInstance();
@@ -4766,7 +4786,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  add or subtract ocean loading from observations
             ph_wind_up = this.computePhaseWindUp();
             
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -4806,7 +4826,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             s_b = b;%(av_idx,:);
             
             
-            sat = 1: this.parent.getMaxSat();
+            sat = 1: this.parent.cc.getMaxNumSat();
             
             [x, y, z] = this.sat.cs.getSatFixFrame(s_time);
             ph_wind_up = zeros(this.time.length,length(sat));
@@ -4844,7 +4864,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function shDelay(this,sgn)
             %  add or subtract shapiro delay from observations
-            for s = 1 : this.parent.getMaxSat()
+            for s = 1 : this.parent.cc.getMaxNumSat()
                 obs_idx = this.obs_code(:,1) == 'C' |  this.obs_code(:,1) == 'L';
                 obs_idx = obs_idx & this.go_id == s;
                 if sum(obs_idx) > 0
@@ -5339,9 +5359,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addError('Init positioning failed: the receiver object is empty');
             else
                 this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
-                this.sat.err_tropo = zeros(this.time.length, this.parent.getMaxSat());
-                this.sat.err_iono  = zeros(this.time.length, this.parent.getMaxSat());
-                this.sat.solid_earth_corr  = zeros(this.time.length, this.parent.getMaxSat());
+                this.sat.err_tropo = zeros(this.time.length, this.parent.cc.getMaxNumSat());
+                this.sat.err_iono  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
+                this.sat.solid_earth_corr  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
                 this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)'))
                 % if not applied apply group delay
                 this.applyGroupDelay();
@@ -5516,7 +5536,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, this.parent.getMaxSat());
+            this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
             % LS does not know the max number of satellite stored
             dsz = max(id_sync) - size(res,1);
             if dsz == 0
@@ -5561,11 +5581,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.dt = zeros(this.time.length,1);
             this.dt(ls.true_epoch,1) = dt ./ Global_Configuration.V_LIGHT;
             isb = x(x(:,2) == 4,1);
-            this.sat.res = zeros(this.length, this.parent.getMaxSat());
+            this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
             % LS does not know the max number of satellite stored
             
             
-            this.sat.res = zeros(this.length, this.parent.getMaxSat());
+            this.sat.res = zeros(this.length, this.parent.cc.getMaxNumSat());
             dsz = max(id_sync) - size(res,1);
             if dsz == 0
                 this.sat.res(id_sync, ls.sat_go_id) = res(id_sync, ls.sat_go_id);
@@ -6003,7 +6023,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 amb_mat = zeros(length(id_sync), length(ls.go_id_amb));
                 id_ok = ~isnan(ls.amb_idx);
                 amb_mat(id_ok) = amb(ls.amb_idx(id_ok));
-                this.sat.amb_mat = nan(this.length, this.parent.getMaxSat);
+                this.sat.amb_mat = nan(this.length, this.parent.cc.getMaxNumSat);
                 this.sat.amb_mat(id_sync,ls.go_id_amb) = amb_mat;
                 
                 gntropo = x(x(:,2) == 8,1);
@@ -6012,7 +6032,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.xyz = this.xyz + coo;
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
-                this.sat.amb_idx = nan(this.length, this.parent.getMaxSat);
+                this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
                 this.sat.amb_idx(id_sync,ls.go_id_amb) = ls.amb_idx;
                 this.if_amb = amb; % to test ambiguity fixing
                 this.s0 = s0;

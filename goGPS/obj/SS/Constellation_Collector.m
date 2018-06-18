@@ -706,7 +706,9 @@ classdef Constellation_Collector < Settings_Interface
         function n_sat = getNumSat(this, sys_c)
             % return the total number of enabled satellites,
             % id sys_c is passed get total numebr of satellites for the desidered system
-            % SYNTAX: n_sat = this.getNumSat();
+            %
+            % SYNTAX
+            %   n_sat = this.getNumSat();
             if nargin < 2
             n_sat = this.n_sat_tot;
             else % get numebr of sat for the selected systems
@@ -720,13 +722,29 @@ classdef Constellation_Collector < Settings_Interface
         
         function n_sat = getMaxObsSat(this)
             % return the total maximum number of observables
-            % SYNTAX: n_sat = this.getObsSat();
+            %
+            % SYNTAX
+            %   n_sat = this.getObsSat();
             n_sat = this.n_obs_tot;
+        end
+        
+        function n_sat = getMaxNumSat(this, sys_c)
+            % return the total maximum number of satellites
+            %
+            % SYNTAX
+            %   n_sat = this.getMaxNumSat();
+            if nargin == 2                
+                n_sat = double(this.n_sat_tot(this.SYS_C == sys_c));
+            else
+                n_sat = sum(double(this.n_sat_tot));
+            end
         end
 
         function n_sys = getNumSys(this)
             % return the total number of enabled satellites
-            % SYNTAX: n_sat = this.getNumSat();
+            %
+            % SYNTAX
+            %   n_sat = this.getNumSat();
             n_sys = this.n_sys;
         end
         

@@ -82,7 +82,7 @@ classdef GNSS_Station < handle
             end
             this.cc = cc;
             this.work = Receiver_Work_Space(cc, this);
-            this.out = Receiver_Output(cc, this);
+            this.out = Receiver_Output(this.cc, this);
             if nargin >= 2 && ~isempty(static)
                 this.static = logical(static);
             end
@@ -113,6 +113,10 @@ classdef GNSS_Station < handle
             this.number   = '000';
             this.type     = 'unknown';
             this.version  = '000';
+        end
+        
+        function resetOut(this)
+            this.out = Receiver_Output(this.cc, this);
         end
     end
      % ==================================================================================================================================================
@@ -224,29 +228,39 @@ classdef GNSS_Station < handle
             n_epo = sum(n_epo);
         end
         
-        function n_sat = getMaxSat(this, sys_c)
+        function n_sat = getMaxSat(sta_list, sys_c)
             % get the number of satellites stored in the object
             %
             % SYNTAX 
             %   n_sat = getNumSat(<sys_c>)
-            n_sat = zeros(size(this));
-            
-            for r = 1 : size(this, 2)
-                rec = this(~this(:,r).work.isEmpty, r);
-                
-                if ~isempty(rec)
-                    for s = 1 : size(rec, 1)
-                        if nargin == 2
-                            n_sat(s, r) = max(rec(s).work.go_id( (rec(s).work.system == sys_c)' & (rec(s).work.obs_code(:,1) == 'C' | rec(s).work.obs_code(:,1) == 'L') ));
-                        else
-                            n_sat(s, r) = max(rec(s).work.go_id(rec(s).work.obs_code(:,1) == 'C' | rec(s).work.obs_code(:,1) == 'L'));
-                        end
-                    end
+                  
+            n_sat = zeros(numel(sta_list),1);
+            for r = 1 : size(sta_list, 2)
+                rec(r) = sta_list(r);
+                if nargin == 2
+                    n_sat(r) = rec.work.getMaxSat(sys_c);
+                elseif nargin == 1
+                    n_sat(r) = rec.work.getMaxSat();
                 end
             end
-            n_sat = max(n_sat, [], 1)';
         end
         
+        function n_sat = getMaxNumSat(sta_list, sys_c)
+            % get the number of maximum theoretical satellites stored in the object
+            %
+            % SYNTAX 
+            %   n_sat = getMaxNumSat(<sys_c>)
+                  
+            n_sat = zeros(numel(sta_list),1);
+            for r = 1 : size(sta_list, 2)
+                rec(r) = sta_list(r);
+                if nargin == 2
+                    n_sat(r) = rec.work.getMaxNumSat(sys_c);
+                elseif nargin == 1
+                    n_sat(r) = rec.work.getMaxNumSat();
+                end
+            end
+        end
         function [time_lim_small, time_lim_large] = getWorkTimeSpan(this)
             % return a GPS_Time containing the first and last epoch stored in the Receiver
             %
