@@ -904,7 +904,11 @@ classdef Command_Interpreter < handle
                         id_rec = unique([ids id_rec]);
                     end
                     found = ~isempty(id_rec);
-                    matching_rec = rec(id_rec);
+                    if id_rec <= length(rec)
+                        matching_rec = rec(id_rec);
+                    else
+                        matching_rec = [];
+                    end
                 end
             end            
         end
