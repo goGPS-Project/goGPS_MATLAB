@@ -5265,7 +5265,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         time_desync = simpleFill1D(time_desync, all(isnan(pr), 2), 'nearest');
                         ddt = [0; diff(time_desync)];
                         ddrifting_pr = ddt - ddt_pr;
-%                         drifting_pr = cumsum(ddrifting_pr);
+                        % drifting_pr = cumsum(ddrifting_pr);
                         drifting_pr = time_desync - dt_pr_dj;
                         
                         % Linear interpolation of ddrifting
@@ -6801,17 +6801,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             rec = this;
             if ~isempty(rec)
                 f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
-                t = rec.time.getMatlabTime();
+                t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
                 nans = zero2nan(double(~rec.getMissingEpochs()));
-                plot(t, rec.getDesync .* nans, '-k', 'LineWidth', 2);
+                plot(t, -rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
                 hold on;
-                plot(t, rec.getDtPr .* nans, ':', 'LineWidth', 2);
-                plot(t, rec.getDtPh .* nans, ':', 'LineWidth', 2);
-                plot(t, (rec.getDtIP - rec.getDtPr) .* nans, '-', 'LineWidth', 2);
-                plot(t, rec.getDtPrePro .* nans, '-', 'LineWidth', 2);
+                plot(t, rec.getDtPr .* nans(this.getIdSync), ':', 'LineWidth', 2);
+                plot(t, rec.getDtPh .* nans(this.getIdSync), ':', 'LineWidth', 2);
+                plot(t, (rec.getDtPrePro - rec.getDtPr) .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                plot(t, rec.getDtPrePro .* nans(this.getIdSync), '-', 'LineWidth', 2);
                 if any(rec.getDt)
-                    plot(t, rec.getDt .* nans, '-', 'LineWidth', 2);
-                    plot(t, rec.getTotalDt .* nans, '-', 'LineWidth', 2);
+                    plot(t, rec.getDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
+                    plot(t, rec.getTotalDt .* nans(this.getIdSync), '-', 'LineWidth', 2);
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'residual dt from carrier phases', 'total dt', 'Location', 'NorthEastOutside');
                 else
                     legend('desync time', 'dt pre-estimated from pseudo ranges', 'dt pre-estimated from phases', 'dt correction from LS on Code', 'dt estimated from pre-processing', 'Location', 'NorthEastOutside');
