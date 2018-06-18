@@ -451,7 +451,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.go_id(id_obs) = [];
             go_out = setdiff(go_out, unique(this.go_id));
             
-            [~, id_out] = intersect(this.ph_idx, id_obs);
+            id_out = [];
+            for i = 1 : numel(id_obs)
+                id_out = [id_out, find(this.ph_idx == id_obs(i))];                 %#ok<AGROW>
+            end
             tmp = false(max(this.ph_idx), 1);
             tmp(this.ph_idx) = true;
             tmp(id_out) = false;
@@ -659,11 +662,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin > 2 % interpreting as sys_c , prn
                 go_id = this.getGoId(go_id, prn);
             end
-            if ~isempty(go_id)
-                [~, idx] = intersect(this.go_id, go_id);
-                this.remObs(idx);
+            for s = 1 : numel(go_id)
+                this.remObs(find(this.go_id == go_id(s))); %#ok<FNDSB>
             end
-        end        
+        end
         
         function remBadPrObs(this, thr)
             % remove bad pseudo-ranges 
@@ -2035,7 +2037,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             has_apr = this.rf.hasAPriori(this.parent.getMarkerName4Ch);
         end
         
-         function n_obs = getNumObservables(this)
+        function n_obs = getNumObservables(this)
             % get the number of observables stored in the object
             % SYNTAX n_obs = this.getNumObservables()
             n_obs = size(this.obs, 1);
