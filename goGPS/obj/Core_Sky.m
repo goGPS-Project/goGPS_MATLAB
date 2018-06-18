@@ -148,7 +148,7 @@ classdef Core_Sky < handle
                     this.clearOrbit(to_clear_date);
                 end
                 
-                if  ~isempty(strfind(lower(eph_f_name{1}), '.sp3')) || ~isempty(strfind(lower(eph_f_name{1}), '.eph')) || ~isempty(strfind(lower(eph_f_name{1}), '.pre')) % assuming all files have the same endings
+                if  instr(lower(eph_f_name{1}), '.sp3') || instr(lower(eph_f_name{1}), '.eph') || instr(lower(eph_f_name{1}), '.pre') % assuming all files have the same extensions
                     this.log.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
                         [~,name,ext] = fileparts(eph_f_name{i});
@@ -1513,6 +1513,10 @@ classdef Core_Sky < handle
             % OUTPUT:
             %
             % DESCRIPTION: interpolate coordinates of staellites
+            if isempty(this.time_ref_coord)
+                this.log.addWarning('Core_Sky appears to be empty, goGPS is going to miesbehave/nTrying to load needed data')
+                this.initSession(t.first(), t.last())
+            end
             n_sat = size(this.coord, 2);
             if nargin <3
                 sat_idx = ones(n_sat, 1) > 0;
@@ -1984,18 +1988,18 @@ classdef Core_Sky < handle
         end
         
         function writeEpoch(this,fid,XYZT,epoch)
-            t=this.time_ref_coord.getCopy();
-            t.addIntSeconds((epoch)*900);
-            cc=this.cc;
-            str_time=t.toString();
-            year=str2num(str_time(1:4));
-            month=str2num(str_time(6:7));
-            day=str2num(str_time(9:10));
-            hour=str2num(str_time(12:13));
-            minute=str2num(str_time(15:16));
-            second=str2num(str_time(18:27));
+            t = this.time_ref_coord.getCopy();
+            t.addIntSeconds((epoch) * 900);
+            cc = this.cc;
+            str_time = t.toString();
+            year = str2num(str_time(1:4));
+            month = str2num(str_time(6:7));
+            day = str2num(str_time(9:10));
+            hour = str2num(str_time(12:13));
+            minute = str2num(str_time(15:16));
+            second = str2num(str_time(18:27));
             fprintf(fid,'*  %4i %2i %2i %2i %2i %11.8f\n',year,month,day,hour,minute,second);
-            for i=1:size(XYZT,1)
+            for i = 1:size(XYZT,1)
                 fprintf(fid,'P%s%14.6f%14.6f%14.6f%14.6f\n',strrep(sprintf('%s%2i', cc.system(i), cc.prn(i)), ' ', '0'),XYZT(i,1),XYZT(i,2),XYZT(i,3),XYZT(i,4));
             end
             
