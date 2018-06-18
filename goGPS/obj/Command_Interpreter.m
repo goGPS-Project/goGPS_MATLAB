@@ -845,9 +845,9 @@ classdef Command_Interpreter < handle
                     for t = 1 : numel(tok)
                         try
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
-                                rec(r).exportTropoSINEX();
+                                rec(r).out.exportTropoSINEX();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
-                                rec(r).exportTropoMat();
+                                rec(r).out.exportTropoMat();
                             end
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
