@@ -455,7 +455,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.gal = state.gal.getCopy();
                 this.qzs = state.qzs.getCopy();
                 this.bds = state.bds.getCopy();
-                this.irn = state.qzs.getCopy();
+                this.irn = state.irn.getCopy();
                 this.sbs = state.sbs.getCopy();
                 this.update();
             end
