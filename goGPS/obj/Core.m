@@ -221,14 +221,26 @@ classdef Core < handle
                 rec = this.rec;
             end
             this.log.newLine();
+            if ~this.state.isRinexSession()
+                rin_list = this.getRinFileList();
+                
+            end
             for r = 1 : this.state.getRecCount()
                 this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
                 if (numel(rec) < r) || rec(r).isEmpty
                     rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode(r) == 0); %#ok<AGROW>
                 else
-                    rec(r).work.resetWorkSpace();
+                    if this.state.isRinexSession()
+                        rec(r).work.resetWorkSpace();
+                    end
                 end
-                rec(r).importRinexLegacy(this.state.getRecPath(r, session));
+                if this.state.isRinexSession()
+                    rec(r).importRinexLegacy(this.state.getRecPath(r, session));
+                else
+                    [session_limits, out_limits] = this.state.getSessionLimits(session);
+                    rec(r).importRinexes(rin_list(r).getCopy(), session_limits.first, session_limits.last);
+                    rec(r).work.setOutLimits(out_limits.first, out_limits.last);
+                end
             end
             if numel(rec) > 0
                 this.log.newLine();

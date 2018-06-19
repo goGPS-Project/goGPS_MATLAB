@@ -99,6 +99,16 @@ classdef GNSS_Station < handle
             this.work.load();
         end
         
+        function importRinexes(this, rin_list, time_start, time_stop)
+            % selct the files to be imported
+            %
+            % SYNTAX
+            % this.importRinexes(rin_list, time_start, time_stop)
+            rin_list.keepFiles(time_start, time_stop);
+            this.work.importRinexFileList(rin_list, time_start, time_stop);
+
+        end
+        
         function init(this)
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
@@ -169,8 +179,12 @@ classdef GNSS_Station < handle
             % (first four characters)
             %
             % SYNTAX
-            %   marker_name = getMarkerName(this)            
-            marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
+            %   marker_name = getMarkerName(this)     
+            if ~isempty(this.work.rinex_file_name)
+                marker_name = File_Name_Processor.getFileName(this.work.rinex_file_name);
+            else
+                marker_name = this.marker_name;
+            end
             marker_name = marker_name(1 : min(4, length(marker_name)));
         end
         

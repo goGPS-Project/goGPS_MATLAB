@@ -269,6 +269,16 @@ classdef Receiver_Output < Receiver_Commons
     
     methods
         function injectResult(this, rec_work)
+            %inject the results of receiver work into receiver output
+            %
+            % SYNTAX
+            %  this.injectResult(rec_work)
+            
+            % set the id_sync onòy to time in between out times
+            
+            id_sync_old = rec_work.getIdSync();
+            rec_work.cropIdSync4out();
+            
             work_time = rec_work.getTime();
             if isempty(this.time)
                 idx1 = 1;
@@ -327,6 +337,9 @@ classdef Receiver_Output < Receiver_Commons
             
             this.s0_ip   = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
             this.s0      = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
+            
+            % reset the old idsync
+            rec_work.id_sync = id_sync_old;
         end
 
     end

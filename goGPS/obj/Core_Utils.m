@@ -522,6 +522,15 @@ classdef Core_Utils < handle
             data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
         end
         
+        function [response] = timeIntersect(time1_st, time1_end, time2_st, time2_end)
+            % check whether times of time bound 1 intersect with times of time bound 2
+            %
+            % SYNTAX
+            % [response] = Core_Utils.timeIntersect(time1_st,time1_en, time2_st, time2_en)
+            response = time1_st <= time2_end & time1_end >= time2_st;
+            %(time2_st <= time1_st & time2_end >= time1_st) | (time2_st <= time1_en & time2_end >= time1_en);
+        end
+        
         function y_out = interp1LS(x_in, y_in, degree, x_out)
             % Least squares interpolant of a 1D dataset
             %

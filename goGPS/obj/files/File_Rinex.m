@@ -101,6 +101,28 @@ classdef File_Rinex < Exportable
                 this.checkValidity();
             end
         end
+        
+        function copy = getCopy(this)
+            copy = File_Rinex();
+            copy.copyFrom(this);
+        end
+        
+        function copyFrom(this, file_rinex)
+            % Copy from an object of the same type
+            %
+            % SYNTAX
+            %   this.copyFrom(time)
+            this.is_valid       = file_rinex.is_valid;
+            this.base_dir       = file_rinex.base_dir;
+            this.file_name_list = file_rinex.file_name_list;
+            this.ext            = file_rinex.ext;
+            this.is_valid_list  = file_rinex.is_valid_list ;
+            this.is_composed    = file_rinex.is_composed;
+            this.first_epoch    = file_rinex.first_epoch;
+            this.last_epoch     = file_rinex.last_epoch;
+            this.verbosity_lev  = file_rinex.verbosity_lev;
+            this.eoh            = file_rinex.eoh;
+        end
     end
 
     methods
@@ -269,5 +291,27 @@ classdef File_Rinex < Exportable
             end
         end
 
+        function keepFiles(this, date_start, date_stop)
+            % keep only files contained in the two dates
+            %
+            % SYNTAX
+            % this.keepFiles(date_start, date_stop)
+            [to_keep] = Core_Utils.timeIntersect(this.first_epoch, this.last_epoch, date_start, date_stop);
+            this.keep(to_keep);
+        end
+        
+        function keep(this,id)
+            % keep only element specified by id
+            %
+            % SYNTAX
+            % this.keep(id)
+            this.base_dir = this.base_dir(id);
+            this.file_name_list = this.file_name_list(id);
+            this.ext = this.ext(id);
+            this.is_valid_list = this.is_valid_list(id);
+            this.eoh = this.eoh(id);
+            this.first_epoch = this.first_epoch.getSubSet(id);
+            this.last_epoch  = this.last_epoch.getSubSet(id);
+        end
     end
 end

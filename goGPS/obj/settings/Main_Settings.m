@@ -24,7 +24,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea, ...
+%  Contributors:     Gatti Andrea, Giulio Taliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -79,6 +79,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_ID_LIST = '0';   % id character sequence to be use for the session $(S) special keyword
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
+        
+        SSS_FILE_BASED = true;         % is the session management file based
+        SSS_DURATION = 86400;          % session duration in seconds
+        SSS_BUFFER = [3600*3 3600*3]; % session overlap in seconds [left right]
+        
         
         FLAG_KEEP_REC_LIST = true; % Flag to store the receivers for all the sessions
         
@@ -285,6 +290,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         sss_id_list =    Main_Settings.SSS_ID_LIST;       % id character sequence to be use for the session $(S) special keyworc
         sss_id_start =   Main_Settings.SSS_ID_START;      % first session id (char of sss_id_list)
         sss_id_stop =    Main_Settings.SSS_ID_STOP;       % last session id (char of sss_id_list)
+        
+        sss_file_based = Main_Settings.SSS_FILE_BASED;
+        sss_duration   = Main_Settings.SSS_DURATION;
+        sss_buffer    = Main_Settings.SSS_BUFFER;
         
         flag_keep_rec_list = Main_Settings.FLAG_KEEP_REC_LIST; % Flag to store the receivers for all the sessions
 
@@ -569,6 +578,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_id_list = state.getData('sss_id_list');
                 this.sss_id_start = state.getData('sss_id_start');
                 this.sss_id_stop = state.getData('sss_id_stop');
+                
+                this.sss_file_based = state.getData('sss_file_based');
+                this.sss_duration   = state.getData('sss_duration');
+                this.sss_buffer    = state.getData('sss_buffer');
 
                 this.flag_keep_rec_list = state.getData('flag_keep_rec_list');
                 
@@ -683,6 +696,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_id_list = state.sss_id_list;
                 this.sss_id_start = state.sss_id_start;
                 this.sss_id_stop = state.sss_id_stop;
+                
+                this.sss_file_based = state.sss_file_based;
+                this.sss_duration   = state.sss_duration;
+                this.sss_buffer    = state.sss_buffer;
 
                 this.flag_keep_rec_list = state.flag_keep_rec_list;
 
@@ -820,6 +837,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
             str = [str sprintf(' Last session char                                 %c \n', this.sss_id_stop)];
+            
+            str = [str sprintf(' Session management file based                     %d \n', this.sss_file_based)];
+            str = [str sprintf(' Duration of the session                           %d \n', this.sss_duration  )];
+            str = [str sprintf(' Overlap of the sessions [left right]              %d %d \n', this.sss_buffer(1), this.sss_buffer(end))];
             
             str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
@@ -973,6 +994,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('sss_id_start', this.sss_id_start, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Last session id (char of sss_id_list)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_stop', this.sss_id_stop, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag to base the sessions on the rines files', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_file_based',this.sss_file_based,str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Session duration in seconds', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_duration',this.sss_duration  ,str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Session buffer in second [left right]', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_buffer',this.sss_buffer   ,str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag DEBUG (0/1) to keep in memory all the processed receiver', str_cell);
             str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
@@ -2064,13 +2091,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             base_rinex_dir = this.obs_dir();
         end
 
-        function num_receiver = getSessionCount(this)
+        function num_session = getSessionCount(this)
             % Get the number of sessions
             %
             % SYNTAX
             %   num_receiver = getSessionCount(this)
-            file_name = this.getRecPath();
-            num_receiver = numel(file_name{1});
+            if this.isRinexSession()
+                file_name = this.getRecPath();
+                num_session = numel(file_name{1});
+            else
+                num_session = ceil((this.sss_date_stop - this.sss_date_start)/ this.sss_duration);
+            end
         end
 
         function num_stations = getRecCount(this)
@@ -2490,6 +2521,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   date = getSessionStart(this)
             date = this.sss_date_start;
         end
+        
+        function response = isRinexSession(this)
+            % is the program using session based on rinex files?
+            %
+            % SYNTAX
+            %  response = this.isRinexSession()
+            response = this.sss_file_based;
+        end
+       
 
         function date = getSessionStop(this)
             % SYNTAX
@@ -2497,11 +2537,29 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             date = this.sss_date_stop;
         end
 
-        function date = getSessionLimits(this)
+        function [date_session, date_out] = getSessionLimits(this, n)
             % SYNTAX
-            %   date = getSessionLimits(this)
-            date = this.sss_date_start.getCopy;
-            date.append(this.sss_date_stop);
+            %   [date_session, date_out] = getSessionLimits(this, <n>)
+            if this.isRinexSession()
+                date_session = this.sss_date_start.getCopy;
+                date_session.append(this.sss_date_stop);
+            else
+                if nargin < 2
+                    n = 1;
+                end
+                date_out = this.sss_date_start.getCopy;
+                date_out.addSeconds((n-1) * this.sss_duration);
+                date_session = date_out.getCopy();
+                date_session.addSeconds(-this.sss_buffer(1)); % left buffer
+                date_out_stop = date_out.getCopy();
+                date_out_stop.addSeconds(this.sss_duration); 
+                date_session_stop = date_out_stop.getCopy();
+                date_session_stop.addSeconds(this.sss_buffer(end)); % right buffer
+                
+                date_session.append(date_session_stop);
+                date_out.append(date_out_stop);
+                
+            end
         end
 
         function iono_model = getIonoModel(this)
