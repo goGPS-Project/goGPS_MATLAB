@@ -675,8 +675,7 @@ classdef GNSS_Station < handle
                     end
                 end
             end
-        end
-      
+        end      
     end
     
     %% METHODS PLOTTING FUNCTIONS

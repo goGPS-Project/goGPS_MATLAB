@@ -653,6 +653,7 @@ classdef Least_Squares_Manipulator < handle
                 res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
             end
             this.res = res_l;
+            res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);
             n_sat = max(this.sat_go_id);
             res = zeros(n_epochs, n_sat);
@@ -667,14 +668,25 @@ classdef Least_Squares_Manipulator < handle
         % Note: after reweighting the function Astackt2Nstack have to be
         % called again
         %----------------------------------------------------------------
-        function weightOnResidual(this, wfun, threshold)
+        function weightOnResidual(this, wfun, thr, thr_propagate)
             if isempty(this.rw)
                 this.rw = ones(size(this.variance));
             end
             s0 = mean(abs(this.res).*this.rw);
             res_n = this.res/s0;
             if nargin > 2
-                idx_rw = abs(res_n) > threshold;
+                if nargin > 3 && (thr_propagate > 0)
+                    sat_err = nan(this.n_epochs, max(this.sat_go_id));
+                    sat_err(this.epoch + this.sat * this.n_epochs) = this.res/s0;
+                    ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10); % smoothing SNR => to be improved
+                    idx_ko = false(this.n_epochs, max(this.sat_go_id));
+                    for s = 1 : size(idx_ko, 2)
+                        idx_ko(:,s) = (movmax(abs(ssat_err(:,s)), 20) > thr_propagate) & flagExpand(abs(ssat_err(:,s)) > thr, 100);
+                    end
+                    idx_rw = idx_ko(this.epoch + this.sat * this.n_epochs);
+                else
+                    idx_rw = abs(res_n) > thr;
+                end
             else
                 idx_rw = true(size(res_n));
             end
@@ -699,11 +711,19 @@ classdef Least_Squares_Manipulator < handle
             wfun = @(x) (1 - (x ./threshold).^2).^2;
             this.weightOnResidual(wfun, threshold);
         end
-        function reweightSnooping(this)
+        function snooping(this)
             threshold = 2.5;
             wfun = @(x) 0;
             this.weightOnResidual(wfun, threshold);
         end
+        
+        function snoopingGatt(this)
+            threshold = 10;
+            threshold_propagate = 2.5;
+            wfun = @(x) 0;
+            this.weightOnResidual(wfun, threshold, threshold_propagate);
+        end
+        
         %------------------------------------------------------------------------
         function [x, res, s0, Cxx] = solve(this)
             % if N_ep if empty call A
@@ -841,7 +861,7 @@ classdef Least_Squares_Manipulator < handle
             if nargout > 1
                 x_res = zeros(size(x));
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
-                res = this.getResiduals(x_res);
+                res = this.getResiduals(x_res);                
                 s0 = mean(abs(res(res~=0)));
                 if nargout > 3
                     Cxx = s0 * Cxx;

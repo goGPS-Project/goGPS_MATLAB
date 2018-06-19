@@ -931,7 +931,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             [snr1, id_snr] = this.getObs('S1');
             
-            snr1 = this.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+            snr1 = Receiver_Commons.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
             id_snr = find(id_snr);
             if ~isempty(id_snr)
                 this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));                
@@ -6177,11 +6177,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
-                % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to
-                % enable)
-                % ls.reweightHuber();
-                % ls.Astack2Nstack();
-                % [x, res, s02] = ls.solve();
+                % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
+                ls.snoopingGatt();
+                ls.Astack2Nstack();
+                [x, res, s02] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
@@ -6207,7 +6206,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
-                this.log.addMessage(this.log.indent(sprintf('DEBUG: s02 = %f',s0)));
+                this.log.addMessage(this.log.indent(sprintf('DEBUG: s0 = %f', s0)));
                 this.xyz = this.xyz + coo;
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
@@ -6674,74 +6673,6 @@ classdef Receiver_Work_Space < Receiver_Commons
     % ==================================================================================================================================================
     
     methods (Access = public)        
-        function data_s = smoothSatData(this, data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
-            if nargin < 5
-                cs_mat = [];
-            end
-            if nargin < 7
-                spline_base = (300 / this.getRate); % 5 min
-            end
-            if nargin < 6 
-                method = 'spline';
-            end
-            if nargin < 8
-                max_gap = 0;
-            end
-            if strcmp(method,'spline')
-                data_s = data_in;
-                for s = 1 : size(data_s, 2)
-                    if isempty(cs_mat)
-                        lim = getOutliers(~isnan(data_s(:,s)));
-                    else
-                        lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
-                    end
-                    if max_gap > 0
-                        lim = limMerge(lim, max_gap);
-                    end
-
-                    % remove small intervals
-                    %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
-                    for l = 1 : size(lim, 1)
-                        arc_size = lim(l,2) - lim(l,1) + 1;
-                        id_arc = lim(l,1) : lim(l,2);
-                        id_arc(isnan(data_s(id_arc, s))) = [];
-                        data_tmp = data_s(id_arc, s);
-                        if length(data_tmp) > 3
-                            data_s(id_arc, s) = splinerMat([], data_tmp, min(arc_size, spline_base));
-                        end
-                    end
-                end
-            elseif strcmp(method,'poly_quad')
-                data_s = data_in;
-                for s = 1 : size(data_s, 2)
-                    lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
-                    % remove small intervals
-                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
-                    for l = 1 : size(lim, 1)
-                        n_ep =  lim(l,2) - lim(l,1) +1;
-                        if n_ep > 4
-                            data_tmp = data_s(lim(l,1) : lim(l,2), s);
-                            el_tmp = data_el(lim(l,1) : lim(l,2), s);
-                            az_tmp = data_az(lim(l,1) : lim(l,2), s);
-                            t = [1:n_ep]';
-                            A = [ones(n_ep,1) t t.^2];
-                            %                             Qxx = cholinv(A'*A);
-                            par = A\data_tmp;
-                            %                             par = Qxx*A'*data_tmp;
-                            quad_mod = A*par;
-                            
-                            %                             data_coll = data_tmp - quad_mod;
-                            %                             s02 = mean(data_coll.^2) / (n_ep -3);
-                            %                             Cy_haty_hat = s02*A'*Qxx;
-                            %                             Cvv =  0;
-                            data_s(lim(l,1) : lim(l,2), s) = splinerMat(te, data_coll , 1) + quad_mod;
-                            data_s(lim(l,1) : lim(l,2), s) = quad_mod;
-                        end
-                    end
-                end
-            end
-        end
-        
           
         function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, dp, sigma_dp, dp_go_id)
             % NOT WORKING due to iono
@@ -7207,7 +7138,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 for b = 1 : 9 % try all the bands
                     [snr, snr_id] = this.getSNR(sys_c, num2str(b));
                     if nargin > 2 && flag_smooth
-                        snr = this.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                        snr = Receiver_Commons.smoothSatData([],[],zero2nan(snr), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
                     end
                     
                     if any(snr_id) && any(snr(:))

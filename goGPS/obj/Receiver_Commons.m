@@ -1456,4 +1456,76 @@ classdef Receiver_Commons < handle
             plot(zero2nan(this.sat.res),'.');
         end
     end
+    
+    %% METHODS STATIC UTILITIES
+    % ==================================================================================================================================================
+    methods (Static)
+        function data_s = smoothSatData(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
+            if nargin < 5
+                cs_mat = [];
+            end
+            if nargin < 7
+                spline_base = 10; % 5 min
+            end
+            if nargin < 6
+                method = 'spline';
+            end
+            if nargin < 8
+                max_gap = 0;
+            end
+            if strcmp(method,'spline')
+                data_s = data_in;
+                for s = 1 : size(data_s, 2)
+                    if isempty(cs_mat)
+                        lim = getOutliers(~isnan(data_s(:,s)));
+                    else
+                        lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
+                    end
+                    if max_gap > 0
+                        lim = limMerge(lim, max_gap);
+                    end
+                    
+                    % remove small intervals
+                    %lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    for l = 1 : size(lim, 1)
+                        arc_size = lim(l,2) - lim(l,1) + 1;
+                        id_arc = lim(l,1) : lim(l,2);
+                        id_arc(isnan(data_s(id_arc, s))) = [];
+                        data_tmp = data_s(id_arc, s);
+                        if length(data_tmp) > 3
+                            data_s(id_arc, s) = splinerMat([], data_tmp, min(arc_size, spline_base));
+                        end
+                    end
+                end
+            elseif strcmp(method,'poly_quad')
+                data_s = data_in;
+                for s = 1 : size(data_s, 2)
+                    lim = getOutliers(~isnan(data_s(:,s)), cs_mat(:,s));
+                    % remove small intervals
+                    lim((lim(:,2) - lim(:,1)) < spline_base, :) = [];
+                    for l = 1 : size(lim, 1)
+                        n_ep =  lim(l,2) - lim(l,1) +1;
+                        if n_ep > 4
+                            data_tmp = data_s(lim(l,1) : lim(l,2), s);
+                            el_tmp = data_el(lim(l,1) : lim(l,2), s);
+                            az_tmp = data_az(lim(l,1) : lim(l,2), s);
+                            t = [1:n_ep]';
+                            A = [ones(n_ep,1) t t.^2];
+                            %                             Qxx = cholinv(A'*A);
+                            par = A\data_tmp;
+                            %                             par = Qxx*A'*data_tmp;
+                            quad_mod = A*par;
+                            
+                            %                             data_coll = data_tmp - quad_mod;
+                            %                             s02 = mean(data_coll.^2) / (n_ep -3);
+                            %                             Cy_haty_hat = s02*A'*Qxx;
+                            %                             Cvv =  0;
+                            data_s(lim(l,1) : lim(l,2), s) = splinerMat(te, data_coll , 1) + quad_mod;
+                            data_s(lim(l,1) : lim(l,2), s) = quad_mod;
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
