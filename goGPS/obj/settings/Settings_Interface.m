@@ -246,7 +246,7 @@ classdef Settings_Interface < Exportable
                     end
                 end
             else
-                this.log.addWarning(sprintf('The settings field %s is not valid => using default %g', field_name, checked_val));
+                this.log.addWarning(sprintf('The settings field %s is not valid => using default [%s ]', field_name, sprintf(' %g', checked_val)));
             end
         end
     end
