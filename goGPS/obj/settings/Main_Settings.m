@@ -1641,6 +1641,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkStringField('sss_id_start', EMPTY_IS_NOT_VALID);
             this.checkStringField('sss_id_stop', EMPTY_IS_NOT_VALID);
 
+            this.checkLogicalField('sss_file_based');
+            this.checkNumericField('sss_duration', [0 365*86400]);
+            this.checkNumericField('sss_buffer', [0 3600*3]);
+        
             this.checkPathField('obs_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkCellStringField('obs_name', EMPTY_IS_NOT_VALID);
 
