@@ -2396,7 +2396,7 @@ classdef Receiver < Exportable
                 end
             end
         end
-        ì
+        
         function missing_epochs = getMissingEpochs(this)
             % return a logical array of missing (code) epochs
             %

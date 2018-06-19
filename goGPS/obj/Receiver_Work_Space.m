@@ -2153,11 +2153,19 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function dt_pr = getDtPr(this)
-            dt_pr = this.dt_pr(this.id_sync);
+            if numel(this.dt_pr) >= max(this.id_sync)
+                dt_pr = this.dt_pr(this.id_sync);
+            else
+                dt_pr = this.dt_pr(1) * ones(size(this.id_sync));
+            end
         end
         
         function dt_ph = getDtPh(this)
-            dt_ph =  this.dt_ph(this.id_sync);
+            if numel(this.dt_ph) >= max(this.id_sync)
+                dt_ph = this.dt_ph(this.id_sync);
+            else
+                dt_ph = this.dt_ph(1) * ones(size(this.id_sync));
+            end
         end
         
         function dt_pp = getDtPrePro(this)
@@ -5299,11 +5307,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         dt_pr = dt_pr_dj;
                     end
                     
-                    ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                    pr = bsxfun(@minus, pr, dt_pr .* 299792458);
                 else
-                    if (is_ph_jumping ~= is_pr_jumping)
-                        
+                    if (is_ph_jumping ~= is_pr_jumping)                        
                         % epochs with no phases cannot estimate dt jumps
                         if (numel(dt_ph_dj) > 1 && numel(dt_pr_dj) > 1)
                             id_ko = flagExpand(sum(~isnan(ph), 2) == 0, 1);
@@ -5324,11 +5329,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         t_offset = mean(dt_pr);
                         dt_ph = dt_ph_dj - drifting_pr - t_offset;
                         dt_pr = dt_pr - t_offset;
-                        
-                        ph = bsxfun(@minus, ph, dt_ph .* 299792458);
-                        pr = bsxfun(@minus, pr, dt_pr .* 299792458);
                     end
                 end
+                
                 if any(dt_ph_dj)
                     this.log.addMessage(this.log.indent('Correcting carrier phases jumps'));
                 else
@@ -5340,6 +5343,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.log.addMessage(this.log.indent('Correcting pseudo-ranges for a dt drift estimated from desync interpolation'));
                 end
             end
+            
+            ph = bsxfun(@minus, ph, dt_ph .* 299792458);
+            pr = bsxfun(@minus, pr, dt_pr .* 299792458);
             
             % Saving dt into the object properties
             this.dt_ph = dt_ph; %#ok<PROP>
@@ -5896,7 +5902,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.importMeteoData();
                     
                     % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
-                    this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.getDtPr; % save init_positioning clock
+                    this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                     % smooth clock estimation
                     this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
                     
@@ -6803,7 +6809,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 f = figure; f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                 t = rec.time.getEpoch(this.getIdSync).getMatlabTime();
                 nans = zero2nan(double(~rec.getMissingEpochs()));
-                plot(t, -rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
+                plot(t, rec.getDesync .* nans(this.getIdSync), '-k', 'LineWidth', 2);
                 hold on;
                 plot(t, rec.getDtPr .* nans(this.getIdSync), ':', 'LineWidth', 2);
                 plot(t, rec.getDtPh .* nans(this.getIdSync), ':', 'LineWidth', 2);

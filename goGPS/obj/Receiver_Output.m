@@ -161,6 +161,10 @@ classdef Receiver_Output < Receiver_Commons
             desync = this.desync;
         end        
         
+        function dt_pp = getDtPrePro(this)
+            dt_pp = this.dt_ip;
+        end
+        
         function time = getPositionTime(this)
             % return the time of the computed positions
             %

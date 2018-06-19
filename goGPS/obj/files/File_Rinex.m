@@ -215,7 +215,7 @@ classdef File_Rinex < Exportable
             % SYNTAX
             %   first_epoch = this.getFirstEpoch(session)
             if nargin == 1
-                if any(this.is_valid_list())
+                if any(this.is_valid_list)
                     first_epoch = this.first_epoch.getCopy;
                 else
                     first_epoch = GPS_Time();
@@ -235,7 +235,7 @@ classdef File_Rinex < Exportable
             % SYNTAX
             %   first_epoch = this.getFirstEpoch(session)
             if nargin == 1
-                if any(this.is_valid_list())
+                if any(this.is_valid_list)
                     last_epoch = this.last_epoch.getCopy;
                 else
                     last_epoch = GPS_Time();
