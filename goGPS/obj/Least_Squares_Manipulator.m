@@ -220,7 +220,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             % re-apply cut off if requested
-            if nargin > 4 && ~isempty(cut_off)
+            if nargin > 4 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
                 obs_set.remUnderCutOff(cut_off);
             end
             

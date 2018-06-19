@@ -5534,14 +5534,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 this.log.addMarkedMessage('Computing position and clock errors using a code only solution')
                 this.sat.err_tropo = zeros(this.time.length, this.parent.cc.getMaxNumSat());
+                this.sat.tot = zeros(this.time.length, this.parent.cc.getMaxNumSat());
                 this.sat.err_iono  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
+                this.sat.az  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
+                this.sat.el  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
                 this.sat.solid_earth_corr  = zeros(this.time.length, this.parent.cc.getMaxNumSat());
                 this.log.addMessage(this.log.indent('Applying satellites Differential Code Biases (DCB)'))
                 % if not applied apply group delay
                 this.applyGroupDelay();
                 this.log.addMessage(this.log.indent('Applying satellites clock errors and eccentricity dependent relativistic correction'))
                 this.applyDtSat();
-                
+                % if 
                 %this.parent.static = 0;
                 if this.isStatic()
                     %this.initStaticPositioningOld(obs, prn, sys, flag)
