@@ -549,9 +549,9 @@ classdef Command_Interpreter < handle
                             state = Global_Configuration.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
-                        rec(r).load();
+                        rec(r).work.load();
                     end
-                    rec(r).updateAzimuthElevation();
+                    rec(r).work.updateAzimuthElevation();
                 end
             end
         end
