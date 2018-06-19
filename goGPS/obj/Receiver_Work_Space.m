@@ -6658,12 +6658,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX:
             % this.cropIdSync4out()
-            
-            id_sync = this.getIdSync();
-            time = this.getTime();
-            keep_idx = time > this.out_start_time & time < this.out_stop_time;
-            id_sync(~keep_idx)  = [];
-            this.id_sync = id_sync;
+            if ~isempty(this.out_start_time)
+                id_sync = this.getIdSync();
+                time = this.getTime();
+                keep_idx = time > this.out_start_time & time < this.out_stop_time;
+                id_sync(~keep_idx)  = [];
+                this.id_sync = id_sync;
+            end
         end
     end
     

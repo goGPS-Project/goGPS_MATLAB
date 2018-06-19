@@ -1903,9 +1903,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % ADV ATMOSPHERE
             %this.checkNumericField('sigma0_tropo',[1e-11 10]);
-            this.checkNumericField('std_tropo',[1e-12 1]);
+            this.checkNumericField('std_tropo',[1e-12 1e50]);
             %this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
-            this.checkNumericField('std_tropo_gradient',[1e-12 1]);
+            this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
         end
         
         function n_missing = checkDir(this, field_name, field_text, flag_verbose)
