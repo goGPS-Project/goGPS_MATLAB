@@ -23,7 +23,7 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __
+%     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.6.0 alpha 2 - nightly
@@ -981,11 +981,15 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   date6col = get6ColDate(this)
-            date6col = datevec(this.getMatlabTime);
+            time_base = this.getCopy; 
+            time_base.toUnixTime; % to be safe
+            time_base.unix_time_f = zeros(size(time_base.unix_time_f)); % removing fractional part
+            date6col = datevec(time_base.getMatlabTime);
             date6col(:,6) = floor(date6col(:,6));
-            tmp = GPS_Time(date6col); tmp.toUnixTime;
+            tmp = GPS_Time(date6col);
+            tmp.toUnixTime; % to be safe
             fractional_part = round((tmp - this) * 1e10) * 1e-10;
-            date6col(:,6) = date6col(:,6)- fractional_part ;
+            date6col(:,6) = date6col(:,6) - fractional_part ;
         end
         
         function changeRef(this, new_time_mat_ref)
