@@ -935,8 +935,8 @@ classdef GNSS_Station < handle
                     l = legend;
                     old_legend = get(l,'String');
                 end
-                for r = 1 : size(rec_list, 2)
-                    rec = rec_list(~rec_list(:,r).isempty, r);
+                for r = 1 : numel(rec_list)
+                    rec = rec_list(~rec_list(r).isEmpty, r);
                     if ~isempty(rec)
                         switch lower(par_name)
                             case 'ztd'

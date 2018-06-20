@@ -290,7 +290,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.n_spe = [];              % number of sat per epoch
                 this.xyz          = [];  % approximate position of the receiver (XYZ geocentric)
                 
-                this.pp_status = false;
                 this.iono_status = false;
                 this.group_delay_status = false;
                 this.dts_delay_status = false;
@@ -303,10 +302,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.hoi_delay_status = false;
                 this.atm_load_delay_status = false;
             end
+            
+            this.pp_status = false;
+
             this.id_sync = [];
             this.n_sat = [];
-            
-            
             
             this.enu = [];
             this.lat = [];
@@ -421,6 +421,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
             for i = 1: n_files
+                tmp = time_stop.getCopy;
+                if tmp > rin_list.last_epoch.getEpoch(i)
+                    tmp = rin_list.last_epoch.getEpoch(i).getCopy;
+                end
                 this.appendRinex(rin_list.getFileName(i),time_start, time_stop)
             end
         end
@@ -633,11 +637,14 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remEpochs(this, bad_epochs)
+            % remove epochs with a certain id
+            %
+            % SYNTAX
+            %   this.remEpochs(bad_epochs)
+            if islogical(bad_epochs)
+                bad_epochs = find(bad_epochs);
+            end
             if ~isempty(bad_epochs)
-                % remove epochs with a certain id
-                %
-                % SYNTAX
-                %   this.remEpochs(bad_epochs)
                 
                 if ~isempty(this.sat.cycle_slip_idx_ph)
                     cycle_slip = this.sat.cycle_slip_idx_ph;
@@ -2959,20 +2966,24 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX this.getObsIdx(flag, <system>)
             %        this.getObsIdx(flag, <system>, <prn>)
             %        this.getObsIdx(flag, <go_id>)
-            go_id_imp = false;
-            idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
-            if nargin > 2
-                if ~ischar(system) % if is not a character is a go_id
-                    [system, prn] = this.getSysPrn(system);
-                    go_id_imp = true;
+            if isempty(this.obs_code)
+                idx = [];
+            else
+                go_id_imp = false;
+                idx = sum(this.obs_code(:,1:length(flag)) == repmat(flag,size(this.obs_code,1),1),2) == length(flag);
+                if nargin > 2
+                    if ~ischar(system) % if is not a character is a go_id
+                        [system, prn] = this.getSysPrn(system);
+                        go_id_imp = true;
+                    end
+                    idx = idx & (this.system == system)';
                 end
-                idx = idx & (this.system == system)';
+                if nargin > 3 || go_id_imp
+                    idx = idx & reshape(this.prn == prn, length(this.prn),1);
+                end
+                idx = find(idx);
+                idx(idx == 0) = [];
             end
-            if nargin > 3 || go_id_imp
-                idx = idx & reshape(this.prn == prn, length(this.prn),1);
-            end
-            idx = find(idx);
-            idx(idx == 0) = [];
         end
         
         function obs_set = getPrefObsSetCh(this, flag, system)
@@ -5331,16 +5342,30 @@ classdef Receiver_Work_Space < Receiver_Commons
             % rem all the corrections
             % SYNTAX
             %   this.remAllCorrections();
-            this.remDtSat();
-            this.remGroupDelay();
-            this.remPCV();
-            this.remPoleTide();
-            this.remPhaseWindUpCorr();
-            this.remSolidEarthTide();
-            this.remShDelay();
-            this.remOceanLoading();
-            this.remHOI();
-            this.remAtmLoad();
+            if ~this.isEmpty()
+                this.remDtSat();
+                this.remGroupDelay();
+                this.remPCV();
+                this.remPoleTide();
+                this.remPhaseWindUpCorr();
+                this.remSolidEarthTide();
+                this.remShDelay();
+                this.remOceanLoading();
+                this.remHOI();
+                this.remAtmLoad();
+            else                
+                this.iono_status = false;
+                this.group_delay_status = false;
+                this.dts_delay_status = false;
+                this.sh_delay_status = false;
+                this.pcv_delay_status = false;
+                this.ol_delay_status = false;
+                this.pt_delay_status = false;
+                this.pw_delay_status = false;
+                this.et_delay_status = false;
+                this.hoi_delay_status = false;
+                this.atm_load_delay_status = false;
+            end
         end
         
         function applyAllCorrections(this)

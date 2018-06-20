@@ -227,8 +227,14 @@ classdef Core < handle
             this.log.newLine();
             if ~this.state.isRinexSession()
                 rin_list = this.getRinFileList();
-                
+                if ~isempty(rin_list)
+                    [~, out_limits] = this.state.getSessionLimits(session);
+                    time_lim_large = out_limits;
+                end
+            else
+                [~, time_lim_large] = this.getRecTimeSpan(session);
             end
+
             for r = 1 : this.state.getRecCount()
                 this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
                 if (numel(rec) < r) || rec(r).isEmpty
@@ -239,7 +245,6 @@ classdef Core < handle
                     end
                 end
                 if ~this.state.isRinexSession()
-                    [~, out_limits] = this.state.getSessionLimits(session);
                     rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                 end
             end
@@ -247,7 +252,6 @@ classdef Core < handle
                 this.log.newLine();
                 this.rec = rec;
                 % Init Meteo and Sky objects
-                [~, time_lim_large] = this.getRecTimeSpan(session);
                 this.initSkySession(time_lim_large);
                 this.log.newLine();
                 this.initMeteoNetwork(time_lim_large);
