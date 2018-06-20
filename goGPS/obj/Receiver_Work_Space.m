@@ -50,7 +50,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         file            % list of rinex file loaded
         rinex_file_name % list of RINEX file name
         rin_type       % rinex version format 
-        loades_session = 0;  % id of the loaded session data
+        loaded_session = 0;  % id of the loaded session data
         
         rinex_ss       % flag containing the satellite system of the rinex file, G: GPS, R: GLONASS, E: Galileo, J: QZSS, C: BDS, I: IRNSS, S: SBAS payload, M: Mixed
         
