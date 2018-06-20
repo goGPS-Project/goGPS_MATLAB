@@ -187,9 +187,11 @@ classdef Least_Squares_Manipulator < handle
                     end
                     out_idx = idxCharLines(obs_code_ph,obs_code1) & go_id_ph == g;
                     out = rec.sat.outlier_idx_ph(:,out_idx);
-                    if strcmp(obs_code2,'   ')
+                    if strcmp(obs_code2,'   ') 
                          out_idx = idxCharLines(obs_code_ph,obs_code2) & go_id_ph == g;
-                         out = out | rec.sat.outlier_idx_ph(:,out_idx);
+                         if any(out_idx)
+                            out(:,out_idx) = out(:,out_idx) | rec.sat.outlier_idx_ph(:,out_idx);
+                         end
                     end
                     rec.sat.o_out_ph(:,g) = out;
                     
