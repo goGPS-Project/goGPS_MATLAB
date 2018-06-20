@@ -222,9 +222,6 @@ classdef Receiver_Output < Receiver_Commons
             % Get the slant total delay
             % SYNTAX
             %   slant_td = this.getSlantTD();
-
-                
-                
             [mfh, mfw] = this.getSlantMF();
             n_sat = size(mfh,2);
             zwd = this.getZwd();
@@ -241,7 +238,6 @@ classdef Receiver_Output < Receiver_Commons
                      + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
                      + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
                      + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
-            
         end
         
         function [day_lim] = getDayLim(this)

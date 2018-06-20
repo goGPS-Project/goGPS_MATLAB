@@ -428,6 +428,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.appendRinex(rin_list.getFileName(i),time_start, time_stop)
             end
         end
+        
         function appendRinex(this, rinex_file_name,time_start, time_stop)
             % append a rinex files
             %

@@ -994,7 +994,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('sss_id_start', this.sss_id_start, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Last session id (char of sss_id_list)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_stop', this.sss_id_stop, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Flag to base the sessions on the rines files', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Flag to base the sessions on the RINEX files', str_cell);
             str_cell = Ini_Manager.toIniString('sss_file_based',this.sss_file_based,str_cell);
             str_cell = Ini_Manager.toIniStringComment('Session duration in seconds', str_cell);
             str_cell = Ini_Manager.toIniString('sss_duration',this.sss_duration  ,str_cell);

@@ -100,13 +100,12 @@ classdef GNSS_Station < handle
         end
         
         function importRinexes(this, rin_list, time_start, time_stop)
-            % selct the files to be imported
+            % select the files to be imported
             %
             % SYNTAX
             % this.importRinexes(rin_list, time_start, time_stop)
             rin_list.keepFiles(time_start, time_stop);
             this.work.importRinexFileList(rin_list, time_start, time_stop);
-
         end
         
         function init(this)

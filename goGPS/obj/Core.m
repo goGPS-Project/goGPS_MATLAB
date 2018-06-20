@@ -66,10 +66,12 @@ classdef Core < handle
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        rin_list   % List of observation file (as File_Rinex objects) to store minimal information on the input files
-        met_list   % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
+        cur_session     % id of the current session
         
-        rec        % List of all the receiver used                
+        rin_list        % List of observation file (as File_Rinex objects) to store minimal information on the input files
+        met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
+        
+        rec             % List of all the receiver used
     end
 
     %% METHOD CREATOR
