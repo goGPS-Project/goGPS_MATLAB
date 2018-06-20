@@ -218,28 +218,6 @@ classdef Receiver_Output < Receiver_Commons
             mfw = this.sat.mfw;
         end
         
-        function slant_td = getSlantTD(this)
-            % Get the slant total delay
-            % SYNTAX
-            %   slant_td = this.getSlantTD();
-            [mfh, mfw] = this.getSlantMF();
-            n_sat = size(mfh,2);
-            zwd = this.getZwd();
-            apr_zhd = this.getAprZhd();
-            [az, el] = this.getAzEl();
-            [tgn, tge] = this.getGradient();
-            res = this.getResidual();
-            
-            cotel = zero2nan(cotd(el));
-            cosaz = zero2nan(cosd(az));
-            sinaz = zero2nan(sind(az));
-            slant_td = nan2zero(zero2nan(res) ...
-                     + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                     + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                     + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                     + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
-        end
-        
         function [day_lim] = getDayLim(this)
             % get the start index and end index of the days presents in the object
             %

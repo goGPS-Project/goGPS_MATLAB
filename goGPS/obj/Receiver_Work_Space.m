@@ -113,7 +113,6 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         
         if_amb;            % temporary varibale to test PPP ambiguity fixing
-        est_slant;         % temporary varibale to test PPP ambiguity fixing
     end
      % ==================================================================================================================================================
     %% PROPERTIES POSITION
@@ -145,7 +144,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
             'res',              [], ...    % residual per staellite
-            'slant_td',         [], ...    % slant total delay (except ionosphere delay)
             'amb_idx',          [], ...    % temporary variable to test PPP ambiguity fixing
             'amb_mat',          [], ...
             'amb',              [] ...
@@ -263,7 +261,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.ph_idx = [];
             this.if_amb = [];
-            this.est_slant = [];
             this.synt_ph = [];
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
@@ -334,7 +331,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.ph_idx = [];
             this.if_amb = [];
-            this.est_slant = [];
             this.synt_ph = [];
             
             this.clock_corrected_obs = false; % if the obs have been corrected with dt * v_light this flag should be true
@@ -1402,7 +1398,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % Compute the other useful status array of the receiver object
-            this.updateStatus();
+            if ~isempty(this.obs)
+                this.updateStatus();
+            end
             this.active_ids = true(this.getNumObservables, 1);
             
             % remove empty observables
@@ -2791,23 +2789,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function slant_td = getSlantTD(this)
-            % Get the slant total delay
-            % SYNTAX
-            %   slant_td = this.getSlantTD();
-            if numel(this) == 1
-                n_sat = size(this.sat.slant_td, 2);
-            else
-                n_sat = this.parent.cc.getMaxNumSat();
-            end
-            slant_td = zeros(this.length, n_sat);
-            t = 1;
-            for r = 1 : numel(this)
-                slant_td(t : t + this(r).length - 1, 1 : this(r).parent.getMaxSat) = this(r).sat.slant_td(this(r).id_sync, :);
-                t = t + this(r).length;
-            end
-        end
-        
         function swtd = getSlantZWD(this, smooth_win_size, id_extract)
             % Get the "zenithalized" wet delay
             % SYNTAX
@@ -3681,7 +3662,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             [~, ss_id] = ismember(this.system, this.cc.sys_c);
             this.n_freq = numel(unique(this.f_id));
             ss_offset = cumsum([0 this.cc.n_sat(1:end-1)]);
-            this.go_id = this.prn + reshape(ss_offset(ss_id'),length(this.prn),1); %%% some time second vector is a colum some time is a line reshape added to uniform
+            ss_offset_id = ss_offset(ss_id');
+            if ~isempty(ss_offset_id)
+                ss_offset_id = serialize(ss_offset_id); %%% some time second vector is a colum some time is a line reshape added to uniform
+            end
+            this.go_id = this.prn + ss_offset_id; 
             this.n_sat = numel(unique(this.go_id));
             
             % Compute number of satellite per epoch
@@ -6247,11 +6232,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q * 1e3;
                         end
                         this.sat.amb = amb;
-                        [mfh, mfw] = getSlantMF(this);
-                        this.sat.slant_td(id_sync, :) = nan2zero(zero2nan(this.sat.res(id_sync, :)) ...
-                            + zero2nan(repmat(this.zwd(id_sync, :), 1, n_sat).*mfw) ...
-                            + zero2nan(repmat(this.apr_zhd(id_sync, :), 1, n_sat).*mfh));
-                        this.est_slant = repmat(tropo, 1, n_sat) .*mfw .* this.sat.avail_index(id_sync, :);  % to test ambiguity fixing
                     end
                     if this.state.flag_tropo_gradient
                         if isempty(this.tgn) || all(isnan(this.tgn))
@@ -6262,13 +6242,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.tge = nan(this.time.length,1);
                         end
                         this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
-                        
-                        cotel = zero2nan(cotd(this.sat.el(id_sync, :)));
-                        cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
-                        sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-                        this.est_slant = nan2zero(zero2nan(this.est_slant) ...
-                            + zero2nan(repmat(this.tgn(id_sync, :),1,n_sat) .* mfw .* cotel .* cosaz) ...
-                            + zero2nan(repmat(this.tge(id_sync, :),1,n_sat) .* mfw .* cotel .* sinaz));  % to test ambiguity fixing
                     end
                     this.updateErrTropo();
                 end
