@@ -136,8 +136,9 @@ classdef Core < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky.getInstance(force_clean);
-            this.cmd = Command_Interpreter.getInstance;
+            this.cmd = Command_Interpreter.getInstance(this);
             if force_clean
+                this.cur_session = 0;
                 this.rec = [];
             end
         end
@@ -210,6 +211,7 @@ classdef Core < handle
             % SYNTAX
             %   this.prepareSession(session_number)
             
+            this.cur_session = session_number;
             session = session_number;
             
             this.log.newLine;
@@ -236,11 +238,8 @@ classdef Core < handle
                         rec(r).work.resetWorkSpace();
                     end
                 end
-                if this.state.isRinexSession()
-                    rec(r).importRinexLegacy(this.state.getRecPath(r, session));
-                else
-                    [session_limits, out_limits] = this.state.getSessionLimits(session);
-                    rec(r).importRinexes(rin_list(r).getCopy(), session_limits.first, session_limits.last);
+                if ~this.state.isRinexSession()
+                    [~, out_limits] = this.state.getSessionLimits(session);
                     rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                 end
             end
@@ -736,6 +735,14 @@ classdef Core < handle
                 time_lim_small.append(tmp_small);
                 time_lim_large.append(tmp_large);
             end
+        end
+        
+        function cur_session = getCurSession(this)
+            % Get the id of the current session
+            %
+            % SYNTAX
+            %   cur_session = this.getCurSession()            
+            cur_session = this.cur_session;
         end
     end
     

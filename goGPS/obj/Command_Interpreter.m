@@ -110,33 +110,34 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log
+        core
     end
     %
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = public)
         % Concrete implementation.  See Singleton superclass.
-        function this = Command_Interpreter()
+        function this = Command_Interpreter(varargin)
             % Core object creator
             this.log = Logger.getInstance();
-            this.init();
+            this.init(varargin{1});
         end
     end
     %
     %% METHOD INTERFACE
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance()
+        function this = getInstance(varargin)
             % Get the persistent instance of the class
             persistent unique_instance_cmdi__
             unique_instance_cmdi__ = [];
             
             if isempty(unique_instance_cmdi__)
-                this = Command_Interpreter();
+                this = Command_Interpreter(varargin);
                 unique_instance_cmdi__ = this;
             else
                 this = unique_instance_cmdi__;
-                this.init();
+                this.init(varargin);
             end
         end
     end
@@ -144,7 +145,7 @@ classdef Command_Interpreter < handle
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
-        function init(this)
+        function init(this, core)
             % Define and fill the "CONSTANT" structures of the class
             % Due to MATLAB limits it is not possible to create cells into struct on declaration
             %
@@ -153,6 +154,15 @@ classdef Command_Interpreter < handle
             
             % definition of parameters (ToDo: these should be converted into objects)
             % in the definition the character "$" indicate the parameter value
+            
+            if nargin == 2
+                if iscell(core) && ~isempty(core) && ~isempty(core{1})
+                    core = core{1};
+                end
+                if ~isempty(core)
+                    this.core = core;
+                end
+            end
             this.PAR_RATE.name = 'rate';
             this.PAR_RATE.descr = '@<rate>            processing rate in seconds (e.g. @30s, -r=30s)';
             this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
@@ -468,8 +478,14 @@ classdef Command_Interpreter < handle
                     if sys_found
                         state = Global_Configuration.getCurrentSettings();
                         state.cc.setActive(sys_list);
+                    end                    
+                    if this.core.state.isRinexSession()
+                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, this.core.getCurSession()));
+                    else
+                        [session_limits, out_limits] = this.core.state.getSessionLimits(this.core.getCurSession());
+                        rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last);
+                        rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                     end
-                    rec(r).work.load();
                 end
             end
         end

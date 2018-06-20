@@ -1179,7 +1179,7 @@ classdef Receiver_Commons < handle
                 
                 %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                 
-                plot(t, sztd,'.-'); hold on;
+                plot(t, sztd,'.'); hold on;
                 plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);

@@ -1770,147 +1770,153 @@ classdef Receiver_Work_Space < Receiver_Commons
             to_keep_ep = this.time > t_start & this.time < t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
-            n_epo = numel(t_line);
-            
-            this.rate = this.time.getRate();
-            % get number of sat per epoch
-            this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(29:31, n_epo, 1))', '%d');
-            
-            all_sat = [];
-            for e = 1 : n_epo
-                n_sat = this.n_spe(e);
-                sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
-                sat = sat(1:n_sat * 3);
-                all_sat = [all_sat sat];
-            end
-            all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
-            all_sat(all_sat(:,1) == 32) = this.rinex_ss;
-            all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
-            gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
-            glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
-            gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
-            qzs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'J', 2 : 3)', '%2d'));
-            bds_prn = unique(sscanf(all_sat(all_sat(:,1) == 'C', 2 : 3)', '%2d'));
-            irn_prn = unique(sscanf(all_sat(all_sat(:,1) == 'I', 2 : 3)', '%2d'));
-            sbs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'S', 2 : 3)', '%2d'));
-            prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
-            
-            % update the maximum number of rows to store
-            n_obs = this.cc.gps.isActive * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
-                this.cc.glo.isActive * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
-                this.cc.gal.isActive * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
-                this.cc.qzs.isActive * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
-                this.cc.bds.isActive * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
-                this.cc.irn.isActive * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
-                this.cc.sbs.isActive * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
-            
-            clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
-            
-            % order of storage
-            % sat_system / obs_code / satellite
-            sys_c = char(this.cc.sys_c);
-            n_ss = numel(sys_c); % number of satellite system
-            
-            % init datasets
-            obs = zeros(n_obs, n_epo);
-            
-            this.obs_code = [];
-            this.prn = [];
-            this.system = [];
-            this.f_id = [];
-            this.wl = [];
-            
-            for  s = 1 : n_ss
-                sys = sys_c(s);
-                n_sat = numel(prn.(sys)); % number of satellite system
-                this.n_sat = this.n_sat + n_sat;
-                n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
-                % transform in n_code x 3
-                obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
-                % replicate obs_code for n_sat
-                obs_code = serialize(repmat(obs_code, 1, n_sat)');
-                obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
+            if ~isempty(t_line)                
+                n_epo = numel(t_line);
                 
-                this.obs_code = [this.obs_code; obs_code];
-                prn_ss = repmat(prn.(sys)', n_code, 1);
-                this.prn = [this.prn; prn_ss];
-                this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
+                this.rate = this.time.getRate();
+                % get number of sat per epoch
+                this.n_spe = sscanf(txt(repmat(lim(t_line,1),1,3) + repmat(29:31, n_epo, 1))', '%d');
                 
-                f_id = obs_code(:,2);
-                ss = this.cc.(char(this.cc.SYS_NAME{s} + 32));
-                [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
-                
-                ismember(this.system, this.cc.SYS_C);
-                this.f_id = [this.f_id; f_id];
-                
-                if s == 2
-                    wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
-                    wl(prn_ss > ss.N_SAT) = NaN;
-                    wl(f_id == 0) = NaN;
-                else
-                    wl = ss.L_VEC(max(1, f_id))';
-                    wl(f_id == 0) = NaN;
+                all_sat = [];
+                for e = 1 : n_epo
+                    n_sat = this.n_spe(e);
+                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                    sat = sat(1:n_sat * 3);
+                    all_sat = [all_sat sat];
                 end
-                this.wl = [this.wl; wl];
-            end
-            
-            this.w_bar.createNewBar(' Parsing epochs...');
-            this.w_bar.setBarLen(n_epo);
-            
-            n_ops = numel(this.rin_obs_code.G)/3; % number of observations per satellite
-            n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
-            
-            mask = repmat('         0.00000',1 ,40);
-            data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
-            id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
-            bad_epochs = [];
-            for e = 1 : n_epo % for each epoch
-                n_sat = this.n_spe(e);
-                % get the list of satellites in view
-                sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
-                sat = sat(1:n_sat * 3);
-                sat = reshape(sat, 3, n_sat)';
-                sat(sat(:,1) == 32) = this.rinex_ss;
-                sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
-                prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
-                if numel(prn_e) < this.n_spe(e)
-                    bad_epochs = [bad_epochs; e];
-                    cm = this.log.getColorMode();
-                    this.log.setColorMode(false); % disable color mode for speed up
-                    this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
-                    this.log.setColorMode(cm);
-                else
-                    for s = 1 : size(sat, 1)
-                        % line to fill with the current observation line
-                        obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
-                        % if is empty I'm reading a constellation that is not active in the constellation collector
-                        %   -> discard the unwanted satellite
-                        if ~isempty(obs_line)
-                            line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
-                            line = mask(1 : n_ops * 16);
-                            for i = 0 : n_lps - 1
-                                try
-                                    line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
-                                catch
-                                    % empty last lines
+                all_sat = reshape(all_sat, 3, numel(all_sat)/3)';
+                all_sat(all_sat(:,1) == 32) = this.rinex_ss;
+                all_sat(all_sat == 32) = '0'; % sscanf seems to misbehave with spaces
+                gps_prn = unique(sscanf(all_sat(all_sat(:,1) == 'G', 2 : 3)', '%2d'));
+                glo_prn = unique(sscanf(all_sat(all_sat(:,1) == 'R', 2 : 3)', '%2d'));
+                gal_prn = unique(sscanf(all_sat(all_sat(:,1) == 'E', 2 : 3)', '%2d'));
+                qzs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'J', 2 : 3)', '%2d'));
+                bds_prn = unique(sscanf(all_sat(all_sat(:,1) == 'C', 2 : 3)', '%2d'));
+                irn_prn = unique(sscanf(all_sat(all_sat(:,1) == 'I', 2 : 3)', '%2d'));
+                sbs_prn = unique(sscanf(all_sat(all_sat(:,1) == 'S', 2 : 3)', '%2d'));
+                prn = struct('G', gps_prn', 'R', glo_prn', 'E', gal_prn', 'J', qzs_prn', 'C', bds_prn', 'I', irn_prn', 'S', sbs_prn');
+                
+                % update the maximum number of rows to store
+                n_obs = this.cc.gps.isActive * numel(prn.G) * numel(this.rin_obs_code.G) / 3 + ...
+                    this.cc.glo.isActive * numel(prn.R) * numel(this.rin_obs_code.R) / 3 + ...
+                    this.cc.gal.isActive * numel(prn.E) * numel(this.rin_obs_code.E) / 3 + ...
+                    this.cc.qzs.isActive * numel(prn.J) * numel(this.rin_obs_code.J) / 3 + ...
+                    this.cc.bds.isActive * numel(prn.C) * numel(this.rin_obs_code.C) / 3 + ...
+                    this.cc.irn.isActive * numel(prn.I) * numel(this.rin_obs_code.I) / 3 + ...
+                    this.cc.sbs.isActive * numel(prn.S) * numel(this.rin_obs_code.S) / 3;
+                
+                clear gps_prn glo_prn gal_prn qzs_prn bds_prn irn_prn sbs_prn;
+                
+                % order of storage
+                % sat_system / obs_code / satellite
+                sys_c = char(this.cc.sys_c);
+                n_ss = numel(sys_c); % number of satellite system
+                
+                this.obs_code = [];
+                this.prn = [];
+                this.system = [];
+                this.f_id = [];
+                this.wl = [];
+                
+                for  s = 1 : n_ss
+                    sys = sys_c(s);
+                    n_sat = numel(prn.(sys)); % number of satellite system
+                    this.n_sat = this.n_sat + n_sat;
+                    n_code = numel(this.rin_obs_code.(sys)) / 3; % number of satellite system
+                    % transform in n_code x 3
+                    obs_code = reshape(this.rin_obs_code.(sys), 3, n_code)';
+                    % replicate obs_code for n_sat
+                    obs_code = serialize(repmat(obs_code, 1, n_sat)');
+                    obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
+                    
+                    this.obs_code = [this.obs_code; obs_code];
+                    prn_ss = repmat(prn.(sys)', n_code, 1);
+                    this.prn = [this.prn; prn_ss];
+                    this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
+                    
+                    f_id = obs_code(:,2);
+                    ss = this.cc.(char(this.cc.SYS_NAME{s} + 32));
+                    [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
+                    
+                    ismember(this.system, this.cc.SYS_C);
+                    this.f_id = [this.f_id; f_id];
+                    
+                    if s == 2
+                        wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
+                        wl(prn_ss > ss.N_SAT) = NaN;
+                        wl(f_id == 0) = NaN;
+                    else
+                        wl = ss.L_VEC(max(1, f_id))';
+                        wl(f_id == 0) = NaN;
+                    end
+                    this.wl = [this.wl; wl];
+                end
+                
+                this.w_bar.createNewBar(' Parsing epochs...');
+                this.w_bar.setBarLen(n_epo);
+                
+                n_ops = numel(this.rin_obs_code.G)/3; % number of observations per satellite
+                n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
+                
+                mask = repmat('         0.00000',1 ,40);
+                data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+                id_line  = reshape(1 : numel(mask), 80, numel(mask)/80);
+                bad_epochs = [];
+                
+                % init datasets
+                obs = zeros(n_obs, n_epo);
+                
+                for e = 1 : n_epo % for each epoch
+                    n_sat = this.n_spe(e);
+                    % get the list of satellites in view
+                    sat = serialize(txt(lim(t_line(e),1) + repmat((0 : ceil(this.n_spe(e) / 12) - 1)' * 69, 1, 36) + repmat(32:67, ceil(this.n_spe(e) / 12), 1))')';
+                    sat = sat(1:n_sat * 3);
+                    sat = reshape(sat, 3, n_sat)';
+                    sat(sat(:,1) == 32) = this.rinex_ss;
+                    sat(sat == 32) = '0';  % sscanf seems to misbehave with spaces
+                    prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
+                    if numel(prn_e) < this.n_spe(e)
+                        bad_epochs = [bad_epochs; e];
+                        cm = this.log.getColorMode();
+                        this.log.setColorMode(false); % disable color mode for speed up
+                        this.log.addWarning(sprintf('Problematic epoch found at %s\nInspect the files to detect what went wrong!\nSkipping and continue the parsing, no action taken%s', this.time.getEpoch(e).toString, char(32*ones(this.w_bar.getBarLen(),1))));
+                        this.log.setColorMode(cm);
+                    else
+                        for s = 1 : size(sat, 1)
+                            % line to fill with the current observation line
+                            obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
+                            % if is empty I'm reading a constellation that is not active in the constellation collector
+                            %   -> discard the unwanted satellite
+                            if ~isempty(obs_line)
+                                line_start = t_line(e) + ceil(n_sat / 12) + (s-1) * n_lps;
+                                line = mask(1 : n_ops * 16);
+                                for i = 0 : n_lps - 1
+                                    try
+                                        line(id_line(1:lim(line_start + i, 3),i+1)) = txt(lim(line_start + i, 1) : lim(line_start + i, 2)-1);
+                                    catch
+                                        % empty last lines
+                                    end
                                 end
+                                % remove return characters
+                                ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                                % try with sscanf
+                                line = line(data_pos(1 : numel(line)));
+                                data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
+                                obs(obs_line, e) = data;
+                                % alternative approach with textscan
+                                %data = textscan(line, '%14.3f%1d%1d');
+                                %obs(obs_line(1:numel(data{1})), e) = data{1};
                             end
-                            % remove return characters
-                            ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
-                            % try with sscanf
-                            line = line(data_pos(1 : numel(line)));
-                            data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
-                            obs(obs_line, e) = data;
-                            % alternative approach with textscan
-                            %data = textscan(line, '%14.3f%1d%1d');
-                            %obs(obs_line(1:numel(data{1})), e) = data{1};
                         end
                     end
+                    this.w_bar.go(e);
                 end
-                this.w_bar.go(e);
+                obs(:, bad_epochs) = [];
+                this.time.remEpoch(bad_epochs);
+            else
+                % init datasets
+                obs = [];
             end
-            obs(:, bad_epochs) = [];
-            this.time.remEpoch(bad_epochs);
             this.log.newLine();
             this.obs = obs;
         end
@@ -3918,7 +3924,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % this.correctPhJump()
             [ph, wl, id_ph] = this.getPhases();
             ddt = nan2zero(median(zero2nan(diff(ph -this.getSyntPhases)), 2, 'omitnan'));
-            %ddt(abs(ddt) < 1e3) = 0;
+            ddt(abs(ddt) < 1e3) = 0;
             dt_dj = cumsum([0; ddt(:)]);            
             ph = bsxfun(@minus, ph, dt_dj);
             this.setPhases(ph, wl, id_ph);
@@ -3961,7 +3967,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             nominal_time = getNominalTime(this);
             nominal_time.addSeconds(-this.desync);
             tt = nominal_time - this.time;
-            this.timeShiftObs(tt)
+            if any(tt)
+                this.timeShiftObs(tt)
+            end
         end
         
         function timeShiftObs(this, seconds, phase_only)
