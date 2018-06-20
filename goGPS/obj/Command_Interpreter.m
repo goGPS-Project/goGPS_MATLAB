@@ -484,6 +484,7 @@ classdef Command_Interpreter < handle
                     else
                         [session_limits, out_limits] = this.core.state.getSessionLimits(this.core.getCurSession());
                         rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last);
+                        rec(r).work.loaded_session = this.core.getCurSession();
                         rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                     end
                 end
@@ -527,12 +528,12 @@ classdef Command_Interpreter < handle
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
-                    if rec(r).work.isEmpty
+                    if rec(r).work.loaded_session ~=  this.core.getCurSession();
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
-                        rec(r).load();
+                        this.runLoad(rec(r), tok);
                     end
                     if sys_found
                         rec(r).work.preProcessing(sys_list);

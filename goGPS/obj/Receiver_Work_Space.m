@@ -50,6 +50,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         file            % list of rinex file loaded
         rinex_file_name % list of RINEX file name
         rin_type       % rinex version format 
+        loades_session = 0;  % id of the loaded session data
         
         rinex_ss       % flag containing the satellite system of the rinex file, G: GPS, R: GLONASS, E: Galileo, J: QZSS, C: BDS, I: IRNSS, S: SBAS payload, M: Mixed
         
@@ -976,7 +977,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 pr(el_idx) = NaN;
                 this.setPseudoRanges(pr, id_pr);
-                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been remD', sum(el_idx(:)))));
+                this.log.addMessage(this.log.indent(sprintf(' - %d code observations have been removed', sum(el_idx(:)))));
                 
                 [ph, wl, id_ph] = this.getPhases();
                 idx = ~isnan(ph);
@@ -985,13 +986,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 el_idx = xor(idx,idx_e);
                 ph(el_idx) = NaN;
                 this.setPhases(ph, wl, id_ph);
-                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been remD', sum(el_idx(:)))));
+                this.log.addMessage(this.log.indent(sprintf(' - %d phase observations have been removed', sum(el_idx(:)))));
             end
         end
         
         function updateRemOutlierMarkCycleSlip(this)
             % After changing the observations Synth phases must be recomputed and
-            % old outliers and cycle-slips remD before launching a new detection
+            % old outliers and cycle-slips removed before launching a new detection
             this.sat.outlier_idx_ph = false(size(this.sat.outlier_idx_ph));
             this.sat.cycle_slip_idx_ph = false(size(this.sat.cycle_slip_idx_ph));
             this.updateSyntPhases();
@@ -4240,7 +4241,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             slant_td = [slant_td; zeros(size(zeinth_fill))];
             
             [~, ~, ~, mf] = splinerMat(el, slant_td, 1, 0, el_points); % Spline base 10 degrees            
-            mf = mf + 1; % readding the remD bias
+            mf = mf + 1; % readding the removed bias
             if show_fig
                 plot(el_points, mf, '.','MarkerSize', 10);
             end
@@ -6577,7 +6578,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %txt = sprintf('%sDBHZ                                                        SIGNAL STRENGTH UNIT\n', txt);
             txt = sprintf('%s%10.3f                                                  INTERVAL\n', txt, this.time.getRate());
             txt = sprintf('%s%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS\n', txt, this.time.first.get6ColDate());
-            txt = sprintf('%sCARRIER PHASE SHIFT remD BY goGPS SOFTWARE.              COMMENT\n', txt);
+            txt = sprintf('%sCARRIER PHASE SHIFT removed BY goGPS SOFTWARE.              COMMENT\n', txt);
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
                 % Set order CODE PHASE DOPPLER SNR
