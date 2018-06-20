@@ -228,8 +228,8 @@ classdef Core < handle
             if ~this.state.isRinexSession()
                 rin_list = this.getRinFileList();
                 if ~isempty(rin_list)
-                    [~, out_limits] = this.state.getSessionLimits(session);
-                    time_lim_large = out_limits;
+                    [buff_lim, out_limits] = this.state.getSessionLimits(session);
+                    time_lim_large = buff_lim;
                 end
             else
                 [~, time_lim_large] = this.getRecTimeSpan(session);
@@ -242,10 +242,10 @@ classdef Core < handle
                 else
                     if this.state.isRinexSession()
                         rec(r).work.resetWorkSpace();
+                    else
+                        [session_limits, ~] = this.state.getSessionLimits(session_number);
+                        rec(r).work.prepareAppending(session_limits.first, session_limits.last);
                     end
-                end
-                if ~this.state.isRinexSession()
-                    rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                 end
             end
             if numel(rec) > 0
@@ -254,10 +254,12 @@ classdef Core < handle
                 % Init Meteo and Sky objects
                 this.initSkySession(time_lim_large);
                 this.log.newLine();
-                this.initMeteoNetwork(time_lim_large);
+                if this.state.isMet()
+                    this.initMeteoNetwork(time_lim_large);
+                end
                 this.log.simpleSeparator();
                 
-                % inti atmo object
+                % init atmo object
                 if this.state.isVMF()
                     atmo = Atmosphere.getInstance();
                     atmo.initVMF(time_lim_large.first,time_lim_large.last);

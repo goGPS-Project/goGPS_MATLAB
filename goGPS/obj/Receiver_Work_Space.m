@@ -399,11 +399,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             
         end
         
-        function importRinexFileList(this, rin_list, time_start, time_stop)
-            % imprt a list of rinex files
+        function prepareAppending(this, time_start, time_stop)
+            % remove epochs and remoce corrections 
             %
             % SYNTAX:
-            %  this.importRinexFileList(rin_list, time_start, time_stop) 
+            %  this.prepareAppending( time_start, time_stop)
             
             % remove unwanted epochs
             id_to_remove = this.time < time_start | this.time > time_stop;
@@ -413,6 +413,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.restoreDtError();
             end
             this.resetWorkSpace(true);
+        end
+        
+        
+        function importRinexFileList(this, rin_list, time_start, time_stop)
+            % imprt a list of rinex files
+            %
+            % SYNTAX:
+            %  this.importRinexFileList(rin_list, time_start, time_stop) 
             % check which files have to be added
             if this.time.isempty
                 time_start = GPS_Time(0);
