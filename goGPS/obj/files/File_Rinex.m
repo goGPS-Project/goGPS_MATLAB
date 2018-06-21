@@ -310,10 +310,10 @@ classdef File_Rinex < Exportable
             this.base_dir = this.base_dir(id);
             this.file_name_list = this.file_name_list(id);
             this.ext = this.ext(id);
-            this.is_valid_list = this.is_valid_list(id);
             this.eoh = this.eoh(id);
-            this.first_epoch = this.first_epoch.getSubSet(id);
-            this.last_epoch  = this.last_epoch.getSubSet(id);
+            this.first_epoch = this.first_epoch.getEpoch(id(this.is_valid_list));
+            this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
+            this.is_valid_list = this.is_valid_list(id);
         end
     end
 end
