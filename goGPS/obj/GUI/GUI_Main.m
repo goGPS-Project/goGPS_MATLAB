@@ -171,7 +171,8 @@ classdef GUI_Main < handle
             tab_panel = uix.TabPanel('Parent', panel_g_border, ...
                 'TabWidth', 100, ...
                 'Padding', 5, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
+                'SelectionChangedFcn', @this.onTabChange);
             
             
             % Main Panel > tab1 settings
@@ -770,6 +771,7 @@ classdef GUI_Main < handle
             [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], tab);
             
             set(j_ini, 'FocusLostCallback', @this.refreshIni);
+            set(j_ini, 'FocusGainedCallback', @this.refreshIni);
             
             tab1_bvr = uix.VButtonBox( 'Parent', tab, ...
                 'Spacing', 5, ...
@@ -901,6 +903,23 @@ classdef GUI_Main < handle
             this.updateINI();
         end
         
+        function onTabChange(this, caller, event)
+            if event.NewValue == 1
+                if this.j_settings.isValid
+                    str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+                    this.j_settings.setText(str);
+                else
+                    this.log.addWarning('Warning invalid config can not updating j_settings');
+                end
+            end
+        end
+        
+        function refreshIni(this, caller, event)
+            txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
+            this.state.import(Ini_Manager(txt{1}));
+            this.updateUI();
+        end
+         
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
@@ -908,8 +927,7 @@ classdef GUI_Main < handle
                 if this.j_settings.isValid
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     this.j_settings.setText(str);
-                    
-                else
+                 else
                     this.log.addWarning('Warning invalid config not updating j_settings');
                 end
             end
@@ -954,12 +972,6 @@ classdef GUI_Main < handle
                     this.pop_ups{i}.Value = value;
                 end
             end
-        end
-        
-        function refreshIni(this, caller, event)
-            txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
-            this.state.import(Ini_Manager(txt{1}));
-            this.updateUI();
         end
         
         function updateAndCheckRecList(this, caller, event)
