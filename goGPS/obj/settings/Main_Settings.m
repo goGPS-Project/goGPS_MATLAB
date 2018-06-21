@@ -2536,9 +2536,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   date = getSessionsStartExt(this)
             date = this.sss_date_start.getCopy;
-            if ~this.isRinexSession
-                date.addSeconds(-this.sss_buffer(1)); % left buffer
-            end
+            buf_lft = this.getBuffer();
+            date.addSeconds(-buf_lft); % left buffer
         end
         
         function response = isRinexSession(this)
@@ -2568,12 +2567,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   date = getSessionsStopExt(this)
             date = this.sss_date_stop.getCopy;
-           if this.sss_date_stop == this.sss_date_start
+            if this.sss_date_stop == this.sss_date_start
                 date.addSeconds(86400 - 1e-4); % If session is empty set it to be one day long
             end
-            if ~this.isRinexSession
-                date.addSeconds(this.sss_buffer(end)); % left buffer
-            end
+            [~,buf_rgt] = this.getBuffer();
+            date.addSeconds(buf_rgt); % right buffer
         end
 
         function [sss_ext_lim, sss_lim] = getSessionLimits(this, n)
@@ -2585,25 +2583,30 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   [sss_ext_lim, sss_lim] = getSessionLimits(this, <n>)
-            if this.isRinexSession()
-                sss_ext_lim = this.sss_date_start.getCopy;
-                sss_ext_lim.append(this.sss_date_stop);
-            else
-                if nargin < 2
-                    n = 1;
-                end
-                sss_lim = this.getSessionsStart;
-                sss_lim.addSeconds((n-1) * this.sss_duration);
-                sss_ext_lim = sss_lim.getCopy();
-                sss_ext_lim.addSeconds(-this.sss_buffer(1)); % left buffer
-                time_stop = sss_lim.getCopy();
-                time_stop.addSeconds(this.sss_duration); 
-                time_ext_stop = time_stop.getCopy();
-                time_ext_stop.addSeconds(this.sss_buffer(end)); % right buffer
-                
-                sss_ext_lim.append(time_ext_stop);
-                sss_lim.append(time_stop);
+            if nargin < 2
+                n = 1;
             end
+            [buf_lft, but_rgt] = this.getBuffer();
+            sss_lim = this.getSessionsStart;
+            sss_lim.addSeconds((n-1) * this.sss_duration);
+            sss_ext_lim = sss_lim.getCopy();
+            sss_ext_lim.addSeconds(-buf_lft); % left buffer
+            time_stop = sss_lim.getCopy();
+            time_stop.addSeconds(this.sss_duration);
+            time_ext_stop = time_stop.getCopy();
+            time_ext_stop.addSeconds(but_rgt); % right buffer
+            
+            sss_ext_lim.append(time_ext_stop);
+            sss_lim.append(time_stop);
+        end
+        
+        function [buf_lft, buf_rgt] = getBuffer(this)
+            % get the session buffer
+            %
+            % SYNTAX
+            %  [buf_lft, but_rgt] = this.getBuffer()
+            buf_lft = this.sss_buffer(1)*(~this.isRinexSession());
+            buf_rgt = this.sss_buffer(end)*(~this.isRinexSession());
         end
 
         function iono_model = getIonoModel(this)

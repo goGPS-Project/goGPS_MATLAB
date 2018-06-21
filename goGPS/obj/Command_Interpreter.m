@@ -481,6 +481,7 @@ classdef Command_Interpreter < handle
                     end                    
                     if this.core.state.isRinexSession()
                         rec(r).importRinexLegacy(this.core.state.getRecPath(r, this.core.getCurSession()));
+                        rec(r).work.loaded_session = this.core.getCurSession();
                     else
                         [session_limits, out_limits] = this.core.state.getSessionLimits(this.core.getCurSession());
                         rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last);
@@ -533,7 +534,11 @@ classdef Command_Interpreter < handle
                             state = Global_Configuration.getCurrentSettings();
                             state.cc.setActive(sys_list);
                         end
-                        this.runLoad(rec(r), tok);
+                        if this.core.state.isRinexSession()
+                            this.runLoad(rec, tok);
+                        else
+                            this.runLoad(rec, tok);
+                        end
                     end
                     if sys_found
                         rec(r).work.preProcessing(sys_list);

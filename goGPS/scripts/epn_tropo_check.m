@@ -14,8 +14,8 @@ for r = 1 : max(size(rec))
     if isfield(asi,sta_code)
         res = asi.(sta_code);
         t1 = res.time.getGpsTime();
-        [ztd, t2] = rec(r).getZtd();
-        t2 = t2.getGpsTime();
+        [ztd] = rec(r).out.getZtd();
+        t2 = rec(r).out.getTime().getGpsTime();
         idx_el = t1 < min(t2) | t1 > max(t2);
         t1(idx_el) = [];
         res.TROTOT(idx_el) = [];
@@ -26,12 +26,12 @@ for r = 1 : max(size(rec))
         if isfield(res,'TGNTOT')
             res.TGNTOT(idx_el) = [];
             res.TGETOT(idx_el) = [];
-            [tgn, tge, ~] = rec(r).getGradient();
+            [tgn, tge] = rec(r).out.getGradient();
             tge_diff = [tge_diff; timeSeriesComparison(t1,res.TGNTOT/1000,t2,tgn,mode)];
             tgn_diff = [tgn_diff; timeSeriesComparison(t1,res.TGETOT/1000,t2,tge,mode)];
         end
         sta_id = [sta_id; r*ones(size(ztd_diff_t))];
-        xyz_diff = [xyz_diff; res.xyz - rec(r).xyz];
+        xyz_diff = [xyz_diff; res.xyz - rec(r).out.xyz(1)];
         figure
         plot(t1,res.TROTOT/1000)
         title(['ZTD ' sta_code]);

@@ -908,14 +908,17 @@ classdef GUI_Main < handle
                 if this.j_settings.isValid
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     this.j_settings.setText(str);
+                    
+                else
+                    this.log.addWarning('Warning invalid config not updating j_settings');
                 end
             end
         end
         
         function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
-            this.ui_sss_start.setDate(java.util.Date(state.getSessionsStart.toString('yyyy/mm/dd')));
-            this.ui_sss_stop.setDate(java.util.Date(state.getSessionsStop.toString('yyyy/mm/dd')));
+            this.ui_sss_start.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
+            this.ui_sss_stop.setDate(java.util.Date(state.sss_date_stop.toString('yyyy/mm/dd')));
         end
         
         function updateCCFromState(this)
