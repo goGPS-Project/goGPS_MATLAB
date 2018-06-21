@@ -905,7 +905,7 @@ classdef GUI_Main < handle
         
         function onTabChange(this, caller, event)
             if event.NewValue == 1
-                if this.j_settings.isValid
+                if ~isempty(this.j_settings) && this.j_settings.isValid
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     this.j_settings.setText(str);
                 else

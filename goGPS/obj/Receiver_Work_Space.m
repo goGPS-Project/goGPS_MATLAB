@@ -424,6 +424,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             % check which files have to be added
             if time_start.isempty
                 time_start = GPS_Time(0);
+            else
+                if ~this.time.isempty
+                    time_start = this.time.last;
+                end
             end
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
@@ -436,7 +440,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function appendRinex(this, rinex_file_name,time_start, time_stop)
+        function appendRinex(this, rinex_file_name, time_start, time_stop)
             % append a rinex files
             %
             % SYNTAX:
