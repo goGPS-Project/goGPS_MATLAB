@@ -134,13 +134,14 @@ classdef GPS_Time < Exportable & handle
             else
                is_gps = true;
             end
-            date = sscanf(string_time,'%f%f%f%f%f%f')';
-            if numel(date) < 3
-                date = string_time;
+            date = sscanf(regexprep(string_time(:)','[^0-9.]',' '),'%f%f%f%f%f%f')';
+            if numel(date) <= 3
+                date = datevec(string_time);
             else
-                if (date(1) < 80), date(1) = date(1) + 2000; end
+                date = reshape(date,6,numel(date)/6)';
+                date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
             end
-            this.GPS_Time_mat(datenum(date), is_gps);
+            this.GPS_Time_6col(date, is_gps);
         end
         
         function this = GPS_Time_mat(this, matlab_time, is_gps)
@@ -252,8 +253,14 @@ classdef GPS_Time < Exportable & handle
                 is_gps = this.is_gps;
             end
             date = sscanf(string_time,'%f%f%f%f%f%f')';
-            if (date(1) < 80), date(1) = date(1) + 2000; end
-            this.append(GPS_Time(datenum(date), [], is_gps, 0));
+            
+            if numel(date) < 3
+                date = datevec(string_time);
+            else
+                date = reshape(date,6,numel(date)/6)';
+                date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
+            end
+            this.append(GPS_Time(date, [], is_gps));
         end
         
         function this = appendMatTime(this, matlab_time, is_gps)
@@ -795,7 +802,7 @@ classdef GPS_Time < Exportable & handle
             if (this.leap_seconds >= 999)
                 this.leap_seconds = this.computeLeapSeconds();
             end
-            leap_seconds = this.leap_seconds();
+            leap_seconds = this.leap_seconds;
         end
     end
     
@@ -1093,7 +1100,7 @@ classdef GPS_Time < Exportable & handle
             % Get Modified julian date
             %
             % SYNTAX
-            %   [gps_time] = this.getGpsTime()
+            %   [mjd] = this.getMJD()
             if nargin == 2
                 date = this.getEpoch(id).get6ColDate;
             else
@@ -1103,16 +1110,58 @@ classdef GPS_Time < Exportable & handle
         end
         
         function [jd] = getJD(this, id)
-            % Get  julian date
+            % Get julian date
             %
             % SYNTAX
-            %   [gps_time] = this.getGpsTime()
+            %   [jd] = this.getJD()
             if nargin == 2
                 date = this.getEpoch(id).get6ColDate;
             else
                 date = this.get6ColDate;
             end
             jd = date2jd(date);
+        end
+        
+        function [jd_tdb] = getJDTDB(this)
+            % Get TDB julian date
+            %
+            % SYNTAX
+            %   [jd_tdb] = this.getJDTD()
+            this.toUtc;
+            [jd_utc] = this.getJD();
+            
+            corr = (32.184 + 19 - this.getLeapSeconds() ) / 86400.0;
+            
+            jd_tdt = jd_utc + corr;
+            
+            % time argument for correction
+            
+            t = (jd_tdt - 2451545.0) / 36525.0;
+            
+            % compute correction in microseconds
+            
+            corr = 1656.675  * sind(35999.3729 * t + 357.5287)...
+                + 22.418     * sind(32964.467  * t + 246.199)...
+                + 13.84      * sind(71998.746  * t + 355.057)...
+                +  4.77      * sind( 3034.906  * t +  25.463)...
+                +  4.677     * sind(34777.259  * t + 230.394)...
+                + 10.216 * t .* sind(35999.373  * t + 243.451)...
+                +  0.171 * t .* sind(71998.746  * t + 240.98 )...
+                +  0.027 * t .* sind( 1222.114  * t + 194.661)...
+                +  0.027 * t .* sind( 3034.906  * t + 336.061)...
+                +  0.026 * t .* sind(  -20.186  * t +   9.382)...
+                +  0.007 * t .* sind(29929.562  * t + 264.911)...
+                +  0.006 * t .* sind(  150.678  * t +  59.775)...
+                +  0.005 * t .* sind( 9037.513  * t + 256.025)...
+                +  0.043 * t .* sind(35999.373  * t + 151.121);
+            
+            % convert corrections to days
+            
+            corr = 0.000001 * corr / 86400.0;
+            
+            % compute TDB julian date
+            
+            jd_tdb = jd_tdt + corr;
         end
         
         function [year, doy, sod] = getDOY(this)

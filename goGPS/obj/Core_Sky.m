@@ -779,16 +779,19 @@ classdef Core_Sky < handle
                 file_first_ep = GPS_Time(date, [], true);
                 % find sampling rate
                 ant_ids = this.cc.getAntennaId;
+                ant_code_list = txt(bsxfun(@plus, repmat(lim(sats_line,1),1,3), 3:5));
+                ant_id_list = Core_Utils.code3Char2Num(ant_code_list);
                 for i = 1 : length(ant_ids)
-                    ant_id = ant_ids{i};
-                    sat_line = sats_line(txt(lim(sats_line,1)+3) == ant_id(1) & txt(lim(sats_line,1)+4) == ant_id(2)& txt(lim(sats_line,1)+5) == ant_id(3));
+                    ant_id = Core_Utils.code3Char2Num(ant_ids{i});
+                    sat_line = sats_line(ant_id_list == ant_id);
                     if not(isempty(sat_line))
                         n_ep_sat = length(sat_line);
                         string_time = txt(repmat(lim(sat_line,1),1,27) + repmat(8:34, n_ep_sat, 1))';
                         % convert the times into a 6 col time
-                        date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
+                        %date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
                         % import it as a GPS_Time obj
-                        sat_time = GPS_Time(date, [], true);
+                        %sat_time = GPS_Time(date, [], true);
+                        sat_time = GPS_Time(string_time);
                         
                         % initilize matrix
                         if isempty(clk_rate)
@@ -1800,41 +1803,42 @@ classdef Core_Sky < handle
             
             sun_ECEF = zeros(time.length(), 3);
             moon_ECEF = zeros(time.length(), 3);
-            for e = 1 : time.length()
-                [year , month ,day,hour,min,sec]= time.getCalEpoch(e);
-                %UTC to TDB
-                jdutc = julian(month, day+hour/24+min/1440+sec/86400, year);
-                jdtdb = utc2tdb(jdutc);
-                %this.t_sun(e) = time.getGpsTime();%(datenum( year,month, day) - GPS_Time.GPS_ZERO)*86400;
-                %precise celestial pole (disabled)
-                [psicor, epscor] = celpol(jdtdb, 1, 0.0d0, 0.0d0);
+            time = time.getCopy;
+            time.toUtc;
+            
+            jd_utc = time.getJD;
+            jd_tdb = time.getJDTDB; % UTC to TDB
+            
+            % precise celestial pole (disabled)
+            %[psicor, epscor] = celpol(jd_tdb, 1, 0.0d0, 0.0d0);
+            psicor = 0;
+            epscor = 0;
                 
-                %compute the Sun position (ICRS coordinates)
-                rrd = jplephem(jdtdb, sun_id, earth_id);
+            for e = 1 : time.length()                                
+                % compute the Sun position (ICRS coordinates)
+                rrd = jplephem(jd_tdb(e), sun_id, earth_id);
                 sun_ECI = rrd(1:3);
-                sun_ECI = tmatrix*sun_ECI;
+                sun_ECI = tmatrix * sun_ECI;
                 
-                %Sun ICRS coordinates to ITRS coordinates
+                % Sun ICRS coordinates to ITRS coordinates
                 deltat = getdt;
-                jdut1 = jdutc - deltat;
+                jdut1 = jd_utc(e) - deltat;
                 tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
                 sun_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, sun_ECI)*1e3;
                 
                 if moon
-                    %compute the Moon position (ICRS coordinates)
-                    rrd = jplephem(jdtdb, moon_id, earth_id);
+                    % compute the Moon position (ICRS coordinates)
+                    rrd = jplephem(jd_tdb(e), moon_id, earth_id);
                     moon_ECI = rrd(1:3);
-                    moon_ECI = tmatrix*moon_ECI;
+                    moon_ECI = tmatrix * moon_ECI;
                     
-                    %Moon ICRS coordinates to ITRS coordinates
+                    % Moon ICRS coordinates to ITRS coordinates
                     deltat = getdt;
-                    jdut1 = jdutc - deltat;
+                    jdut1 = jd_utc(e) - deltat;
                     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
                     moon_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, moon_ECI)*1e3;
                 end
             end
-            
-            %this.t_sun_rate =
         end
         
         function tabulateSunMoonPos(this)

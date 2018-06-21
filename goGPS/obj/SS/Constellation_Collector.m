@@ -438,7 +438,7 @@ classdef Constellation_Collector < Settings_Interface
             if isa(state, 'Ini_Manager')
                 vl = this.log.getVerbosityLev();
                 this.log.setVerbosityLev(0);
-                this.init([0 0 0 0 0 0 0]);
+                this.init([0 0 0 0 0 0 1]);
             	this.log.setVerbosityLev(vl);
 
                 this.gps.import(state);

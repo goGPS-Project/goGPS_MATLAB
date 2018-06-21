@@ -942,19 +942,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                 snr_thr = this.state.getSnrThr();
             end
             
-            [snr1, id_snr] = this.getObs('S1');
-            
-            snr1 = Receiver_Commons.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
-            id_snr = find(id_snr);
-            if ~isempty(id_snr)
-                this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));                
-                n_rem = 0;
-                for s = 1 : numel(id_snr)
-                    snr_test = snr1(:, s) < snr_thr;
-                    this.obs(this.go_id == (this.go_id(id_snr(s))), snr_test) = 0;
-                    n_rem = n_rem + sum(snr_test(:));
+            if snr_thr > 0
+                [snr1, id_snr] = this.getObs('S1');
+                
+                snr1 = Receiver_Commons.smoothSatData([],[],zero2nan(snr1'), [], 'spline', 900 / this.getRate, 10); % smoothing SNR => to be improved
+                id_snr = find(id_snr);
+                if ~isempty(id_snr)
+                    this.log.addMarkedMessage(sprintf('Removing data under %.1f dBHz', snr_thr));
+                    n_rem = 0;
+                    for s = 1 : numel(id_snr)
+                        snr_test = snr1(:, s) < snr_thr;
+                        this.obs(this.go_id == (this.go_id(id_snr(s))), snr_test) = 0;
+                        n_rem = n_rem + sum(snr_test(:));
+                    end
+                    this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', n_rem)));
                 end
-                this.log.addMessage(this.log.indent(sprintf(' - %d observations under SNR threshold', n_rem)));
             end
         end
         
@@ -1411,18 +1413,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
                 this.log.newLine();
-            end
-            
-            % Compute the other useful status array of the receiver object
-            if ~isempty(this.obs)
-                this.updateStatus();
-            end
-            this.active_ids = true(this.getNumObservables, 1);
-            
-            % remove empty observables
-            this.remObs(~this.active_ids);
-            
-            this.setActiveSys(this.getAvailableSys);
+                
+                % Compute the other useful status array of the receiver object
+                if ~isempty(this.obs)
+                    this.updateStatus();
+                end
+                this.active_ids = true(this.getNumObservables, 1);
+                
+                % remove empty observables
+                this.remObs(~this.active_ids);
+                
+                this.setActiveSys(this.getAvailableSys);
+            end                        
         end
         
         function importAntModel(this)

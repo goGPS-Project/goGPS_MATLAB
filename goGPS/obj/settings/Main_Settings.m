@@ -983,11 +983,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used to substitute special keywords in file names', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
-            %str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
-            str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd'), str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
+            %str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd'), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
-            %str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
-            str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd'), str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
+            %str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd'), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword (e.g. "01233456789ABCabc")', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_list', this.sss_id_list, str_cell);
             str_cell = Ini_Manager.toIniStringComment('First session id (char of sss_id_list)', str_cell);

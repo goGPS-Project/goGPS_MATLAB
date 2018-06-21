@@ -819,7 +819,7 @@ classdef GUI_Main < handle
             if isempty(date)
                 sss_stop = state.getSessionsStopExt;
             else
-                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
+                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 23 59 59]);
             end
             if sss_stop <= sss_start
                 validity_check = false;
