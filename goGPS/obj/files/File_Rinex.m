@@ -296,7 +296,9 @@ classdef File_Rinex < Exportable
             %
             % SYNTAX
             % this.keepFiles(date_start, date_stop)
-            [to_keep] = Core_Utils.timeIntersect(this.first_epoch, this.last_epoch, date_start, date_stop);
+            [in_bound] = Core_Utils.timeIntersect(this.first_epoch, this.last_epoch, date_start, date_stop);
+            to_keep = this.is_valid_list;
+            to_keep(to_keep) = in_bound;
             this.keep(to_keep);
         end
         

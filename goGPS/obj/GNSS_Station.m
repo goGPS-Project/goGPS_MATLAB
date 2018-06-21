@@ -104,7 +104,6 @@ classdef GNSS_Station < handle
             %
             % SYNTAX
             % this.importRinexes(rin_list, time_start, time_stop)
-            rin_list.keepFiles(time_start, time_stop);
             this.work.importRinexFileList(rin_list, time_start, time_stop);
         end
         

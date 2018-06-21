@@ -425,13 +425,10 @@ classdef File_Wizard < handle
             %
             % SYNTAX:
             %     this.conjureFiles(date_start, date_stop, center_name)
-            if (nargin == 1)
-                [date_start, date_stop] = this.conjureObsFile();
-            end
             dsa = date_start.getCopy();
             dso = date_stop.getCopy();
             
-            if nargin < 3
+            if nargin < 4
                center_name = this.state.getRemoteCenter();
             end
             % check if selected center os compatible with selected
@@ -460,7 +457,6 @@ classdef File_Wizard < handle
                 
             % Prepare all the files needed for processing
             
-            this.state.setProcessingTime(dsa, dso, false);
             this.state.updateNavFileName();
             this.state.updateErpFileName();
             this.conjureNavFiles(dsa, dso);
@@ -479,32 +475,6 @@ classdef File_Wizard < handle
             end
         end
         
-        function [first_epoch, last_epoch] = conjureObsFile(this)
-            % Prepare the extended file name of the files to be used in goGPS
-            %
-            % SYNTAX:
-            %       [first_epoch, last_epoch] = this.conjureObsFile()
-            %
-            % POSSIBLE EXTENSION: download the wanted rinex from the
-            % networs
-            
-            first_rec_files = this.state.getRecPath(1);
-            fh = File_Rinex(first_rec_files, 100);
-            this.log.newLine();
-            first_epoch = fh.first_epoch.first;
-            last_epoch = fh.last_epoch.last;
-        end
-        
-        %{
-        function conjureDCBFiles(this, date_start, date_stop)
-            status = this.conjureResource('dcb',date_start, date_stop, 'cas');
-            if status
-                this.log.addMarkedMessage('All DCB files present')
-            else
-                this.log.addMarkedMessage('Not all DCB files found program might misbehave')
-            end
-        end
-        %}
         function conjureAtmLoadFiles(this, date_start, date_stop)
             status = this.conjureResource('atm_load',date_start, date_stop);
 

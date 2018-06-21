@@ -686,8 +686,8 @@ classdef GUI_Main < handle
                 'FontSize', Core_UI.getFontSize(8), ...
                 'BackgroundColor', session_bg, ...
                 'ForegroundColor', Core_UI.WHITE);
-            ts = state.getSessionStart();
-            te = state.getSessionStop();
+            ts = state.getSessionsStart();
+            te = state.getSessionsStop();
             if te.isempty() || ts.isempty()
                 ts = GPS_Time.now();
                 te = GPS_Time.now();
@@ -799,7 +799,7 @@ classdef GUI_Main < handle
     %% METHODS UI getters
     % ==================================================================================================================================================
     methods
-        function [sss_start, sss_stop, validity_check] = getSessionLimits(this)
+        function [sss_start, sss_stop, validity_check] = getSessionsLimits(this)
             % get Start session and stop from UI
             % check validity if sss_start > sss_stop then stop = start
             %
@@ -811,13 +811,13 @@ classdef GUI_Main < handle
             
             date = this.ui_sss_start.getDate;
             if isempty(date)
-                sss_start = state.getSessionStart;
+                sss_start = state.getSessionsStartExt;
             else
                 sss_start = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
             end
             date = this.ui_sss_stop.getDate;
             if isempty(date)
-                sss_stop = state.getSessionStop;
+                sss_stop = state.getSessionsStopExt;
             else
                 sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
             end
@@ -836,7 +836,7 @@ classdef GUI_Main < handle
             % SYNTAX:
             %   this.onSessionChange()
             %
-            [sss_start, sss_stop, validity_check] = getSessionLimits(this);
+            [sss_start, sss_stop, validity_check] = getSessionsLimits(this);
             
             if ~validity_check
                 this.ui_sss_stop.setDate(java.util.Date(sss_stop.toString('yyyy/mm/dd')));
@@ -844,11 +844,11 @@ classdef GUI_Main < handle
             
             state = Global_Configuration.getCurrentSettings;
             status_change = false;
-            if sss_start - state.getSessionStart() ~= 0
+            if sss_start - state.getSessionsStart() ~= 0
                 status_change = true;
                 state.setSessionStart(sss_start);
             end
-            if sss_stop - state.getSessionStop() ~= 0
+            if sss_stop - state.getSessionsStop() ~= 0
                 status_change = true;
                 state.setSessionStop(sss_stop);
             end
@@ -914,8 +914,8 @@ classdef GUI_Main < handle
         
         function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
-            this.ui_sss_start.setDate(java.util.Date(state.getSessionStart.toString('yyyy/mm/dd')));
-            this.ui_sss_stop.setDate(java.util.Date(state.getSessionStop.toString('yyyy/mm/dd')));
+            this.ui_sss_start.setDate(java.util.Date(state.getSessionsStart.toString('yyyy/mm/dd')));
+            this.ui_sss_stop.setDate(java.util.Date(state.getSessionsStop.toString('yyyy/mm/dd')));
         end
         
         function updateCCFromState(this)

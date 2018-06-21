@@ -1963,8 +1963,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             
             fnp = File_Name_Processor();
-            date_start = this.getSessionStart.getCopy;
-            date_stop = this.getSessionStart.getCopy;
+            date_start = this.getSessionsStartExt;
+            date_stop = this.getSessionsStartExt;
             if numel(field_name) == 2
                 file_name = this.(field_name{end});
                 if ~iscell(file_name)
@@ -2081,7 +2081,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.apl')
                 dir = this.getAtmLoadDir();
-            elseif ~isempty(strfind(name,'VMFG')) && ~isempty(strfind(ext,'.H'))
+            elseif instr(name,'VMFG') && instr(ext,'.H')
                  dir = this.getVMFDir();
             end
 
@@ -2104,7 +2104,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 file_name = this.getRecPath();
                 num_session = numel(file_name{1});
             else
-                num_session = ceil((this.sss_date_stop - this.sss_date_start)/ this.sss_duration);
+                num_session = ceil((this.getSessionsStop - this.getSessionsStart) / this.sss_duration);
             end
         end
 
@@ -2520,10 +2520,25 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             keep = this.flag_keep_rec_list;
         end
         
-        function date = getSessionStart(this)
+        function date = getSessionsStart(this)
+            % Get the beginning of all the sessions
+            % not considering buffer
+            %
             % SYNTAX
-            %   date = getSessionStart(this)
-            date = this.sss_date_start;
+            %   date = getSessionsStart(this)
+            date = this.sss_date_start.getCopy;
+        end
+        
+        function date = getSessionsStartExt(this)
+            % Get the beginning of all the sessions
+            % considering buffer
+            %
+            % SYNTAX
+            %   date = getSessionsStartExt(this)
+            date = this.sss_date_start.getCopy;
+            if ~this.isRinexSession
+                date.addSeconds(-this.sss_buffer(1)); % left buffer
+            end
         end
         
         function response = isRinexSession(this)
@@ -2534,35 +2549,60 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             response = this.sss_file_based;
         end
        
-
-        function date = getSessionStop(this)
+        function date = getSessionsStop(this)
+            % Get the end of all the sessions
+            % not considering buffer
+            %
             % SYNTAX
-            %   date = getSessionStop(this)
-            date = this.sss_date_stop;
+            %   date = getSessionsStop(this)
+            date = this.sss_date_stop.getCopy;
+            if this.sss_date_stop == this.sss_date_start
+                date.addSeconds(86400 - 1e-4); % If session is empty set it to be one day long
+            end            
+        end
+        
+        function date = getSessionsStopExt(this)
+            % Get the end of all the sessions
+            % considering buffer
+            %
+            % SYNTAX
+            %   date = getSessionsStopExt(this)
+            date = this.sss_date_stop.getCopy;
+           if this.sss_date_stop == this.sss_date_start
+                date.addSeconds(86400 - 1e-4); % If session is empty set it to be one day long
+            end
+            if ~this.isRinexSession
+                date.addSeconds(this.sss_buffer(end)); % left buffer
+            end
         end
 
-        function [date_session, date_out] = getSessionLimits(this, n)
+        function [sss_ext_lim, sss_lim] = getSessionLimits(this, n)
+            % Get the time limits for a specific session 
+            %
+            % OUTPUT
+            %   sss_ext_lim     limits of the data to be used for the computation
+            %   sss_lim         limits of the session results (tipically smaller of "buffer" seconds)
+            %
             % SYNTAX
-            %   [date_session, date_out] = getSessionLimits(this, <n>)
+            %   [sss_ext_lim, sss_lim] = getSessionLimits(this, <n>)
             if this.isRinexSession()
-                date_session = this.sss_date_start.getCopy;
-                date_session.append(this.sss_date_stop);
+                sss_ext_lim = this.sss_date_start.getCopy;
+                sss_ext_lim.append(this.sss_date_stop);
             else
                 if nargin < 2
                     n = 1;
                 end
-                date_out = this.sss_date_start.getCopy;
-                date_out.addSeconds((n-1) * this.sss_duration);
-                date_session = date_out.getCopy();
-                date_session.addSeconds(-this.sss_buffer(1)); % left buffer
-                date_out_stop = date_out.getCopy();
-                date_out_stop.addSeconds(this.sss_duration); 
-                date_session_stop = date_out_stop.getCopy();
-                date_session_stop.addSeconds(this.sss_buffer(end)); % right buffer
+                sss_lim = this.getSessionsStart;
+                sss_lim.addSeconds((n-1) * this.sss_duration);
+                sss_ext_lim = sss_lim.getCopy();
+                sss_ext_lim.addSeconds(-this.sss_buffer(1)); % left buffer
+                time_stop = sss_lim.getCopy();
+                time_stop.addSeconds(this.sss_duration); 
+                time_ext_stop = time_stop.getCopy();
+                time_ext_stop.addSeconds(this.sss_buffer(end)); % right buffer
                 
-                date_session.append(date_session_stop);
-                date_out.append(date_out_stop);
-                
+                sss_ext_lim.append(time_ext_stop);
+                sss_lim.append(time_stop);
             end
         end
 
@@ -2574,7 +2614,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         
         function iono_management = getIonoManagement(this)
             % SYNTAX
-            %   date = getSessionStop(this)
+            %   date = getIonoManagement(this)
             iono_management = this.iono_management;
         end
 
@@ -2860,7 +2900,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.obs_name = {this.obs_name};
             end
             for i = 1 : numel(this.obs_name)
-                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
 
@@ -2876,7 +2916,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             this.met_full_name = {};
             for i = 1 : numel(this.met_name)
-                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
+                this.met_full_name = [this.met_full_name; fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, this.met_name{i})), this.getSessionsStartExt,  this.getSessionsStopExt, this.sss_id_list, this.sss_id_start, this.sss_id_stop)];
             end
             %this.met_full_name = this.met_full_name(~isempty(this.met_full_name));
         end
@@ -2895,7 +2935,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   this.updateEphFileName();
-            this.eph_full_name = this.getEphFileName(this.sss_date_start, this.sss_date_stop);
+            this.eph_full_name = this.getEphFileName(this.getSessionsStartExt, this.getSessionsStopExt);
         end
 
         function updateClkFileName(this)
@@ -2903,7 +2943,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %  
             % SYNTAX
             %   this.updateClkFileName();
-            this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
+            this.clk_full_name = this.getClkFileName(this.getSessionsStartExt, this.getSessionsStopExt);
         end
 
         function updateErpFileName(this)
@@ -2911,7 +2951,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   this.updateClkFileName();
-            this.erp_full_name = this.getErpFileName(this.sss_date_start, this.sss_date_stop);
+            this.erp_full_name = this.getErpFileName(this.getSessionsStartExt, this.getSessionsStopExt);
         end
 
         function date = setSessionStart(this, date)
@@ -2937,28 +2977,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   keep = this.isKeepRecList();
             this.flag_keep_rec_list = keep;
         end
-
-        function setProcessingTime(this, first_epoch, last_epoch, update_iif_smaller)
-            % Set the first/last epoch of processing
-            %
-            % SYNTAX
-            %   dir = this.setProcessingTime(first_epoch, last_epoch, <update_iif_smaller == false>)
-            if nargin == 3
-                update_iif_smaller = false;
-            end
-
-            if (~update_iif_smaller) || (this.sss_date_start.isempty()) || (this.sss_date_start.getMatlabTime() < first_epoch.getMatlabTime())
-                this.sss_date_start = first_epoch.getCopy();
-            end
-            if (~update_iif_smaller) || (this.sss_date_stop.isempty()) || (this.sss_date_stop.getMatlabTime() < last_epoch.getMatlabTime())
-                this.sss_date_stop = last_epoch.getCopy();
-            end
-        end
         
         function setRemoteSourceDir(this, dir_path)
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
-
         
         function setRemCheck(this, flag)
             % Set the Remote Check flag

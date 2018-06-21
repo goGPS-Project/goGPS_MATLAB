@@ -192,11 +192,14 @@ classdef Core < handle
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
             this.gc.initConfiguration(); % Set up / download observations and navigational files
-            this.log.addMarkedMessage('Conjuring all the files!');
+            this.log.addMarkedMessage('Conjuring all the auxilliary files!');
+            rin_list = this.getRinFileList();
+            
             fw = File_Wizard;
             c_mode = this.log.getColorMode();
             this.log.setColorMode(0);
-            fw.conjureFiles();
+            [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+            fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             this.log.setColorMode(c_mode);
         end        
     end
@@ -592,7 +595,9 @@ classdef Core < handle
             verbosity = true;
             
             if nargin < 4 || isempty(time_par) || ~isclass(time_par, 'GPS_Time') 
-                [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+                %[~, time_lim_large, is_empty] = this.getRecTimeSpan();
+                time_lim_large = this.state.getSessionsStartExt;
+                time_lim_large.append(this.state.getSessionsStopExt);                
                 time_lim = time_lim_large;
             else
                 time_lim = time_par.getCopy();
@@ -610,7 +615,7 @@ classdef Core < handle
                 file_name = {file_name};
             end
             for i = 1 : numel(file_name)
-                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), time_lim.first,  time_lim.last, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
+                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), time_lim.first,  time_lim.last, this.state.sss_id_list, this.state.getSessionsStartExt, this.state.getSessionsStopExt);
             end
             
             if isempty(file_list)
@@ -644,7 +649,6 @@ classdef Core < handle
                 end
             end
         end
-
         
         function [n_ok, n_ko] = checkRinFileList(this, force_update)
             % Update and check rinex list
@@ -689,7 +693,7 @@ classdef Core < handle
             % SYNTAX:
             %   [time_lim_small, time_lim_large] = this.getRecTimeSpan(session)
             %   [time_lim_small, time_lim_large] = this.getRecTimeSpan()
-            
+                                    
             fr = this.getRinFileList();
             is_empty = ~fr.isValid;
             if nargin == 1 % Start and stop limits of all the sessions                
@@ -714,8 +718,6 @@ classdef Core < handle
                         end
                     end
                 end
-                time_lim_small.append(tmp_small);
-                time_lim_large.append(tmp_large);
             else % Start and stop of a certain session
                 time_lim_small = fr(1).getFirstEpoch(session);
                 tmp_small = fr(1).getLastEpoch(session);
@@ -738,9 +740,25 @@ classdef Core < handle
                         end
                     end
                 end
-                time_lim_small.append(tmp_small);
-                time_lim_large.append(tmp_large);
             end
+            
+            % Check start limits out of sessions
+            if time_lim_small < this.state.getSessionsStartExt()
+                time_lim_small = this.state.getSessionsStartExt();
+            end
+            if time_lim_large < this.state.getSessionsStartExt()
+                time_lim_large = this.state.getSessionsStartExt();
+            end
+            
+            % Check stop limits out of sessions
+            if tmp_small > this.state.getSessionsStopExt()
+                tmp_small = this.state.getSessionsStopExt();
+            end
+            if tmp_large > this.state.getSessionsStopExt()
+                tmp_large = this.state.getSessionsStopExt();
+            end
+            time_lim_small.append(tmp_small);
+            time_lim_large.append(tmp_large);
         end
         
         function cur_session = getCurSession(this)
