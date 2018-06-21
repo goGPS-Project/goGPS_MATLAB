@@ -722,6 +722,24 @@ classdef GNSS_Station < handle
             end
         end
         
+        function showPositionSigmas(sta_list, one_plot)
+            % Show Sigmas of the solutions
+            %
+            % SYNTAX
+            %   this.showPositionSigmas();
+            
+            if nargin == 1
+                one_plot = false;
+            end
+            
+            for r = 1 : size(sta_list,2)
+                rec = sta_list(~sta_list(r).isEmpty, r);
+                if ~isempty(rec)
+                    sta_list.out.showPositionSigmas(one_plot);
+                end
+            end
+        end
+        
         function showMap(sta_list, new_fig)
             if nargin < 2
                 new_fig = true;

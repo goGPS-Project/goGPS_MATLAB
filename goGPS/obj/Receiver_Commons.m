@@ -799,9 +799,12 @@ classdef Receiver_Commons < handle
             end
         end
         
-         function showPositionSigmas(this, one_plot)
-            % Plot X Y Z coordinates of the receiver (as estimated by initDynamicPositioning
-            % SYNTAX this.plotPositionXYZ();
+        function showPositionSigmas(this, one_plot)
+            % Show Sigmas of the solutions
+            %
+            % SYNTAX 
+            %   this.showPositionSigmas();
+            
             if nargin == 1
                 one_plot = false;
             end
@@ -838,7 +841,6 @@ classdef Receiver_Commons < handle
                 end
             end
         end
-        
         
         function showMap(this, new_fig)
             if nargin < 2
