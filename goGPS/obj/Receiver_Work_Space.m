@@ -2364,7 +2364,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             for i = 1 : this.parent.cc.getMaxNumSat()
                 cur_sat_id = find(this.go_id == i, 1, 'first');
                 if not(isempty(cur_sat_id))
-                    sat_idx = this.getObsIdx('C',cur_sat_id);
+                    sat_idx = this.getObsIdx('C',i);
                     sat_idx = sat_idx(this.active_ids(sat_idx));
                     if ~isempty(sat_idx)
                         % get epoch for which iono free is possible
