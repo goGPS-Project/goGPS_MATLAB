@@ -2741,10 +2741,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             file_name = fnp.checkPath(strcat(this.vmf_dir, filesep, this.vmf_name));
 
-            if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                date_start = date_start.getCopy;
-                date_stop = date_stop.getCopy;
-            end
+            date_start = date_start.getCopy;
+            date_stop = date_stop.getCopy;
+            fnp = File_Name_Processor();
+            step_s = fnp.getStepSec(file_name);
+            date_start.addSeconds(-step_s);
+            date_stop.addSeconds(step_s);
             vmf_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         

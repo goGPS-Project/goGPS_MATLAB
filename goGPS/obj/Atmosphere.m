@@ -1552,14 +1552,14 @@ classdef Atmosphere < handle
                 interp_first = false;
             end
             if interp_first % interp first
-                [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat, lon);
+                [ah, aw] = this.interpolateAlpha(time.getGpsTime(), lat/pi*180, lon/pi*180);
                 
                 
                 %             h_ell_vmf = this.interpolateVMFElHeight(lat*180/pi,lon*180/pi); % get height of the station
                 %             % eq (6) in [2]
                 %             aw = aw - 4 * 1e-8 * (h_ell - h_ell_vmf);
                 
-                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
+                [bh, bw, ch, cw] = this.GMFVMFBC(time,lat);
                 [gmfh] = this.mfContinuedFractionForm(repmat(ah,1,size(el,2)),bh,repmat(ch,1,size(el,2)),el);
                 [gmfw] = this.mfContinuedFractionForm(repmat(aw,1,size(el,2)),bw,cw,el);
                 
@@ -1567,7 +1567,7 @@ classdef Atmosphere < handle
                 gmfh       = nan2zero(gmfh + ht_corr);
             else % compute mapping function first
                 % get the index of the interpolating points
-                [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(time.getGpsTime(), lat, lon);
+                [ it, st, ilons, ilone, slon, ilat, slat] = this.getVMFIndex(time.getGpsTime(), lat/pi*180, lon/pi*180);
                 ah_calc_1 = this.vmf_coeff.ah([ilat ilat+1], [ilons ilone],it);
                 aw_calc_1 = this.vmf_coeff.aw([ilat ilat+1], [ilons ilone],it);
                 ah_calc_2 = this.vmf_coeff.ah([ilat ilat+1], [ilons ilone],it+1);
@@ -1575,7 +1575,7 @@ classdef Atmosphere < handle
                 h_calc =  this.vmf_coeff.ell_height([ilat ilat+1], [ilons ilone]);
                 n_sat = size(el,2);
                 % compute the mapping function and the heoght correction for all the inteprolating points
-                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat/180*pi);
+                [bh, bw, ch, cw] = this.GMFVMFBC(time, lat);
                 [gmfh_11_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,1,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
                 [gmfw_11_1] = this.mfContinuedFractionForm(repmat(squeeze(aw_calc_1(1,1,:)),1,n_sat),bw,cw,el);
                 [gmfh_12_1] = this.mfContinuedFractionForm(repmat(squeeze(ah_calc_1(1,2,:)),1,n_sat),bh,repmat(ch,1,n_sat),el);
@@ -1596,10 +1596,10 @@ classdef Atmosphere < handle
                 
                 
                 % copute the height correction for the mapping function with the height of the four points see [3]
-                [ht_corr_11] = this.hydrostaticMFHeigthCorrection(h_calc(1,1),el);
-                [ht_corr_12] = this.hydrostaticMFHeigthCorrection(h_calc(1,2),el);
-                [ht_corr_21] = this.hydrostaticMFHeigthCorrection(h_calc(2,1),el);
-                [ht_corr_22] = this.hydrostaticMFHeigthCorrection(h_calc(2,2),el);
+                [ht_corr_11] = this.hydrostaticMFHeigthCorrection(h_ell,el);
+                [ht_corr_12] = this.hydrostaticMFHeigthCorrection(h_ell,el);
+                [ht_corr_21] = this.hydrostaticMFHeigthCorrection(h_ell,el);
+                [ht_corr_22] = this.hydrostaticMFHeigthCorrection(h_ell,el);
                 
                 gmfh_11_1 = gmfh_11_1 + ht_corr_11;
                 gmfh_12_1 = gmfh_12_1 + ht_corr_12;
