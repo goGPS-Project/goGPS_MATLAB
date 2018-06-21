@@ -2592,7 +2592,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             sss_ext_lim = sss_lim.getCopy();
             sss_ext_lim.addSeconds(-buf_lft); % left buffer
             time_stop = sss_lim.getCopy();
-            time_stop.addSeconds(this.sss_duration);
+            time_stop.addSeconds(this.sss_duration - 1e-4);
+            if time_stop > this.getSessionsStop
+                time_stop = this.getSessionsStop;
+            end
             time_ext_stop = time_stop.getCopy();
             time_ext_stop.addSeconds(but_rgt); % right buffer
             

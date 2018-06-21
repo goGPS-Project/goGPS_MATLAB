@@ -422,10 +422,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX:
             %  this.importRinexFileList(rin_list, time_start, time_stop) 
             % check which files have to be added
-            if this.time.isempty
+            if time_start.isempty
                 time_start = GPS_Time(0);
-            else
-                time_start = this.time.last;
             end
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
