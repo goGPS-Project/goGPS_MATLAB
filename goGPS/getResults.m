@@ -45,7 +45,7 @@ core = Core.getInstance;
 rec = core.rec;
 
 log = Logger.getInstance();
-log.addMarkedMessage('Now you should be able to see 3 new variables:');
+log.addMarkedMessage('Now you should be able to see 2 new variables:');
 log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
 log.addMessage(log.indent(' - rec       the array of Receivers'));
 log.newLine();

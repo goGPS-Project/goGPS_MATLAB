@@ -615,7 +615,7 @@ classdef Core < handle
                 file_name = {file_name};
             end
             for i = 1 : numel(file_name)
-                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), time_lim.first,  time_lim.last, this.state.sss_id_list, this.state.getSessionsStartExt, this.state.getSessionsStopExt);
+                file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), this.state.getSessionsStartExt,  this.state.getSessionsStopExt, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
             end
             
             if isempty(file_list)

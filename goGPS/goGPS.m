@@ -126,7 +126,18 @@ function goGPS(ini_settings, use_gui, flag_online)
     
     if ~isdeployed && ok_go
         log = Logger.getInstance();
-        log.addMessage('Execute the script "getResults", to load the object created during the processing');
-    end    
+        
+        % Do not export to workspace
+        %log.addMessage('Execute the script "getResults", to load the object created during the processing');
+        
+        % Export into workspace
+        rec = core.rec;
+        assignin('base', 'core', core);
+        assignin('base', 'rec', rec);
+        
+        log.addMarkedMessage('Now you should be able to see 2 variables in workspace:');
+        log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
+        log.addMessage(log.indent(' - rec       the array of Receivers'));
+    end
 end
 

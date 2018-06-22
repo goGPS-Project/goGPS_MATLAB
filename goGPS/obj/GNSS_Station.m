@@ -229,6 +229,17 @@ classdef GNSS_Station < handle
             end
         end
         
+        function time = getTime(this)
+            % return the time stored in the object
+            %
+            % OUTPUT
+            %   time     GPS_Time
+            %
+            % SYNTAX
+            %   xyz = this.getTime()
+            time = this.out.getTime();
+        end
+        
         function n_epo = getNumEpochs(this)
             % Return the time span of the receiver
             % SYNTAX
@@ -243,9 +254,9 @@ classdef GNSS_Station < handle
         function n_sat = getMaxSat(sta_list, sys_c)
             % get the number of satellites stored in the object
             %
-            % SYNTAX 
+            % SYNTAX
             %   n_sat = getNumSat(<sys_c>)
-                  
+            
             n_sat = zeros(numel(sta_list),1);
             for r = 1 : size(sta_list, 2)
                 rec(r) = sta_list(r);
@@ -273,6 +284,7 @@ classdef GNSS_Station < handle
                 end
             end
         end
+        
         function [time_lim_small, time_lim_large] = getWorkTimeSpan(this)
             % return a GPS_Time containing the first and last epoch stored in the Receiver
             %
@@ -372,7 +384,7 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic_mr(this)
+        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(sta_list)
             % return the computed median position of the receiver
             % MultiRec: works on an array of receivers
             %
@@ -383,27 +395,17 @@ classdef GNSS_Station < handle
             %   h_ortho     orthometric heigth [m]
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
+            %   [lat, lon, h_ellips, h_ortho] = sta_list.getMedianPosGeodetic();
             
-            lat = nan(numel(this), 1);
-            lon = nan(numel(this), 1);
-            h_ellips = nan(numel(this), 1);
-            h_ortho = nan(numel(this), 1);;
-            for r = 1 : numel(this)
-                xyz = this(r).out.xyz; %#ok<NASGU>
-                try
-                    xyz = median(this(r).xyz, 1);
-                    [lat(r), lon(r), h_ellips(r)] = cart2geod(xyz);
-                    if nargout == 4
-                        gs = Global_Configuration.getInstance;
-                        gs.initGeoid();
-                        ondu = getOrthometricCorr(lat(r), lon(r), gs.getRefGeoid());
-                        h_ortho(r) = h_ellips(r) - ondu; %#ok<AGROW>
-                    end
-                    lat(r) = lat(r) / pi * 180;
-                    lon(r) = lon(r) / pi * 180;
-                catch
-                    % no position in the receiver
+            lat = nan(numel(sta_list), 1);
+            lon = nan(numel(sta_list), 1);
+            h_ellips = nan(numel(sta_list), 1);
+            h_ortho = nan(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                if sta_list(1).static
+                    [lat(r), lon(r), h_ellips(r), h_ortho(r)] = sta_list(r).out.getMedianPosGeodetic;
+                else
+                    [lat{r}, lon{r}, h_ellips{r}, h_ortho{r}] = sta_list(r).out.getMedianPosGeodetic;
                 end
             end
         end

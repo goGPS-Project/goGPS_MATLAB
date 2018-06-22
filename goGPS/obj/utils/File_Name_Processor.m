@@ -18,7 +18,7 @@
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __
+%     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.6.0 alpha 2 - nightly
@@ -63,6 +63,7 @@ classdef File_Name_Processor < handle
         GPS_MM = '${MM}';
         GPS_DD = '${DD}';
         GPS_QQ = '${QQ}';
+        GPS_5M = '${5M}';
     end
 
     properties (SetAccess = private, GetAccess = public)
@@ -93,7 +94,8 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_DOW, sprintf('%01d', gps_dow(1)));
             file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
             file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
-            file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', 15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900))));
+            file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
+            file_name_out = strrep(file_name_out, this.GPS_5M, sprintf('%02d', mod(5 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(300)), 60)));
             [year, doy] = date.getDOY();
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
             file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
@@ -110,7 +112,9 @@ classdef File_Name_Processor < handle
             % SYNTEX: step_sec = this.getStepSec(file_name);
             % Check for GPS time placeholders
             step_sec = 0;
-            if ~isempty(strfind(file_name, this.GPS_QQ))
+            if ~isempty(strfind(file_name, this.GPS_5M))
+                step_sec = 300;
+            elseif ~isempty(strfind(file_name, this.GPS_QQ))
                 step_sec = 900;
             elseif ~isempty(strfind(file_name, this.GPS_HH))
                 step_sec = 3600;
@@ -368,7 +372,7 @@ classdef File_Name_Processor < handle
         
         function file_name = keyRep(file_name, key, substitution)
             % Substitute a key in the file_name with another value
-            file_name = strrep(file_name,key, substitution);
+            file_name = strrep(file_name, key, substitution);
         end
 
         function [str_cell] = toIniStringComment(str_cell)
@@ -383,6 +387,7 @@ classdef File_Name_Processor < handle
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour', File_Name_Processor.GPS_HH), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS quarter of hour (00, 15, 30, 45)', File_Name_Processor.GPS_QQ), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS five minutes (05, 10, ... , 55)', File_Name_Processor.GPS_5M), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 2+3 char GPS year + day of year', File_Name_Processor.GPS_YYDOY), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    4 char GPS year', File_Name_Processor.GPS_YYYY), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS year', File_Name_Processor.GPS_YY), str_cell);

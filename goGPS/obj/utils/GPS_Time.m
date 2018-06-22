@@ -138,7 +138,12 @@ classdef GPS_Time < Exportable & handle
             if numel(date) <= 3
                 date = datevec(string_time);
             else
-                date = reshape(date,6,numel(date)/6)';
+                try
+                    tmp = reshape(date, 6, numel(date) / 6)';
+                    date = tmp;
+                catch
+                    date = datevec(string_time);
+                end
                 date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
             end
             this.GPS_Time_6col(date, is_gps);
