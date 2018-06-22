@@ -5230,7 +5230,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                                             this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
                                         end
                                     end
-                                    end
                                 end
                             end
                         end
@@ -6184,7 +6183,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
                 ls = Least_Squares_Manipulator();
-                id_sync = ls.setUpPPP(this, id_sync);
+                if false
+                    pos_idx = [ones(sum(this.time < this.out_start_time),1)];
+                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_start_time & this.time <= this.out_stop_time),1)];
+                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time > this.out_stop_time),1);];
+                else
+                    pos_idx = [];
+                end
+                id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx);
                 ls.Astack2Nstack();
                 
                 time = this.time.getSubSet(id_sync);
@@ -6244,7 +6250,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: s0 = %f', s0)));
-                this.xyz = this.xyz + coo;
+                if isempty(pos_idx)
+                    this.xyz = this.xyz + coo;
+                else
+                    this.xyz = this.xyz + coo(2,:);
+                end
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);

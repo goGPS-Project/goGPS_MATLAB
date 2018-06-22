@@ -104,14 +104,17 @@ classdef Least_Squares_Manipulator < handle
             this.rf = Core_Reference_Frame.getInstance();
         end
         
-        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic)
+        function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)
             if nargin < 4
                 cut_off = [];
             end
             if nargin < 5
                 dynamic = false;
             end
-            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off,'',dynamic);
+            if nargin < 6
+                pos_idx = [];
+            end
+            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off,'',dynamic,pos_idx);
         end
         
         function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
@@ -128,7 +131,7 @@ classdef Least_Squares_Manipulator < handle
             id_sync = this.setUpSA(rec, id_sync, 'C', cut_off, '', true);
         end
         
-        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic)
+        function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec)
             % return the id_sync of the epochs to be computed
             % get double frequency iono_free for all the systems
             % INPUT:
@@ -137,6 +140,9 @@ classdef Least_Squares_Manipulator < handle
             %    obs_type : 'C' 'L' 'CL'
             %    cut_off : cut off angle [optional]
             %
+            if nargin < 8
+                pos_idx_vec = [];
+            end
             if nargin < 7
                 dynamic = false;
             end
@@ -350,7 +356,12 @@ classdef Least_Squares_Manipulator < handle
             if dynamic
                 n_coo = n_coo_par * n_epochs;              
             else
-                n_coo = n_coo_par;
+                if isempty(pos_idx_vec)
+                    n_coo = n_coo_par;
+                else
+                    n_pos = length(unique(pos_idx_vec));
+                    n_coo =  n_pos*3;
+                end
             end
             
             % get the list  of observation codes used
@@ -376,7 +387,9 @@ classdef Least_Squares_Manipulator < handle
             
             A_idx = zeros(n_obs, n_par);
             if ~rec.isFixed()
-                A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
+                if isempty(pos_idx_vec)
+                    A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
+                end
             end
             y = zeros(n_obs, 1);
             variance = zeros(n_obs, 1);
@@ -420,6 +433,10 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, 1) = ep_p_idx(id_ok_stream);
                     A_idx(lines_stream, 2) = n_epochs + ep_p_idx(id_ok_stream);
                     A_idx(lines_stream, 3) = 2*n_epochs + ep_p_idx(id_ok_stream);
+                elseif ~isempty(pos_idx_vec)
+                    A_idx(lines_stream, 1) = pos_idx_vec(id_ok_stream);
+                    A_idx(lines_stream, 2) = n_pos  + pos_idx_vec(id_ok_stream);
+                    A_idx(lines_stream, 3) = 2*n_pos + pos_idx_vec(id_ok_stream);
                 end
                 % ----------- Inster observation bias ------------------
                 if n_iob > 0
