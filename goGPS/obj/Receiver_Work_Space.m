@@ -5069,8 +5069,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         sh_delays = this.computeShapirodelay(s);
                         for o = find(obs_idx_f)'
                             pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
-                            o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            if sum(pcv_idx) > 0
+                            if sum(pcv_idx) >0
+                                o_idx = this.obs(o, :) ~=0; %find where apply corrections
                                 if  this.obs_code(o,1) == 'L'
                                     this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
                                 else
@@ -5223,11 +5223,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
                                     if sum(pcv_idx) > 0
-                                    o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
-                                    if  this.obs_code(o,1) == 'L'
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus
-                                    else
-                                        this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
+                                        o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
+                                        if  this.obs_code(o,1) == 'L'
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus
+                                        else
+                                            this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
+                                        end
                                     end
                                     end
                                 end
