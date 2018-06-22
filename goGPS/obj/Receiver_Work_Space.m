@@ -5070,10 +5070,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                         for o = find(obs_idx_f)'
                             pcv_idx = this.obs(o, this.sat.avail_index(:, s)) ~=0; %find which correction to apply
                             o_idx = this.obs(o, :) ~=0; %find where apply corrections
-                            if  this.obs_code(o,1) == 'L'
-                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
-                            else
-                                this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)';
+                            if sum(pcv_idx) > 0
+                                if  this.obs_code(o,1) == 'L'
+                                    this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)' ./ this.wl(o);
+                                else
+                                    this.obs(o,o_idx) = this.obs(o,o_idx) - sign(sgn)* sh_delays(pcv_idx)';
+                                end
                             end
                         end
                     end
