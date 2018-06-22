@@ -1945,7 +1945,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 t_stop = GPS_Time(800000); % 2190/04/28 an epoch very far away
             end
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' )']);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1)) == '>' & txt(lim(eoh+1:end,1)+31) ~= '4' & txt(lim(eoh+1:end,1)+31) ~= '3' )']);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,27) + repmat(2:28, n_epo, 1))';
@@ -5220,11 +5220,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 pcv_delays = this.sat.cs.getPCV( f, ant_id, el_tmp, az_tmp);
                                 for o = find(obs_idx_f)'
                                     pcv_idx = this.obs(o, az_idx) ~= 0; %find which correction to apply
+                                    if sum(pcv_idx) > 0
                                     o_idx = this.obs(o, :) ~=0 & az_idx'; %find where apply corrections
                                     if  this.obs_code(o,1) == 'L'
                                         this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)' ./ this.wl(o); % is it a plus
                                     else
                                         this.obs(o,o_idx) = this.obs(o,o_idx) + sign(sgn) * pcv_delays(pcv_idx)';
+                                    end
                                     end
                                 end
                             end
