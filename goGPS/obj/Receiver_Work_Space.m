@@ -1954,7 +1954,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % import it as a GPS_Time obj
             this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
             to_keep_ep = this.time > t_start & this.time < t_stop;
-            this.time.remEpochs(~to_keep_ep);
+            this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
             this.rate = this.time.getRate();
             n_epo = numel(t_line);
