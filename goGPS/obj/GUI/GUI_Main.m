@@ -926,7 +926,9 @@ classdef GUI_Main < handle
                 
                 if this.j_settings.isValid
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
-                    this.j_settings.setText(str);
+                    if ~strcmp(str, char(this.j_settings.getText()))
+                        this.j_settings.setText(str);
+                    end
                  else
                     % this.log.addWarning('Warning invalid config not updating j_settings');
                 end

@@ -999,7 +999,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Session duration in seconds', str_cell);
             str_cell = Ini_Manager.toIniString('sss_duration',this.sss_duration  ,str_cell);
             str_cell = Ini_Manager.toIniStringComment('Session buffer in second [left right]', str_cell);
-            str_cell = Ini_Manager.toIniString('sss_buffer',this.sss_buffer   ,str_cell);
+            str_cell = Ini_Manager.toIniString('sss_buffer',this.sss_buffer, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Flag DEBUG (0/1) to keep in memory all the processed receiver', str_cell);
             str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
@@ -1643,7 +1643,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             this.checkLogicalField('sss_file_based');
             this.checkNumericField('sss_duration', [0 365*86400]);
-            this.checkNumericField('sss_buffer', [0 3600*3]);
+            this.checkNumericField('sss_buffer', [0 86400*10]);
         
             this.checkPathField('obs_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkCellStringField('obs_name', EMPTY_IS_NOT_VALID);

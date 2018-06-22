@@ -273,7 +273,7 @@ classdef Command_Interpreter < handle
             this.CMD_LOAD.name = {'LOAD', 'load'};
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
-            this.CMD_LOAD.par = [this.PAR_SS];
+            this.CMD_LOAD.par = [this.PAR_SS, this.PAR_RATE];
 
             this.CMD_EMPTY.name = {'EMPTY', 'empty'};
             this.CMD_EMPTY.descr = 'Empty the receiver';
@@ -478,13 +478,17 @@ classdef Command_Interpreter < handle
                     if sys_found
                         state = Global_Configuration.getCurrentSettings();
                         state.cc.setActive(sys_list);
-                    end                    
+                    end
+                    [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
+                    if ~found
+                        rate = []; % get the rate of the RINEX
+                    end
                     if this.core.state.isRinexSession()
-                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, this.core.getCurSession()));
+                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, this.core.getCurSession()), rate);
                         rec(r).work.loaded_session = this.core.getCurSession();
                     else
                         [session_limits, out_limits] = this.core.state.getSessionLimits(this.core.getCurSession());
-                        rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last);
+                        rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate);
                         rec(r).work.loaded_session = this.core.getCurSession();
                         rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                     end
@@ -508,6 +512,7 @@ classdef Command_Interpreter < handle
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
                     rec(r).reset();
+                    rec(r).work.resetWorkSpace();
                 end
             end
         end

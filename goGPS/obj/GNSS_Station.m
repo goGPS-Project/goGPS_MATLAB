@@ -96,15 +96,15 @@ classdef GNSS_Station < handle
             else
                 this.work.rinex_file_name = '';
             end 
-            this.work.load();
+            this.work.load(rate);
         end
         
-        function importRinexes(this, rin_list, time_start, time_stop)
+        function importRinexes(this, rin_list, time_start, time_stop, rate)
             % select the files to be imported
             %
             % SYNTAX
-            % this.importRinexes(rin_list, time_start, time_stop)
-            this.work.importRinexFileList(rin_list, time_start, time_stop);
+            % this.importRinexes(rin_list, time_start, time_stop, rate)
+            this.work.importRinexFileList(rin_list, time_start, time_stop, rate);
         end
         
         function init(this)
@@ -737,7 +737,7 @@ classdef GNSS_Station < handle
             for r = 1 : size(sta_list,2)
                 rec = sta_list(~sta_list(r).isEmpty, r);
                 if ~isempty(rec)
-                    sta_list.out.showPositionSigmas(one_plot);
+                    rec.out.showPositionSigmas(one_plot);
                 end
             end
         end

@@ -938,6 +938,22 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function nominal_time = getNominalTime(this, rate)
+            % get the nominal time aka rounded time cosidering a constant
+            % sampling rate
+            %
+            % SYNTAX
+            %   nominal_time = this.getNominalTime()
+            nominal_time_zero = floor(this.first.getMatlabTime() * 24)/24;
+            rinex_time = this.getRefTime(nominal_time_zero);
+            nominal_time = round(rinex_time / rate) * rate;
+            ref_time = (nominal_time(1) : rate : nominal_time(end))';
+            
+            % reordering observations filling empty epochs with zeros;
+            nominal_time = GPS_Time(nominal_time_zero, ref_time, this.isGPS(), 2);
+            nominal_time.toUnixTime;
+        end
+        
         function [mat_time] = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
             %
