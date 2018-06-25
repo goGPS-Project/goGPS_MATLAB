@@ -389,9 +389,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.importRinex(this.rinex_file_name, t_start, t_stop, rate);
                 elseif nargin == 2 % the only parameter is rate
                     rate = t_start;
-                    this.importRinex(this.rinex_file_name, rate);
+                    this.importRinex(this.rinex_file_name, [], [], rate);
                 else
-                    this.importRinex(this.rinex_file_name, []);
+                    this.importRinex(this.rinex_file_name);
                 end
                 this.importAntModel();
             end
@@ -1327,8 +1327,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   antmod = antenna model [string]
             %   codeC1 = boolean variable to notify if the C1 code is used instead of P1
             %   marker = marker name [string]
-            if nargin < 3
+            if nargin < 3 || isempty(t_start)
                 t_start = GPS_Time(0);
+            end            
+            if nargin < 4 || isempty(t_stop)
                 t_stop = GPS_Time(800000); % 2190/04/28 an epoch very far away
             end
             

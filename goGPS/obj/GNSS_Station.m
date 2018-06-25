@@ -90,7 +90,7 @@ classdef GNSS_Station < handle
             this.reset();
         end
         
-        function importRinexLegacy(this,rinex_file_name)
+        function importRinexLegacy(this,rinex_file_name, rate)
             if ~isempty(rinex_file_name) && (exist(rinex_file_name, 'file') == 2)
                 this.work.rinex_file_name = rinex_file_name;                
             else
