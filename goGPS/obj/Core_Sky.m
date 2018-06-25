@@ -1371,7 +1371,7 @@ classdef Core_Sky < handle
                 %date = times.get6ColDate;
                 %day_change = find(diff(date(:,3)));
                 
-                p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)',times.length-1));
+                p = max(1, min((round((time - this.time_ref_clock) / interval) + 1)', times.length - 1));
                 
                 b =  (times.getEpoch(p) - time)';
                 
@@ -1381,7 +1381,7 @@ classdef Core_Sky < handle
                 % extract the SP3 clocks
                 b_pos_idx = b > 0;
                 p_pos = p(b_pos_idx);
-                SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos-1,sat), this.clock(p_pos,sat));
+                SP3_c(b_pos_idx,:) = cat(2, this.clock(p_pos - 1, sat), this.clock(p_pos, sat));
                 u(b_pos_idx) = 1 - b(b_pos_idx)/interval;
                 
                 b_neg_idx = not(b_pos_idx);
