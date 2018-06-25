@@ -453,7 +453,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             rec.rinex_file_name = rinex_file_name;
             rec.load(time_start, time_stop, rate);
             % merge the two rinex
-            this.merge(rec);
+            this.injestReceiver(rec);
         end
         
         function injestReceiver(this, rec)
