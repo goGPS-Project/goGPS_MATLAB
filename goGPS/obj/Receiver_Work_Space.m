@@ -456,12 +456,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.merge(rec);
         end
         
-        function merge(this, rec)
-            % merge two receiver_work_state object
+        function injestReceiver(this, rec)
+            % injest one receiver_work_state object
             % NOTE: this methods does not manage the case when the two receivers have overlapping times
             %
             % SYNTAX
-            %  this.merge(rec);
+            %  this.injestReceiver(rec);
             
             n_obs = size(rec.obs,1);
             old_length = this.time.length;
@@ -504,15 +504,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.xyz = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
                 this.ph_shift = rec.ph_shift;
-            end
-            
-            
-            
-        end
-        
-        function injestReceiver(this, rec)
-            % assumption
-            
+            end            
         end
         
         function initTropo(this)
@@ -5668,8 +5660,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if sum(this.hasAPriori) == 0 %%% if no apriori information on the position
                     coarsePositioning(this, obs_set)
                 end
-                
-                
                 
                 this.updateAllAvailIndex();
                 this.updateAllTOT();
