@@ -1952,7 +1952,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.obs = obs;
         end
         
-        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop)
+        function parseRin3Data(this, txt, lim, eoh, t_start, t_stop, rate)
             if nargin < 6
                 t_start = GPS_Time(0);
                 t_stop = GPS_Time(800000); % 2190/04/28 an epoch very far away
