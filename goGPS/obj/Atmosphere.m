@@ -172,11 +172,12 @@ classdef Atmosphere < handle
             % SYNTAX
             %   importIonex(this, file_name)
             fid = fopen(file_name,'r');
+            fnp = File_Name_Processor();
             if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', file_name));
+                this.log.addWarning(sprintf('File IONEX %s not found', file_name));
                 return
             end
-            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
+            this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
             txt = fread(fid,'*char')';
             fclose(fid);
             
@@ -392,84 +393,149 @@ classdef Atmosphere < handle
                 end
             end
         end
-        
-        function importVMFCoeffFile(this, filename)
+                
+        function importVMFCoeffFile(this, file_name)
             % import data of atmospehric loading file
             %
             % SYNTAX
             %   importVMFCoeffFile(this, filename)
-            fid = fopen([filename],'r');
+            
+            fnp = File_Name_Processor;
+            fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', filename));
-                return
+                this.log.addWarning(sprintf('File %s not found', file_name));                              
             else
-                this.log.addMessage(this.log.indent(sprintf('Loading  %s', filename)));
-            end
-            [dir, file_name, ext ] = fileparts(filename);
-            year = str2num(file_name(6:9));
-            month = str2num(file_name(10:11));
-            day = str2num(file_name(12:13));
-            hour = str2num(ext(3:4));
-            file_ref_ep = GPS_Time([year month day hour 0 0]);
-            isempty_obj = isempty(this.vmf_coeff.ah);
-            if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
-                % file is contained in the data already
-                this.log.addMessage(this.log.indent('File already present, skipping'));
-            else
-                if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
-                    % file too far away emptying the object
-                    this.log.addMessage(this.log.indent('File too far away, emptying old vmf coefficients'));
-                    this.clearVMF();
-                    isempty_obj = true;
-                end
-                % find number of header lines
-                n_head = 0;
-%                 fid = fopen(filename);
-                tline = fgetl(fid);
-                while ischar(tline) && tline(1) == '!'
-                    n_head = n_head + 1;
-                    tline = fgetl(fid);
-                end
-                fclose(fid);
-                %%% read data
-                %data_tmp = dlmread(filename, ' ', n_head, 0);
-                data_tmp = importdata(filename, ' ', n_head);
-                %%% important !!! we assume a regular grid
-                data_tmp_ah = reshape(data_tmp.data(:,3),144,91)';
-                data_tmp_aw = reshape(data_tmp.data(:,4),144,91)';
-                data_tmp_zhd = reshape(data_tmp.data(:,5),144,91)';
-                data_tmp_zwd = reshape(data_tmp.data(:,6),144,91)';
-                if isempty_obj
-                    this.vmf_coeff.ah = data_tmp_ah;
-                    this.vmf_coeff.aw = data_tmp_aw;
-                    this.vmf_coeff.zhd = data_tmp_zhd;
-                    this.vmf_coeff.zwd = data_tmp_zwd;
-                    this.vmf_coeff.first_lat = 90;
-                    this.vmf_coeff.first_lon = 0.0;
-                    this.vmf_coeff.d_lat = -2;
-                    this.vmf_coeff.d_lon = 2.5;
-                    this.vmf_coeff.n_lat = 91;
-                    this.vmf_coeff.n_lon = 144;
-                    this.vmf_coeff.first_time = file_ref_ep;
-                    this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
-                    this.vmf_coeff.dt = 3600*6;
-                    this.vmf_coeff.n_t = 1;
+                % Parsing title
+                [~, file_name, ext ] = fileparts(file_name);
+                year = str2double(file_name(6 : 9));
+                month = str2double(file_name(10 : 11));
+                day = str2double(file_name(12 : 13));
+                hour = str2double(ext(3 : 4));
+                
+                file_ref_ep = GPS_Time([year month day hour 0 0]);
+                isempty_obj = isempty(this.vmf_coeff.ah);
+                
+                if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
+                    % file is contained in the data already
+                    this.log.addMessage(this.log.indent(sprintf('%s already present, skipping', fnp.getFileName(file_name))));
                 else
-                    if file_ref_ep < this.vmf_coeff.first_time
+                    if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
+                        % file too far away emptying the object
+                        this.log.addMessage(this.log.indent('File too far away, emptying old vmf coefficients'));
+                        this.clearVMF();
+                        isempty_obj = true;
+                    end
+                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
+
+                    txt = fread(fid, '*char')';
+                    txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                    fclose(fid);
+                    
+                    % get new line separators
+                    nl = regexp(txt, '\n')';
+                    if nl(end) <  numel(txt)
+                        nl = [nl; numel(txt)];
+                    end
+                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                    lim = [lim lim(:,2) - lim(:,1)];
+                    while lim(end,3) < 3
+                        lim(end,:) = [];
+                    end
+                    
+                    % removing empty lines at end of file
+                    while (lim(end,1) - lim(end-1,1))  < 2
+                        lim(end,:) = [];
+                    end
+                    
+                    % searching for header
+                    eoh = 0;
+                    while txt(lim(eoh + 1)) == '!'
+                        eoh = eoh + 1;
+                    end
+                    
+                    % parsing data
+                    data = sscanf(txt(lim(eoh + 1, 1) : lim(end,2)), '%f ');
+                    ah =  reshape(data(3:6:end), 144, 91)';
+                    aw =  reshape(data(4:6:end), 144, 91)';
+                    zhd = reshape(data(5:6:end), 144, 91)';
+                    zwd = reshape(data(6:6:end), 144, 91)';
+                                        
+                    if isempty_obj
+                        this.vmf_coeff.ah         = ah;
+                        this.vmf_coeff.aw         = aw;
+                        this.vmf_coeff.zhd        = zhd;
+                        this.vmf_coeff.zwd        = zwd;
+                        this.vmf_coeff.first_lat  = 90;
+                        this.vmf_coeff.first_lon  = 0.0;
+                        this.vmf_coeff.d_lat      = -2;
+                        this.vmf_coeff.d_lon      = 2.5;
+                        this.vmf_coeff.n_lat      = 91;
+                        this.vmf_coeff.n_lon      = 144;
                         this.vmf_coeff.first_time = file_ref_ep;
                         this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
-                        this.vmf_coeff.ah = cat(3,data_tmp_ah,this.vmf_coeff.ah);
-                        this.vmf_coeff.aw = cat(3,data_tmp_aw,this.vmf_coeff.aw);
-                        this.vmf_coeff.zhd = cat(3,data_tmp_zhd,this.vmf_coeff.zhd);
-                        this.vmf_coeff.zwd = cat(3,data_tmp_zwd,this.vmf_coeff.zwd);
+                        this.vmf_coeff.dt         = 3600*6;
+                        this.vmf_coeff.n_t        = 1;
                     else
-                        this.vmf_coeff.ah = cat(3,this.vmf_coeff.ah,data_tmp_ah);
-                        this.vmf_coeff.aw = cat(3,this.vmf_coeff.aw,data_tmp_aw);
-                        this.vmf_coeff.zhd = cat(3,this.vmf_coeff.zhd,data_tmp_zhd);
-                        this.vmf_coeff.zwd = cat(3,this.vmf_coeff.zwd,data_tmp_zwd);
+                        if file_ref_ep < this.vmf_coeff.first_time
+                            this.vmf_coeff.first_time = file_ref_ep;
+                            this.vmf_coeff.first_time_double = file_ref_ep.getGpsTime();
+                            this.vmf_coeff.ah  = cat(3, ah,  this.vmf_coeff.ah);
+                            this.vmf_coeff.aw  = cat(3, aw,  this.vmf_coeff.aw);
+                            this.vmf_coeff.zhd = cat(3, zhd, this.vmf_coeff.zhd);
+                            this.vmf_coeff.zwd = cat(3, zwd, this.vmf_coeff.zwd);
+                        else
+                            this.vmf_coeff.ah  = cat(3, this.vmf_coeff.ah,  ah);
+                            this.vmf_coeff.aw  = cat(3, this.vmf_coeff.aw,  aw);
+                            this.vmf_coeff.zhd = cat(3, this.vmf_coeff.zhd, zhd);
+                            this.vmf_coeff.zwd = cat(3, this.vmf_coeff.zwd, zwd);
+                        end
+                        this.vmf_coeff.n_t = this.vmf_coeff.n_t + 1;
                     end
-                    this.vmf_coeff.n_t = this.vmf_coeff.n_t + 1;
                 end
+            end            
+        end
+        
+        function [ah, aw, zhd, zwd] = readVMF(file_name)
+            fid = fopen(filename);
+            if fid > 0
+                txt = fread(fid, '*char')';
+                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
+                end
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                while lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % removing empty lines at end of file
+                while (lim(end,1) - lim(end-1,1))  < 2
+                    lim(end,:) = [];
+                end
+                
+                % searching for header
+                eoh = 0;
+                while txt(lim(eoh + 1)) == '!'
+                    eoh = eoh + 1;
+                end
+                
+                data = sscanf(txt(lim(eoh + 1, 1) : lim(end,2)), '%f ');
+                ah =  reshape(data(3:6:end), 144, 91)';
+                aw =  reshape(data(4:6:end), 144, 91)';
+                zhd = reshape(data(5:6:end), 144, 91)';
+                zwd = reshape(data(6:6:end), 144, 91)';
+                
+                fclose(fid);
+            else
+                this.log.addWarning(sprintf('VMF file not found or invalid "%s"', file_name));
+                ah = [];
+                aw = [];
+                zhd = [];
+                zwd = [];
             end
         end
         

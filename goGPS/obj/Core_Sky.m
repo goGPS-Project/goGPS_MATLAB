@@ -132,7 +132,7 @@ classdef Core_Sky < handle
                 stop_date = start_date.last();
                 start_date = start_date.first();
             end
-            if ~ isempty(start_date)
+            if ~isempty(start_date)
                 eph_f_name   = this.state.getEphFileName(start_date, stop_date);
                 clock_f_name = this.state.getClkFileName(start_date, stop_date);
                 clock_is_present = true;
