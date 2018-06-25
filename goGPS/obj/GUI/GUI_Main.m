@@ -316,7 +316,10 @@ classdef GUI_Main < handle
             sss_list_box_g.Widths = [-1 5 50 5 50];
             
             Core_UI.insertEmpty(sss_box_g);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_g, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
+             sss_check_boxes = uix.HBox('Parent', sss_box_g, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_boxes, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_boxes, 'Session rinex based', 'sss_file_based', @this.onCheckBoxChange);
             sss_box_g.Heights = [23 10 (23 * ones(1,1))];
             
             %---------------------------------------------------------
@@ -347,8 +350,8 @@ classdef GUI_Main < handle
             date_g.Widths = [46, -1];
             sss_bounds = uix.HBox('Parent', sss_box_g, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 40 5 40]);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 60 5 40]);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 60 5 40]);
             
             % --------------------------------------------------------
             
