@@ -134,6 +134,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             'outlier_idx_ph',   [], ...    % logical index of outliers
             'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
             'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
+            'slant_td',         [], ...    % double  [n_epoch x n_sat] slant total delay
             'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
             'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
             'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
@@ -215,6 +216,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.pw_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for phase wind up                 (0: not corrected , 1: corrected)
             this.et_delay_status    = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
             this.hoi_delay_status   = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect          (0: not corrected , 1: corrected)
+            
+            this.sat.avail_index       = [];
+            this.sat.outlier_idx_ph    = [];
+            this.sat.cycle_slip_idx_ph = [];
+            this.sat.err_tropo         = [];
+            this.sat.err_iono          = [];
+            this.sat.solid_earth_corr  = [];
+            this.sat.dtS               = [];
+            this.sat.rel_clk_corr      = [];
+            this.sat.tot               = [];
+            this.sat.az                = [];
+            this.sat.el                = [];
+            this.sat.XS_tx             = [];
+            this.sat.crx               = [];
+            this.sat.res               = [];
+            this.sat.slant_td          = [];
+            this.sat.o_cs_ph           = [];
+            this.sat.o_out_ph          = [];
+            this.sat.amb_mat           = [];
+            this.sat.amb_idx           = [];
+            this.sat.amb               = [];
         end
         
         function resetObs(this)
@@ -2315,11 +2337,19 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function dt = getDt(this)
-            dt =  this.dt(this.id_sync);
+            if numel(this.dt) < max(this.id_sync)
+                dt = nan(numel(this.id_sync), 1);
+            else
+                dt =  this.dt(this.id_sync);
+            end
         end
         
         function dt_ip = getDtIp(this)
-            dt_ip = this.dt_ip(this.id_sync);
+            if numel(this.dt_ip) < max(this.id_sync)
+                dt_ip = nan(numel(this.id_sync), 1);
+            else
+                dt_ip = this.dt_ip(this.id_sync);
+            end
         end
         
         function dt_pr = getDtPr(this)
@@ -2339,11 +2369,19 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function dt_pp = getDtPrePro(this)
-            dt_pp = this.dt_ip(this.id_sync);
+            if numel(this.dt_ip) < max(this.id_sync)
+                dt_pp = nan(numel(this.id_sync), 1);
+            else
+                dt_pp = this.dt_ip(this.id_sync);
+            end
         end
         
         function desync = getDesync(this)
-            desync = this.desync(this.id_sync);
+            if numel(this.dt_pr) < max(this.id_sync)
+                desync = nan(numel(this.id_sync), 1);
+            else
+                desync = this.desync(this.id_sync);
+            end                
         end
         
         function time = getTime(this)
@@ -2383,7 +2421,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   xyz = this.getAPrioriPos()
-            xyz = this.xyz_approx; %#ok<AGROW>
+            xyz = this.xyz_approx;
             xyz = median(xyz, 1);
             if ~any(xyz) && ~isempty(this.xyz)
                 xyz = median(this.getPosXYZ, 1);
@@ -3417,7 +3455,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         function [rec_out_ph] = getOOutPh(this)
             % get the phase outlier to be putted in the results
             % default outiler are the ones on the iono free combination
-            if ~isempty( this.sat.o_out_ph)
+            if ~isempty(this.sat.o_out_ph)
                 rec_out_ph = this.sat.o_out_ph(this.getIdSync(),:);
             else
                 rec_out_ph = zeros(length(this.getIdSync()), this.cc.getMaxNumSat());

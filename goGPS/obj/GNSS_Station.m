@@ -193,7 +193,12 @@ classdef GNSS_Station < handle
             %   - 3 char doy
             %
             % SYNTAX
-            [year, doy] = this.getCentralTime.getDOY();
+            if this.out.length == 0
+                time = this.work.time.getCopy;
+            else
+                time = this.out.time.getCopy;
+            end
+            [year, doy] = time.getCentralTime.getDOY();
             out_prefix = sprintf('%s_%04d_%03d_', this.getMarkerName4Ch, year, doy);
         end
         
@@ -293,7 +298,7 @@ classdef GNSS_Station < handle
             %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
             %
             % SYNTAX
-            %   [time_lim_small, time_lim_large] = getTimeSpan(this);
+            %   [time_lim_small, time_lim_large] = getWorkTimeSpan(this);
             %
             time_lim_small = this(1).work.time.first;
             tmp_small = this(1).work.time.last;
@@ -326,7 +331,7 @@ classdef GNSS_Station < handle
             %   time_lim_large     GPS_Time (first and last) epoch of the larger interval
             %
             % SYNTAX
-            %   [time_lim_small, time_lim_large] = getTimeSpan(this);
+            %   [time_lim_small, time_lim_large] = getOutTimeSpan(this);
             %
             time_lim_small = this(1).out.time.first;
             tmp_small = this(1).out.time.last;
@@ -349,7 +354,16 @@ classdef GNSS_Station < handle
             end
             time_lim_small.append(tmp_small);
             time_lim_large.append(tmp_large);
-         end
+        end
+         
+        function [rate] = getRate(this)
+            % SYNTAX
+            %   rate = this.getRate();
+            rate = this.out.getTime.getRate;
+            if isnan(rate)            
+                rate = this.work.getTime.getRate;
+            end
+        end
         
         function enu = getPosENU_mr(this)
             % return the positions computed for the receiver

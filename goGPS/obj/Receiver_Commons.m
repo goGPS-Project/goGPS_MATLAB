@@ -153,26 +153,7 @@ classdef Receiver_Commons < handle
             this.pwv  = [];
             
             this.tgn = [];
-            this.tge = [];
-            
-            this.sat = struct( ...
-                'avail_index',      [], ...    % boolean [n_epoch x n_sat] availability of satellites
-                'outlier_idx_ph',   [], ...    % logical index of outliers
-                'cycle_slip_idx_ph',[], ...    % logical index of cycle slips
-                'err_tropo',        [], ...    % double  [n_epoch x n_sat] tropo error
-                'err_iono',         [], ...    % double  [n_epoch x n_sat] iono error
-                'solid_earth_corr', [], ...    % double  [n_epoch x n_sat] solid earth corrections
-                'dtS',              [], ...    % double  [n_epoch x n_sat] staellite clok error at trasmission time
-                'rel_clk_corr',     [], ...    % double  [n_epoch x n_sat] relativistic correction at trasmission time
-                'tot',              [], ...    % double  [n_epoch x n_sat] time of travel
-                'az',               [], ...    % double  [n_epoch x n_sat] azimuth
-                'el',               [], ...    % double  [n_epoch x n_sat] elevation
-                'cs',               [], ...    % Core_Sky
-                'XS_tx',            [], ...    % compute Satellite postion a t transmission time
-                'crx',              [], ...    % bad epochs based on crx file
-                'res',              [], ...    % residual per staellite
-                'slant_td',         []  ...    % slant total delay (except ionosphere delay)
-                );
+            this.tge = [];            
         end
     end
     % ==================================================================================================================================================
@@ -235,8 +216,7 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   xyz = this.getCentralTime()
-            id = round(this(1).time.length()/2);
-            time = this(1).time.getEpoch(id);
+            time = this(1).time.getCentralTime();
         end
         
         function [rate] = getRate(this)
@@ -396,7 +376,11 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   ztd = this.getZtd()
-            ztd = this.ztd(this.getIdSync);
+            if max(this.getIdSync) > numel(this.ztd)
+                ztd = nan(size(this.getIdSync));
+            else
+                ztd = this.ztd(this.getIdSync);
+            end
         end
         
         function sztd = getSlantZTD(this, smooth_win_size, id_extract)
@@ -442,7 +426,11 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   zhd = this.getAprZhd()
-            apr_zhd = this.apr_zhd(this.getIdSync);
+            if max(this.getIdSync) > numel(this.apr_zhd)
+                apr_zhd = nan(size(this.getIdSync));
+            else
+                apr_zhd = this.apr_zhd(this.getIdSync);
+            end
         end
         
         function zwd = getZwd(this)
@@ -450,9 +438,16 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   zwd = this.getZwd()
-            zwd = this.zwd(this.getIdSync);
-            if isempty(zwd) || all(isnan(zero2nan(zwd)))
-                zwd = this.apr_zwd(this.getIdSync);
+            if max(this.getIdSync) > numel(this.zwd)
+                zwd = nan(size(this.getIdSync));
+            else
+                zwd = this.zwd(this.getIdSync);
+                if isempty(zwd) || all(isnan(zero2nan(zwd)))
+                    zwd = this.apr_zwd(this.getIdSync);
+                end
+                if max(this.getIdSync) > numel(zwd)
+                    zwd = nan(size(this.getIdSync));
+                end
             end
         end
         
@@ -461,7 +456,11 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   pwv = this.getPwv()
-            pwv = this.pwv(this.getIdSync);
+            if max(this.getIdSync) > numel(this.pwv)
+                pwv = nan(size(this.getIdSync));
+            else
+                pwv = this.pwv(this.getIdSync);
+            end
         end
         
         function [gn ,ge, time] = getGradient(this)
@@ -527,6 +526,19 @@ classdef Receiver_Commons < handle
             %   res = this.getResidual()
             res = this.sat.res(this.getIdSync,:);
         end
+        
+        function out_prefix = getOutPrefix(this)
+            % Get the name for exporting output (valid for dayly output)
+            %   - marker name 4ch (from rinex file name)
+            %   - 4 char year
+            %   - 3 char doy
+            %
+            % SYNTAX
+            time = this.time.getCopy;
+            [year, doy] = time.getCentralTime.getDOY();
+            out_prefix = sprintf('%s_%04d_%03d_', this.getMarkerName4Ch, year, doy);
+        end
+
     end
     
     % ==================================================================================================================================================

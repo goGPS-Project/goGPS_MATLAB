@@ -579,6 +579,7 @@ classdef Command_Interpreter < handle
                         rec(r).work.load();
                     end
                     rec(r).work.updateAzimuthElevation();
+                    rec(r).work.pushResult();
                 end
             end
         end

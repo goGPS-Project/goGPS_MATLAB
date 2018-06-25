@@ -1346,6 +1346,18 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
+        function time = getCentralTime(this)
+            % return the central epoch time stored in the a receiver
+            %
+            % OUTPUT
+            %   time     GPS_Time
+            %
+            % SYNTAX
+            %   xyz = this.getCentralTime()
+            id = round(this.length()/2);
+            time = this.getEpoch(id);
+        end
+        
         function remEpoch(this, id)
             % DESCRIPTION: remove epochs by index
             %

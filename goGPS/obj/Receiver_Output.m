@@ -200,6 +200,14 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
+        function [quality, az, el] = getQuality(this)
+            % SYNTAX
+            %  [quality, az, el] = this.getQuality()
+            quality = this.sat.quality;
+            az = this.sat.az;
+            el = this.sat.el;
+        end
+        
         function missing_epochs = getMissingEpochs(this)
             % return a logical array of missing (code) epochs
             %
@@ -249,8 +257,12 @@ classdef Receiver_Output < Receiver_Commons
             %  this.injectResult(rec_work)
             
             % set the id_sync onòy to time in between out times
-            
+            basic_export = false;
             id_sync_old = rec_work.getIdSync();
+            if isempty(id_sync_old)
+                rec_work.id_sync = 1 : rec_work.time.length;
+                basic_export = true;
+            end
             rec_work.cropIdSync4out();
             
             work_time = rec_work.getTime();
@@ -262,30 +274,32 @@ classdef Receiver_Output < Receiver_Commons
                 [this.time, idx1, idx2] = this.time.injectBatch(work_time);
             end
             %%% inject data
-            this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
-            this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
-            this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
-            this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
-            this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
-            this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
-            this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
-            this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
-            [gn, ge]     = rec_work.getGradient();
-            this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
-            this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
-            [p, t, h]    = rec_work.getPTH(true);
-            this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
-            this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
-            this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
+            if ~basic_export
+                this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+                this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
+                this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+                this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
+                this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+                this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
+                this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
+                this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
+                [gn, ge]     = rec_work.getGradient();
+                this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
+                this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
+                [p, t, h]    = rec_work.getPTH(true);
+                this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
+                this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
+                this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
+                this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                [mfh, mfw]   = rec_work.getSlantMF();
+                this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
+                this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
+                this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
+                this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+            end
             [az, el]   = rec_work.getAzEl();
             this.sat.az     = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
             this.sat.el     = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
-            this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
-            [mfh, mfw]   = rec_work.getSlantMF();
-            this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
-            this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
-            this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
-            this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
             this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
             
             %%% single results
