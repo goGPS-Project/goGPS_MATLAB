@@ -330,7 +330,7 @@ classdef Atmosphere < handle
             else
                 this.log.addMessage(this.log.indent(sprintf('Loading  %s', filename)));
             end
-            [dir, file_name, ext ] = fileparts(filename);
+            [~, file_name, ~] = fileparts(filename);
             year = str2num(file_name(1:4));
             month = str2num(file_name(5:6));
             day = str2num(file_name(7:8));
