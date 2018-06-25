@@ -849,7 +849,7 @@ classdef GUI_Main < handle
             if isempty(date)
                 sss_stop = state.getSessionsStopExt;
             else
-                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 23 59 59]);
+                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
             end
             hh_mm_ss = this.ui_sss_stop.Children(1).Children(1).String;
             if ~isempty(hh_mm_ss)
