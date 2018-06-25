@@ -1449,22 +1449,27 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
         end
 
-        function checkStringField(this, field_name, empty_is_valid, check_existence)
+        function is_existing = checkStringField(this, field_name, empty_is_valid, check_existence)
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
             %
+            % check_existence 0: do not check
+            %                 1: check and do nothing
+            %                 2: check and try to correct
+            %
             % SYNTAX
-            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            %
+            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
             switch nargin
-                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
-                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
-                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
 
-        function checkPathField(this, field_name, empty_is_valid, check_existence)
+        function is_existing = checkPathField(this, field_name, empty_is_valid, check_existence)
             % Check if a string path field of the object is a valid path
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
@@ -1474,9 +1479,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home, [], fnp.getFullDirPath(this.(upper(field_name))));
             switch nargin
-                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
-                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
-                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid, check_existence);
+                case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
+                case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
+                case 4, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
@@ -1627,10 +1632,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   this.check();
             EMPTY_IS_VALID = true;
             EMPTY_IS_NOT_VALID = false;
-            CHECK_EXISTENCE = true;
+            CHECK_EXISTENCE = 1;
 
             this.checkStringField('prj_name', EMPTY_IS_NOT_VALID);
-            this.checkStringField('prj_home', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            is_existing = this.checkStringField('prj_home', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
+            CHECK_EXISTENCE = iif(is_existing, 2, 1);
             this.checkStringField('cur_ini', EMPTY_IS_NOT_VALID);
 
             this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
@@ -1902,9 +1908,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_tropo_gradient');
 
             % ADV ATMOSPHERE
-            %this.checkNumericField('sigma0_tropo',[1e-11 10]);
+            % this.checkNumericField('sigma0_tropo',[1e-11 10]);
             this.checkNumericField('std_tropo',[1e-12 1e50]);
-            %this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
+            % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
         end
         
@@ -2644,7 +2650,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % Get the full name of the ephemerides files (replacing special keywords)
             %
             % SYNTAX
-            %   eph_full_name = getEphFileName(this, date_start, date_stop)
+            %   met_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
             if ~iscell(this.met_name)
                 met_name = {this.met_name};
@@ -2659,7 +2665,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             met_full_name = {};
             for i = 1 : numel(met_name)
-                met_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                met_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.met_dir, filesep, met_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop); %#ok<AGROW>
             end
         end
 

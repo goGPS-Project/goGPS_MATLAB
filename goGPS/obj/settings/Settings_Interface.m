@@ -137,22 +137,25 @@ classdef Settings_Interface < Exportable
             % value of the field as a constant with same name but upper case
             % This superclass function must be copied in each child (to
             % have read / write permission on the parameters
-            % SYNTAX: this.checkLogicalField(string_field_name);
+            %
+            % SYNTAX
+            %   this.checkLogicalField(string_field_name);
             this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
         end
 
-        function checkStringField(this, field_name, empty_is_valid, check_existence)
+        function is_existing = checkStringField(this, field_name, empty_is_valid, check_existence)
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
             % This superclass function must be copied in each child (to
             % have read / write permission on the parameters
-            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
-
+            %
+            % SYNTAX
+            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
-                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
-                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
-                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
                 otherwise, error('Settings checkStringField called with the wrong number of parameters');
             end
         end
@@ -163,7 +166,9 @@ classdef Settings_Interface < Exportable
             % value of the field as a constant with same name but upper case
             % This superclass function must be copied in each child (to
             % have read / write permission on the parameters
-            % SYNTAX: this.checkNumericField(string_field_name, <limits>, <valid_values>);
+            %
+            % SYNTAX
+            %   this.checkNumericField(string_field_name, <limits>, <valid_values>);
             switch nargin
                 case 2, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits);
@@ -175,7 +180,9 @@ classdef Settings_Interface < Exportable
         function checked_val = checkLogical(this, field_name, field_val, default_val)
             % Check if a logical is a valid logical
             % This superclass function must be called in each child
-            % SYNTAX: checked_val = this.checkLogicalField(string_field_name);
+            %
+            % SYNTAX
+            %   checked_val = this.checkLogicalField(string_field_name);
             checked_val = default_val;
             if (~isempty(field_val)) && (~isnan(field_val))
                 checked_val = logical(field_val);
@@ -184,9 +191,13 @@ classdef Settings_Interface < Exportable
             end
         end
 
-        function checked_val = checkCellString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
+        function [checked_val, is_existing] = checkCellString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
             % Check if a string is a valid string
-            % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            % check_existence 0: do not check
+            %                 1: check and do nothing
+            %                 2: check and try to correct
+            % SYNTAX
+            %   checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             if (nargin < 5)
                 empty_is_valid = false;
             end
@@ -194,41 +205,54 @@ classdef Settings_Interface < Exportable
                 check_existence = false;
             end
 
-            checked_val = this.checkString(field_name, field_val, default_val, empty_is_valid, check_existence);
+            [checked_val, is_existing] = this.checkString(field_name, field_val, default_val, empty_is_valid, check_existence);
             if ~iscell(checked_val)
                 checked_val = {checked_val};
             end
         end
 
-        function checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
+        function [checked_val, is_existing] = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
             % Check if a string is a valid string
-            % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            % check_existence 0: do not check
+            %                 1: check and do nothing
+            %                 2: check and try to correct
+            %
+            % SYNTAX
+            %   [checked_val, is_existing] = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == 0>);
             if (nargin < 5)
                 empty_is_valid = false;
             end
             if (nargin < 6)
-                check_existence = false;
+                check_existence = 0;
             end
 
+            is_existing = false;
             checked_val = default_val;
             default_val = field_val;
             if ~isempty(field_val) && iscell(field_val) % A cell of strings must contain at least one string
                 field_val = field_val{1};
             end
             if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file') || exist(field_val,'dir')) || ~check_existence)
+                is_existing = true;
                 checked_val = default_val;
             else
-                if iscell(checked_val)
-                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
+                if check_existence > 1
+                    if iscell(checked_val)
+                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
+                    else
+                        this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
+                    end
                 else
-                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
+                    this.log.addWarning(sprintf('The value "%s" of the settings field %s is not valid!!!', field_val, field_name));
                 end
             end
         end
 
         function checked_val = checkNumber(this, field_name, field_val, default_val, limits, valid_val)
             % Check if a number is valid
-            % SYNTAX: checked_val = this.checkNumericField(string_variable_name, value, default_value, <limits>, <valid_values>);
+            %
+            % SYNTAX
+            %   checked_val = this.checkNumericField(string_variable_name, value, default_value, <limits>, <valid_values>);
             checked_val = default_val;
             if isnumeric(field_val) && (~isempty(field_val)) && (any(~isnan(field_val)))
                 checked_val = field_val;
