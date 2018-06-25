@@ -49,6 +49,11 @@
 !/data/reference/DTM
 /data/reference/DTM/*
 !/data/reference/DTM/.gitignore
+!/data/reference/VMF
+/data/reference/VMF/*
+!/data/reference/VMF/orography
+!/data/reference/VMF/orography_ell
+
 
 !/data/station
 /data/station/*
