@@ -1906,6 +1906,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
             this.checkLogicalField('flag_tropo');
             this.checkLogicalField('flag_tropo_gradient');
+            if this.flag_tropo_gradient && ~this.flag_tropo
+                this.flag_tropo_gradient = false;
+                this.log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
+            end
 
             % ADV ATMOSPHERE
             % this.checkNumericField('sigma0_tropo',[1e-11 10]);
