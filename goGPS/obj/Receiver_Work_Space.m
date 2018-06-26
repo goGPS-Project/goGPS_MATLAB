@@ -1169,7 +1169,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % remove too short possible arc
             to_short_idx = flagMerge(poss_slip_idx,sa_thr);
-            poss_slip_idx = [diff(to_short_idx) <0 ; false(1,size(to_short_idx,2))];
+            poss_slip_idx = [diff(to_short_idx) <0 ; false(1, size(to_short_idx, 2))];
             to_short_idx(poss_slip_idx) = false;
             poss_out_idx(to_short_idx) = true;
             
@@ -3176,9 +3176,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % remove all empty lines
                 empty_idx = sum(obs==0,2) == n_epochs;
                 obs(empty_idx,:) = [];
+                snr(empty_idx,:) = [];
                 prn(empty_idx,:) = [];
                 flags(empty_idx,:) = [];
-                flags=char(flags);
+                flags = char(flags);
                 idx = zeros(length(prn),1);
                 for i = 1:length(prn)
                     idx(i) = find(sys_idx & this.prn == prn(i) & sum(this.obs_code == repmat(flags(i,:) ,size(this.obs_code,1) ,1),2) == 3);
