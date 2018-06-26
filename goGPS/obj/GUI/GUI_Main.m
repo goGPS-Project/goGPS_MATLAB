@@ -345,7 +345,7 @@ classdef GUI_Main < handle
 
             Core_UI.insertEmpty(sss_box_r);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_r, 'Session rinex based', 'sss_file_based', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_r, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
             
             Core_UI.insertEmpty(sss_box_v);
             
@@ -386,7 +386,7 @@ classdef GUI_Main < handle
             
             % --------------------------------------------------------
             
-            tab.Heights = [55 5 107 5 -1];
+            tab.Heights = [55 5 135 5 -1];
         end
         
         function insertStations(this, container)
@@ -783,7 +783,9 @@ classdef GUI_Main < handle
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
-            list_title = uicontrol('Parent', v_text, ...
+            h_title = uix.HBox( 'Parent', v_text, ...
+                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+            list_title = uicontrol('Parent', h_title, ...
                 'Style', 'Text', ...
                 'String', 'Receiver List', ...
                 'ForegroundColor', Core_UI.WHITE, ...
@@ -791,10 +793,16 @@ classdef GUI_Main < handle
                 'FontSize', Core_UI.getFontSize(9), ...
                 'FontWeight', 'bold', ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
+            Core_UI.insertEmpty(h_title, Core_UI.DARK_GRAY_BG);
+            
+            check_rec = uicontrol( 'Parent', h_title, ...
+                'String', 'Check', ...
+                'Callback', @this.updateAndCheckRecList);
+
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
             Core_UI.insertHBarDark(this.info_g);
             
-            v_text.Heights = [5, list_title.Extent(4), -1];
+            v_text.Heights = [5, 23, -1];
             
             rec_g = uix.Grid('Parent', this.info_g, ...
                 'Padding', 0, ...
