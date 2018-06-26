@@ -3407,7 +3407,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -4244,10 +4244,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
             else
                 if isempty(this.sat.el)
-                    this.sat.el = zeros(size(this.sat.avail_index));
+                    this.sat.el = zeros(this.length, this.cc.getMaxNumSat);
                 end
                 if isempty(this.sat.az)
-                    this.sat.az = zeros(size(this.sat.avail_index));
+                    this.sat.az = zeros(this.length, this.cc.getMaxNumSat);
                 end
                 if isempty(this.sat.avail_index)
                     this.sat.avail_index = true(this.length, this.parent.cc.getMaxNumSat);

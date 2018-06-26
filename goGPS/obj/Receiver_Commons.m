@@ -503,7 +503,7 @@ classdef Receiver_Commons < handle
             % SYNTAX
             %   az = this.getAzEl();
             if nargin < 2
-                go_id = 1 : this.cc.getMaxNumSat;
+                go_id = 1 : size(this.sat.az, 2);
             end
             az = this.sat.az(this.getIdSync, go_id);
         end
@@ -514,7 +514,7 @@ classdef Receiver_Commons < handle
             % SYNTAX
             %   el = this.getEl();
             if nargin < 2
-                go_id = 1 : this.cc.getMaxNumSat;
+                go_id = 1 : size(this.sat.el, 2);
             end
             el = this.sat.el(this.getIdSync, go_id);
         end
