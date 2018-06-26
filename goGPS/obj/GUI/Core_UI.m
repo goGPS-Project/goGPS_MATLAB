@@ -819,8 +819,8 @@ classdef Core_UI < handle
             
             set(h_panel, 'ItemStateChangedCallback', callback);
             
-            date.setBackground(java.awt.Color(Core_UI.DARK_GRAY_BG(1),Core_UI.DARK_GRAY_BG(2),Core_UI.DARK_GRAY_BG(3)));
-            date.setDisabledBackground(java.awt.Color(Core_UI.DARK_GRAY_BG(1),Core_UI.DARK_GRAY_BG(2),Core_UI.DARK_GRAY_BG(3)));
+            date.setBackground(java.awt.Color(Core_UI.LIGHT_GRAY_BG(1), Core_UI.LIGHT_GRAY_BG(2), Core_UI.LIGHT_GRAY_BG(3)));
+            date.setDisabledBackground(java.awt.Color(Core_UI.LIGHT_GRAY_BG(1),Core_UI.LIGHT_GRAY_BG(2),Core_UI.LIGHT_GRAY_BG(3)));
             date.setShowWeekNumbers(false);     % Java syntax
             dateFormat = java.text.SimpleDateFormat('dd-MM-yyyy');
             date.setFormat(dateFormat);
@@ -843,6 +843,7 @@ classdef Core_UI < handle
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             editable_handle = uicontrol('Parent', box_handle,...
                 'Style', 'edit',...
+                'FontSize', Core_UI.getFontSize(9), ...
                 'Callback', call_back);
         end
         
@@ -1186,7 +1187,7 @@ classdef Core_UI < handle
                 'HorizontalAlignment', 'left', ...
                 'FontSize', Core_UI.getFontSize(9), ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            box_handle.Widths = [widths(1) repmat(widths(2:3),1,num_boxes) widths(3)];
+            box_handle.Widths = [widths(1) repmat(widths(2:3), 1, num_boxes) widths(4)];
             box_handle.Heights = 23;
         end
     end

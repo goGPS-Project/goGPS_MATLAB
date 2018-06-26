@@ -71,8 +71,7 @@ classdef GUI_Main < handle
         ceckboxes
         
         uip         % User Interface Pointers
-    end
-    
+    end    
     %% PROPERTIES STATUS
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private)
@@ -87,8 +86,7 @@ classdef GUI_Main < handle
             this.init();
             this.openGUI();
         end
-    end
-    
+    end    
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -158,7 +156,7 @@ classdef GUI_Main < handle
             
             Core_UI.insertLogo(left_bv);
             
-            this.insertSessionDate(left_bv);
+            this.insertSessionInfo(left_bv);
             
             this.insertRecList(left_bv);
             
@@ -246,6 +244,7 @@ classdef GUI_Main < handle
             top_bh.Widths = [200 -1];
             this.updateUI;
             
+            tab_panel.Selection = 3;
             this.w_main.Visible = 'on';
             t_win = toc(t0);
             this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
@@ -274,7 +273,7 @@ classdef GUI_Main < handle
         
         function insertDataSources(this, container)
             data_selection_bg = Core_UI.LIGHT_GRAY_BG;
-            tab = uix.Grid('Parent', container, ...
+            tab = uix.VBox('Parent', container, ...
                 'Padding', 5, ...
                 'BackgroundColor', data_selection_bg);
             
@@ -289,42 +288,18 @@ classdef GUI_Main < handle
             Core_UI.insertEmpty(tab);
             
             % --------------------------------------------------------
+            % Time limits
             
             sss_box = Core_UI.insertPanelLight(tab, 'Session');
+            sss_box_v = uix.VBox('Parent', sss_box, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
+            sss_box_h = uix.HBox('Parent', sss_box_v, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
             
-            sss_box_g = uix.VBox('Parent', sss_box, ...
+            sss_box_l = uix.VBox('Parent', sss_box_h, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            sss_list_box_g = uix.HBox('Parent', sss_box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [200 -1 0 0]);
-            %this.edit_texts{end}.HorizontalAlignment = 'left';
-            this.edit_texts{end}.FontName = 'Courier New';
-            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
-            this.edit_texts{end}.FontWeight = 'bold';
-            
-            Core_UI.insertEmpty(sss_list_box_g);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'First', 'sss_id_start', '', @this.onEditChange, [30 20 0 0]);
-            this.edit_texts{end}.FontName = 'Courier New';
-            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
-            this.edit_texts{end}.FontWeight = 'bold';
-            Core_UI.insertEmpty(sss_list_box_g);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Last', 'sss_id_stop', '', @this.onEditChange, [30 20 0 0]);
-            this.edit_texts{end}.FontName = 'Courier New';
-            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
-            this.edit_texts{end}.FontWeight = 'bold';
-            sss_list_box_g.Widths = [-1 5 50 5 50];
-            
-            Core_UI.insertEmpty(sss_box_g);
-             sss_check_boxes = uix.HBox('Parent', sss_box_g, ...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_boxes, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_boxes, 'Session rinex based', 'sss_file_based', @this.onCheckBoxChange);
-            sss_box_g.Heights = [23 10 (23 * ones(1,1))];
-            
-            %---------------------------------------------------------
-            
-            date_g = uix.Grid( 'Parent', sss_box_g, ...
+                        
+            date_g = uix.Grid( 'Parent', sss_box_l, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             uicontrol('Parent', date_g, ...
                 'Style', 'Text', ...
@@ -346,13 +321,61 @@ classdef GUI_Main < handle
             end
             this.ui_sss_start = Core_UI.insertDateSpinnerHour(date_g, ts, @this.onSessionChange);
             this.ui_sss_stop = Core_UI.insertDateSpinnerHour(date_g, te, @this.onSessionChange);
-            date_g.Heights = [22 22];
-            date_g.Widths = [46, -1];
-            sss_bounds = uix.HBox('Parent', sss_box_g, ...
+            date_g.Heights = [23, 23];
+            date_g.Widths = [46, 280];
+
+            Core_UI.insertEmpty(sss_box_l);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_l, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
+            
+            % --------------------------------------------------------
+
+            Core_UI.insertEmpty(sss_box_h);
+
+            % --------------------------------------------------------
+            % Session size
+
+            sss_box_r = uix.VBox('Parent', sss_box_h, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            sss_bounds = uix.VBox('Parent', sss_box_r, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 60 5 40]);
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 60 5 40]);
+            sss_bounds.Heights = [23 23];
+
+            Core_UI.insertEmpty(sss_box_r);
             
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_r, 'Session rinex based', 'sss_file_based', @this.onCheckBoxChange);
+            
+            Core_UI.insertEmpty(sss_box_v);
+            
+            % --------------------------------------------------------
+            % Session char
+            sss_list_box_g = uix.HBox('Parent', sss_box_v, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Session character list - key: $(S)', 'sss_id_list', '', @this.onEditChange, [200 -1 0 0]);
+            %this.edit_texts{end}.HorizontalAlignment = 'left';
+            this.edit_texts{end}.FontName = 'Courier New';
+            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
+            this.edit_texts{end}.FontWeight = 'bold';
+            
+            Core_UI.insertEmpty(sss_list_box_g);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'First', 'sss_id_start', '', @this.onEditChange, [30 20 0 0]);
+            this.edit_texts{end}.FontName = 'Courier New';
+            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
+            this.edit_texts{end}.FontWeight = 'bold';
+            Core_UI.insertEmpty(sss_list_box_g);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_list_box_g, 'Last', 'sss_id_stop', '', @this.onEditChange, [30 20 0 0]);
+            this.edit_texts{end}.FontName = 'Courier New';
+            this.edit_texts{end}.FontSize = Core_UI.getFontSize(9);
+            this.edit_texts{end}.FontWeight = 'bold';
+            sss_list_box_g.Widths = [-1 5 50 5 50];
+            
+            sss_box_h.Widths = [340 10 -1];
+            sss_box_l.Heights = [46 5 23];
+            sss_box_r.Heights = [46 5 23];
+            sss_box_v.Heights = [74 10 23];
             % --------------------------------------------------------
             
             Core_UI.insertEmpty(tab);
@@ -363,7 +386,7 @@ classdef GUI_Main < handle
             
             % --------------------------------------------------------
             
-            tab.Heights = [55  5 170 5 -1];
+            tab.Heights = [55  5 107 5 -1];
         end
         
         function insertStations(this, container)
@@ -682,9 +705,7 @@ classdef GUI_Main < handle
             
         end
         
-        function insertSessionDate(this, container)
-            state = Global_Configuration.getCurrentSettings;
-            
+        function insertSessionInfo(this, container)
             session_bg = Core_UI.DARK_GRAY_BG;
             %session_p = uix.Panel('Parent', container, ...
             %    'Padding', 0, ...
@@ -706,24 +727,35 @@ classdef GUI_Main < handle
                 'FontWeight', 'bold', ...
                 'BackgroundColor', session_bg);
             Core_UI.insertEmpty(v_text, session_bg);
-            v_text.Heights = [-1, list_title.Extent(4), -1];
+            v_text.Heights = [5, list_title.Extent(4), -1];
             Core_UI.insertHBarDark(this.session_g);
-            Core_UI.insertEmpty(this.session_g, session_bg);
-           sss_g = uix.Grid('Parent', this.session_g, ...
+            sss_g = uix.VBox('Parent', this.session_g, ...
                 'Padding', 0, ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
+                'BackgroundColor', session_bg);
             
-            this.session_summary = uicontrol('Parent', sss_g, ...
+            this.session_summary.start = uicontrol('Parent', sss_g, ...
                 'Style', 'Text', ...
                 'String', ' -- ', ...
                 'ForegroundColor', Core_UI.WHITE, ...
                 'HorizontalAlignment', 'left', ...
-                'FontName', 'Courier New', ...
                 'FontSize', Core_UI.getFontSize(9), ...
-                'FontWeight', 'bold', ...
-                'BackgroundColor', Core_UI.DARK_GRAY_BG);
-            
-
+                'BackgroundColor', session_bg);
+            Core_UI.insertEmpty(sss_g, session_bg);           
+            this.session_summary.stop = uicontrol('Parent', sss_g, ...
+                'Style', 'Text', ...
+                'String', ' -- ', ...
+                'ForegroundColor', Core_UI.WHITE, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', session_bg);
+            Core_UI.insertEmpty(sss_g, session_bg);           
+            this.session_summary.size = uicontrol('Parent', sss_g, ...
+                'Style', 'Text', ...
+                'String', ' -- ', ...
+                'ForegroundColor', Core_UI.WHITE, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', session_bg);
             
             % % button sync => not used autp-sync on
             % but_session = uix.HButtonBox( 'Parent', this.session_g, ...
@@ -738,7 +770,8 @@ classdef GUI_Main < handle
             %     'Callback', @this.onSessionChange);
             %
             % this.session_g.Heights = [26 2 5 50 30];
-            this.session_g.Heights = [26 5 5 120];
+            this.session_g.Heights = [30 5 165];
+            sss_g.Heights = [55 5 55 5 55];
         end
         
         function insertRecList(this, container)
@@ -761,7 +794,7 @@ classdef GUI_Main < handle
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
             Core_UI.insertHBarDark(this.info_g);
             
-            v_text.Heights = [-1, list_title.Extent(4), -1];
+            v_text.Heights = [5, list_title.Extent(4), -1];
             
             rec_g = uix.Grid('Parent', this.info_g, ...
                 'Padding', 0, ...
@@ -777,6 +810,7 @@ classdef GUI_Main < handle
                 'FontWeight', 'bold', ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
             
+            this.info_g.Heights = [30 5 -1];
             % this.updateRecList(); % this is done at the end of interface loading
         end
         
@@ -843,25 +877,34 @@ classdef GUI_Main < handle
             hh_mm_ss = this.ui_sss_start.Children(1).Children(1).String;
             if ~isempty(hh_mm_ss)
                 time_parts = regexp(hh_mm_ss,'(?<hour>\d+):(?<minute>\d+):(?<second>\d+)','names');
+                if isempty(time_parts)
+                    time_parts = struct('hour', '00', 'minute', '00', 'second', '00');
+                end
                 sss_start.addSeconds(str2num(time_parts.hour)*3600 + str2num(time_parts.minute)*60 + str2num(time_parts.second));
+                this.ui_sss_start.Children(1).Children(1).String = sss_start.toString('HH:MM:SS');
                 date = this.ui_sss_stop.Children(2).JavaPeer.getDate;
             end
             if isempty(date)
                 sss_stop = state.getSessionsStopExt;
             else
-                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 0 0 0]);
+                sss_stop = GPS_Time([date.getYear+1900 (date.getMonth + 1) date.getDate 00 00 00]);
             end
             hh_mm_ss = this.ui_sss_stop.Children(1).Children(1).String;
             if ~isempty(hh_mm_ss)
                 time_parts = regexp(hh_mm_ss,'(?<hour>\d+):(?<minute>\d+):(?<second>\d+)','names');
+                if isempty(time_parts)
+                    time_parts = struct('hour', '23', 'minute', '59', 'second', '59');
+                end
                 sss_stop.addSeconds(str2num(time_parts.hour)*3600 + str2num(time_parts.minute)*60 + str2num(time_parts.second));
+                this.ui_sss_stop.Children(1).Children(1).String = sss_stop.toString('HH:MM:SS');
             end
             if sss_stop <= sss_start
                 validity_check = false;
-                sss_stop = sss_start.getCopy;
+                sss_stop = GPS_Time(floor(sss_start.getMatlabTime) + 86399/86400);
+                this.ui_sss_stop.Children(1).Children(1).String = sss_stop.toString('HH:MM:SS');
             end
         end
-    end
+    end    
     %% METHODS EVENTS
     % ==================================================================================================================================================
     methods (Access = public)
@@ -945,7 +988,7 @@ classdef GUI_Main < handle
                 child =  caller.Parent.Children(i);
                 if strcmp(child.Style, 'edit')
                     val = str2num(child.String);
-                    if isempty(val) 
+                    if isempty(val)
                         val =0;
                     end
                     array = [array val];
@@ -956,8 +999,6 @@ classdef GUI_Main < handle
             this.updateEditArrayFromState(caller.Parent);
             this.updateINI();
         end
-        
-        
         
         function onTabChange(this, caller, event)
             if event.NewValue == 1
@@ -975,7 +1016,7 @@ classdef GUI_Main < handle
             this.state.import(Ini_Manager(txt{1}));
             this.updateUI();
         end
-         
+        
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
@@ -985,7 +1026,7 @@ classdef GUI_Main < handle
                     if ~strcmp(str, char(this.j_settings.getText()))
                         this.j_settings.setText(str);
                     end
-                 else
+                else
                     % this.log.addWarning('Warning invalid config not updating j_settings');
                 end
             end
@@ -994,10 +1035,10 @@ classdef GUI_Main < handle
         function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
             this.ui_sss_start.Children(2).JavaPeer.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
-            this.ui_sss_start.Children(1).Children(1).String = state.sss_date_start.toString('hh:MM:ss')
+            this.ui_sss_start.Children(1).Children(1).String = state.sss_date_start.toString('HH:MM:SS')
             %this.ui_sss_start.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
             this.ui_sss_stop.Children(2).JavaPeer.setDate(java.util.Date(state.sss_date_stop.toString('yyyy/mm/dd')));
-            this.ui_sss_stop.Children(1).Children(1).String = state.sss_date_stop.toString('hh:MM:ss')
+            this.ui_sss_stop.Children(1).Children(1).String = state.sss_date_stop.toString('HH:MM:SS')
             %this.ui_sss_stop.setDate(java.util.Date(state.sss_date_stop.toString('yyyy/mm/dd')));
         end
         
@@ -1077,7 +1118,6 @@ classdef GUI_Main < handle
             end
             this.log.addMessage('File availability checked');
             this.rec_list.String = str;
-            this.info_g.Heights = [1*26 2 this.rec_list.Extent(3)];
         end
         
         function loadState(this, caller, event)
@@ -1175,21 +1215,21 @@ classdef GUI_Main < handle
                 end
                 %n_session = numel(rec_path{r});
                 %if (n_session * n_rec) < 20
-                    %this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
-                    
-                    n_ok = 0; n_ko = 0;
-                    for s = 1 : numel(rec_path{r})
-                        if (exist(rec_path{r}{s}, 'file') == 2)
-                            n_ok = n_ok + 1;
-                        else
-                            n_ko = n_ko + 1;
-                        end
+                %this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
+                
+                n_ok = 0; n_ko = 0;
+                for s = 1 : numel(rec_path{r})
+                    if (exist(rec_path{r}{s}, 'file') == 2)
+                        n_ok = n_ok + 1;
+                    else
+                        n_ko = n_ko + 1;
                     end
-
-                    %fr = File_Rinex(rec_path{r}, 100);
-                    %n_ok = sum(fr.is_valid_list);
-                    %n_ko = sum(~fr.is_valid_list);
-                    str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
+                end
+                
+                %fr = File_Rinex(rec_path{r}, 100);
+                %n_ok = sum(fr.is_valid_list);
+                %n_ko = sum(~fr.is_valid_list);
+                str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
                 %else
                 %    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
                 %end
@@ -1200,30 +1240,32 @@ classdef GUI_Main < handle
             end
             try
                 this.rec_list.String = str;
-                this.info_g.Heights = [26 10 this.rec_list.Extent(3)];
             catch ex
                 % probably deleted object
             end
         end
         
         function updateSessionSummary(this)
-             if ~isempty(this.session_summary)
-                 [~,doy_st] = this.state.sss_date_start.getDOY;
-                 week_st =  this.state.sss_date_start.getGpsWeek;
-                 [~,doy_en] = this.state.sss_date_stop.getDOY;
-                 week_en =  this.state.sss_date_stop.getGpsWeek;
-                 this.session_summary.String = sprintf( ...
-                     ['Start Date:\n',...
-                     '  %s\n',...
-                     '  doy: %d week: %d\n',...
-                     'End Date:\n', ...
-                     '  %s\n', ...
-                     '  doy: %d week: %d\n', ...
-                     'Duration: %d\n', ...
-                     'Buffer: %d , %d\n'], ...
-                     this.state.sss_date_start.toString('dd-mm-yyyy hh:MM:ss'),doy_st,week_st, ...
-                     this.state.sss_date_stop.toString('dd-mm-yyyy hh:MM:ss'),doy_en,week_en,this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
-             end
+            if ~isempty(this.session_summary.start)
+                [~,doy_st] = this.state.sss_date_start.getDOY;
+                week_st =  this.state.sss_date_start.getGpsWeek;
+                [~,doy_en] = this.state.sss_date_stop.getDOY;
+                week_en =  this.state.sss_date_stop.getGpsWeek;
+                this.session_summary.start.String = sprintf( ...
+                    ['Start Date/Time:\n',...
+                    '  %s\n',...
+                    '  week: %d doy: %d\n'], ...
+                    this.state.sss_date_start.toString('yyyy-mm-dd  HH:MM:SS'), week_st, doy_st);
+                this.session_summary.stop.String = sprintf( ...
+                    ['End Date/Time:\n', ...
+                    '  %s\n', ...
+                    '  week: %d doy: %d\n'], ...
+                    this.state.sss_date_stop.toString('yyyy-mm-dd  HH:MM:SS'), week_en, doy_en);
+                this.session_summary.size.String = sprintf( ...
+                    ['Duration: %10d [s]\n', ...
+                    'Buffer: %6d, %6d [s]\n'], ...                    
+                    this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
+            end
             
         end
         
@@ -1241,5 +1283,5 @@ classdef GUI_Main < handle
             this.menu.project = uimenu(this.w_main, 'Text', 'Project');
             this.menu.project.new = uimenu(m,'Text','Create Empty Project');
         end
-    end        
+    end
 end

@@ -300,7 +300,7 @@ classdef Receiver_Output < Receiver_Commons
             [az, el]   = rec_work.getAzEl();
             this.sat.az     = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
             this.sat.el     = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
-            this.sat.quality           = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
+            this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
             
             %%% single results
             if isempty(this.time_pos)
