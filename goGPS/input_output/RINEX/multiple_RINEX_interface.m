@@ -2,10 +2,10 @@ function [filename_obs] = multiple_RINEX_interface(filename_R_obs, filename_M_ob
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __
+%     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 2 - nightly
+%    |___/                    v 0.6.0 alpha 3 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

@@ -11,10 +11,10 @@
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___
-%     __ _ ___ / __| _ | __
+%     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 2 - nightly
+%    |___/                    v 0.6.0 alpha 3 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -256,7 +256,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            % set the id_sync onÃ²y to time in between out times
+            % set the id_sync onÿy to time in between out times
             basic_export = false;
             id_sync_old = rec_work.getIdSync();
             if isempty(id_sync_old)
