@@ -6644,9 +6644,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             for s = 1 : length(sys)
                 obs_type = this.getAvailableCode(sys(s));
                 % Set order CODE PHASE DOPPLER SNR
-                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
-                                     find(obs_type(:,1) == 'L') ...
-                                     find(obs_type(:,1) == 'D') ...
+                obs_type = obs_type([find(obs_type(:,1) == 'C');
+                                     find(obs_type(:,1) == 'L');
+                                     find(obs_type(:,1) == 'D');
                                      find(obs_type(:,1) == 'S')], :);
                                  
                 % if the code is unknown use 'the least important code' non empty as obs code
@@ -6707,9 +6707,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % rin_obs_code tu num;
                 obs_type = reshape(this.rin_obs_code.(ss)', 3, length(this.rin_obs_code.(ss))/3)';
                 % Set order CODE PHASE DOPPLER SNR
-                obs_type = obs_type([find(obs_type(:,1) == 'C') ...
-                    find(obs_type(:,1) == 'L') ...
-                    find(obs_type(:,1) == 'D') ...
+                obs_type = obs_type([find(obs_type(:,1) == 'C');
+                    find(obs_type(:,1) == 'L');
+                    find(obs_type(:,1) == 'D');
                     find(obs_type(:,1) == 'S')], :);
                                 
                 rin_obs_code.(ss) = Core_Utils.code3Char2Num(obs_type);
