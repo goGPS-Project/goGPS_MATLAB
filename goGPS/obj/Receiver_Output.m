@@ -256,7 +256,7 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            % set the id_sync onÿy to time in between out times
+            % set the id_sync only to time in between out times
             basic_export = false;
             id_sync_old = rec_work.getIdSync();
             if isempty(id_sync_old)
@@ -266,31 +266,46 @@ classdef Receiver_Output < Receiver_Commons
             rec_work.cropIdSync4out();
             
             work_time = rec_work.getTime();
-            if isempty(this.time)
+            is_this_empty =  isempty(this.time);
+            %is_lsat_session = rec_work.time >= this.state.sss_date_stop; % <- might be useful
+            if is_this_empty
                 idx1 = 1;
                 idx2 = 0;
                 this.time = work_time;
             else
+                
+                if this.state.isSmoothTropoOut()
+                    smt_buf_rgt = this.time.last;
+                    smt_buf_lft = rec_work.time.first();
+                    idx_smt1 = this.time >  smt_buf_lft;
+                    idx_smt2 = rec_work.time < smt_buf_rgt;
+                    time_1 = this.time.getEpoch(idx_smt1);
+                    time_2 = rec_work.time.getEpoch(idx_smt2);
+                end
                 [this.time, idx1, idx2] = this.time.injectBatch(work_time);
             end
             %%% inject data
             if ~basic_export
+                if ~this.state.isSmoothTropoOut() 
+                    this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
+                    this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
+                    this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
+                    [gn, ge]     = rec_work.getGradient();
+                    this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
+                    this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
+                    this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                end
+                
                 this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
                 this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
                 this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
                 this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
                 this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
-                this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
-                this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
-                this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
-                [gn, ge]     = rec_work.getGradient();
-                this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
-                this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
                 [p, t, h]    = rec_work.getPTH(true);
                 this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
                 this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
                 this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
-                this.sat.res    = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                
                 [mfh, mfw]   = rec_work.getSlantMF();
                 this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
                 this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
@@ -328,6 +343,35 @@ classdef Receiver_Output < Receiver_Commons
             
             % reset the old idsync
             rec_work.id_sync = id_sync_old;
+            % inject with smoothing
+            if ~basic_export & this.state.isSmoothTropoOut() 
+                if is_this_empty
+                        
+                    this.ztd = rec_work.getZtd();
+                    this.zwd = rec_work.getZwd();
+                    this.pwv = rec_work.getPwv();
+                    [gn, ge]     = rec_work.getGradient();
+                    this.tgn = gn;
+                    this.tge = ge;
+                    this.sat.res = rec_work.getResidual();
+                    
+                else
+                    this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2);
+                    this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2);
+                    this.pwv     = Core_Utils.injectSmtData(this.pwv, rec_work.getPwv(), idx_smt1, idx_smt2, time_1, time_2);
+                    [gn, ge]     = rec_work.getGradient();
+                    this.tgn     = Core_Utils.injectSmtData(this.tgn, gn, idx_smt1, idx_smt2, time_1, time_2);
+                    this.tge     = Core_Utils.injectSmtData(this.tge, ge, idx_smt1, idx_smt2, time_1, time_2);
+                    res = nan(size(this.ztd,1),size(this.sat.res,2));
+                    res_in = rec_work.getResidual();
+                    for i = 1 : size(this.sat.res,2)
+                        res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2);
+                    end
+                    this.sat.res = res;
+                end
+            end
+            
+            
         end
 
     end

@@ -944,6 +944,9 @@ classdef GPS_Time < Exportable & handle
             %
             % SYNTAX
             %   nominal_time = this.getNominalTime()
+            if nargin < 2
+                rate = this.getRate();
+            end
             nominal_time_zero = floor(this.first.getMatlabTime() * 24)/24;
             rinex_time = this.getRefTime(nominal_time_zero);
             nominal_time = round(rinex_time / rate) * rate;
