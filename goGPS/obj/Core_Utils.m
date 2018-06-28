@@ -12,6 +12,34 @@ classdef Core_Utils < handle
                 idx(i) = find(find_list == to_find_el(i),1);
             end
         end
+        
+        function [amb_idx, n_amb] = remEmptyAmbIdx(amb_idx, n_amb)
+            % remove emtpy amb_idx
+            %
+            % SYNTAX:
+            % amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx, <n_amb>)
+            if nargin < 2
+                n_amb = max(max(amb_idx));
+            end
+            i = 1;
+            while (i <= n_amb)
+                n_ep_amb = sum(sum(amb_idx == i));
+                if n_ep_amb == 0
+                    n_amb = n_amb - 1;
+                    amb_idx(amb_idx > i) = amb_idx(amb_idx > i) - 1;
+                else
+                    i = i + 1;
+                end
+            end
+        end
+        
+        function num = round_even(num)
+           num = round((num-2)/2)*2+2;
+        end
+        
+        function num = round_odd(num)
+           num = round((num-1)/2)*2+1;
+        end
 
         function num = code2Char2Num(str2)
             % Convert a 2 char string into a numeric value (float)
@@ -524,6 +552,70 @@ classdef Core_Utils < handle
                 end
             end
             data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
+        end
+        
+        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2)
+            % inject smppthed data
+            %
+            % SYNTAX:
+            %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2)
+            data_tosmt_lft = data_lft(idx_smt1);
+            data_tosmt_rgt = data_rgt(idx_smt2);
+            % we use mat time, is easier and we do not neede extrem precision
+            time_1 = time_1.getMatlabTime();
+            time_2 = time_2.getMatlabTime();
+            [idx1, idx2] = Core_Utils.intersect_ordered_double(time_1, time_2, 1/(86400*0.005));
+            time_tot = zeros(max(max(idx1), max(idx2)), 1);
+            time_tot(idx1) = time_1;
+            time_tot(idx2) = time_2;
+            mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <- epirically found
+            w2 = 1 ./ (1 + exp(-((time_tot-mean(time_tot))/mix_len)));
+            w1 = 1 - w2;
+            data1 = nan(size(time_tot));
+            data2 = nan(size(time_tot));
+            data1(idx1) = data_tosmt_lft;
+            data2(idx2) = data_tosmt_rgt;
+            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0 
+                data1(isnan(data1)) = interp1(data_tosmt_lft,time_1,time_tot(isnan(data1)));
+            end
+            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0 
+                data2(isnan(data2)) = interp1(data_tosmt_rgt,time_2,time_tot(isnan(data2)));
+            end
+            data = w1.*data1 + w2.*data2;
+            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];
+            
+        end
+        
+        function [idx1, idx2] = intersect_ordered_double(double_1, double_2, threshold)
+            % given two ordered double give the index of the two vector in the joint vector considering the threshold
+            % 
+            % SYNTAX
+            % [idx1, idx2] = Core_Utils.intersect_ordered_double(double_1, double_2, threshold)
+            l1 = length(double_1);
+            l2 = length(double_2);
+            idx1 = zeros(l1,1);
+            idx2 = zeros(l2,1);
+            i = 1;
+            j = 1;
+            tot = 1;
+            while  i <=  l1 & j <= l2
+                if abs(double_1(i)-double_2(j)) < threshold
+                    idx1(i) = tot;
+                    idx2(j) = tot;
+                    i = i + 1;
+                    j = j + 1;
+                    tot = tot + 1;
+                elseif double_1(i) < double_2(j)
+                    idx1(i) = tot;
+                    i = i + 1;
+                    tot = tot + 1;
+                else
+                    idx2(j) = tot;
+                    j = j + 1;
+                    tot = tot +1;
+                end
+                    
+            end
         end
         
         function [response] = timeIntersect(time1_st, time1_end, time2_st, time2_end)

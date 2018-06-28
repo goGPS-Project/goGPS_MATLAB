@@ -187,6 +187,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  - weights = 0: same weight for all the observations
                                                         %  - weights = 1: weight based on satellite elevation (sin)
                                                         %  - weights = 2: weight based on signal-to-noise ratio
+                                                        
+        FLAG_AMB_FIX = false;                           % try to fix ambiguity
+        FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output paramtere at bounadries
         
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
@@ -463,6 +466,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
         %  - weights = 4: weight based on satellite elevation (exp)
 
+        flag_amb_fix = Main_Settings.FLAG_AMB_FIX;
+        flag_smooth_tropo_out = Main_Settings.FLAG_SMOOTH_TROPO_OUT;
+        
+        
         % Flag for enabling the usage of iono-free combination
         iono_management  = Main_Settings.IONO_MANAGEMENT;
         flag_solid_earth = Main_Settings.FLAG_SOLID_EARTH;
@@ -3257,6 +3264,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
+        end
+        
+        function is_smt = isSmoothTropoOut(this)
+            % Should the troposphere paramteres be smoothed
+            %
+            % SYNTAX
+            %   is_smt = this.isSmoothTropoOut()
+            
+            is_smt = this.flag_smooth_tropo_out;
+            
         end
 
         function need_iono = needIonoMap(this)

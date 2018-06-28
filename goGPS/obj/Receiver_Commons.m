@@ -206,7 +206,7 @@ classdef Receiver_Commons < handle
         function dt_ip = getDtIP(this)
             dt_ip = this.dt_ip;
         end
-               
+        
         % time
         function time = getCentralTime(this)
             % return the central epoch time stored in the a receiver
@@ -559,31 +559,35 @@ classdef Receiver_Commons < handle
     methods
         function exportTropoSINEX(this)
             for r = 1 : numel(this)
-                try
-                    rec = this(r);
-                    if ~isempty(rec.getZtd)
-                        [year, doy] = rec.time.first.getDOY();
-                        yy = num2str(year);
-                        yy = yy(3:4);
-                        sess_str = '0'; %think how to get the right one from sss_id_list
-                        fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
-                        snx_wrt = SINEX_Writer(fname);
-                        snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.marker_name)
-                        snx_wrt.writeFileReference()
-                        snx_wrt.writeAcknoledgments()
-                        smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
-                        val_flags = {'TROTOT','TGNTOT','TGETOT'};
-                        snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function},val_flags, false(3,1))
-                        snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
-                        snx_wrt.writeTropoSolutionSt()
-                        snx_wrt.writeTropoSolutionStation(  rec.parent.marker_name, rec.time.getSubSet(rec.getIdSync), [rec.ztd(rec.getIdSync,:) rec.tgn(rec.getIdSync,:) rec.tge(rec.getIdSync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
-                        snx_wrt.writeTropoSolutionEnd()
-                        snx_wrt.writeTroSinexEnd();
-                        snx_wrt.close()
-                        rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                if max(this(t).s0) < 0.10
+                    try
+                        rec = this(r);
+                        if ~isempty(rec.getZtd)
+                            [year, doy] = rec.time.first.getDOY();
+                            yy = num2str(year);
+                            yy = yy(3:4);
+                            sess_str = '0'; %think how to get the right one from sss_id_list
+                            fname = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.marker_name sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                            snx_wrt = SINEX_Writer(fname);
+                            snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.marker_name)
+                            snx_wrt.writeFileReference()
+                            snx_wrt.writeAcknoledgments()
+                            smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
+                            val_flags = {'TROTOT','TGNTOT','TGETOT'};
+                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function},val_flags, false(3,1))
+                            snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
+                            snx_wrt.writeTropoSolutionSt()
+                            snx_wrt.writeTropoSolutionStation(  rec.parent.marker_name, rec.time.getSubSet(rec.getIdSync), [rec.ztd(rec.getIdSync,:) rec.tgn(rec.getIdSync,:) rec.tge(rec.getIdSync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
+                            snx_wrt.writeTropoSolutionEnd()
+                            snx_wrt.writeTroSinexEnd();
+                            snx_wrt.close()
+                            rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                        end
+                    catch ex
+                        rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                     end
-                catch ex
-                    rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
+                else
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(t).s0)));
                 end
             end
         end
@@ -602,25 +606,29 @@ classdef Receiver_Commons < handle
             %   this.exportTropoMat
             
             for t = 1 : numel(this)
-                try
-                    this(t).updateCoordinates;
-                    time = this(t).getTime();
-                    [year, doy] = this(t).getCentralTime.getDOY();
-                    time.toUtc();
-                    
-                    lat = this(t).lat; %#ok<NASGU>
-                    lon = this(t).lon; %#ok<NASGU>
-                    h_ellips = this(t).h_ellips; %#ok<NASGU>
-                    h_ortho = this(t).h_ortho; %#ok<NASGU>
-                    ztd = this(t).getZtd(); %#ok<NASGU>
-                    utc_time = time.getMatlabTime; %#ok<NASGU>
-                    
-                    fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
-                    save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
-                    
-                    this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
-                catch ex
-                    this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                if max(this(t).s0) < 0.10
+                    try
+                        this(t).updateCoordinates;
+                        time = this(t).getTime();
+                        [year, doy] = this(t).getCentralTime.getDOY();
+                        time.toUtc();
+                        
+                        lat = this(t).lat; %#ok<NASGU>
+                        lon = this(t).lon; %#ok<NASGU>
+                        h_ellips = this(t).h_ellips; %#ok<NASGU>
+                        h_ortho = this(t).h_ortho; %#ok<NASGU>
+                        ztd = this(t).getZtd(); %#ok<NASGU>
+                        utc_time = time.getMatlabTime; %#ok<NASGU>
+                        
+                        fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
+                        save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
+                        
+                        this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
+                    catch ex
+                        this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
+                    end
+                else
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(t).s0)));
                 end
             end
         end
@@ -782,7 +790,7 @@ classdef Receiver_Commons < handle
                     xyz = rec(:).getPosXYZ();
                     xyz0 = rec(:).getMedianPosXYZ();
                     
-                    t = rec.getPositionTime().getMatlabTime;                    
+                    t = rec.getPositionTime().getMatlabTime;
                     
                     x = 1e3 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
                     y = 1e3 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
@@ -814,7 +822,7 @@ classdef Receiver_Commons < handle
         function showPositionSigmas(this, one_plot)
             % Show Sigmas of the solutions
             %
-            % SYNTAX 
+            % SYNTAX
             %   this.showPositionSigmas();
             
             if nargin == 1
@@ -833,8 +841,8 @@ classdef Receiver_Commons < handle
                     s0 = rec.s0;
                     s0_ip = rec.s0_ip;
                     
-                    t = rec.getPositionTime().getMatlabTime;                    
-
+                    t = rec.getPositionTime().getMatlabTime;
+                    
                     if ~one_plot, subplot(2,1,2); end
                     plot(t, s0*1e3, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                     ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 [mm]'); h.FontWeight = 'bold';
@@ -908,7 +916,7 @@ classdef Receiver_Commons < handle
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
         end
-                       
+        
         
         function showResSky_p(this, sys_c_list)
             % Plot residuals of the solution on polar scatter
@@ -1318,14 +1326,14 @@ classdef Receiver_Commons < handle
             this.showTropoPar('ZTD', new_fig)
         end
         
-         
+        
         function slant_td = getSlantTD(this)
             % Get the slant total delay
             % SYNTAX
             %   slant_td = this.getSlantTD();
-
-                
-                
+            
+            
+            
             [mfh, mfw] = this.getSlantMF();
             n_sat = size(mfh,2);
             zwd = this.getZwd();
@@ -1338,10 +1346,10 @@ classdef Receiver_Commons < handle
             cosaz = zero2nan(cosd(az));
             sinaz = zero2nan(sind(az));
             slant_td = nan2zero(zero2nan(res) ...
-                     + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
-                     + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
-                     + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
-                     + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
+                + zero2nan(repmat(zwd,1,n_sat).*mfw) ...
+                + zero2nan(repmat(apr_zhd,1,n_sat).*mfh) ...
+                + repmat(tgn,1,n_sat) .* mfw .* cotel .* cosaz ...
+                + repmat(tge,1,n_sat) .* mfw .* cotel .* sinaz);
             
         end
         

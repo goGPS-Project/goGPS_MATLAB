@@ -80,6 +80,8 @@ classdef Meteo_Network < handle
             % SYNTAX
             % this.initSession(data_start, data_stop)
             
+           
+            
             this.mds = [];
             % load all meteo file present in current settings
             state = Global_Configuration.getCurrentSettings();
@@ -95,7 +97,11 @@ classdef Meteo_Network < handle
                             md = Meteo_Data(fnames{i}{s});
                             if md.isValid()
                                 %md.setMaxBound(0);
-                                this.mds = [this.mds; md];
+                                if length(this.mds) < i
+                                    this.mds = [this.mds; md];
+                                else
+                                    this.mds(i).inject(md);
+                                end
                             end
                         end
                     end

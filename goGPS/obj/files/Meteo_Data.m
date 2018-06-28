@@ -98,7 +98,7 @@ classdef Meteo_Data < handle
         log = Logger.getInstance(); % Handler to the log object
     end
 
-    properties (SetAccess = private, GetAccess = protected)
+    properties (SetAccess = private, GetAccess = public)
         % contains an object to read the RINEX file
         file;   % init this with File_Rinex('filename')
         rin_type       % rinex version format
@@ -249,9 +249,9 @@ classdef Meteo_Data < handle
                 
                 n_epo = numel(t_line);
                 % extract all the epoch lines
-                string_time = txt(repmat(lim(t_line,1),1,17) + repmat(1:17, n_epo, 1))';
+                string_time = txt(repmat(lim(t_line,1),1,18) + repmat(1:18, n_epo, 1))';
                 % convert the times into a 6 col time
-                date = cell2mat(textscan(string_time,'%2f %2f %2f %2f %2f %2f'));
+                date = cell2mat(textscan(string_time,'%f %f %f %f %f %f'));
                 after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
                 % import it as a GPS_Time obj
                 this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
@@ -408,6 +408,26 @@ classdef Meteo_Data < handle
             if ~any(this.xyz)
                 this.log.addWarning(sprintf('No position found in meteorological file "%s"\n this meteorological station cannot be used correctly', File_Name_Processor.getFileName(file_name)), verbosity_lev);                
             end
+        end
+    end
+    methods (Access = public)
+        
+        function inject(this, md)
+            % inject a  mete file into the other meteo file
+            %
+            % SYNTAX : this.inject(md
+            
+            % NOTE: xyz are kept the ones of the first meteo file, it does not manage overlapping data
+            % neither object containign different datat types
+            
+            if isequal(this.type, md.type) 
+            [this.time, idx1, idx2] = this.time.injectBatch(md.time);
+            
+            this.data = Core_Utils.injectData(this.data, md.data, idx1, idx2);
+            else
+                this.log.addWarning('Meteo files contains different data types, inject skipped')
+            end
+            
         end
     end
     
