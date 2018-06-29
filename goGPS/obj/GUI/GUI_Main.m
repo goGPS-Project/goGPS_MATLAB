@@ -325,7 +325,6 @@ classdef GUI_Main < handle
             date_g.Widths = [46, 280];
 
             Core_UI.insertEmpty(sss_box_l);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_l, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
             
             % --------------------------------------------------------
 
@@ -345,9 +344,20 @@ classdef GUI_Main < handle
 
             Core_UI.insertEmpty(sss_box_r);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_box_r, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
+            
             
             Core_UI.insertEmpty(sss_box_v);
+            
+             %-------------------------------------------
+            % session check boxes
+            sss_check_box = uix.HBox('Parent', sss_box_v, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
+           this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth Troposphere at Boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
+            
+                        Core_UI.insertEmpty(sss_box_v);
             
             % --------------------------------------------------------
             % Session char
@@ -372,10 +382,13 @@ classdef GUI_Main < handle
             this.edit_texts{end}.FontWeight = 'bold';
             sss_list_box_g.Widths = [-1 5 50 5 50];
             
-            sss_box_h.Widths = [340 10 -1];
-            sss_box_l.Heights = [46 5 23];
-            sss_box_r.Heights = [46 5 23];
-            sss_box_v.Heights = [74 10 23];
+           
+            
+            sss_box_h.Widths      = [340 10 -1];
+            sss_box_l.Heights     = [46 5];
+            sss_check_box.Widths  = [250 250 -1];
+            sss_box_r.Heights     = [46 5];
+            sss_box_v.Heights     = [51 5 23 5 23];
             % --------------------------------------------------------
             
             Core_UI.insertEmpty(tab);
