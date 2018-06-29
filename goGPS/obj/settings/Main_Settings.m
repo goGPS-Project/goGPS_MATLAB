@@ -2814,7 +2814,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.setIonoFile(filename);
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);
-            elseif ~isempty(strfind(fname,'VMFG_'))
+            elseif instr(fname,'VMFG_')
                 this.setVMFFile(filename);
             end
         end
@@ -2825,6 +2825,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.getNavPath(nav_path)
             this.eph_dir = nav_dir;
+        end
+
+        function setMetDir(this, met_dir)
+            % Set the path of the meteorological file dir
+            %
+            % SYNTAX
+            %   this.setMetDir(met_dir);
+            this.met_dir = met_dir;
         end
 
         function setNavEphFile(this, nav_name)

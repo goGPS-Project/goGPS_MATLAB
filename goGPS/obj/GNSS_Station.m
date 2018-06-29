@@ -365,18 +365,17 @@ classdef GNSS_Station < handle
             end
         end
         
-        function enu = getPosENU_mr(this)
+        function enu = getPosENU(sta_list)
             % return the positions computed for the receiver
             %
             % OUTPUT
             %   enu     enu coordinates
             %
             % SYNTAX
-            %   enu = this.getPosENU_mr()
-            enu = this.getPosENU();
-            n_rec = size(this, 2);
-            n_sss = size(this, 1);
-            enu = permute(reshape(enu', 3, n_sss, n_rec), [2 1 3]);
+            %   enu = this.getPosENU()
+            for r = 1 : numel(sta_list)
+                enu{r} = sta_list(r).out.getPosENU();
+            end
         end
     
         function xyz = getMedianPosXYZ_mr(this)

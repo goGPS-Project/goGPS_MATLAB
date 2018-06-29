@@ -2042,7 +2042,5 @@ classdef Core_Sky < handle
             prn_num = prn_num - prn_name(:,2) * 2^8;
             prn_name(:,3) = char(prn_num);
         end
-        
-    
     end
 end

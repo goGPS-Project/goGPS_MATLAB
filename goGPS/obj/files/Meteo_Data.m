@@ -441,8 +441,7 @@ classdef Meteo_Data < handle
             % SYNTAX
             %   this.setMaxBound(max_bound)
             this.max_bound = max_bound;
-        end
-        
+        end      
     end
 
     % =========================================================================
@@ -472,7 +471,6 @@ classdef Meteo_Data < handle
     %  IMPORT / EXPORT / TOSTRING
     % =========================================================================
     methods
-
         function importRaw(this, obs_time, data, type, marker_name, pos_xyz)
             % Import a meteorological file
             % EXAMPLE: this.importRaw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
@@ -544,7 +542,7 @@ classdef Meteo_Data < handle
                     if numel(file_name) < 4
                         file_name = sprintf(['%0' num2str(4-numel(file_name)) 'd%s'], 0, file_name);
                     else
-                        file_name = file_name(1:4);
+                        file_name = upper(file_name(1:4));
                     end
                     file_name = [state.getMetDir() filesep '${YYYY}_${DOY}' filesep file_name '_${DOY}0.${YY}m'];
                 end
@@ -966,5 +964,146 @@ classdef Meteo_Data < handle
             %   [ humidity_adj ] = humidity_adjustment( humidity , obs_h, pred_h)
             humidity_adj = humidity / exp(-6.396e-4 * (obs_h - pred_h));
         end
+        
+        function importSTEAM(data_path)
+            % Import data from STEAM and create MET files
+            %
+            % SYNTAX
+            %   Meteo_Data.importSteam(data_path)            
+            if nargin == 0
+                data_path = '/Volumes/Data/goGPS_data/project/STEAM_Pilot/Stations/MET';
+            end
+            
+            do_export = true;
+            show_fig = true;
+            
+            gc = Global_Configuration.getInstance;
+            state = gc.getCurrentSettings();
+            state.setMetDir(data_path);
+            log = Logger.getInstance();
+            v_lev = log.getVerbosityLev();
+            
+            pres = load([data_path filesep 'pressione.mat']);
+            pres.a2dOsservazioni(pres.a2dOsservazioni < -9000) = NaN;
+            
+            if show_fig
+                figure; plot(pres.a2dOsservazioni'); title('Pressure before outDetection');
+            end
+            pr_orig = pres.a2dOsservazioni';
+            
+            % removing Outliers
+            pres.a2dOsservazioni(pres.a2dOsservazioni < 200) = NaN;
+            pres.a2dOsservazioni(pres.a2dOsservazioni > 1100) = NaN;
+            pres.a2dOsservazioni(std(pres.a2dOsservazioni', 'omitnan') > 10, :) = NaN;
+            if show_fig
+                figure; plot(pres.a2dOsservazioni'); title('Pressure after outDetection');
+            end
+            
+            id_out = (pres.a2dOsservazioni' - pr_orig) ~= 0;
+            if show_fig
+                figure; imagesc(id_out); title('Changed pressure');
+                dockAllFigures;
+            end
+            
+            sta_name_list = char(pres.a1sNomiStazioni);
+
+            n_ok = sum(~isnan(pr_orig));
+            n_ko = sum(isnan(pr_orig));
+            n_out = sum(id_out);
+            n_tot = size(id_out, 1);
+              
+            fprintf('%d Stations do not contain data', sum(n_ko == n_tot));
+            for s = find(n_ok == 0)
+                fprintf('No data found for %4d %s\n', s, sta_name_list(s,:));
+            end
+            for s = find(n_ko == n_out & n_ok > 0 & n_ko > 0)
+                fprintf('%2d / %2d Invalid data found (%8.2f, %8.2f) for %4d %s\n', n_out(s), n_tot, mean(pr_orig(:,s), 'omitnan'),  std(pr_orig(:,s), 'omitnan'), s, sta_name_list(s,:));
+            end
+            for s = find(((n_out - n_ko) > 0))
+                fprintf('%2d / %2d outliers found (%8.2f, %8.2f) for %4d %s\n', (n_out(s) - n_ko(s)), n_ok(s), mean(pr_orig(:,s), 'omitnan'),  std(pr_orig(:,s), 'omitnan'), s, sta_name_list(s,:));
+            end
+            
+            time = GPS_Time(datenum(char(pres.a1sTempi),'dd/mm/yyyy HH:MM'));            
+            for s = 1 : size(sta_name_list, 1) * double(do_export)
+                if any(pres.a2dOsservazioni(s,:))
+                    sta_name = strrep(strtrim(sta_name_list(s, :)),' ', '_');
+                    log.addMessage(sprintf('Exporting pressure of %s', strtrim(sta_name_list(s, :))));
+                    log.setVerbosityLev(1);
+                    file_name = [data_path filesep '${YYYY}_${DOY}' filesep sta_name '_PR_${DOY}.${YY}m'];
+                    
+                    ondu = getOrthometricCorr(pres.a1dLatitudini(s)./180*pi, pres.a1dLongitudini(s)./180*pi, gc.getRefGeoid());
+                    h_ellips = pres.a1dAltitudini(s) + ondu;
+                    [x, y, z] = geod2cart(pres.a1dLatitudini(s)./180*pi, pres.a1dLongitudini(s)./180*pi, h_ellips);
+                    
+                    md = Meteo_Data();
+                    md.importRaw(time, [pres.a2dOsservazioni(s,:)' pres.a2dOsservazioni(s,:)'], [Meteo_Data.PR Meteo_Data.TD], sta_name, [x y z]);
+                    md.export(file_name);
+                    log.setVerbosityLev(v_lev);
+                end
+            end
+            
+            temp = load([data_path filesep 'temperatura.mat']);
+            % Find Outliers
+            
+            temp.a2dOsservazioni(temp.a2dOsservazioni < -55) = NaN;
+            tm_orig = temp.a2dOsservazioni';
+            if show_fig
+                figure; plot(temp.a2dOsservazioni'); title('Temperatures before outDetection');
+            end
+            tmp = temp.a2dOsservazioni;
+            tmp = simpleFill1D(tmp', flagExpand(~isnan(tmp'),3) & isnan(tmp'), 'linear');
+            dtmp = Core_Pre_Processing.diffAndPred(tmp)';            
+            sensor = abs(bsxfun(@minus, dtmp', median(dtmp, 'omitnan')'));
+            thr = mean(movmax(sensor,1)'*10,'omitnan');
+            id_ko = bsxfun(@minus, sensor, thr') > 0;
+            temp.a2dOsservazioni(id_ko' | isnan(sensor')) = NaN;
+            if show_fig
+                figure; plot(temp.a2dOsservazioni'); title('Temperatures after outDetection');
+            end
+            
+            id_out = (temp.a2dOsservazioni' - tm_orig) ~= 0;
+            if show_fig
+                figure; imagesc(id_out); title('Changed pressure');
+                dockAllFigures;
+            end
+            
+            sta_name_list = char(temp.a1sNomiStazioni);
+            
+            n_ok = sum(~isnan(tm_orig));
+            n_ko = sum(isnan(tm_orig));
+            n_out = sum(id_out);
+            n_tot = size(id_out, 1);
+              
+            fprintf('%d Stations do not contain data', sum(n_ko == n_tot));
+            for s = find(n_ok == 0)
+                fprintf('No data found for %4d %s\n', s, sta_name_list(s,:));
+            end
+            for s = find(n_ko == n_out & n_ok > 0 & n_ko > 0)
+                fprintf('%2d / %2d Invalid data found (%8.2f, %8.2f) for %4d %s\n', n_out(s), n_tot, mean(tm_orig(:,s), 'omitnan'),  std(tm_orig(:,s), 'omitnan'), s, sta_name_list(s,:));
+            end
+            for s = find(((n_out - n_ko) > 0))
+                fprintf('%2d / %2d outliers found (%8.2f, %8.2f) for %4d %s\n', (n_out(s) - n_ko(s)), n_ok(s), mean(tm_orig(:,s), 'omitnan'),  std(tm_orig(:,s), 'omitnan'), s, sta_name_list(s,:));
+            end            
+            
+            sta_name_list = char(temp.a1sNomiStazioni);
+            time = GPS_Time(datenum(char(temp.a1sTempi),'dd/mm/yyyy HH:MM'));            
+            for s = 1 : size(sta_name_list, 1) * double(do_export)
+                if any(temp.a2dOsservazioni(s,:))
+                    sta_name = strrep(strtrim(sta_name_list(s, :)),' ', '_');
+                    log.addMessage(sprintf('Exporting temperature of %4d/%4d %s', s, size(sta_name_list, 1), strtrim(sta_name_list(s, :))));
+                    log.setVerbosityLev(1);
+                    file_name = [data_path filesep '${YYYY}_${DOY}' filesep sta_name '_TM_${DOY}.${YY}m'];
+                    
+                    ondu = getOrthometricCorr(temp.a1dLatitudini(s)./180*pi, temp.a1dLongitudini(s)./180*pi, gc.getRefGeoid());
+                    h_ellips = temp.a1dAltitudini(s) + ondu;
+                    [x, y, z] = geod2cart(temp.a1dLatitudini(s)./180*pi, temp.a1dLongitudini(s)./180*pi, h_ellips);
+                    
+                    md = Meteo_Data();
+                    md.importRaw(time, [temp.a2dOsservazioni(s,:)' temp.a2dOsservazioni(s,:)'], [Meteo_Data.PR Meteo_Data.TD], sta_name, [x y z]);
+                    md.export(file_name);
+                    log.setVerbosityLev(v_lev);
+                end
+            end
+        end            
     end
 end
