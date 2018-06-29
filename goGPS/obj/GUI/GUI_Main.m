@@ -354,7 +354,7 @@ classdef GUI_Main < handle
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
              this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
-           this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth Troposphere at Boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
+           this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
             
                         Core_UI.insertEmpty(sss_box_v);
@@ -1101,11 +1101,12 @@ classdef GUI_Main < handle
             name_prop = array_box.UserData;
             array_value = this.state.getProperty(name_prop);
             n_child = length(array_box.Children);
+            n_val = length(array_value);
             j = 1;
             for i = n_child : -1 : 1
                 child =  array_box.Children(i);
                 if strcmp(child.Style, 'edit')
-                    child.String = array_value(j);
+                    child.String = array_value(min(j,n_val));
                     j = j+1;
                 end
             end
