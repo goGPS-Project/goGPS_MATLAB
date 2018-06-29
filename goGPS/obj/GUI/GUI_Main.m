@@ -1035,6 +1035,8 @@ classdef GUI_Main < handle
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     this.j_settings.setText(str);
                 else
+                    % Check is always needed
+                    this.state.check()
                     % this.log.addWarning('Warning invalid config can not updating j_settings');
                 end
             end
@@ -1056,6 +1058,8 @@ classdef GUI_Main < handle
                         this.j_settings.setText(str);
                     end
                 else
+                    % Check is always needed
+                    this.state.check()
                     % this.log.addWarning('Warning invalid config not updating j_settings');
                 end
             end
