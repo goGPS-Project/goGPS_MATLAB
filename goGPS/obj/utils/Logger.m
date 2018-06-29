@@ -137,7 +137,17 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('  ***************************************************\n');
+                fprintf('  **********************************************************************\n');
+            end
+        end
+        
+        function smallSeparator(this, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 2)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                fprintf('  ----------------------------------------------------------------------\n');
             end
         end
         

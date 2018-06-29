@@ -6753,21 +6753,26 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.parent.out.injectResult(this);
         end
         
-        function cropIdSync4out(this, crop_right)
+        function cropIdSync4out(this, crop_left, crop_right)
             % crop the idsync to export only epochs that are included in the setted out bound
             %
             % SYNTAX:
-            % this.cropIdSync4out(crop_right)
+            % this.cropIdSync4out(crop_left, crop_right)
             if ~isempty(this.out_start_time)
                 id_sync = this.getIdSync();
                 time = this.getTime();
-                if crop_right
+                keep_idx = [];
+                if crop_left && crop_right
                     keep_idx = time > this.out_start_time & time < this.out_stop_time;
-                else
+                elseif crop_left
                     keep_idx = time > this.out_start_time;
+                elseif crop_right;
+                    keep_idx = time < this.out_stop_time;
                 end
-                id_sync(~keep_idx)  = [];
-                this.id_sync = id_sync;
+                if ~isempty(keep_idx)
+                    id_sync(~keep_idx)  = [];
+                    this.id_sync = id_sync;
+                end
             end
         end
     end

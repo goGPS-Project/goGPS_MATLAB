@@ -591,7 +591,7 @@ classdef Core_Utils < handle
             % Merge
             data = w1.*data1 + w2.*data2;
             data(id_ko) = [];
-            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];            
+            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2(1 : length(data_rgt)))];            
         end
         
         function [idx1, idx2] = intersectOrderedDouble(double_1, double_2, threshold)

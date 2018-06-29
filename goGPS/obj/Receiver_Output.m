@@ -263,11 +263,11 @@ classdef Receiver_Output < Receiver_Commons
                 rec_work.id_sync = 1 : rec_work.time.length;
                 basic_export = true;
             end
-            rec_work.cropIdSync4out(~this.state.isSmoothTropoOut());
+            is_last_session = rec_work.time.last >= this.state.sss_date_stop;
+            rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
             
             work_time = rec_work.getTime();
             is_this_empty = this.time.isempty;
-            % is_lsat_session = rec_work.time >= this.state.sss_date_stop; % <= might be useful
             if is_this_empty
                 idx1 = 1;
                 idx2 = 0;
@@ -351,7 +351,8 @@ classdef Receiver_Output < Receiver_Commons
             rec_work.id_sync = id_sync_old;
             % inject with smoothing
             if ~basic_export && this.state.isSmoothTropoOut() 
-                if ~is_this_empty                        
+                if ~is_this_empty                    
+                    rec_work.cropIdSync4out(false, is_last_session);
                     id_start     = find(time_1 >= rec_work.out_start_time, 1, 'first'); % The first id of the new session
                     this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
                     this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
@@ -365,6 +366,7 @@ classdef Receiver_Output < Receiver_Commons
                         res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
                     end
                     this.sat.res = res;
+                    rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end
             end
             

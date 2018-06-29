@@ -420,7 +420,6 @@ classdef Command_Interpreter < handle
                 this.log.newLine();
                 this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
                 this.log.starSeparator();
-                this.log.newLine();
                 
                 switch upper(tok{1})
                     case this.CMD_LOAD.name                 % LOAD
@@ -474,7 +473,10 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
-                    this.log.addMarkedMessage(sprintf('Importing data for receiver %d', r));
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
                     if sys_found
                         state = Global_Configuration.getCurrentSettings();
                         state.cc.setActive(sys_list);
@@ -510,7 +512,10 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 for r = id_trg
+                    this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Empty the receiver %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
                     rec(r).reset();
                     rec(r).work.resetWorkSpace();
                 end
@@ -533,8 +538,11 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
+                    this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Pre-processing on receiver %d: %s', r, rec(r).getMarkerName()));
-                    if rec(r).work.loaded_session ~=  this.core.getCurSession();
+                    this.log.smallSeparator();
+                    this.log.newLine();
+                    if rec(r).work.loaded_session ~=  this.core.getCurSession()
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
                             state.cc.setActive(sys_list);
@@ -570,7 +578,10 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
+                    this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Computing azimuth and elevation for receiver %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();                    
                     if rec(r).isEmpty
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
@@ -600,7 +611,10 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
+                    this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Computing basic position for receiver %d: %s', r, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
                     if rec(r).isEmpty
                         if sys_found
                             state = Global_Configuration.getCurrentSettings();
@@ -634,7 +648,10 @@ classdef Command_Interpreter < handle
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
                     if rec(r).work.isStatic
+                        this.log.newLine();
                         this.log.addMarkedMessage(sprintf('StaticPPP on receiver %d: %s', r, rec(r).getMarkerName()));
+                        this.log.smallSeparator();
+                        this.log.newLine();
                         if sys_found
                             rec(r).work.staticPPP(sys_list);
                         else
@@ -662,7 +679,10 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 for r = id_trg
+                    this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
                     if sys_found
                         rec(r).initPositioning(sys_list);
                     else
@@ -683,7 +703,7 @@ classdef Command_Interpreter < handle
             %   this.runSEID(rec, tok)
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
-                this.log.addWarning('No target found -> nothing to do');
+                this.log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 if ~found_ref
@@ -870,6 +890,10 @@ classdef Command_Interpreter < handle
             else
                 
                 for r = id_trg % different for each target
+                    this.log.newLine();
+                    this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                    this.log.smallSeparator();
+                    this.log.newLine();
                     for t = 1 : numel(tok)
                         try
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))

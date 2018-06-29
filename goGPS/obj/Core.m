@@ -220,7 +220,6 @@ classdef Core < handle
             this.log.newLine;
             this.log.simpleSeparator();
             this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
-            this.log.simpleSeparator();
             
             if isempty(this.rec)
                 rec = GNSS_Station;
@@ -235,8 +234,12 @@ classdef Core < handle
                     time_lim_large = buff_lim;
                 end
             else
-                [~, time_lim_large] = this.getRecTimeSpan(session);
+                [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
+            
+            this.log.addMessage(sprintf('Begin %s', out_limits.first.toString()));
+            this.log.addMessage(sprintf('End   %s', out_limits.last.toString()));
+            this.log.simpleSeparator();
 
             for r = 1 : this.state.getRecCount()
                 this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
