@@ -1012,7 +1012,7 @@ classdef Meteo_Data < handle
             n_out = sum(id_out);
             n_tot = size(id_out, 1);
               
-            fprintf('%d Stations do not contain data', sum(n_ko == n_tot));
+            fprintf('%d Stations do not contain data\n', sum(n_ko == n_tot));
             for s = find(n_ok == 0)
                 fprintf('No data found for %4d %s\n', s, sta_name_list(s,:));
             end
@@ -1074,7 +1074,7 @@ classdef Meteo_Data < handle
             n_out = sum(id_out);
             n_tot = size(id_out, 1);
               
-            fprintf('%d Stations do not contain data', sum(n_ko == n_tot));
+            fprintf('%d Stations do not contain data\n', sum(n_ko == n_tot));
             for s = find(n_ok == 0)
                 fprintf('No data found for %4d %s\n', s, sta_name_list(s,:));
             end
