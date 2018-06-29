@@ -554,43 +554,51 @@ classdef Core_Utils < handle
             data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
         end
         
-        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2)
+        function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
             % inject smppthed data
             %
             % SYNTAX:
-            %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2)
+            %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
             data_tosmt_lft = data_lft(idx_smt1);
             data_tosmt_rgt = data_rgt(idx_smt2);
-            % we use mat time, is easier and we do not neede extrem precision
+            % we use mat time, is easier and we do not need extreme precision
             time_1 = time_1.getMatlabTime();
             time_2 = time_2.getMatlabTime();
-            [idx1, idx2] = Core_Utils.intersect_ordered_double(time_1, time_2, 1/(86400*0.005));
+            [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 1/(86400*0.005)); % approximate at 5 ms
             time_tot = zeros(max(max(idx1), max(idx2)), 1);
             time_tot(idx1) = time_1;
             time_tot(idx2) = time_2;
-            mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <- epirically found
-            w2 = 1 ./ (1 + exp(-((time_tot-mean(time_tot))/mix_len)));
+            mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <= empirically found
+            w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot))/mix_len)));
             w1 = 1 - w2;
-            data1 = nan(size(time_tot));
-            data2 = nan(size(time_tot));
+            n_out = size(time_tot);
+            data1 = nan(n_out);
+            data2 = nan(n_out);
             data1(idx1) = data_tosmt_lft;
             data2(idx2) = data_tosmt_rgt;
-            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0 
-                data1(isnan(data1)) = interp1(data_tosmt_lft,time_1,time_tot(isnan(data1)));
-            end
-            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0 
-                data2(isnan(data2)) = interp1(data_tosmt_rgt,time_2,time_tot(isnan(data2)));
-            end
-            data = w1.*data1 + w2.*data2;
-            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];
+            id_start = idx1(id_start);            
+            id_ko = ((isnan(data1) & (1 : n_out)' < id_start) | (isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2));
             
+            % Interpolate missing data
+            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0 
+                data1(isnan(data1)) = interp1(data_tosmt_lft, time_1, time_tot(isnan(data1)));
+            end
+            
+            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0 
+                data2(isnan(data2)) = interp1(data_tosmt_rgt, time_2, time_tot(isnan(data2)));
+            end
+            
+            % Merge
+            data = w1.*data1 + w2.*data2;
+            data(id_ko) = [];
+            data = [data_lft(~idx_smt1); data; data_rgt(~idx_smt2)];            
         end
         
-        function [idx1, idx2] = intersect_ordered_double(double_1, double_2, threshold)
+        function [idx1, idx2] = intersectOrderedDouble(double_1, double_2, threshold)
             % given two ordered double give the index of the two vector in the joint vector considering the threshold
             % 
             % SYNTAX
-            % [idx1, idx2] = Core_Utils.intersect_ordered_double(double_1, double_2, threshold)
+            % [idx1, idx2] = Core_Utils.intersectOrderedDouble(double_1, double_2, threshold)
             l1 = length(double_1);
             l2 = length(double_2);
             idx1 = zeros(l1,1);
@@ -598,7 +606,7 @@ classdef Core_Utils < handle
             i = 1;
             j = 1;
             tot = 1;
-            while  i <=  l1 & j <= l2
+            while  i <=  l1 && j <= l2
                 if abs(double_1(i)-double_2(j)) < threshold
                     idx1(i) = tot;
                     idx2(j) = tot;
@@ -614,7 +622,6 @@ classdef Core_Utils < handle
                     j = j + 1;
                     tot = tot +1;
                 end
-                    
             end
         end
         

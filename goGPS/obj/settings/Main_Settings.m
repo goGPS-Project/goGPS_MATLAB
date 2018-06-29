@@ -1687,6 +1687,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 else
                     this.rec_dyn_mode(end : this.getRecCount()) = this.rec_dyn_mode(1);
                 end
+            elseif numel(this.rec_dyn_mode) > this.getRecCount() % cut if longer than receiver number
+                this.rec_dyn_mode = this.rec_dyn_mode(1 : this.getRecCount());
             end
             
             this.checkLogicalField('flag_keep_rec_list');
@@ -1902,6 +1904,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % PROCESSING PARAMETERS
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
+            
+            this.checkLogicalField('flag_smooth_tropo_out');
+            if this.isRinexSession && this.isSmoothTropoOut
+                this.setSmoothTropoOut(false)
+                this.log.addWarning('Smoothing of tropposphere is not possible when RINEX based sessions are requested');
+            end
+                
             this.checkNumericField('iono_management');
             this.checkLogicalField('flag_solid_earth');
             this.checkLogicalField('flag_pole_tide');
@@ -1923,6 +1932,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_tropo_gradient = false;
                 this.log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
             end
+            
+            
 
             % ADV ATMOSPHERE
             % this.checkNumericField('sigma0_tropo',[1e-11 10]);
@@ -3017,6 +3028,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.flag_keep_rec_list = keep;
         end
         
+        function setSmoothTropoOut(this, is_smt)
+            % Should the troposphere paramteres be smoothed
+            %
+            % SYNTAX
+            %   this.isSmoothTropoOut(is_smt)
+            
+            this.flag_smooth_tropo_out = is_smt;
+        end
+        
         function setRemoteSourceDir(this, dir_path)
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
@@ -3286,8 +3306,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_smt = this.isSmoothTropoOut()
             
-            is_smt = this.flag_smooth_tropo_out;
-            
+            is_smt = this.flag_smooth_tropo_out;            
         end
 
         function need_iono = needIonoMap(this)

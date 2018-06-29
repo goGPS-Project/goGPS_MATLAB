@@ -443,10 +443,7 @@ classdef Receiver_Commons < handle
             else
                 zwd = this.zwd(this.getIdSync);
                 if isempty(zwd) || all(isnan(zero2nan(zwd)))
-                    zwd = this.apr_zwd(this.getIdSync);
-                end
-                if max(this.getIdSync) > numel(zwd)
-                    zwd = nan(size(this.getIdSync));
+                    zwd = this.getAprZwd();
                 end
             end
         end
@@ -485,7 +482,7 @@ classdef Receiver_Commons < handle
             %  [apr_zwd, time] = this.getAprZwd()
             
             apr_zwd = this.apr_zwd(this.getIdSync);
-            time = this.time.getSubSet(this.getIdSync);
+            time = this.time.getEpoch(this.getIdSync);
         end
         
         function [az, el] = getAzEl(this)
