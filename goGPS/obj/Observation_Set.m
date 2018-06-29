@@ -265,5 +265,27 @@ classdef Observation_Set < handle
             this.go_id(idx_col) = [];
             this.sigma(idx_col) = [];
         end
+        
+        function amb_idx = getAmbIdx(this)
+            % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation
+            %
+            % SYNTAX:
+            % this.getAmbIdx()
+            
+            amb_idx = ones(size(this.cycle_slip));
+            n_epochs = size(amb_idx,1);
+            n_stream = size(amb_idx,2);
+            for s = 1:n_stream
+                if s > 1
+                    amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
+                end
+                cs = find(this.cycle_slip(:, s) > 0)';
+                for c = cs
+                    amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
+                end
+            end
+            amb_idx = zero2nan(amb_idx .* (this.obs ~= 0));
+            amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
+        end
     end
 end

@@ -88,6 +88,9 @@ classdef Least_Squares_Manipulator < handle
         true_epoch % true epoch of the epochwise paramters
         sat_go_id  % go id of the satindeces
         receiver_id % id of the receiver , in case of differenced obsercation two columns are used
+        
+        wl_amb    % widelane ambuiguity
+        wl_fixed  % is widelane fixed
     end
     
     properties(Access = private)
@@ -96,12 +99,15 @@ classdef Least_Squares_Manipulator < handle
         Nce % cross element between constant and epoch varying paramters
         state % current settings
         rf % reference frame
+        
+        log % logger
     end
     
     methods
         function this = Least_Squares_Manipulator()
             this.state = Global_Configuration.getCurrentSettings();
             this.rf = Core_Reference_Frame.getInstance();
+            this.log = Logger.getInstance();
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)
@@ -148,19 +154,24 @@ classdef Least_Squares_Manipulator < handle
             end
             % extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
+            flag_amb_fix = this.state.flag_amb_fix;
             if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
-                    for sys_c = rec.cc.sys_c
-                        for i = 1 : length(obs_type)
-                            if this.state.isIonoFree || ~phase_present
-                                obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
-                            else
-                                obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
-                                obs_set.iono_free = true;
-                                obs_set.sigma = obs_set.sigma * 1.5;
+                    if not(flag_amb_fix) || ~phase_present
+                        for sys_c = rec.cc.sys_c
+                            for i = 1 : length(obs_type)
+                                if this.state.isIonoFree || ~phase_present
+                                    obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                                else
+                                    obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
+                                    obs_set.iono_free = true;
+                                    obs_set.sigma = obs_set.sigma * 1.5;
+                                end
                             end
                         end
+                    else
+                         [obs_set, this.wl_amb, this.wl_fixed]  = rec.getIonoFreeWidelaneFixed();
                     end
                 else
                     for sys_c = rec.cc.sys_c
@@ -336,6 +347,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 % Store amb_idx
                 n_amb = max(max(amb_idx));
+                amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx,n_amb);
                 amb_flag = 1;
                 this.amb_idx = amb_idx;
                 this.go_id_amb = obs_set.go_id;
@@ -446,7 +458,11 @@ classdef Least_Squares_Manipulator < handle
                 % ----------- Abiguity ------------------
                 if phase_present
                     amb_offset = n_coo_par + iob_flag + 1;
-                    A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
+                    if not(flag_amb_fix)
+                        A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
+                    else
+                        A(lines_stream, amb_offset) = 1;
+                    end
                     A_idx(lines_stream, amb_offset) = n_coo + n_iob + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
@@ -883,6 +899,61 @@ classdef Least_Squares_Manipulator < handle
             for c = 1:length(this.param_class)
                 idx_p = A2N_idx(this.A_idx(:, c));
                 x_class(idx_p) = this.param_class(c);
+            end
+            if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0)
+                amb = x(x_class == 5,1);              
+                amb_nl = amb / (0.1070/2);
+                %amb_nl = amb * (f_vec(1) + f_vec(2))/f_vec(1);
+                frac_part = nan(size(amb));
+                idx_fix = false(size(amb));
+                amb_nl_fix = frac_part;
+                n_amb = max(max(this.amb_idx));
+                n_ep = size(this.wl_amb,1);
+                n_coo = max(this.A_idx(:,3));
+                for i = 1 : n_amb
+                    sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
+                    idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
+                    wl_amb =this.wl_amb(idx);
+                    wl_amb = wl_amb(1);
+                    if mod(wl_amb,2) == 0
+                        amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
+                    else
+                        amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
+                    end
+                    %amb_nl_fix(i) = round(amb_nl(i));
+                    frac_part(i) = (amb_nl(i) - amb_nl_fix(i))/2; 
+                    idx_fix(i) = abs(frac_part(i)) < 0.15 & this.wl_fixed(idx(1));
+                end
+                
+                idx_amb = find(x_class == 5);
+               
+                idxFix2idxFlo = 1 : length(x);
+                idxFlo2idxFix = nan(length(x),1);
+                A_fixed = false(size(this.A_idx(:,4)));
+                for i = 1 : length(idx_fix)
+                    if idx_fix(i)
+                        Ni = N(:,idx_amb(i));
+                        B = B - Ni * amb_nl_fix(i) * (0.1070 / 2);
+                        A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
+                    end
+                end
+                
+                 
+                B(idx_amb(idx_fix)) = [];
+                B(end) = 0;
+                N(idx_amb(idx_fix),:) = [];
+                N(:,idx_amb(idx_fix)) = [];
+                idxFix2idxFlo(idx_amb(idx_fix)) = [];
+                idxFlo2idxFix(idx_amb(idx_fix)) = 0;
+                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B); 
+                xf = N \ B;
+                % ---------------- consider second round
+                x_old = x;
+                x(idxFix2idxFlo) = xf;
+                x(idx_amb(idx_fix)) = amb_nl_fix(idx_fix) * (0.1070 / 2);
+                this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
+                this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
+                
             end
             if nargout > 1
                 x_res = zeros(size(x));

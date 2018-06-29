@@ -3413,6 +3413,55 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_set.obs_code = repmat('GL1L2AV',length(obs_set.prn),1);
         end
         
+         function [obs_set, widelane_amb_mat, widelane_amb_fixed] = getIonoFreeWidelaneFixed(this) 
+            % gte the iono free with widelane fixed (GPS only) 
+            %  
+            % SYNTAX 
+            % [obs_set, widelane_amb] = this.getIonoFreeWidelaneFixed() 
+             
+            % 1) get widelane and fix the ambiguity 
+            % remove grupo delay 
+            this.remGroupDelay(); 
+            % estaimet WL 
+            mwb = this.getMelWub('1','2','G'); 
+            wl_cycle = mwb.obs./repmat(mwb.wl,size(mwb.obs,1),1); 
+            wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT); 
+            wl_cycle(:,mwb.go_id) = mwb.obs; 
+            wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1); 
+            wsb = this.sat.cs.getWSB(this.getCentralTime()); 
+            % take off wsb 
+            wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1); 
+            % get receiver wsb 
+            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan'); 
+            wl_cycle = wl_cycle - wsb_rec; 
+            % apply tyhe cycle to the widelane 
+            wl =  this.getWideLane('L1','L2','G'); 
+            amb_idx = nan(size(wl.obs,1),this.cc.getGPS.N_SAT); 
+            amb_idx(:, wl.go_id) = wl.getAmbIdx();
+            n_amb = max(max(amb_idx));
+            widelane_amb_mat = nan(size(mwb.obs,1),this.cc.getGPS.N_SAT);
+            widelane_amb_fixed = false(size(mwb.obs,1),this.cc.getGPS.N_SAT);%false(n_amb,1);
+            for i = 1 : n_amb
+                idx = amb_idx == i;
+                est_amb_float = mean(wl_cycle(idx));
+                est_amb_fix = round(est_amb_float);
+                est_amb_std = mean(abs(wl_cycle(idx)- est_amb_fix));
+                widelane_amb_mat(idx) = -est_amb_fix;
+                if abs(est_amb_float - est_amb_fix) < 0.3 %% to consider a better statistics
+                    widelane_amb_fixed(idx) = true;
+                end
+            end
+            wl.obs = wl.obs  + mwb.wl(1)*widelane_amb_mat(:,wl.go_id); % is it + or -?
+            % 2) get the narrowlane 
+            nl = this.getNarrowLane('L1','L2','G'); 
+            % 3) get the iono free 
+            fun1 = @(wl1,wl2) 1/2; 
+            fun2 = @(wl1,wl2) 1/2; 
+            obs_set = this.getTwoFreqComb(wl, nl, fun1, fun2); 
+            obs_set.obs_code = repmat('GL1CL2WI',size(obs_set.obs_code,1),1); % to be generalized
+            this.applyGroupDelay(); 
+        end 
+        
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
@@ -6257,6 +6306,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     id_sync = (1 : this.time.length())';
                 end
                 
+                                
                 this.log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
@@ -6376,8 +6426,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
                     end
                     this.updateErrTropo();
+                     this.pushResult();
                 end
-                this.pushResult();
+               
             end
         end
         
