@@ -683,10 +683,15 @@ classdef Least_Squares_Manipulator < handle
         end
         
         function res = getResiduals(this, x)
-            res_l = zeros(size(this.y));
-            for o = 1:size(this.A_ep, 1)
-                res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
-            end
+            
+            %res_l = zeros(size(this.y));
+            %for o = 1 : size(this.A_ep, 1)
+            %    res_l(o) = this.y(o) - this.A_ep(o, :) * x(this.A_idx(o, :), 1);
+            %end
+            %res_l = zeros(size(this.y));
+            % speed-up of the previous lines
+            res_l = this.y - sum(this.A_ep .* reshape(x(this.A_idx), size(this.A_idx,1), size(this.A_idx,2)),2);
+
             this.res = res_l;
             res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);

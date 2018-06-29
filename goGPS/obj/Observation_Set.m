@@ -142,7 +142,7 @@ classdef Observation_Set < handle
             this.remObs(idx);
         end
         
-        function remObs(this,idx)
+        function remObs(this, idx)
             % Remove the observations identified by the index
             % idx, remove all corrsponding paramaters ( snr el az cycle
             % slip) then sanitize the object for empty row or columns
@@ -163,10 +163,12 @@ classdef Observation_Set < handle
                 this.az(idx) = 0;
             end
             if ~isempty(this.cycle_slip)
-                idx2 = find(idx);
-                idx2(idx2==(size(idx,1) * size(idx,2))) = [];
-                for i = idx2'
-                    this.cycle_slip(i+1) = this.cycle_slip(i+1) | this.cycle_slip(i);
+                tmp = this.cycle_slip & idx; % remove only if needed
+                for s = 1 : size(tmp, 2)
+                    idx2 = find(tmp(1 : (end - 1),s));
+                    for i = idx2(:)'
+                        this.cycle_slip(i+1, s) = this.cycle_slip(i+1, s) | this.cycle_slip(i, s); %<= move CS
+                    end
                 end
                 this.cycle_slip(idx) = 0;
             end

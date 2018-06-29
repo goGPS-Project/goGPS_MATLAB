@@ -1559,7 +1559,7 @@ classdef Core_Sky < handle
             for id = unique([pid_floor; pid_ceil])'
                 % find the epochs with the same poly
                 p_ids = find(pid_floor == id | pid_ceil == id);
-                n_epoch = numel(p_ids);
+                n_epoch = length(p_ids);
                 t_fct = ones(n_epoch, poly_order + 1);
                 t_fct(:,2) = (t_diff(p_ids) -  c_times(id + n_border))/this.coord_rate;
                 for o = 3 : poly_order + 1
@@ -1568,12 +1568,12 @@ classdef Core_Sky < handle
                 w = 1 ./ t_fct(:,2) .^ 2;
                 w(t_fct(:, 2) == 0, 1) = 1;
                 W_poly(p_ids, 1) = W_poly(p_ids, 1) + w;
-                
-                X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + bsxfun(@times, reshape(t_fct * reshape(poly(:,:,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3), w);
+                w = repmat(w, 1, size(poly, 2), size(poly, 3));
+                X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + reshape(t_fct * reshape(poly(:,:,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3) .* w;
                 for o = 2 : poly_order
                     t_fct(:, o) = o * t_fct(:, o);
                 end
-                V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + bsxfun(@times, reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate, w);
+                V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape(t_fct(:, 1 : poly_order) * reshape(poly(2 : end, :, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
             end
             X_sat = X_sat ./ repmat(W_poly, 1, n_sat, 3);
             V_sat = V_sat ./ repmat(W_poly, 1, n_sat, 3);

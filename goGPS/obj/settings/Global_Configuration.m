@@ -60,7 +60,7 @@ classdef Global_Configuration < Settings_Interface
     end
 
     properties (GetAccess = private, SetAccess = private) % Public Access
-        geoid;                                           % parameters of the reference geoid
+        geoid = struct('file', [], 'grid', 0, 'cellsize', 0, 'Xll', 0, 'Yll', 0, 'ncols', 0, 'nrows', 0); % parameters of the reference geoid
 
         reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
 
@@ -229,16 +229,19 @@ classdef Global_Configuration < Settings_Interface
                     this.cur_settings.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
                     geoid_file = this.cur_settings.getGeoidFile();
                 end
-                g = load(geoid_file);
-                fn = fieldnames(g);
-                % geoid grid and parameters
-                this.geoid.grid = g.(fn{1});
-                this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
-                this.geoid.Xll = -180 + this.geoid.cellsize / 2;
-                this.geoid.Yll = -90 + this.geoid.cellsize / 2;
-                this.geoid.ncols = size(this.geoid.grid, 2);
-                this.geoid.nrows = size(this.geoid.grid, 1);
-                clear g
+                if ~strcmp(this.geoid.file, geoid_file)
+                    g = load(geoid_file);
+                    fn = fieldnames(g);
+                    % geoid grid and parameters
+                    this.geoid.file = geoid_file;
+                    this.geoid.grid = g.(fn{1});
+                    this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
+                    this.geoid.Xll = -180 + this.geoid.cellsize / 2;
+                    this.geoid.Yll = -90 + this.geoid.cellsize / 2;
+                    this.geoid.ncols = size(this.geoid.grid, 2);
+                    this.geoid.nrows = size(this.geoid.grid, 1);
+                    clear g
+                end
             catch
                 this.log.addWarning('Reference geoid not found');
                 % geoid unavailable

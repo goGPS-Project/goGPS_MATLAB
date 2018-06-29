@@ -129,8 +129,10 @@ classdef Core < handle
             if nargin < 2
                 force_clean = false;
             end
+            cm = this.log.getColorMode();
             this.log.setColorMode(true);
             Core_UI.showTextHeader();
+            this.log.setColorMode(cm);            
             fclose('all');
             this.gc = Global_Configuration.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
@@ -197,7 +199,7 @@ classdef Core < handle
             
             fw = File_Wizard;
             c_mode = this.log.getColorMode();
-            this.log.setColorMode(0);
+            this.log.setColorMode(false);
             [~, time_lim_large, is_empty] = this.getRecTimeSpan();
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             this.log.setColorMode(c_mode);

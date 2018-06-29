@@ -134,7 +134,9 @@ classdef GPS_Time < Exportable & handle
             else
                is_gps = true;
             end
-            date = sscanf(regexprep(string_time(:)','[^0-9.]',' '),'%f%f%f%f%f%f')';
+            % str = regexprep(string_time(:)','[^0-9.]',' '); % sanityse string -> most of the time is not needed (consider to put it externally)
+            str = string_time(:)';
+            date = sscanf(str,'%f%f%f%f%f%f')';
             if numel(date) <= 3
                 date = datevec(string_time);
             else
