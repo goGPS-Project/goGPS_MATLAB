@@ -299,6 +299,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         sss_buffer    = Main_Settings.SSS_BUFFER;
         
         flag_keep_rec_list = Main_Settings.FLAG_KEEP_REC_LIST; % Flag to store the receivers for all the sessions
+        flag_smooth_tropo_out = Main_Settings.FLAG_SMOOTH_TROPO_OUT;
 
         %------------------------------------------------------------------
         % STATIONS
@@ -467,7 +468,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %  - weights = 4: weight based on satellite elevation (exp)
 
         flag_amb_fix = Main_Settings.FLAG_AMB_FIX;
-        flag_smooth_tropo_out = Main_Settings.FLAG_SMOOTH_TROPO_OUT;
+        
         
         
         % Flag for enabling the usage of iono-free combination
@@ -591,6 +592,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_buffer    = state.getData('sss_buffer');
 
                 this.flag_keep_rec_list = state.getData('flag_keep_rec_list');
+                this.flag_smooth_tropo_out  = state.getData('flag_smooth_tropo_out');
                 
                 % STATIONS
                 this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
@@ -709,6 +711,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_buffer    = state.sss_buffer;
 
                 this.flag_keep_rec_list = state.flag_keep_rec_list;
+                this.flag_smooth_tropo_out = state.flag_smooth_tropo_out;
 
                 % STATIONS
                 this.obs_dir = state.obs_dir;
@@ -860,6 +863,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
             str = [str sprintf(' Keep all the receiver objects:                    %d\n\n', this.flag_keep_rec_list)];
+            str = [str sprintf(' Smooth tropospheric outputas:                     %d\n\n', this.flag_smooth_tropo_out)];
             
             str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
@@ -1012,6 +1016,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
             str_cell = Ini_Manager.toIniStringComment('         this flag could cause memory problems', str_cell);
             str_cell = Ini_Manager.toIniString('flag_keep_rec_list', this.flag_keep_rec_list, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_smooth_tropo_out', this.flag_smooth_tropo_out, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1685,6 +1690,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             
             this.checkLogicalField('flag_keep_rec_list');
+            this.checkLogicalField('flag_smooth_tropo_out');
 
             this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
