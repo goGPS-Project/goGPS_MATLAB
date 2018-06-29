@@ -267,7 +267,7 @@ classdef Receiver_Output < Receiver_Commons
             rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
             
             work_time = rec_work.getTime();
-            is_this_empty = this.time.isempty;
+            is_this_empty = isempty(this.ztd);
             if is_this_empty
                 idx1 = 1;
                 idx2 = 0;

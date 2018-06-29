@@ -515,7 +515,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 this.time = rec.time.getCopy();
                 this.obs = rec.obs;
-                this.active_ids = rec.active_ids; true;
+                this.active_ids = rec.active_ids;
                 this.wl       = rec.wl; 
                 this.f_id     = rec.f_id; 
                 this.prn      = rec.prn;
@@ -526,7 +526,16 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.xyz = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
                 this.ph_shift = rec.ph_shift;
-            end            
+                this.pcv = rec.pcv;
+                this.rate = rec.rate;
+                this.file            = rec.file;
+                this.rinex_file_name = rec.rinex_file_name;
+                this.rin_type        = rec.rin_type;
+                this.rinex_ss        = rec.rinex_ss;
+                this.n_sat           = rec.n_sat;
+                this.n_freq          = rec.n_freq;
+                this.rin_obs_code    = rec.rin_obs_code;
+            end
         end
         
         function initTropo(this)
@@ -1812,7 +1821,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
             % import it as a GPS_Time obj
             this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            to_keep_ep = this.time > t_start & this.time < t_stop;
+            to_keep_ep = this.time >= t_start & this.time <= t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
@@ -1992,7 +2001,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
             % import it as a GPS_Time obj
             this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            to_keep_ep = this.time > t_start & this.time < t_stop;
+            to_keep_ep = this.time >= t_start & this.time <= t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
