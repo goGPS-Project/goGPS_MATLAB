@@ -1821,7 +1821,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             after_70 = (date(:,1) < 70); date(:, 1) = date(:, 1) + 1900 + after_70 * 100; % convert to 4 digits
             % import it as a GPS_Time obj
             this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            to_keep_ep = this.time >= t_start & this.time <= t_stop;
+            to_keep_ep = this.time > t_start & this.time < t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
@@ -2001,7 +2001,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
             % import it as a GPS_Time obj
             this.time = GPS_Time(date, [], this.file.first_epoch.is_gps);
-            to_keep_ep = this.time >= t_start & this.time <= t_stop;
+            to_keep_ep = this.time > t_start & this.time < t_stop;
             this.time.remEpoch(~to_keep_ep);
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
