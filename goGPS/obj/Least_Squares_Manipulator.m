@@ -711,36 +711,43 @@ classdef Least_Squares_Manipulator < handle
             end
             this.rw(idx_rw) =  wfun(res_n(idx_rw));
         end
+        
         function reweightHuber(this)
             threshold = 2;
             wfun = @(x) threshold ./ abs(x);
             this.weightOnResidual(wfun, threshold);
         end
+        
         function reweightDanish(this)
             threshold = 2;
             wfun = @(x) - exp(x.^2 ./threshold.^2);
             this.weightOnResidual(wfun, threshold);
         end
+        
         function reweightHubNoThr(this)
             wfun = @(x) 1 ./ abs(x);
             this.weightOnResidual(wfun);
         end
+        
         function reweightTukey(this)
             threshold = 2;
             wfun = @(x) (1 - (x ./threshold).^2).^2;
             this.weightOnResidual(wfun, threshold);
         end
+        
         function snooping(this)
             threshold = 2.5;
             wfun = @(x) 0;
             this.weightOnResidual(wfun, threshold);
         end
         
-        function snoopingGatt(this)
-            threshold = 10;
+        function snoopingGatt(this, thr)
+            if nargin == 1
+                thr = 10;
+            end
             threshold_propagate = 2.5;
             wfun = @(x) 0;
-            this.weightOnResidual(wfun, threshold, threshold_propagate);
+            this.weightOnResidual(wfun, thr, threshold_propagate);
         end
         
         %------------------------------------------------------------------------

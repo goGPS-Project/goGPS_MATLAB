@@ -6300,9 +6300,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-                ls.snoopingGatt();
+                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
                 ls.Astack2Nstack();
-                [x, res, s02] = ls.solve();
+                [x, res, s0] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
@@ -6328,7 +6328,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
-                this.log.addMessage(this.log.indent(sprintf('DEBUG: s0 = %f', s0)));
+                this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
                 if isempty(pos_idx)
                     this.xyz = this.xyz + coo;
                 else
