@@ -3029,11 +3029,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     quality = [];
                     for c = this.cc.SYS_C(this.cc.getActive)
                         [snr, id_snr] = this.getSNR(c,'1');
-                        snr_temp = nan(size(snr,1),this.cc.getMaxNumSat(c));
+                        snr_temp = nan(size(snr, 1),this.cc.getMaxNumSat(c));
                         [~, prn] = this.getSysPrn(this.go_id(id_snr));
                         snr_temp(:, prn) = snr;
                         quality = [quality snr_temp]; %#ok<AGROW>
                     end
+                    quality = quality(this.getIdSync, :);
             end
         end
         
@@ -3603,6 +3604,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             for r = 1 : n_rec
                 id_sync = [id_sync; this(r).id_sync + offset]; %#ok<AGROW>
                 offset = offset + this.length();
+            end
+            if islogical(id_sync)
+                id_sync = find(id_sync);
             end
         end
     end
@@ -5688,7 +5692,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addError('Static positioning failed: the receiver object is empty');
             else
                 if isempty(this.id_sync)
-                    this.id_sync = 1:this.time.length;
+                    this.id_sync = 1 : this.time.length;
                 end
                 % check if the epochs are present
                 % getting the observation set that is going to be used in
@@ -5794,7 +5798,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
-                    id_sync = 1:this.length();
+                    id_sync = 1 : this.length();
                 end
             end
             if nargin < 3
@@ -5844,7 +5848,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
                 else
-                    id_sync = 1:this.length();
+                    id_sync = 1 : this.length();
                 end
             end
             if nargin < 3
@@ -5905,7 +5909,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addError('Static positioning failed: the receiver object is empty');
             else
                 if isempty(this.id_sync)
-                    this.id_sync = 1:this.time.length;
+                    this.id_sync = 1 : this.time.length;
                 end
                 % check if the epochs are present
                 % getting the observation set that is going to be used in
