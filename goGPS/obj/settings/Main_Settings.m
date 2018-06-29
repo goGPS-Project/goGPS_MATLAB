@@ -1015,7 +1015,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Flag DEBUG (0/1) to keep in memory all the processed receiver', str_cell);
             str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
             str_cell = Ini_Manager.toIniStringComment('         this flag could cause memory problems', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniString('flag_keep_rec_list', this.flag_keep_rec_list, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Computing the troposphere on multiple sessions (even with buffering)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('could produce discontinuous series, at the change of session.', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('To produce a smooth solution, the session from the past can be ', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('connected to the new one weightning the two buffered areas.', str_cell);
             str_cell = Ini_Manager.toIniString('flag_smooth_tropo_out', this.flag_smooth_tropo_out, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
@@ -1691,9 +1696,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.rec_dyn_mode = this.rec_dyn_mode(1 : this.getRecCount());
             end
             
-            this.checkLogicalField('flag_keep_rec_list');
-            this.checkLogicalField('flag_smooth_tropo_out');
-
             this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('ocean_dir', EMPTY_IS_NOT_VALID);
@@ -1905,8 +1907,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % PROCESSING PARAMETERS
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             
+            this.checkLogicalField('flag_keep_rec_list');
             this.checkLogicalField('flag_smooth_tropo_out');
-            if this.isRinexSession && this.isSmoothTropoOut
+            [buf_lft, buf_rgt] = this.getBuffer();
+            if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
                 this.setSmoothTropoOut(false)
                 this.log.addWarning('Smoothing of tropposphere is not possible when RINEX based sessions are requested');
             end
@@ -2604,7 +2608,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if this.sss_date_stop == this.sss_date_start
                 date.addSeconds(86400 - 1e-4); % If session is empty set it to be one day long
             end
-            [~,buf_rgt] = this.getBuffer();
+            [~, buf_rgt] = this.getBuffer();
             date.addSeconds(buf_rgt); % right buffer
         end
 
