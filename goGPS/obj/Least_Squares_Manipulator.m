@@ -496,7 +496,7 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                G = [zeros(1, n_coo + n_iob) zeros(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
+                G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
