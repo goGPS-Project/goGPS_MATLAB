@@ -107,6 +107,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         et_delay_status       = 0; % flag to indicate if code and phase measurement have been corrected for solid earth tide              (0: not corrected , 1: corrected)
         hoi_delay_status      = 0; % flag to indicate if code and phase measurement have been corrected for high order ionospheric effect (0: not corrected , 1: corrected)
         atm_load_delay_status = 0; % flag to indicate if code and phase measurement have been corrected for atmospheric loading           (0: not corrected , 1: corrected)
+        ph_shift_status       = 1; % flag to indicate if phase shift is applied
         
         % FLAGS ------------------------------
         
@@ -3418,13 +3419,25 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  
             % SYNTAX 
             % [obs_set, widelane_amb] = this.getIonoFreeWidelaneFixed() 
-             
-            % 1) get widelane and fix the ambiguity 
+            [widelane_amb_mat, widelane_amb_fixed] = getWidelaneAmbEst(this) 
+            wl =  this.getWideLane('L1','L2','G'); 
+            wl.obs = wl.obs  + mwb.wl(1)*widelane_amb_mat(:,wl.go_id);
+            % 2) get the narrowlane 
+            nl = this.getNarrowLane('L1','L2','G'); 
+            % 3) get the iono free 
+            fun1 = @(wl1,wl2) 1/2; 
+            fun2 = @(wl1,wl2) 1/2; 
+            obs_set = this.getTwoFreqComb(wl, nl, fun1, fun2); 
+            obs_set.obs_code = repmat('GL1CL2WI',size(obs_set.obs_code,1),1); % to be generalized
+            
+         end 
+        
+         function  [widelane_amb_mat, widelane_amb_fixed, wsb_rec] = getWidelaneAmbEst(this) 
+             % 1) get widelane and fix the ambiguity 
             % remove grupo delay 
             this.remGroupDelay(); 
             % estaimet WL 
             mwb = this.getMelWub('1','2','G'); 
-            wl_cycle = mwb.obs./repmat(mwb.wl,size(mwb.obs,1),1); 
             wl_cycle = zeros(size(mwb.obs,1),this.cc.getGPS.N_SAT); 
             wl_cycle(:,mwb.go_id) = mwb.obs; 
             wl_cycle(:,mwb.go_id) = wl_cycle(:,mwb.go_id)./repmat(mwb.wl,size(mwb.obs,1),1); 
@@ -3446,21 +3459,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                 est_amb_float = mean(wl_cycle(idx));
                 est_amb_fix = round(est_amb_float);
                 est_amb_std = mean(abs(wl_cycle(idx)- est_amb_fix));
-                widelane_amb_mat(idx) = -est_amb_fix;
+                widelane_amb_mat(idx) = est_amb_fix;
                 if abs(est_amb_float - est_amb_fix) < 0.3 %% to consider a better statistics
                     widelane_amb_fixed(idx) = true;
                 end
             end
-            wl.obs = wl.obs  + mwb.wl(1)*widelane_amb_mat(:,wl.go_id); % is it + or -?
-            % 2) get the narrowlane 
-            nl = this.getNarrowLane('L1','L2','G'); 
-            % 3) get the iono free 
-            fun1 = @(wl1,wl2) 1/2; 
-            fun2 = @(wl1,wl2) 1/2; 
-            obs_set = this.getTwoFreqComb(wl, nl, fun1, fun2); 
-            obs_set.obs_code = repmat('GL1CL2WI',size(obs_set.obs_code,1),1); % to be generalized
             this.applyGroupDelay(); 
-        end 
+         end
         
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
@@ -4088,6 +4093,40 @@ classdef Receiver_Work_Space < Receiver_Commons
             ph = bsxfun(@minus, ph, dt_ph * 299792458);
             this.setPhases(ph, wl, id_ph);
             this.time.addSeconds( - dt_pr);
+        end
+        
+        function applyPhaseShift(this)
+            if this.ph_shift_status == 0
+                this.log.addMarkedMessage('Applying phase shoft');
+                this.phaseShift(1);
+                this.ph_shift_status = 1; %applied
+            end
+        end
+        
+        function removePhaseShift(this)
+            if this.ph_shift_status == 1
+                this.log.addMarkedMessage('Removing phase shoft');
+                this.phaseShift(-1);
+                this.ph_shift_status = 0; %applied
+            end
+        end
+        
+        function phaseShift(this, sgn)
+            for sys_c = unique( this.system)
+                if isfield(this.ph_shift, sys_c)
+                    for j = 1 : length(this.ph_shift.(sys_c))
+                        if this.ph_shift.(sys_c)(j) ~= 0
+                            ph_shift = this.ph_shift.(sys_c)(j);
+                            obs_code = this.rin_obs_code.(sys_c)(((j-1)*3+1) : j*3);
+                            [obs, idx] = this.getObs(obs_code, sys_c);
+                            obs = obs + sgn * ph_shift;
+                            this.obs(idx,:) = obs;
+                            
+                        end
+                    end
+                end
+            end
+            
         end
         
         function shiftToNominal(this, phase_only)
@@ -6350,9 +6389,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-                ls.Astack2Nstack();
-                [x, res, s0] = ls.solve();
+%                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
+%                 ls.Astack2Nstack();
+%                 [x, res, s0] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);

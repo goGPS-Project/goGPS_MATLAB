@@ -61,12 +61,11 @@ function goGPS(ini_settings, use_gui, flag_online)
 % clear java
 
 % add all the subdirectories to the search path
-
+    diary off
     %% Preparing execution and settings
     if (~isdeployed)
         addPathGoGPS;
     end
-    
     core = Core.getInstance(true); % Init Core
     
     if nargin >= 1 && ~isempty(ini_settings)
@@ -139,5 +138,6 @@ function goGPS(ini_settings, use_gui, flag_online)
         log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
         log.addMessage(log.indent(' - rec       the array of Receivers'));
     end
+    
 end
 

@@ -159,6 +159,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         OUT_DIR = [Main_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = [];     % This parameter store the current run number
+        
+        SAVE_LOG = true;
 
         % STD PAR ----------------------------------------------------------------------------------------------------------------------------------------------
         
@@ -403,6 +405,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         out_dir = Main_Settings.OUT_DIR;        % Directory containing the output of the project
         out_prefix = Main_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created
         out_full_path;                        % Full prefix of the putput files generated during runtime from the provided parameters
+        
+        save_log = Main_Settings.SAVE_LOG;
 
         % This parameter store the current run number
         run_counter = Main_Settings.RUN_COUNTER;
@@ -3254,6 +3258,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_pole_tide = isPoleTide(this)
             is_pole_tide = this.flag_pole_tide;
+        end
+        
+        function save_log = saveLog(this)
+            % check weather the log should be svaed
+            %
+            % SYNTAX
+            %    save_log = saveLog(this)
+            save_log = this.save_log;
         end
         
         function is_phase_wind = isPhaseWind(this)

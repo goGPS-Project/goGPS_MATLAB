@@ -307,8 +307,8 @@ classdef File_Wizard < handle
                                 file_name = strrep(file_name,['?{' server '}'],'');
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 out_dir = this.state.getFileDir(file_name);
-                                out_dir =  this.fnp.dateKeyRepBatch(out_dir, date_list.getEpoch(date_list.length - i + 1), date_list.getEpoch(date_list.length - i + 1));
-                                out_dir = out_dir{1};
+                                out_dir =  this.fnp.dateKeyRep(out_dir, date_list.getEpoch(date_list.length - i + 1));
+                                %out_dir = out_dir{1};
                                 if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port);
                                     status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);

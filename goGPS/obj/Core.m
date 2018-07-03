@@ -298,6 +298,9 @@ classdef Core < handle
             %   this.go(session_num)
             
             t0 = tic;
+            if this.state.saveLog()
+                diary([this.state.getOutDir '/goGPS_run_' strrep(datestr(datetime('now')),' ','_') '.log'])
+            end
             if nargin == 1
                 session_list = 1 : this.state.getSessionCount();
             else
@@ -319,6 +322,7 @@ classdef Core < handle
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
             this.log.newLine;
+            diary off
         end
         
         function exec(this, cmd)

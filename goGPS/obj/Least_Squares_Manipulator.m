@@ -158,7 +158,7 @@ classdef Least_Squares_Manipulator < handle
             if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
-                    if not(flag_amb_fix) || ~phase_present
+                    
                         for sys_c = rec.cc.sys_c
                             for i = 1 : length(obs_type)
                                 if this.state.isIonoFree || ~phase_present
@@ -170,8 +170,12 @@ classdef Least_Squares_Manipulator < handle
                                 end
                             end
                         end
-                    else
-                         [obs_set, this.wl_amb, this.wl_fixed]  = rec.getIonoFreeWidelaneFixed();
+                   
+                    if flag_amb_fix && phase_present
+                         [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
+                         f_vec = GPS_SS.F_VEC;
+                         l_vec = GPS_SS.L_VEC;
+                         obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
                     end
                 else
                     for sys_c = rec.cc.sys_c
@@ -492,7 +496,7 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
+                G = [zeros(1, n_coo + n_iob) zeros(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
                 if tropo
                     G = [G zeros(1, n_clocks)];
                 end
@@ -907,29 +911,41 @@ classdef Least_Squares_Manipulator < handle
             end
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0)
                 amb = x(x_class == 5,1);              
-                amb_nl = amb / (0.1070/2);
+                amb_wl_fixed = false(size(amb)); 
+                amb_n1 = nan(size(amb)); 
+                amb_wl = nan(size(amb)); 
                 %amb_nl = amb * (f_vec(1) + f_vec(2))/f_vec(1);
                 frac_part = nan(size(amb));
-                idx_fix = false(size(amb));
+                n_ep_wl = zeros(size(amb));
                 amb_nl_fix = frac_part;
                 n_amb = max(max(this.amb_idx));
                 n_ep = size(this.wl_amb,1);
                 n_coo = max(this.A_idx(:,3));
+                f_vec = GPS_SS.F_VEC;
+                l_vec = GPS_SS.L_VEC;
                 for i = 1 : n_amb
                     sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
                     idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
-                    wl_amb =this.wl_amb(idx);
-                    wl_amb = wl_amb(1);
-                    if mod(wl_amb,2) == 0
-                        amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
-                    else
-                        amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
-                    end
-                    %amb_nl_fix(i) = round(amb_nl(i));
-                    frac_part(i) = (amb_nl(i) - amb_nl_fix(i))/2; 
-                    idx_fix(i) = abs(frac_part(i)) < 0.15 & this.wl_fixed(idx(1));
-                end
+                    amb_wl(i) = this.wl_amb(idx(1));
+                    amb_wl_fixed(i)=  this.wl_fixed(idx(1));
+                    n_ep_wl(i) = length(idx);
+                    amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
+%                     if mod(wl_amb,2) == 0
+%                         amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
+%                     else
+%                         amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
+%                     end
+%                     %amb_nl_fix(i) = round(amb_nl(i));
+%                     
+%                     frac_part_nl(i) = (amb_nl(i) - amb_nl_fix(i))/2; 
+                   
+                end   
                 
+                amb_n1_fix = round(amb_n1);
+                wl_frac = sum((amb_n1(amb_wl_fixed) - amb_n1_fix(amb_wl_fixed)).*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
+                amb_n1_fix = round(amb_n1 - wl_frac);
+                frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac; 
+                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
                 idx_amb = find(x_class == 5);
                
                 idxFix2idxFlo = 1 : length(x);
@@ -938,7 +954,10 @@ classdef Least_Squares_Manipulator < handle
                 for i = 1 : length(idx_fix)
                     if idx_fix(i)
                         Ni = N(:,idx_amb(i));
-                        B = B - Ni * amb_nl_fix(i) * (0.1070 / 2);
+                        %b_if_fix =  amb_nl_fix(i) * (0.1070 / 2) + amb_wl(i) * 0.862/2;
+                        %B = B - Ni * b_if_fix;
+                        b_if_fix = 0.1070 * (amb_n1_fix(i));% 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* amb_wl(i) + 0.1070 * amb_n1_fix(i);
+                        B = B - Ni* ( b_if_fix);
                         A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
                     end
                 end
@@ -955,7 +974,7 @@ classdef Least_Squares_Manipulator < handle
                 % ---------------- consider second round
                 x_old = x;
                 x(idxFix2idxFlo) = xf;
-                x(idx_amb(idx_fix)) = amb_nl_fix(idx_fix) * (0.1070 / 2);
+                x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
                 this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
                 this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
                 
