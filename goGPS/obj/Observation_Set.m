@@ -142,7 +142,7 @@ classdef Observation_Set < handle
             this.remObs(idx);
         end
         
-        function remObs(this, idx)
+        function remObs(this, idx,sanitize)
             % Remove the observations identified by the index
             % idx, remove all corrsponding paramaters ( snr el az cycle
             % slip) then sanitize the object for empty row or columns
@@ -150,6 +150,9 @@ classdef Observation_Set < handle
             % SYNTAX : 
             %      this.remObs(idx)
             %
+            if nargin < 3
+                sanitize = true;
+            end
             if ~isempty(this.obs)
                 this.obs(idx) = 0;
             end
@@ -162,17 +165,18 @@ classdef Observation_Set < handle
             if ~isempty(this.az)
                 this.az(idx) = 0;
             end
-            if ~isempty(this.cycle_slip)
-                tmp = this.cycle_slip & idx; % remove only if needed
-                for s = 1 : size(tmp, 2)
-                    idx2 = find(tmp(1 : (end - 1),s));
+            if ~isempty(this.cycle_slip) && sum(this.cycle_slip(idx)) > 0
+                for s = 1 : size(idx, 2)
+                    idx2 = find(idx(1 : (end - 1),s));
                     for i = idx2(:)'
                         this.cycle_slip(i+1, s) = this.cycle_slip(i+1, s) | this.cycle_slip(i, s); %<= move CS
                     end
                 end
                 this.cycle_slip(idx) = 0;
             end
-            this.sanitizeEmpty();
+            if sanitize
+                this.sanitizeEmpty();
+            end
         end
         
         function sanitizeEmpty(this)
@@ -188,10 +192,7 @@ classdef Observation_Set < handle
                 this.remEpochs(idx_e);
             end
             %remove empty column
-            idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
-            if sum(idx_rem_c)
-                this.removeColumn(idx_rem_c);
-            end
+            this.remEmptyColumns();
         end
         
         function remEpochs(this, idx_rem)
@@ -224,6 +225,36 @@ classdef Observation_Set < handle
                 this.time = this.time.getSubSet(~idx_rem);
             end
         end
+        
+        function setZeroEpochs(this, idx_rem)
+            % Remove obseravtions at desidered epoch
+            %
+            % SYNTAX
+            %     this.remEpochs(idx)
+            %
+            
+            if sum(idx_rem) > 0
+                this.obs(idx_rem,:) = 0;
+                if ~isempty(this.el)
+                    this.el(idx_rem,:) = 0;
+                end
+                if ~isempty(this.az)
+                    this.az(idx_rem,:) = 0;
+                end
+                this.snr(idx_rem,:) = 0;
+                
+                lim = getOutliers(idx_rem);
+                if lim(end) == numel(idx_rem)
+                    lim(end,:) = 0;
+                end
+                lim(:,2) = lim(:,2) + 1;
+                for l = 1 : size(lim, 1)
+                    this.cycle_slip(lim(l, 2), :) = any(this.cycle_slip(lim(l, 1) : lim(l, 2), :));
+                end
+                this.cycle_slip(idx_rem,:) = 0;
+            end
+        end
+        
         
         function keepEpochs(this, idx)
             % Remove all onservations not at epochs than are not idx
@@ -266,6 +297,18 @@ classdef Observation_Set < handle
             this.prn(idx_col) = [];
             this.go_id(idx_col) = [];
             this.sigma(idx_col) = [];
+        end
+        
+        function remEmptyColumns(this)
+           % Remove empty colums from observations
+            %
+            % SYNTAX:
+            %   this.removeEmptyColumn()
+            % 
+            idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
+            if sum(idx_rem_c)
+                this.removeColumn(idx_rem_c);
+            end
         end
         
         function amb_idx = getAmbIdx(this)

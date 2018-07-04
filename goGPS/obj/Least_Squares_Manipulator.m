@@ -247,10 +247,54 @@ classdef Least_Squares_Manipulator < handle
                 obs_set.remUnderCutOff(cut_off);
             end
             
-            % get reference observations and satellite positions
+            
+            %---- RESTRUCTIRING
+             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
+            idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
+            obs_set.setZeroEpochs(~idx_valid_ep_l);
+            
+            %remove too shortArc
+
+            
+            
+          
+            
+            
+            
+            % Compute the number of ambiguities that must be computed
+            cycle_slip = obs_set.cycle_slip;
+             min_arc = this.state.getMinArc;
+            if phase_present && min_arc > 1
+                amb_idx = obs_set.getAmbIdx();
+                % amb_idx = n_coo + n_iob + amb_idx;
+                amb_idx = zero2nan(amb_idx);
+                
+                % remove short arcs
+               
+                % ambiguity number for each satellite
+                amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
+                assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
+                id = 1 : numel(amb_obs_count);
+                ko_amb_list = id(amb_obs_count < min_arc);
+                %amb_obs_count(amb_obs_count < min_arc) = [];
+                for ko_amb = fliplr(ko_amb_list)
+                    id_ko = amb_idx == ko_amb;
+                    obs_set.remObs(id_ko,false)
+                end
+                
+            end
+            idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
+            obs_set.setZeroEpochs(~idx_valid_ep_l);
+            
+                
+            
+            obs_set.remEmptyColumns();
+            
+             % get reference observations and satellite positions
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
+            
             
             % Sometime code observations may contain unreasonable values -> remove them
             if obs_type == 'C'
@@ -258,114 +302,50 @@ classdef Least_Squares_Manipulator < handle
                 mean_diff_obs = mean(mean(abs(diff_obs),'omitnan'),'omitnan');
                 diff_obs(abs(diff_obs) > 50 * mean_diff_obs) = 0;
             end
-            
-            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
-            
-            % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
-            idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
-            diff_obs(~idx_valid_ep_l, :) = [];
-            xs_loc(~idx_valid_ep_l, :, :) = [];
-            
-            %id_sync_out(~idx_valid_ep_l) = [];
-            
-            this.true_epoch(~idx_valid_ep_l) = [];
-            id_sync_out = this.true_epoch;
-            
-            % removing possible empty column (sat)
-            idx_valid_stream = sum(diff_obs, 1) ~= 0;
-            diff_obs(:, ~idx_valid_stream) = [];
-            xs_loc(:, ~idx_valid_stream, :) = [];
-            
-            % removing non valid epochs also from obs_set
-            obs_set.remEpochs(~idx_valid_ep_l);
+            idx_empty_ep = sum(diff_obs~=0,2) <= 1;
+            diff_obs(idx_empty_ep, :) = [];
+            xs_loc(idx_empty_ep, :, :) = [];
+            obs_set.remEpochs(idx_empty_ep);
             obs_set.sanitizeEmpty();
+             
             
-            % set up requested number of parametrs
-            n_epochs = size(obs_set.obs, 1);
-            this.n_epochs = n_epochs;
-            n_stream = size(diff_obs, 2); % number of satellites
-            
-            n_clocks = n_epochs; % number of clock errors
-            n_tropo = n_clocks; % number of epoch for ZTD estimation
-            ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
-            
-            % Compute the number of ambiguities that must be computed
-            cycle_slip = obs_set.cycle_slip;
-            cycle_slip(diff_obs == 0) = 0;
             if phase_present
-                amb_idx = ones(size(cycle_slip));
-                for s = 1:n_stream
-                    if s > 1
-                        amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
-                    end
-                    cs = find(cycle_slip(:, s) > 0)';
-                    for c = cs
-                        % check if cycle slip is not marked at first epoch of the stream
-                        if c ~= find(diff_obs(:, s) ~= 0, 1, 'first')
-                            amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
-                        end
-                    end
-                end
-                % amb_idx = n_coo + n_iob + amb_idx;
-                amb_idx = zero2nan(amb_idx .* (diff_obs ~= 0));
-                
-                % remove short arcs
-                min_arc = this.state.getMinArc;
-                % ambiguity number for each satellite
-                amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
-                assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
-                id = 1 : numel(amb_obs_count);
-                ko_amb_list = id(amb_obs_count < min_arc);
-                amb_obs_count(amb_obs_count < min_arc) = [];
-                for ko_amb = fliplr(ko_amb_list)
-                    id_ko = amb_idx == ko_amb;
-                    diff_obs(id_ko) = 0;
-                    amb_idx(id_ko) = nan;
-                    amb_idx(amb_idx > ko_amb) = amb_idx(amb_idx > ko_amb) - 1;
-                end
-                obs_set.remObs(diff_obs == 0);
-                
-                % I need to refilter and recompute some things...
-                % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
-                idx_valid_ep_l = sum(diff_obs ~= 0, 2) > 0;
-                diff_obs(~idx_valid_ep_l, :) = [];
-                xs_loc(~idx_valid_ep_l, :, :) = [];
-                id_sync_out(~idx_valid_ep_l) = [];
-                amb_idx(~idx_valid_ep_l, :) = [];
-                
-                this.true_epoch(~idx_valid_ep_l) = [];
-                
-                % removing possible empty column
-                idx_valid_stream = sum(diff_obs, 1) ~= 0;
-                diff_obs(:, ~idx_valid_stream) = [];
-                xs_loc(:, ~idx_valid_stream, :) = [];
-                amb_idx(:, ~idx_valid_stream, :) = [];
-                
-                % removing non valid epochs also from obs_set
-                obs_set.sanitizeEmpty();
-                
-                n_epochs = size(obs_set.obs, 1);
-                this.n_epochs = n_epochs;
-                n_stream = size(diff_obs, 2); % number of satellites
-                n_clocks = n_epochs; % number of clock errors
-                
-                % Store amb_idx
+                amb_idx = obs_set.getAmbIdx();
                 n_amb = max(max(amb_idx));
-                amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx,n_amb);
-                amb_flag = 1;
                 this.amb_idx = amb_idx;
+                amb_flag = 1;
                 this.go_id_amb = obs_set.go_id;
-                
-                % get ambiguity wl
-                wl_amb = zeros(size(amb_obs_count));
-                for s = 1 : size(amb_idx, 2)
-                    wl_amb(unique(amb_idx(~isnan(amb_idx(:, s)),s))) = obs_set.wl(s);
-                end
             else
+            
                 n_amb = 0;
                 amb_flag = 0;
                 this.amb_idx = [];
             end
+            
+              % set up requested number of parametrs
+            n_epochs = size(obs_set.obs, 1);
+            this.n_epochs = n_epochs;
+            n_stream = size(diff_obs, 2); % number of satellites
+            n_clocks = n_epochs; % number of clock errors
+            n_tropo = n_clocks; % number of epoch for ZTD estimation
+            ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
+            
+            
+            %-------------
+            
+            
+            
+            
+            
+            
+            
+            
+            
+           
+           
+            
+            this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
+             id_sync_out = this.true_epoch;
             
             n_coo_par =  ~rec.isFixed() * 3; % number of coordinates
             
@@ -942,11 +922,34 @@ classdef Least_Squares_Manipulator < handle
                 end   
                 
                 amb_n1_fix = round(amb_n1);
-                wl_frac = sum((amb_n1(amb_wl_fixed) - amb_n1_fix(amb_wl_fixed)).*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
+                frac_part_n1 = amb_n1(amb_wl_fixed) - amb_n1_fix(amb_wl_fixed);
+                wl_frac = sum((frac_part_n1).*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
+                idx_rw = ones(size(frac_part_n1));
+                a = 1;
+                while sum((frac_part_n1-wl_frac) < -0.5) > 0  || a < 4
+                    frac_part_n1((frac_part_n1-wl_frac) < -0.5) = frac_part_n1((frac_part_n1-wl_frac) < -0.5) + 1;
+                    idx_rw(:) = 1;
+                    e = abs((frac_part_n1-wl_frac)) > 0.2;
+                    idx_rw(e) = 1./((frac_part_n1(e)-wl_frac)/0.2).^2; %idx_reweight
+                    idx_rw = idx_rw.*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed)));
+                    idx_rw = idx_rw / sum(idx_rw);
+                    wl_frac = sum((frac_part_n1).*idx_rw);
+                    a = a+1;
+                end
                 amb_n1_fix = round(amb_n1 - wl_frac);
                 frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac; 
-                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
+               
                 idx_amb = find(x_class == 5);
+                % get thc cxx of the observations
+                n_amb  = length(idx_amb);
+                b_eye = zeros(length(B),n_amb);
+                idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+                b_eye(idx) = 1;
+                b_eye = sparse(b_eye);
+                Cxx_amb = N\b_eye;
+                Cxx_amb = Cxx_amb(idx_amb,:);
+                
+                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
                
                 idxFix2idxFlo = 1 : length(x);
                 idxFlo2idxFix = nan(length(x),1);

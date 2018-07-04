@@ -6389,9 +6389,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-%                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-%                 ls.Astack2Nstack();
-%                 [x, res, s0] = ls.solve();
+                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
+                ls.Astack2Nstack();
+                [x, res, s0] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
