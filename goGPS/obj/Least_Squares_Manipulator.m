@@ -248,18 +248,11 @@ classdef Least_Squares_Manipulator < handle
             end
             
             
-            %---- RESTRUCTIRING
              % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
             idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
             obs_set.setZeroEpochs(~idx_valid_ep_l);
             
-            %remove too shortArc
-
-            
-            
-          
-            
-            
+            %remove too shortArc            
             
             % Compute the number of ambiguities that must be computed
             cycle_slip = obs_set.cycle_slip;

@@ -1177,11 +1177,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                 poss_slip_idx(c,~isnan(ph2(c,:))) = 1;
             end
             
-            % remove too short possible arc
-            to_short_idx = flagMerge(poss_slip_idx,sa_thr);
-            poss_slip_idx = [diff(to_short_idx) <0 ; false(1, size(to_short_idx, 2))];
-            to_short_idx(poss_slip_idx) = false;
-            poss_out_idx(to_short_idx) = true;
+            % remove too short possible arc -> this is done now in the set up if the least squares system
+%             to_short_idx = flagMerge(poss_slip_idx,sa_thr);
+%             poss_slip_idx = [diff(to_short_idx) <0 ; false(1, size(to_short_idx, 2))];
+%             to_short_idx(poss_slip_idx) = false;
+%             poss_out_idx(to_short_idx) = true;
             
             n_out = sum(poss_out_idx(:));
             this.sat.outlier_idx_ph = sparse(poss_out_idx);
@@ -6252,7 +6252,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (this.state.isOutlierRejectionOn())
                     this.remBadPrObs(150);
                 end
-                this.remShortArc(this.state.getMinArc);            
+                %this.remShortArc(this.state.getMinArc); % - > smalla rcs are removed seeting up the least squares system           
 
                 s02 = this.initPositioning(sys_c); %#ok<*PROPLC>                
                 if (min(s02) > this.S02_IP_THR)
