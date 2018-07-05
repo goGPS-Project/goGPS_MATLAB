@@ -245,7 +245,7 @@ classdef Observation_Set < handle
                 
                 lim = getOutliers(idx_rem);
                 if lim(end) == numel(idx_rem)
-                    lim(end,:) = 0;
+                    lim(end,:) = [];
                 end
                 lim(:,2) = lim(:,2) + 1;
                 for l = 1 : size(lim, 1)
