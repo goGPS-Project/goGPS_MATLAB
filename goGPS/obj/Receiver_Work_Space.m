@@ -3444,9 +3444,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             wsb = this.sat.cs.getWSB(this.getCentralTime()); 
             % take off wsb 
             wl_cycle = zero2nan(wl_cycle) + repmat(wsb,size(mwb.obs,1),1); 
-            % get receiver wsb 
-            wsb_rec = median(zero2nan(wl_cycle(:)) - ceil(zero2nan(wl_cycle(:))),'omitnan'); 
-            wl_cycle = wl_cycle - wsb_rec; 
+                       
+            [wl_cycle(~isnan(wl_cycle)), wsb_rec] = Core_Utils.getFracBias(wl_cycle(~isnan(wl_cycle)));
             % apply tyhe cycle to the widelane 
             wl =  this.getWideLane('L1','L2','G'); 
             amb_idx = nan(size(wl.obs,1),this.cc.getGPS.N_SAT); 
@@ -6350,6 +6349,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
+                if this.state.flag_amb_fix
+                    this.coarseAmbEstimation();
+                end
                 ls = Least_Squares_Manipulator();
                 if false
                     pos_idx = [ones(sum(this.time < this.out_start_time),1)];
@@ -6389,9 +6391,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-                ls.Astack2Nstack();
-                [x, res, s0] = ls.solve();
+%                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
+%                 ls.Astack2Nstack();
+%                 [x, res, s0] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
@@ -6612,11 +6614,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             gamma = f1^2 / f2^2;
             
-            amb_idx = this.sat.amb_idx;
-            n_amb  = max(max(amb_idx));
+            
+            
             geom_free = zeros(this.time.length,GPS_SS.N_SAT);
             obs_set =  this.getGeometryFree('C2W','C1W','G');
+            obs_set_temp =  this.getIonoFree('L1','L2','G');
             geom_free(:,obs_set.go_id) = obs_set.obs;
+            amb_idx = nan(this.time.length, this.parent.cc.getMaxNumSat);
+            amb_idx(:,obs_set_temp.go_id) = obs_set_temp.getAmbIdx;
+            n_amb  = max(max(amb_idx));
             iono_elong = geom_free / ( 1 -gamma); % Eq (2)
             P1_idx = idxCharLines(this.obs_code, 'C1W')'& this.system == 'G';
             P2_idx = idxCharLines(this.obs_code, 'C2W')'& this.system == 'G';

@@ -269,7 +269,7 @@ classdef Least_Squares_Manipulator < handle
                 assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
                 id = 1 : numel(amb_obs_count);
                 ko_amb_list = id(amb_obs_count < min_arc);
-                %amb_obs_count(amb_obs_count < min_arc) = [];
+                amb_obs_count(amb_obs_count < min_arc) = [];
                 for ko_amb = fliplr(ko_amb_list)
                     id_ko = amb_idx == ko_amb;
                     obs_set.remObs(id_ko,false)
@@ -469,14 +469,23 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                G = [zeros(1, n_coo + n_iob) ones(1,n_amb) -ones(1,n_clocks)]; % <- This is the right one !!!
+                %G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  -zeros(1,n_clocks)]; % <- This is the right one !!!
+                system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                clock_const = zeros(1,n_clocks);
+                clock_const([1]) = 1;
+                G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const];
+                for i = 1: length(system_jmp)
+                    clock_const = zeros(1,n_clocks);
+                    clock_const(system_jmp(i)+1) = 1;
+                    G = [G ;[zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const]];
+                end
                 if tropo
-                    G = [G zeros(1, n_clocks)];
+                    G = [G zeros(size(G,1), n_clocks)];
                 end
                 if tropo_g
-                    G = [G zeros(1, 2*n_clocks)];
+                    G = [G zeros(size(G,1), 2*n_clocks)];
                 end
-                D = 0;
+                D = zeros(size(G,1),1);
                 this.G = G;
                 this.D = D;
             end
@@ -851,7 +860,7 @@ classdef Least_Squares_Manipulator < handle
             end
             N = [[Ncc, Nce']; [Nce, Nee]];
             if ~ isempty(this.G)
-                G = this.G(N2A_idx);
+                G = this.G(:,N2A_idx);
                 N =  [[N, G']; [G, zeros(size(G,1))]];
                 B = [B; this.D];
             end
@@ -914,21 +923,9 @@ classdef Least_Squares_Manipulator < handle
                    
                 end   
                 
-                amb_n1_fix = round(amb_n1);
-                frac_part_n1 = amb_n1(amb_wl_fixed) - amb_n1_fix(amb_wl_fixed);
-                wl_frac = sum((frac_part_n1).*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
-                idx_rw = ones(size(frac_part_n1));
-                a = 1;
-                while sum((frac_part_n1-wl_frac) < -0.5) > 0  || a < 4
-                    frac_part_n1((frac_part_n1-wl_frac) < -0.5) = frac_part_n1((frac_part_n1-wl_frac) < -0.5) + 1;
-                    idx_rw(:) = 1;
-                    e = abs((frac_part_n1-wl_frac)) > 0.2;
-                    idx_rw(e) = 1./((frac_part_n1(e)-wl_frac)/0.2).^2; %idx_reweight
-                    idx_rw = idx_rw.*(n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed)));
-                    idx_rw = idx_rw / sum(idx_rw);
-                    wl_frac = sum((frac_part_n1).*idx_rw);
-                    a = a+1;
-                end
+                
+                 [frac_part_n1, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed), (n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
+                
                 amb_n1_fix = round(amb_n1 - wl_frac);
                 frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac; 
                
@@ -940,7 +937,7 @@ classdef Least_Squares_Manipulator < handle
                 b_eye(idx) = 1;
                 b_eye = sparse(b_eye);
                 Cxx_amb = N\b_eye;
-                Cxx_amb = Cxx_amb(idx_amb,:);
+                Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
                 
                 idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
                
@@ -948,14 +945,18 @@ classdef Least_Squares_Manipulator < handle
                 idxFlo2idxFix = nan(length(x),1);
                 A_fixed = false(size(this.A_idx(:,4)));
                 for i = 1 : length(idx_fix)
+                    Ni = N(:,idx_amb(i));
                     if idx_fix(i)
-                        Ni = N(:,idx_amb(i));
+                       
                         %b_if_fix =  amb_nl_fix(i) * (0.1070 / 2) + amb_wl(i) * 0.862/2;
                         %B = B - Ni * b_if_fix;
                         b_if_fix = 0.1070 * (amb_n1_fix(i));% 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* amb_wl(i) + 0.1070 * amb_n1_fix(i);
                         B = B - Ni* ( b_if_fix);
                         A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
                     end
+%                     b_frac = 0.1070 * (-wl_frac);
+%                     B = B - Ni* ( b_frac);
+                    
                 end
                 
                  

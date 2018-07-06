@@ -625,6 +625,43 @@ classdef Core_Utils < handle
             end
         end
         
+        function [wl_cyle_out, frac_bias] = getFracBias(wl_cycle, weigth)
+            % get the common frac bias between cycles
+            % NOTE: very coarse/nobrain/empirical solution - > a sipler one should be found
+            %
+            % SYNTAX
+            %   [wl_cyle, frac_bias] = Core_Utils.getFracBias(wl_cycle)
+            if nargin < 2
+                weigth = ones(size(wl_cycle));
+            end
+            frac_bias = zeros(1,3);
+            wl_cycle_frac = zeros(size(wl_cycle,1),3);
+            % get receiver wsb 
+            wl_cycle_frac(:,1) = zero2nan(wl_cycle) - floor(zero2nan(wl_cycle));
+            wl_cycle_frac(:,2) = zero2nan(wl_cycle)- round(zero2nan(wl_cycle));
+            wl_cycle_frac(:,3) = zero2nan(wl_cycle) - ceil(zero2nan(wl_cycle));
+            frac_bias(1) = median(wl_cycle_frac(:,1),'omitnan'); 
+            frac_bias(2) = median(wl_cycle_frac(:,2),'omitnan'); 
+            frac_bias(3) = median(wl_cycle_frac(:,3),'omitnan'); 
+            wl_cyle_var = mean(wl_cycle_frac-repmat(frac_bias,size(wl_cycle_frac,1),1),'omitnan');
+            [~,idx] = min(wl_cyle_var);
+            frac_bias = frac_bias(idx); 
+            wl_cycle_frac = wl_cycle_frac(:,idx);
+            a = 0;
+            idx_rw = ones(size(wl_cycle_frac));
+             while sum(zero2nan(wl_cycle_frac - frac_bias) < -0.5) > 0  || a < 4
+                    wl_cycle_frac((wl_cycle_frac-frac_bias) < -0.5) = wl_cycle_frac((wl_cycle_frac-frac_bias) < -0.5) + 1;
+                    idx_rw(:) = 1;
+                    e = abs((wl_cycle_frac-frac_bias)) > 0.2;
+                    idx_rw(e) = 1./((wl_cycle_frac(e)-frac_bias)/0.2).^2; %idx_reweight
+                    idx_rw = idx_rw  .* weigth;
+                    idx_rw = idx_rw / sum(idx_rw);
+                    frac_bias = sum((wl_cycle_frac).*idx_rw);
+                    a = a+1;
+                end
+            wl_cyle_out = wl_cycle - frac_bias; 
+        end
+        
         function [response] = timeIntersect(time1_st, time1_end, time2_st, time2_end)
             % check whether times of time bound 1 intersect with times of time bound 2
             %
