@@ -53,29 +53,29 @@ classdef Core_Sky < handle
         erp                    % Earth Rotation Parameters
         
         group_delays_flags = [ 'GC1C' ; 'GC1S' ; 'GC1L' ; 'GC1X' ; 'GC1P' ; 'GC1W' ; 'GC1Y' ; 'GC1M' ; 'GC2C' ; 'GC2D' ; 'GC2S' ; 'GC2L' ; 'GC2X' ; 'GC2P' ; 'GC2W' ; 'GC2Y' ; 'GC2M' ; 'GC5I' ; 'GC5Q' ; 'GC5X' ; ... % GPS codes
-                               'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
-                               'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; 'EC6A'; 'EC6B'; 'EC6C'; 'EC6X'; 'EC6Z';...          % GALILEO codes
-                               'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
-                               'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ...                                                       % BeiDou codes
-                               'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
-                               'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
-                               ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
-                           
+            'RC1C' ; 'RC1P' ; 'RC2C' ; 'RC2P' ; 'RC3I' ; 'RC3Q' ; 'RC3X' ; ...                                                                         % GLONASS code
+            'EC1A' ; 'EC1B' ; 'EC1C' ; 'EC1X' ; 'EC1Z' ; 'EC5I' ; 'EC5Q' ; 'EC5X' ; 'EC7I' ; 'EC7Q' ; 'EC7X' ; 'EC8I' ; 'EC8Q' ; 'EC8X' ; 'EC6A'; 'EC6B'; 'EC6C'; 'EC6X'; 'EC6Z';...          % GALILEO codes
+            'QC1C' ; 'QC1S' ; 'QC1L' ; 'QC1X' ; 'QC1Z' ; 'QC2S' ; 'QC2L' ; 'QC2X' ; 'QC2M' ; 'QC5I' ; 'QC5Q' ; 'QC5X' ; 'QC6S' ; 'QC6L' ; 'QC6X' ; ... % QZSS codes
+            'BC2I' ; 'BC2Q' ; 'BC2X' ; 'BC7I' ; 'BC7Q' ; 'BC7X' ; 'BC6I' ; 'BC6Q' ; 'BC6X' ; ...                                                       % BeiDou codes
+            'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
+            'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
+            ]; % ALL Rinex 3 code observations flags + first letter indicationg the constellation
+        
         group_delays = zeros(32,82); % group delay of code measurements (meters) referenced to their constellation reference:
-                                     %    GPS     -> Iono free linear combination C1P C2P
-                                     %    GLONASS -> Iono free linear combination C1P C2P
-                                     %    Galileo -> Iono free linear combination
-                                     %    BedDou  -> Iono free linear combination
-                                     %    QZS     -> Iono free linear combination
-                                     %    IRNSS   -> Iono free linear combination
-                                     %    SABS    -> Iono free linear combination
+        %    GPS     -> Iono free linear combination C1P C2P
+        %    GLONASS -> Iono free linear combination C1P C2P
+        %    Galileo -> Iono free linear combination
+        %    BedDou  -> Iono free linear combination
+        %    QZS     -> Iono free linear combination
+        %    IRNSS   -> Iono free linear combination
+        %    SABS    -> Iono free linear combination
         group_delays_times           % 77x1 GPS_Time
         
         ant_pco               % satellites antenna phase center offset
         ant_pcv               % satellites antenna phase center variations
         
         avail                 % availability flag
-        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]     
+        coord_pol_coeff       % coefficient of the polynomial interpolation for coordinates [11, 3, num_sat, num_coeff_sets]
         
         wsb                   % widelane satellite biases (only cnes orbits)
         wsb_date              % widelane satellite biases time
@@ -126,7 +126,7 @@ classdef Core_Sky < handle
             % Load and precompute all the celestial parameted needed in a session delimited by an interval of dates
             % SYNTAX:
             %    this.initSession(this, start_date, stop_time)
-                        
+            
             %%% load Epehemerids
             if nargin == 2
                 stop_date = start_date.last();
@@ -352,12 +352,12 @@ classdef Core_Sky < handle
         function eclipsed = checkEclipseManouver(this, time)
             eclipsed = int8(zeros(time.length,this.cc.getNumSat));
             
-      
+            
             XS = this.coordInterpolate(time);
             
             %satellite geocentric position
             XS_n = sqrt(sum(XS.^2,3,'omitnan'));
-
+            
             XS = XS./repmat(XS_n,1,1,3);
             
             %sun geocentric position
@@ -368,7 +368,7 @@ classdef Core_Sky < handle
             cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,size(XS,2),1),3);
             %threshold to detect noon/midnight maneuvers
             thr = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
-                        
+            
             shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
             
             for i = 1:32 % only gps implemented
@@ -462,7 +462,7 @@ classdef Core_Sky < handle
             end
             eph = [];
             for i=1:length(f_names)
-                [eph_temp, this.iono] = load_RINEX_nav(f_names{i},this.cc,0,0);
+                [eph_temp, this.iono] = this.load_RINEX_nav(f_names{i},this.cc,0,0);
                 eph = [eph eph_temp];
             end
             
@@ -532,7 +532,7 @@ classdef Core_Sky < handle
                 k = find_eph(eph, sat(i), time, 86400);
                 if not(isempty(k))
                     %compute satellite position and velocity
-                    [XS(i,:), VS(i,:)] = satellite_orbits(time, eph(:,k), sat(i), []);
+                    [XS(i,:), VS(i,:)] = this.satellite_orbits(time, eph(:,k), sat(i), []);
                     dt_s(i) = sat_clock_error_correction(time, eph(:,k));
                     dt_s(i) = sat_clock_error_correction(time - dt_s(i), eph(:,k));
                 else
@@ -1026,7 +1026,7 @@ classdef Core_Sky < handle
             fnp = File_Name_Processor();
             file_name = fnp.dateKeyRepBatch(file_name, time_st, time_end);
             file_name = file_name{1};
-
+            
             if isempty(file_name)
                 this.log.addWarning('No dcb file found');
                 return
@@ -1134,7 +1134,7 @@ classdef Core_Sky < handle
         end
         
         function importIono(this,f_name)
-            [~, this.iono, flag_return ] = load_RINEX_nav(f_name,this.cc,0,0);
+            [~, this.iono, flag_return ] = this.load_RINEX_nav(f_name,this.cc,0,0);
             if (flag_return)
                 return
             end
@@ -1253,7 +1253,7 @@ classdef Core_Sky < handle
             [year_t, month_t, day_t ] = time.getCalEpoch();
             n_ep = size(this.wsb_date);
             n_ep = n_ep(1);
-            for i = 1:n_ep 
+            for i = 1:n_ep
                 [year, month, day ] = this.wsb_date(i).getCalEpoch();
                 if year == year_t && month == month_t && day == day_t
                     wsb = this.wsb(i,:);
@@ -1266,7 +1266,7 @@ classdef Core_Sky < handle
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
             sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
             sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
-                this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco, size(this.coord,1), 1, 1) .* sx , 3) ...
+            this.coord = this.coord + sign(direction)*cat(3, sum(repmat(this.ant_pco, size(this.coord,1), 1, 1) .* sx , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sy , 3) ...
                 , sum(repmat(this.ant_pco,size(this.coord,1),1,1) .* sz , 3));
         end
@@ -1313,13 +1313,13 @@ classdef Core_Sky < handle
             if nargin < 4 || isempty(sat_pcv.tablePCV_azi) % no azimuth change (satellites)
                 pcv_val = sat_pcv.tableNOAZI(:,:,freq); % extract the right frequency
                 %pcv_delay = pco_delay -  (d_f_r_el .* pcv_val(zen_idx)' + (1 - d_f_r_el) .* pcv_val(zen_idx + 1)');
-
+                
                 % Use polynomial interpolation to smooth PCV
-                pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);                
+                pcv_val = Core_Utils.interp1LS(1 : numel(pcv_val), pcv_val, min(8,numel(pcv_val)), zen_float);
                 pcv_delay = pco_delay - pcv_val;
             else
                 pcv_val = sat_pcv.tablePCV(:,:,freq); % extract the right frequency (receivers)
-                thislog.addWarning('Do you have PCV values for satellites that depend on az?\n Copy here the implementation of getPCV in Receiver');
+                this.log.addWarning('Do you have PCV values for satellites that depend on az?\n Copy here the implementation of getPCV in Receiver');
                 %find azimuth indexes
                 az_pcv = sat_pcv.tablePCV_azi;
                 min_az = az_pcv(1);
@@ -1428,7 +1428,7 @@ classdef Core_Sky < handle
             order = order + mod(order, 2); % order needs to be even
             n_obs = max(order + 1, n_obs); % minimum num of observations to use is == num of coefficients
             n_obs = n_obs + mod(n_obs + 1, 2); % n_obs needs to be odd
-
+            
             n_coeff = order + 1;
             A = zeros(n_obs, n_coeff);
             A(:, 1) = ones(n_obs, 1);
@@ -1505,7 +1505,7 @@ classdef Core_Sky < handle
                 end
             end
         end
-                
+        
         function [X_sat, V_sat] = coordInterpolate(this, t, sat)
             % SYNTAX:
             %   [X_sat] = Eph_Tab.polInterpolate(t, sat)
@@ -1549,7 +1549,7 @@ classdef Core_Sky < handle
             c_times = this.getCoordTime();
             c_times = c_times - this.time_ref_coord;
             t_diff = t - this.time_ref_coord;
-
+            
             poly = permute(this.coord_pol_coeff(:,:,sat_idx, :),[1 3 2 4]);
             
             W_poly = zeros(t.length, 1);
@@ -1813,8 +1813,8 @@ classdef Core_Sky < handle
             %[psicor, epscor] = celpol(jd_tdb, 1, 0.0d0, 0.0d0);
             psicor = 0;
             epscor = 0;
-                
-            for e = 1 : time.length()                                
+            
+            for e = 1 : time.length()
                 % compute the Sun position (ICRS coordinates)
                 rrd = jplephem(jd_tdb(e), sun_id, earth_id);
                 sun_ECI = rrd(1:3);
@@ -2041,6 +2041,480 @@ classdef Core_Sky < handle
             prn_name(:,2) = char(floor(prn_num / 2^8));
             prn_num = prn_num - prn_name(:,2) * 2^8;
             prn_name(:,3) = char(prn_num);
+        end
+        
+        % ---------------------------------------------------------------------------
+        % Old goGPS functions , integrated with minor modifications as static methods
+        %----------------------------------------------------------------------------
+        
+        function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_model, time, wait_dlg)
+            
+            % SYNTAX:
+            %   [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
+            %
+            % INPUT:
+            %   filename = RINEX navigation file
+            %   cc = Constellation_Collector object, contains the satus of the satellite systems in use
+            %   flag_SP3 = boolean flag to indicate SP3 availability
+            %   wait_dlg = optional handler to waitbar figure (optional)
+            %
+            % OUTPUT:
+            %   Eph = matrix containing 33 navigation parameters for each satellite
+            %   iono = vector containing ionosphere parameters
+            %   flag_return = notify the parent function that it should return
+            %                 (downloaded navigation file still compressed).
+            %
+            % DESCRIPTION:
+            %   Parses RINEX navigation files.
+            
+            % Check the input arguments
+            if (nargin < 6)
+                wait_dlg_PresenceFlag = false;
+            else
+                wait_dlg_PresenceFlag = true;
+            end
+            
+            if (iscell(filename))
+                filename = filename{1};
+            end
+            
+            flag_return = 0;
+            log = Logger.getInstance();
+            state = Global_Configuration.getCurrentSettings();
+            
+            %number of satellite slots for enabled constellations
+            nSatTot = cc.getNumSat();
+            
+            %read navigation files
+            if (~flag_SP3)
+                parse_file(0);
+            else
+                Eph = zeros(33,nSatTot);
+                iono = zeros(8,1);
+            end
+            
+            % Broadcast corrections in DD are currently causing problems (offset in UP) => not using them
+            %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
+            if ((iono_model == 2 && ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
+                [week, sow] = time2weektow(time(1));
+                [date, DOY] = gps2date(week, sow);
+                
+                filename_brdm = ['brdm' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'p'];
+                filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
+                filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
+                
+                pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end
+                nav_path = filename(1:pos(end));
+                
+                flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
+                
+                file_avail = 0;
+                if (exist([nav_path filename_brdm],'file') && flag_GLO)
+                    filename = [nav_path filename_brdm];
+                    file_avail = 1;
+                elseif (exist([nav_path filename_CGIM],'file') && ~flag_GLO)
+                    filename = [nav_path filename_CGIM];
+                    file_avail = 1;
+                elseif (exist([nav_path filename_brdc],'file') && ~flag_GLO)
+                    filename = [nav_path filename_brdc];
+                    file_avail = 1;
+                else
+                    if (flag_GLO)
+                        filename = filename_brdm;
+                    else
+                        filename = filename_brdc;
+                    end
+                    [download_successful, compressed] = download_nav(filename, nav_path);
+                    filename = [nav_path filename];
+                    if (download_successful)
+                        file_avail = 1;
+                    end
+                    if (compressed)
+                        flag_return = 1;
+                    end
+                end
+                
+                if (file_avail)
+                    if (flag_GLO)
+                        only_iono = 0;
+                    else
+                        only_iono = 1;
+                    end
+                    parse_file(only_iono);
+                end
+            end
+            
+            function parse_file(only_iono)
+                
+                if (wait_dlg_PresenceFlag)
+                    waitbar(0.5,wait_dlg,'Reading navigation files...')
+                end
+                
+                Eph_G = []; iono_G = zeros(8,1);
+                Eph_R = []; iono_R = zeros(8,1);
+                Eph_E = []; iono_E = zeros(8,1);
+                Eph_C = []; iono_C = zeros(8,1);
+                Eph_J = []; iono_J = zeros(8,1);
+                Eph_I = []; iono_I = zeros(8,1);
+                
+                if (strcmpi(filename(end),'p'))
+                    flag_mixed = 1;
+                else
+                    flag_mixed = 0;
+                end
+                
+                if (cc.getGPS().isActive() || flag_mixed || only_iono)
+                    if (exist(filename,'file'))
+                        %parse RINEX navigation file (GPS) NOTE: filename expected to
+                        %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
+                        [Eph_G, iono_G] = RINEX_get_nav(filename, cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    else
+                        log.addWarning('GPS navigation file not found. Disabling GPS positioning. \n');
+                        cc.deactivateGPS();
+                    end
+                end
+                
+                if (cc.getGLONASS().isActive() && ~only_iono)
+                    if (exist([filename(1:end-1) 'g'],'file'))
+                        %parse RINEX navigation file (GLONASS)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'g: ... '])); end
+                        [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    elseif (~flag_mixed)
+                        log.addWarning('GLONASS navigation file not found. Disabling GLONASS positioning. \n');
+                        cc.deactivateGLONASS();
+                    end
+                end
+                
+                if (cc.getGalileo().isActive() && ~only_iono)
+                    if (exist([filename(1:end-1) 'l'],'file'))
+                        %parse RINEX navigation file (Galileo)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'l: ... '])); end
+                        [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    elseif (~flag_mixed)
+                        log.addWarning('Galileo navigation file not found. Disabling Galileo positioning. \n');
+                        cc.deactivateGalileo();
+                    end
+                end
+                
+                if (cc.getBeiDou().isActive() && ~only_iono)
+                    if (exist([filename(1:end-1) 'c'],'file'))
+                        %parse RINEX navigation file (BeiDou)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'c: ... '])); end
+                        [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    elseif (~flag_mixed)
+                        log.addWarning('BeiDou navigation file not found. Disabling BeiDou positioning. \n');
+                        cc.deactivateBeiDou();
+                    end
+                end
+                
+                if (cc.getQZSS().isActive() && ~only_iono)
+                    if (exist([filename(1:end-1) 'q'],'file'))
+                        %parse RINEX navigation file (QZSS)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
+                        [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    elseif (~flag_mixed)
+                        log.addWarning('QZSS navigation file not found. Disabling QZSS positioning. \n');
+                        cc.deactivateQZSS();
+                    end
+                end
+                
+                if (cc.getIRNSS().isActive() && ~only_iono)
+                    if (exist([filename(1:end-1) 'i'],'file'))
+                        %parse RINEX navigation file (IRNSS)
+                        if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename(1:end-1) 'q: ... '])); end
+                        [Eph_I, iono_I] = RINEX_get_nav([filename(1:end-1) 'i'], cc);
+                        if(~only_iono), log.addStatusOk(); end
+                    elseif (~flag_mixed)
+                        log.addWarning('IRNSS navigation file not found. Disabling QZSS positioning. \n');
+                        cc.deactivateIRNSS();
+                    end
+                end
+                
+                if (~only_iono)
+                    Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J Eph_I];
+                end
+                
+                if (any(iono_G))
+                    iono = iono_G;
+                elseif (any(iono_R))
+                    iono = iono_R;
+                elseif (any(iono_E))
+                    iono = iono_E;
+                elseif (any(iono_C))
+                    iono = iono_C;
+                elseif (any(iono_J))
+                    iono = iono_J;
+                elseif (any(iono_I))
+                    iono = iono_I;
+                else
+                    iono = zeros(8,1);
+                    log.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');
+                end
+                
+                if (wait_dlg_PresenceFlag)
+                    waitbar(1,wait_dlg)
+                end
+            end
+        end
+        
+        function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
+            
+            % SYNTAX:
+            %   [satp, satv] = satellite_orbits(t, Eph, sat, sbas);
+            %
+            % INPUT:
+            %   t = clock-corrected GPS time
+            %   Eph  = ephemeris matrix
+            %   sat  = satellite index
+            %   sbas = SBAS corrections
+            %
+            % OUTPUT:
+            %   satp = satellite position (X,Y,Z)
+            %   satv = satellite velocity
+            %
+            % DESCRIPTION:
+            %   Computation of the satellite position (X,Y,Z) and velocity by means
+            %   of its ephemerides.
+            
+            cc = Constellation_Collector('GRECJI');
+            Omegae_dot = cc.getSys(char(Eph(31))).ORBITAL_P.OMEGAE_DOT;
+            
+            
+            
+            %consider BeiDou time (BDT) for BeiDou satellites
+            if (strcmp(char(Eph(31)),'C'))
+                t = t - 14;
+            end
+            
+            %GPS/Galileo/BeiDou/QZSS satellite coordinates computation
+            if (~strcmp(char(Eph(31)),'R'))
+                
+                %get ephemerides
+                roota     = Eph(4);
+                ecc       = Eph(6);
+                omega     = Eph(7);
+                cuc       = Eph(8);
+                cus       = Eph(9);
+                crc       = Eph(10);
+                crs       = Eph(11);
+                i0        = Eph(12);
+                IDOT      = Eph(13);
+                cic       = Eph(14);
+                cis       = Eph(15);
+                Omega0    = Eph(16);
+                Omega_dot = Eph(17);
+                toe       = Eph(18);
+                time_eph  = Eph(32);
+                
+                %SBAS satellite coordinate corrections
+                if (~isempty(sbas))
+                    dx_sbas = sbas.dx(sat);
+                    dy_sbas = sbas.dy(sat);
+                    dz_sbas = sbas.dz(sat);
+                else
+                    dx_sbas = 0;
+                    dy_sbas = 0;
+                    dz_sbas = 0;
+                end
+                
+                %-------------------------------------------------------------------------------
+                % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES (IS-GPS-200E)
+                %-------------------------------------------------------------------------------
+                
+                %eccentric anomaly
+                [Ek, n] = ecc_anomaly(t, Eph);
+                
+                %cr = goGNSS.CIRCLE_RAD;
+                cr = 6.283185307179600;
+                
+                A = roota*roota;             %semi-major axis
+                tk = check_t(t - time_eph);  %time from the ephemeris reference epoch
+                
+                fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek) - ecc);    %true anomaly
+                phik = fk + omega;                           %argument of latitude
+                phik = rem(phik,cr);
+                
+                uk = phik                + cuc*cos(2*phik) + cus*sin(2*phik); %corrected argument of latitude
+                rk = A*(1 - ecc*cos(Ek)) + crc*cos(2*phik) + crs*sin(2*phik); %corrected radial distance
+                ik = i0 + IDOT*tk        + cic*cos(2*phik) + cis*sin(2*phik); %corrected inclination of the orbital plane
+                
+                %satellite positions in the orbital plane
+                x1k = cos(uk)*rk;
+                y1k = sin(uk)*rk;
+                
+                %if GPS/Galileo/QZSS or MEO/IGSO BeiDou satellite
+                if (~strcmp(char(Eph(31)),'C') || (strcmp(char(Eph(31)),'C') && Eph(1) > 5))
+                    
+                    %corrected longitude of the ascending node
+                    Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
+                    Omegak = rem(Omegak + cr, cr);
+                    
+                    %satellite Earth-fixed coordinates (X,Y,Z)
+                    xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
+                    yk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
+                    zk = y1k*sin(ik);
+                    
+                    %apply SBAS corrections (if available)
+                    satp = zeros(3,1);
+                    satp(1,1) = xk + dx_sbas;
+                    satp(2,1) = yk + dy_sbas;
+                    satp(3,1) = zk + dz_sbas;
+                    
+                else %if GEO BeiDou satellite (ranging code number <= 5)
+                    
+                    %corrected longitude of the ascending node
+                    Omegak = Omega0 + Omega_dot*tk - Omegae_dot*toe;
+                    Omegak = rem(Omegak + cr, cr);
+                    
+                    %satellite coordinates (X,Y,Z) in inertial system
+                    xgk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
+                    ygk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
+                    zgk = y1k*sin(ik);
+                    
+                    %store inertial coordinates in a vector
+                    Xgk = [xgk; ygk; zgk];
+                    
+                    %rotation matrices from inertial system to CGCS2000
+                    Rx = [1        0          0;
+                        0 +cosd(-5) +sind(-5);
+                        0 -sind(-5) +cosd(-5)];
+                    
+                    oedt = Omegae_dot*tk;
+                    
+                    Rz = [+cos(oedt) +sin(oedt) 0;
+                        -sin(oedt) +cos(oedt) 0;
+                        0           0         1];
+                    
+                    %apply the rotations
+                    Xk = Rz*Rx*Xgk;
+                    
+                    xk = Xk(1);
+                    yk = Xk(2);
+                    zk = Xk(3);
+                    
+                    %store CGCS2000 coordinates
+                    satp = zeros(3,1);
+                    satp(1,1) = xk;
+                    satp(2,1) = yk;
+                    satp(3,1) = zk;
+                end
+                
+                %-------------------------------------------------------------------------------
+                % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,
+                % GPS Solutions (2004) 8:181-183 )
+                %-------------------------------------------------------------------------------
+                if (nargout > 1)
+                    Mk_dot = n;
+                    Ek_dot = Mk_dot/(1-ecc*cos(Ek));
+                    fk_dot = sin(Ek)*Ek_dot*(1+ecc*cos(fk)) / ((1-cos(Ek)*ecc)*sin(fk));
+                    phik_dot = fk_dot;
+                    uk_dot = phik_dot + 2*(cus*cos(2*phik)-cuc*sin(2*phik))*phik_dot;
+                    rk_dot = A*ecc*sin(Ek)*Ek_dot + 2*(crs*cos(2*phik)-crc*sin(2*phik))*phik_dot;
+                    ik_dot = IDOT + 2*(cis*cos(2*phik)-cic*sin(2*phik))*phik_dot;
+                    Omegak_dot = Omega_dot - Omegae_dot;
+                    x1k_dot = rk_dot*cos(uk) - y1k*uk_dot;
+                    y1k_dot = rk_dot*sin(uk) + x1k*uk_dot;
+                    xk_dot = x1k_dot*cos(Omegak) - y1k_dot*cos(ik)*sin(Omegak) + y1k*sin(ik)*sin(Omegak)*ik_dot - yk*Omegak_dot;
+                    yk_dot = x1k_dot*sin(Omegak) + y1k_dot*cos(ik)*cos(Omegak) - y1k*sin(ik)*ik_dot*cos(Omegak) + xk*Omegak_dot;
+                    zk_dot = y1k_dot*sin(ik) + y1k*cos(ik)*ik_dot;
+                    
+                    satv = zeros(3,1);
+                    satv(1,1) = xk_dot;
+                    satv(2,1) = yk_dot;
+                    satv(3,1) = zk_dot;
+                end
+                
+            else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
+                
+                time_eph = Eph(32); %ephemeris reference time
+                
+                X   = Eph(5);  %satellite X coordinate at ephemeris reference time
+                Y   = Eph(6);  %satellite Y coordinate at ephemeris reference time
+                Z   = Eph(7);  %satellite Z coordinate at ephemeris reference time
+                
+                Xv  = Eph(8);  %satellite velocity along X at ephemeris reference time
+                Yv  = Eph(9);  %satellite velocity along Y at ephemeris reference time
+                Zv  = Eph(10); %satellite velocity along Z at ephemeris reference time
+                
+                Xa  = Eph(11); %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time
+                Ya  = Eph(12); %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time
+                Za  = Eph(13); %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time
+                %NOTE:  Xa,Ya,Za are considered constant within the integration interval (i.e. toe ?}15 minutes)
+                
+                %integration step
+                int_step = 60; %[s]
+                
+                %time from the ephemeris reference epoch
+                tk = check_t(t - time_eph);
+                
+                %number of iterations on "full" steps
+                n = floor(abs(tk/int_step));
+                
+                %array containing integration steps (same sign as tk)
+                ii = ones(n,1)*int_step*(tk/abs(tk));
+                
+                %check residual iteration step (i.e. remaining fraction of int_step)
+                int_step_res = rem(tk,int_step);
+                
+                %adjust the total number of iterations and the array of iteration steps
+                if (int_step_res ~= 0)
+                    n = n + 1;
+                    ii = [ii; int_step_res];
+                end
+                
+                %numerical integration steps (i.e. re-calculation of satellite positions from toe to tk)
+                pos = [X Y Z];
+                vel = [Xv Yv Zv];
+                acc = [Xa Ya Za];
+                
+                for s = 1 : n
+                    
+                    %Runge-Kutta numerical integration algorithm
+                    %
+                    %step 1
+                    pos1 = pos;
+                    vel1 = vel;
+                    [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    %
+                    %step 2
+                    pos2 = pos + pos1_dot*ii(s)/2;
+                    vel2 = vel + vel1_dot*ii(s)/2;
+                    [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    %
+                    %step 3
+                    pos3 = pos + pos2_dot*ii(s)/2;
+                    vel3 = vel + vel2_dot*ii(s)/2;
+                    [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    %
+                    %step 4
+                    pos4 = pos + pos3_dot*ii(s);
+                    vel4 = vel + vel3_dot*ii(s);
+                    [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    %
+                    %final position and velocity
+                    pos = pos + (pos1_dot + 2*pos2_dot + 2*pos3_dot + pos4_dot)*ii(s)/6;
+                    vel = vel + (vel1_dot + 2*vel2_dot + 2*vel3_dot + vel4_dot)*ii(s)/6;
+                end
+                
+                %transformation from PZ-90.02 to WGS-84 (G1150)
+                satp = zeros(3,1);
+                satp(1,1) = pos(1) - 0.36;
+                satp(2,1) = pos(2) + 0.08;
+                satp(3,1) = pos(3) + 0.18;
+                
+                %satellite velocity
+                satv = zeros(3,1);
+                satv(1,1) = vel(1);
+                satv(2,1) = vel(2);
+                satv(3,1) = vel(3);
+            end
+            
         end
     end
 end

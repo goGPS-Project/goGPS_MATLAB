@@ -734,7 +734,7 @@ classdef Constellation_Collector < Settings_Interface
             % SYNTAX
             %   n_sat = this.getMaxNumSat();
             if nargin == 2                
-                n_sat = double(this.n_sat_tot(this.SYS_C == sys_c));
+                n_sat = double(this.n_sat(this.SYS_C(this.active_list) == sys_c));
             else
                 n_sat = sum(double(this.n_sat_tot));
             end

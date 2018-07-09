@@ -923,8 +923,9 @@ classdef Least_Squares_Manipulator < handle
                    
                 end   
                 
-                
-                 [frac_part_n1, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed), (n_ep_wl(amb_wl_fixed)/sum(n_ep_wl(amb_wl_fixed))));
+                weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
+                weight = weight / sum(weight);
+                 [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
                 
                 amb_n1_fix = round(amb_n1 - wl_frac);
                 frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac; 

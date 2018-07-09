@@ -2107,7 +2107,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 return
             end
             [~, name,ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre')
+            if strcmpi(ext,'.sp3') || strcmp(ext,'.eph') || strcmp(ext,'.pre') || strcmp(ext,'.${YY}p') || strcmp(ext,'.${YY}n')
                 dir = this.getNavEphDir();
             elseif strcmpi(ext,'.erp')
                 dir = this.getErpDir();
@@ -2826,7 +2826,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')
+            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n')
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
