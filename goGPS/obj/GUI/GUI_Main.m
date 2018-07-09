@@ -621,7 +621,7 @@ classdef GUI_Main < handle
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi', @this.onCheckBoxChange);
             
-            opt_grid.Widths = [ -1];
+            opt_grid.Widths = -1;
         end
         
         function insertAtmosphere(this, container)
@@ -1068,10 +1068,10 @@ classdef GUI_Main < handle
         function updateSessionFromState(this, caller, event)
             state = Global_Configuration.getCurrentSettings;
             this.ui_sss_start.Children(2).JavaPeer.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
-            this.ui_sss_start.Children(1).Children(1).String = state.sss_date_start.toString('HH:MM:SS')
+            this.ui_sss_start.Children(1).Children(1).String = state.sss_date_start.toString('HH:MM:SS');
             %this.ui_sss_start.setDate(java.util.Date(state.sss_date_start.toString('yyyy/mm/dd')));
             this.ui_sss_stop.Children(2).JavaPeer.setDate(java.util.Date(state.sss_date_stop.toString('yyyy/mm/dd')));
-            this.ui_sss_stop.Children(1).Children(1).String = state.sss_date_stop.toString('HH:MM:SS')
+            this.ui_sss_stop.Children(1).Children(1).String = state.sss_date_stop.toString('HH:MM:SS');
             %this.ui_sss_stop.setDate(java.util.Date(state.sss_date_stop.toString('yyyy/mm/dd')));
         end
         

@@ -159,23 +159,23 @@ classdef Least_Squares_Manipulator < handle
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
                     
-                        for sys_c = rec.cc.sys_c
-                            for i = 1 : length(obs_type)
-                                if this.state.isIonoFree || ~phase_present
-                                    obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
-                                else
-                                    obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
-                                    obs_set.iono_free = true;
-                                    obs_set.sigma = obs_set.sigma * 1.5;
-                                end
+                    for sys_c = rec.cc.sys_c
+                        for i = 1 : length(obs_type)
+                            if this.state.isIonoFree || ~phase_present
+                                obs_set.merge(rec.getPrefIonoFree(obs_type(i), sys_c));
+                            else
+                                obs_set.merge(rec.getSmoothIonoFreeAvg('L', sys_c));
+                                obs_set.iono_free = true;
+                                obs_set.sigma = obs_set.sigma * 1.5;
                             end
                         end
-                   
+                    end
+                    
                     if flag_amb_fix && phase_present
-                         [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
-                         f_vec = GPS_SS.F_VEC;
-                         l_vec = GPS_SS.L_VEC;
-                         obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
+                        [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
+                        f_vec = GPS_SS.F_VEC;
+                        l_vec = GPS_SS.L_VEC;
+                        obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
                     end
                 else
                     for sys_c = rec.cc.sys_c
@@ -208,11 +208,11 @@ classdef Least_Squares_Manipulator < handle
                     end
                     out_idx = idxCharLines(obs_code_ph,obs_code1) & go_id_ph == g;
                     out = rec.sat.outlier_idx_ph(:,out_idx);
-                    if strcmp(obs_code2,'   ') 
-                         out_idx = idxCharLines(obs_code_ph,obs_code2) & go_id_ph == g;
-                         if any(out_idx)
+                    if strcmp(obs_code2,'   ')
+                        out_idx = idxCharLines(obs_code_ph,obs_code2) & go_id_ph == g;
+                        if any(out_idx)
                             out(:,out_idx) = out(:,out_idx) | rec.sat.outlier_idx_ph(:,out_idx);
-                         end
+                        end
                     end
                     rec.sat.o_out_ph(:,g) = out;
                     
@@ -248,22 +248,22 @@ classdef Least_Squares_Manipulator < handle
             end
             
             
-             % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
+            % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
             idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
             obs_set.setZeroEpochs(~idx_valid_ep_l);
             
-            %remove too shortArc            
+            %remove too shortArc
             
             % Compute the number of ambiguities that must be computed
             cycle_slip = obs_set.cycle_slip;
-             min_arc = this.state.getMinArc;
+            min_arc = this.state.getMinArc;
             if phase_present && min_arc > 1
                 amb_idx = obs_set.getAmbIdx();
                 % amb_idx = n_coo + n_iob + amb_idx;
                 amb_idx = zero2nan(amb_idx);
                 
                 % remove short arcs
-               
+                
                 % ambiguity number for each satellite
                 amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
                 assert(numel(amb_obs_count) == max(amb_idx(:))); % This should always be true
@@ -279,11 +279,11 @@ classdef Least_Squares_Manipulator < handle
             idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
             obs_set.setZeroEpochs(~idx_valid_ep_l);
             
-                
+            
             
             obs_set.remEmptyColumns();
             
-             % get reference observations and satellite positions
+            % get reference observations and satellite positions
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
@@ -311,13 +311,13 @@ classdef Least_Squares_Manipulator < handle
                 amb_flag = 1;
                 this.go_id_amb = obs_set.go_id;
             else
-            
+                
                 n_amb = 0;
                 amb_flag = 0;
                 this.amb_idx = [];
             end
             
-              % set up requested number of parametrs
+            % set up requested number of parametrs
             n_epochs = size(obs_set.obs, 1);
             this.n_epochs = n_epochs;
             n_stream = size(diff_obs, 2); % number of satellites
@@ -336,16 +336,16 @@ classdef Least_Squares_Manipulator < handle
             
             
             
-           
-           
+            
+            
             
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
-             id_sync_out = this.true_epoch;
+            id_sync_out = this.true_epoch;
             
             n_coo_par =  ~rec.isFixed() * 3; % number of coordinates
             
             if dynamic
-                n_coo = n_coo_par * n_epochs;              
+                n_coo = n_coo_par * n_epochs;
             else
                 if isempty(pos_idx_vec)
                     n_coo = n_coo_par;
@@ -679,7 +679,7 @@ classdef Least_Squares_Manipulator < handle
             %res_l = zeros(size(this.y));
             % speed-up of the previous lines
             res_l = this.y - sum(this.A_ep .* reshape(x(this.A_idx), size(this.A_idx,1), size(this.A_idx,2)),2);
-
+            
             this.res = res_l;
             res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);
@@ -894,10 +894,10 @@ classdef Least_Squares_Manipulator < handle
                 x_class(idx_p) = this.param_class(c);
             end
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0)
-                amb = x(x_class == 5,1);              
-                amb_wl_fixed = false(size(amb)); 
-                amb_n1 = nan(size(amb)); 
-                amb_wl = nan(size(amb)); 
+                amb = x(x_class == 5,1);
+                amb_wl_fixed = false(size(amb));
+                amb_n1 = nan(size(amb));
+                amb_wl = nan(size(amb));
                 %amb_nl = amb * (f_vec(1) + f_vec(2))/f_vec(1);
                 frac_part = nan(size(amb));
                 n_ep_wl = zeros(size(amb));
@@ -914,24 +914,24 @@ classdef Least_Squares_Manipulator < handle
                     amb_wl_fixed(i)=  this.wl_fixed(idx(1));
                     n_ep_wl(i) = length(idx);
                     amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
-%                     if mod(wl_amb,2) == 0
-%                         amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
-%                     else
-%                         amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
-%                     end
-%                     %amb_nl_fix(i) = round(amb_nl(i));
-%                     
-%                     frac_part_nl(i) = (amb_nl(i) - amb_nl_fix(i))/2; 
-                   
-                end   
+                    %                     if mod(wl_amb,2) == 0
+                    %                         amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
+                    %                     else
+                    %                         amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
+                    %                     end
+                    %                     %amb_nl_fix(i) = round(amb_nl(i));
+                    %
+                    %                     frac_part_nl(i) = (amb_nl(i) - amb_nl_fix(i))/2;
+                    
+                end
                 
                 weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
                 weight = weight / sum(weight);
-                 [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
+                [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
                 
                 amb_n1_fix = round(amb_n1 - wl_frac);
-                frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac; 
-               
+                frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac;
+                
                 idx_amb = find(x_class == 5);
                 % get thc cxx of the observations
                 n_amb  = length(idx_amb);
@@ -943,33 +943,33 @@ classdef Least_Squares_Manipulator < handle
                 Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
                 
                 idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
-               
+                
                 idxFix2idxFlo = 1 : length(x);
                 idxFlo2idxFix = nan(length(x),1);
                 A_fixed = false(size(this.A_idx(:,4)));
                 for i = 1 : length(idx_fix)
                     Ni = N(:,idx_amb(i));
                     if idx_fix(i)
-                       
+                        
                         %b_if_fix =  amb_nl_fix(i) * (0.1070 / 2) + amb_wl(i) * 0.862/2;
                         %B = B - Ni * b_if_fix;
                         b_if_fix = 0.1070 * (amb_n1_fix(i));% 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* amb_wl(i) + 0.1070 * amb_n1_fix(i);
                         B = B - Ni* ( b_if_fix);
                         A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
                     end
-%                     b_frac = 0.1070 * (-wl_frac);
-%                     B = B - Ni* ( b_frac);
+                    %                     b_frac = 0.1070 * (-wl_frac);
+                    %                     B = B - Ni* ( b_frac);
                     
                 end
                 
-                 
+                
                 B(idx_amb(idx_fix)) = [];
                 B(end) = 0;
                 N(idx_amb(idx_fix),:) = [];
                 N(:,idx_amb(idx_fix)) = [];
                 idxFix2idxFlo(idx_amb(idx_fix)) = [];
                 idxFlo2idxFix(idx_amb(idx_fix)) = 0;
-                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B); 
+                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
                 xf = N \ B;
                 % ---------------- consider second round
                 x_old = x;
@@ -982,7 +982,7 @@ classdef Least_Squares_Manipulator < handle
             if nargout > 1
                 x_res = zeros(size(x));
                 x_res(N2A_idx) = x(1:end-size(this.G,1));
-                res = this.getResiduals(x_res);                
+                res = this.getResiduals(x_res);
                 s0 = mean(abs(res(res~=0)));
                 if nargout > 3
                     Cxx = s0 * Cxx;
