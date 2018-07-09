@@ -300,7 +300,9 @@ classdef Least_Squares_Manipulator < handle
             xs_loc(idx_empty_ep, :, :) = [];
             obs_set.remEpochs(idx_empty_ep);
             obs_set.sanitizeEmpty();
-             
+            idx_empty_col = sum(diff_obs) == 0;
+            diff_obs(:, idx_empty_col) = [];
+            xs_loc(:, idx_empty_col, :) = [];
             
             if phase_present
                 amb_idx = obs_set.getAmbIdx();
