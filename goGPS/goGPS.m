@@ -61,13 +61,14 @@ function goGPS(ini_settings, use_gui, flag_online)
 % clear java
 
     %% Preparing execution and settings
-    log = Logger.getInstance();
-    log.disableFileOut();
     
     if (~isdeployed)
         % add all the subdirectories to the search path
         addPathGoGPS;
     end
+    log = Logger.getInstance();
+    log.disableFileOut();
+    
     core = Core.getInstance(true); % Init Core
     
     if nargin >= 1 && ~isempty(ini_settings)
