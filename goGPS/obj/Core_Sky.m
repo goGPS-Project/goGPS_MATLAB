@@ -462,7 +462,7 @@ classdef Core_Sky < handle
             end
             eph = [];
             for i=1:length(f_names)
-                [eph_temp, this.iono] = this.load_RINEX_nav(f_names{i},this.cc,0,0);
+                [eph_temp, this.iono] = this.loadRinexNav(f_names{i},this.cc,0,0);
                 eph = [eph eph_temp];
             end
             
@@ -532,7 +532,7 @@ classdef Core_Sky < handle
                 k = find_eph(eph, sat(i), time, 86400);
                 if not(isempty(k))
                     %compute satellite position and velocity
-                    [XS(i,:), VS(i,:)] = this.satellite_orbits(time, eph(:,k), sat(i), []);
+                    [XS(i,:), VS(i,:)] = this.satelliteOrbits(time, eph(:,k), sat(i), []);
                     dt_s(i) = sat_clock_error_correction(time, eph(:,k));
                     dt_s(i) = sat_clock_error_correction(time - dt_s(i), eph(:,k));
                 else
@@ -1134,7 +1134,7 @@ classdef Core_Sky < handle
         end
         
         function importIono(this,f_name)
-            [~, this.iono, flag_return ] = this.load_RINEX_nav(f_name,this.cc,0,0);
+            [~, this.iono, flag_return ] = this.loadRinexNav(f_name,this.cc,0,0);
             if (flag_return)
                 return
             end
@@ -2047,10 +2047,10 @@ classdef Core_Sky < handle
         % Old goGPS functions , integrated with minor modifications as static methods
         %----------------------------------------------------------------------------
         
-        function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_model, time, wait_dlg)
+        function [Eph, iono, flag_return] = loadRinexNav(filename, cc, flag_SP3, iono_model, time, wait_dlg)
             
             % SYNTAX:
-            %   [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
+            %   [Eph, iono, flag_return] = loadRinexNav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
             %
             % INPUT:
             %   filename = RINEX navigation file
@@ -2263,10 +2263,10 @@ classdef Core_Sky < handle
             end
         end
         
-        function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
+        function [satp, satv] = satelliteOrbits(t, Eph, sat, sbas)
             
             % SYNTAX:
-            %   [satp, satv] = satellite_orbits(t, Eph, sat, sbas);
+            %   [satp, satv] = satelliteOrbits(t, Eph, sat, sbas);
             %
             % INPUT:
             %   t = clock-corrected GPS time

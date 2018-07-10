@@ -933,7 +933,7 @@ classdef Least_Squares_Manipulator < handle
                 frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac;
                 
                 idx_amb = find(x_class == 5);
-                % get thc cxx of the observations
+                % get thc cxx of the ambiguities
                 n_amb  = length(idx_amb);
                 b_eye = zeros(length(B),n_amb);
                 idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
@@ -942,7 +942,7 @@ classdef Least_Squares_Manipulator < handle
                 Cxx_amb = N\b_eye;
                 Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
                 
-                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30;
+                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
                 
                 idxFix2idxFlo = 1 : length(x);
                 idxFlo2idxFix = nan(length(x),1);

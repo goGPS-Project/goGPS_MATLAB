@@ -3411,7 +3411,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             fun2 = @(wl1,wl2) 0.35;
             [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
             obs_set.iono_free = true;
-            obs_set.obs_code = repmat('GL1L2AV',length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1CL2WI',length(obs_set.prn),1);
         end
         
          function [obs_set, widelane_amb_mat, widelane_amb_fixed] = getIonoFreeWidelaneFixed(this) 
@@ -3475,7 +3475,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
             
-            gf.obs = smoothSatData(this, [], [], zero2nan(gf.obs), gf.cycle_slip);
+            gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
@@ -3498,7 +3498,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
-            obs_set.obs_code = repmat('GL1',length(obs_set.prn),1);
+            obs_set.obs_code = repmat('GL1CL2WI',length(obs_set.prn),1);
         end        
         
         function [obs_set]  = getPrefMelWub(this, system)
@@ -6891,7 +6891,7 @@ classdef Receiver_Work_Space < Receiver_Commons
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     
-    methods (Access = public)        
+    methods (Access = public, Static)        
           
         function [pr, sigma_pr] = smoothCodeWithDoppler(pr, sigma_pr, pr_go_id, dp, sigma_dp, dp_go_id)
             % NOT WORKING due to iono
