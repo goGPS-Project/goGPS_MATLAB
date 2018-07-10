@@ -898,15 +898,10 @@ classdef Least_Squares_Manipulator < handle
                 amb_wl_fixed = false(size(amb));
                 amb_n1 = nan(size(amb));
                 amb_wl = nan(size(amb));
-                %amb_nl = amb * (f_vec(1) + f_vec(2))/f_vec(1);
-                frac_part = nan(size(amb));
                 n_ep_wl = zeros(size(amb));
-                amb_nl_fix = frac_part;
                 n_amb = max(max(this.amb_idx));
                 n_ep = size(this.wl_amb,1);
                 n_coo = max(this.A_idx(:,3));
-                f_vec = GPS_SS.F_VEC;
-                l_vec = GPS_SS.L_VEC;
                 for i = 1 : n_amb
                     sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
                     idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
@@ -914,14 +909,6 @@ classdef Least_Squares_Manipulator < handle
                     amb_wl_fixed(i)=  this.wl_fixed(idx(1));
                     n_ep_wl(i) = length(idx);
                     amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
-                    %                     if mod(wl_amb,2) == 0
-                    %                         amb_nl_fix(i) = Core_Utils.round_even(amb_nl(i)); %nearest even
-                    %                     else
-                    %                         amb_nl_fix(i) = Core_Utils.round_odd(amb_nl(i)); %nearest odd
-                    %                     end
-                    %                     %amb_nl_fix(i) = round(amb_nl(i));
-                    %
-                    %                     frac_part_nl(i) = (amb_nl(i) - amb_nl_fix(i))/2;
                     
                 end
                 
@@ -950,16 +937,10 @@ classdef Least_Squares_Manipulator < handle
                 for i = 1 : length(idx_fix)
                     Ni = N(:,idx_amb(i));
                     if idx_fix(i)
-                        
-                        %b_if_fix =  amb_nl_fix(i) * (0.1070 / 2) + amb_wl(i) * 0.862/2;
-                        %B = B - Ni * b_if_fix;
-                        b_if_fix = 0.1070 * (amb_n1_fix(i));% 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* amb_wl(i) + 0.1070 * amb_n1_fix(i);
+                        b_if_fix = 0.1070 * (amb_n1_fix(i));
                         B = B - Ni* ( b_if_fix);
                         A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
-                    end
-                    %                     b_frac = 0.1070 * (-wl_frac);
-                    %                     B = B - Ni* ( b_frac);
-                    
+                    end                    
                 end
                 
                 
@@ -971,7 +952,38 @@ classdef Least_Squares_Manipulator < handle
                 idxFlo2idxFix(idx_amb(idx_fix)) = 0;
                 idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
                 xf = N \ B;
-                % ---------------- consider second round
+                % ---------------- try to fix again
+                new_idx_amb = idxFlo2idxFix(idx_amb);
+                new_idx_amb(new_idx_amb == 0) = [];
+                amb_n1 = xf(new_idx_amb)/0.1070;
+                weight = min(n_ep_wl(~idx_fix),100); % <- downweight too short arc
+                weight = weight / sum(weight);
+                [~, wl_frac] = Core_Utils.getFracBias(amb_n1,weight);
+                amb_n1_fix(~idx_fix) = round(amb_n1 - wl_frac);
+                frac_part_n1(~idx_fix) = amb_n1 - amb_n1_fix(~idx_fix) - wl_frac;
+                idx_fix_old = idx_fix;
+                idx_fix(~idx_fix) = abs(frac_part_n1(~idx_fix)) < 0.20 & n_ep_wl(~idx_fix) > 30; % fixing criteria (very rough)
+                new_fix_idx = idx_fix(~idx_fix_old);
+                new2old_idx_fix = find(~idx_fix_old);
+                for i = 1 : length(new_fix_idx)
+                    Ni = N(:,new_idx_amb(i));
+                    if new_fix_idx(i)
+                        b_if_fix = 0.1070 * (amb_n1_fix(new2old_idx_fix(i)));
+                        B = B - Ni* ( b_if_fix);
+                        A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(new2old_idx_fix(i));
+                    end                    
+                end
+                B(idx_amb(new_fix_idx)) = [];
+                B(end) = 0;
+                N(idx_amb(new_fix_idx),:) = [];
+                N(:,idx_amb(new_fix_idx)) = [];
+                idxFix2idxFlo = 1 : length(x);
+                idxFlo2idxFix = nan(length(x),1);
+                idxFix2idxFlo(idx_amb(idx_fix)) = [];
+                idxFlo2idxFix(idx_amb(idx_fix)) = 0;
+                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
+                %-------------------------------------------------------------
+                xf = N \ B;
                 x_old = x;
                 x(idxFix2idxFlo) = xf;
                 x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
