@@ -1056,9 +1056,9 @@ classdef Ini_Manager < handle
                 cell_str = {};
             end
 
-            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '--------------------------------------------------------------------------------'];
+            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '----------------------------------------------------------------------------------'];
             cell_str{numel(cell_str) + 1} = ['[' section_name ']'];
-            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '--------------------------------------------------------------------------------'];
+            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '----------------------------------------------------------------------------------'];
 
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)

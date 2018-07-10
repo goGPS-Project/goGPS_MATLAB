@@ -128,12 +128,13 @@ classdef Core < handle
             
             if nargin < 2
                 force_clean = false;
-            end
+            end            
+            this.log.setOutMode([], false);                
             if ispc, fclose('all'); end
+
             cm = this.log.getColorMode();
-            this.log.setColorMode(true);
-            this.log.setOutFile();
-            this.log.addMessageToFile(Core_UI.getTextHeader());
+            this.log.setColorMode(true);   
+            
             Core_UI.showTextHeader();
             this.log.setColorMode(cm);            
             this.gc = Global_Configuration.getInstance();
@@ -313,10 +314,7 @@ classdef Core < handle
             % SYNTAX
             %   this.go(session_num)
             
-            t0 = tic;
-            if this.state.saveLog()
-                diary([this.state.getOutDir '/goGPS_run_' strrep(datestr(datetime('now')),' ','_') '.log'])
-            end
+            t0 = tic;            
             if nargin == 1
                 session_list = 1 : this.state.getSessionCount();
             else
@@ -340,8 +338,7 @@ classdef Core < handle
             end
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
-            this.log.newLine;
-            diary off
+            this.log.newLine;          
         end
         
         function exec(this, cmd)
@@ -372,7 +369,6 @@ classdef Core < handle
                 level = 1;
             end
             
-            this.log.newLine();
             this.log.addMessage('Checking input files and folders...');
             this.log.newLine();
             

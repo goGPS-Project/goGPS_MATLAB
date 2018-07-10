@@ -60,10 +60,12 @@ function goGPS(ini_settings, use_gui, flag_online)
 %
 % clear java
 
-% add all the subdirectories to the search path
-    diary off
     %% Preparing execution and settings
+    log = Logger.getInstance();
+    log.disableFileOut();
+    
     if (~isdeployed)
+        % add all the subdirectories to the search path
         addPathGoGPS;
     end
     core = Core.getInstance(true); % Init Core
@@ -98,9 +100,20 @@ function goGPS(ini_settings, use_gui, flag_online)
             return
         end
     end
-    
-    log = Logger.getInstance();
-    core.logCurrentSettings();
+        
+    % Enable file logging
+    if core.state.isLogOnFile()
+        log.newLine();
+        log.enableFileOut();
+        log.setOutFile([core.state.getOutDir '/goGPS_run_${NOW}.log']); % <= to enable project logging
+        % log.setOutFile(); <= to enable system logging (save into system folder)
+        log.disableFileOut();
+        fnp = File_Name_Processor();
+        log.addMessage(sprintf('Logging to: %s\n', fnp.getRelDirPath(log.getFilePath, core.state.getHomeDir)));
+        log.enableFileOut();
+        log.addMessageToFile(Core_UI.getTextHeader());
+        core.logCurrentSettings();
+    end
     
     %% GO goGPS - here the computations start
     err_code = core.checkValidity();
@@ -125,7 +138,13 @@ function goGPS(ini_settings, use_gui, flag_online)
         end
     end
     
-    if ~isdeployed && ok_go        
+    % Stop logging
+    if core.state.isLogOnFile()
+        log.disableFileOut();
+        log.closeFile();
+    end
+    
+    if ~isdeployed && ok_go
         % Do not export to workspace
         %log.addMessage('Execute the script "getResults", to load the object created during the processing');
         
@@ -138,6 +157,5 @@ function goGPS(ini_settings, use_gui, flag_online)
         log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
         log.addMessage(log.indent(' - rec       the array of Receivers'));
     end
-    
 end
 

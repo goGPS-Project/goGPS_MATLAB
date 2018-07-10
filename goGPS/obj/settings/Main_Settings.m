@@ -995,7 +995,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % SESSION
             str_cell = Ini_Manager.toIniStringSection('SESSION', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used to substitute special keywords in file names', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('       to substitute special keywords in file names', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
             str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
@@ -1003,7 +1004,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
             %str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd'), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword (e.g. "01233456789ABCabc")', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('(e.g. "01233456789ABCabc")', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_list', this.sss_id_list, str_cell);
             str_cell = Ini_Manager.toIniStringComment('First session id (char of sss_id_list)', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_start', this.sss_id_start, str_cell);
@@ -1200,10 +1202,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Prefix ("name") to add to the output (can contain special keywords / subfolders)',str_cell);
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
-            str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
+            %str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);
+            %str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);
+            %str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
+            %str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
 
@@ -1269,7 +1271,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('cut_off', this.cut_off, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio threshold [dB]', str_cell);
             str_cell = Ini_Manager.toIniString('snr_thr', this.snr_thr, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs equal or greater than this value)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('consecutive epochs equal or greater than this value)', str_cell);
             str_cell = Ini_Manager.toIniString('min_arc', this.min_arc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
@@ -3260,8 +3263,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_pole_tide = this.flag_pole_tide;
         end
         
-        function save_log = saveLog(this)
-            % check weather the log should be svaed
+        function save_log = isLogOnFile(this)
+            % check weather the log should be saved
             %
             % SYNTAX
             %    save_log = saveLog(this)
