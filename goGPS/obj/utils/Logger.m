@@ -47,12 +47,20 @@ classdef Logger < handle
         DEFAULT_VERBOSITY_LEV   = 9;  % Default verbosity level
         WARNING_VERBOSITY_LEV   = 3;  % Warning verbosity level
         ERROR_VERBOSITY_LEV     = 1;  % Error verbosity level
+        
+        STD_OUT        = 1;     % Output: text only
+        STD_FILE       = 5;     % Output: file only        
+        STD_OUT_N_FILE = 10;    % Output: file + text > 10
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
-        color_mode = true;            % Flag for coloured output messages (if true requires cprintf)
+        color_mode = true;                        % Flag for coloured output messages (if true requires cprintf)
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level
-        std_out = 0;                  % Define the standard output of the
+        std_out = Logger.STD_OUT_N_FILE;          % Define the standard output of the logger
+        
+        out_file_path                             % Path to the logging file
+        file_out_mode = 'w+';                     % log to file in (w/a) mode (w+ = new file, a+ = append)
+        fid                                       % File handler
     end
 
     methods (Access = private)
@@ -63,6 +71,15 @@ classdef Logger < handle
             % Initialisation of the variables
             if isdeployed
                 this.color_mode = false;
+            end
+            if isunix
+                if ismac % is Mac
+                    this.out_file_path = '~/Library/Logs/goGPS/go_gps ${NOW}.log';
+                else     % is Linux
+                    this.out_file_path = './logs/go_gps ${NOW}.log';
+                end
+            elseif ispc  % is Windows
+                this.out_file_path = './logs/go_gps ${NOW}.log';
             end
         end
     end
@@ -105,6 +122,103 @@ classdef Logger < handle
             % Get level of verbosity
             verbosity = this.verbosity;
         end
+        
+        function [std_out, file_out_mode] = getOutMode(this)
+            % Get output mode
+            std_out = this.std_out;
+            file_out_mode = this.file_out_mode;
+        end
+        
+        % Set file of log  ------------------------------------------------
+        function setOutFile(this, out_file_path, file_out_mode)
+            % Set the output logging file path
+            %
+            % INPUT:
+            %   file_out_mode  'w'     open file for writing; discard existing contents (DEFAULT)
+            %                  'a'     open or create file for writing; append data to end of file
+            %
+            % SYNTAX:
+            %   log.setOutFile(<out_file_path>, <file_out_mode>)
+            %
+            % NOTES
+            %   ${NOW} when present in the name is substituted with the current date_time yyyymmdd HH:MM:SS
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File                
+                if nargin < 3 || isempty(file_out_mode)
+                    file_out_mode = this.file_out_mode;
+                end
+                
+                if nargin < 2 || isempty(out_file_path)
+                    % Set default name
+                    if isunix
+                        if ismac % is Mac
+                            this.out_file_path = '~/Library/Logs/goGPS/go_gps ${NOW}.log';
+                        else     % is Linux
+                            this.out_file_path = './logs/go_gps ${NOW}.log';
+                        end
+                    elseif ispc  % is Windows
+                        this.out_file_path = './logs/go_gps ${NOW}.log';
+                    end
+                    
+                    out_file_path = this.out_file_path;
+                end
+                
+                % Test out file path
+                [f_dir, ~, ~] = fileparts(out_file_path);
+                if ~isempty(f_dir) && ~(exist(f_dir, 'file') == 7) % if it is not an existing folder
+                    mkdir(f_dir); % create the missing folder
+                end
+                
+                try fclose(this.fid); catch; end % if is not open do nothing
+                
+                out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
+                this.fid = fopen(out_file_path, file_out_mode);
+                if this.fid <= 0
+                    this.fid = 0;
+                    error('Unable to open logging at %s', out_file_path);
+                else
+                    this.out_file_path = out_file_path;
+                end
+            end
+        end
+        
+        function out_file_path = getFilePath(this)
+            % Get the file path of the output file
+            %
+            % SYNTAX:
+            %   out_file_path = log.getFilePath();
+            
+            out_file_path = this.out_file_path;
+        end
+
+        function fid = getOutFId(this)
+            % Get the handler of the output file
+            try 
+                ftell(this.fid); % Test if the file is open                
+            catch % file is not open => try to create it or open it
+                out_file_path = this.out_file_path;
+                [f_dir, ~, ~] = fileparts(out_file_path);
+                if ~isempty(f_dir) && ~(exist(f_dir, 'file') == 7) % if it is not an existing folder
+                    mkdir(f_dir); % create the missing folder
+                end
+                
+                try fclose(this.fid); catch; end % if is not open do nothing
+                               
+                out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
+                this.fid = fopen(out_file_path, 'a+');
+                if this.fid <= 0
+                    this.fid = 0;
+                    error('Unable to open logging at %s\n', out_file_path);
+                else
+                    this.out_file_path = out_file_path;
+                end
+            end
+            if this.fid <= 0
+                this.fid = 0;
+                error('Unable to open logging at %s', this.out_file_path);
+            end
+            fid = this.fid;            
+        end
+
     end
 
     % =========================================================================
@@ -117,7 +231,12 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('\n');
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    fprintf('\n');
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, '\n');
+                end
             end
         end
 
@@ -127,7 +246,13 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('--------------------------------------------------------------------------\n');
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    fprintf('--------------------------------------------------------------------------\n');
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, '  ----------------------------------------------------------------------\n');
+                end
+                
             end
         end
         
@@ -137,7 +262,12 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('  **********************************************************************\n');
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    fprintf('  **********************************************************************\n');
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, '  **********************************************************************\n');
+                end
             end
         end
         
@@ -147,7 +277,12 @@ classdef Logger < handle
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('  ----------------------------------------------------------------------\n');
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    fprintf('  --------------------------------------------------------------------\n');
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, '  --------------------------------------------------------------------\n');
+                end
             end
         end
         
@@ -159,16 +294,43 @@ classdef Logger < handle
             text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
             if (verbosity_level <= this.verbosity)
-                if this.color_mode
-                    text = strrep(text, '\', '\\');
-                    cprintf('Green','   **   ');
-                    cprintf('text', strcat(text, '\n'));
-                else
-                    fprintf('   **   %s\n', text);
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    if this.color_mode
+                        text = strrep(text, '\', '\\');
+                        cprintf('Green','   **   ');
+                        cprintf('text', strcat(text, '\n'));
+                    else
+                        fprintf('   **   %s\n', text);
+                    end
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, '   **   %s\n', text);
                 end
             end
         end
 
+        function addMessageToFile(this, text_in, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 3)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                if iscell(text_in)
+                    text = [];
+                    for l = 1 : numel(text_in)
+                        text = [text text_in{l} char([10, 32])]; %#ok<AGROW>
+                    end
+                else
+                    text = text_in;
+                end
+                text = strrep(text, char(10), char([10, 32]));
+                text = strrep(text, '\n', char([10, 32]));
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, ' %s\n', text);
+                end
+            end
+        end
+        
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -177,7 +339,12 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
-                fprintf(' %s\n', text);
+                if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                    fprintf(' %s\n', text);
+                end
+                if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                    fprintf(this.getOutFId, ' %s\n', text);
+                end                
             end
         end
 
@@ -256,11 +423,16 @@ classdef Logger < handle
             end
 
             this.opStatus(0, color_mode);
-
-            if (color_mode)
-                cprintf('text', [text '\n']);
-            else
-                fprintf([text '\n']);
+            
+            if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                if (color_mode)
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf([text '\n']);
+                end
+            end
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                fprintf(this.getOutFId, [text '\n']);
             end
         end
         
@@ -270,6 +442,8 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
 
+            this.opStatus(2, color_mode);
+
             if isempty(text)
                 fprintf('\b');
             else
@@ -277,13 +451,16 @@ classdef Logger < handle
                 text = strrep(text, '\n', char([10, 32]));
                 text = strrep(text, '\', '\\');
             end
-
-            this.opStatus(2, color_mode);
-
-            if (color_mode)
-                cprintf('text', [text '\n']);
-            else
-                fprintf([text '\n']);
+            
+            if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                if (color_mode)
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf([text '\n']);
+                end
+            end
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                fprintf(this.getOutFId, [text '\n']);
             end
         end
 
@@ -296,12 +473,18 @@ classdef Logger < handle
             text = strrep(text, char(10), char([10, 32 * ones(1,17)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,17)]));
             text = strrep(text, '\', '\\');
-            if (color_mode)
-                cprintf([1 0.65 0], 'Warning: ');
-                cprintf('text', [text '\n']);
-            else
-                fprintf(['WARNING: ' text '\n']);
+            
+            if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                if (color_mode)
+                    cprintf([1 0.65 0], 'Warning: ');
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf(['WARNING: ' text '\n']);
+                end
             end
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                fprintf(this.getOutFId, ['WARNING: ' text '\n']);
+            end                        
         end
 
         function printError(this, text, color_mode)
@@ -313,47 +496,64 @@ classdef Logger < handle
             text = strrep(text, char(10), char([10, 32 * ones(1,15)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,15)]));
             text = strrep(text, '\', '\\');
-            if (color_mode)
-                cprintf('err', 'Error: ');
-                cprintf('text', [text '\n']);
-            else
-                fprintf(['ERROR: ' text '\n']);
+            
+            if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                if (color_mode)
+                    cprintf('err', 'Error: ');
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf(['ERROR: ' text '\n']);
+                end
+            end
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                fprintf(this.getOutFId, ['ERROR: ' text '\n']);
             end
         end
 
+        function opStatus(this, status, color_mode)
+            % Display a flag of operation status ( -1 Err, 0 Ok, 1 Warning)
+            if (nargin == 1)
+                color_mode = true;
+            end
+            
+            
+            if ismember(this.std_out, [this.STD_OUT, this.STD_OUT_N_FILE]) % Screen
+                if color_mode
+                    cprintf('blue',' [ ');
+                    switch (status)
+                        case 0, cprintf('Green','ok');
+                        case 1, cprintf([1 0.65 0],'WW');
+                        case 2, cprintf([0.5 0.5 0.5],'--');
+                        otherwise, cprintf('Red','!!');
+                    end
+                    cprintf('blue',' ] ');
+                else
+                    fprintf(' [ ');
+                    switch (status)
+                        case 0, fprintf('ok');
+                        case 1, fprintf('WW');
+                        case 2, fprintf('--');
+                        otherwise, fprintf('!!');
+                    end
+                    fprintf(' ] ');
+                end
+            end
+            if ismember(this.std_out, [this.STD_FILE, this.STD_OUT_N_FILE]) % File
+                switch (status)
+                    case 0, fprintf(this.getOutFId, ' [ ok ] ');
+                    case 1, fprintf(this.getOutFId, ' [ WW ] ');
+                    case 2, fprintf(this.getOutFId, ' [ -- ] ');
+                    otherwise, fprintf(this.getOutFId, ' [ !! ] ');
+                end
+            end
+        end
     end
 
     % =========================================================================
     %    DISPLAY UTILITIES
     % =========================================================================
 
-    methods(Static, Access = 'public')
-        function opStatus(status, color_mode)
-            % Display a flag of operation status ( -1 Err, 0 Ok, 1 Warning)
-            if (nargin == 1)
-                color_mode = true;
-            end
-            if color_mode
-                cprintf('blue',' [ ');
-                switch (status)
-                    case 0, cprintf('Green','ok');
-                    case 1, cprintf([1 0.65 0],'WW');
-                    case 2, cprintf([0.5 0.5 0.5],'--');
-                    otherwise, cprintf('Red','!!');
-                end
-                cprintf('blue',' ] ');
-            else
-                fprintf(' [ ');
-                switch (status)
-                    case 0, fprintf('ok');
-                    case 1, fprintf('WW');
-                    case 2, fprintf('--');
-                    otherwise, fprintf('!!');
-                end
-                fprintf(' ] ');
-            end
-        end
-        
+    methods(Static, Access = 'public')        
         function str = indent(str, n_spaces)
             % Add n_spaces at the beginning of each line
             % SYNTAX: str = indent(str, n_spaces)

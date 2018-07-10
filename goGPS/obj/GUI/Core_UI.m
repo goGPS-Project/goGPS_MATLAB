@@ -155,6 +155,10 @@ classdef Core_UI < handle
         end
         
         function showTextHeader()
+            % Display as a text the Header containing goGPS ASCII title and version
+            %
+            % SYNTAX:
+            %   Core_UI.showTextHeader();
             this.log = Logger.getInstance();
             if this.log.getColorMode()
                 %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
@@ -167,6 +171,16 @@ classdef Core_UI < handle
             end
             this.log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
             fprintf('--------------------------------------------------------------------------\n\n');
+        end
+        
+        function str_out = getTextHeader()
+            % Export as a string the Header containing goGPS ASCII title and version
+            %
+            % SYNTAX:
+            %   str_out = Core_UI.getTextHeader();
+            
+            str_out = sprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.GO_GPS_VERSION);
+            str_out = sprintf('%s\n--------------------------------------------------------------------------\n',str_out);
         end
         
         function [logo, transparency] = getLogo()
@@ -1152,6 +1166,7 @@ classdef Core_UI < handle
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
+        
         function [box_handle] = insertEditBoxArray(parent,num_boxes, text_left, property_name, text_right, callback, widths)
             if nargin < 6
                 if nargin < 4 || isempty(text_right)

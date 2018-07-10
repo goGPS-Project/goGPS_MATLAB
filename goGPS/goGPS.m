@@ -99,13 +99,15 @@ function goGPS(ini_settings, use_gui, flag_online)
         end
     end
     
+    log = Logger.getInstance();
+    core.logCurrentSettings();
+    
     %% GO goGPS - here the computations start
     err_code = core.checkValidity();
     
     ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
     
     if ~ok_go
-        log = Logger.getInstance();
         log.addError('Invalid configuration found!!!');
     else
         
@@ -123,9 +125,7 @@ function goGPS(ini_settings, use_gui, flag_online)
         end
     end
     
-    if ~isdeployed && ok_go
-        log = Logger.getInstance();
-        
+    if ~isdeployed && ok_go        
         % Do not export to workspace
         %log.addMessage('Execute the script "getResults", to load the object created during the processing');
         

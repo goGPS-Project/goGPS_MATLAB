@@ -129,11 +129,13 @@ classdef Core < handle
             if nargin < 2
                 force_clean = false;
             end
+            if ispc, fclose('all'); end
             cm = this.log.getColorMode();
             this.log.setColorMode(true);
+            this.log.setOutFile();
+            this.log.addMessageToFile(Core_UI.getTextHeader());
             Core_UI.showTextHeader();
             this.log.setColorMode(cm);            
-            fclose('all');
             this.gc = Global_Configuration.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
@@ -204,6 +206,20 @@ classdef Core < handle
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             this.log.setColorMode(c_mode);
         end        
+    end
+    
+    %% METHODS EXPORT
+    methods
+        function logCurrentSettings(this)
+            log = Logger.getInstance();
+            log.addMessageToFile('\n============================================================================================');
+            log.addMessageToFile('== CONFIG FILE =============================================================================');
+            log.addMessageToFile('============================================================================================\n');
+            log.addMessageToFile(this.state.export);
+            log.addMessageToFile('\n============================================================================================');
+            log.addMessageToFile('== END OF CONFIG FILE ======================================================================');
+            log.addMessageToFile('============================================================================================\n');
+        end
     end
     
     %% METHODS RUN
@@ -317,7 +333,10 @@ classdef Core < handle
                         this.rec(r).resetOut();
                     end                    
                 end
-                if ~isunix, fclose('all'); end
+                if ispc
+                    fclose('all'); % this will close the log :-(
+                    this.log.setOutFile(this.log.getFilePath);
+                end 
             end
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
