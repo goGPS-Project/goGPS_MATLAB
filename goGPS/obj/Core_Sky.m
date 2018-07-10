@@ -2283,7 +2283,9 @@ classdef Core_Sky < handle
             %   of its ephemerides.
             
             cc = Constellation_Collector('GRECJI');
-            Omegae_dot = cc.getSys(char(Eph(31))).ORBITAL_P.OMEGAE_DOT;
+            sys_str = cc.getSys(char(Eph(31)));
+            orbital_p = sys_str.ORBITAL_P;
+            Omegae_dot = orbital_p.OMEGAE_DOT;
             
             
             
@@ -2480,22 +2482,22 @@ classdef Core_Sky < handle
                     %step 1
                     pos1 = pos;
                     vel1 = vel;
-                    [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 2
                     pos2 = pos + pos1_dot*ii(s)/2;
                     vel2 = vel + vel1_dot*ii(s)/2;
-                    [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 3
                     pos3 = pos + pos2_dot*ii(s)/2;
                     vel3 = vel + vel2_dot*ii(s)/2;
-                    [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %step 4
                     pos4 = pos + pos3_dot*ii(s);
                     vel4 = vel + vel3_dot*ii(s);
-                    [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
+                    [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, orbital_p.ELL, orbital_p.GM, sys_str.J2, orbital_p.OMEGAE_DOT);
                     %
                     %final position and velocity
                     pos = pos + (pos1_dot + 2*pos2_dot + 2*pos3_dot + pos4_dot)*ii(s)/6;
