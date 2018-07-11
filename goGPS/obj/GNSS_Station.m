@@ -367,6 +367,19 @@ classdef GNSS_Station < handle
             end
         end
         
+        function xyz = getPosXYZ(sta_list)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT
+            %   xyz     XYZ coordinates
+            %
+            % SYNTAX
+            %   xyz = this.getPosENU()
+            for r = 1 : numel(sta_list)
+                xyz{r} = sta_list(r).out.getPosXYZ();
+            end
+        end
+        
         function enu = getPosENU(sta_list)
             % return the positions computed for the receiver
             %
@@ -709,15 +722,15 @@ classdef GNSS_Station < handle
             end
         end
         
-        function showPositionENU(this, one_plot)
+        function showPositionENU(sta_list, one_plot)
             % Plot East North Up coordinates of the receiver (as estimated by initDynamicPositioning
             % SYNTAX this.plotPositionENU();
             if nargin == 1
                 one_plot = false;
             end
             
-            for r = 1 : length(this)
-                rec = this(r).out;
+            for r = 1 : length(sta_list)
+                rec = sta_list(r).out;
                 if ~rec.isEmpty()
                     rec.showPositionENU(one_plot);
                 end
@@ -731,10 +744,10 @@ classdef GNSS_Station < handle
                 one_plot = false;
             end
             
-            for r = 1 : size(sta_list,2)
-                rec = sta_list(~sta_list(r).isEmpty, r);
+            for r = 1 : length(sta_list)
+                rec = sta_list(r).out;
                 if ~isempty(rec)
-                    sta_list.out.showPositionXYZ(one_plot);
+                    rec.showPositionXYZ(one_plot);
                 end
             end
         end
@@ -749,10 +762,10 @@ classdef GNSS_Station < handle
                 one_plot = false;
             end
             
-            for r = 1 : size(sta_list,2)
-                rec = sta_list(~sta_list(r).isEmpty, r);
+            for r = 1 : length(sta_list)
+                rec = sta_list(r).out;
                 if ~isempty(rec)
-                    rec.out.showPositionSigmas(one_plot);
+                    rec.showPositionSigmas(one_plot);
                 end
             end
         end
