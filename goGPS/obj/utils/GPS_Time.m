@@ -1442,7 +1442,7 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-         function prec = getPrecision(this)
+        function prec = getPrecision(this)
             % get precison of current time
             %
             % SYNTAX
@@ -1637,6 +1637,7 @@ classdef GPS_Time < Exportable & handle
             
         end 
     end
+    
     % =========================================================================
     %    STATIC CONSTRUCTOR
     % =========================================================================
@@ -1651,7 +1652,7 @@ classdef GPS_Time < Exportable & handle
         end
         
         function this = fromWeekDow(week, dow)
-            % contruct gps time from week and day of week  
+            % construct gps time from week and day of week  
             % WARNING: dow spans [0-6] like most IGS data
             % repository
             %
@@ -1680,9 +1681,7 @@ classdef GPS_Time < Exportable & handle
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
         end
-        
     end
-    
     
     % =========================================================================
     %    STATIC UNIX TIME
