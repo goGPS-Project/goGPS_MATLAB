@@ -3100,13 +3100,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx = [];
             snr = [];
             cycle_slips = [];
-            if length(flag)==3
+            if length(flag) == 3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
                 idx = idx & (this.system == system)';
                 %this.legger.addWarning(['Unnecessary Call obs_type already determined, use getObsIdx instead'])
                 [obs,idx] = this.getObs(flag, system);
             elseif length(flag) >= 2
-                flags = zeros(size(this.obs_code,1),3);
                 sys_idx = (this.system == system)';
                 sys = this.cc.getSys(system);
                 band = find(sys.CODE_RIN3_2BAND == flag(2));
@@ -3141,7 +3140,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idxes = [];
                 prn = [];
                 for j = 1 : max_obs_type
-                    flags = repmat(complete_flags(j,:),size(this.obs_code,1),1);
+                    flags = repmat(complete_flags(j,:), size(this.obs_code,1), 1);
                     idxes = [idxes  (sum(this.obs_code == flags,2) == 3) & this.system' == system];
                     prn = unique( [prn; this.prn(idxes(: , end )>0)]);
                 end
@@ -3153,6 +3152,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if flag(1) == 'L'
                     cycle_slips = sparse(size(obs,1),size(obs,2));
                 end
+                
                 flags = zeros(length(prn)*n_opt,3);
                 for s = 1:length(prn) % for each satellite and each epoch find the best (but put them on different lines)
                     sat_idx = sys_idx & this.prn==prn(s);
@@ -3467,7 +3467,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -4313,7 +4313,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 'I'
                     omegae_dot = this.cc.irn.ORBITAL_P.OMEGAE_DOT;
                 otherwise
-                    Logger.getInstance().addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
+                    Logger.getInstance.addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
             end
             omega_tau = omegae_dot * travel_time;
