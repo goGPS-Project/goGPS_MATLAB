@@ -1,4 +1,4 @@
-classdef Position < Exportable
+classdef LegacyPosition < Exportable
         
     %--- * --. --- --. .--. ... * ---------------------------------------------
     %               ___ ___ ___
@@ -55,7 +55,7 @@ classdef Position < Exportable
         
     methods
         % Creator
-        function this = Position(file_name)
+        function this = LegacyPosition(file_name)
             % Core object creator
             this.log = Logger.getInstance();
             this.reset();
@@ -79,8 +79,6 @@ classdef Position < Exportable
                 end
             end
         end
-        
-        
     end
     
     % =========================================================================
