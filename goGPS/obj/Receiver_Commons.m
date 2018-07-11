@@ -778,43 +778,45 @@ classdef Receiver_Commons < handle
                 one_plot = false;
             end
             
-            rec = this;
-            if ~isempty(rec)
-                xyz = rec(1).getPosXYZ();
-                if size(xyz, 1) > 1
-                    rec(1).log.addMessage('Plotting positions');
-                    
-                    f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
-                    color_order = handle(gca).ColorOrder;
-                    
-                    xyz = rec(:).getPosXYZ();
-                    xyz0 = rec(:).getMedianPosXYZ();
-                    
-                    t = rec.getPositionTime().getMatlabTime;
-                    
-                    x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
-                    y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
-                    z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
-                    
-                    if ~one_plot, subplot(3,1,1); end
-                    plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [cm]'); h.FontWeight = 'bold';
-                    grid on;
-                    h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                    if ~one_plot, subplot(3,1,2); end
-                    plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
-                    grid on;
-                    if ~one_plot, subplot(3,1,3); end
-                    plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
-                    grid on;
-                    if one_plot
-                        h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+            for r = 1 : numel(this)
+                rec = this(r);
+                if ~isempty(rec)
+                    xyz = rec.getPosXYZ();
+                    if size(xyz, 1) > 1
+                        rec(1).log.addMessage('Plotting XYZ positions');
+                        
+                        f = figure; f.Name = sprintf('%03d: PosXYZ', f.Number); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+                        
+                        xyz = rec(:).getPosXYZ();
+                        xyz0 = rec(:).getMedianPosXYZ();
+                        
+                        t = rec.getPositionTime().getMatlabTime;
+                        
+                        x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
+                        y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
+                        z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
+                        
+                        if ~one_plot, subplot(3,1,1); end
+                        plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                        ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [cm]'); h.FontWeight = 'bold';
+                        grid on;
+                        h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if ~one_plot, subplot(3,1,2); end
+                        plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if ~one_plot, subplot(3,1,3); end
+                        plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
+                        grid on;
+                        if one_plot
+                            h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
+                        end
+                        linkaxes(ax, 'x');
+                    else
+                        rec.log.addMessage('Plotting a single point static position is not yet supported');
                     end
-                    linkaxes(ax, 'x');
-                else
-                    rec.log.addMessage('Plotting a single point static position is not yet supported');
                 end
             end
         end
@@ -833,7 +835,7 @@ classdef Receiver_Commons < handle
             if ~isempty(rec)
                 xyz = rec(1).getPosXYZ();
                 if size(xyz, 1) > 1
-                    rec(1).log.addMessage('Plotting sigmas');
+                    rec(1).log.addMessage('Plotting ENU sigmas');
                     
                     f = figure; f.Name = sprintf('%03d: sigma processing', f.Number); f.NumberTitle = 'off';
                     color_order = handle(gca).ColorOrder;
