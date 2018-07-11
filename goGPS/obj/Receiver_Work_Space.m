@@ -417,14 +417,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(coo)
                 this.xyz = coo;
             end
-            
         end
         
         function prepareAppending(this, time_start, time_stop)
             % remove epochs and remoce corrections
             %
             % SYNTAX:
-            %  this.prepareAppending( time_start, time_stop)
+            %   this.prepareAppending( time_start, time_stop)
             
             % remove unwanted epochs
             id_to_remove = this.time < time_start | this.time > time_stop;
@@ -444,7 +443,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % imprt a list of rinex files
             %
             % SYNTAX:
-            %  this.importRinexFileList(rin_list, time_start, time_stop, rate)
+            %   this.importRinexFileList(rin_list, time_start, time_stop, rate) 
             % check which files have to be added
             if time_start.isempty
                 time_start = GPS_Time(0);
