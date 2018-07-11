@@ -11,7 +11,7 @@ function goGPS(ini_settings, use_gui, flag_online)
 %   function launcher for goGPS
 %   
 % OUTPUT:
-%   goGPS creates a singleton object, for debug purposes it is possibble to obtain it typing:
+%   goGPS creates a singleton object, for debug purposes it is possible to obtain it typing:
 %   core = Core.getInstance();
 %
 % EXAMPLE:

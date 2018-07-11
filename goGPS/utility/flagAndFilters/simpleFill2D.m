@@ -6,7 +6,7 @@ function [data] = simpleFill2D(data, flags, fun)
 %    fill flagged data with a simple interpolation using MATLAB
 %    interp1 'pchip', 'extrap'
 %
-% NOTE: data can be a matrix, the operation is executed column bby column
+% NOTE: data can be a matrix, the operation is executed column by column
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------

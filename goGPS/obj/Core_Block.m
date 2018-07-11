@@ -114,12 +114,12 @@ classdef Core_Block < handle
         x_hr            % estimated parameters (high_rate)
         Cxx             % Covariance matrix of the parameters
         s02             % estimated variance
-        v_hat           % residuals of the obbservarions
+        v_hat           % residuals of the observarions
 
         phase_res       % phase residuals ([n_obs x n_amb x 2]);  first slice value, second slice weight
         id_track        % id in the design matrix of the observations in phase_res
         
-        cs_factor = 0.5   % fix cs_factor * lambbda jumos
+        cs_factor = 0.5 % fix cs_factor * lambda jumps
     end
     
     % ==================================================================================================================================================
@@ -233,10 +233,10 @@ classdef Core_Block < handle
             
             this.x_float = [];      % estimated float parameters
             this.x_fix = [];        % estimated parameters (fix solution)
-            this.x_hr = [];      % estimated parameters (fix solution + float)
+            this.x_hr = [];         % estimated parameters (fix solution + float)
             this.Cxx = [];          % Covariance matrix of the parameters
-            this.s02 = [];  % estimated variance
-            this.v_hat = [];        % residuals of the obbservarions;
+            this.s02 = [];          % estimated variance
+            this.v_hat = [];        % residuals of the observarions;
             
             % up to now GPS only is available for goBLock
             frequencies = find(this.state.cc.getGPS().flag_f);
@@ -304,7 +304,7 @@ classdef Core_Block < handle
             this.obs_track(id_ko,:) = [];
             w_bar.close();
             
-            % Add to the Design matric the columns relative to the ambbiguities
+            % Add to the Design matric the columns relative to the ambiguities
             this.addAmbiguities (lambda);
         end
         
@@ -1047,7 +1047,7 @@ classdef Core_Block < handle
             %   pos_cov         covariance of the estimated positions
             %   amb_fix         ambiguities as estimated by lambda (n-1 w.r.t. float solution)
             %   amb_cov         ambiguities error covariance matrix
-            %   amb_fix_full ambbiguities as converted from fix to float -> to be imported as pseudo observations of the float solution
+            %   amb_fix_full    ambiguities as converted from fix to float -> to be imported as pseudo observations of the float solution
             %   ref_arc         arc used as reference in the fix solution (it's the arc that create a bias in the solution)
             %   G               transformation matrix -> float -> fix
             %
@@ -1899,7 +1899,7 @@ classdef Core_Block < handle
     end
 
     % ==================================================================================================================================================
-    %  PRIVATE FUNCTIONS called by pubblic calls goBlock
+    %  PRIVATE FUNCTIONS called by public calls goBlock
     % ==================================================================================================================================================
 
     methods (Access = public)
@@ -2122,9 +2122,9 @@ classdef Core_Block < handle
             %   d_pos       coordinates offset of the estimated positions
             %   pos_cov         covariance of the estimated positions
             %   is_fixed        flag is fixed?
-            %   amb_fix       ambiguities as estimated by lambda (n-1 w.r.t. float solution)
+            %   amb_fix         ambiguities as estimated by lambda (n-1 w.r.t. float solution)
             %   amb_cov         ambiguities error covariance matrix
-            %   amb_fix_full ambbiguities as converted from fix to float -> to be imported as pseudo observations of the float solution
+            %   amb_fix_full    ambiguities as converted from fix to float -> to be imported as pseudo observations of the float solution
             %   ref_arc         arc used as reference in the fix solution (it's the arc that create a bias in the solution)
             %            %
             % EXAMPLE:
@@ -2976,7 +2976,7 @@ classdef Core_Block < handle
 
         function [data_track, id_track] = computeDataTrack(this, data, id_track, A, obs_track, n_pos)
             % Get a matrix of n_obs x n_arcs with the values of the observations in data
-            % Where no observations are present for a certain arcs it contains zerosÿ
+            % Where no observations are present for a certain arcs it contains zerosï¿½
             %
             % INPUT:
             %   data       data to be put in the matrix [n_obs x n_set]

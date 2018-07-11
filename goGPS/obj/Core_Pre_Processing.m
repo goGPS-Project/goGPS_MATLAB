@@ -1201,7 +1201,7 @@ classdef Core_Pre_Processing < handle
         function [ph_out, dt] = remDtHF(ph)
             % [ !! ] EXPERIMENTAL FUNCTION
             % Remove high frequency from phases estimated by the 4th derivative
-            % WARNING: this code works bbut it has a lot of border effects, especially if the dataset it's not continuous
+            % WARNING: this code works but it has a lot of border effects, especially if the dataset it's not continuous
             %
             % SYNTAX:
             %   [ph_out, dt] = remDtHF(ph)
@@ -1422,7 +1422,7 @@ classdef Core_Pre_Processing < handle
     end
     
     % ==================================================================================================================================================
-    %  PRIVATE FUNCTIONS called by pubblic calls
+    %  PRIVATE FUNCTIONS called by public calls
     % ==================================================================================================================================================
     
     methods (Access = public)
@@ -1619,7 +1619,7 @@ classdef Core_Pre_Processing < handle
                     [~,jmp_MW] = intersect(delta_test,outliers);
                 end
                 
-                %select two observables with low standard deviation
+                % select two observables with low standard deviation
                 [min_std_code]    = Core_Pre_Processing.detect_minimum_std(delta_code(avail_code));
                 [min_std_doppler] = Core_Pre_Processing.detect_minimum_std(delta_doppler(avail_doppler));
                 [min_std_deriv]   = Core_Pre_Processing.detect_minimum_std(delta_deriv(avail_deriv));
@@ -1632,14 +1632,14 @@ classdef Core_Pre_Processing < handle
                 [~, pos1] = min(min_stds); min_stds(pos1) = 1e30;
                 [~, pos2] = min(min_stds);
                 
-                %consider cycle slips detected by either geometry-free or Melbourne-Wubbena
+                % consider cycle slips detected by either geometry-free or Melbourne-Wubbena
                 if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
                     jmp = sort(union(jmps{pos1},jmps{pos2}));
                 else
                     jmp = sort(intersect(jmps{pos1},jmps{pos2}));
                 end
                 
-                %compute the dataset from which to extract the potential cs correction
+                % compute the dataset from which to extract the potential cs correction
                 if (any(delta_GF_ref))
                     delta = delta_GF_ref/lambda_main;
                 elseif (any(delta_MW))
@@ -1652,19 +1652,19 @@ classdef Core_Pre_Processing < handle
                     delta = -delta_deriv;
                 end
                 
-                %ignore cycle slips smaller than cs_threshold_preprocessing
+                % ignore cycle slips smaller than cs_threshold_preprocessing
                 jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
                 
-                %ignore cycle slips that cannot be fixed
+                % ignore cycle slips that cannot be fixed
                 jmp(isnan(delta(jmp))) = [];
                 
-                %exclude observation epochs with subsequent cycle slips
+                % exclude observation epochs with subsequent cycle slips
                 idx_bad_obs1 = find(diff(jmp) == 1);
                 idx_bad_obs1 = unique([idx_bad_obs1; idx_bad_obs1+1]);
                 
-                %exclude observation epochs with computed cycle slip corrections "far" from integer values
-                %thres = 0.1;   %ENABLED
-                thres = 1e-10; %DISABLED (i.e. just exclude all)
+                % exclude observation epochs with computed cycle slip corrections "far" from integer values
+                % thres = 0.1;   % ENABLED
+                thres = 1e-10;   % DISABLED (i.e. just exclude all)
                 idx_bad_obs2 = find(abs(delta(jmp) - roundmod(delta(jmp), cs_resolution)) > thres);
                 
                 idx_bad_obs = union(idx_bad_obs1, idx_bad_obs2);

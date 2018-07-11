@@ -1919,7 +1919,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             [buf_lft, buf_rgt] = this.getBuffer();
             if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
                 this.setSmoothTropoOut(false)
-                this.log.addWarning('Smoothing of tropposphere is not possible when RINEX based sessions are requested');
+                this.log.addWarning('Smoothing of troposphere is not possible when RINEX based sessions are requested');
             end
                 
             this.checkNumericField('iono_management');

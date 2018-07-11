@@ -80,7 +80,7 @@ DF033 = char(fbin2dec(reshape(msg(pos:pos+8*DF032-1),8,[])'))';
 
 %--------------------------------------------------------------------------------------------
 
-%to have equal lenght strings
+%to have equal length strings
 while (length(DF030) < length(DF033))
     DF030 = [DF030 ' '];
 end

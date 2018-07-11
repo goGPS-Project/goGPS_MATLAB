@@ -70,21 +70,15 @@ classdef Receiver_Work_Space < Receiver_Commons
     
     properties (SetAccess = public, GetAccess = public)
         active_ids     % rows of active satellites
-        wl             % wave-lenght of each row of row_id
+        wl             % wave-length of each row of row_id
         f_id           % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
         prn            % pseudo-range number of the satellite
         go_id          % internal id for a certain satellite
         system         % char id of the satellite system corresponding to the row_id
         
-        
-        
-        %obs_validity   % validity of the row (does it contains usable values?)
-        
         obs_code       % obs code for each line of the data matrix obs
-        obs            % huge obbservation matrix with all the observables for all the systems / frequencies / ecc ...
+        obs            % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
         synt_ph;       % syntetic phases
-        
-        
         
         % CORRECTIONS ------------------------------
         
@@ -274,7 +268,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.flag_rid = 0;            % clock offset of the receiver
             
             this.active_ids = [];         % rows of active satellites
-            this.wl         = [];         % wave-lenght of each row of row_id
+            this.wl         = [];         % wave-length of each row of row_id
             this.f_id       = [];         % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
             this.prn        = [];         % pseudo-range number of the satellite
             this.go_id      = [];         % internal id for a certain satellite
@@ -303,7 +297,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.ph_shift     = [];
                 
                 this.active_ids = [];         % rows of active satellites
-                this.wl         = [];         % wave-lenght of each row of row_id
+                this.wl         = [];         % wave-length of each row of row_id
                 this.f_id       = [];         % frequency number e.g. L1 -> 1,  L2 ->2, E1 -> 1, E5b -> 3 ...
                 this.prn        = [];         % pseudo-range number of the satellite
                 this.go_id      = [];         % internal id for a certain satellite
@@ -1062,7 +1056,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % subtract median (clock error)
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelenght
+            % divide for wavelength
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             
             % test sensor variance
@@ -1079,7 +1073,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph, der);
                 % subtract median (clock error)
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-                % divide for wavelenght
+                % divide for wavelength
                 sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             else
                 der = 1; % use first
@@ -1108,7 +1102,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % subtract median
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
-            % divide for wavelenght
+            % divide for wavelength
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
             
             % find possible cycle slip
@@ -1126,7 +1120,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
                 % subtract median
                 sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
-                % divide for wavelenght
+                % divide for wavelength
                 sensor_rst = bsxfun(@rdivide, sensor_rst, wl');
                 for i = 1:size(sensor_rst,2)
                     for c = find(poss_rest(:,i))'
@@ -1190,7 +1184,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Outlier detection for some reason is not working properly -> reperform outlier detection
             sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
-            % divide for wavelenght
+            % divide for wavelength
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
             % outlier when they exceed 0.5 cycle
             poss_out_idx = abs(sensor_ph) > 0.5;
@@ -1919,7 +1913,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.w_bar.setBarLen(n_epo);
                 
                 n_ops = numel(this.rin_obs_code.G)/3; % number of observations per satellite
-                n_lps = ceil(n_ops / 5); % number of obbservation lines per satellite
+                n_lps = ceil(n_ops / 5); % number of observation lines per satellite
                 
                 mask = repmat('         0.00000',1 ,40);
                 data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
@@ -2935,14 +2929,14 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function wl = getWavelenght(this, id_ph)
+        function wl = getWavelength(this, id_ph)
             % get the wavelength of a specific phase observation
-            % SYNTAX wl = this.getWavelenght(id_ph)
+            % SYNTAX wl = this.getWavelength(id_ph)
             wl = this.wl(id_ph);
         end               
         
         function obs_code = getAvailableObsCode(this)
-            % Get all the obbservation codes stored into the receiver
+            % Get all the observation codes stored into the receiver
             %
             % SYNTAX
             %   obs_code = thisgetAvailableObsCode();
@@ -3470,7 +3464,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
+            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -3775,7 +3769,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function setActiveSys(this, sys_list)
-            % set the active systems to bbe used for the computations
+            % set the active systems to be used for the computations
             % SYNTAX this.setActiveSys(sys_list)
             
             % Select only the systems still present in the file
@@ -3832,7 +3826,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % considerig only epoch with code on the first frequency
             code_line = this.obs_code(:,1) == 'C' & this.f_id == 1;
             this.n_spe = sum(this.obs(code_line, :) ~= 0);
-            % more generic approach bbut a lot slower
+            % more generic approach but a lot slower
             %for e = 1 : this.length()
             %    this.n_spe(e) = numel(unique(this.go_id(this.obs(:,e) ~= 0)));
             %end
@@ -5875,8 +5869,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             %ph(bad_track) = 0;
             this.setPseudoRanges(pr, id_pr);
             %this.setPhases(ph, wl, id_ph);
-            
-            
         end
         
         function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)

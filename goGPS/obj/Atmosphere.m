@@ -899,9 +899,9 @@ classdef Atmosphere < handle
         
         function [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff, ppo] = getHOIdelayCoeff(this,lat,lon, az,el,h,time)
             % get the coefficient to be multiplied foe a power of the frequency to get the hoi order ionospheric delay and bending
-            % hoi_delay2 -> hoi_delay2_coeff * wavelenght^3
-            % hoi_delay3 -> hoi_delay3_coeff * wavelenght^4
-            % bending    -> bending_coeff    * wavelenght^4
+            % hoi_delay2 -> hoi_delay2_coeff * wavelength^3
+            % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
+            % bending    -> bending_coeff    * wavelength^4
             
             % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),

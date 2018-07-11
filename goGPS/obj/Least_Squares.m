@@ -123,7 +123,7 @@ classdef Least_Squares < handle
                     x = this.x;
                 end
             else
-                % If I need to compute Cxx it is bbetter to pre compute the inverse of the normal matrix
+                % If I need to compute Cxx it is better to pre compute the inverse of the normal matrix
                 if ~this.updated(7)
                     try
                         this.iN = cholinv(full(this.N));
@@ -216,7 +216,7 @@ classdef Least_Squares < handle
             if nargout < 4
                 x = N \ P * (y0 - b);
             else
-                % If I need to compute Cxx it is bbetter to pre compute the inverse of the normal matrix
+                % If I need to compute Cxx it is better to pre compute the inverse of the normal matrix
                 try
                     iN = cholinv(full(N));
                 catch

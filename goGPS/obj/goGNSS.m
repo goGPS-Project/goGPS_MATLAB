@@ -1529,7 +1529,7 @@ classdef goGNSS < handle & Mode_Settings
                         for l = 1 : (nLinesToRead)
                             line = line+1; linTmp = txtRin{line};
                             linLengthTmp = length(linTmp);
-                            lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
+                            lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum length of 80 characters
                         end
                         linLength = 80*(nLinesToRead-1)+linLengthTmp;
 

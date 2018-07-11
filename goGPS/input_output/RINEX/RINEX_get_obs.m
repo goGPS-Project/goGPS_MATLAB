@@ -105,7 +105,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
             for l = 1 : (nLinesToRead)
                 cur_line = cur_line + 1; linTmp = buf{cur_line};
                 linLengthTmp = length(linTmp);
-                lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
+                lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum length of 80 characters
             end
             linLength = 80*(nLinesToRead-1)+linLengthTmp;
 

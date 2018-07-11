@@ -128,7 +128,7 @@ for k = 1 : n_sta
         end
     end
     
-    % zero obbservations are non valid -> convert them to nan
+    % zero observations are non valid -> convert them to nan
     P1{k} = zero2nan(P1{k});
     P2{k} = zero2nan(P2{k});
 end

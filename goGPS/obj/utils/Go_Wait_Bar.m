@@ -404,7 +404,7 @@ classdef Go_Wait_Bar < Exportable
             end
         end
         
-        % Get the lenght of the bar
+        % Get the length of the bar
         function bar_len = getBarLen(this)
             bar_len = this.bar_len;
         end
