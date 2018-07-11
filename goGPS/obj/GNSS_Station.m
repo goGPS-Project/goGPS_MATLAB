@@ -97,6 +97,8 @@ classdef GNSS_Station < handle
                 this.work.rinex_file_name = '';
             end 
             this.work.load(rate);
+            this.work.out_start_time = this.work.time.first;
+            this.work.out_stop_time = this.work.time.last;
         end
         
         function importRinexes(this, rin_list, time_start, time_stop, rate)

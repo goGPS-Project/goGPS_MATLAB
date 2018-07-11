@@ -6383,9 +6383,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Solving the system'));
                 [x, res, s0] = ls.solve();
                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-                ls.Astack2Nstack();
-                [x, res, s0] = ls.solve();
+%                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
+%                 ls.Astack2Nstack();
+%                 [x, res, s0] = ls.solve();
                 this.id_sync = id_sync;
                 
                 this.sat.res = zeros(this.length, n_sat);
@@ -6467,12 +6467,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 time_1 = this.out_start_time.getCopy;
                                 time_2 = this.out_start_time.getCopy;
                                 time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2));
-                                for j = 0 : (ceil((this.out_stop_time - this.out_start_time))/this.state.coo_rates(i) -1)
-                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time <= time_2),1)];
+                                for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/this.state.coo_rates(i)) - 1)
+                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= time_1 & this.time < time_2),1)];
                                     time_1.addSeconds(this.state.coo_rates(i));
                                     time_2.addSeconds(min(this.state.coo_rates(i),this.out_stop_time - time_2) );
                                 end
-                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time > this.out_stop_time),1);];
+                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                 
                                 
                                 ls = Least_Squares_Manipulator();
@@ -6493,9 +6493,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 this.log.addMessage(this.log.indent('Solving the system'));
                                  [x, res, s0]  = ls.solve();
                                 % REWEIGHT ON RESIDUALS -> (not well tested , uncomment to enable)
-                                ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
-                                ls.Astack2Nstack();
-                                [x] = ls.solve();
+%                                 ls.snoopingGatt(6); % <= sensible parameter THR => to be put in settings
+%                                 ls.Astack2Nstack();
+%                                 [x] = ls.solve();
                                 
                                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                                 
