@@ -482,8 +482,10 @@ classdef GUI_Main < handle
             
             ocean_panel = this.insertOceanOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
+            coo_panel = this.insertCooOptions(opt_r);
+            Core_UI.insertEmpty(opt_r);
             
-            opt_r.Heights = [50, -1];
+            opt_r.Heights = [50, 5, 90, -1];
             
             opt_h.Widths = [200 5 -1];
             
@@ -502,12 +504,22 @@ classdef GUI_Main < handle
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
+        function ocean_panel = insertCooOptions(this, container)
+            ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
+            opt_grid = uix.Grid('Parent', ocean_panel,...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
+             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, 'Coo rate', 'coo_rates', 's', @this.onEditArrayChange, [70 60 5 40]);
+             set( opt_grid, 'Widths', [200 -1], 'Heights', [30 30] );
+        end
         
         function crd_panel = insertCrdFile(this, container)
             crd_panel = Core_UI.insertPanelLight(container, 'Stations a-priori coordinates');
             opt_grid = uix.Grid('Parent', crd_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+1}] = Core_UI.insertDirFileBox(opt_grid, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange);
+            
         end
         
         function ss_panel = insertSatSelector(this, container)

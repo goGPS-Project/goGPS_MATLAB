@@ -201,6 +201,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
+        
+        FLAG_COO_RATE = false;
+        COO_RATES = [ 0 0 0];
 
         % ATMOSPHERE
         FLAG_TROPO = false;                             % Flag for enabling the estimation of tropospheric delay
@@ -485,6 +488,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_atm_load    = Main_Settings.FLAG_ATM_LOAD;
         flag_hoi         = Main_Settings.FLAG_HOI;
         flag_rec_pcv     = Main_Settings.FLAG_REC_PCV;
+        
+        flag_coo_rate = Main_Settings.FLAG_COO_RATE;
+        coo_rates     = Main_Settings.COO_RATES;
 
         %------------------------------------------------------------------
         % ATMOSPHERE
@@ -682,6 +688,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.getData('flag_atm_load');
                 this.flag_hoi = state.getData('flag_hoi');
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
+                this.flag_coo_rate = state.getData('flag_coo_rate');
+                this.coo_rates     = state.getData('coo_rates');
 
                 % ATMOSPHERE
                 this.flag_tropo = state.getData('flag_tropo');
@@ -797,6 +805,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.flag_atm_load;
                 this.flag_hoi = state.flag_hoi;
                 this.flag_rec_pcv = state.flag_rec_pcv;
+                
+                this.flag_coo_rate = state.flag_coo_rate;
+                this.coo_rates     = state.coo_rates    ;
                
                 % ATMOSPHERE
                 this.flag_tropo = state.flag_tropo;
@@ -943,6 +954,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n\n', this.flag_rec_pcv)];
+            
+            str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
+            str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Estimate tropospheric delay                       %d\n', this.flag_tropo)];
@@ -1314,6 +1328,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Enable receiver pcv corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
+            str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
 
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
@@ -1692,7 +1711,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkPathField('dcb_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('ems_dir', EMPTY_IS_VALID);
 
-            this.checkNumericField('rec_dyn_mode', [0 numel(this.DYN_MODE)-1]);
+            %this.checkNumericField('rec_dyn_mode', [0 numel(this.DYN_MODE)-1]);
+            try % it was numerical
+            this.checkLogicalField('rec_dyn_mode');
+            end
             if numel(this.rec_dyn_mode) < this.getRecCount()
                 if numel(this.rec_dyn_mode) == 0
                     this.rec_dyn_mode(end : this.getRecCount()) = 0; % set all static
@@ -1931,6 +1953,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_atm_load');
             this.checkLogicalField('flag_hoi');
             this.checkLogicalField('flag_rec_pcv');
+            
+            this.checkLogicalField('flag_coo_rate');
+            this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
 
             % ATMOSPHERE
             this.checkNumericField('iono_model',[1 numel(this.IONO_SMODE)]);

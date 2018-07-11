@@ -373,7 +373,16 @@ classdef Receiver_Output < Receiver_Commons
                 rec_work.id_sync = id_sync_old; % restore id_sync_old
             end
             
-            
+            %--- append additional coo
+            if this.state.flag_coo_rate
+                this.add_coo.coo =  [this.add_coo.coo ; rec_work.add_coo.coo];
+                if isempty(this.add_coo.time)
+                    this.add_coo.time = rec_work.add_coo.time.getCopy();
+                else
+                    this.add_coo.time.append(rec_work.add_coo.time);
+                end
+                this.add_coo.rate =  [this.add_coo.rate ; rec_work.add_coo.rate];
+            end
         end
 
     end
