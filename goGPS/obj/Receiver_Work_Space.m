@@ -434,6 +434,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.restoreDtError();
             end
             this.resetWorkSpace(true);
+            % removing "fake" observations syntetized by the SEID approach
+            id_obs = this.obs_code(:,3) == 'F';
+            this.remObs(id_obs);
         end
         
         

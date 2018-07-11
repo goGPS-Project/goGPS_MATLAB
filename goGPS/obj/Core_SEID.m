@@ -219,8 +219,8 @@ classdef Core_SEID < handle
                     
                     % Inject the new synthesised phase
                     log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2 ', trg_go_id)
-                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2 ', trg_go_id);
+                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', trg_go_id)
+                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', trg_go_id);
                     %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
                     %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                     
