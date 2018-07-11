@@ -720,17 +720,12 @@ classdef Receiver_Commons < handle
                     xyz = rec.getPosXYZ();
                     if size(xyz, 1) > 1
                         rec(1).log.addMessage('Plotting positions');
-                        xyz0 = rec.getMedianPosXYZ();
-                        enu0 = [];
-                        [enu0(:,1), enu0(:,2), enu0(:,3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                         
                         f = figure; f.Name = sprintf('%03d: PosENU', f.Number); f.NumberTitle = 'off';
                         color_order = handle(gca).ColorOrder;
                         
                         xyz = rec.getPosXYZ();
                         xyz0 = rec.getMedianPosXYZ();
-                        enu = [];
-                        [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
                         t = rec.getPositionTime().getMatlabTime();
                         
@@ -738,32 +733,32 @@ classdef Receiver_Commons < handle
                         [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
                         
                         if ~one_plot, subplot(3,1,1); end
-                        plot(t, (1e3 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        plot(t, (1e2 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                         ax(3) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [mm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
                         h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~one_plot, subplot(3,1,2); end
-                        plot(t, (1e3 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        plot(t, (1e2 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [mm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
-                        plot(t, (1e3 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca();
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [mm]'); h.FontWeight = 'bold';
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
-                            h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                            h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
                         else
                             linkaxes(ax, 'x');
                         end
@@ -797,22 +792,22 @@ classdef Receiver_Commons < handle
                     
                     t = rec.getPositionTime().getMatlabTime;
                     
-                    x = 1e3 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
-                    y = 1e3 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
-                    z = 1e3 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
+                    x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
+                    y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
+                    z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
                     
                     if ~one_plot, subplot(3,1,1); end
                     plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [mm]'); h.FontWeight = 'bold';
+                    ax(3) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('X [cm]'); h.FontWeight = 'bold';
                     grid on;
                     h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     if ~one_plot, subplot(3,1,2); end
                     plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [mm]'); h.FontWeight = 'bold';
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Y [cm]'); h.FontWeight = 'bold';
                     grid on;
                     if ~one_plot, subplot(3,1,3); end
                     plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [mm]'); h.FontWeight = 'bold';
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Z [cm]'); h.FontWeight = 'bold';
                     grid on;
                     if one_plot
                         h = ylabel('XYZ [m]'); h.FontWeight = 'bold';
@@ -849,16 +844,16 @@ classdef Receiver_Commons < handle
                     t = rec.getPositionTime().getMatlabTime;
                     
                     if ~one_plot, subplot(2,1,2); end
-                    plot(t, s0*1e3, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
-                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 [mm]'); h.FontWeight = 'bold';
+                    plot(t, s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
+                    ax(2) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 [cm]'); h.FontWeight = 'bold';
                     grid on;
                     if ~one_plot, subplot(2,1,1); end
-                    plot(t, s0_ip, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
-                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 ip [m]'); h.FontWeight = 'bold';
+                    plot(t, s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                    ax(1) = gca(); xlim([t(1) t(end)]); setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('s0 ip [cm]'); h.FontWeight = 'bold';
                     h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                     grid on;
                     if one_plot
-                        h = ylabel('Sigmas of the processing [mm]'); h.FontWeight = 'bold';
+                        h = ylabel('Sigmas of the processing [cm]'); h.FontWeight = 'bold';
                     end
                     linkaxes(ax, 'x');
                 else
