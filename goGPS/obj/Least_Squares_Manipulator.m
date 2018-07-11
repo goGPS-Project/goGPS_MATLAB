@@ -471,15 +471,19 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                %G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  -zeros(1,n_clocks)]; % <- This is the right one !!!
-                system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                clock_const = zeros(1,n_clocks);
-                clock_const([1]) = 1;
-                G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const];
-                for i = 1: length(system_jmp)
+                if ~flag_amb_fix
+                    G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  -zeros(1,n_clocks)]; % <- This is the right one !!!
+                else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
+                    % setting the first clock of each connected set of arc to 0
+                    system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                     clock_const = zeros(1,n_clocks);
-                    clock_const(system_jmp(i)+1) = 1;
-                    G = [G ;[zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const]];
+                    clock_const([1]) = 1;
+                    G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const];
+                    for i = 1: length(system_jmp)
+                        clock_const = zeros(1,n_clocks);
+                        clock_const(system_jmp(i)+1) = 1;
+                        G = [G ;[zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const]];
+                    end
                 end
                 if tropo
                     G = [G zeros(size(G,1), n_clocks)];
