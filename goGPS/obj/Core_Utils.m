@@ -564,7 +564,7 @@ classdef Core_Utils < handle
             % we use mat time, is easier and we do not need extreme precision
             time_1 = time_1.getMatlabTime();
             time_2 = time_2.getMatlabTime();
-            [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 1/(86400*0.005)); % approximate at 5 ms
+            [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 0.005/86400); % approximate at 5 ms
             time_tot = zeros(max(max(idx1), max(idx2)), 1);
             time_tot(idx1) = time_1;
             time_tot(idx2) = time_2;
@@ -580,11 +580,15 @@ classdef Core_Utils < handle
             id_ko = ((isnan(data1) & (1 : n_out)' < id_start) | (isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2));
             
             % Interpolate missing data
-            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0 
+            data1(time_tot(isnan(data1)) < min(time_1)) = data_tosmt_lft(1);
+            data1(time_tot(isnan(data1)) > max(time_1)) = data_tosmt_lft(end);
+            if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0
                 data1(isnan(data1)) = interp1(data_tosmt_lft, time_1, time_tot(isnan(data1)));
             end
             
-            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0 
+            data2(time_tot(isnan(data2)) < min(time_2)) = data_tosmt_rgt(1);
+            data2(time_tot(isnan(data2)) > max(time_2)) = data_tosmt_rgt(end);
+            if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0
                 data2(isnan(data2)) = interp1(data_tosmt_rgt, time_2, time_tot(isnan(data2)));
             end
             

@@ -698,7 +698,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     this.sat.cycle_slip_idx_ph = cycle_slip;
                 end
-                
+                n_ep = this.time.length;
                 this.time.remEpoch(bad_epochs);
                 
                 if ~isempty(this.n_spe)
@@ -717,7 +717,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 
                 if ~isempty(this.id_sync)
-                    tmp = false(max(this.id_sync), 1);
+                    tmp = false(n_ep, 1);
                     tmp(this.id_sync) = true;
                     tmp(bad_epochs) = [];
                     this.id_sync = find(tmp);
@@ -783,7 +783,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.sat.el(bad_epochs, :) = [];
                 end
                 if ~isempty(this.sat.res)
-                    this.sat.res(bad_epochs, :) = [];
+                    n_ep_res = size(this.sat.res,1);
+                    bad_res = bad_epochs;
+                    bad_res(bad_res > n_ep_res) = [];
+                    this.sat.res(bad_res, :) = [];
                 end
                 if ~isempty(this.sat.slant_td)
                     this.sat.slant_td(bad_epochs, :) = [];

@@ -157,7 +157,14 @@ classdef Receiver_Settings < Exportable
 
             obs_code = strrep(obs_code,' ','_');
             if ~isfield(this.stds, ([system obs_code(2:3)]))
-                std = inf;
+                 if obs_code(1) == 'C'
+                    std = 3;
+                elseif obs_code(1) == 'L'
+                    std = 0.003;
+                 else
+                    log = Logger.getInstance();
+                    log.addWarning(['No std present for obesrvation type:_',obs_code(1)])
+                end
             else
                 std = this.stds.([system obs_code(2:3)]);
                 if obs_code(1) == 'C'
