@@ -52,71 +52,22 @@
 classdef Coordinates < Exportable & handle
     
     properties (Constant, GetAccess = public)
-        ELL_A = GPS_SS.ELL_A;
-        ELL_E = GPS_SS.ELL_E;
-        E2 = Coordinates.ELL_E^2;
+        ELL_A = GPS_SS.ELL_A;       % Ellipsoid semi-major axis
+        ELL_E = GPS_SS.ELL_E;       % Ellipsoid eccentricity
+        E2 = Coordinates.ELL_E^2;   % Square of the ellipsoidal eccentricity
         
-        DEG2RAD = pi/180;
-        RAD2DEG = 180/pi;
-    end
-    
-    properties (Constant, GetAccess = private)
-        
+        DEG2RAD = pi/180;           % Convert degree to radius
+        RAD2DEG = 180/pi;           % Convert radius to degree
     end
     
     properties (SetAccess = private, GetAccess = public)
-        xyz = [];
-        precision = 0.0001;
+        xyz = [];                   % Coordinates are stored in meters in as cartesian XYZ ECEF
+        precision = 0.0001;         % 3D limit [m] to check the equivalence among coordinates
     end
-    
-    % Function to simulate polymorphism
-    methods (Access = 'public')
-        function this = GPS_Time_xyz(this, string_time, is_gps)
-            % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)
-            %
-            % SYNTAX
-            %   this = GPS_Time_str(this, string_time, is_gps)
-            if (nargin == 3)
-                if isempty(is_gps)
-                    is_gps = true;
-                end
-                this.is_gps = is_gps;
-            else
-               is_gps = true;
-            end
-            % str = regexprep(string_time(:)','[^0-9.]',' '); % sanityse string -> most of the time is not needed (consider to put it externally)
-            str = string_time(:)';
-            date = sscanf(str,'%f%f%f%f%f%f')';
-            if numel(date) <= 3
-                date = datevec(string_time);
-            else
-                try
-                    tmp = reshape(date, 6, numel(date) / 6)';
-                    date = tmp;
-                catch
-                    date = datevec(string_time);
-                end
-                date(date(:,1) < 80, 1) = date(date(:,1) < 80, 1) + 2000;
-            end
-            this.GPS_Time_6col(date, is_gps);
-        end
         
-        function this = GPS_Time_enu(this, matlab_time, is_gps)
-            % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)
-            %
-            % SINTAX
-            %   this = GPS_Time_mat(this, matlab_time, is_gps)
-            this.time_type = 0;
-            this.mat_time = matlab_time;
-            if (nargin == 3)
-                if isempty(is_gps)
-                    is_gps = true;
-                end
-                this.is_gps = is_gps;
-            end
-        end
-        
-    end
+    % =========================================================================
+    %    
+    % =========================================================================
     
     methods
         function this = Coordinates()
@@ -158,6 +109,18 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods
+        function t = getTime(this)
+            % Get Coordinates as cartesian Earth Centered Earth Fixed Coordinates
+            %
+            % OUTPUT
+            %   time   [GPS_Time]
+            %
+            % SYNTAX 
+            %   t = this.getTime()
+            
+            t = this.time;
+        end
+        
         function [xyz, y, z] = getXYZ(this)
             % Get Coordinates as cartesian Earth Centered Earth Fixed Coordinates
             %
@@ -183,7 +146,7 @@ classdef Coordinates < Exportable & handle
             % OUTPUT
             %   east     = east Coordinates  [m]
             %   north    = north Coordinates [m]
-            %   utm_zone = UTM zone         [4char]
+            %   utm_zone = UTM zone          [4char]
             %
             % SYNTAX 
             %   [east, north, utm_zone] = this.getUTM();
@@ -192,38 +155,44 @@ classdef Coordinates < Exportable & handle
             [east, north, utm_zone] = this.geod2plan(lat, lon);
         end
                 
-        function [east, north, up] = getENU(this)
+        function [east, north, up, utm_zone] = getENU(this)
             % Get Coordinates as ENUs coordinates
             %
             % OUTPUT
             %   east     = east Coordinates  [m]
             %   north    = north Coordinates [m]
-            %   up       = up               [m]
+            %   up       = up                [m]
+            %   utm_zone = UTM zone          [4char]
             %
             % SYNTAX 
-            %   [east, north, utm_zone] = this.getUTM();
+            %   [east, north, up, utm_zone] = this.getENU();
+            %   [enu, utm_zone] = this.getENU();
             
             [lat, lon, up] = this.getGeodetic();
-            [east, north] = this.geod2plan(lat, lon);
-            if nargin < 2
-                east = [east(:) east(:) up(:)];
+            [east, north, utm_zone] = this.geod2plan(lat, lon);
+            if nargin < 3
+                east = [east(:) north(:) up(:)];
+                north = utm_zone;
             end
         end
         
-        function [lat, lon, h_ellips, lat_geoc] = getGeodetic(this)
+        function [lat, lon, h_ellips, h_ortho] = getGeodetic(this)
             % Get Coordinates as Geodetic coordinates
             %
             % OUTPUT
             %   lat      = latitude                      [rad]
             %   lon      = longitude                     [rad]
             %   h_ellips = ellipsoidal height            [m]
-            %   lat_geoc = geocentric spherical latitude [rad]
+            %   h_ortho  = orthometric height            [m]
             %
             % SYNTAX 
-            %   [lat, lon, h_ellips, lat_geoc] = this.getGeodetic()
+            %   [lat, lon, h_ellips, h_ortho] = this.getGeodetic()
            
             if nargout > 2
-                [lat, lon, h_ellips, lat_geoc] = Coordinates.cart2geod(this.xyz);
+                [lat, lon, h_ellips] = Coordinates.cart2geod(this.xyz);
+                if nargout == 4
+                    h_ortho = h_ellips - this.getOrthometricCorrFromLatLon(lat, lon);
+                end
             else
                 [lat, lon] = Coordinates.cart2geod(this.xyz);
             end
@@ -304,7 +273,7 @@ classdef Coordinates < Exportable & handle
             %   this = Coordinates.fromXYZ(x, y, z)
             
             this = Coordinates;
-            if nargin == 4
+            if nargin > 2
                 xyz = [x(:) y(:) z(:)];
             end
             this.setPosXYZ(xyz);
@@ -339,16 +308,19 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods (Access = 'public')
-         function fh = showCoordinateENU(coo_list, one_plot)
-            % Plot East North Up coordinates of the receiver (as estimated by initDynamiccoordinateing
-            % SYNTAX this.plotcoordinateENU();                       
-            if nargin == 1
+         function fh = showCoordinatesENU(coo_list, one_plot, time)
+            % Plot East North Up coordinates
+            %
+            % SYNTAX 
+            %   this.showCoordinatesENU(coo_list, <one_plot>, time);
+            if nargin < 2 || isempty(one_plot)
                 one_plot = false;
             end
             
+            set_time = false;
             log = Logger.getInstance();
-            for r = 1 : numel(coo_list)
-                pos = coo_list(r);
+            for i = 1 : numel(coo_list)
+                pos = coo_list(i);
                 if ~pos.isEmpty
                     enu = pos.getENU;
                     if size(enu, 1) > 1
@@ -359,7 +331,20 @@ classdef Coordinates < Exportable & handle
                         
                         enu0 = median(enu, 1, 'omitnan');
                         
-                        t = 1 : size(enu, 1);
+                        if nargin == 3 && ~isempty(time)
+                            if isa(time, 'GPS_Time')
+                                set_time = true;
+                                if numel(time) == numel(coo_list)
+                                    t = time(i).getMatlabTime;
+                                else
+                                    t = time.getMatlabTime;
+                                end
+                            else
+                                t = time;
+                            end
+                        else                            
+                            t = 1 : size(enu, 1);
+                        end
                         
                         if ~one_plot, subplot(3,1,1); end
                         plot(t, (1e2 * (enu(:,1) - enu0(1))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
@@ -367,7 +352,7 @@ classdef Coordinates < Exportable & handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        %setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,2); end
@@ -376,7 +361,7 @@ classdef Coordinates < Exportable & handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        %setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('North [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
@@ -385,7 +370,7 @@ classdef Coordinates < Exportable & handle
                         if (t(end) > t(1))
                             xlim([t(1) t(end)]);
                         end
-                        %setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('Up [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
@@ -402,16 +387,19 @@ classdef Coordinates < Exportable & handle
             end
         end
         
-        function fh = showCoordinateXYZ(coo_list, one_plot)
-            % Plot X Y Z coordinates of the receiver (as estimated by initDynamiccoordinateing
-            % SYNTAX this.plotcoordinateXYZ();
+        function fh = showCoordinatesXYZ(coo_list, one_plot, time)
+            % Plot X Y Z coordinates
+            %
+            % SYNTAX
+            %   this.showCoordinatesXYZ(coo_list, <one_plot>, <time>);
             if nargin == 1
                 one_plot = false;
             end
-                        
+                 
+            set_time = false;
             log = Logger.getInstance();
-            for r = 1 : numel(coo_list)
-                coo = coo_list(r);
+            for i = 1 : numel(coo_list)
+                coo = coo_list(i);
                 if ~coo.isEmpty
                     xyz = coo.getXYZ;
                     
@@ -423,8 +411,20 @@ classdef Coordinates < Exportable & handle
                         
                         xyz0 = median(xyz, 1, 'omitnan');
                         
-                        t = 1 : size(xyz, 1);
-                        
+                        if nargin == 3 && ~isempty(time)
+                            if isa(time, 'GPS_Time')
+                                set_time = true;
+                                if numel(time) == numel(coo_list)
+                                    t = time(i).getMatlabTime;
+                                else
+                                    t = time.getMatlabTime;
+                                end
+                            else
+                                t = time;
+                            end
+                        else
+                            t = 1 : size(enu, 1);
+                        end
                         x = 1e2 * bsxfun(@minus, zero2nan(xyz(:,1)), xyz0(1));
                         y = 1e2 * bsxfun(@minus, zero2nan(xyz(:,2)), xyz0(2));
                         z = 1e2 * bsxfun(@minus, zero2nan(xyz(:,3)), xyz0(3));
@@ -432,19 +432,19 @@ classdef Coordinates < Exportable & handle
                         if ~one_plot, subplot(3,1,1); end
                         plot(t, x, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:));  hold on;
                         ax(3) = gca(); xlim([t(1) t(end)]);
-                        % setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('X [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,2); end
                         plot(t, y, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca(); xlim([t(1) t(end)]);
-                        % setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('Y [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, z, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
                         ax(1) = gca(); xlim([t(1) t(end)]);
-                        % setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
+                        if set_time, setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); end
                         h = ylabel('Z [cm]'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot

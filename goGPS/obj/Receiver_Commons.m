@@ -232,23 +232,22 @@ classdef Receiver_Commons < handle
             %   rate = this.getRate();
             rate = this.getTime.getRate;
         end
-        
-        % position
-        
+                
         function dt = getTotalDt(this)
             dt = this.getDt + this.getDtPrePro;
         end
-        
-        function xyz = getPosXYZ_mr(this)
+                
+        function coo = getPos(this)
             % return the positions computed for the receiver
+            % as Coordinates object
             %
             % OUTPUT
-            %   xyz     geocentric coordinates
+            %   coo     coordinates object
             %
             % SYNTAX
-            %   xyz = this.getPosXYZ_mr()
-            xyz = this.getPosXYZ();
-            xyz = permute(reshape(xyz', 3, n_sss, n_rec), [2 1 3]);
+            %   coo = this.getPos()
+            
+            coo = Coordinates.fromXYZ(this.xyz);
         end
         
         function xyz = getPosXYZ(this)
@@ -266,20 +265,27 @@ classdef Receiver_Commons < handle
         end
         
         function [lat, lon, h_ellips, h_ortho] = getPosGeodetic(this)
-            % return the positions computed for the receiver
+            % Return the positions computed for the receiver
             %
             % OUTPUT
-            %   lat, lon, h_ellips, h_ortho     geodetic coordinates
+            %   lat      = latitude                      [rad]
+            %   lon      = longitude                     [rad]
+            %   h_ellips = ellipsoidal height            [m]
+            %   lat_geoc = geocentric spherical latitude [rad]
+            %   h_ortho  = orthometric height            [m]
             %
-            % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho] = this.getPosGeodetic()
-            [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
-            if nargout == 4
-                gs = Global_Configuration.getInstance;
-                gs.initGeoid();
-                ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
-                h_ortho = h_ellips - ondu;
-            end
+            % SYNTAX 
+            %   [lat, lon, h_ellips, h_ortho] = this.getGeodetic()
+
+            coo = this.getPos();
+
+            if nargout > 3
+                [lat, lon, h_ellips, h_ortho] = coo.getGeodetic();
+            elseif nargout > 2
+                [lat, lon, h_ellips] = coo.getGeodetic();
+            else
+                [lat, lon] = coo.getGeodetic();
+            end            
         end
         
         function enu = getPosENU(this)
@@ -290,8 +296,7 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   enu = this.getPosENU()
-            xyz = this.getPosXYZ();
-            [enu(:,1), enu(:,2), enu(:,3)] = cart2plan(zero2nan(xyz(:,1)), zero2nan(xyz(:,2)), zero2nan(xyz(:,3)));
+            enu = this.getPos().getENU();
         end
         
         function [utm, utm_zone] = getPosUTM(this)
@@ -303,12 +308,7 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   [utm, utm_zone] = this.getPosUTM()
-            for i = 1:numel(this)
-                xyz = this(i).getMedianPosXYZ;
-                [EAST, NORTH, h, utm_zone] = cart2plan(xyz(:,1), xyz(:,2), xyz(:,3));
-                utm = [EAST, NORTH, h];
-                utm_zone = utm_zone;
-            end
+            [utm, utm_zone] =  this.getPos().getENU;
         end
         
         function enu = getBaselineENU(this, rec)
@@ -348,7 +348,7 @@ classdef Receiver_Commons < handle
             enu = median(enu, 1, 'omitnan');
         end
         
-        function [lat, lon, h_ellips, h_ortho] = getMedianPosGeodetic(this)
+        function [lat_d, lon_d, h_ellips, h_ortho] = getMedianPosGeodetic(this)
             % return the computed median position of the receiver
             %
             % OUTPUT
@@ -362,18 +362,18 @@ classdef Receiver_Commons < handle
             xyz = this.getPosXYZ();
             xyz = median(xyz, 1);
             if ~isempty(this(1))
-                [lat, lon, h_ellips] = cart2geod(xyz);
+                [lat_d, lon_d, h_ellips] = cart2geod(xyz);
                 if nargout == 4
                     gs = Global_Configuration.getInstance;
                     gs.initGeoid();
-                    ondu = getOrthometricCorr(lat, lon, gs.getRefGeoid());
+                    ondu = getOrthometricCorr(lat_d, lon_d, gs.getRefGeoid());
                     h_ortho = h_ellips - ondu;
                 end
-                lat = lat / pi * 180;
-                lon = lon / pi * 180;
+                lat_d = lat_d / pi * 180;
+                lon_d = lon_d / pi * 180;
             else
-                lat = [];
-                lon = [];
+                lat_d = [];
+                lon_d = [];
                 h_ellips = [];
                 h_ortho = [];
             end
