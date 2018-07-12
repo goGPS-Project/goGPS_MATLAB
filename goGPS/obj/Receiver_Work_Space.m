@@ -1476,7 +1476,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %DESCRIPTION load ocean loading displcement matrix from
             %ocean_loading.blq if satation is present
             [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.parent.getMarkerName4Ch});
-            if not(found) && ~strcmp(this.parent.getMarkerName4Ch, this.parent.getMarkerName)
+            if not(found) && ~strcmpi(this.parent.getMarkerName4Ch, this.parent.getMarkerName)
                 [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.parent.getMarkerName});
             end
             if found == 0
@@ -1827,7 +1827,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 to_discard = true(this.time.length, 1);
-                [~, to_keep_ep] = intersect(round(nominal.getMatlabTime * 86400), round(round(nominal.getMatlabTime * 86400 / rate) * rate));
+                [~, to_keep_ep] = intersect(round(nominal.getRefTime() * 1e5), unique(round(round(nominal.getRefTime() / rate) * rate * 1e5)));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -2007,7 +2007,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 to_discard = true(this.time.length, 1);
-                [~, to_keep_ep] = intersect(round(nominal.getMatlabTime * 86400 * 1e5), round(round(nominal.getMatlabTime * 86400 / rate) * rate * 1e5));
+                [~, to_keep_ep] = intersect(round(nominal.getRefTime() * 1e5), unique(round(round(nominal.getRefTime() / rate) * rate * 1e5)));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
