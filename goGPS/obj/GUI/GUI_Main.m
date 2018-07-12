@@ -256,7 +256,7 @@ classdef GUI_Main < handle
             this.log.setColorMode(false);
             this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
             this.log.setColorMode(cm);
-            %uiwait(this.w_main);
+            uiwait(this.w_main);
         end
     end
     %% METHODS INSERT
@@ -353,19 +353,18 @@ classdef GUI_Main < handle
             Core_UI.insertEmpty(sss_box_r);
             
             
-            
             Core_UI.insertEmpty(sss_box_v);
             
-             %-------------------------------------------
+            %-------------------------------------------
             % session check boxes
             sss_check_box = uix.HBox('Parent', sss_box_v, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
-           this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
             
-                        Core_UI.insertEmpty(sss_box_v);
+            Core_UI.insertEmpty(sss_box_v);
             
             % --------------------------------------------------------
             % Session char
@@ -516,10 +515,11 @@ classdef GUI_Main < handle
             ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
             opt_grid = uix.Grid('Parent', ocean_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
-             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
-             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, 'Coo rate', 'coo_rates', 's', @this.onEditArrayChange, [70 60 5 40]);
-             set( opt_grid, 'Widths', [200 -1], 'Heights', [30 30] );
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
+            Core_UI.insertEmpty(opt_grid);
+            set( opt_grid, 'Widths', [200 -1], 'Heights', [23 23] );
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -1098,8 +1098,8 @@ classdef GUI_Main < handle
         function updateCCFromState(this)
             active = this.state.cc.getActive();
             sys_c = this.state.cc.SYS_C;
-            for i = 1:length(active)
-                this.setCheckBox([sys_c(i) '_is_active'],active(i));
+            for i = 1 : length(active)
+                this.setCheckBox([sys_c(i) '_is_active'], active(i));
             end
         end
         
@@ -1107,7 +1107,7 @@ classdef GUI_Main < handle
             for i = 1 : length(this.check_boxes)
                 value = this.state.getProperty(this.check_boxes{i}.UserData);
                 if ~isempty(value)
-                    this.check_boxes{i}.Value = logical(value);
+                    this.check_boxes{i}.Value = double(value(1));
                 end
             end
         end
@@ -1335,9 +1335,9 @@ classdef GUI_Main < handle
         end
         
         function setCheckBox(this, name_prop, value)
-            for i = 1:length(this.check_boxes)
+            for i = 1 : length(this.check_boxes)
                 if this.check_boxes{i}.isvalid && strcmp(name_prop, this.check_boxes{i}.UserData)
-                    this.check_boxes{i}.Value = value;
+                    this.check_boxes{i}.Value = double(value);
                 end
             end
         end
