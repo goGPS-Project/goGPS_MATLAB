@@ -80,9 +80,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
         
-        SSS_FILE_BASED = true;         % is the session management file based
+        SSS_FILE_BASED = false;         % is the session management file based
         SSS_DURATION = 86400;          % session duration in seconds
-        SSS_BUFFER = [3600*3 3600*3]; % session overlap in seconds [left right]
+        SSS_BUFFER = [3600*3 3600*3];  % session overlap in seconds [left right]
         
         
         FLAG_KEEP_REC_LIST = true; % Flag to store the receivers for all the sessions
@@ -191,8 +191,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         %  - weights = 2: weight based on signal-to-noise ratio
                                                         
         FLAG_AMB_FIX = false;                           % try to fix ambiguity
-        FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output paramtere at bounadries
-        
+        FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
+         
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
         FLAG_PHASE_WIND = true;                         % Flag to enable pahse wrap up correction
@@ -539,8 +539,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.log.newLine();
             if (nargin == 1)
                 if ~exist(ini_settings_file, 'file')
-                    this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
-                    ini_settings_file = this.LAST_SETTINGS;
+                    if ~isempty(ini_settings_file)
+                        this.log.addWarning(sprintf('File "%s" not found!', ini_settings_file));
+                        ini_settings_file = this.LAST_SETTINGS;
+                    end
                 end
             else
                 ini_settings_file = this.LAST_SETTINGS;

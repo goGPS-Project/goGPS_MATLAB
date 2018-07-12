@@ -827,7 +827,7 @@ classdef Core_Utils < handle
             %    createEmptyProject(prj_name)
             
             fnp = File_Name_Processor();
-            state = Main_Settings();
+            state = Main_Settings('');
 
             if nargin == 1
                 prj_name = base_dir;
@@ -848,6 +848,7 @@ classdef Core_Utils < handle
             state.prj_name = prj_name;
             config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
             state.save(config_path);
+            Global_Configuration.getCurrentSettings.import(state);
         end
     end
 end

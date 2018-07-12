@@ -119,11 +119,12 @@ classdef GUI_Main < handle
             % Main Window ----------------------------------------------------------------------------------------------
             
             win = figure( 'Name', sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir), ...
-                'Visible', 'on', ...
+                'Visible', 'off', ...
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
                 'Position', [0 0 1000 600]);
+            
             
             if isunix && not(ismac())
                 win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
@@ -133,7 +134,7 @@ classdef GUI_Main < handle
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
             this.w_main = win;
-            
+                        
             try
                 main_bv = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
@@ -151,6 +152,10 @@ classdef GUI_Main < handle
             left_bv = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', Core_UI.DARK_GRAY_BG);
+            
+            % Set-up menu ----------------------------------------------------------------------------------------------
+            
+            this.addGoMenu();
             
             % Logo/title box -------------------------------------------------------------------------------------------
             
@@ -247,8 +252,11 @@ classdef GUI_Main < handle
             tab_panel.Selection = 3;
             this.w_main.Visible = 'on';
             t_win = toc(t0);
+            cm = this.log.getColorMode();
+            this.log.setColorMode(false);
             this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
-            uiwait(this.w_main);
+            this.log.setColorMode(cm);
+            %uiwait(this.w_main);
         end
     end
     %% METHODS INSERT
@@ -1170,6 +1178,12 @@ classdef GUI_Main < handle
             this.rec_list.String = str;
         end
         
+        function createNewProject(this, caller, event)
+            % Create a new project
+            
+            new = GUI_New_Project(this);
+        end
+        
         function loadState(this, caller, event)
             % Load state settings
             
@@ -1332,7 +1346,15 @@ classdef GUI_Main < handle
     methods
         function addGoMenu(this)
             this.menu.project = uimenu(this.w_main, 'Text', 'Project');
-            this.menu.project.new = uimenu(m,'Text','Create Empty Project');
+            uimenu(this.menu.project, ...
+                'Text', 'New', ...
+                'Callback', @this.createNewProject);
+            uimenu(this.menu.project, ...
+                'Text', 'Load', ...
+                'Callback', @this.loadState);
+            uimenu(this.menu.project, ...
+                'Text', 'Save', ...
+                'Callback', @this.saveState);
         end
     end
 end
