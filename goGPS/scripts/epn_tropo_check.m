@@ -1,8 +1,9 @@
 %%%% comaprison file 
-project_path = '../../remote_data/project/EPN_test_set';
+project_path = '../../remote_data/project/EPN_test_set/station/';
 %goGPS([project_path '/config/config.ini'],false);
 getResults();
-asi = parseMultiStationTropoSinex([project_path '/station/asi19751.tro']);
+solutions = {'asi19751.tro'  'bek19751.tro'  'bkg19751.tro' 'eur19757.tro'};
+ext_sol = parseMultiStationTropoSinex([project_path solutions{1}]);
 mode = 'interpolate', % possible values : 'aggregate', 'interpolate'
 ztd_diff = [];
 tge_diff = [];
@@ -11,8 +12,8 @@ xyz_diff = [];
 sta_id = [];
 for r = 1 : max(size(rec))
     sta_code = rec(r).getMarkerName4Ch;
-    if isfield(asi,sta_code)
-        res = asi.(sta_code);
+    if isfield(ext_sol,sta_code)
+        res = ext_sol.(sta_code);
         t1 = res.time.getGpsTime();
         [ztd] = rec(r).out.getZtd();
         t2 = rec(r).out.getTime().getGpsTime();
@@ -32,18 +33,18 @@ for r = 1 : max(size(rec))
         end
         sta_id = [sta_id; r*ones(size(ztd_diff_t))];
         xyz_diff = [xyz_diff; res.xyz - rec(r).out.xyz(1)];
+%         figure
+%         plot(t1,res.TROTOT/1000)
+%         title(['ZTD ' sta_code]);
+%         hold on; plot(t2,ztd,'.')        
         figure
-        plot(t1,res.TROTOT/1000)
-        title(['ZTD ' sta_code]);
-        hold on; plot(t2,ztd,'.')        
-%         figure
-%         plot(t1,res.tgn)
-%         title(['TGN ' sta_code]);
-%         hold on; plot(t2.getGpsTime,tge,'.')
-%         figure
-%         plot(t1,res.tge)
-%         title(['TGE ' sta_code]);
-%         hold on; plot(t2.getGpsTime,tge,'.')
+        plot(t1,res.TGNTOT/1000)
+        title(['TGN ' sta_code]);
+        hold on; plot(t2,tgn,'.')
+        figure
+        plot(t1,res.TGETOT/1000)
+        title(['TGE ' sta_code]);
+        hold on; plot(t2,tge,'.')
 %         figure
 %         plot(ztd_diff(sta_id == r));
 %         title(['ZTD diff' sta_code]);
@@ -55,4 +56,6 @@ for r = 1 : max(size(rec))
 %         title(['TGE diff' sta_code]);
     end
 end
-figure; hist(ztd_diff(abs(ztd_diff)<0.05),30)
+figure; hist(ztd_diff(abs(ztd_diff)<0.05),30); title('ZTD diff')
+figure; hist(tge_diff(abs(tge_diff)<0.05),30); title('TGE diff')
+figure; hist(tgn_diff(abs(tgn_diff)<0.05),30); title('TGN diff')

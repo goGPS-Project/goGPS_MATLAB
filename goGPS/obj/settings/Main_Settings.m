@@ -1715,7 +1715,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             %this.checkNumericField('rec_dyn_mode', [0 numel(this.DYN_MODE)-1]);
             try % it was numerical
-            this.checkLogicalField('rec_dyn_mode');
+                this.checkLogicalField('rec_dyn_mode');
             end
             if numel(this.rec_dyn_mode) < this.getRecCount()
                 if numel(this.rec_dyn_mode) == 0

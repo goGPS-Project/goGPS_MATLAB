@@ -454,7 +454,8 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
-                    cotan_term = cot(el_stream) .* mfw_stream;
+                    %cotan_term = cot(el_stream) .* mfw_stream;
+                    cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
                     A(lines_stream, n_coo_par+iob_flag+amb_flag + 3) = cos(az_stream) .* cotan_term; % noth gradient
                     A(lines_stream, n_coo_par+iob_flag+amb_flag + 4) = sin(az_stream) .* cotan_term; % east gradient
                     
