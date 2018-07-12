@@ -473,7 +473,7 @@ classdef Least_Squares_Manipulator < handle
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
                 if ~flag_amb_fix
-                    G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  -zeros(1,n_clocks)]; % <- This is the right one !!!
+                    G = [zeros(1, n_coo + n_iob)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                     % setting the first clock of each connected set of arc to 0
                     system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
