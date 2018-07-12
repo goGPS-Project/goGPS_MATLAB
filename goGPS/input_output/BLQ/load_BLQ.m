@@ -57,14 +57,14 @@ for m = 1 : length(marker)
 end
 
 status = 0;
-for file_blq=1:size(filename,1)
+for file_blq = 1 : size(filename,1)
     if (~isempty(filename))
         fid = fopen(char(filename(file_blq,:)),'r');
         if (fid ~= -1)
             if (file_blq == 1)
                 log.addMessage(log.indent(['Reading ocean loading file ', File_Name_Processor.getFileName(char(filename(file_blq,:))), '...']));
             end
-            while (feof(fid) && status < length(marker))
+            while (~feof(fid) && status < length(marker))
                 line = fgetl(fid);
                 for m = 1 : length(marker)
                     if (~strcmp(line(1:2),'$$'))
@@ -86,17 +86,17 @@ for file_blq=1:size(filename,1)
             end
             fclose(fid);
         else
-            ocean_load_disp=[];
+            ocean_load_disp = [];
             log.addWarning(['Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']);
             status = -1;
         end
     else
-        ocean_load_disp=[];
+        ocean_load_disp = [];
         log.addWarning('Ocean loading file not provided');
         status = -2;
     end
 end
 
 if (status == 0)
-    ocean_load_disp=[];
+    ocean_load_disp = [];
 end

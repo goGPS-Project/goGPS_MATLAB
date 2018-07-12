@@ -484,7 +484,7 @@ classdef Coordinates < Exportable & handle
             
             ondu = zeros(numel(lon), 1);
             for i = 1 : numel(lon)
-                ondu(i) = grid_bilin_interp(lon(i) * this.RAD2DEG, lat(i) * this.RAD2DEG, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+                ondu(i) = grid_bilin_interp(lon(i) * Coordinates.RAD2DEG, lat(i) * Coordinates.RAD2DEG, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
             end            
         end
         
