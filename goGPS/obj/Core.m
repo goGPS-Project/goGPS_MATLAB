@@ -203,7 +203,14 @@ classdef Core < handle
             fw = File_Wizard;
             c_mode = this.log.getColorMode();
             this.log.setColorMode(false);
-            [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+            if ~this.state.isRinexSession()
+
+                    [buff_lim, out_limits] = this.state.getSessionLimits();
+                    time_lim_large = buff_lim;
+
+            else
+              [~, time_lim_large, is_empty] = this.getRecTimeSpan();
+            end
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             this.log.setColorMode(c_mode);
         end        
