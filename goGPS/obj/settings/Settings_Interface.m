@@ -232,7 +232,8 @@ classdef Settings_Interface < Exportable
             if ~isempty(field_val) && iscell(field_val) % A cell of strings must contain at least one string
                 field_val = field_val{1};
             end
-            if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file') || exist(field_val,'dir')) || ~check_existence)
+            %if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file') || exist(field_val,'dir')) || ~check_existence)
+            if (ischar(field_val)  || empty_is_valid) && (~check_existence || exist(field_val, 'file'))
                 is_existing = true;
                 checked_val = default_val;
             else
