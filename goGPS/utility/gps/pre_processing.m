@@ -189,10 +189,10 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
     
     %flag_ph = false(size(ph));
     %flag_pr = false(size(pr));
-    [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
-    [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
-    %[ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
-    %[pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    [ph, flag_ph] = Core_PP.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    [pr, flag_pr] = Core_PP.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    %[ph, flag_ph] = Core_PP.flagRawObsD4(ph, time_ref - dt_ph, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+    %[pr, flag_pr] = Core_PP.flagRawObsD4(pr, time_ref - dt_pr, time_ref, 6); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
 
     % flag by high deviation of the 4th derivate
     ph = nan2zero(bsxfun(@rdivide, zero2nan(ph), [lambda(:, 1); lambda(:,2)]'));
@@ -540,7 +540,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         pr = bsxfun(@minus, pr, v_light * dtR);
 
         % flag by high deviation of the 4th derivate
-        sensor = Core_Pre_Processing.diffAndPred(zero2nan(ph), 4);
+        sensor = Core_Utils.diffAndPred(zero2nan(ph), 4);
         sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
         flag = sensor > 20;
         ph1(flag(:,1:size(ph1,1))') = NaN;
@@ -562,7 +562,7 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         % SEARCH AND REJECT OUTLIERS ON THE GF
         %----------------------------------------------------------------------------------------------
         
-        dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
+        dGF = Core_Utils.diffAndPred(ph_GF', 3);
         flag = abs(dGF)' > 10 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
         ph1(flag) = NaN;
         ph2(flag) = NaN;
@@ -791,14 +791,14 @@ function [time, pr1, ph1, pr2, ph2, XR, dtR, dtRdot, el, az, bad_sats, bad_epoch
         % flag by high deviation of the 4th derivate
         ph = zero2nan(bsxfun(@times, [ph1_interp; ph2_interp], [lambda(:, 1); lambda(:,2)])');
         pr = zero2nan([pr1_interp; pr2_interp]');
-        sensor = Core_Pre_Processing.diffAndPred(ph, 4);
+        sensor = Core_Utils.diffAndPred(ph, 4);
         sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
         flag = sensor > 3;
         flag_ph = flag | flag_ph;
         
-        [ph, flag] = Core_Pre_Processing.flagRawObsD4(ph, [], [], 6);
+        [ph, flag] = Core_PP.flagRawObsD4(ph, [], [], 6);
         flag_ph = flag | flag_ph;
-        [pr, flag] = Core_Pre_Processing.flagRawObsD4(pr, [], [], 6);
+        [pr, flag] = Core_PP.flagRawObsD4(pr, [], [], 6);
         flag_pr = flag | flag_pr;
         % flagging borders could decrease the performance of the final solution
         % skipping

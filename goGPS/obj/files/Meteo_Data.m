@@ -1052,7 +1052,7 @@ classdef Meteo_Data < handle
             end
             tmp = temp.a2dOsservazioni;
             tmp = simpleFill1D(tmp', flagExpand(~isnan(tmp'),3) & isnan(tmp'), 'linear');
-            dtmp = Core_Pre_Processing.diffAndPred(tmp)';            
+            dtmp = Core_Utils.diffAndPred(tmp)';            
             sensor = abs(bsxfun(@minus, dtmp', median(dtmp, 'omitnan')'));
             thr = mean(movmax(sensor,1)'*10,'omitnan');
             id_ko = bsxfun(@minus, sensor, thr') > 0;

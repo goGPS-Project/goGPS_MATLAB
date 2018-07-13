@@ -4,6 +4,30 @@ classdef Core_Utils < handle
     end
     
     methods (Static)
+        function diff_data = diffAndPred(data, n_order, t_ref)
+            % compute diff predicting epoch 0
+            % using interp 1 pchip method
+            %
+            % SYNTAX
+            %   Core_Utils.diffAndPred(data, t_ref)
+            
+            if nargin < 3
+                t_ref = 1 : size(data,1);
+            end
+            if nargin < 2
+                n_order = 1;
+            end
+            data = [repmat(data(1,:), n_order, 1); data];
+            for s = 1 : size(data, 2)
+                tmp = data(1 + n_order : end, s);
+                id_ok = ~isnan(tmp);
+                if sum(id_ok) > 2
+                    data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
+                end
+            end
+            diff_data = diff(data, n_order);
+        end
+        
         function idx = findMO(find_list, to_find_el)
             % find the postion of the elements of to_find_el into find_list
             % find list should have unique elements

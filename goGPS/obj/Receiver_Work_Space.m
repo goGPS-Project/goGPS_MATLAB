@@ -822,10 +822,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             [pr, id_pr] = this.getPseudoRanges;
             inan = isnan(pr);
             pr_fill = simpleFill1D(pr, flagExpand(~inan, 5) &  inan);
-            med_pr = median(Core_Pre_Processing.diffAndPred(pr_fill,2),2,'omitnan');
-            out = abs(bsxfun(@minus, Core_Pre_Processing.diffAndPred(pr_fill, 2), med_pr)) > thr;
+            med_pr = median(Core_Utils.diffAndPred(pr_fill,2),2,'omitnan');
+            out = abs(bsxfun(@minus, Core_Utils.diffAndPred(pr_fill, 2), med_pr)) > thr;
             pr(out) = nan;
-            pr = zero2nan(Core_Pre_Processing.remShortArcs(pr', 1))';
+            pr = zero2nan(Core_PP.remShortArcs(pr', 1))';
             this.setPseudoRanges(pr, id_pr);
             n_out = sum(out(:) & ~inan(:));
             this.log.addMessage(this.log.indent(sprintf(' - %d code observations marked as outlier',n_out)));
@@ -1057,7 +1057,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.log.addMessage(this.log.indent('Detect outlier candidates from residual phase time derivate'));
             % first time derivate
             synt_ph = this.getSyntPhases;
-            sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph);
+            sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
             
             % subtract median (clock error)
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
@@ -1075,7 +1075,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addWarning('Bad dataset, switching to second time derivative for outlier detection');
                 der = 2; % use second
                 % try with second time derivate
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - synt_ph, der);
+                sensor_ph = Core_Utils.diffAndPred(ph - synt_ph, der);
                 % subtract median (clock error)
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
                 % divide for wavelength
@@ -1101,7 +1101,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 ph_idx = not(isnan(tmp_ph));
                 tmp_ph = tmp_ph(ph_idx);
                 if ~isempty(tmp_ph)
-                    sensor_ph_cs(ph_idx,o) = Core_Pre_Processing.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
+                    sensor_ph_cs(ph_idx,o) = Core_Utils.diffAndPred(tmp_ph - synt_ph(ph_idx,o), der);
                 end
             end
             
@@ -1122,7 +1122,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 poss_rest_line = poss_rest_line | [false; poss_rest_line(2:end)];
                 ph_rest_lines = ph(poss_rest_line,:);
                 synt_ph_rest_lines = synt_ph(poss_rest_line,:);
-                sensor_rst = Core_Pre_Processing.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
+                sensor_rst = Core_Utils.diffAndPred(ph_rest_lines - synt_ph_rest_lines);
                 % subtract median
                 sensor_rst = bsxfun(@minus, sensor_rst, median(sensor_rst, 2, 'omitnan'));
                 % divide for wavelength
@@ -1148,11 +1148,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %             mw = this.getMelWub('1','2','G');
             %             omw = mw.obs./repmat(mw.wl,size(mw.obs,1),1);
             %             %m_omw = reshape(medfilt_mat(omw,10),size(omw));
-            %             omw1 = Core_Pre_Processing.diffAndPred(zero2nan(omw),1);
-            %             omw2 = Core_Pre_Processing.diffAndPred(zero2nan(omw),2);
-            %             omw3 = Core_Pre_Processing.diffAndPred(zero2nan(omw),3);
-            %             omw4 = Core_Pre_Processing.diffAndPred(zero2nan(omw),4);
-            %             omw5 = Core_Pre_Processing.diffAndPred(zero2nan(omw),5);
+            %             omw1 = Core_Utils.diffAndPred(zero2nan(omw),1);
+            %             omw2 = Core_Utils.diffAndPred(zero2nan(omw),2);
+            %             omw3 = Core_Utils.diffAndPred(zero2nan(omw),3);
+            %             omw4 = Core_Utils.diffAndPred(zero2nan(omw),4);
+            %             omw5 = Core_Utils.diffAndPred(zero2nan(omw),5);
             %             m_omw = (omw1 + omw2/2 + omw3/3 + omw4/4 + omw5/5) / 5;
             %             for o = 1 : length(mw.go_id)
             %                 go_id = mw.go_id(o);
@@ -1187,7 +1187,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.cycle_slip_idx_ph = double(sparse(poss_slip_idx));
             
             % Outlier detection for some reason is not working properly -> reperform outlier detection
-            sensor_ph = Core_Pre_Processing.diffAndPred(this.getPhases - this.getSyntPhases, 2);
+            sensor_ph = Core_Utils.diffAndPred(this.getPhases - this.getSyntPhases, 2);
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             % divide for wavelength
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -1200,7 +1200,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function cycleSlipPPPres(this)
-            sensor = Core_Pre_Processing.diffAndPred(this.sat.res);
+            sensor = Core_Utils.diffAndPred(this.sat.res);
             ph_idx =  this.obs_code(:,1) == 'L';
             idx = abs(sensor) > 0.03;
             for i = 1 : size(sensor,2)
@@ -3486,7 +3486,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_set.iono_free = true;
             synt_ph = this.getSyntTwin(obs_set);
             %%% tailored outlier detection
-            sensor_ph = Core_Pre_Processing.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
+            sensor_ph = Core_Utils.diffAndPred(zero2nan(obs_set.obs) - zero2nan(synt_ph));
             sensor_ph = sensor_ph./(repmat(serialize(obs_set.wl)',size(sensor_ph,1),1));
             %
             %             % subtract median (clock error)
@@ -4029,7 +4029,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Apply the clock error of the receiver'));
             end
             id_ko = this.dt == 0;
-            lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Pre_Processing.diffAndPred(this.dt(:,1),2)) < 1e-7);
+            lim = getOutliers(this.dt(:,1) ~= 0 & abs(Core_Utils.diffAndPred(this.dt(:,1),2)) < 1e-7);
             % lim = [lim(1) lim(end)];
             dt_w_border = [this.dt(1); zero2nan(this.dt(:,1)); this.dt(end,1)];
             dt_pr = simpleFill1D(dt_w_border, isnan(dt_w_border), 'pchip');
@@ -5614,8 +5614,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             dt_ph = zeros(this.time.length, 1);
             dt_pr = zeros(this.time.length, 1);
             
-            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_Pre_Processing.remDtJumps(ph);
-            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_Pre_Processing.remDtJumps(pr);
+            [ph_dj, dt_ph_dj, is_ph_jumping] = Core_PP.remDtJumps(ph);
+            [pr_dj, dt_pr_dj, is_pr_jumping] = Core_PP.remDtJumps(pr);
             % apply desync
             if ~disable_dt_correction
                 if any(time_desync)
@@ -5625,7 +5625,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
                     end
                     
-                    ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                    ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                     
                     if (max(abs(time_desync)) > 1e-4)
                         % time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
@@ -5675,7 +5675,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             dt_ph_dj = dt_ph_dj + tmp; % use jmp estimation from pseudo-ranges
                         end
                         
-                        ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                        ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                         jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                         jmp_reset(jmp_reset==numel(dt_pr_dj)) = [];
                         if numel(jmp_reset) > 2
@@ -5713,8 +5713,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Outlier rejection
             if (this.state.isOutlierRejectionOn())
                 this.log.addMarkedMessage('Removing main outliers');
-                [ph, flag_ph] = Core_Pre_Processing.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
-                [pr, flag_pr] = Core_Pre_Processing.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+                [ph, flag_ph] = Core_PP.flagRawObsD4(ph, ref_time - dt_ph, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
+                [pr, flag_pr] = Core_PP.flagRawObsD4(pr, ref_time - dt_pr, ref_time, 6, 5); % The minimum threshold (5 - the last parameter) is needed for low cost receiver that are applying dt corrections to the data - e.g. UBX8
             end
             
             % Saving observations into the object properties
@@ -7356,11 +7356,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Phases
             if nargin == 1
                 [ph, ~, id_ph] = this.getPhases;
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                sensor_ph = Core_Utils.diffAndPred(ph - this.getSyntPhases); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
                 f = figure; f.Name = sprintf('%03d: VsSynt', f.Number); f.NumberTitle = 'off';
             else
                 [ph, ~, id_ph] = this.getPhases(sys_c);
-                sensor_ph = Core_Pre_Processing.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
+                sensor_ph = Core_Utils.diffAndPred(ph - this.getSyntPhases(sys_c)); sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
                 f = figure; f.Name = sprintf('%03d: VsSynt%s', f.Number, this.cc.getSysName(sys_c)); f.NumberTitle = 'off';
             end
             
@@ -7377,7 +7377,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % Pseudo Ranges
             [pr, id_pr] = this.getPseudoRanges;
-            sensor_pr = Core_Pre_Processing.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
+            sensor_pr = Core_Utils.diffAndPred(pr - this.getSyntPrObs); sensor_pr = bsxfun(@minus, sensor_pr, median(sensor_pr, 2, 'omitnan'));
             subplot(2,3,4); plot(sensor_pr); title('Pseudo-ranges observed vs synthesised');
             
             id_ok = (~isnan(sensor_pr));
