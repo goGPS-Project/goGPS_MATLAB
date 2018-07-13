@@ -1,10 +1,12 @@
 function [data] = simpleFill1D(data, flags, method)
+% Fill in flags position
+%
 % SYNTAX:
-%    [data_filled] = simpleFill1D(data, flags)
+%    [data_filled] = simpleFill1D(data, flags, <method>)
 %
 % DESCRIPTION:
 %    fill flagged data with a simple interpolation using MATLAB
-%    interp1 'pchip', 'extrap'
+%    interp1 'linear', 'pchip' (default), 'extrap'
 %
 % NOTE: data can be a matrix, the operation is executed column by column
 %
@@ -60,7 +62,7 @@ function [data] = simpleFill1D(data, flags, method)
             jmp = find(flags(:, r));
             flags(:, r) = flags(:, r) | isnan(data(:, r));
             if sum(~flags(:, r)) > 1
-                data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method,'extrap');
+                data(jmp, r) = interp1(t(~flags(:, r)), data(~flags(:, r), r), jmp, method, 'extrap');
             end
         end
     end
