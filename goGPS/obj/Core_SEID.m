@@ -158,7 +158,8 @@ classdef Core_SEID < handle
                     
                     [ph1, id_ph] = trg(t).getObs('L1','G');
                     [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
-                    trg_go_id = unique(trg(t).go_id(id_ph)');
+                    ph1_goid = trg(t).go_id(id_ph)';
+                    trg_go_id = unique(ph1_goid);
                     [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
                     
                     % It is necessary to better sync satellites in view
@@ -195,6 +196,7 @@ classdef Core_SEID < handle
                     
                     [~, ~, ~, flag] = trg(t).getBestCodeObs();
                     [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                    pr1_goid = trg(t).go_id(id_pr);
                     % C2 - C1 = gf
                     % C2 = C1 + gf
                     pr2 = pr1 + trg_pr_gf(:, trg(t).go_id(id_pr))';
@@ -219,8 +221,8 @@ classdef Core_SEID < handle
                     
                     % Inject the new synthesised phase
                     log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
-                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', trg_go_id)
-                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', trg_go_id);
+                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
+                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
                     %trg(t).injectObs(nan2zero(ref(1).getObs('C2')), wl2, 2, 'C2 ', trg_go_id);
                     %trg(t).injectObs(nan2zero(ref(1).getObs('L2')), wl2, 2, 'L2 ', trg_go_id);
                     
