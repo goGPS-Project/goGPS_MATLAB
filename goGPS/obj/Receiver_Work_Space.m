@@ -1827,7 +1827,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 to_discard = true(this.time.length, 1);
-                [~, to_keep_ep] = intersect(round(nominal.getRefTime() * 1e5), unique(round(round(nominal.getRefTime() / rate) * rate * 1e5)));
+                % Find the valid epoch that are close to the nominal at the requested rate (aka do not read the entire file) 
+                t_rel = nominal.getRefTime(floor(nominal.first.getMatlabTime));
+                [~, to_keep_ep] = intersect(round(t_rel * 1e5), unique(round(round(t_rel / rate) * rate * 1e5)));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -2007,7 +2009,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
                 to_discard = true(this.time.length, 1);
-                [~, to_keep_ep] = intersect(round(nominal.getRefTime() * 1e5), unique(round(round(nominal.getRefTime() / rate) * rate * 1e5)));
+                % Find the valid epoch that are close to the nominal at the requested rate (aka do not read the entire file) 
+                t_rel = nominal.getRefTime(floor(nominal.first.getMatlabTime));
+                [~, to_keep_ep] = intersect(round(t_rel * 1e5), unique(round(round(t_rel / rate) * rate * 1e5)));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -3469,7 +3473,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
