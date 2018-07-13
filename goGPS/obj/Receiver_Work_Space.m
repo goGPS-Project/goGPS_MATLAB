@@ -6415,11 +6415,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 gntropo = x(x(:,2) == 8,1);
                 getropo = x(x(:,2) == 9,1);
                 this.log.addMessage(this.log.indent(sprintf('DEBUG: sigma0 = %f', s0)));
-                if isempty(pos_idx)
-                    this.xyz = this.xyz + coo;
-                else
-                    this.xyz = this.xyz + coo(2,:);
-                end
+                
                 valid_ep = ls.true_epoch;
                 this.dt(valid_ep, 1) = clock / Global_Configuration.V_LIGHT;
                 this.sat.amb_idx = nan(this.length, this.parent.cc.getMaxNumSat);
@@ -6430,6 +6426,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                 end
                 if s0 < 0.5 % with over 50cm of error the results are not meaningfull
+                    if isempty(pos_idx)
+                        this.xyz = this.xyz + coo;
+                    else
+                        this.xyz = this.xyz + coo(2,:);
+                    end
                     if this.state.flag_tropo
                         zwd = this.getZwd();
                         zwd_tmp = zeros(size(this.zwd));
