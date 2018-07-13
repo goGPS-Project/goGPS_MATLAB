@@ -206,10 +206,10 @@ classdef Least_Squares_Manipulator < handle
                     else
                         obs_code2 = '   ';
                     end
-                    out_idx = idxCharLines(obs_code_ph,obs_code1) & go_id_ph == g;
+                    out_idx = strLineMatch(obs_code_ph,obs_code1) & go_id_ph == g;
                     out = rec.sat.outlier_idx_ph(:,out_idx);
                     if strcmp(obs_code2,'   ')
-                        out_idx = idxCharLines(obs_code_ph,obs_code2) & go_id_ph == g;
+                        out_idx = strLineMatch(obs_code_ph,obs_code2) & go_id_ph == g;
                         if any(out_idx)
                             out(:,out_idx) = out(:,out_idx) | rec.sat.outlier_idx_ph(:,out_idx);
                         end
@@ -360,7 +360,7 @@ classdef Least_Squares_Manipulator < handle
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
-                idx_b = idxCharLines(obs_set.obs_code, u_obs_code(c, :));
+                idx_b = strLineMatch(obs_set.obs_code, u_obs_code(c, :));
                 iob_idx(idx_b) = c - 1;
             end
             iob_p_idx = iob_idx + n_coo; % progressive index start for iob

@@ -59,7 +59,7 @@ for i = 1:length(st_idxes)
 end
 for s = 1: length(sta_4char)
     c_sta_4char = sta_4char(s,:);
-    idx_sta  = idxCharLines(sta_4char_trp,c_sta_4char);
+    idx_sta  = strLineMatch(sta_4char_trp,c_sta_4char);
     if sum(idx_sta) > 0
         for i = 1 : n_par
         results.(c_sta_4char).(pars{i}) = all_res.(pars{i})(idx_sta);

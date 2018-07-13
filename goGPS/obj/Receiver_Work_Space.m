@@ -492,7 +492,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.n_spe = [this.n_spe  rec.n_spe];
                 for i = 1:n_obs
                     sat_idx = this.go_id == rec.go_id(i);
-                    obs_idx = idxCharLines(this.obs_code, rec.obs_code(i,:));
+                    obs_idx = strLineMatch(this.obs_code, rec.obs_code(i,:));
                     obs_idx = obs_idx & sat_idx;
                     if sum(obs_idx) > 0 % if the observation os already present
                         this.obs(obs_idx,(old_length+1):end) = rec.obs(i,:);
@@ -3163,7 +3163,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     take_idx = ones(1,n_epochs)>0;
                     for i = 1 : n_opt
                         c_idx = idxes(:, i) & sat_idx;
-                        snr_idx = (idxCharLines(this.obs_code, ['S' complete_flags(i,2:3)]) | idxCharLines(this.obs_code, ['S' complete_flags(i,2) ' '])  ) & sat_idx;
+                        snr_idx = (strLineMatch(this.obs_code, ['S' complete_flags(i,2:3)]) | strLineMatch(this.obs_code, ['S' complete_flags(i,2) ' '])  ) & sat_idx;
                         if sum(c_idx)>0
                             obs((s-1)*n_opt+i,take_idx) = this.obs(c_idx,take_idx);
                             if sum(snr_idx)
@@ -3469,7 +3469,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
+            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -5332,7 +5332,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 sys = this.system(obs_idx_f);
                                 f_code = [sys(1) sprintf('%02d',f)];
                                 
-                                pco_idx = idxCharLines(this.pcv.frequency_name, f_code);
+                                pco_idx = strLineMatch(this.pcv.frequency_name, f_code);
                                 if sum(pco_idx)
                                     pco = this.pcv.offset(:, :, pco_idx)';
                                     pco_delays = neu_los * pco;
@@ -5347,7 +5347,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                         end
                                     end
                                 else
-                                    if isempty(f_code_history) || ~sum(idxCharLines(f_code_history, f_code))
+                                    if isempty(f_code_history) || ~sum(strLineMatch(f_code_history, f_code))
                                         this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s',this.parent.ant_type, f_code)));
                                         f_code_history = [f_code_history;f_code];
                                     end
@@ -6425,7 +6425,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if s0 > 0.10
                     this.log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
                 end
-                if s0 < 1.50 % with over one meter of error the results are not meaningfull
+                if s0 < 0.5 % with over 50cm of error the results are not meaningfull
                     if this.state.flag_tropo
                         zwd = this.getZwd();
                         zwd_tmp = zeros(size(this.zwd));
@@ -6671,17 +6671,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             amb_idx(:,obs_set_temp.go_id) = obs_set_temp.getAmbIdx;
             n_amb  = max(max(amb_idx));
             iono_elong = geom_free / ( 1 -gamma); % Eq (2)
-            P1_idx = idxCharLines(this.obs_code, 'C1W')'& this.system == 'G';
-            P2_idx = idxCharLines(this.obs_code, 'C2W')'& this.system == 'G';
+            P1_idx = strLineMatch(this.obs_code, 'C1W')'& this.system == 'G';
+            P2_idx = strLineMatch(this.obs_code, 'C2W')'& this.system == 'G';
             P1 = zeros(this.time.length,GPS_SS.N_SAT);
             P2 = zeros(this.time.length,GPS_SS.N_SAT);
             P1(:,this.go_id(P1_idx)) = this.obs(P1_idx,:)';
             P2(:,this.go_id(P2_idx)) = this.obs(P2_idx,:)';
             L1 = zeros(this.time.length,GPS_SS.N_SAT);
             L2 = zeros(this.time.length,GPS_SS.N_SAT);
-            L1_idx = idxCharLines(this.obs_code, 'L1C')' & this.system == 'G';
+            L1_idx = strLineMatch(this.obs_code, 'L1C')' & this.system == 'G';
             L1(:,this.go_id(L1_idx)) = this.obs(L1_idx, :)';
-            L2_idx = idxCharLines(this.obs_code, 'L2W')' & this.system == 'G';
+            L2_idx = strLineMatch(this.obs_code, 'L2W')' & this.system == 'G';
             L2(:,this.go_id(L2_idx)) = this.obs(L2_idx, :)';
             n1_tilde = (zero2nan(P1) - 2* zero2nan(iono_elong)) / wl1 - zero2nan(L1);
             n2_tilde = (zero2nan(P2) - 2* gamma* zero2nan(iono_elong)) / wl2 - zero2nan(L2);

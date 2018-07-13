@@ -169,12 +169,12 @@ classdef Core_Reference_Frame < handle
             if this.is_valid
                 
                 if ~isempty(this.station_code) && length(sta_name) == 4
-                    idx_sta = idxCharLines(lower(this.station_code), lower(sta_name));
+                    idx_sta = strLineMatch(lower(this.station_code), lower(sta_name));
                     if sum(idx_sta) > 0
                         st_validity_time = this.start_validity_epoch.getSubSet(idx_sta).getGpsTime();
                         end_validity_time = this.end_validity_epoch.getSubSet(idx_sta).getGpsTime();
                         epoch_gps = epoch.getGpsTime();
-                        idx_sta2 = st_validity_time < epoch_gps && end_validity_time > epoch_gps;
+                        idx_sta2 = st_validity_time < epoch_gps & end_validity_time > epoch_gps;
                         idx_sta = find(idx_sta);
                         idx_sta = idx_sta(idx_sta2);
                         dt = epoch - this.ref_epoch.getEpoch(idx_sta);
@@ -190,7 +190,7 @@ classdef Core_Reference_Frame < handle
             % in case sation not sound return false
             status = false;
             if size(this.station_code) >0
-                sta_idx  = idxCharLines(this.station_code, sta_code);
+                sta_idx  = strLineMatch(this.station_code, sta_code);
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2;
                 end
@@ -202,7 +202,7 @@ classdef Core_Reference_Frame < handle
             % in case sation not sound return false
             status = false;
             if size(this.station_code) >0
-                sta_idx  = idxCharLines(lower(this.station_code), lower(sta_code));
+                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1;
                 end
@@ -210,7 +210,7 @@ classdef Core_Reference_Frame < handle
         end
         
         function setFlag(this, sta_code, flag)
-            sta_idx  = idxCharLines(this.station_code, sta_code);
+            sta_idx  = strLineMatch(this.station_code, sta_code);
             if sum(sta_idx) > 0
                 this.flag(sta_idx) = flag;
             end

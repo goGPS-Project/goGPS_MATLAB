@@ -1120,7 +1120,7 @@ classdef Core_Sky < handle
                         this.log.addWarning('Invalid set of DCB ignoring them')
                     else
                         gd(end) = []; %t aking off lagrange multiplier
-                        dcb_col   = idxCharLines(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
+                        dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
                         this.group_delays(prn, dcb_col) = - gd * Global_Configuration.V_LIGHT * 1e-9;
                     end
                 end

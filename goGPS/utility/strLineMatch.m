@@ -1,4 +1,4 @@
-function idx = idxCharLines(mat,line)
+function idx = strLineMatch(mat,line)
 %DESCRIPTION: given a matrix of char (mat) return the index of the lines
 %equal to line
     n_idx = size(line,1);
