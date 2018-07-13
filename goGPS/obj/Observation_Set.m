@@ -304,10 +304,12 @@ classdef Observation_Set < handle
             %
             % SYNTAX:
             %   this.removeEmptyColumn()
-            % 
-            idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
-            if sum(idx_rem_c)
-                this.removeColumn(idx_rem_c);
+            %
+            if ~isempty(this.obs)
+                idx_rem_c = not(sum(nan2zero(this.obs)) ~= 0);
+                if sum(idx_rem_c)
+                    this.removeColumn(idx_rem_c);
+                end
             end
         end
         
