@@ -272,12 +272,12 @@ classdef Core < handle
                 if (numel(rec) < r) || rec(r).isEmpty
                     rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode(r) == 0); %#ok<AGROW>
                 else
-                    if this.state.isRinexSession()
+                    %if this.state.isRinexSession()
                         rec(r).work.resetWorkSpace();
-                    else
-                        [session_limits, ~] = this.state.getSessionLimits(session_number);
-                        rec(r).work.prepareAppending(session_limits.first, session_limits.last);
-                    end
+%                     else
+%                         [session_limits, ~] = this.state.getSessionLimits(session_number);
+%                         rec(r).work.prepareAppending(session_limits.first, session_limits.last);
+%                     end
                 end
             end
             if numel(rec) > 0
