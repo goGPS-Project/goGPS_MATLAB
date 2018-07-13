@@ -583,7 +583,7 @@ classdef Core_Pre_Processing < handle
                 % SEARCH AND REJECT OUTLIERS ON THE GF
                 %----------------------------------------------------------------------------------------------
                 
-                dGF = Core_Pre_Processing.diffAndPred(ph_GF', 3);
+                dGF = Core_Utils.diffAndPred(ph_GF', 3);
                 flag = abs(dGF)' > 6 * perc((movstd(dGF(:), 30, 'omitnan')), 0.9);
                 ph1(flag) = NaN;
                 ph2(flag) = NaN;
@@ -814,7 +814,7 @@ classdef Core_Pre_Processing < handle
                 ph2 = ph2_interp;
                 
                 % flag by high deviation of the 4th derivate
-                sensor = Core_Pre_Processing.diffAndPred(zero2nan([ph1; ph2]'), 4);
+                sensor = Core_Utils.diffAndPred(zero2nan([ph1; ph2]'), 4);
                 sensor = abs(bsxfun(@minus, sensor, median(sensor, 2, 'omitnan')));
                 flag = sensor > 3;
                 ph1(flag(:,1:size(ph1,1))') = 0;
@@ -1053,7 +1053,9 @@ classdef Core_Pre_Processing < handle
         
         function [data, flagged_out] = flagRawObsD4(data, time_set, time_ref, thr_factor, thr_min, win_size)
             % Flag the data above max(thr_min, thr_factor) * mean(movstd))
-            % SYNTAX: data = flagRawObsD4(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
+            %
+            % SYNTAX
+            %   data = flagRawObsD4(data,  time_set, time_ref, thr_factor, <thr_min = 0 >)
             if nargin < 5
                 thr_min = 0;
             end
@@ -1080,7 +1082,7 @@ classdef Core_Pre_Processing < handle
             % loop for outliers rejection
             flagged_out = false(size(data));
             while (sum(flag(:)) > 0) && (i < 5)
-                sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+                sensor = Core_Utils.diffAndPred(zero2nan(data_interp), 4);
                 sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
                 i = i + 1;
                 % expand the set of observations to allow flogging at the border of the valid intervals
@@ -1111,7 +1113,7 @@ classdef Core_Pre_Processing < handle
             end
             
             % loop for outliers rejection
-            sensor = Core_Pre_Processing.diffAndPred(zero2nan(data_interp), 4);
+            sensor = Core_Utils.diffAndPred(zero2nan(data_interp), 4);
             sensor = bsxfun(@minus, sensor, median(sensor, 2, 'omitnan'));
             % expand the set of observations to allow flogging at the border of the valid intervals
             sensor(isnan(data)) = 0;
@@ -1135,6 +1137,9 @@ classdef Core_Pre_Processing < handle
             % remove a jumps of the clock from ph/pr
             % this piece of code is very very criptic, but it seems to work
             % review this whenever possible
+            %
+            % SYNTAX:
+            %   [obs, dt_dj, is_jumping] = remDtJumps(obs)
             obs = zero2nan(obs);
             dt_dj = 0;
             is_jumping = false;
@@ -1142,9 +1147,9 @@ classdef Core_Pre_Processing < handle
             % Iterate for very particular instable cases
             for i = 1 : 2
                 % Try to find the biggest jumps (experimental)
-                ddt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),1), 2, 'omitnan');
+                ddt = median(Core_Utils.diffAndPred(zero2nan(obs),1), 2, 'omitnan');
                 pos_jmp = abs(ddt) > 1e5;
-                d3dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),3), 2, 'omitnan');
+                d3dt = median(Core_Utils.diffAndPred(zero2nan(obs),3), 2, 'omitnan');
                 ddt = cumsum(cumsum(nan2zero(d3dt)));
                 dt0 = 0;
                 if sum(pos_jmp) > 0
@@ -1165,8 +1170,8 @@ classdef Core_Pre_Processing < handle
                         dt = cumsum(ddt);
                         ph_bk = obs;
                         obs = bsxfun(@minus, obs, dt);
-                        d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(obs),4), 2, 'omitnan');
-                        dobs = Core_Pre_Processing.diffAndPred(obs);
+                        d4dt = median(Core_Utils.diffAndPred(zero2nan(obs),4), 2, 'omitnan');
+                        dobs = Core_Utils.diffAndPred(obs);
                         % find jmps on the median 4th derivate
                         jmp_candidate = flagExpand(abs(nan2zero(d4dt)) > clock_thresh, 2);
                         % detect the real jmp index
@@ -1177,7 +1182,7 @@ classdef Core_Pre_Processing < handle
                             [~, id_max] = max(abs(nan2zero(median(dtmp, 2 ,'omitnan')))');
                             jmp(id_max + lim(l,1) - 1) = true;
                                                         
-                            % Find the magnitude of the jump
+                            % find the magnitude of the jump
                             dtmp_f = simpleFill1D(dtmp, isnan(dtmp)); % fill temp data
                             tmp_diff = diff(dtmp_f); 
                             tmp_diff(:, isnan(dtmp(id_max,:))) = nan; % do not use filled data for estimating the magnitude of jump
@@ -1205,7 +1210,7 @@ classdef Core_Pre_Processing < handle
             %
             % SYNTAX:
             %   [ph_out, dt] = remDtHF(ph)
-            d4dt = median(Core_Pre_Processing.diffAndPred(zero2nan(ph),4), 2, 'omitnan');
+            d4dt = median(Core_Utils.diffAndPred(zero2nan(ph),4), 2, 'omitnan');
                         
             % Filter low frequencies:
 %             dt_hf = cumsum(cumsum(cumsum(cumsum(nan2zero(d4dt)))));
@@ -1306,7 +1311,7 @@ classdef Core_Pre_Processing < handle
             if any(time_desync)
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
-                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                 
                 %% time_desync is a introduced by the receiver to maintain the drift of the clock into a certain range
                 ddt = [0; diff(time_desync)];
@@ -1332,7 +1337,7 @@ classdef Core_Pre_Processing < handle
             else
                 [ph_dj, dt_ph_dj] = Core_Pre_Processing.remDtJumps(ph);
                 [pr_dj, dt_pr_dj] = Core_Pre_Processing.remDtJumps(pr);
-                ddt_pr = Core_Pre_Processing.diffAndPred(dt_pr_dj);
+                ddt_pr = Core_Utils.diffAndPred(dt_pr_dj);
                 jmp_reset = find(abs(ddt_pr) > 1e-7); % points where the clock is reset
                 if numel(jmp_reset) > 2
                     drifting = interp1(jmp_reset, dt_pr_dj(jmp_reset), (1 : numel(ddt_pr))', 'spline');
@@ -1396,29 +1401,7 @@ classdef Core_Pre_Processing < handle
             end
             
             obs_out = obs_out';
-        end
-        
-        function diff_data = diffAndPred(data, n_order, t_ref)
-            % compute diff predicting epoch 0
-            % using interp 1 pchip method
-            % SYNTAX: Core_Pre_Processing.diffAndPred(data, t_ref)
-            
-            if nargin < 3
-                t_ref = 1 : size(data,1);
-            end
-            if nargin < 2
-                n_order = 1;
-            end
-            data = [repmat(data(1,:), n_order, 1); data];
-            for s = 1 : size(data, 2)
-                tmp = data(1 + n_order : end, s);
-                id_ok = ~isnan(tmp);
-                if sum(id_ok) > 2
-                    data(1 : n_order, s) = interp1(t_ref(id_ok), tmp(id_ok), 1 - n_order : 0, 'pchip', 'extrap');
-                end
-            end
-            diff_data = diff(data, n_order);
-        end
+        end        
     end
     
     % ==================================================================================================================================================
