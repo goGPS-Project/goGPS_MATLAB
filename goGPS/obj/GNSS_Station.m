@@ -442,7 +442,7 @@ classdef GNSS_Station < handle
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX   this.getChalmersString();
             for r = 1 : size(this, 2)
-                rec = this(~this(:,r).isempty, r);
+                rec = this(~this(:,r).isEmpty, r);
                 if ~isempty(rec)
                     xyz = rec.out.getMedianPosXYZ();
                     fprintf('%-24s %16.4f%16.4f%16.4f\n', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3));

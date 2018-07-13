@@ -119,14 +119,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % REFERENCE
         %REMOTE_RES_CONF_DIR = [Main_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
         REMOTE_RES_CONF_DIR = '';
-        ERP_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
+        ERP_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep '${YYYY}' filesep]; % Earth Rotation Parameters
         ERP_NAME = ''; % Name of ERP files
-        IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep '${YYYY}' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         IGRF_NAME = 'igrf12coeff.txt';
 
         GEOID_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs
-        IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep];
+        IONO_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep '${YYYY}' filesep];
         IONO_NAME = '';
         ATM_LOAD_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ATM_LOAD' filesep];
         ATM_LOAD_NAME_NT = '';
@@ -3137,6 +3137,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   name = this.getPrjName();
 
             name = this.prj_name;
+        end
+
+        function file_path = getFilePath(this, file_path)
+            % Get the file name of the current settings
+            %   
+            % SYNTAX
+            %   file_path = this.getFilePath()
+            file_path = this.cur_ini;
         end
 
         function cc = getConstellationCollector(this)

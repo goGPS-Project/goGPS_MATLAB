@@ -234,6 +234,9 @@ classdef GUI_Main < handle
             save_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'Save', ...
                 'Callback', @this.saveState); %#ok<NASGU>
+            save_as_but = uicontrol( 'Parent', bottom_bhr, ...
+                'String', 'Save As', ...
+                'Callback', @this.saveAsState); %#ok<NASGU>
             go_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'go!', ...
                 'FontAngle', 'italic', ...
@@ -1200,7 +1203,6 @@ classdef GUI_Main < handle
                 
                 % build the path name of the file to be loaded
                 settings_file = fullfile(path_name, file_name);
-                
                 if strcmp(ext, '.ini')
                     this.state.importIniFile(settings_file);
                     this.updateUI();
@@ -1212,6 +1214,19 @@ classdef GUI_Main < handle
         
         function saveState(this, caller, event)
             % Save state settings
+            try
+                txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
+                this.state.import(Ini_Manager(txt{1}));
+                this.state.save();
+                this.updateUI();
+                this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', this.state.getFilePath));
+            catch ex
+                this.log.addError(sprintf('Export failed!\n%s', ex.message));
+            end
+        end
+        
+        function saveAsState(this, caller, event)
+            % Save As state settings
             config_dir = this.state.getHomeDir();
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
@@ -1223,11 +1238,9 @@ classdef GUI_Main < handle
             end
             % build the path name of the save location
             settings_file = fullfile(path_name,file_name);
-            
             try
                 txt = textscan(strrep(char(this.j_settings.getText()),'%','#'),'%s','Delimiter', '\n');
                 this.state.import(Ini_Manager(txt{1}));
-                this.state.setFilePath(settings_file);
                 this.state.save(settings_file);
                 this.updateUI();
                 this.log.addMarkedMessage(sprintf('The file has been saved correctly on:\n     %s', settings_file));
@@ -1355,6 +1368,9 @@ classdef GUI_Main < handle
             uimenu(this.menu.project, ...
                 'Label', 'Save', ...
                 'Callback', @this.saveState);
+            uimenu(this.menu.project, ...
+                'Label', 'Save As', ...
+                'Callback', @this.saveAsState);
         end
     end
 end
