@@ -49,7 +49,7 @@ classdef Core_Reference_Frame < handle
         flag
         is_valid
     end
-     methods (Access = 'private')
+    methods (Access = 'private')
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
@@ -77,6 +77,10 @@ classdef Core_Reference_Frame < handle
     
     methods
         function init(this)
+            % initilize the reference frame object loading the crd file specified in state
+            %
+            % SYNTAX:
+            % this.init()
             this.clear();
             this.is_valid = true;
             try
@@ -153,6 +157,10 @@ classdef Core_Reference_Frame < handle
         end
         
         function clear(this)
+            % clear the object
+            %
+            % SYNTAX:
+            % this.clear()
             this.is_valid = false;
             this.xyz = [];
             this.vxvyvz = [];
@@ -164,6 +172,10 @@ classdef Core_Reference_Frame < handle
         end
         
         function [xyz, is_valid] = getCoo(this, sta_name, epoch)
+            % get the coordinates of the station defined by marker name at the  desidered epoch
+            %
+            % SYNTAX:
+            %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
             xyz = [];
             is_valid = false;
             if this.is_valid
@@ -188,6 +200,9 @@ classdef Core_Reference_Frame < handle
         function [status] = isFixed(this, sta_code)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
+            %
+            % SYNTAX:
+            %  [status] = this.isFixed(sta_code)
             status = false;
             if size(this.station_code) >0
                 sta_idx  = strLineMatch(this.station_code, sta_code);
@@ -200,6 +215,9 @@ classdef Core_Reference_Frame < handle
         function [status] = hasAPriori(this, sta_code)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
+            %
+            % SYNTAX:
+            %  [status] = this.hasAPriori(sta_code)
             status = false;
             if size(this.station_code) >0
                 sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
@@ -210,6 +228,10 @@ classdef Core_Reference_Frame < handle
         end
         
         function setFlag(this, sta_code, flag)
+            % Set the falg [fixed approximate] for the station sta code
+            %
+            % SYNTAX:
+            %  this.setFlag(sta_code,flag)
             sta_idx  = strLineMatch(this.station_code, sta_code);
             if sum(sta_idx) > 0
                 this.flag(sta_idx) = flag;

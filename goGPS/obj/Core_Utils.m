@@ -589,11 +589,13 @@ classdef Core_Utils < handle
             time_1 = time_1.getMatlabTime();
             time_2 = time_2.getMatlabTime();
             [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 0.005/86400); % approximate at 5 ms
+            idx1 = idx1(idx1~=0);
+            idx2 = idx1(idx2~=0);
             time_tot = zeros(max(max(idx1), max(idx2)), 1);
             time_tot(idx1) = time_1;
             time_tot(idx2) = time_2;
             mix_len = min(0.007, abs((time_2(1) - time_1(end)))/20); % <= empirically found
-            w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot))/mix_len)));
+            w2 = 1 ./ (1 + exp(-((time_tot - mean(time_tot)) / mix_len)));
             w1 = 1 - w2;
             n_out = size(time_tot);
             data1 = nan(n_out);
@@ -604,16 +606,16 @@ classdef Core_Utils < handle
             id_ko = ((isnan(data1) & (1 : n_out)' < id_start) | (isnan(data2) & (1 : n_out)' >= id_start)) & ~(isnan(data1) & isnan(data2));
             
             % Interpolate missing data
-            data1(time_tot(isnan(data1)) < min(time_1)) = data_tosmt_lft(1);
-            data1(time_tot(isnan(data1)) > max(time_1)) = data_tosmt_lft(end);
+            data1(time_tot(isnan(data1)) <= min(time_1)) = data_tosmt_lft(1);
+            data1(time_tot(isnan(data1)) >= max(time_1)) = data_tosmt_lft(end);
             if sum(isnan(data_tosmt_lft)) < length(data_tosmt_lft) &&  sum(isnan(data1)) > 0
-                data1(isnan(data1)) = interp1(data_tosmt_lft, time_1, time_tot(isnan(data1)));
+                data1 = simpleFill1D(data1, isnan(data1), 'linear');
             end
             
-            data2(time_tot(isnan(data2)) < min(time_2)) = data_tosmt_rgt(1);
-            data2(time_tot(isnan(data2)) > max(time_2)) = data_tosmt_rgt(end);
+            data2(time_tot(isnan(data2)) <= min(time_2)) = data_tosmt_rgt(1);
+            data2(time_tot(isnan(data2)) >= max(time_2)) = data_tosmt_rgt(end);
             if sum(isnan(data_tosmt_rgt)) < length(data_tosmt_rgt) && sum(isnan(data2)) >0
-                data2(isnan(data2)) = interp1(data_tosmt_rgt, time_2, time_tot(isnan(data2)));
+                data2 = simpleFill1D(data2, isnan(data2), 'linear');
             end
             
             % Merge
