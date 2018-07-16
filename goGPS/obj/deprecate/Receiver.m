@@ -2520,7 +2520,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -3690,7 +3690,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
@@ -3894,7 +3894,11 @@ classdef Receiver < Exportable
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
+                try
+                    ztd{r} = this(1, r).ztd(this(1, r).getIdSync); %#ok<AGROW>
+                catch
+                    ztd{r} = nan(size(this(1, r).getIdSync));
+                end
                 
                 for s = 2 : size(this, 1)
                     ztd_tmp = this(s, r).ztd(this(s, r).getIdSync);
@@ -3984,11 +3988,16 @@ classdef Receiver < Exportable
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
-                if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)) || sum(this(1, r).zwd) == 0)
-                    zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
-                else
-                    zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
+                try
+                    if (isempty(this(1, r).zwd) || all(isnan(this(1, r).zwd)) || sum(this(1, r).zwd) == 0)
+                        zwd{r} = this(1, r).apr_zwd(this(1, r).getIdSync); %#ok<AGROW>
+                    else
+                        zwd{r} = this(1, r).zwd(this(1, r).getIdSync); %#ok<AGROW>
+                    end
+                catch
+                    zwd{r} = nan(size(this(1, r).getIdSync));
                 end
+                
                 
                 for s = 2 : size(this, 1)
                     if (isempty(this(s, r).zwd) || all(isnan(this(s, r).zwd)) || sum(this(1, r).zwd) == 0)
