@@ -454,7 +454,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             rin_list.keepFiles(time_start, time_stop);
             n_files = length(rin_list.file_name_list);
-            for i = 1: n_files
+            for i = 1 : n_files
                 tmp = time_stop.getCopy;
                 if tmp > rin_list.last_epoch.getEpoch(i)
                     tmp = rin_list.last_epoch.getEpoch(i).getCopy;
@@ -659,7 +659,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
-                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(this, rate);
+                [~, id_sync] = Receiver_Commons.getSyncTimeExpanded(this, rate);
                 if ~isempty(id_sync)
                     this.keepEpochs(id_sync(~isnan(id_sync)));
                 end
@@ -7080,9 +7080,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   this.keep(rate, sys_list)
             if nargin > 1 && ~isempty(rate)
-                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, rate);
+                [~, id_sync] = Receiver_Commons.getSyncTimeExpanded(rec, rate);
             else
-                [~, id_sync] = GNSS_Station.getSyncTimeExpanded(rec);
+                [~, id_sync] = Receiver_Commons.getSyncTimeExpanded(rec);
             end
             % Keep the epochs in common
             % starting from the first when all the receivers are available

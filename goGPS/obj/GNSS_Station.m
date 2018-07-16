@@ -204,16 +204,28 @@ classdef GNSS_Station < handle
             out_prefix = sprintf('%s_%04d_%03d_', this.getMarkerName4Ch, year, doy);
         end
         
-        function is_empty = isEmpty_mr(this)
+        function is_empty = isEmpty_mr(sta_list)
             % Return if the object does not cantains any observation
             %
             % SYNTAX
-            %   is_empty = this.isEmpty();
-            is_empty =  zeros(numel(this), 1);
-            for r = 1 : numel(this)
-                is_empty(r) =  this(r).work.isEmpty() && this(r).out.isEmpty();
+            %   is_empty = this.isEmpty_mr();
+            is_empty =  zeros(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                is_empty(r) =  sta_list(r).work.isEmpty() && sta_list(r).out.isEmpty();
             end
         end
+        
+        function is_empty = isOutEmpty_mr(sta_list)
+            % Return if the object (out) does not cantains any observation
+            %
+            % SYNTAX
+            %   is_empty = this.isOutEmpty_mr();
+            is_empty =  zeros(numel(sta_list), 1);
+            for r = 1 : numel(sta_list)
+                is_empty(r) =  sta_list(r).out.isEmpty();
+            end
+        end
+        
         
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
@@ -223,17 +235,6 @@ classdef GNSS_Station < handle
             
             is_empty =  this.work.isEmpty() && this.out.isEmpty();
 
-        end
-        
-        function is_empty = isEmptyOut_mr(this)
-            % Return if the object does not cantains any observation
-            %
-            % SYNTAX
-            %   is_empty = this.isEmpty();
-            is_empty =  zeros(numel(this), 1);
-            for r = 1 : numel(this)
-                is_empty(r) =  this(r).out.isEmpty();
-            end
         end
         
         function time = getTime(this)
@@ -393,14 +394,14 @@ classdef GNSS_Station < handle
             end
         end
     
-        function xyz = getMedianPosXYZ_mr(this)
+        function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
             %
             % OUTPUT
             %   xyz     geocentric coordinates
             %
             % SYNTAX
-            %   xyz = this.getMedianPosXYZ_mr()
+            %   xyz = this.getMedianPosXYZ()
             
             xyz = [];
             for r = 1 : numel(this)
@@ -450,52 +451,72 @@ classdef GNSS_Station < handle
             end
         end
         
-        function [ztd, p_time, id_sync] = getZtd_mr(this)
+        function [ztd, p_time, id_sync] = getZtd_mr(sta_list)
             % MultiRec: works on an array of receivers
+            %
             % SYNTAX
             %  [ztd, p_time, id_sync] = this.getZtd_mr()
-            [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
             
             id_ok = any(~isnan(id_sync),2);
             id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
             
-            n_rec = numel(this);
+            n_rec = numel(sta_list);
             ztd = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
-                ztd(~isnan(id_rec), r) = this(r).out.ztd(id_rec(~isnan(id_rec)));
+                id_rec = id_rec(~isnan(id_rec) & id_rec <= length(sta_list(r).out.ztd));
+                ztd(~isnan(id_rec), r) = sta_list(r).out.ztd(~isnan(id_rec));
             end
         end
-        
-        function [pwv, p_time, id_sync] = getPwv_mr(this)
+                
+        function [ztd_res, p_time, ztd_height] = getReducedZtd_mr(sta_list)
             % MultiRec: works on an array of receivers
+            % Reduce the ZTD of all the stations removing the 
+            % component dependent with the altitude 
+            %
             % SYNTAX
-            %  [pwv, p_time, id_sync] = this.getPwv_mr()
-            [p_time, id_sync] = Receiver.getSyncTimeExpanded(this);
+            %  [ztd_res, p_time, ztd_height] = sta_list.getReducedZtd_mr()
+            
+            med_ztd = median(sta_list.getZtd_mr, 'omitnan')';
+            degree = 5;
+            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+
+            ztd_height = Core_Utils.interp1LS(h_o, med_ztd, degree);
+            [ztd, p_time] = sta_list.getZtd_mr();
+            ztd_res = bsxfun(@minus, ztd', ztd_height)';
+        end
+        
+        function [pwv, p_time, id_sync] = getPwv_mr(sta_list)
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [pwv, p_time, id_sync] = sta_list.getPwv_mr()
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list);
             
             id_ok = any(~isnan(id_sync),2);
             id_sync = id_sync(id_ok, :);
             p_time = p_time.getEpoch(id_ok);
             
-            n_rec = numel(this);
+            n_rec = numel(sta_list);
             pwv = nan(size(id_sync));
             for r = 1 : n_rec
                 id_rec = id_sync(:,r);
-                pwv(~isnan(id_rec), r) = this(r).out.pwv(id_rec(~isnan(id_rec)));
+                pwv(~isnan(id_rec), r) = sta_list(r).out.pwv(id_rec(~isnan(id_rec)));
             end
         end
         
-        function [zwd, p_time] = getZwd_mr(this)
+        function [zwd, p_time] = getZwd_mr(sta_list)
             % MultiRec: works on an array of receivers
             % SYNTAX
-            %  [zwd, p_time, id_sync] = this.getZwd_mr()
-            [p_time, id_sync] = Receiver.getSyncTimeTR(this);
-            n_rec = numel(this);
+            %  [zwd, p_time, id_sync] = sta_list.getZwd_mr()
+            [p_time, id_sync] = GNSS_Station.getSyncTimeTR(sta_list);
+            n_rec = numel(sta_list);
             zwd = nan(size(id_sync{1}));
             for r = 1 : n_rec
                 id_rec = id_sync{1}(:,r);
-                zwd(~isnan(id_rec),r) = this(r).out.zwd(id_rec(~isnan(id_rec)));
+                zwd(~isnan(id_rec),r) = sta_list(r).out.zwd(id_rec(~isnan(id_rec)));
             end
         end  
         
@@ -560,7 +581,8 @@ classdef GNSS_Station < handle
             end
         end
     end
-     % ==================================================================================================================================================
+    
+    % ==================================================================================================================================================
     %% SETTER
     % ==================================================================================================================================================
     methods (Access = public)
@@ -573,7 +595,8 @@ classdef GNSS_Station < handle
             end
     end
     end
-     % ==================================================================================================================================================
+    
+    % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -581,10 +604,10 @@ classdef GNSS_Station < handle
             % Get the common time among all the receivers
             %
             % SYNTAX
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, p_rate);
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, p_rate);
             %
             % EXAMPLE:
-            %   [p_time, id_sync] = Receiver.getSyncTimeExpanded(rec, 30);
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, 30);
             
             if sum(~rec.isEmpty_mr) == 0
                 % no valid receiver
@@ -601,14 +624,14 @@ classdef GNSS_Station < handle
                 
                 first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
                 if ~isempty(first_id_ok)
-                    p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+                    p_time_zero = round(rec(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
                 end
                 
                 % Get all the common epochs
                 t = [];
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).time.getRate);
-                    t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                    rec_rate = min(1, rec(r).out.time.getRate);
+                    t = [t; round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
                     % p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
                 end
                 t = unique(t);
@@ -624,14 +647,14 @@ classdef GNSS_Station < handle
                 
                 % Get intersected times
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).time.getRate);
-                    [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    rec_rate = min(1, rec(r).out.time.getRate);
+                    [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
                     id_sync(id1 ,r) = id2;
                 end
             end
         end
         
-        function [p_time, id_sync] = getSyncTimeTR(rec, obs_type, p_rate)
+        function [p_time, id_sync] = getSyncTimeTR(sta_list, obs_type, p_rate)
             % Get the common (shortest) time among all the used receivers and the target(s)
             % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
             % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
@@ -647,8 +670,13 @@ classdef GNSS_Station < handle
                 p_rate = 1e-6;
             end
             if nargin < 2
-                obs_type = ones(1, numel(rec));
-                obs_type(find(~rec.isEmpty_mr, 1, 'last')) = 0;
+                % choose the longest as reference
+                len = zeros(1, numel(sta_list));
+                for r = 1 : numel(sta_list)
+                    len(r) = sta_list(r).out.length;
+                end
+                obs_type = ones(1, numel(sta_list));
+                obs_type(find(len == max(len), 1, 'first')) = 0;
             end
             
             % Do the target(s) as last
@@ -658,22 +686,22 @@ classdef GNSS_Station < handle
             % processing time will start with the receiver with the last first epoch
             %          and it will stop  with the receiver with the first last epoch
             
-            first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
-            p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
-            p_time_start = rec(first_id_ok).time.first.getRefTime(p_time_zero);
-            p_time_stop = rec(first_id_ok).time.last.getRefTime(p_time_zero);
-            p_rate = lcm(round(p_rate * 1e6), round(rec(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            first_id_ok = find(~sta_list.isOutEmpty_mr, 1, 'first');
+            p_time_zero = round(sta_list(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = sta_list(first_id_ok).out.time.first.getRefTime(p_time_zero);
+            p_time_stop = sta_list(first_id_ok).out.time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(sta_list(first_id_ok).out.time.getRate * 1e6)) * 1e-6;
             
             p_time = GPS_Time(); % empty initialization
             
             i = 0;
             for r = id
-                ref_t{r} = rec(r).time.getRefTime(p_time_zero);
+                ref_t{r} = sta_list(r).out.time.getRefTime(p_time_zero);
                 if obs_type(r) > 0 % if it's not a target
-                    if ~rec(r).isEmpty
-                        p_time_start = max(p_time_start,  round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_time_stop = min(p_time_stop,  round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                        p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    if ~sta_list(r).out.isEmpty
+                        p_time_start = max(p_time_start,  round(sta_list(r).out.time.first.getRefTime(p_time_zero) * sta_list(r).out.time.getRate) / sta_list(r).out.time.getRate);
+                        p_time_stop = min(p_time_stop,  round(sta_list(r).out.time.last.getRefTime(p_time_zero) * sta_list(r).out.time.getRate) / sta_list(r).out.time.getRate);
+                        p_rate = lcm(round(p_rate * 1e6), round(sta_list(r).out.time.getRate * 1e6)) * 1e-6;
                     end
                 else
                     % It's a target
@@ -683,21 +711,21 @@ classdef GNSS_Station < handle
                     % in case of multiple targets the reference times should be independent
                     % so here I keep the temporary rt0 rt1 r_rate var
                     % instead of ref_time_start, ref_time_stop, ref_rate
-                    pt0 = max(p_time_start, round(rec(r).time.first.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pt1 = min(p_time_stop, round(rec(r).time.last.getRefTime(p_time_zero) * rec(r).time.getRate) / rec(r).time.getRate);
-                    pr = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = max(p_time_start, round(sta_list(r).out.time.first.getRefTime(p_time_zero) * sta_list(r).out.time.getRate) / sta_list(r).out.time.getRate);
+                    pt1 = min(p_time_stop, round(sta_list(r).out.time.last.getRefTime(p_time_zero) * sta_list(r).out.time.getRate) / sta_list(r).out.time.getRate);
+                    pr = lcm(round(p_rate * 1e6), round(sta_list(r).out.time.getRate * 1e6)) * 1e-6;
                     pt0 = ceil(pt0 / pr) * pr;
                     pt1 = floor(pt1 / pr) * pr;
                     
                     % return one p_time for each target
                     i = i + 1;
-                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1)); %#ok<SAGROW>
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1));
                     p_time(i).toUnixTime();
                     
                     id_sync{i} = nan(p_time(i).length, numel(id));
                     for rs = id % for each rec to sync
-                        if ~rec(rs).isEmpty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
-                            [~, id_ref, id_rec] = intersect(rec(rs).time.getRefTime(p_time_zero), (pt0 : pr : pt1));
+                        if ~sta_list(rs).out.isEmpty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                            [~, id_ref, id_rec] = intersect(round(sta_list(rs).out.time.getRefTime(p_time_zero) * 1e5)/1e5, (pt0 : pr : pt1));
                             id_sync{i}(id_rec, rs) = id_ref;
                         end
                     end
@@ -781,7 +809,7 @@ classdef GNSS_Station < handle
                 hold on;
             end
             maximizeFig(f);
-            [lat, lon] = cart2geod(sta_list.getMedianPosXYZ_mr());
+            [lat, lon] = cart2geod(sta_list.getMedianPosXYZ());
             
             plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
             hold on;
@@ -824,6 +852,71 @@ classdef GNSS_Station < handle
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
         end % --> ask andrea
+        
+        function showScatteredMap(lat, lon, s_time, data);
+            
+        end
+            
+        function showMapZwd(this, new_fig, epoch)
+            if nargin < 2 || isempty(new_fig)
+                new_fig = true;
+            end
+            if new_fig
+                f = figure;
+            else
+                f = gcf;
+                hold on;
+            end
+            maximizeFig(f);
+            
+            %[res_tropo, s_time] = this.getReducedZtd_mr();
+            [res_tropo, s_time] = this.getZwd_mr();
+            res_tropo = res_tropo * 1e2;
+            
+            if nargin < 3
+                epoch = 1 : s_time.length();
+            end
+                        
+            coo = Coordinates.fromXYZ(this.getMedianPosXYZ);
+            [lat, lon] = coo.getGeodetic;
+            
+            sh = scatter(lon(:)./pi*180, lat(:)./pi*180, 250, res_tropo(epoch(1),:)', 'filled');
+            hold on;
+            % plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
+            %caxis([-10 10]);
+            colormap(gat);
+            colorbar;
+            
+            lon_lim = xlim();
+            lon_lim(1) = lon_lim(1) - 0.1;
+            lon_lim(2) = lon_lim(2) + 0.1;
+            lat_lim = ylim();
+            lat_lim(1) = lat_lim(1) - 0.1;
+            lat_lim(2) = lat_lim(2) + 0.1;
+            
+            xlim(lon_lim);
+            ylim(lat_lim);
+                        
+            if new_fig
+                if FTP_Downloader.checkNet
+                    plot_google_map('alpha', 0.95, 'MapType', 'satellite');
+                end
+                xlabel('Longitude [deg]');
+                ylabel('Latitude [deg]');
+            end
+            th = title(sprintf('Receiver %s', s_time.getEpoch(1).toString('yyyy-mm-dd HH:MM:SS')), 'FontSize', 30);
+            
+            drawnow
+            if numel(epoch) > 1                
+                for e = 2 : 10 : numel(epoch)
+                    if any(res_tropo(epoch(e),:))
+                        th.String = sprintf('Receiver %s', s_time.getEpoch(epoch(e)).toString('yyyy-mm-dd HH:MM:SS'));
+                        sh.CData = res_tropo(epoch(e),:)';
+                        drawnow
+                    end
+                end
+            end
+        end
         
         function showDt(this)
             % Plot Clock error
@@ -937,6 +1030,39 @@ classdef GNSS_Station < handle
                 new_fig = true;
             end
             this.showTropoPar('ZTD', new_fig)
+        end
+        
+        function showZtdVsHeight(sta_list)
+            % Show Median ZTD of n_receivers vs Hortometric height
+            % 
+            % SYNTAX
+            %   sta_list.showZtdVsHeight();
+            figure; 
+            med_ztd = median(sta_list.getZtd_mr * 1e2, 'omitnan')';
+            subplot(2,1,1); 
+            [~, ~, ~, h_o] = Coordinates.fromXYZ(sta_list.getMedianPosXYZ()).getGeodetic;
+            plot(h_o, med_ztd, '.', 'MarkerSize', 20); hold on;
+            ylabel('Median ZTD [cm]');
+            xlabel('Elevation [m]');
+            title('ZTD vs Height')
+
+            degree = 5;
+            y_out = Core_Utils.interp1LS(h_o, med_ztd, degree, h_o);
+            plot(sort(h_o), Core_Utils.interp1LS(h_o, med_ztd, degree, sort(h_o)), '-', 'Color', Core_UI.COLOR_ORDER(3,:), 'LineWidth', 2);
+            subplot(2,1,2); 
+            plot(h_o, med_ztd - y_out, '.', 'MarkerSize', 20);
+
+            ylabel('residual [cm]');
+            xlabel('Elevation [m]');
+            title('reduced ZTD vs Height')            
+            
+            sta_strange = find(abs(med_ztd - y_out) > 8);
+            if ~isempty(sta_strange)
+                sta_list.log.addMessage('Strange station detected');
+                for s = 1 : numel(sta_strange)
+                    sta_list.log.addMessage(sprintf(' - %s', sta_list.station_name(sta_list.sta_ok(sta_strange(s)),:)));
+                end
+            end
         end
         
         function showPwv(this, new_fig)

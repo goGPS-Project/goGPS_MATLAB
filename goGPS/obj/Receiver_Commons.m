@@ -1328,7 +1328,6 @@ classdef Receiver_Commons < handle
             this.showTropoPar('ZTD', new_fig)
         end
         
-        
         function slant_td = getSlantTD(this)
             % Get the slant total delay
             % SYNTAX
@@ -1503,11 +1502,144 @@ classdef Receiver_Commons < handle
             figure
             plot(zero2nan(this.sat.res),'.');
         end
-    end
-    
-    %% METHODS STATIC UTILITIES
+    end    
+% ==================================================================================================================================================
+    %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
-    methods (Static)
+    methods (Static, Access = public)
+        function [p_time, id_sync] = getSyncTimeExpanded(rec, p_rate)
+            % Get the common time among all the receivers
+            %
+            % SYNTAX
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, p_rate);
+            %
+            % EXAMPLE:
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, 30);
+            
+            if sum(~rec.isEmpty_mr) == 0
+                % no valid receiver
+                p_time = GPS_Time;
+                id_sync = [];
+            else
+                if nargin == 1
+                    p_rate = 1e-6;
+                end
+                
+                % prepare reference time
+                % processing time will start with the receiver with the last first epoch
+                %          and it will stop  with the receiver with the first last epoch
+                
+                first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
+                if ~isempty(first_id_ok)
+                    p_time_zero = round(rec(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+                end
+                
+                % Get all the common epochs
+                t = [];
+                for r = 1 : numel(rec)
+                    rec_rate = min(1, rec(r).time.getRate);
+                    t = [t; round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                    % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                end
+                t = unique(t);
+                
+                % If p_rate is specified use it
+                if nargin > 1
+                    t = intersect(t, (0 : p_rate : t(end) + p_rate)');
+                end
+                
+                % Create reference time
+                p_time = GPS_Time(p_time_zero, t);
+                id_sync = nan(p_time.length(), numel(rec));
+                
+                % Get intersected times
+                for r = 1 : numel(rec)
+                    rec_rate = min(1, rec(r).time.getRate);
+                    [~, id1, id2] = intersect(t, round(rec(r).time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    id_sync(id1 ,r) = id2;
+                end
+            end
+        end
+        
+        function [p_time, id_sync] = getSyncTimeTR(sta_list, obs_type, p_rate)
+            % Get the common (shortest) time among all the used receivers and the target(s)
+            % For each target (obs_type == 0) produce a different cella arrya with the sync of the other receiver
+            % e.g.  Reference receivers @ 1Hz, trg1 @1s trg2 @30s
+            %       OUTPUT 1 sync @1Hz + 1 sync@30s
+            %
+            % SYNTAX
+            %   [p_time, id_sync] = Receiver.getSyncTimeTR(rec, obs_type, <p_rate>);
+            %
+            % SEE ALSO:
+            %   this.getSyncTimeExpanded
+            %
+            if nargin < 3
+                p_rate = 1e-6;
+            end
+            if nargin < 2
+                % choose the longest as reference
+                len = zeros(1, numel(sta_list));
+                for r = 1 : numel(sta_list)
+                    len(r) = sta_list(r).length;
+                end
+                obs_type = ones(1, numel(sta_list));
+                obs_type(find(len == max(len), 1, 'first')) = 0;
+            end
+            
+            % Do the target(s) as last
+            [~, id] = sort(obs_type, 'descend');
+            
+            % prepare reference time
+            % processing time will start with the receiver with the last first epoch
+            %          and it will stop  with the receiver with the first last epoch
+            
+            first_id_ok = find(~sta_list.isOutEmpty_mr, 1, 'first');
+            p_time_zero = round(sta_list(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+            p_time_start = sta_list(first_id_ok).time.first.getRefTime(p_time_zero);
+            p_time_stop = sta_list(first_id_ok).time.last.getRefTime(p_time_zero);
+            p_rate = lcm(round(p_rate * 1e6), round(sta_list(first_id_ok).time.getRate * 1e6)) * 1e-6;
+            
+            p_time = GPS_Time(); % empty initialization
+            
+            i = 0;
+            for r = id
+                ref_t{r} = sta_list(r).time.getRefTime(p_time_zero);
+                if obs_type(r) > 0 % if it's not a target
+                    if ~sta_list(r).isEmpty
+                        p_time_start = max(p_time_start,  round(sta_list(r).time.first.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                        p_time_stop = min(p_time_stop,  round(sta_list(r).time.last.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                        p_rate = lcm(round(p_rate * 1e6), round(sta_list(r).time.getRate * 1e6)) * 1e-6;
+                    end
+                else
+                    % It's a target
+                    
+                    % recompute the parameters for the ref_time estimation
+                    % not that in principle I can have up to num_trg_rec ref_time
+                    % in case of multiple targets the reference times should be independent
+                    % so here I keep the temporary rt0 rt1 r_rate var
+                    % instead of ref_time_start, ref_time_stop, ref_rate
+                    pt0 = max(p_time_start, round(sta_list(r).time.first.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                    pt1 = min(p_time_stop, round(sta_list(r).time.last.getRefTime(p_time_zero) * sta_list(r).time.getRate) / sta_list(r).time.getRate);
+                    pr = lcm(round(p_rate * 1e6), round(sta_list(r).time.getRate * 1e6)) * 1e-6;
+                    pt0 = ceil(pt0 / pr) * pr;
+                    pt1 = floor(pt1 / pr) * pr;
+                    
+                    % return one p_time for each target
+                    i = i + 1;
+                    p_time(i) = GPS_Time(p_time_zero, (pt0 : pr : pt1));
+                    p_time(i).toUnixTime();
+                    
+                    id_sync{i} = nan(p_time(i).length, numel(id));
+                    for rs = id % for each rec to sync
+                        if ~sta_list(rs).isEmpty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
+                            [~, id_ref, id_rec] = intersect(round(sta_list(rs).time.getRefTime(p_time_zero) * 1e5)/1e5, (pt0 : pr : pt1));
+                            id_sync{i}(id_rec, rs) = id_ref;
+                        end
+                    end
+                end
+            end
+        end
+        
         function data_s = smoothSatData(data_az, data_el, data_in, cs_mat, method, spline_base, max_gap)
             if nargin < 5
                 cs_mat = [];
