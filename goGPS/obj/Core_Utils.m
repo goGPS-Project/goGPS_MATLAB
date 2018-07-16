@@ -579,7 +579,7 @@ classdef Core_Utils < handle
         end
         
         function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
-            % inject smppthed data
+            % inject smoothed data
             %
             % SYNTAX:
             %   data = Core_Utils.injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
