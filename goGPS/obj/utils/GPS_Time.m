@@ -1704,6 +1704,20 @@ classdef GPS_Time < Exportable & handle
             unix_s_f = sod - floor(sod);
             this = GPS_Time(unix_s, unix_s_f);
         end
+        
+        function this = fromMJD(mjd)
+            % construct from MJD vector
+            %
+            % SYNTAX
+            %   this = fromMJD(mjd_vector)
+            jday = mjd+2400000.5;
+            deltat = jday - 2444244.5;
+            week = floor(deltat/7);
+            sec_of_week = (deltat - week*7)*86400;
+            tow = round(sec_of_week);
+            v_datenum = tow/(3600*24) + 7*(week) + datenum([1980,1,6,0,0,0]);
+            this = GPS_Time(v_datenum);
+        end
     end
     
     % =========================================================================
