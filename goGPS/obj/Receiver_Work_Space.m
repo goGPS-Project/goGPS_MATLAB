@@ -1826,10 +1826,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
+                nominal_ss = this.time.getNominalTime(rate, true);
                 to_discard = true(this.time.length, 1);
                 % Find the valid epoch that are close to the nominal at the requested rate (aka do not read the entire file) 
                 t_rel = nominal.getRefTime(floor(nominal.first.getMatlabTime));
-                [~, to_keep_ep] = intersect(round(t_rel * 1e5), unique(round(round(t_rel / rate) * rate * 1e5)));
+                t_rel_ss = nominal_ss.getRefTime(floor(nominal.first.getMatlabTime));
+                [~, to_keep_ep] = intersect(round(t_rel * 1e5), round(t_rel_ss * 1e5));
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -2008,10 +2010,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             t_line(~to_keep_ep) = [];
             if ~isempty(t_line) && ~isempty(rate)
                 nominal = this.getNominalTime();
+                nominal_ss = this.time.getNominalTime(rate, true);
                 to_discard = true(this.time.length, 1);
                 % Find the valid epoch that are close to the nominal at the requested rate (aka do not read the entire file) 
                 t_rel = nominal.getRefTime(floor(nominal.first.getMatlabTime));
-                [~, to_keep_ep] = intersect(round(t_rel * 1e5), unique(round(round(t_rel / rate) * rate * 1e5)));
+                t_rel_ss = nominal_ss.getRefTime(floor(nominal.first.getMatlabTime));
+                [~, to_keep_ep] = intersect(round(t_rel * 1e5), round(t_rel_ss * 1e5));                
                 to_discard(to_keep_ep) = false;
                 this.time.remEpoch(to_discard);
                 t_line(to_discard) = [];
@@ -2496,20 +2500,31 @@ classdef Receiver_Work_Space < Receiver_Commons
             err4el = zero2nan(err4el);
         end
         
-        function nominal_time = getNominalTime(this)
+        function [nominal_time, nominal_time_ext] = getNominalTime(this, rate, is_ext)
             % get the nominal time aka rounded time cosidering a constant
             % sampling rate
             %
+            % OUTPUT
+            %   nominal_time        it's the rounded time around rate steps
+            %   nominal_time_ext    it's the rounded time with no gaps or duplicates
+            %
             % SYNTAX
-            %   nominal_time = this.getNominalTime()
-            nominal_time_zero = floor(this.time.first.getMatlabTime() * 24)/24;
-            rinex_time = this.time.getRefTime(nominal_time_zero);
-            nominal_time = round(rinex_time / this.time.getRate) * this.time.getRate;
-            ref_time = (nominal_time(1) : this.time.getRate : nominal_time(end))';
-            
-            % reordering observations filling empty epochs with zeros;
-            nominal_time = GPS_Time(nominal_time_zero, ref_time, this.time.isGPS(), 2);
-            nominal_time.toUnixTime;
+            %   [nominal_time, nominal_time_ext] = this.getNominalTime(<rate>)
+            %   nominal_time                     = this.getNominalTime(<rate>, false (default))
+            %   nominal_time_ext                 = this.getNominalTime(<rate>, true)
+             
+            if nargin < 2 || isempty(rate)
+                rate = this.time.getRate;
+            end
+            if nargin < 3 || isempty(is_ext)
+                is_ext = false;
+            end
+                
+            if nargout == 1
+                [nominal_time] = this.time.getNominalTime(rate, is_ext);
+            else
+                [nominal_time, nominal_time_ext] = this.time.getNominalTime(rate, is_ext);
+            end
         end
         
         function time_tx = getTimeTx(this, sat)
@@ -4137,7 +4152,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 phase_only = false;
             end
             nominal_time = getNominalTime(this);
-            tt = nominal_time - this.time;
+            tt = round((nominal_time - this.time) * 1e7) / 1e7; % Rounding for RINEX precision
             this.timeShiftObs(tt, phase_only)
         end
         
@@ -4146,7 +4161,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.applyDtRec(-this.dt_ip);
             nominal_time = getNominalTime(this);
             nominal_time.addSeconds(-this.desync);
-            tt = nominal_time - this.time;
+            tt = round((nominal_time - this.time) * 1e7) / 1e7; % Rounding for RINEX precision
             if any(tt)
                 this.timeShiftObs(tt)
             end

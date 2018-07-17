@@ -940,23 +940,46 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-        function nominal_time = getNominalTime(this, rate)
+        function [nominal_time, nominal_time_ext] = getNominalTime(this, rate, is_ext)
             % get the nominal time aka rounded time cosidering a constant
             % sampling rate
             %
+            % OUTPUT
+            %   nominal_time        it's the rounded time around rate steps
+            %   nominal_time_ext    it's the rounded time with no gaps or duplicates
+            %
             % SYNTAX
-            %   nominal_time = this.getNominalTime()
-            if nargin < 2
+            %   [nominal_time, nominal_time_ext] = this.getNominalTime(<rate>)
+            %   nominal_time                     = this.getNominalTime(<rate>, false (default))
+            %   nominal_time_ext                 = this.getNominalTime(<rate>, true)
+            if nargin < 2 || isempty(rate)
                 rate = this.getRate();
             end
+            if nargin < 3 || isempty(is_ext)
+                is_ext = false;
+            end
+            
             nominal_time_zero = floor(this.first.getMatlabTime() * 24)/24;
             rinex_time = this.getRefTime(nominal_time_zero);
             nominal_time = round(rinex_time / rate) * rate;
-            ref_time = (nominal_time(1) : rate : nominal_time(end))';
-            
-            % reordering observations filling empty epochs with zeros;
-            nominal_time = GPS_Time(nominal_time_zero, ref_time, this.isGPS(), 2);
-            nominal_time.toUnixTime;
+                
+            if nargout == 2 || is_ext
+                ref_time = (nominal_time(1) : rate : nominal_time(end))';
+                
+                % reordering observations filling empty epochs with zeros;
+                nominal_time_ext = GPS_Time(nominal_time_zero, ref_time, this.isGPS(), 2);
+                nominal_time_ext.toUnixTime;
+                if is_ext && nargout < 2
+                    nominal_time = nominal_time_ext;
+                else
+                    nominal_time = GPS_Time(nominal_time_zero, nominal_time, this.isGPS(), 2);
+                    nominal_time.toUnixTime;
+                end
+            else
+                nominal_time = GPS_Time(nominal_time_zero, nominal_time, this.isGPS(), 2);
+                nominal_time.toUnixTime;
+            end
+
         end
         
         function [mat_time] = getMatlabTime(this)
