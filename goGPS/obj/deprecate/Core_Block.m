@@ -17,7 +17,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -2976,7 +2976,7 @@ classdef Core_Block < handle
 
         function [data_track, id_track] = computeDataTrack(this, data, id_track, A, obs_track, n_pos)
             % Get a matrix of n_obs x n_arcs with the values of the observations in data
-            % Where no observations are present for a certain arcs it contains zerosï¿½
+            % Where no observations are present for a certain arcs it contains zerosÿ
             %
             % INPUT:
             %   data       data to be put in the matrix [n_obs x n_set]

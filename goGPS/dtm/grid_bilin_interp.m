@@ -26,7 +26,7 @@ function [interp_value] = grid_bilin_interp(X_approx, Y_approx, grid, ncols, nro
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

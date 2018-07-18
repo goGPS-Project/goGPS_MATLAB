@@ -12,7 +12,7 @@ function [grid_s] = circConv2(grid, conv_x_pixels, conv_y_pixels)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

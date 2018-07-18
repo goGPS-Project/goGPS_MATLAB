@@ -36,7 +36,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

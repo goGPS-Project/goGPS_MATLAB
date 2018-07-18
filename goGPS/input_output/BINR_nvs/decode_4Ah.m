@@ -12,7 +12,7 @@ function [data] = decode_4Ah(msg)
 %          2.1) ionosphere parameter (alpha 0)
 %          2.2) ionosphere parameter (alpha 1)
 %          2.3) ionosphere parameter (alpha 2)
-%          2.4) ionosphere parameter (alpha 3)
+%          2.4) ionosphere parameter (alpha 4)
 %          2.5) ionosphere parameter (beta 0)
 %          2.6) ionosphere parameter (beta 1)
 %          2.7) ionosphere parameter (beta 2)
@@ -26,7 +26,7 @@ function [data] = decode_4Ah(msg)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -118,7 +118,7 @@ alpha2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
 %------------------------------------------------
 
-% ionosphere parameter alpha 3 [s/semicircle^3]
+% ionosphere parameter alpha 4 [s/semicircle^3]
 a3field = msg(pos:pos+31);
 pos = pos + 32;
 

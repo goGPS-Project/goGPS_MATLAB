@@ -14,7 +14,7 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -2520,7 +2520,7 @@ classdef Receiver < Exportable
             %   lat, lon, h_ellips, h_ortho     geodetic coordinates
             %
             % SYNTAX
-            %   [lat, lon, h_ellips, h_ortho]ï¿½= this.getPosGeodetic()
+            %   [lat, lon, h_ellips, h_ortho]ÿ= this.getPosGeodetic()
             [lat, lon, h_ellips] = cart2geod(this.getPosXYZ);
             if nargout == 4
                 gs = Global_Configuration.getInstance;
@@ -3690,7 +3690,7 @@ classdef Receiver < Exportable
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
+            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase

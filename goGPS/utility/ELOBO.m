@@ -31,7 +31,7 @@ function [x_k, s02_k, v_k, Cxx_k, N_inv] = ELOBO(A, Q, y0, b, N_inv, v, x, s02, 
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini

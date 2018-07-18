@@ -21,7 +21,7 @@ function [data] = decode_AID_HUI(msg)
 %          3.9)  ionosphere parameter (alpha 0)
 %          3.10) ionosphere parameter (alpha 1)
 %          3.11) ionosphere parameter (alpha 2)
-%          3.12) ionosphere parameter (alpha 3)
+%          3.12) ionosphere parameter (alpha 4)
 %          3.13) ionosphere parameter (beta 0)
 %          3.14) ionosphere parameter (beta 1)
 %          3.15) ionosphere parameter (beta 2)
@@ -35,7 +35,7 @@ function [data] = decode_AID_HUI(msg)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.6.0 alpha 3 - nightly
+%    |___/                    v 0.6.0 alpha 4 - nightly
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
@@ -212,7 +212,7 @@ alpha2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
 %------------------------------------------------
 
-% ionosphere parameter alpha 3 [s/semicircle^3]
+% ionosphere parameter alpha 4 [s/semicircle^3]
 a3field = msg(pos:pos+31);
 pos = pos + 32;
 
