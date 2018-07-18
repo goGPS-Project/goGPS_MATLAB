@@ -3376,8 +3376,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         function need_iono = needIonoMap(this)
             % Check if ionospheric map are needed
-            % SYNTAX: need_iono = needIonoMap(this)
-            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3) || true;
+            %
+            % SYNTAX
+            %   need_iono = needIonoMap(this)
+            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3);
         end
         
         function is_rec_pcv = isRecPCV(this)
