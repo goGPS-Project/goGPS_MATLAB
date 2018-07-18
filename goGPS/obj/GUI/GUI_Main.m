@@ -191,7 +191,7 @@ classdef GUI_Main < handle
                 this.insertRemoteResource(tab_panel)
             end
             
-            % Main Panel > tab3 processing options
+            % Main Panel > tab3 data sources
             this.insertDataSources(tab_panel);
             
             % Main Panel > tab4 processing options
@@ -478,15 +478,15 @@ classdef GUI_Main < handle
             err_box_g = uix.VBox('Parent', ds_h_box, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [170 40 5 40]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [170 40 5 40]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [170 40 5 40]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Data cut-off angle', 'cut_off', 'deg', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'SNR threshold', 'snr_thr', 'dBHz', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 'epochs', @this.onEditChange, [165 40 5 45]);
             Core_UI.insertEmpty(err_box_g);
             
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [170 40 5 40]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [170 40 5 40]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [170 40 5 40]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [165 40 5 45]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max phase observation err', 'pp_max_phase_err_thr', 'm', @this.onEditChange, [165 40 5 45]);
             Core_UI.insertEmpty(err_box_g);
             err_box_g.Heights = [(23 * ones(1,4)) 10 (23 * ones(1,3)) -1];
             
@@ -867,6 +867,8 @@ classdef GUI_Main < handle
                 'String', 'Check', ...
                 'Callback', @this.updateAndCheckRecList);
 
+            h_title.Widths = [100 -1 60];
+            
             Core_UI.insertEmpty(v_text, Core_UI.DARK_GRAY_BG);
             Core_UI.insertHBarDark(this.info_g);
             
