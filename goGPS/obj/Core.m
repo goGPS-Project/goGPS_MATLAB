@@ -205,8 +205,10 @@ classdef Core < handle
             this.log.setColorMode(false);
             if ~this.state.isRinexSession()
 
-                    [buff_lim, out_limits] = this.state.getSessionLimits();
-                    time_lim_large = buff_lim;
+                    [buff_lim, ~] = this.state.getSessionLimits(1);
+                    time_lim_large = buff_lim.getEpoch(1);
+                    [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
+                    time_lim_large.append(buff_lim.getEpoch(2));
 
             else
               [~, time_lim_large, is_empty] = this.getRecTimeSpan();
