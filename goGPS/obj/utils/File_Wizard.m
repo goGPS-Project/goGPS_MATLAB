@@ -308,6 +308,9 @@ classdef File_Wizard < handle
                                 [s_ip, port] = this.rm.getServerIp(server);
                                 out_dir = this.state.getFileDir(file_name);
                                 out_dir =  this.fnp.dateKeyRep(out_dir, date_list.getEpoch(date_list.length - i + 1));
+                                if ~(exist(out_dir, 'file') == 7)
+                                    mkdir(out_dir);
+                                end
                                 %out_dir = out_dir{1};
                                 if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port);
