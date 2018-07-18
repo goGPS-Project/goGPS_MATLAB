@@ -2689,7 +2689,7 @@ classdef goGUIclass < handle
             saveDataName = fullfile(pathname,file_name);
 
             %saves the gui data
-            this.state.setFilePath(saveDataName);
+            this.state.setIniPath(saveDataName);
             this.exportStateMatlab(saveDataName);
         end
 

@@ -1682,8 +1682,6 @@ classdef GPS_Time < Exportable & handle
             % SYNTAX
             %   this = fromWeekDow(week, dow)
             this = GPS_Time(week, dow, true, 3);
-            
-            
         end
         
         function this = fromWeekSow(week, sow)

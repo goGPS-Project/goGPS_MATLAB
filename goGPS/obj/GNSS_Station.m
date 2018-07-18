@@ -869,8 +869,8 @@ classdef GNSS_Station < handle
             end
             maximizeFig(f);
             
-            %[res_tropo, s_time] = this.getReducedZtd_mr();
-            [res_tropo, s_time] = this.getZwd_mr();
+            [res_tropo, s_time] = this.getReducedZtd_mr();
+            %[res_tropo, s_time] = this.getZwd_mr();
             res_tropo = res_tropo * 1e2;
             
             if nargin < 3

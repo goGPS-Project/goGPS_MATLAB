@@ -799,6 +799,19 @@ classdef Core < handle
             %   cur_session = this.getCurSession()            
             cur_session = this.cur_session;
         end
+        
+        function id = findStationId(this, marker_name)
+            marker4ch_list = '';
+            for r = 1 : numel(this.rin_list)
+                try
+                    marker4ch_list(r, :) = char(this.rin_list(r).file_name_list{1}(1 : 4)); %#ok<AGROW>
+                catch
+                    % the name is shorter or missing => ignore
+                end
+            end
+            id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
+        end
+            
     end
     
     methods

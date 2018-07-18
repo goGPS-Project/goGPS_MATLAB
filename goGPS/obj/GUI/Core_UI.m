@@ -50,6 +50,7 @@ classdef Core_UI < handle
         
         LIGHT_GRAY_BG = 0.85 * ones(3, 1);
         DARK_GRAY_BG = 0.18 * ones(3, 1);
+        DARKER_GRAY_BG = 0.14 * ones(3, 1);
         WHITE = ones(3, 1);
         BLACK = zeros(3, 1);
         BLUE = [0 0 1];

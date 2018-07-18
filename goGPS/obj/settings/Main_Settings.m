@@ -1424,7 +1424,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 mkdir(dir_path);
             end
             this.check(); % check before saving
-            this.setFilePath(file_path);
+            this.setIniPath(file_path);
             ini = this.save@Settings_Interface(file_path);
         end
 
@@ -1439,7 +1439,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
-            this.setFilePath(file_path);
+            this.setIniPath(file_path);
             if (exist(file_path, 'file') == 2)
                 this.importIniFile@Settings_Interface(file_path);
                 this.postImportInit();
@@ -2082,7 +2082,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     % =========================================================================
     %%  GETTERS IO
     % =========================================================================
-    methods        
+    methods       
+        function cur_ini = getIniPath(this)
+            % Get the path of the current ini
+            %
+            % SYNTAX
+            %   cur_ini = getIniPath(this)
+            if isempty(this.cur_ini)
+                this.cur_ini = 'last_settings.ini';
+            end
+            cur_ini = this.cur_ini;
+        end
+        
         function file_dir = getHomeDir(this)
             % Get the base directory containing the project
             %
@@ -3095,13 +3106,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.prj_home = prj_home;
         end
 
-        function setFilePath(this, file_path)
+        function setIniPath(this, file_path)
             % Set the file name of the current settings
             %   
             % SYNTAX
-            %   this.setFilePath(file_path)
+            %   this.setIniPath(file_path)
             [path_str, name, ~] = fileparts(file_path);
-            this.cur_ini = [path_str filesep name '.ini'];
+            this.cur_ini = fullfile(path_str, [name '.ini']);
         end
 
         function updatePrj(this, file_path)
