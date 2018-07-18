@@ -16,16 +16,10 @@
 !/data/satellite/*
 !/data/satellite/CLK
 /data/satellite/CLK/*
-!/data/satellite/CLK/.gitignroe
-!/data/satellite/CLK/igs18586.clk_30s
-!/data/satellite/CLK/igs18590.clk_30s
-!/data/satellite/CLK/igs18591.clk_30s
+!/data/satellite/CLK/.gitignore
 !/data/satellite/EPH
 /data/satellite/EPH/*
 !/data/satellite/EPH/.gitignore
-!/data/satellite/EPH/igs18586.sp3
-!/data/satellite/EPH/igs18590.sp3
-!/data/satellite/EPH/igs18591.sp3
 !/data/satellite/CRX
 /data/satellite/CRX/*
 !/data/satellite/CRX/.gitignore
@@ -42,15 +36,29 @@
 /data/satellite/DCB/*
 !/data/satellite/DCB/.gitignore
 
+!/data/reference/ATM_LOAD
+/data/reference/ATM_LOAD/*
+!/data/reference/ATM_LOAD/.gitignore
+!/data/reference/ATM_LOAD/s1_s2_s3_cm_noib_grid.dat
+!/data/reference/DTM
+/data/reference/DTM/*
+!/data/reference/DTM/.gitignore
+!/data/reference/ERP
+/data/reference/ERP/*
+!/data/reference/ERP/.gitignore
 !/data/reference/Geoid
 /data/reference/Geoid/*
 !/data/reference/Geoid/.gitignore
 !/data/reference/Geoid/geoid_EGM2008_05.mat
-!/data/reference/DTM
-/data/reference/DTM/*
-!/data/reference/DTM/.gitignore
+!/data/reference/IGRF
+/data/reference/IGRF/*
+!/data/reference/IGRF/.gitignore
+!/data/reference/IONO
+/data/reference/IONO/*
+!/data/reference/IONO/.gitignore
 !/data/reference/VMF
 /data/reference/VMF/*
+!/data/reference/VMF/.gitignore
 !/data/reference/VMF/orography
 !/data/reference/VMF/orography_ell
 
@@ -79,12 +87,12 @@
 
 !/data/project
 /data/project/*
-!/data/project/default_DD
-!/data/project/default_DD/*
-!/data/project/default_DD/.gitignore
-!/data/project/default_DD/out
-/data/project/default_DD/out/*
-!/data/project/default_DD/out/.gitignore
+#!/data/project/default_DD
+#!/data/project/default_DD/*
+#!/data/project/default_DD/.gitignore
+#!/data/project/default_DD/out
+#/data/project/default_DD/out/*
+#!/data/project/default_DD/out/.gitignore
 
 !/data/project/default_PPP/*
 /data/project/default_PPP/out/*
