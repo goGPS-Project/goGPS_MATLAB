@@ -707,8 +707,8 @@ classdef GUI_Main < handle
             tropo_opt_grid_adv = uix.VBox('Parent', tropo_options_adv,...
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/h', @this.onEditChange, [-1 80 5 35]);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/h', @this.onEditChange, [-1 80 5 35]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD regularization', 'std_tropo', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tropo_opt_grid_adv, 'ZTD gradient regularization', 'std_tropo_gradient', 'm/sqrt(h)', @this.onEditChange, [-1 80 5 70]);
             
             tab.Heights = [80 5 250 5 80];
             tab.Widths = 600;

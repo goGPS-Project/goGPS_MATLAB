@@ -589,8 +589,6 @@ classdef Core_Utils < handle
             time_1 = time_1.getMatlabTime();
             time_2 = time_2.getMatlabTime();
             [idx1, idx2] = Core_Utils.intersectOrderedDouble(time_1, time_2, 0.005/86400); % approximate at 5 ms
-            idx1 = idx1(idx1~=0);
-            idx2 = idx2(idx2~=0);
             time_tot = zeros(max(max(idx1), max(idx2)), 1);
             time_tot(idx1) = time_1;
             time_tot(idx2) = time_2;
@@ -652,6 +650,13 @@ classdef Core_Utils < handle
                     j = j + 1;
                     tot = tot +1;
                 end
+            end
+            if j > l2 && i <= l1
+                idx_end = (i : l1) -l1 + tot;
+                idx1(i : l1) = idx_end;
+            elseif i > l1 && j <= l2
+                idx_end = (j : l2) -l2 + tot;
+                idx2(j : l2) = idx_end;
             end
         end
         
