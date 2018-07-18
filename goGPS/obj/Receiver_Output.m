@@ -274,15 +274,15 @@ classdef Receiver_Output < Receiver_Commons
                 idx2 = 0;
                 this.time = work_time;
             else
+                [this.time, idx1, idx2] = this.time.injectBatch(work_time);
                 if this.state.isSmoothTropoOut()
-                    smt_buf_rgt = this.time.getEpoch(numel(this.ztd));
-                    smt_buf_lft = rec_work.time.first();
-                    idx_smt1 = this.time.getEpoch(1 : numel(this.ztd)) >= smt_buf_lft;                    
-                    idx_smt2 = rec_work.time.getEpoch(id_sync_old) <= smt_buf_rgt;
+                    smt_buf_rgt = this.time.getNominalTime().getEpoch(numel(this.ztd));
+                    smt_buf_lft = rec_work.time.getNominalTime().first();
+                    idx_smt1 = this.time.getEpoch(1 : numel(this.ztd)).getNominalTime >= smt_buf_lft;                    
+                    idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime <= smt_buf_rgt;
                     time_1 = this.time.getEpoch(idx_smt1);
                     time_2 = rec_work.time.getEpoch(id_sync_old(idx_smt2));
                 end
-                [this.time, idx1, idx2] = this.time.injectBatch(work_time);
             end
             %%% inject data
             if ~basic_export                
