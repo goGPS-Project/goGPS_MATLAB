@@ -270,7 +270,7 @@ classdef Core < handle
             for r = 1 : this.state.getRecCount()
                 this.log.addMarkedMessage(sprintf('Preparing receiver %d of %d', r, this.state.getRecCount()));
                 if (numel(rec) < r) || rec(r).isEmpty
-                    rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode(r) == 0); %#ok<AGROW>
+                    rec(r) = GNSS_Station(this.state.getConstellationCollector(), this.state.getDynMode() == 0); %#ok<AGROW>
                 else
                     %if this.state.isRinexSession()
                         rec(r).work.resetWorkSpace();

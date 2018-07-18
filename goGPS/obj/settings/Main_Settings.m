@@ -1714,19 +1714,19 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkPathField('ems_dir', EMPTY_IS_VALID);
 
             %this.checkNumericField('rec_dyn_mode', [0 numel(this.DYN_MODE)-1]);
-            try % it was numerical
-                this.checkLogicalField('rec_dyn_mode');
+            % if numel(this.rec_dyn_mode) < this.getRecCount()
+            %     if numel(this.rec_dyn_mode) == 0
+            %         this.rec_dyn_mode(end : this.getRecCount()) = 0; % set all static
+            %     else
+            %         this.rec_dyn_mode(end : this.getRecCount()) = this.rec_dyn_mode(1);
+            %     end
+            % elseif numel(this.rec_dyn_mode) > this.getRecCount() % cut if longer than receiver number
+            %     this.rec_dyn_mode = this.rec_dyn_mode(1 : this.getRecCount());
+            % end
+            if numel(this.rec_dyn_mode) > 1
+                this.rec_dyn_mode = logical(floor(median(this.rec_dyn_mode)));
             end
-            if numel(this.rec_dyn_mode) < this.getRecCount()
-                if numel(this.rec_dyn_mode) == 0
-                    this.rec_dyn_mode(end : this.getRecCount()) = 0; % set all static
-                else
-                    this.rec_dyn_mode(end : this.getRecCount()) = this.rec_dyn_mode(1);
-                end
-            elseif numel(this.rec_dyn_mode) > this.getRecCount() % cut if longer than receiver number
-                this.rec_dyn_mode = this.rec_dyn_mode(1 : this.getRecCount());
-            end
-            
+            this.checkLogicalField('rec_dyn_mode');
             this.checkPathField('crd_dir', EMPTY_IS_NOT_VALID);
             this.checkPathField('met_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('ocean_dir', EMPTY_IS_NOT_VALID);
@@ -2213,12 +2213,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
         end
         
-        function dyn_mode = getDynMode(this, rec_num)
+        function dyn_mode = getDynMode(this)
             % Get the a-priori information on the motion of the receiver
             %
             % SYNTAX
             %   dyn_mode = getDynMode(this, rec_num)
-            dyn_mode = this.rec_dyn_mode(rec_num);
+            dyn_mode = this.rec_dyn_mode;
         end
 
         function out = getNavEphType(this)
