@@ -549,11 +549,10 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function initR2S(this)
             % initialize satellite related parameters
-            % SYNTAX this.initR2S();
-            
+            % SYNTAX this.initR2S();            
             this.sat.cs           = Core_Sky.getInstance();
-            %this.sat.avail_index  = false(this.length, this.cc.getMaxNumSat);
-            %  this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
+            % this.sat.avail_index  = false(this.length, this.cc.getMaxNumSat);
+            % this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
         
         function subSample(this, id_sync)
@@ -3070,11 +3069,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs = zero2nan(this.obs(idx,:));
         end
         
-        function [idx] = getObsIdx(this, flag, system, prn)
+        function idx = getObsIdx(this, flag, system, prn)
             % get observation index corresponfing to the flag
-            % SYNTAX this.getObsIdx(flag, <system>)
-            %        this.getObsIdx(flag, <system>, <prn>)
-            %        this.getObsIdx(flag, <go_id>)
+            %
+            % SYNTAX 
+            %   this.getObsIdx(flag, <system>)
+            %   this.getObsIdx(flag, <system>, <prn>)
+            %   this.getObsIdx(flag, <go_id>)
             if isempty(this.obs_code)
                 idx = [];
             else
@@ -3094,6 +3095,26 @@ classdef Receiver_Work_Space < Receiver_Commons
                 idx(idx == 0) = [];
             end
         end
+                
+        function idx = findObservableByFlag(this, flag)
+            % Search the id (aka row) of the obs with a certain flag
+            % Supporting wildcard "?"
+            %
+            % SYNTAX
+            %   idx = this.findObservableByFlag(flag)
+            %
+            % EXAMPLE
+            %   idx = this.findObservableByFlag('L1C');
+            %   idx = this.findObservableByFlag('?2C');
+            
+            flag = [flag '?' * char(ones(1, size(flag, 1)))];
+            
+            lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
+                iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
+                iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
+            
+            idx = find(lid);            
+        end        
         
         function obs_set = getPrefObsSetCh(this, flag, system)
             [obs, idx, snr, cycle_slips] = this.getPrefObsCh(flag, system, 1);
@@ -3488,7 +3509,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
             
-            % WARNING -> AS now it works only with 1ÿ and 2ÿ frequency
+            % WARNING -> AS now it works only with 1ï¿½ and 2ï¿½ frequency
             
             
             [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
