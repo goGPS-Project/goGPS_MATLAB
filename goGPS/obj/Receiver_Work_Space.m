@@ -1456,6 +1456,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % remove empty observables
                 this.remObs(~this.active_ids);
+                % remove unselected obsevartions
+                u_sys_c = unique(this.system);
+                for i = 1 : length(u_sys_c)
+                    sys_c = u_sys_c(i);
+                    ss = this.cc.getSys(sys_c);
+                    active_band = ss.CODE_RIN3_2BAND(~ss.flag_f);
+                    for j = 1 : length(active_band)
+                        idx = this.findObservableByFlag(['?' active_band(j) '?'] ,sys_c);
+                        this.remObs(idx);
+                    end
+                    
+                end
                 
                 this.setActiveSys(this.getAvailableSys);
             end
@@ -3096,7 +3108,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
                 
-        function idx = findObservableByFlag(this, flag)
+        function idx = findObservableByFlag(this, flag, system)
             % Search the id (aka row) of the obs with a certain flag
             % Supporting wildcard "?"
             %
@@ -3112,6 +3124,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                 iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
                 iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
+            if nargin > 2
+                lid = lid & (this.system == system)';
+            end
             
             idx = find(lid);            
         end        

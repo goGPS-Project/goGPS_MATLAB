@@ -538,6 +538,7 @@ classdef GUI_Main < handle
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(ocean_panel, '', 'ocean_dir', 'ocean_name', @this.onEditChange, [0 -3 5 -1 25]);
         end
+        
         function ocean_panel = insertCooOptions(this, container)
             ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
             opt_grid = uix.Grid('Parent', ocean_panel,...
@@ -1036,8 +1037,7 @@ classdef GUI_Main < handle
                     this.onCheckBoxCCChange(this.check_boxes{i}, []); % <- call the event listener 
                 end
             end
-        end
-        
+        end       
         
         function onCheckBoxCCChange(this, caller, event)
             if ~isempty(strfind(caller.UserData,'is_active'))
@@ -1046,7 +1046,26 @@ classdef GUI_Main < handle
                 active_list(num) = caller.Value;
                 this.state.cc.setActive(active_list);
                 this.updateINI();
+            else
+                if caller.Value  % set the constellation to active too
+                    active_list = this.state.cc.getActive();
+                    sys_c = Constellation_Collector.abbToSysC(caller.UserData(1:3));
+                    num = find(this.state.cc.SYS_C == sys_c);
+                    active_list(num) = caller.Value;
+                    this.state.cc.setActive(active_list);
+                    for i = 1 : length(this.check_boxes)
+                        if ~isempty(strfind(this.check_boxes{i}.UserData, [sys_c '_is_active']))
+                            this.check_boxes{i}.Value = caller.Value;
+                        end
+                    end
+                end
+                
+                sys_SS = this.state.cc.getSys(Constellation_Collector.abbToSysC(caller.UserData(1:3)));
+                idx = find(sys_SS.CODE_RIN3_2BAND ==  caller.String(3));
+                sys_SS.setFlagF(idx,caller.Value);
+                this.updateINI();
             end
+            
         end
         
         function onCheckBoxChange(this, caller, event)
@@ -1143,6 +1162,13 @@ classdef GUI_Main < handle
             sys_c = this.state.cc.SYS_C;
             for i = 1 : length(active)
                 this.setCheckBox([sys_c(i) '_is_active'], active(i));
+                if active(i)
+                    ss = this.state.cc.getSys(sys_c(i));
+                    for j = 1: length( ss.flag_f)
+                        f = ss.flag_f(j);
+                        this.setCheckBox([Constellation_Collector.sysCToAbb(sys_c(i)) '_' Constellation_Collector.rin3ToBand(['L' ss.CODE_RIN3_2BAND(j) ], sys_c(i))], f);
+                    end
+                end
             end
         end
         
