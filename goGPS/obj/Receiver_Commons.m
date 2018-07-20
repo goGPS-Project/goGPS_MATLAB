@@ -564,7 +564,7 @@ classdef Receiver_Commons < handle
     methods
         function exportTropoSINEX(this)
             for r = 1 : numel(this)
-                if max(this(t).s0) < 0.10
+                if max(this(r).s0) < 0.10
                     try
                         rec = this(r);
                         if ~isempty(rec.getZtd)
@@ -592,7 +592,7 @@ classdef Receiver_Commons < handle
                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(t).s0)));
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).s0)));
                 end
             end
         end
@@ -610,22 +610,22 @@ classdef Receiver_Commons < handle
             % SYNTAX
             %   this.exportTropoMat
             
-            for t = 1 : numel(this)
-                if max(this(t).s0) < 0.10
+            for r = 1 : numel(this)
+                if max(this(r).s0) < 0.10
                     try
-                        this(t).updateCoordinates;
-                        time = this(t).getTime();
-                        [year, doy] = this(t).getCentralTime.getDOY();
+                        this(r).updateCoordinates;
+                        time = this(r).getTime();
+                        [year, doy] = this(r).getCentralTime.getDOY();
                         time.toUtc();
                         
-                        lat = this(t).lat; %#ok<NASGU>
-                        lon = this(t).lon; %#ok<NASGU>
-                        h_ellips = this(t).h_ellips; %#ok<NASGU>
-                        h_ortho = this(t).h_ortho; %#ok<NASGU>
-                        ztd = this(t).getZtd(); %#ok<NASGU>
+                        lat = this(r).lat; %#ok<NASGU>
+                        lon = this(r).lon; %#ok<NASGU>
+                        h_ellips = this(r).h_ellips; %#ok<NASGU>
+                        h_ortho = this(r).h_ortho; %#ok<NASGU>
+                        ztd = this(r).getZtd(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
-                        fname = sprintf('%s',[this(t).state.getOutDir() filesep this(t).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
+                        fname = sprintf('%s',[this(r).state.getOutDir() filesep this(r).parent.marker_name sprintf('%04d%03d',year, doy) '.mat']);
                         save(fname, 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'utc_time','-v6');
                         
                         this(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
@@ -633,7 +633,7 @@ classdef Receiver_Commons < handle
                         this(1).log.addError(sprintf('saving Tropo in matlab format failed: %s', ex.message));
                     end
                 else
-                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(t).s0)));
+                    this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).s0)));
                 end
             end
         end

@@ -891,7 +891,7 @@ classdef Command_Interpreter < handle
                 
                 for r = id_trg % different for each target
                     this.log.newLine();
-                    this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', id_trg, rec(r).getMarkerName()));
+                    this.log.addMarkedMessage(sprintf('Exporting receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
                     for t = 1 : numel(tok)
