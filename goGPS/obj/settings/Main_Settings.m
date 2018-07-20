@@ -201,6 +201,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_ATM_LOAD = false;                          % FAlg to enable Atmospheric Loading Corrections
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
+        FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
@@ -488,6 +489,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_atm_load    = Main_Settings.FLAG_ATM_LOAD;
         flag_hoi         = Main_Settings.FLAG_HOI;
         flag_rec_pcv     = Main_Settings.FLAG_REC_PCV;
+        flag_apr_iono    = Main_Settings.FLAG_APR_IONO;
         
         flag_coo_rate = Main_Settings.FLAG_COO_RATE;
         coo_rates     = Main_Settings.COO_RATES;
@@ -690,6 +692,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.getData('flag_atm_load');
                 this.flag_hoi = state.getData('flag_hoi');
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
+                this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
                 this.coo_rates     = state.getData('coo_rates');
 
@@ -807,6 +810,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.flag_atm_load;
                 this.flag_hoi = state.flag_hoi;
                 this.flag_rec_pcv = state.flag_rec_pcv;
+                this.flag_apr_iono = state.flag_apr_iono;
                 
                 this.flag_coo_rate = state.flag_coo_rate;
                 this.coo_rates     = state.coo_rates    ;
@@ -955,7 +959,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable ocean loading corrections:                 %d\n', this.flag_ocean_load)];
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
-            str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n\n', this.flag_rec_pcv)];
+            str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
+            str = [str sprintf(' Enable apriori iono correction     :              %d\n\n', this.flag_apr_iono)];
             
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
             str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
@@ -1329,6 +1334,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_hoi', this.flag_hoi, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable receiver pcv corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_rec_pcv', this.flag_rec_pcv, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
@@ -1955,7 +1961,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_atm_load');
             this.checkLogicalField('flag_hoi');
             this.checkLogicalField('flag_rec_pcv');
-            
+            this.checkLogicalField('flag_apr_iono');
+             
             this.checkLogicalField('flag_coo_rate');
             this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
 
@@ -3379,7 +3386,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   need_iono = needIonoMap(this)
-            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3);
+            need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3) || this.isAprIono;
         end
         
         function is_rec_pcv = isRecPCV(this)
@@ -3388,7 +3395,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
-        end       
+        end   
+        
+        function is_apr_iono = isAprIono(this)
+            % Check whether the apriori ionofree correction are enabled
+            % SYNTAX
+            %   is_apr_iono= isAprIono(this)
+            is_apr_iono = this.flag_apr_iono;
+        end  
 
         function is_tropo_gradient = isTropoGradientEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled

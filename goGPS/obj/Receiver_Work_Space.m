@@ -3239,7 +3239,27 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs_set] = getTwoFreqComb(this, flag1, flag2, fun1, fun2, know_comb)
+        function [obs_set] = getPrefObsCh_os(this, flag, system)
+            [o, i, s, cs] = this.getPrefObsCh(flag, system, 1);
+            el = this.getEl();
+            az = this.getAz();
+            if ~isempty(el)
+                el = el(: ,this.go_id(i));
+                az = az(: ,this.go_id(i));
+            end
+            ne = size(o,2);
+            obs_set = Observation_Set(this.time.getCopy(), o' .* repmat(this.wl(i,:)',ne,1) , [this.system(i)' this.obs_code(i,:)], this.wl(i,:), el, az, this.prn(i));
+            obs_set.cycle_slip = cs';
+            obs_set.snr = s';
+            obs_set.sigma = this.rec_settings.getStd(system, [flag '_'])*ones(size(this.prn(i)));
+        end
+        
+        % ---------------------------------------
+        %  Two Frequency observation combination
+        %  Warappers of getTwoFreqComb function
+        % ---------------------------------------
+        
+         function [obs_set] = getTwoFreqComb(this, flag1, flag2, fun1, fun2, know_comb)
             %INPUT flag1 : either observation code (e.g. GL1) or observation set
             %       flag1 : either observation code (e.g. GL2) or observation set
             %       fun1  : function of the two wavelegnth to be applied to
@@ -3358,26 +3378,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             obs_set.snr = snr_out;
             obs_set.sigma = sigma;
         end
-        
-        function [obs_set] = getPrefObsCh_os(this, flag, system)
-            [o, i, s, cs] = this.getPrefObsCh(flag, system, 1);
-            el = this.getEl();
-            az = this.getAz();
-            if ~isempty(el)
-                el = el(: ,this.go_id(i));
-                az = az(: ,this.go_id(i));
-            end
-            ne = size(o,2);
-            obs_set = Observation_Set(this.time.getCopy(), o' .* repmat(this.wl(i,:)',ne,1) , [this.system(i)' this.obs_code(i,:)], this.wl(i,:), el, az, this.prn(i));
-            obs_set.cycle_slip = cs';
-            obs_set.snr = s';
-            obs_set.sigma = this.rec_settings.getStd(system, [flag '_'])*ones(size(this.prn(i)));
-        end
-        
-        % ---------------------------------------
-        %  Two Frequency observation combination
-        %  Warappers of getTwoFreqComb function
-        % ---------------------------------------
         
         function [obs_set] = getIonoFree(this,flag1,flag2,system)
             fun1 = @(wl1, wl2) wl2 ^ 2 / (wl2 ^ 2 - wl1 ^ 2);
@@ -4642,7 +4642,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     for s = find(idx_sat)'
                         iono_delay = this.sat.err_iono(:,i) * this.wl(s).^2;
                         if ph_obs(s) > 0
-                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay'));
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay')./this.wl(s));
                         else
                             this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign * (iono_delay'));
                         end
@@ -6316,6 +6316,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                     
                     this.updateAzimuthElevation();
+                    if this.state.isAprIono || this.state.iono_management == 3
+                        this.updateErrIono();
+                        this.applyIonoModel();
+                    end
                     %ph0 = this.getPhases();
                     this.applyPCV();
                     %ph1 = this.getPhases();

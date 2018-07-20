@@ -667,6 +667,7 @@ classdef GUI_Main < handle
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Ocean Loading',         'flag_ocean_load', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use apriori iono model', 'flag_apr_iono', @this.onCheckBoxChange);
             
             opt_grid.Widths = -1;
         end
@@ -1028,7 +1029,7 @@ classdef GUI_Main < handle
         function onCheckBoxConstChange(this, caller, event)
             % if the check box of one constalelation is ticked tick all the frequency of the constallation and call thei events
             this.onCheckBoxCCChange(caller, event);
-            const = Core_Utils.const2abb(caller.String);
+            const = Constellation_Collector.constToAbb(caller.String);
             for i = 1 : length(this.check_boxes)
                 if ~isempty(strfind(this.check_boxes{i}.UserData, [const '_']))
                     this.check_boxes{i}.Value = caller.Value;

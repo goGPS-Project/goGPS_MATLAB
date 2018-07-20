@@ -851,6 +851,27 @@ classdef Constellation_Collector < Settings_Interface
             c = Constellation_Collector([0 1 1 0 0 1 0]);
             c.testInterfaceRoutines();
         end
+        
+            
+        function abb = constToAbb(constellation_name)
+            % given the constellation name return is abberaviation in uppercase
+            constellation_name = lower(constellation_name);
+            if strcmp(constellation_name,'gps')
+                abb = 'GPS';
+            elseif strcmp(constellation_name,'glonass')
+                abb = 'GLO';
+            elseif strcmp(constellation_name,'galileo')
+                abb = 'GAL';
+            elseif strcmp(constellation_name,'beidou')
+                abb = 'BDS';
+            elseif strcmp(constellation_name,'qzss')
+                abb = 'QZS';
+            elseif strcmp(constellation_name,'irnss')
+                abb = 'IRN';
+            elseif strcmp(constellation_name,'sbas')
+                abb = 'SBS';
+            end
+        end
     end
 
 end

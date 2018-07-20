@@ -966,7 +966,8 @@ classdef GNSS_Station < handle
             t = t(rec_ok);
             
             if numel(sta_list) == 0
-                sta_list(1).log.addError('No valid troposphere is present in the receiver list');
+                log = Logger.getInstance();
+                log.addError('No valid troposphere is present in the receiver list');
             else
                 if nargin < 3
                     new_fig = true;
