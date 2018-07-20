@@ -570,13 +570,13 @@ classdef GUI_Main < handle
                 'ButtonSize', [100 20], ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidouu', 'C_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxCCChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBS',     'S_is_active', @this.onCheckBoxCCChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou', 'C_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange);
             this.check_boxes{end}.Enable = 'off';
             
             Core_UI.insertVBarLight(h_box_cc);
@@ -1024,6 +1024,19 @@ classdef GUI_Main < handle
             this.state.setKeepRecList(caller.Value);
             this.updateINI();
         end
+        
+        function onCheckBoxConstChange(this, caller, event)
+            % if the check box of one constalelation is ticked tick all the frequency of the constallation and call thei events
+            this.onCheckBoxCCChange(caller, event);
+            const = Core_Utils.const2abb(caller.String);
+            for i = 1 : length(this.check_boxes)
+                if ~isempty(strfind(this.check_boxes{i}.UserData, [const '_']))
+                    this.check_boxes{i}.Value = caller.Value;
+                    this.onCheckBoxCCChange(this.check_boxes{i}, []); % <- call the event listener 
+                end
+            end
+        end
+        
         
         function onCheckBoxCCChange(this, caller, event)
             if ~isempty(strfind(caller.UserData,'is_active'))
