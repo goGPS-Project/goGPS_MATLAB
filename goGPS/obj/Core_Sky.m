@@ -367,7 +367,7 @@ classdef Core_Sky < handle
             %satellite-sun angle
             cosPhi = sum(XS.*repmat(permute(X_sun,[1 3 2]),1,size(XS,2),1),3);
             %threshold to detect noon/midnight maneuvers
-            thr = 4.9*pi/180*ones(time.length,this.cc.getNumSat); % if we do not know put a conservative value
+            thr = 4.9*pi/180*ones(time.length,size(this.coord,2)); % if we do not know put a conservative value
             
             shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
             
