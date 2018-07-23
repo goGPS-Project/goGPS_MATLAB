@@ -2139,8 +2139,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.w_bar.createNewBar(' Parsing epochs...');
                 this.w_bar.setBarLen(n_epo);
                 
-                mask = repmat('         0.00000',1 ,40);
-                data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,40);
+                mask = repmat('         0.00000',1 ,60);
+                data_pos = repmat(logical([true(1, 14) false(1, 2)]),1 ,60);
                 for e = 1 : n_epo % for each epoch
                     sat = txt(repmat(lim(t_line(e) + 1 : t_line(e) + this.n_spe(e),1),1,3) + repmat(0:2, this.n_spe(e), 1));
                     prn_e = sscanf(serialize(sat(:,2:3)'), '%02d');
@@ -2149,7 +2149,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         obs_line = find((this.prn == prn_e(s)) & this.system' == sat(s, 1));
                         if ~isempty(obs_line)
                             line = txt(lim(t_line(e) + s, 1) + 3 : lim(t_line(e) + s, 2));
-                            ck = line == ' '; line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
+                            ck = line == ' '; 
+                            line(ck) = mask(ck); % fill empty fields -> otherwise textscan ignore the empty fields
                             % try with sscanf
                             line = line(data_pos(1 : numel(line)));
                             data = sscanf(reshape(line, 14, numel(line) / 14), '%f');
