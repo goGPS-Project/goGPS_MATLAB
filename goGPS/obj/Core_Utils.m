@@ -722,8 +722,9 @@ classdef Core_Utils < handle
                 else
                     y_tmp = y_in(:, c);
                 end
-                x_tmp = x_in(~isnan(y_tmp));
-                y_tmp = y_tmp(~isnan(y_tmp));
+                id_ok = ~isnan(y_tmp(:)) & ~isnan(x_in(:));
+                x_tmp = x_in(id_ok);
+                y_tmp = y_tmp(id_ok);
                 
                 n_obs = numel(x_tmp);
                 A = zeros(n_obs, degree + 1);
