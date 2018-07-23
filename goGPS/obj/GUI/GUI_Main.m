@@ -516,10 +516,12 @@ classdef GUI_Main < handle
             
             ocean_panel = this.insertOceanOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
+            amb_panel = this.insertAmbFixOptions(opt_r);
+            Core_UI.insertEmpty(opt_r);
             coo_panel = this.insertCooOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
             
-            opt_r.Heights = [50, 5, 90, -1];
+            opt_r.Heights = [50, 5, 50,5,90, -1];
             
             opt_h.Widths = [200 5 -1];
             
@@ -548,6 +550,14 @@ classdef GUI_Main < handle
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
             Core_UI.insertEmpty(opt_grid);
             set( opt_grid, 'Widths', [200 -1], 'Heights', [23 23] );
+        end
+        
+        function proc_opt = insertAmbFixOptions(this, container)
+             proc_opt = Core_UI.insertPanelLight(container, 'Ambiguity fixing');
+             opt_grid = uix.Grid('Parent', proc_opt,...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Try to fix Ambiguity', 'flag_amb_fix', @this.onCheckBoxChange);
+              opt_grid.Widths = -1;
         end
         
         function crd_panel = insertCrdFile(this, container)
