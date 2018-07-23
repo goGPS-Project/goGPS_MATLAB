@@ -350,7 +350,7 @@ classdef Core_Sky < handle
         end
         
         function eclipsed = checkEclipseManouver(this, time)
-            eclipsed = int8(zeros(time.length,this.cc.getNumSat));
+            eclipsed = int8(zeros(time.length,size(this.coord,2)));
             
             
             XS = this.coordInterpolate(time);
