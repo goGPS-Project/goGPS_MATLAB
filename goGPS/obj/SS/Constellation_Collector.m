@@ -673,6 +673,18 @@ classdef Constellation_Collector < Settings_Interface
             % get the activation status for SBAS
             isActive = this.sbs.isActive();
         end
+        
+        function check(this)
+            % check if all frequency of a activated system are unchecked check them all
+            for i = 1 : length(this.active_list)
+                if this.active_list(i) 
+                    ss = this.getSys(this.SYS_C(i));
+                    if sum(ss.flag_f) == 0
+                        ss.setFlagF(1:length(ss.flag_f), true(length(ss.flag_f),1));
+                    end
+                end
+            end
+        end
     end
 
     % =========================================================================
@@ -870,6 +882,96 @@ classdef Constellation_Collector < Settings_Interface
                 abb = 'IRN';
             elseif strcmp(constellation_name,'sbas')
                 abb = 'SBS';
+            end
+        end
+        
+        function sys_c = abbToSysC(abb)
+            % give 3 char abbreviation return the sysstem character
+            abb = upper(abb);
+            if strcmp(abb,'GPS')
+                sys_c = 'G';
+            elseif strcmp(abb,'GLO')
+                sys_c = 'R';
+            elseif strcmp(abb,'GAL')
+                sys_c = 'E';
+            elseif strcmp(abb,'BDS')
+                sys_c = 'C';
+            elseif strcmp(abb,'QZS')
+                sys_c = 'J';
+            elseif strcmp(abb,'IRN')
+                sys_c = 'I';
+            elseif strcmp(abb,'SBS')
+                sys_c = 'S';
+            end
+        end
+        
+        function abb = sysCToAbb(sys_c)
+            % give sys_c return the 3 char abbrevaiatio
+            sys_c = upper(sys_c);
+            if strcmp(sys_c,'G')
+                abb = 'GPS';
+            elseif strcmp(sys_c,'R')
+                abb = 'GLO';
+            elseif strcmp(sys_c,'E')
+                abb = 'GAL';
+            elseif strcmp(sys_c,'C')
+                abb = 'BDS';
+            elseif strcmp(sys_c,'J')
+                abb = 'QZS';
+            elseif strcmp(sys_c,'I')
+                abb = 'IRN';
+            elseif strcmp(sys_c,'S')
+                abb = 'SBS';
+            end
+        end
+        
+        function band = rin3ToBand(rin32ch, sys_c)
+            % give 3 char abbreviation return the sysstem character
+            ocode = [sys_c rin32ch];
+            if strcmp(ocode,'GL1')
+                band = 'L1';
+            elseif strcmp(ocode,'GL2')
+                band = 'L2';
+            elseif strcmp(ocode,'GL5')
+                band = 'L5';
+            elseif strcmp(ocode,'RL1')
+                band = 'G1';
+            elseif strcmp(ocode,'RL2')
+                band = 'G2';
+            elseif strcmp(ocode,'RL3')
+                band = 'G3';
+            elseif strcmp(ocode,'EL1')
+                band = 'E1';
+            elseif strcmp(ocode,'EL5')
+                band = 'E5a';
+            elseif strcmp(ocode,'EL7')
+                band = 'E5b';
+            elseif strcmp(ocode,'EL8')
+                band = 'E5';
+            elseif strcmp(ocode,'EL6')
+                band = 'E6';
+            elseif strcmp(ocode,'JL1')
+                band = 'L1';
+            elseif strcmp(ocode,'JL2')
+                band = 'L2';
+            elseif strcmp(ocode,'JL5')
+                band = 'L5';
+            elseif strcmp(ocode,'JL6')
+                band = 'LEX6';
+            elseif strcmp(ocode,'BL2')
+                band = 'B1';
+            elseif strcmp(ocode,'BL7')
+                band = 'B2';
+            elseif strcmp(ocode,'BL6')
+                band = 'B3';
+            elseif strcmp(ocode,'IL5')
+                band = 'L5';
+            elseif strcmp(ocode,'IL9')
+                band = 'S';
+            elseif strcmp(ocode,'SL1')
+                band = 'L1';
+            elseif strcmp(ocode,'SL5')
+                band = 'L5';
             end
         end
     end

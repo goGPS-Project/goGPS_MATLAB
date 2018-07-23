@@ -1985,6 +1985,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('std_tropo',[1e-12 1e50]);
             % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
+            this.cc.check();
         end
         
         function n_missing = checkDir(this, field_name, field_text, flag_verbose)
@@ -2862,6 +2863,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
+        
     end
     
     % =========================================================================

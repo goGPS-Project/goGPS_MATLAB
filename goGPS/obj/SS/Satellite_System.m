@@ -204,6 +204,10 @@ classdef Satellite_System < Settings_Interface
             %   name = this.getFreqNames();
             name = fieldnames(this.F);
         end
+        
+        function setFlagF(this, idx, values)
+            this.flag_f(idx) = values;
+        end
 
         function flag = isActive(this)
             % Get the status of activation of the constellation
