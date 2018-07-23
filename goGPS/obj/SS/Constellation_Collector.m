@@ -958,11 +958,11 @@ classdef Constellation_Collector < Settings_Interface
                 band = 'L5';
             elseif strcmp(ocode,'JL6')
                 band = 'LEX6';
-            elseif strcmp(ocode,'BL2')
+            elseif strcmp(ocode,'CL2')
                 band = 'B1';
-            elseif strcmp(ocode,'BL7')
+            elseif strcmp(ocode,'CL7')
                 band = 'B2';
-            elseif strcmp(ocode,'BL6')
+            elseif strcmp(ocode,'CL6')
                 band = 'B3';
             elseif strcmp(ocode,'IL5')
                 band = 'L5';
