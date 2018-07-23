@@ -430,7 +430,7 @@ classdef Command_Interpreter < handle
                         this.runUpdateAzEl(rec, tok(2:end));
                     case this.CMD_BASICPP.name              % BASICPP
                         this.runBasicPP(rec, tok(2:end));                        
-                    case this.CMD_PREPRO.name               % PREPRO
+                    case this.CMD_PREPRO.name               % PREP                 
                         this.runPrePro(rec, tok(2:end));
                     case this.CMD_CODEPP.name               % CODEPP
                         this.runCodePP(rec, tok(2:end));                        

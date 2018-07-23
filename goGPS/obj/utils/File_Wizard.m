@@ -152,6 +152,8 @@ classdef File_Wizard < handle
         center_name;% center code
         rm;         % resource manager
         sys_c;      % system collector
+        
+        nrt = false;%near real time flag % continue even if all the files have not been found
     end
     
     properties (SetAccess = protected, GetAccess = protected)
@@ -238,12 +240,13 @@ classdef File_Wizard < handle
                     else
                         this.log.addMessage(this.log.indent('Some files not found remotely\n'))
                     end
-                end
-                if status
-                    this.log.addMessage(this.log.indent('Downloading Resources ...\n'));
-                    [status, ~] = this.navigateTree(file_tree, 'download');
-                    if not(status)
-                        this.log.addWarning('Not all file have been found or unconpressed\n');
+                
+                    if status || this.nrt
+                        this.log.addMessage(this.log.indent('Downloading Resources ...\n'));
+                        [status, ~] = this.navigateTree(file_tree, 'download');
+                        if not(status)
+                            this.log.addWarning('Not all file have been found or unconpressed\n');
+                        end
                     end
                 end
             end
@@ -374,15 +377,25 @@ classdef File_Wizard < handle
                                         
                                         if instr(port,'21')
                                             idx = this.getServerIdx(s_ip, port);
-                                            status = status && this.ftp_downloaders{idx}.check(file_name);
+                                            if ~this.nrt
+                                                status = status && this.ftp_downloaders{idx}.check(file_name);
+                                            else
+                                                status = this.ftp_downloaders{idx}.check(file_name);
+                                            end
                                         else
-                                            status = status && Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                            if ~this.nrt
+                                                status = status && Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                            else
+                                                status = Core_Utils.checkHttpTxtRes([s_ip file_name]);
+                                            end
                                         end
                                         if status
                                             this.log.addStatusOk(sprintf('%s found (on remote server %s)', this.fnp.getFileName(file_name), server));
                                         else
                                             this.log.addWarning(sprintf('%s have not been found remotely', this.fnp.getFileName(file_name)));
-                                            break
+                                            if ~this.nrt
+                                                break
+                                            end
                                         end
                                     end
                                 end
@@ -430,7 +443,9 @@ classdef File_Wizard < handle
             %     this.conjureFiles(date_start, date_stop, center_name)
             dsa = date_start.getCopy();
             dso = date_stop.getCopy();
-            
+            if (dso - GPS_Time.now()) > -(6*3600)
+                this.nrt = true;
+            end
             if nargin < 4
                center_name = this.state.getRemoteCenter();
             end
@@ -697,15 +712,19 @@ classdef File_Wizard < handle
             list_preferred = this.state.getPreferredEph();
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i}, date_start, date_stop);
-                if status
+                if status || (this.nrt && (strcmp(list_preferred{i},'ultra') || strcmp(list_preferred{i},'broadcast')))
                     break
                 end
             end
             if status
                 this.log.addMarkedMessage('All ephemerids files present')
             else
-                this.log.addError('Not all ephemerids files found program might misbehave');
-                error('With no ephemerides the processing cannot be completed');
+                if ~this.nrt
+                    this.log.addError('Not all ephemerids files found program might misbehave');
+                    error('With no ephemerides the processing cannot be completed');
+                else
+                    this.log.addError('Not all ephemerids files found');
+                end
             end
         end
         

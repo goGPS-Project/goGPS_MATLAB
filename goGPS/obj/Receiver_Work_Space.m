@@ -3243,6 +3243,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs(empty_idx,:) = [];
                 snr(empty_idx,:) = [];
                 prn(empty_idx,:) = [];
+                 if flag(1) == 'L'
+                    cycle_slips(empty_idx,:) = [];
+                end
                 flags(empty_idx,:) = [];
                 flags = char(flags);
                 idx = zeros(length(prn),1);
@@ -4615,7 +4618,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 2 % Klobuchar model
                     if ~isempty(this.sat.cs.iono )
                         for s = go_id
-                            idx = this.sat.avail_idx(:,s);
+                            idx = this.sat.avail_index(:,s);
                             [week, sow] = time2weektow(this.time.getSubSet(idx).getGpsTime());
                             this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
                         end

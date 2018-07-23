@@ -1671,6 +1671,7 @@ classdef GPS_Time < Exportable & handle
             % SYNTAX
             %   this = now()
             mat_time = now();
+            mat_time = mat_time + java.util.Date().getTimezoneOffset/(60*24);
             this = GPS_Time(mat_time, true);
         end
         

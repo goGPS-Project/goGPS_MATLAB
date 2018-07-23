@@ -892,9 +892,11 @@ classdef Atmosphere < handle
             foi_delay = zeros(size(el));
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
-                t_time = gps_time(t);
-                [stec, ~, ~, ~] = this.getSTEC(lat, lon, az(t,idx_sat), el(t,idx_sat), h, t_time);
-                foi_delay(t,idx_sat) = 40.3 * 1e16 .* stec ./ this.V_LIGHT^2; % to be multipleid by wavelength^2
+                if length(idx_sat) > 0
+                    t_time = gps_time(t);
+                    [stec, ~, ~, ~] = this.getSTEC(lat, lon, az(t,idx_sat), el(t,idx_sat), h, t_time);
+                    foi_delay(t,idx_sat) = 40.3 * 1e16 .* stec ./ this.V_LIGHT^2; % to be multipleid by wavelength^2
+                end
             end
         end
         
@@ -1871,10 +1873,10 @@ classdef Atmosphere < handle
             
             %ionospheric delay
             index = find(abs(x) < 1.57);
-            delay(index,1) = goGNSS.V_LIGHT * f(index) .* (5e-9 + a(index) .* (1 - (x(index).^2)/2 + (x(index).^4)/24));
+            delay(index,1) = Global_Configuration.V_LIGHT * f(index) .* (5e-9 + a(index) .* (1 - (x(index).^2)/2 + (x(index).^4)/24));
             
             index = find(abs(x) >= 1.57);
-            delay(index,1) = goGNSS.V_LIGHT * f(index) .* 5e-9;
+            delay(index,1) = Global_Configuration.V_LIGHT * f(index) .* 5e-9;
         end        
         
         function [lat_pp, lon_pp, iono_mf, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, rcm)
