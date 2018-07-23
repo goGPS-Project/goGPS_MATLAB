@@ -109,6 +109,7 @@ classdef Atmosphere < handle
             'dt',         [], ...    % time spacing
             'n_t',        [] ...   % num of epocvhs
             )
+         emf     % current Earth geomagnetic field object
     end
     
     properties  (SetAccess = private, GetAccess = private)
@@ -129,7 +130,7 @@ classdef Atmosphere < handle
         atm     % atm saved value for GPT computation
         ata     % ata saved value for GPT computation
         
-        emf     % current Earth geomagnetic field object
+       
         log
 
         V_LIGHT = Global_Configuration.V_LIGHT;
@@ -933,14 +934,14 @@ classdef Atmosphere < handle
                     end
                     bok = sum(b.*k,2); %to Tesla
                     c = this.V_LIGHT ;
-                    Nemax = (3*1e12);
-                    vtec =  1e18;
+                    Nemax1 = (20 -6)/(4.55 - 1.38) * 1e12 / 1e18; %in[1]
+                    Nemax2 = (3*1e12); % in [2]
                     ni = 0.66;
                     zi = acos(1./mfpp);
                     stec = stec * 1e16;
                     hoi_delay2_coeff(t,idx_sat) =  7527 / c^2  .* bok .* stec;% Eq (10) (11) in [1]
-                    hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax ./ vtec .* ni .* (stec).^2;% Eq (1g) (15) (14) in [1]
-                    bending_coeff(t,idx_sat)    =  A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax .* stec;% Eq(4.34) in [2]
+                    hoi_delay3_coeff(t,idx_sat) =  2437 / c^4  .* Nemax1 .* ni .* stec.^2;% Eq (1g) (15) (14) in [1]
+                    bending_coeff(t,idx_sat)    =  A^2 ./ (8 .* c^4)  .* tan(zi).^2 .* ni .* Nemax2 .* stec;% Eq(4.34) in [2]
                     ppo(t,idx_sat) = stec;
             end
         end
@@ -1891,7 +1892,7 @@ classdef Atmosphere < handle
             %   latpp               latitude pierce point [rad]
             %   lonpp               longitude pierce point [rad]
             %   iono_mf             iono mapping function
-            %   k                   iono k factor ????
+            %   k                   direction of the ray in ecef coordinates [X Y Z]
             %
             % SYNTAX
             %   [latpp, lonpp, mfpp, k] = getPiercePoint(lat_rad, lon_rad, h_ortho, az_rad, el_rad, thin_shell_height, <rcm>)
@@ -1930,14 +1931,11 @@ classdef Atmosphere < handle
             end
             
             if nargout > 3
-                k = [cos(az_rad).*cos(el_rad) ...
-                    -sin(az_rad).*cos(el_rad) ...
-                    sin(el_rad)];
+                k = [-sin(az_rad).*cos(el_rad) ...
+                    -cos(az_rad).*cos(el_rad) ...
+                    -cos(el_rad)];
                 % go to global system
-                R = [-sin(lat_rad) cos(lon_rad) 0;
-                    -sin(lat_rad)*cos(lon_rad) -sin(lat_rad)*sin(lon_rad) cos(lat_rad);
-                    +cos(lat_rad)*cos(lon_rad) +cos(lat_rad)*sin(lon_rad) sin(lat_rad)];
-                [k] = (R'* (k'))';
+                k = local2globalVel2(k', lon_rad,lat_rad)';
             end
             
             lat_pp = reshape(lat_pp, input_size(1), input_size(2));

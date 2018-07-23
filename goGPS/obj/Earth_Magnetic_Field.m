@@ -210,22 +210,25 @@ classdef Earth_Magnetic_Field < handle
             
             N = repmat((0:n-1),n,1);
             M = N';
-            % X dV/dtheta
-            dP = this.interpolatedP(cos(colat));
-            X = 1 / r * re * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
-            % Y dV/dphi
+           
+            % E dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
-            Y = - re / (r * sin(colat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
-            % Z dV/dr
-            darn = repmat((1:n),n,1) .* arn;
-            Z = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
+            Ea =  -re / (r * sin(colat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
             
-            B = [X;Y;Z] / 1e9; %nT to T
+             % N dV/dtheta
+            dP = this.interpolatedP(cos(colat));
+            No =   re / r * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
+            % U dV/dr
+            darn = repmat((1:n),n,1) .* arn;
+            Up = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
+            
+            B = [Ea;No;Up]/ 1e9; %nT to T
+            B = local2globalVel2(B, lon,lat);
             %%% rotate B into cartesian
-            R = [-sin(lon) cos(lon) 0;
-                -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
-                +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
-            [B] = R'*B;
+%             R = [-sin(lon) cos(lon) 0;
+%                 -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat);
+%                 +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
+%             [B] = R'*B;
         end
         function P = interpolateP(this, x)
             n1 = floor((x +1) / this.P_d_length) + 1;
