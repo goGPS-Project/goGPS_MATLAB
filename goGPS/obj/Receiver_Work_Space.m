@@ -3119,7 +3119,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   idx = this.findObservableByFlag('L1C');
             %   idx = this.findObservableByFlag('?2C');
             
-            flag = [flag '?' * char(ones(1, size(flag, 1)))];
+            flag = [flag '?' * char(ones(1, 3 - size(flag, 1)))];
             
             lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                 iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
@@ -4599,9 +4599,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
             end
+            
             this.log.addMessage(this.log.indent('Updating ionospheric errors'))
             if nargin < 2
-                
                 go_id  = 1 : this.parent.cc.getMaxNumSat();
             end
             
@@ -4620,7 +4620,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.sat.err_iono(idx,go_id) = Atmosphere.klobucharModel(this.lat, this.lon, this.sat.az(idx,s), this.sat.el(idx,s), sow, this.sat.cs.iono);
                         end
                     else
-                        this.log.addWarning('No klobuchar parameter found, iono correction not computed',100);
+                        this.log.addWarning('No klobuchar parameter found, iono correction not computed');
                     end
                 case 3 % IONEX
                     atm = Atmosphere.getInstance();
@@ -4640,7 +4640,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if this.iono_status == 1
                 this.log.addMarkedMessage('Removing Ionosphere model');
                 this.ionoModel(-1);
-                this.iono_status = 0; %not applied
+                this.iono_status = 0; % not applied
             end
         end
         
@@ -4653,11 +4653,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             pr_obs = this.obs_code(:,1) == 'C';
             for i = 1 : size(this.sat.err_iono,2)
                 idx_sat = this.go_id == i & (ph_obs | pr_obs);
-                if sum(idx_sat) >0
+                if sum(idx_sat) > 0
                     for s = find(idx_sat)'
                         iono_delay = this.sat.err_iono(:,i) * this.wl(s).^2;
                         if ph_obs(s) > 0
-                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay')./this.wl(s));
+                            this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) + sign * (iono_delay') ./ this.wl(s));
                         else
                             this.obs(s,:) = nan2zero(zero2nan(this.obs(s,:)) - sign * (iono_delay'));
                         end
@@ -6331,7 +6331,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.sat.cs.toCOM(); %interpolation of attitude with 15min coordinate might possibly be inaccurate switch to center of mass (COM)
                     
                     this.updateAzimuthElevation();
-                    if this.state.isAprIono || this.state.iono_management == 3
+                    if this.state.isAprIono || this.state.getIonoManagement == 3
                         this.updateErrIono();
                         this.applyIonoModel();
                     end

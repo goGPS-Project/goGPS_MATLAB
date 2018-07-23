@@ -325,20 +325,6 @@ classdef Least_Squares_Manipulator < handle
             n_tropo = n_clocks; % number of epoch for ZTD estimation
             ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
             
-            
-            %-------------
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
             id_sync_out = this.true_epoch;
             
@@ -357,8 +343,8 @@ classdef Least_Squares_Manipulator < handle
             
             % get the list  of observation codes used
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
-            n_u_obs_code = size(u_obs_code,1);
-            this.log.addMessage(this.log.indent(sprintf('Setting up PPP system usign %s',reshape([u_obs_code repmat(' ',n_u_obs_code,1)]',1,n_u_obs_code*9))));
+            n_u_obs_code = size(u_obs_code, 1);
+            this.log.addMessage(this.log.indent(sprintf('Setting up PPP system usign %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)

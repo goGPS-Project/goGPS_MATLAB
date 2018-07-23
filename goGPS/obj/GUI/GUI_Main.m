@@ -668,7 +668,7 @@ classdef GUI_Main < handle
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Ocean Loading',         'flag_ocean_load', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use apriori iono model', 'flag_apr_iono', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             
             opt_grid.Widths = -1;
         end
@@ -684,7 +684,7 @@ classdef GUI_Main < handle
                 'Spacing', 5, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Management', this.state.IE_LABEL, 'iono_management', @this.onPopUpChange);
-            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
+            [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(iono_opt_grid, 'Ionosphere a-priori Model',this.state.IONO_LABEL ,'iono_model', @this.onPopUpChange);
             
             Core_UI.insertEmpty(tab);
             

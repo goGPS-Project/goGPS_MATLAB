@@ -213,7 +213,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         IONO_MODEL = 2;                                 % Ionospheric model to be used (1: none, 2: Klobuchar, 3: SBAS)
                                                         % - iono_model = 1: no model
                                                         % - iono_model = 2: Klobuchar model
-                                                        % - iono_model = 3: SBAS grid
+                                                        % - iono_model = 3: IONEX
                                                         
         ZD_MODEL  = 2;                                  % A-priori Tropospheric Zenith delay model to be used (0: none, 1: Saastamoinen , 2: Vienna mapping function gridded delays)
                                                         % - zd_model = 1: no model
@@ -505,10 +505,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
         iono_model = Main_Settings.IONO_MODEL;
-        % - iono_model = 0: no model
-        % - iono_model = 1: Geckle and Feen model
+        % - iono_model = 1: no model
         % - iono_model = 2: Klobuchar model
-        % - iono_model = 3: SBAS grid
+        % - iono_model = 3: IONEX
 
         % A-priori Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
         zd_model = Main_Settings.ZD_MODEL;
@@ -968,7 +967,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Estimate tropospheric delay                       %d\n', this.flag_tropo)];
             str = [str sprintf(' Estimate tropospheric delay gradient              %d\n\n', this.flag_tropo_gradient)];
-            str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model+1})];
+            str = [str sprintf(' Ionospheric model                                 %s\n', this.IONO_SMODE{this.iono_model})];
             str = [str sprintf(' Iono Mangement                                    %s\n', this.IE_SMODE{this.iono_management})];
             str = [str sprintf(' A-priori Zenith model                             %s\n', this.ZD_SMODE{this.zd_model})];
             str = [str sprintf(' Tropospheric model                                %s\n', this.MF_SMODE{this.mapping_function})];
