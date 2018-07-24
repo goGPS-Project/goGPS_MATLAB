@@ -251,11 +251,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
             '2: Vienna Mapping Function gridded'}
-        ZD_LABEL =  {'Saastamoinen','VMF_GRD'}
+        ZD_LABEL =  {'Saastamoinen from meteo data','VMF gridded zenith delays'}
         % id to string of mappig functions
         MF_SMODE = {'1: Global Mapping Function', ...
             '2: Vienna Mapping Function gridded'}
-        MF_LABEL = {'GMF','VMF_GRD'}
+        MF_LABEL = {'GMF','VMF gridded'}
         % id to string of meteo dtata
         MD_SMODE = {'1: standard atmosphere', ...
                        '2: Global Pressure Temperature Model' ...
