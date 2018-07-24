@@ -53,6 +53,9 @@ classdef Least_Squares_Manipulator < handle
         PAR_TROPO = 7;
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
+        PAR_PCO_X = 10;
+        PAR_PCO_Y = 11;
+        PAR_PCO_Z = 12;
     end
     
     properties
@@ -357,11 +360,25 @@ classdef Least_Squares_Manipulator < handle
             n_iob = size(u_obs_code, 1) - 1;
             iob_flag = double(n_iob > 0);
             
+            % separte antenna phase centers
+            apc_flag = this.state.isSeparateApc() & phase_present ;
+            n_apc = 3 * n_iob * apc_flag;
+            apc_p_idx =  zeros(length(obs_set.wl),3); 
+            u_sys_c = unique(obs_set.obs_code(:,1));
+            idx_gps = u_sys_c == 'G';
+            if sum(idx_gps) > 0 % put gps in first position if presetn
+                u_sys_c(idx_gps) = [];
+                u_sys_c = ['G'; u_sys_c(:)];
+            end
+            for i = 1 : length(u_sys_c)
+                sys_idx = obs_set.obs_code(:,1) == u_sys_c(i);
+                apc_p_idx(sys_idx,:) = n_coo + n_iob + repmat(max((i-2),0)*3 + (1:3), sum(sys_idx),1);
+            end
             % total number of observations
             n_obs = sum(sum(diff_obs ~= 0));
             
             % Building Design matrix
-            n_par = n_coo_par + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
@@ -410,47 +427,68 @@ classdef Least_Squares_Manipulator < handle
                 if ~rec.isFixed()
                     A(lines_stream, 1:3) = - los_stream;
                 end
+                prog_p_col = 0;
                 if dynamic & ~rec.isFixed()
-                    A_idx(lines_stream, 1) = ep_p_idx(id_ok_stream);
-                    A_idx(lines_stream, 2) = n_epochs + ep_p_idx(id_ok_stream);
-                    A_idx(lines_stream, 3) = 2*n_epochs + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = n_epochs + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = 2*n_epochs + ep_p_idx(id_ok_stream);
                 elseif ~isempty(pos_idx_vec)
-                    A_idx(lines_stream, 1) = pos_idx_vec(id_ok_stream);
-                    A_idx(lines_stream, 2) = n_pos  + pos_idx_vec(id_ok_stream);
-                    A_idx(lines_stream, 3) = 2*n_pos + pos_idx_vec(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = pos_idx_vec(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = n_pos  + pos_idx_vec(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = 2*n_pos + pos_idx_vec(id_ok_stream);
+                else
+                    prog_p_col = prog_p_col + 3 ;
                 end
                 % ----------- Inster observation bias ------------------
                 if n_iob > 0
-                    A(lines_stream, n_coo_par + 1) = iob_idx(s) > 0;
-                    A_idx(lines_stream, n_coo_par + 1) = max(n_coo+1, iob_p_idx(s));
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = iob_idx(s) > 0;
+                    A_idx(lines_stream, prog_p_col) = max(n_coo+1, iob_p_idx(s));
+                end
+                % ----------- Separate antenna phase centers ------------------
+                if n_apc > 0
+                    if obs_set.obs_code(s,1) ~= u_sys_c(1)
+                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;  
+                    end
+                    A_idx(lines_stream,prog_p_col + ( 1 : 3)) = repmat(apc_p_idx(s,:),length(lines_stream),1);
+                    prog_p_col = prog_p_col +3;
                 end
                 % ----------- Abiguity ------------------
                 if phase_present
-                    amb_offset = n_coo_par + iob_flag + 1;
+                     prog_p_col = prog_p_col + 1;
                     if not(flag_amb_fix)
-                        A(lines_stream, amb_offset) = 1;%obs_set.wl(s);
+                        A(lines_stream, prog_p_col) = 1;%obs_set.wl(s);
                     else
-                        A(lines_stream, amb_offset) = 1;
+                        A(lines_stream, prog_p_col) = 1;
                     end
-                    A_idx(lines_stream, amb_offset) = n_coo + n_iob + amb_idx(id_ok_stream, s);
+                    A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
-                A(lines_stream, n_coo_par+iob_flag+amb_flag + 1) = 1;
-                A_idx(lines_stream, n_coo_par+iob_flag+amb_flag + 1) = n_coo + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                prog_p_col = prog_p_col + 1;
+                A(lines_stream, prog_p_col) = 1;
+                A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 % ----------- ZTD ------------------
                 if tropo
-                    A(lines_stream, n_coo_par+iob_flag+amb_flag + 2) = mfw_stream;
-                    A_idx(lines_stream, n_coo_par+iob_flag+amb_flag + 2) = n_coo + n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = mfw_stream;
+                    A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     %cotan_term = cot(el_stream) .* mfw_stream;
                     cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
-                    A(lines_stream, n_coo_par+iob_flag+amb_flag + 3) = cos(az_stream) .* cotan_term; % noth gradient
-                    A(lines_stream, n_coo_par+iob_flag+amb_flag + 4) = sin(az_stream) .* cotan_term; % east gradient
-                    
-                    A_idx(lines_stream, n_coo_par+iob_flag+amb_flag + 3) = n_coo + 2 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
-                    A_idx(lines_stream, n_coo_par+iob_flag+amb_flag + 4) = n_coo + 3 * n_clocks + n_iob + n_amb + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
+                    A_idx(lines_stream, prog_p_col) = n_coo + 2 * n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
+                    A_idx(lines_stream, prog_p_col) = n_coo + 3 * n_clocks + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 end
                 obs_count = obs_count + n_obs_stream;
             end
@@ -463,17 +501,17 @@ classdef Least_Squares_Manipulator < handle
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
                 if ~flag_amb_fix
-                    G = [zeros(1, n_coo + n_iob)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
+                    G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                     % setting the first clock of each connected set of arc to 0
                     system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                     clock_const = zeros(1,n_clocks);
                     clock_const([1]) = 1;
-                    G = [zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const];
+                    G = [zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const];
                     for i = 1: length(system_jmp)
                         clock_const = zeros(1,n_clocks);
                         clock_const(system_jmp(i)+1) = 1;
-                        G = [G ;[zeros(1, n_coo + n_iob)  zeros(1,n_amb)  clock_const]];
+                        G = [G ;[zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const]];
                     end
                 end
                 if tropo
@@ -493,11 +531,11 @@ classdef Least_Squares_Manipulator < handle
             this.epoch = obs;
             this.sat = sat;
             if dynamic
-                this.param_flag = [1, 1, 1, -ones(iob_flag), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
+                this.param_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             else
-                this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
+                this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             end
-            this.param_class = [1:n_coo_par, 4 * ones(iob_flag), 5*ones(amb_flag), 6, 7*ones(tropo), 8*ones(tropo_g), 9*ones(tropo_g)];
+            this.param_class = [this.PAR_X , this.PAR_Y, this.PAR_Z, this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');
@@ -764,10 +802,12 @@ classdef Least_Squares_Manipulator < handle
             idx_constant = find(idx_constant_l);
             idx_non_constant = find(~idx_constant_l);
             a_idx_const =unique(this.A_idx(:, idx_constant_l));
+            a_idx_const(a_idx_const == 0) = [];
             a_idx_ep_wise = unique(this.A_idx(:, ~idx_constant_l));
+            a_idx_ep_wise(a_idx_ep_wise == 0) = [];
             n_constant = length(a_idx_const);
             n_class = size(this.A_ep, 2);
-            n_ep_wise = max(max(this.A_idx(:, ~idx_constant_l))) - n_constant;
+            n_ep_wise = max(a_idx_ep_wise) - n_constant;
             if isempty(n_ep_wise)
                 n_ep_wise = 0;
             end

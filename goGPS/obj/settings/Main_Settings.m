@@ -203,6 +203,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
         
+        FLAG_SEPARATE_APC = false;                      % Flag to enable different phase center for each system
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
 
@@ -491,8 +492,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         flag_rec_pcv     = Main_Settings.FLAG_REC_PCV;
         flag_apr_iono    = Main_Settings.FLAG_APR_IONO;
         
-        flag_coo_rate = Main_Settings.FLAG_COO_RATE;
-        coo_rates     = Main_Settings.COO_RATES;
+        flag_coo_rate     = Main_Settings.FLAG_COO_RATE;
+        flag_separate_apc = Main_Settings.FLAG_SEPARATE_APC;
+        coo_rates         = Main_Settings.COO_RATES;
 
         %------------------------------------------------------------------
         % ATMOSPHERE
@@ -693,6 +695,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
                 this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
+                this.flag_separate_apc = state.getData('flag_separate_apc');
                 this.coo_rates     = state.getData('coo_rates');
 
                 % ATMOSPHERE
@@ -812,6 +815,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_apr_iono = state.flag_apr_iono;
                 
                 this.flag_coo_rate = state.flag_coo_rate;
+                this.flag_separate_apc = state.flag_separate_apc;
                 this.coo_rates     = state.coo_rates    ;
                
                 % ATMOSPHERE
@@ -959,9 +963,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable atmospheric loading corrections:           %d\n', this.flag_atm_load)];
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
-            str = [str sprintf(' Enable apriori iono correction     :              %d\n\n', this.flag_apr_iono)];
-            
+            str = [str sprintf(' Enable apriori iono correction     :              %d\n', this.flag_apr_iono)];
+            str = [str sprintf(' Separate antenna phase center for each GNSS:      %d\n', this.flag_separate_apc)];
             str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
+            
             str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
@@ -1338,6 +1343,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_separate_apc, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
 
@@ -1963,6 +1969,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_apr_iono');
              
             this.checkLogicalField('flag_coo_rate');
+            this.checkLogicalField('flag_separate_apc');
             this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
 
             % ATMOSPHERE
@@ -3371,6 +3378,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
+        end
+        
+        function is_apc_sep = isSeparateApc(this)
+               % Should diffferent pahse centers been estimated
+            %
+            % SYNTAX
+            %   is_apc_sep = this.isSeparateApc()
+            
+            is_apc_sep = this.flag_separate_apc;
         end
         
         function is_smt = isSmoothTropoOut(this)

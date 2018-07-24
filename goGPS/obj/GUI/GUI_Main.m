@@ -545,11 +545,12 @@ classdef GUI_Main < handle
             ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
             opt_grid = uix.Grid('Parent', ocean_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
             Core_UI.insertEmpty(opt_grid);
-            set( opt_grid, 'Widths', [200 -1], 'Heights', [23 23] );
+            set( opt_grid, 'Widths', [300 300], 'Heights', [23 23] );
         end
         
         function proc_opt = insertAmbFixOptions(this, container)
