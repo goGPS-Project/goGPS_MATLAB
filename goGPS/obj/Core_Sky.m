@@ -371,20 +371,21 @@ classdef Core_Sky < handle
             
             shadowCrossing = cosPhi < 0 & XS_n.*sqrt(1 - cosPhi.^2) < GPS_SS.ELL_A;
             
-            for i = 1:32 % only gps implemented
-                sat_type = this.ant_pcv(i).sat_type;
-                
-                if (~isempty(strfind(sat_type,'BLOCK IIA')))
-                    thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
-                elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
-                    thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
-                    shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
-                elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
-                    thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
-                    shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+            if this.cc.isGpsActive
+                for i = 1:32 % only gps implemented
+                    sat_type = this.ant_pcv(i).sat_type;
+                    
+                    if (~isempty(strfind(sat_type,'BLOCK IIA')))
+                        thr(:,i) = 4.9*pi/180; % maximum yaw rate of 0.098 deg/sec (Kouba, 2009)
+                    elseif (~isempty(strfind(sat_type,'BLOCK IIR')))
+                        thr(:,i) = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
+                        shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                    elseif (~isempty(strfind(sat_type,'BLOCK IIF')))
+                        thr(:,i) = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+                        shadowCrossing(:,i) = false;  %shadow crossing affects only BLOCK IIA satellites in gps
+                    end
                 end
             end
-            
             %noon/midnight maneuvers affect all satellites
             noonMidnightTurn = acos(abs(cosPhi)) < thr;
             eclipsed(shadowCrossing) = 1;

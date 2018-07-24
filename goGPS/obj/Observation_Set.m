@@ -100,12 +100,12 @@ classdef Observation_Set < handle
             %merge
             this.obs = [this.obs obs_set.obs];
             this.obs_code = [this.obs_code ;obs_set.obs_code];
-            this.wl = [this.wl obs_set.wl];
+            this.wl = [this.wl(:); obs_set.wl(:)];
             this.el = [this.el obs_set.el];
             this.az = [this.az obs_set.az];
-            this.prn = [this.prn obs_set.prn];
+            this.prn = [this.prn(:); obs_set.prn(:)];
             this.go_id = [this.go_id(:); obs_set.go_id(:)];
-            this.sigma = [this.sigma obs_set.sigma];
+            this.sigma = [this.sigma(:); obs_set.sigma(:)];
             
             if isempty(obs_set.snr)
                 snr2 = nan(size(obs_set.obs));

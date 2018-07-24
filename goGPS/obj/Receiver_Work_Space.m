@@ -3429,6 +3429,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             [obs_set] =  this.getTwoFreqComb([system flag1],[system flag2], fun1, fun2);
         end
         
+        function [obs_set] = getPrefGeometryFree(this,obs_type,system)
+            iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
+            is_present = false(size(iono_pref,1),1);
+            for i = 1 : size(iono_pref,1)
+                % check if there are observation for the selected channel
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                    is_present(i) = true;
+                end
+            end
+            iono_pref = iono_pref(is_present,:);
+            [obs_set]  = this.getGeometryFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
+        end
+        
+        
         function [obs_set] = getMelWub(this, freq1, freq2, system)
             
             fun1 = @(wl1,wl2) 1;
@@ -3456,20 +3470,28 @@ classdef Receiver_Work_Space < Receiver_Commons
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selcted measurements
             % SYNTAX [obs] = this.getIonoFree(flag1, flag2, system)
+            iono_pref = this.cc.getSys(sys_c).IONO_FREE_PREF;
+            is_present = false(size(iono_pref,1),1);
+            for i = 1 : size(iono_pref,1)
+                % check if there are observation for the selected channel
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
+                    is_present(i) = true;
+                end
+            end
+            iono_pref = iono_pref(is_present,:);
+            [ismf_l1]  = this.getSmoothIonoFree([obs_type iono_pref(1,1)], sys_c);
+            [ismf_l2]  = this.getSmoothIonoFree([obs_type iono_pref(1,2)], sys_c);
             
-            [ismf_l1]  = this.getSmoothIonoFree([obs_type '1'], sys_c);
-            [ismf_l2]  = this.getSmoothIonoFree([obs_type '2'], sys_c);
-            
-            id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
-            %if any(id_ph)
-            %    [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c);
-            %end
+%             id_ph = Core_Utils.code2Char2Num(this.getAvailableObsCode) == Core_Utils.code2Char2Num('L5');
+%             if any(id_ph)
+%                [ismf_l5]  = this.getSmoothIonoFree([obs_type '5'], sys_c);
+%             end
             
             fun1 = @(wl1,wl2) 0.65;
             fun2 = @(wl1,wl2) 0.35;
             [obs_set] =  this.getTwoFreqComb(ismf_l1, ismf_l2, fun1, fun2);
             obs_set.iono_free = true;
-            obs_set.obs_code = repmat('GL1CL2WI',length(obs_set.prn),1);
+            obs_set.obs_code = repmat(ismf_l1.obs_code(1,:),length(obs_set.prn),1);
         end
         
         function [obs_set, widelane_amb_mat, widelane_amb_fixed] = getIonoFreeWidelaneFixed(this)
@@ -3530,8 +3552,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % WARNING -> AS now it works only with 1� and 2� frequency
             
-            
-            [gf] = this.getGeometryFree('L1', 'L2', sys_c); %widelane phase
+            [gf] = this.getPrefGeometryFree('L',sys_c); %widelane phase
             
             gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
             
@@ -3556,7 +3577,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
-            obs_set.obs_code = repmat('GL1CL2WI',length(obs_set.prn),1);
+            obs_set.obs_code = repmat(gf.obs_code(1,:),length(obs_set.prn),1);
         end
         
         function [obs_set]  = getPrefMelWub(this, system)
@@ -5391,9 +5412,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 sys = this.system(obs_idx_f);
                                 f_code = [sys(1) sprintf('%02d',f)];
                                 
-                                pco_idx = strLineMatch(this.pcv.frequency_name, f_code);
-                                if sum(pco_idx)
-                                    pco = this.pcv.offset(:, :, pco_idx)';
+                                [pco, pco_idx] = this.getPCO(f,sys(1));
+                                if ~isempty(pco)
+                                    
                                     pco_delays = neu_los * pco;
                                     pcv_delays = pco_delays - this.getPCV(pco_idx, el, az);
                                     for o = find(obs_idx_f)'
@@ -5558,6 +5579,36 @@ classdef Receiver_Work_Space < Receiver_Commons
                     %interpolate alogn azimtuh
                     pcv_delay = d_f_r_az .* pcv_delay_lf + (1 - d_f_r_az) .* pcv_delay1_rg;
                 end
+            end
+        end
+        
+        
+        function [pco, pco_idx] = getPCO(this, freq, sys)
+            % get pco 
+            if ~isempty(this.pcv)
+                f_code = [sys sprintf('%02d',freq)];
+                pco_idx = strLineMatch(this.pcv.frequency_name, f_code);
+                if sum(pco_idx)
+                    pco = this.pcv.offset(:, :, pco_idx)';
+                else
+                    % find closer gps frequency
+                    gps_idx_l = this.pcv.frequency_name(:,1) == 'G';
+                    gps_idx = find(gps_idx_l);
+                    aval_frq = char(this.pcv.frequency_name(gps_idx,3));
+                    fr_gps = zeros(size(aval_frq));
+                    for i = 1 : length(aval_frq)
+                        ava_frq_idx = this.cc.getGPS.CODE_RIN3_2BAND == aval_frq(i);
+                        fr_gps(i) = this.cc.getGPS.F_VEC(ava_frq_idx);
+                    end
+                    trg_frq_idx = this.cc.getSys(sys).CODE_RIN3_2BAND == num2str(freq);
+                    fr_trg = this.cc.getSys(sys).F_VEC(trg_frq_idx);
+                    [~,idx_near] = min(abs(fr_gps-fr_trg));
+                    pco = this.pcv.offset(:, :, gps_idx(idx_near))';
+                    this.log.addMessage(this.log.indent(sprintf('No corrections found for antenna model %s on frequency %s, usign %s instead',this.parent.ant_type, f_code,this.pcv.frequency_name(gps_idx(idx_near),:))));
+                    pco_idx(gps_idx(idx_near)) = true;
+                end
+            else
+                pco = [];
             end
         end
         
