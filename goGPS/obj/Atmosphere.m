@@ -1738,7 +1738,7 @@ classdef Atmosphere < handle
             end
             
             id_ok = el_rad > 0 & ~isnan(el_rad);
-            k = ((rcm + h_ortho)/((rcm + h_ortho) + thin_shell_height)) * cos(el_rad(id_ok));
+            k = (rcm + h_ortho)/(rcm + h_ortho + thin_shell_height) * cos(el_rad(id_ok));
             iono_mf = nan(size(el_rad));
             iono_mf(id_ok) = (1-(k).^2).^(-1/2); % formula 6.99 in [1]
         end

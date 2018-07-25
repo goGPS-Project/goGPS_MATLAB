@@ -3553,9 +3553,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             % WARNING -> AS now it works only with 1� and 2� frequency
             
             [gf] = this.getPrefGeometryFree('L',sys_c); %widelane phase
-            
+            [gf_pr] = this.getPrefGeometryFree('C',sys_c); %widelane phase
+            idx_nan = gf.obs == 0; 
+            %gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
+            el = this.sat.el(:,gf.go_id)/180*pi;
+            gf.obs = this.ionoCodePhaseSmt(zero2nan(gf_pr.obs),3,zero2nan(gf.obs),0.003,gf.getAmbIdx(),0.1, el);
+            gf.obs(idx_nan) = nan;
             gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
-            
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
             coeff = [ifree.alpha2 ifree.alpha1];
