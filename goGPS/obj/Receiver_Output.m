@@ -347,13 +347,6 @@ classdef Receiver_Output < Receiver_Commons
             this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
             this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
             
-            [lat, lon, h_ellips, h_ortho] = rec_work.getPosGeodetic();
-            
-            this.lat      = Core_Utils.injectData(this.lat, lat, idx1, idx2, [data_len, 1]);
-            this.lon      = Core_Utils.injectData(this.lon, lon, idx1, idx2, [data_len, 1]);
-            this.h_ellips = Core_Utils.injectData(this.h_ellips, h_ellips, idx1, idx2, [data_len, 1]);
-            this.h_ortho  = Core_Utils.injectData(this.h_ortho, h_ortho, idx1, idx2, [data_len, 1]);
-            
             this.s0_ip    = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
             this.s0       = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
             
