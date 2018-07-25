@@ -7121,6 +7121,49 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function [smt] = ionoCodePhaseSmt(pr_mat, sigma_pr, ph_mat, sigma_ph, amb_idx_mat, sigma_smt, el_rad)
+            % get and estimate of a smooth obervable from unambiguos measurement pr and ambiguous measurents ph, the smootheness is defined by parameter sigma_smt
+            %
+            % SYNTAX
+            %    [smt] = ionoCodePhaseSmt(pr, sigma_pr, ph, sigma_ph, amb_idx, sigma_smt)
+            smt = zeros(size(ph_mat));
+            n_sat = size(ph_mat,2);
+            n_iono = size(pr_mat,1);
+            iono_mf_mat = (1 - (6300 / 6700 * cos(el_rad)).^2).^(-0.5);
+            for s = 1 : n_sat
+                
+                ph = ph_mat(:,s);
+                pr = pr_mat(:,s);
+                if sum(~isnan(pr)) > 0
+                    iono_mf = iono_mf_mat(:,s);
+                    amb_idx = amb_idx_mat(:,s);
+                    amb_idx = amb_idx - min(amb_idx) + 1;
+                    n_amb = max(amb_idx);
+                    Apr = [speye(n_iono) sparse(n_iono,n_amb)];
+                    Apr(isnan(pr),:) = [];
+                    pr(isnan(pr)) = [];
+                    Apr = Apr ./sigma_pr;
+                    Aamb = zeros(n_iono,n_amb);
+                    for i = 1 : n_amb
+                        Aamb(:,i) = amb_idx == i;
+                    end
+                    Aph = [speye(n_iono) sparse(Aamb)];
+                    Aph(isnan(ph),:) = [];
+                    ph(isnan(ph)) = [];
+                    Aph = Aph ./sigma_ph;
+                    diag = [ones(n_iono-1,1) -ones(n_iono-1,1)];
+                    Adiff = [spdiags(diag,[0 1],n_iono-1,n_iono)  sparse(n_iono-1,n_amb)];
+                    Adiff = Adiff./sigma_smt;
+                    A = [Apr; Aph; Adiff];
+                    y  = [pr./sigma_pr; ph./sigma_ph; diff(iono_mf)./sigma_smt];
+                    x = A\y;
+                    smt(:,s) = x(1: end-n_amb);
+                else
+                    smt(:,s) = ph;
+                end
+            end
+        end
+        
         function obs_num = obsCode2Num(obs_code)
             % Convert a 3 char name into a numeric value (float)
             % SYNTAX
