@@ -419,7 +419,7 @@ classdef Core_Sky < handle
             if nargin < 4 || t_end.isempty()
                 t_end = t_st;
             end
-            times = t_st.getGpsTime -5*step : step : t_end.getGpsTime+5*step; %%% compute 5 step before and after the day to use for polynomila interpolation
+            times = (t_st.getGpsTime -5*step) : step : (t_end.getGpsTime+5*step); %%% compute 5 step before and after the day to use for polynomila interpolation
             this.time_ref_coord = t_st.getCopy();
             this.time_ref_coord.toUnixTime();
             this.time_ref_coord.addSeconds(-5*step);
