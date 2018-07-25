@@ -53,6 +53,8 @@
 !/data/reference/IGRF
 /data/reference/IGRF/*
 !/data/reference/IGRF/.gitignore
+!/data/reference/IGRF/igrf12coeff.txt
+!/data/reference/IGRF/P_dP_schimdt.mat
 !/data/reference/IONO
 /data/reference/IONO/*
 !/data/reference/IONO/.gitignore
