@@ -335,11 +335,11 @@ classdef Core < handle
             for s = session_list
                 this.prepareSession(s);
                 this.cmd.exec(this.rec);                   
-                if ~this.state.isKeepRecList()
-                    for r = 1 : numel(this.rec)
-                        this.rec(r).resetOut();
-                    end                    
-                end
+                % to eventually reset the Out
+                % for r = 1 : numel(this.rec)
+                %     this.rec(r).resetOut();
+                % end
+
                 if ispc
                     fclose('all'); % this will close the log :-(
                     this.log.setOutFile(this.log.getFilePath);

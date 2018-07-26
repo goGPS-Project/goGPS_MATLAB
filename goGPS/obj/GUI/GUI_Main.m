@@ -229,7 +229,7 @@ classdef GUI_Main < handle
                 'String', ' Current INI path:', ...
                 'ForegroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(7), ...
+                'FontSize', Core_UI.getFontSize(8), ...
                 'BackgroundColor', Core_UI.DARKER_GRAY_BG);   
             
             this.ini_path = uicontrol('Parent', ini_name_box, ...
@@ -237,7 +237,7 @@ classdef GUI_Main < handle
                 'String', 'last_settings.ini', ...
                 'ForegroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'HorizontalAlignment', 'left', ...
-                'FontSize', Core_UI.getFontSize(7), ...
+                'FontSize', Core_UI.getFontSize(8), ...
                 'BackgroundColor', Core_UI.DARKER_GRAY_BG);            
             
             ini_name_box.Widths = [100 -1];
@@ -387,7 +387,6 @@ classdef GUI_Main < handle
             sss_check_box = uix.HBox('Parent', sss_box_v, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Keep all sessions in memory', 'flag_keep_rec_list', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
             
@@ -420,7 +419,7 @@ classdef GUI_Main < handle
             
             sss_box_h.Widths      = [340 10 -1];
             sss_box_l.Heights     = [46 5];
-            sss_check_box.Widths  = [250 250 -1];
+            sss_check_box.Widths  = [350 -1];
             sss_box_r.Heights     = [46 5];
             sss_box_v.Heights     = [51 5 23 5 23];
             % --------------------------------------------------------
@@ -751,7 +750,7 @@ classdef GUI_Main < handle
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG, ...
                 'ForegroundColor', 0.3 * ones(3, 1), ...
                 'FontName', 'arial', ...
-                'FontSize', Core_UI.getFontSize(7));
+                'FontSize', Core_UI.getFontSize(8));
             
             j_rrini = com.mathworks.widgets.SyntaxTextPane;
             codeType = j_rrini.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
@@ -1026,17 +1025,7 @@ classdef GUI_Main < handle
                 this.updateRecList();
                 this.updateSessionSummary()
             end
-        end
-        
-        function onKeepSessionChange(this, caller, event)
-            % Manage the event of session keep modification (UI)
-            %
-            % SYNTAX:
-            %   this.onKeepSessionChange()
-            %
-            this.state.setKeepRecList(caller.Value);
-            this.updateINI();
-        end
+        end       
         
         function onCheckBoxConstChange(this, caller, event)
             % if the check box of one constalelation is ticked tick all the frequency of the constallation and call thei events

@@ -233,6 +233,10 @@ classdef Core_SEID < handle
                 log.addMarkedMessage('Syncing times, computing reference time');
             end
         end
+        
+        function reduceIono(ref, trg)
+            
+        end
     end
 
     methods (Static)

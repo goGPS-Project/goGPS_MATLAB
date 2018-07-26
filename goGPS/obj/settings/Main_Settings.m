@@ -83,10 +83,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         SSS_FILE_BASED = false;         % is the session management file based
         SSS_DURATION = 86400;          % session duration in seconds
         SSS_BUFFER = [3600*3 3600*3];  % session overlap in seconds [left right]
-        
-        
-        FLAG_KEEP_REC_LIST = true; % Flag to store the receivers for all the sessions
-        
+                
         % STATIONS
         OBS_DIR = 'RINEX';
         OBS_NAME = {'ZIMM${DOY}${S}.${YY}O'};
@@ -305,7 +302,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         sss_duration   = Main_Settings.SSS_DURATION;
         sss_buffer    = Main_Settings.SSS_BUFFER;
         
-        flag_keep_rec_list = Main_Settings.FLAG_KEEP_REC_LIST; % Flag to store the receivers for all the sessions
         flag_smooth_tropo_out = Main_Settings.FLAG_SMOOTH_TROPO_OUT;
 
         %------------------------------------------------------------------
@@ -606,7 +602,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_duration   = state.getData('sss_duration');
                 this.sss_buffer    = state.getData('sss_buffer');
 
-                this.flag_keep_rec_list = state.getData('flag_keep_rec_list');
                 this.flag_smooth_tropo_out  = state.getData('flag_smooth_tropo_out');
                 
                 % STATIONS
@@ -729,7 +724,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.sss_duration   = state.sss_duration;
                 this.sss_buffer    = state.sss_buffer;
 
-                this.flag_keep_rec_list = state.flag_keep_rec_list;
                 this.flag_smooth_tropo_out = state.flag_smooth_tropo_out;
 
                 % STATIONS
@@ -886,7 +880,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
             str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
-            str = [str sprintf(' Keep all the receiver objects:                    %d\n\n', this.flag_keep_rec_list)];
             str = [str sprintf(' Smooth tropospheric outputas:                     %d\n\n', this.flag_smooth_tropo_out)];
             
             str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
@@ -1043,11 +1036,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Session buffer in second [left right]', str_cell);
             str_cell = Ini_Manager.toIniString('sss_buffer',this.sss_buffer, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Flag DEBUG (0/1) to keep in memory all the processed receiver', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('WARNING: When the sessions are long do not use this feature', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('         this flag could cause memory problems', str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniString('flag_keep_rec_list', this.flag_keep_rec_list, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Computing the troposphere on multiple sessions (even with buffering)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('could produce discontinuous series, at the change of session.', str_cell);
             str_cell = Ini_Manager.toIniStringComment('To produce a smooth solution, the session from the past can be ', str_cell);
@@ -1949,7 +1937,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % PROCESSING PARAMETERS
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             
-            this.checkLogicalField('flag_keep_rec_list');
             this.checkLogicalField('flag_smooth_tropo_out');
             [buf_lft, buf_rgt] = this.getBuffer();
             if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
@@ -2609,14 +2596,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             counter = this.run_counter;
         end
         
-        function keep = isKeepRecList(this)
-            % Get the flag to keep in memory all the receivers (CEBUG)
-            %
-            % SYNTAX
-            %   keep = this.isKeepRecList();
-            keep = this.flag_keep_rec_list;
-        end
-        
         function date = getSessionsStart(this)
             % Get the beginning of all the sessions
             % not considering buffer
@@ -3082,14 +3061,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   setSessionStop(this, date)
             this.sss_date_stop = date.getCopy();
-        end
-        
-        function keep = setKeepRecList(this, keep)
-            % Get the flag to keep in memory all the receivers (CEBUG)
-            %
-            % SYNTAX
-            %   keep = this.isKeepRecList();
-            this.flag_keep_rec_list = keep;
         end
         
         function setSmoothTropoOut(this, is_smt)
