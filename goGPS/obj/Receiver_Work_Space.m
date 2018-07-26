@@ -3558,7 +3558,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx_nan = gf.obs == 0; 
             
             el = this.sat.el(:,gf.go_id)/180*pi;
-            gf.obs = this.ionoCodePhaseSmt(zero2nan(gf_pr.obs), 3, zero2nan(gf.obs), 0.003, gf.getAmbIdx(), 0.1, el);
+            gf.obs = this.ionoCodePhaseSmt(zero2nan(gf_pr.obs), gf_pr.sigma.^2, zero2nan(gf.obs), gf.sigma.^2, gf.getAmbIdx(), 0.1, el);
             gf.obs(idx_nan) = nan;
             
             %gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
@@ -7129,7 +7129,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [smt, iono_mf_mat] = ionoCodePhaseSmt(pr_mat, sigma_pr, ph_mat, sigma_ph, amb_idx_mat, sigma_smt, el_rad)
+        function [smt, iono_mf_mat] = ionoCodePhaseSmt(pr_mat, var_pr, ph_mat, var_ph, amb_idx_mat, var_smt, el_rad)
             % Smooth code (GF) observations with carrier phase (GF)
             % to produce a smooth estimation for the ionosphere
             % the smootheness is defined by parameter sigma_smt            
@@ -7140,7 +7140,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             n_sat = size(ph_mat,2);
             n_iono = size(pr_mat,1);
             iono_shell_height = 350e3;
-            iono_mf_mat = 1 / sqrt(1 - (GPS_SS.ELL_A / (GPS_SS.ELL_A + iono_shell_height) * cos(el_rad)) .^ 2);
+            iono_mf_mat = 1 ./ sqrt(1 - (GPS_SS.ELL_A / (GPS_SS.ELL_A + iono_shell_height) * cos(el_rad)) .^ 2);
             for s = 1 : n_sat                
                 ph = ph_mat(:,s);
                 pr = pr_mat(:,s);
@@ -7152,7 +7152,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     Apr = [speye(n_iono) sparse(n_iono, n_amb)];
                     Apr(isnan(pr),:) = [];
                     pr(isnan(pr)) = [];
-                    Apr = Apr ./sigma_pr;
+                    Apr = Apr ./var_pr(s);
                     Aamb = zeros(n_iono, n_amb);
                     for i = 1 : n_amb
                         Aamb(:,i) = amb_idx == i;
@@ -7160,12 +7160,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     Aph = [speye(n_iono) sparse(Aamb)];
                     Aph(isnan(ph),:) = [];
                     ph(isnan(ph)) = [];
-                    Aph = Aph ./sigma_ph;
+                    Aph = Aph ./var_ph(s);
                     diag = [ones(n_iono-1,1) -ones(n_iono-1,1)];
                     Adiff = [spdiags(diag,[0 1],n_iono-1,n_iono)  sparse(n_iono-1,n_amb)];
-                    Adiff = Adiff ./ sigma_smt;
+                    Adiff = Adiff ./ var_smt;
                     A = [Apr; Aph; Adiff];
-                    y  = [pr ./ sigma_pr; ph ./ sigma_ph; diff(iono_mf) ./ sigma_smt];
+                    y  = [pr ./ var_pr(s); ph ./ var_ph(s); diff(iono_mf) ./ var_smt];
                     x = A \ y;
                     % the system is undifferenced 
                     % ambiguities are estimated but not used
