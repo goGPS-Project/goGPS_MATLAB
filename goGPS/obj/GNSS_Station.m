@@ -442,13 +442,25 @@ classdef GNSS_Station < handle
         function getChalmersString(this)
             % get the string of the station to be used in http://holt.oso.chalmers.se/loading/
             % SYNTAX   this.getChalmersString();
+            this(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');            
+            this(1).log.addMessage(this(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and a request BLQ file'));
+            this(1).log.addMessage(this(1).log.indent('using ocean tide model FES2004'));
+            this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));            
+            this(1).log.addMessage(this(1).log.indent('Use the following string for the staion locations:'));
+            this(1).log.addMessage('//------------------------------------------------------------------------');
+
             for r = 1 : size(this, 2)
                 rec = this(~this(:,r).isEmpty, r);
                 if ~isempty(rec)
                     xyz = rec.out.getMedianPosXYZ();
+                    if isempty(xyz)
+                        xyz = rec.work.getMedianPosXYZ();
+                    end                        
                     fprintf('%-24s %16.4f%16.4f%16.4f\n', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3));
                 end
             end
+            
+            this(1).log.addMessage('//------------------------------------------------------------------------');
         end
         
         function [ztd, p_time, id_sync] = getZtd_mr(sta_list)

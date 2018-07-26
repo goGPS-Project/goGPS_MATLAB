@@ -1493,6 +1493,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             if found == 0
                 this.ocean_load_disp = -1; %ocean loading parameters not found
                 this.log.addWarning('Ocean loading parameters not found.');
+                this.parent.getChalmersString();
             end
         end
         
