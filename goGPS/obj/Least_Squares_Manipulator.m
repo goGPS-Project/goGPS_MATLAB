@@ -188,7 +188,9 @@ classdef Least_Squares_Manipulator < handle
                         end
                     end
                     idx_ph = obs_set.obs_code(:, 2) == 'L';
-                    obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(obs_set.wl(idx_ph), size(obs_set.obs,1), 1);
+                    if sum(idx_ph) > 0
+                        obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(obs_set.wl(idx_ph), size(obs_set.obs,1), 1);
+                    end
                 end
             else
                 obs_set = custom_obs_set;
