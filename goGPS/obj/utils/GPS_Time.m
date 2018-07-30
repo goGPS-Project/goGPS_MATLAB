@@ -935,7 +935,7 @@ classdef GPS_Time < Exportable & handle
                         tmp_time = double(this.unix_time) + this.unix_time_f;
                         rate = round(median(diff(tmp_time)) * 1e3) / 1e3;
                     case 2 % I'm in REF TIME
-                        rate = round(median(diff(this.time_diff / 86400)) * 1e3) / 1e3;
+                        rate = round(median(diff(this.time_diff)) * 1e3) / 1e3;
                 end
             end
         end
@@ -1126,7 +1126,7 @@ classdef GPS_Time < Exportable & handle
             %   [second] = getSecond(this)
             
            [seconds, fraction_of_seconds] = this.getUnixTime();
-            second = seconds - floor(seconds/60)*60 + fraction_of_seconds;
+            second = double(seconds - floor(seconds/60)*60) + fraction_of_seconds;
            
         end
         
@@ -1683,6 +1683,14 @@ classdef GPS_Time < Exportable & handle
             % SYNTAX
             %   this = fromWeekDow(week, dow)
             this = GPS_Time(week, dow, true, 3);
+        end
+        
+        function this = fromGpsTime(gps_time)
+            % construct gpstime from gps time (in seconds)
+            %
+            % SYNTAX
+            %  this = fromGpsTime(gps_time)
+            this = GPS_Time(GPS_Time.GPS_ZERO, gps_time, true, 2);
         end
         
         function this = fromWeekSow(week, sow)
