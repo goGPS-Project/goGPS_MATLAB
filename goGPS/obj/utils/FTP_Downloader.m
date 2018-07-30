@@ -110,10 +110,10 @@ classdef FTP_Downloader < handle
                 try
                     this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                     cd(this.ftp_server);
-                    %warning('off')
-                    %sf = struct(this.ftp_server);
-                    %warning('on')
-                    %sf.jobject.enterLocalPassiveMode();
+                    warning('off')
+                    sf = struct(this.ftp_server);
+                    warning('on')
+                    sf.jobject.enterLocalPassiveMode();
                 catch
                     this.ftp_server = [];
                 end

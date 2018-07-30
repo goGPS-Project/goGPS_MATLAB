@@ -3,6 +3,7 @@
 %
 % DESCRIPTION
 %   class to compute a SEID processing
+%   Satellite specific Epoch differenced Ionospheric Delay model
 %
 % EXAMPLE
 %   seid = Core_SEID();
@@ -76,6 +77,10 @@ classdef Core_SEID < handle
 
     methods (Static) % Public Access
         function getSyntL2(ref, trg)
+            % Compute L2 synthetic observations to be injected into the receiver
+            %
+            % SYNTAX
+            %   Core_SEID.getSyntL2(ref, trg)
             %%
             trg = trg(~trg.isEmpty_mr);
             if ~isempty(trg)
@@ -83,7 +88,7 @@ classdef Core_SEID < handle
                 rec(numel(ref) + (1 : numel(trg))) = trg;
                 obs_type(1:numel(ref)) = 2;
                 obs_type(numel(ref) + (1 : numel(trg))) = 0;
-                [p_time, id_sync] = GNSS_Station.getSyncTimeTR(rec, obs_type);
+                [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
                 log = Logger.getInstance();
                 
                 log.addMarkedMessage('Starting SEID processing')
@@ -232,10 +237,149 @@ classdef Core_SEID < handle
                 
                 log.addMarkedMessage('Syncing times, computing reference time');
             end
-        end
+        end               
         
-        function reduceIono(ref, trg)
-            
+        function remIono(ref, trg)
+            % Compute Ionosphere from reference receivers and remove it from the observations in target
+            %
+            % SYNTAX
+            %   Core_SEID.remIono(ref, trg)
+            %%
+            trg = trg(~trg.isEmpty_mr);
+            if ~isempty(trg)
+                rec(1:numel(ref)) = ref;
+                rec(numel(ref) + (1 : numel(trg))) = trg;
+                obs_type(1:numel(ref)) = 2;
+                obs_type(numel(ref) + (1 : numel(trg))) = 0;
+                [p_time, id_sync] = Receiver_Commons.getSyncTimeTR(rec, obs_type);
+                log = Logger.getInstance();
+                
+                log.addMarkedMessage('Starting SEID processing')
+                log.addMessage(log.indent('Getting Geometry free from reference receivers'));
+                
+                sys_c = 'G';
+                for r = 1 : numel(ref)
+                    % comine code and phase
+                    iono_ref(r) = ref(r).getPrefGeometryFree('L',sys_c);
+                    gf_pr = ref(r).getPrefGeometryFree('C',sys_c);
+                    idx_nan = iono_ref(r).obs == 0;
+
+                    el = iono_ref(r).el / 180 * pi;
+                    az = iono_ref(r).az / 180 * pi;
+                    [iono_ref(r).obs] = ref(r).ionoCodePhaseSmt(zero2nan(gf_pr.obs), gf_pr.sigma.^2, zero2nan(iono_ref(r).obs), iono_ref(r).sigma.^2, iono_ref(r).getAmbIdx(), 0.01, el);
+                    
+                    % Apply mapping function
+                    [lat, lon, ~, h_ortho] = ref(r).getMedianPosGeodetic;
+                    [pierce_point(r).lat, pierce_point(r).lon, iono_ref(r).mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, az, zero2nan(el), 350*1e3);
+                    iono_ref(r).obs(idx_nan) = nan;
+                    %iono_ref(r).obs = ref(r).applyMF(iono_ref(r).obs, iono_ref(r).mf, 1);
+                    %iono_ref(r).obs(idx_nan) = nan;
+
+                    iono_ref(r).obs = ref(r).smoothSatData([], [], zero2nan(iono_ref(r).obs), false(size(iono_ref(r).cycle_slip)), [], 300 / iono_ref(r).time.getRate); % <== supposing no more cycle slips
+                end
+                
+                max_sat = 0;
+                for r = 1 : numel(ref)
+                    max_sat = max(max_sat, max(iono_ref(r).go_id));
+                end
+                                
+                % Extract syncronized C4 L4 diff
+                for t = 1 : numel(trg)
+                    log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
+                    
+                    iono_sync = nan(size(id_sync{t}, 1), max_sat, numel(ref));
+                    for r = 1 : numel(ref)
+                        iono_sync(:, iono_ref(r).go_id, r) = zero2nan(iono_ref(r).obs(id_sync{t}(:,r), :));% - mean(iono_ref(r).obs(id_sync{t}(:,r), :), 1, 'omitnan');
+                    end
+                    
+                    % DIFF: 
+                    iono_diff = diff(nan2zero(iono_sync));
+                    
+                    % ph_gf pr_gf ph_gf_diff have max_sat satellite data stored
+                    % pierce_point(r).lat could have different size receiver by receiver
+                    % indexes convarsion is id = phase_gf(r).go_id
+                    
+                    % % DEBUG: plot
+                    % hold off;
+                    % for r = 1 : numel(ref)
+                    %     % Id of non nan values
+                    %     id_ok = reshape(~isnan(pierce_point(r).lon(:)) & ~isnan(serialize(pr_gf(:, phase_gf(r).go_id, r))), size(pierce_point(r).lat, 1), size(pierce_point(r).lat, 2));
+                    %     tmp = ph_gf_diff(:, phase_gf(r).go_id, r);
+                    %     id_ok(end, :) = false;
+                    %     lat_lim = minMax(pierce_point(r).lat / pi * 180); lat_lim(1) = lat_lim(1) - 0.5; lat_lim(2) = lat_lim(2) + 0.5;
+                    %     lon_lim = minMax(pierce_point(r).lon / pi * 180); lon_lim(1) = lon_lim(1) - 0.5; lon_lim(2) = lon_lim(2) + 0.5;
+                    %     prettyScatter(tmp(id_ok(2 : end, :)), pierce_point(r).lat(id_ok) / pi * 180, pierce_point(r).lon(id_ok) / pi * 180, lat_lim(1), lat_lim(2), lon_lim(1), lon_lim(2), '10m'); hold on; colormap(jet);
+                    % end
+                    
+                    [ph1, id_ph] = trg(t).getObs('L1','G');
+                    [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
+                    ph1_goid = trg(t).go_id(id_ph)';
+                    trg_go_id = unique(ph1_goid);
+                    [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
+                                        
+                    % It is necessary to better sync satellites in view
+                    iono_trg = nan(trg(t).length, max(trg_go_id));
+                    for s = 1 : numel(trg_go_id)
+                        lat_sat = nan(size(id_sync{t},1), numel(ref));
+                        lon_sat = nan(size(id_sync{t},1), numel(ref));
+                        for r = 1 : numel(ref)
+                            id_sat = unique(iono_ref(r).go_id) == trg_go_id(s);
+                            if sum(id_sat) == 1
+                                lat_sat(:, r) = pierce_point(r).lat(id_sync{t}(:,r), id_sat);
+                                lon_sat(:, r) = pierce_point(r).lon(id_sync{t}(:,r), id_sat);
+                            end
+                        end
+                        % DIFF: 
+                        iono_trg(id_sync{t}(2 : end, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat(2 : end, :), lon_sat(2 : end, :), squeeze(iono_diff(:,trg_go_id(s),:)),  lat_pp(id_sync{t}(2 : end,t + numel(ref)), s), lon_pp(id_sync{t}(2 : end,t + numel(ref)), s));
+                        %iono_trg(id_sync{t}(:, t + numel(ref)), trg_go_id(s)) = Core_SEID.satDataInterp(lat_sat, lon_sat, squeeze(iono_sync(:, trg_go_id(s), :)), lat_pp(id_sync{t}(:, t + numel(ref)), s), lon_pp(id_sync{t}(:, t + numel(ref)), s));
+                    end
+                    
+                    % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                    iono_trg(abs(iono_trg) > 0.5) = nan; % remove outliers
+                    inan = isnan(iono_trg);
+                    iono_trg = cumsum(nan2zero(iono_trg));
+                    iono_trg(inan) = nan;
+                    
+                    %iono_trg(:, trg_go_id) = zero2nan(trg(t).applyMF(iono_trg(:, trg_go_id), 1 ./ zero2nan(iono_mf), 1));
+                        
+                    % Interpolate the diff (derivate) of L4, now rebuild L4 by cumsum (integral)
+                    
+                    wl1 = trg(t).state.getConstellationCollector().gps.L_VEC(1);
+                    wl2 = trg(t).state.getConstellationCollector().gps.L_VEC(2);
+                    ph2 = nan(size(ph1));
+                    % L1 * wl1 - L2 * wl2 = gf
+                    % L2 = (L1 * wl1 - gf) / wl2;
+                    ph2 = (ph1 * wl1 - iono_trg(:, trg(t).go_id(id_ph))') / wl2;
+                    
+                    [~, ~, ~, flag] = trg(t).getBestCodeObs();
+                    [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                    pr1_goid = trg(t).go_id(id_pr);
+                    % C2 - C1 = gf
+                    % C2 = C1 + gf
+                    pr2 = pr1 + iono_trg(:, trg(t).go_id(id_pr))';
+                    
+                    % Remove the L2 stored in the object
+                    [ph_old, id_ph] = trg(t).getObs('L2','G');
+                    if ~isempty(id_ph)
+                        log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
+                        trg(t).remObs(id_ph);
+                    end
+                    [pr_old, id_pr] = trg(t).getObs('C2','G');
+                    if ~isempty(id_pr)
+                        log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
+                        trg(t).remObs(id_pr);
+                    end
+                    
+                    % Inject the new synthesised phase
+                    log.addMessage(log.indent(sprintf('Injecting SEID L2 into target receiver %d / %d', t, numel(trg))));
+                    trg(t).injectObs(nan2zero(pr2), wl2, 2, 'C2F', pr1_goid);
+                    trg(t).injectObs(nan2zero(ph2), wl2, 2, 'L2F', ph1_goid);
+                    
+                    trg(t).keepEpochs(id_sync{t}(:,t + numel(ref)));
+                    trg(t).updateRemOutlierMarkCycleSlip();
+                end       
+                log.addMarkedMessage('Syncing times, computing reference time');
+            end            
         end
     end
 

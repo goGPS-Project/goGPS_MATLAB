@@ -308,6 +308,7 @@ classdef Atmosphere < handle
             h_data(:,end) = [];
             this.vmf_coeff.ell_height = h_data;
         end
+        
         function importTidalAtmLoadHarmonics(this)
             % importing Tidal Atm and loading Harmonics
             %
@@ -880,7 +881,7 @@ classdef Atmosphere < handle
             tec = this.interpolateTEC( time, latpp * 180/pi, lonpp * 180/pi);
             
             % apply mapping function
-            stec = tec.* mfpp;
+            stec = tec.* mfpp(:);
             if nargout > 1
                 pp = [latpp , lonpp];
             end
@@ -1930,6 +1931,7 @@ classdef Atmosphere < handle
             % Navigation System pp 185)
             if nargout > 2
                 iono_mf = (1-(k).^2).^(-1/2);
+                iono_mf = reshape(iono_mf, input_size(1), input_size(2));
             end
             
             if nargout > 3

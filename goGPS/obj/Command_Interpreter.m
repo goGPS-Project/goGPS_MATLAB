@@ -68,6 +68,7 @@ classdef Command_Interpreter < handle
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
         CMD_SEID        % SEID processing (synthesise L2)
+        CMD_REMIONO     % SEID processing (reduce L*)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
         CMD_SYNC        % Syncronization among multiple receivers (same rate)
         CMD_OUTDET      % Outlier and cycle-slip detection
@@ -100,7 +101,7 @@ classdef Command_Interpreter < handle
 
         PAR_S_SAVE      % flage for saving
         
-        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
+        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
         % Struct containing cells are not created properly as constant => see init method
@@ -310,6 +311,11 @@ classdef Command_Interpreter < handle
             this.CMD_SEID.rec = 'RT';
             this.CMD_SEID.par = [];
             
+            this.CMD_REMIONO.name = {'REMIONO', 'remove_iono'};
+            this.CMD_REMIONO.descr = ['Remove ionosphere from observations on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
+            this.CMD_REMIONO.rec = 'RT';
+            this.CMD_REMIONO.par = [];
+            
             this.CMD_KEEP.name = {'KEEP'};
             this.CMD_KEEP.descr = ['Keep in the object the data of a certain constallation' new_line 'at a certain rate'];
             this.CMD_KEEP.rec = 'T';
@@ -438,6 +444,8 @@ classdef Command_Interpreter < handle
                         this.runPPP(rec, tok(2:end));
                     case this.CMD_SEID.name                 % SEID
                         this.runSEID(rec, tok(2:end));
+                    case this.CMD_REMIONO.name              % REMIONO
+                        this.runRemIono(rec, tok(2:end));
                     case this.CMD_KEEP.name                 % KEEP
                         this.runKeep(rec.getWork(), tok(2:end));
                     case this.CMD_SYNC.name                 % SYNC
@@ -710,6 +718,28 @@ classdef Command_Interpreter < handle
                     this.log.addWarning('No reference SEID station found -> nothing to do');
                 else
                     tic; Core_SEID.getSyntL2(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
+                end
+            end
+        end
+        
+        function runRemIono(this, rec, tok)
+            % Remove iono model from observations on a target receiver given a set of dual frequency reference stations
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runSEID(rec, tok)
+            [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
+            if ~found_trg
+                this.log.addWarning('No target found => nothing to do');
+            else
+                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                if ~found_ref
+                    this.log.addWarning('No reference SEID station found -> nothing to do');
+                else
+                    tic; Core_SEID.remIono(rec.getWork(id_ref), rec.getWork(id_trg)); toc;
                 end
             end
         end

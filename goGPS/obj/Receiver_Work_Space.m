@@ -3553,16 +3553,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX 
             %   [obs_set]  = this.getSmoothIonoFree(this, obs_type, sys_c)
                       
-            gf = this.getPrefGeometryFree('L',sys_c); %widelane phase
+            gf_ph = this.getPrefGeometryFree('L',sys_c); %widelane phase
             [gf_pr] = this.getPrefGeometryFree('C',sys_c); %widelane phase
-            idx_nan = gf.obs == 0; 
+            idx_nan = gf_ph.obs == 0; 
             
-            el = this.sat.el(:,gf.go_id)/180*pi;
-            gf.obs = this.ionoCodePhaseSmt(zero2nan(gf_pr.obs), gf_pr.sigma.^2, zero2nan(gf.obs), gf.sigma.^2, gf.getAmbIdx(), 0.1, el);
-            gf.obs(idx_nan) = nan;
+            el = gf_ph.el / 180 * pi;
+            gf_ph.obs = this.ionoCodePhaseSmt(zero2nan(gf_pr.obs), gf_pr.sigma.^2, zero2nan(gf_ph.obs), gf_ph.sigma.^2, gf_ph.getAmbIdx(), 0.01, el);
             
+            gf_ph.obs(idx_nan) = nan;
             %gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), gf.cycle_slip);
-            gf.obs = this.smoothSatData([], [], zero2nan(gf.obs), ones(size(gf.cycle_slip))); % <== supposing no more cycle slips
+            gf_ph.obs = this.smoothSatData([], [], zero2nan(gf_ph.obs), false(size(gf_ph.cycle_slip)), [], 300 / gf_ph.time.getRate); % <== supposing no more cycle slips
             
             [obs_set1] = getPrefObsCh_os(this, obs_type, sys_c);
             ifree = this.cc.getSys(sys_c).getIonoFree();
@@ -3570,7 +3570,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             fun1 = @(wl1, wl2) 1;
             band = this.cc.getBand(sys_c, obs_type(2));
             fun2 = @(wl1, wl2) + coeff(band);
-            [obs_set] =  this.getTwoFreqComb(obs_set1, gf, fun1, fun2);
+            [obs_set] =  this.getTwoFreqComb(obs_set1, gf_ph, fun1, fun2);
             obs_set.iono_free = true;
             synt_ph = this.getSyntTwin(obs_set);
             %%% tailored outlier detection
@@ -3585,7 +3585,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             poss_out_idx = abs(sensor_ph) > 0.5;
             poss_out_idx = poss_out_idx & ~(obs_set.cycle_slip);
             obs_set.obs(poss_out_idx) = 0;
-            obs_set.obs_code = repmat(gf.obs_code(1,:),length(obs_set.prn),1);
+            obs_set.obs_code = repmat(gf_ph.obs_code(1,:),length(obs_set.prn),1);
         end
         
         function [obs_set]  = getPrefMelWub(this, system)
@@ -3595,7 +3595,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             is_present = zeros(size(iono_pref,1),1) < 1;
             for i = size(iono_pref,1)
                 % check if there are observation for the selected channel
-                if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 & sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
                     is_present(i) = true;
                 end
             end
@@ -4644,6 +4644,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.updateCoordinates();
             switch iono_model_override
                 case 1 % no model
+                    idx = this.sat.avail_index(:, s);
                     this.sat.err_iono(idx,go_id) = zeros(size(el));
                 case 2 % Klobuchar model
                     if ~isempty(this.sat.cs.iono )
@@ -7129,7 +7130,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [smt, iono_mf_mat] = ionoCodePhaseSmt(pr_mat, var_pr, ph_mat, var_ph, amb_idx_mat, var_smt, el_rad)
+        function [smt, iono_mf] = ionoCodePhaseSmt(pr_mat, var_pr, ph_mat, var_ph, amb_idx_mat, var_smt, el_rad)
             % Smooth code (GF) observations with carrier phase (GF)
             % to produce a smooth estimation for the ionosphere
             % the smootheness is defined by parameter sigma_smt            
@@ -7140,12 +7141,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             n_sat = size(ph_mat,2);
             n_iono = size(pr_mat,1);
             iono_shell_height = 350e3;
-            iono_mf_mat = 1 ./ sqrt(1 - (GPS_SS.ELL_A / (GPS_SS.ELL_A + iono_shell_height) * cos(el_rad)) .^ 2);
+            iono_mf = 1 ./ sqrt(1 - (GPS_SS.ELL_A / (GPS_SS.ELL_A + iono_shell_height) .* cos(el_rad)) .^ 2);
             for s = 1 : n_sat                
                 ph = ph_mat(:,s);
                 pr = pr_mat(:,s);
                 if sum(~isnan(pr)) > 0
-                    iono_mf = iono_mf_mat(:,s);
                     amb_idx = amb_idx_mat(:,s);
                     amb_idx = amb_idx - min(amb_idx) + 1;
                     n_amb = max(amb_idx);
@@ -7165,7 +7165,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     Adiff = [spdiags(diag,[0 1],n_iono-1,n_iono)  sparse(n_iono-1,n_amb)];
                     Adiff = Adiff ./ var_smt;
                     A = [Apr; Aph; Adiff];
-                    y  = [pr ./ var_pr(s); ph ./ var_ph(s); diff(iono_mf) ./ var_smt];
+                    y  = [pr ./ var_pr(s); ph ./ var_ph(s); diff(iono_mf(:,s)) ./ var_smt];
                     x = A \ y;
                     % the system is undifferenced 
                     % ambiguities are estimated but not used
@@ -7174,6 +7174,37 @@ classdef Receiver_Work_Space < Receiver_Commons
                     smt(:,s) = ph;
                 end
             end
+        end
+        
+        function z_iono = applyMF(obs, mf, reg_alpha)
+            % apply a mapping function by LS computation 
+            % (with regularization)
+            %  
+            % SYNTAX: 
+            %   z_iono = applyMF(obs, mf, reg_alpha)
+            
+            if nargin <3 || isempty(reg_alpha)
+                reg_alpha = 1;
+            end
+            
+            z_iono = obs;
+            idx_nan = (obs == 0) | (isnan(obs));
+
+            for s = 1 : size(obs,2)
+                if any(~idx_nan(:,s))
+                    sat_obs = obs(:, s);
+                    mf_sat = mf(:, s);
+                    n_obs = size(mf_sat, 1);
+                    
+                    A =     [sparse(ones(n_obs,1))  spdiags(mf_sat, 0, n_obs, n_obs)];
+                    A_reg = [sparse(n_obs,1) (spdiags(ones(size(mf_sat)), 0, n_obs, n_obs) - spdiags(ones(size(mf_sat)), 1, n_obs, n_obs)) * reg_alpha];
+                    
+                    tmp  = [A(~idx_nan(:,s),:); A_reg] \ sparse([sat_obs(~idx_nan(:,s)); zeros(size(sat_obs))]); tmp(1:3);
+                    
+                    z_iono(:, s) = tmp(2 : end) + tmp(1);
+                end
+            end
+            z_iono(idx_nan) = 0;
         end
         
         function obs_num = obsCode2Num(obs_code)

@@ -359,23 +359,25 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   [lat, lon, h_ellips, h_ortho] = this.getMedianPosGeodetic();
-            xyz = this.getPosXYZ();
-            xyz = median(xyz, 1);
-            if ~isempty(this(1))
-                [lat_d, lon_d, h_ellips] = cart2geod(xyz);
-                if nargout == 4
-                    gs = Global_Configuration.getInstance;
-                    gs.initGeoid();
-                    ondu = getOrthometricCorr(lat_d, lon_d, gs.getRefGeoid());
-                    h_ortho = h_ellips - ondu;
+            for r = 1 : numel(this)
+                xyz = this(r).getPosXYZ();
+                xyz = median(xyz, 1);
+                if ~isempty(this(r))
+                    [lat_d(r), lon_d(r), h_ellips(r)] = cart2geod(xyz);
+                    if nargout == 4
+                        gs = Global_Configuration.getInstance;
+                        gs.initGeoid();
+                        ondu = getOrthometricCorr(lat_d(r), lon_d(r), gs.getRefGeoid());
+                        h_ortho(r) = h_ellips(r) - ondu;
+                    end
+                    lat_d(r) = lat_d(r) / pi * 180;
+                    lon_d(r) = lon_d(r) / pi * 180;
+                else
+                    lat_d(r) = nan;
+                    lon_d(r) = nan;
+                    h_ellips(r) = nan;
+                    h_ortho(r) = nan;
                 end
-                lat_d = lat_d / pi * 180;
-                lon_d = lon_d / pi * 180;
-            else
-                lat_d = [];
-                lon_d = [];
-                h_ellips = [];
-                h_ortho = [];
             end
         end
         
@@ -875,16 +877,16 @@ classdef Receiver_Commons < handle
                 hold on;
             end
             maximizeFig(f);
-            [lat, lon] = cart2geod(this.getMedianPosXYZ());
+            [lat, lon] = this.getMedianPosGeodetic();
             
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.w','MarkerSize', 30);
+            plot(lon(:), lat(:),'.w','MarkerSize', 30);
             hold on;
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 10);
-            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 10, 'LineWidth', 2);
+            plot(lon(:), lat(:),'.k','MarkerSize', 10);
+            plot(lon(:), lat(:),'ko','MarkerSize', 10, 'LineWidth', 2);
             
             if numel(this) == 1
-                lon_lim = minMax(lon/pi*180);
-                lat_lim = minMax(lat/pi*180);
+                lon_lim = minMax(lon);
+                lat_lim = minMax(lat);
                 lon_lim(1) = lon_lim(1) - 0.05;
                 lon_lim(2) = lon_lim(2) + 0.05;
                 lat_lim(1) = lat_lim(1) - 0.05;
@@ -903,7 +905,7 @@ classdef Receiver_Commons < handle
             
             for r = 1 : numel(this)
                 name = upper(this(r).parent.getMarkerName());
-                t = text(lon(r)./pi*180, lat(r)./pi*180, [' ' name ' '], ...
+                t = text(lon(r), lat(r), [' ' name ' '], ...
                     'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
                     'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
                     'Margin', 2, 'LineWidth', 2, ...
@@ -1203,7 +1205,7 @@ classdef Receiver_Commons < handle
                 
                 %yl = (median(median(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan') + ([-6 6]) .* median(std(sztd(time_start:time_stop, :), 'omitnan'), 'omitnan'));
                 
-                plot(t, sztd,'.'); hold on;
+                plot(t, sztd,'.-'); hold on;
                 plot(t, zero2nan(rec(:).getZtd),'k', 'LineWidth', 4);
                 %ylim(yl);
                 %xlim(t(time_start) + [0 win_size-1] ./ 86400);
@@ -1593,7 +1595,7 @@ classdef Receiver_Commons < handle
             % processing time will start with the receiver with the last first epoch
             %          and it will stop  with the receiver with the first last epoch
             
-            first_id_ok = find(~sta_list.isOutEmpty_mr, 1, 'first');
+            first_id_ok = find(~sta_list.isEmpty_mr, 1, 'first');
             p_time_zero = round(sta_list(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
             p_time_start = sta_list(first_id_ok).time.first.getRefTime(p_time_zero);
             p_time_stop = sta_list(first_id_ok).time.last.getRefTime(p_time_zero);
@@ -1644,13 +1646,13 @@ classdef Receiver_Commons < handle
             if nargin < 5
                 cs_mat = [];
             end
-            if nargin < 7
+            if nargin < 7 || isempty(spline_base)
                 spline_base = 10; % 5 min
             end
-            if nargin < 6
+            if nargin < 6 || isempty(method)
                 method = 'spline';
             end
-            if nargin < 8
+            if nargin < 8 || isempty(max_gap)
                 max_gap = 0;
             end
             if strcmp(method,'spline')

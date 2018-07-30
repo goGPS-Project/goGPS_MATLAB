@@ -56,8 +56,10 @@ classdef Observation_Set < handle
         cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip
         time     % GPS_Time 
         go_id    % go_ids of the observations
-        sigma    % teoretical precision of the measurements [m]
-        iono_free%
+        sigma    %  teoretical precision of the measurements [m]
+        
+        mf       % mapping function matrix (if needed)
+        iono_free
     end
     
     methods
@@ -77,7 +79,7 @@ classdef Observation_Set < handle
             this.prn = prn;
             cc = Global_Configuration.getCurrentSettings().getConstellationCollector;
             this.go_id = cc.getIndex(this.obs_code(:,1), this.prn);
-                        
+            this.mf = [];
         end
         
         function merge(this, obs_set)
