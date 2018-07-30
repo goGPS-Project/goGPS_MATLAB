@@ -49,13 +49,14 @@ classdef Least_Squares_Manipulator < handle
         PAR_Z = 3;
         PAR_ISB = 4;
         PAR_AMB = 5;
-        PAR_CLK = 6;
+        PAR_REC_CLK = 6;
         PAR_TROPO = 7;
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
         PAR_PCO_X = 10;
         PAR_PCO_Y = 11;
         PAR_PCO_Z = 12;
+        PAR_SAT_CLK = 13;
     end
     
     properties
@@ -94,6 +95,10 @@ classdef Least_Squares_Manipulator < handle
         
         wl_amb    % widelane ambuiguity
         wl_fixed  % is widelane fixed
+        
+        amb_set_jmp % cell conatinin for each receiver the jmps on all ambiguity
+        
+        network_solution = false;
     end
     
     properties(Access = private)
@@ -102,6 +107,7 @@ classdef Least_Squares_Manipulator < handle
         Nce % cross element between constant and epoch varying paramters
         state % current settings
         rf % reference frame
+        cc % constellation collector
         
         log % logger
     end
@@ -351,7 +357,7 @@ classdef Least_Squares_Manipulator < handle
             % get the list  of observation codes used
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             n_u_obs_code = size(u_obs_code, 1);
-            this.log.addMessage(this.log.indent(sprintf('Setting up PPP system usign %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
+            this.log.addMessage(this.log.indent(sprintf('Setting up SA system usign %s', reshape([u_obs_code repmat(' ',n_u_obs_code,1)]', 1, n_u_obs_code * (size(u_obs_code, 2) + 1)))));
             % if multiple observations types are present inter observations biases need be compouted
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
@@ -502,9 +508,9 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                if ~flag_amb_fix
-                    G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
-                else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
+%                 if ~flag_amb_fix
+%                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
+%                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
                     % setting the first clock of each connected set of arc to 0
                     system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                     clock_const = zeros(1,n_clocks);
@@ -515,7 +521,7 @@ classdef Least_Squares_Manipulator < handle
                         clock_const(system_jmp(i)+1) = 1;
                         G = [G ;[zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const]];
                     end
-                end
+%                 end
                 if tropo
                     G = [G zeros(size(G,1), n_clocks)];
                 end
@@ -530,6 +536,7 @@ classdef Least_Squares_Manipulator < handle
             this.A_idx = A_idx;
             this.variance = variance;
             this.y = y;
+            this.receiver_id = ones(size(y));
             this.epoch = obs;
             this.sat = sat;
             if dynamic
@@ -537,7 +544,7 @@ classdef Least_Squares_Manipulator < handle
             else
                 this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             end
-            this.param_class = [this.PAR_X*ones(~rec.isFixed()) , this.PAR_Y*ones(~rec.isFixed()), this.PAR_Z*ones(~rec.isFixed()), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
+            this.param_class = [this.PAR_X*ones(~rec.isFixed()) , this.PAR_Y*ones(~rec.isFixed()), this.PAR_Z*ones(~rec.isFixed()), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');
@@ -548,7 +555,7 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
-        function setUpSDNetworkAdj(this, rec_list, datum_definition, rate, obs_type, sys_c)
+        function setUpNetworkAdjOLDTEST(this, rec_list, datum_definition, rate, obs_type, sys_c)
             % set up a network adjustement for the receiver in the list using sigle difference ( rec - rec)  observations
             % SYNTAX: ls_manipulator = Network.setUpNetworkAdj(rec_list)
             % INPUT:
@@ -580,7 +587,7 @@ classdef Least_Squares_Manipulator < handle
             for i = 1 : length(rec_list)
                 % chek if sampling is compatible
                 rate_ratio = max(rate, rec_list(i).getRate()) / min(rate, rec_list(i).getRate());
-                st_time_ratio = rec_list(i).time.first.getSecond() / rec_list(i).getRate();
+                st_time_ratio = rec_list(i).getTime().first.getSecond() / rec_list(i).getRate();
                 n_skip_epochs = [];
                 if abs( rate_ratio - round(rate_ratio)) > 10e-9
                     this.log.addWarning(sprintf('Receiver %s not compatible with selected rate, skipping',rec_list(i).marker_name));
@@ -660,6 +667,287 @@ classdef Least_Squares_Manipulator < handle
             
         end
         
+        function setUpNetworkAdj(this, rec_list)
+            % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
+            n_rec = length(rec_list);
+            obs_set_lst  = Observation_Set.empty(n_rec,0);
+            this.cc = rec_list(1).cc;
+            for i = 1 : n_rec
+                obs_set_lst(i) = Observation_Set();
+                 if rec_list(i).work.isMultiFreq() && ~rec_list(i).work.state.isIonoExtModel %% case multi frequency
+                    for sys_c = rec_list(i).work.cc.sys_c
+                            if this.state.isIonoFree 
+                                obs_set_lst(i).merge(rec_list(i).work.getPrefIonoFree('L', sys_c));
+                            else
+                                obs_set_lst(i).merge(rec_list(i).work.getSmoothIonoFreeAvg('L', sys_c));
+                                obs_set_lst(i).iono_free = true;
+                                obs_set_lst(i).sigma = obs_set_lst(i).sigma * 1.5;
+                            end
+                    end
+                else
+                    for sys_c = rec_list(i).work.cc.sys_c
+                        f = rec_list(i).work.getFreqs(sys_c);
+                        obs_set_lst(i).merge(rec_list(i).work.getPrefObsSetCh(['L' num2str(f(1))], sys_c));
+                    end
+                    idx_ph = obs_set_lst(i).obs_code(:, 2) == 'L';
+                    obs_set_lst(i).obs(:, idx_ph) = obs_set_lst(i).obs(:, idx_ph) .* repmat(obs_set_lst(i).wl(idx_ph)', size(obs_set_lst(i).obs,1),1);
+                 end
+               obs_set_lst(i).sanitizeEmpty(); 
+            end
+            [commom_gps_time, idxes] = this.intersectObsSet(obs_set_lst);
+            for i = 1 : n_rec
+                idx = idxes(idxes(:,i)~=0,i);
+                obs_set_lst(i).keepEpochs(idx);
+                idxes(idxes(:,i)~=0,i) = 1 : length(idx);
+            end
+            A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
+            for i = 1 : n_rec
+                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
+                A = [A ; A_rec];
+                Aidx = [Aidx; Aidx_rec];
+                r2c = find(idxes(:,i));
+                ep= [ep; r2c(ep_rec)];
+                sat = [sat; sat_rec];
+                p_flag = [p_flag_rec];
+                p_class = p_class_rec;
+                y = [y; y_rec];
+                variance = [variance; variance_rec];
+                r = [r; ones(size(y_rec))*i];
+                this.amb_set_jmp{i} = r2c(amb_set_jmp);
+            end
+
+            p_flag(p_flag == 0) = -1;
+            
+           
+            this.A_idx = Aidx;
+            n_epochs = zeros(n_rec,1);
+            for i = 1:n_rec
+                this.n_epochs(i) = length(unique(this.A_idx(r == i,p_class == this.PAR_REC_CLK)));
+            end
+            this.A_ep = A;
+            
+            this.variance = variance;
+            this.y = y;
+            this.epoch = ep;
+            time = GPS_Time.fromGpsTime(commom_gps_time);
+            this.true_epoch = round(time.getNominalTime().getRefTime()) + 1;
+            this.sat = sat;
+            this.param_flag = p_flag;
+            this.param_class = p_class;
+            this.receiver_id = r;
+            
+            this.network_solution = true; 
+            
+        end
+        
+         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
+             % get reference observations and satellite positions
+             
+             tropo = rec.state.flag_tropo;
+             tropo_g = rec.state.flag_tropo_gradient;
+             dynamic = rec.state.rec_dyn_mode;
+             global_sol = false; %this.state.global_solution;
+             amb_flag = true;
+             phase_present= true;
+             
+            [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
+            xs_loc = zero2nan(xs_loc);
+            diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
+            
+            
+            amb_idx = obs_set.getAmbIdx();
+            n_amb = max(max(amb_idx));
+            idx = [];
+            
+            id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
+            
+            % set up requested number of parametrs
+            n_epochs = size(obs_set.obs, 1);
+            n_stream = size(diff_obs, 2); % number of satellites
+            n_clocks_rec = n_epochs; % number of clock errors
+            n_tropo = n_clocks_rec; % number of epoch for ZTD estimation
+            ep_p_idx = 1 : n_clocks_rec; % indexes of epochs starting from 1 to n_epochs
+            
+            n_coo_par =  ~rec.isFixed() * 3; % number of coordinates
+            
+            if dynamic
+                n_coo = n_coo_par * n_epochs;
+            else
+                if isempty(pos_idx_vec)
+                    n_coo = n_coo_par;
+                else
+                    n_pos = length(unique(pos_idx_vec));
+                    n_coo =  n_pos*3;
+                end
+            end
+            
+            % get the list  of observation codes used
+            u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
+            n_u_obs_code = size(u_obs_code, 1);
+            % if multiple observations types are present inter observations biases need be compouted
+            iob_idx = zeros(size(obs_set.wl));
+            for c = 1 : size(u_obs_code, 1)
+                idx_b = strLineMatch(obs_set.obs_code, u_obs_code(c, :));
+                iob_idx(idx_b) = c - 1;
+            end
+            iob_p_idx = iob_idx + n_coo; % progressive index start for iob
+            n_iob = size(u_obs_code, 1) - 1;
+            iob_flag = double(n_iob > 0);
+            
+            % separte antenna phase centers
+            apc_flag = rec.state.isSeparateApc();
+            n_apc = 3 * n_iob * apc_flag;
+            apc_p_idx =  zeros(length(obs_set.wl),3); 
+            u_sys_c = unique(obs_set.obs_code(:,1));
+            idx_gps = u_sys_c == 'G';
+            if sum(idx_gps) > 0 % put gps in first position if presetn
+                u_sys_c(idx_gps) = [];
+                u_sys_c = ['G'; u_sys_c(:)];
+            end
+            for i = 1 : length(u_sys_c)
+                sys_idx = obs_set.obs_code(:,1) == u_sys_c(i);
+                apc_p_idx(sys_idx,:) = n_coo + n_iob + repmat(max((i-2),0)*3 + (1:3), sum(sys_idx),1);
+            end
+            % total number of observations
+            n_obs = sum(sum(diff_obs ~= 0));
+            
+           
+            if global_sol
+                n_sat_clk_par = 1;
+            else
+                n_sat_clk_par = 0;
+            end
+                
+            % Building Design matrix
+            n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + 2 * double(tropo_g) + n_sat_clk_par; % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
+            obs = zeros(n_obs, 1);
+            sat = zeros(n_obs, 1);
+            
+            A_idx = zeros(n_obs, n_par);
+            if ~rec.isFixed()
+                if isempty(pos_idx_vec)
+                    A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
+                end
+            end
+            y = zeros(n_obs, 1);
+            variance = zeros(n_obs, 1);
+            obs_count = 1;
+            this.sat_go_id = obs_set.go_id;
+            
+            % Getting mapping faction values
+            if tropo || tropo_g
+                [~, mfw] = rec.getSlantMF(id_sync_out);
+                mfw(mfw  > 60 ) = nan;
+                %mfw = mfw(id_sync_out,:); % getting only the desampled values
+            end
+            for s = 1 : n_stream
+                id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
+                
+                obs_stream = diff_obs(id_ok_stream, s);
+                % snr_stream = obs_set.snr(id_ok_stream, s); % SNR is not currently used
+                if tropo || tropo_g
+                    el_stream = obs_set.el(id_ok_stream, s) / 180 * pi;
+                    az_stream = obs_set.az(id_ok_stream, s) / 180 * pi;
+                    mfw_stream = mfw(id_ok_stream, obs_set.go_id(s)); % A simpler value could be 1./sin(el_stream);
+                end
+                xs_loc_stream = permute(xs_loc(id_ok_stream, s, :), [1, 3, 2]);
+                los_stream = rowNormalize(xs_loc_stream);
+                
+                n_obs_stream = length(obs_stream);
+                lines_stream = obs_count + (0:(n_obs_stream - 1));
+                
+                %--- Observation related vectors------------
+                obs(lines_stream) = ep_p_idx(id_ok_stream);
+                sat(lines_stream) = s;
+                y(lines_stream) = obs_stream;
+                variance(lines_stream) =  obs_set.sigma(s)^2;
+                % ----------- FILL IMAGE MATRIX ------------
+                % ----------- coordinates ------------------
+                if ~rec.isFixed()
+                    A(lines_stream, 1:3) = - los_stream;
+                end
+                prog_p_col = 0;
+                if dynamic & ~rec.isFixed()
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = n_epochs + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = 2*n_epochs + ep_p_idx(id_ok_stream);
+                elseif ~isempty(pos_idx_vec)
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = pos_idx_vec(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = n_pos  + pos_idx_vec(id_ok_stream);
+                    prog_p_col = prog_p_col +1;
+                    A_idx(lines_stream, prog_p_col) = 2*n_pos + pos_idx_vec(id_ok_stream);
+                elseif  ~rec.isFixed()
+                    prog_p_col = prog_p_col + 3 ;
+                end
+                % ----------- Inster observation bias ------------------
+                if n_iob > 0
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = iob_idx(s) > 0;
+                    A_idx(lines_stream, prog_p_col) = max(n_coo+1, iob_p_idx(s));
+                end
+                % ----------- Separate antenna phase centers ------------------
+                if n_apc > 0
+                    if obs_set.obs_code(s,1) ~= u_sys_c(1)
+                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;  
+                    end
+                    A_idx(lines_stream,prog_p_col + ( 1 : 3)) = repmat(apc_p_idx(s,:),length(lines_stream),1);
+                    prog_p_col = prog_p_col +3;
+                end
+                % ----------- Abiguity ------------------
+                if phase_present
+                     prog_p_col = prog_p_col + 1;
+                     A(lines_stream, prog_p_col) = obs_set.wl(s);
+                     A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
+                end
+                % ----------- Clock ------------------
+                prog_p_col = prog_p_col + 1;
+                A(lines_stream, prog_p_col) = 1;
+                A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                % ----------- ZTD ------------------
+                if tropo
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = mfw_stream;
+                    A_idx(lines_stream, prog_p_col) = n_coo + n_clocks_rec + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                end
+                % ----------- ZTD gradients ------------------
+                if tropo_g
+                    %cotan_term = cot(el_stream) .* mfw_stream;
+                    cotan_term = 1 ./ ( sin(el_stream).*tan(el_stream) + 0.0032);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = cos(az_stream) .* cotan_term; % noth gradient
+                    A_idx(lines_stream, prog_p_col) = n_coo + 2 * n_clocks_rec + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = sin(az_stream) .* cotan_term; % east gradient
+                    A_idx(lines_stream, prog_p_col) = n_coo + 3 * n_clocks_rec + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                end
+                obs_count = obs_count + n_obs_stream;
+            end
+            % ---- Suppress weighting until solution is more stable/tested
+            %w(:) = 1;%0.005;%this.state.std_phase;
+            %---------------------
+            ep = obs;
+            sat = sat;
+            if dynamic
+                p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g) , ones(global_sol)];
+            else
+                p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g), ones(global_sol) ];
+            end
+            p_class = [this.PAR_X*ones(~rec.isFixed()) , this.PAR_Y*ones(~rec.isFixed()), this.PAR_Z*ones(~rec.isFixed()), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag),...
+                this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), ...
+                this.PAR_TROPO_E*ones(tropo_g), this.PAR_SAT_CLK*ones(global_sol)];
+           % find the ambiguity set jmp
+           amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2))+1;
+  
+            
+            
+        end
+        
         function setUpBaselineAdj(this, receivers, master)
             % set up baseline adjustment
             % SYNTAX: ls_manipulator = Network.setUpBaselineAdj(receivers, master)
@@ -719,11 +1007,25 @@ classdef Least_Squares_Manipulator < handle
             res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);
             n_sat = max(this.sat_go_id);
-            res = zeros(n_epochs, n_sat);
-            for i = 1:length(this.sat_go_id)
-                idx = this.sat == i;
-                ep = this.epoch(idx);
-                res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
+            n_rec = max(this.receiver_id);
+            if ~this.network_solution;
+                res = zeros(n_epochs, n_sat);
+                for i = 1:length(this.sat_go_id)
+                    idx = this.sat == i;
+                    ep = this.epoch(idx);
+                    res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
+                end
+            else
+                 res = zeros(n_epochs, n_sat, n_rec);
+                 for j = 1 : n_rec
+                     for i = 1:length(this.sat_go_id)
+                         idx = this.sat == i & this.receiver_id == j;
+                         ep = this.epoch(idx);
+                         res(this.true_epoch(ep), this.sat_go_id(i), j) = res_l(idx);
+                     end
+                 end
+                 av_res = sum(res,3) ./  sum(res ~= 0,3);
+                 res = nan2zero(zero2nan(res) - repmat(av_res,1,1,n_rec));
             end
         end
         %-----------------------------------------------
@@ -800,109 +1102,270 @@ classdef Least_Squares_Manipulator < handle
             if isempty(this.N_ep)
                 this.Astack2Nstack();
             end
-            idx_constant_l = this.param_flag == 0 | this.param_flag == -1;
-            idx_constant = find(idx_constant_l);
-            idx_non_constant = find(~idx_constant_l);
-            a_idx_const =unique(this.A_idx(:, idx_constant_l));
-            a_idx_const(a_idx_const == 0) = [];
-            a_idx_ep_wise = unique(this.A_idx(:, ~idx_constant_l));
-            a_idx_ep_wise(a_idx_ep_wise == 0) = [];
-            n_constant = length(a_idx_const);
-            n_class = size(this.A_ep, 2);
-            n_ep_wise = max(a_idx_ep_wise) - n_constant;
-            if isempty(n_ep_wise)
-                n_ep_wise = 0;
-            end
-            n_epochs = this.n_epochs;
-            n_obs = size(this.A_ep, 1);
-            n_ep_class = n_ep_wise / n_epochs;
-            Ncc = zeros(n_constant, n_constant);
-            Nce = zeros(n_ep_wise, n_constant);
-            n_class_ep_wise = length(idx_non_constant);
-            Ndiags = zeros(n_class_ep_wise, n_class_ep_wise, n_epochs); %permute(this.N_ep(~idx_constant_l,~idx_constant_l,:),[3,1,2]);
-            B = zeros(n_constant+n_ep_wise, 1);
-            if isempty(this.rw)
-                this.rw = ones(size(this.variance));
-            end
-            %%% all costant parameters are put before in the normal matrix find the mapping between A_idx and idx in the Normal matrix
-            N2A_idx = [a_idx_const; a_idx_ep_wise];
-            A2N_idx = zeros(size(N2A_idx));
-            A2N_idx(N2A_idx) = 1:(n_constant+n_ep_wise);
-            
-            for i = 1 : n_obs
-                p_idx = this.A_idx(i, :);
-                p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
-                N_ep = this.N_ep(:, :, i);
-                A_ep = this.A_ep(i, :);
-                variance = this.variance(i);
-                rw = this.rw(i);
-                y = this.y(i);
-                e = this.epoch(i);
-                p_c_idx = p_idx(idx_constant_l);
-                p_e_idx = p_idx(~idx_constant_l);
-                p_e_idx(p_e_idx <= 0) = 1;  % does not matter since terms are zeros
-                p_c_idx = A2N_idx(p_c_idx);
-                p_e_idx = A2N_idx(p_e_idx)-n_constant;
-                p_idx =A2N_idx(p_idx);
+             is_network = this.network_solution;
+            u_r = unique(this.receiver_id);
+            n_rec = length(u_r);
+            idx_rec_common_l = this.param_flag == 2;
+            N = [];
+            B = [];
+            A2N_idx_tot = []; 
+            for k = 1 : length(u_r)
+                idx_r_l = this.receiver_id == u_r(k);
+                idx_r = find(idx_r_l);
+                A_rec = this.A_idx(idx_r_l, ~idx_rec_common_l);
+                idx_constant_l = this.param_flag(~idx_rec_common_l) == 0 | this.param_flag(~idx_rec_common_l) == -1;
+                idx_constant = find(idx_constant_l);
+                idx_non_constant = find(~idx_constant_l);
+                idx_ep_wise = find(this.param_flag == 1);
                 
-                % fill Ncc
-                Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + N_ep(idx_constant, idx_constant);
-                % fill Nce
-                Nce(p_e_idx, p_c_idx) = Nce(p_e_idx, p_c_idx) + N_ep(idx_non_constant, idx_constant);
-                %fill Ndiags
-                
-                Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
-                %fill B
-                B(p_idx) = B(p_idx) + A_ep' * (1 ./ variance) * rw * y;
-            end
-            Nee = [];
-            class_ep_wise = this.param_class(idx_non_constant);
-            
-            rate = median(diff(this.true_epoch));
-            diff_reg = 1./double(diff(this.true_epoch));
-            reg_diag0 = [diff_reg; 0 ] + [0; diff_reg];
-            reg_diag1 = -diff_reg ;
-            Ndiags = permute(Ndiags, [3, 1, 2]);
-            tik_reg = ones(n_epochs,1)/n_epochs; %%% TIkhonov on ZTD and gradients
-            for i = 1:n_ep_class
-                N_col = [];
-                for j = 1:n_ep_class
-                    diag0 = Ndiags(:, i, j);
-                    N_el = sparse(n_epochs, n_epochs);
-                    if j == i
-                        cur_class = class_ep_wise(i);
-                        % Time Regularization
-                        if ~isempty(this.time_regularization)
-                            idx_c = this.time_regularization(:, 1) == cur_class;
-                            w = 1 ./ this.time_regularization(idx_c, 2) ;
-                            if sum(idx_c)
-                                diag0 = diag0 + reg_diag0 * w;
-                                diag1 = reg_diag1 * w;
-                                N_el = spdiags([0; diag1], 1, N_el);
-                                N_el = spdiags(diag1, -1, N_el);
-                            end
-                        end
-                        % Mean zero regularization - same as tikhonov
-                        if ~isempty(this.mean_regularization)
-                            idx_t = this.mean_regularization(:, 1) == cur_class;
-                            if sum(idx_t)
-                                w = 1 ./ this.mean_regularization(idx_t, 2) ;
-                                diag0 = diag0 + tik_reg * w;
-                            end
-                        end
-                        
-                    end
-                    N_el = spdiags(diag0, 0, N_el);
-                    N_col = [N_col; N_el];
+                a_idx_const =unique(A_rec(:, idx_constant_l));
+                a_idx_const(a_idx_const == 0) = [];
+                a_idx_ep_wise = unique(A_rec(:, idx_ep_wise));
+                a_idx_ep_wise(a_idx_ep_wise == 0) = [];
+                n_constant = length(a_idx_const);
+                n_class = size(this.A_ep, 2);
+                n_ep_wise = length(a_idx_ep_wise);
+                if isempty(n_ep_wise)
+                    n_ep_wise = 0;
                 end
-                Nee = [Nee, N_col];
+  
+                n_epochs = this.n_epochs(k);
+                if  is_network 
+                    u_ep = unique(this.epoch(this.receiver_id == k));
+                    r2p_ep = zeros(u_ep(end),1);
+                    r2p_ep(u_ep) = 1: length(u_ep);
+                else
+                    r2p_ep = 1:n_epochs;
+                    u_ep = r2p_ep;
+                end
+                n_obs = size(this.A_ep, 1);
+                n_ep_class = n_ep_wise / n_epochs;
+                Ncc = zeros(n_constant, n_constant);
+                Nce = zeros(n_ep_wise , n_constant);
+                n_class_ep_wise = length(idx_non_constant);
+                Ndiags = zeros(n_class_ep_wise, n_class_ep_wise, n_epochs); %permute(this.N_ep(~idx_constant_l,~idx_constant_l,:),[3,1,2]);
+                B_rec = zeros(n_constant+n_ep_wise, 1);
+                if isempty(this.rw)
+                    this.rw = ones(size(this.variance));
+                end
+                %%% all costant parameters are put before in the normal matrix find the mapping between A_idx and idx in the Normal matrix
+                N2A_idx = [a_idx_const; a_idx_ep_wise];
+                A2N_idx = zeros(size(N2A_idx));
+                A2N_idx(N2A_idx) = 1:(n_constant + n_ep_wise);
+                
+                for i = idx_r'
+                    p_idx = this.A_idx(i, ~idx_rec_common_l);
+                    p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
+                    N_ep = this.N_ep(~idx_rec_common_l,~idx_rec_common_l, i);
+                    A_ep = this.A_ep(i, ~idx_rec_common_l);
+                    variance = this.variance(i);
+                    rw = this.rw(i);
+                    y = this.y(i);
+                    e = r2p_ep(this.epoch(i));
+                    p_c_idx = p_idx(idx_constant_l);
+                    p_e_idx = p_idx(~idx_constant_l);
+                    p_e_idx(p_e_idx <= 0) = 1;  % does not matter since terms are zeros
+                    p_c_idx = A2N_idx(p_c_idx);
+                    p_e_idx = A2N_idx(p_e_idx) - n_constant;
+                    p_idx =A2N_idx(p_idx);
+                    
+                    % fill Ncc
+                    Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + N_ep(idx_constant, idx_constant);
+                    % fill Nce
+                    Nce(p_e_idx, p_c_idx) = Nce(p_e_idx, p_c_idx) + N_ep(idx_non_constant, idx_constant);
+                    %fill Ndiags
+                    
+                    Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
+                    %fill B
+                    B_rec(p_idx) = B_rec(p_idx) + A_ep' * (1 ./ variance) * rw * y;
+                end
+                Nee = [];
+                class_ep_wise = this.param_class(idx_non_constant);
+                
+                diff_reg = 1./double(diff(this.true_epoch(u_ep)));
+                reg_diag0 = [diff_reg; 0 ] + [0; diff_reg];
+                reg_diag1 = -diff_reg ;
+                Ndiags = permute(Ndiags, [3, 1, 2]);
+                tik_reg = ones(n_epochs,1)/n_epochs; %%% TIkhonov on ZTD and gradients
+                % build the epoch wise parameters
+                for i = 1:n_ep_class
+                    N_col = [];
+                    for j = 1:n_ep_class
+                        diag0 = Ndiags(:, i, j);
+                        N_el = sparse(n_epochs, n_epochs);
+                        if j == i
+                            cur_class = class_ep_wise(i);
+                            % Time Regularization
+                            if ~isempty(this.time_regularization)
+                                idx_c = this.time_regularization(:, 1) == cur_class;
+                                w = 1 ./ this.time_regularization(idx_c, 2) ;
+                                if sum(idx_c)
+                                    diag0 = diag0 + reg_diag0 * w;
+                                    diag1 = reg_diag1 * w;
+                                    N_el = spdiags([0; diag1], 1, N_el);
+                                    N_el = spdiags(diag1, -1, N_el);
+                                end
+                            end
+                            % Mean zero regularization - same as tikhonov
+                            if ~isempty(this.mean_regularization)
+                                idx_t = this.mean_regularization(:, 1) == cur_class;
+                                if sum(idx_t)
+                                    w = 1 ./ this.mean_regularization(idx_t, 2) ;
+                                    diag0 = diag0 + tik_reg * w;
+                                end
+                            end
+                            
+                        end
+                        N_el = spdiags(diag0, 0, N_el);
+                        N_col = [N_col; N_el];
+                    end
+                    Nee = [Nee, N_col];
+                end
+                N_rec = [[Ncc, Nce']; [Nce, Nee]];
+                d_N = size(N,1);
+                d_N_rec = size(N_rec,1);
+                N = [ [N sparse(d_N, d_N_rec)]; [sparse(d_N_rec, d_N)  N_rec]];
+                B = [B; B_rec];
+                if k > 1
+                    A2N_idx = A2N_idx +max(A2N_idx_tot);
+                end
+                A2N_idx_tot = [A2N_idx_tot; A2N_idx]; 
             end
-            N = [[Ncc, Nce']; [Nce, Nee]];
-            if ~ isempty(this.G)
-                G = this.G(:,N2A_idx);
+            
+           
+            
+            if is_network
+                n_obs = size(this.A_idx,1);
+                common_idx = zeros(n_obs,1);
+                % create the part of the normal that considers common parameters
+                
+                
+                 a_idx_const =unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
+                    a_idx_const(a_idx_const == 0) = [];
+                    a_idx_ep_wise = unique(this.A_idx(this.receiver_id == 1, idx_ep_wise));
+                    a_idx_ep_wise(a_idx_ep_wise == 0) = [];
+                    
+                    N2A_idx = [ a_idx_const; a_idx_ep_wise];
+                %mix the reciver indexes
+                for j = 2 : n_rec
+                    rec_idx = this.receiver_id == j;
+                    % update the indexes
+                    
+                    this.A_idx(rec_idx,:) = this.A_idx(this.receiver_id == j,:) + max(max(this.A_idx(this.receiver_id == j-1,:)));
+                    
+                    a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
+                    a_idx_const(a_idx_const == 0) = [];
+                    a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise));
+                    a_idx_ep_wise(a_idx_ep_wise == 0) = [];
+                    
+                    N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
+                end
+                % get the oidx for the common parameters
+                u_sat = unique(this.sat); % <- very lazy, once it work it has to be oprimized
+                p_idx = 0
+                for i = 1 :length(u_sat)
+                    sat_idx = u_sat(i) == this.sat;
+                    ep_sat = this.epoch(sat_idx);
+                    u_ep = unique(ep_sat);
+                    [~, idx_ep] = ismember(ep_sat,u_ep);
+                    common_idx(sat_idx) = idx_ep + p_idx;
+                    p_idx = p_idx + max(idx_ep);
+                end
+                
+                
+                
+                
+                n_common = max(common_idx);
+                B_comm = zeros(n_common,1);
+                diag_comm = zeros(n_common,1);
+                n_s_r_p = size(this.A_idx,2); % number single receiver parameters
+                N_stack_comm = zeros(n_common,n_rec* n_s_r_p);
+                N_stack_idx= zeros(n_common,n_rec* n_s_r_p);
+                
+                for i = 1: n_obs
+                    idx_common = common_idx(i);
+                    variance = this.variance(i);
+                    rw = this.rw(i);
+                    y = this.y(i);
+                    r = this.receiver_id(i);
+                    B_comm(idx_common) = B_comm(idx_common) + rw * (1 ./ variance) * y; % the entrace in the idx for the common parameters are all one
+                    N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p))= N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
+                    diag_comm(idx_common) = diag_comm(idx_common) + rw * (1 ./ variance);
+                    N_stack_idx(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p))= this.A_idx(i,:);
+                end
+                n_par = max(max(this.A_idx));
+                line_idx = repmat([1:n_common]',1,size(N_stack_comm,2));
+                idx_full = N_stack_idx~=0;
+                Nreccom = sparse(line_idx(idx_full), N_stack_idx(idx_full), N_stack_comm(idx_full), n_common,n_par);
+                % add the rank deficency considtion
+%                 1) sum of the satellites clock == 0
+%                 Nreccom = [Nreccom ones(n_common,1)];
+%                 B = [B; 0];
+%                 N = [[N ; zeros(1,n_par)] zeros(n_par+1,1)];
+                i_diag_comm = 1./diag_comm;
+                i_diag_comm = spdiags(i_diag_comm,0, n_common,n_common);
+                rNcomm = Nreccom'*i_diag_comm;
+                
+                N = N - rNcomm*Nreccom;
+                
+                B = B - rNcomm*B_comm;
+                
+                
+                
+                
+                % resolve the rank deficency
+                % ALL paramters has a rank deficency beacause the entrance of the images  matrix are very similar and we also estimated the clok of the satellite
+                % 2)remove coordinates and tropo paramters of the first receiver
+                % we can do theta beacuase tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
+                idx_rec_x = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_X));
+                idx_rec_y = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Y));
+                idx_rec_z = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Z));
+                idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
+                idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
+                idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
+                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_t; idx_rec_tn; idx_rec_te];
+                % 3 ) remove one clock per epoch for the minim receiver available
+                clk_idx = this.param_class == this.PAR_REC_CLK;
+                for i = 1 : n_epochs
+                    idx_rec_clk = this.A_idx(this.epoch == i,clk_idx); % the minimum index is the one of the first receiver if it has a clock at the epoch either wise is the second then thrid etc...
+                    idx_rm = [idx_rm ; idx_rec_clk(1)];
+                end
+                
+                idx_amb_rm = []
+                % 4)remove one ambiguity per satellite form the firs receiver 
+                for i = 1 :length(u_sat)
+                    idx_amb_rec = this.A_idx(this.receiver_id == 1 & this.sat == u_sat(i),this.param_class == this.PAR_AMB);
+                    idx_amb_rec = idx_amb_rec(1);
+                    idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                end
+                % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
+                for i = 1 : n_rec
+                    for jmp = [1 this.amb_set_jmp{i}']
+                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch == jmp,this.param_class == this.PAR_AMB);
+                        g = 1;
+                        while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+                            g = g +1;
+                        end
+                        idx_amb_rec = idx_amb_rec(g);
+                        idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                    end
+                end
+                idx_rm = [idx_rm ; idx_amb_rm];
+                N(idx_rm, :) = [];
+                N(:, idx_rm) = [];
+                B(idx_rm) = [];
+
+            end
+            if ~isempty(this.G)
+                if ~is_network
+                    G = this.G(:,N2A_idx);
+                else
+                    G = this.G;
+                end
                 N =  [[N, G']; [G, zeros(size(G,1))]];
                 B = [B; this.D];
             end
+            
             if nargout > 3
                 %inverse by partitioning, taken from:
                 % Mikhail, Edward M., and Friedrich E. Ackermann. "Observations and least squares." (1976). pp 447
@@ -923,110 +1386,153 @@ classdef Least_Squares_Manipulator < handle
                 
             else
                 x = N \ B;
+                if is_network
+                    x_tot = zeros(n_par,1);
+                    idx_est = true(n_par,1);
+                    idx_est(idx_rm) = false;
+                    x_tot(idx_est) = x;
+                    x = x_tot;
+                end
                 %[x, flag] =  pcg(N,B,1e-9, 10000);
             end
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
-                idx_p = A2N_idx(this.A_idx(:, c));
+                idx_p = A2N_idx_tot(this.A_idx(:, c));
                 x_class(idx_p) = this.param_class(c);
             end
             if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0)
-                amb = x(x_class == 5,1);
-                amb_wl_fixed = false(size(amb));
-                amb_n1 = nan(size(amb));
-                amb_wl = nan(size(amb));
-                n_ep_wl = zeros(size(amb));
-                n_amb = max(max(this.amb_idx));
-                n_ep = size(this.wl_amb,1);
-                n_coo = max(this.A_idx(:,3));
-                for i = 1 : n_amb
-                    sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
-                    idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
-                    amb_wl(i) = this.wl_amb(idx(1));
-                    amb_wl_fixed(i)=  this.wl_fixed(idx(1));
-                    n_ep_wl(i) = length(idx);
-                    amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
+                if ~is_network
+                    amb = x(x_class == 5,1);
+                    amb_wl_fixed = false(size(amb));
+                    amb_n1 = nan(size(amb));
+                    amb_wl = nan(size(amb));
+                    n_ep_wl = zeros(size(amb));
+                    n_amb = max(max(this.amb_idx));
+                    n_ep = size(this.wl_amb,1);
+                    n_coo = max(this.A_idx(:,3));
+                    for i = 1 : n_amb
+                        sat = this.sat_go_id(this.sat(this.A_idx(:,4)== i+n_coo));
+                        idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,4)== i+n_coo));
+                        amb_wl(i) = this.wl_amb(idx(1));
+                        amb_wl_fixed(i)=  this.wl_fixed(idx(1));
+                        n_ep_wl(i) = length(idx);
+                        amb_n1(i) = amb(i)/0.1070; %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
+                        
+                    end
+                    
+                    weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
+                    weight = weight / sum(weight);
+                    [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
+                    
+                    amb_n1_fix = round(amb_n1 - wl_frac);
+                    frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac;
+                    
+                    idx_amb = find(x_class == 5);
+                    % get thc cxx of the ambiguities
+                    n_amb  = length(idx_amb);
+                    b_eye = zeros(length(B),n_amb);
+                    idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+                    b_eye(idx) = 1;
+                    b_eye = sparse(b_eye);
+                    Cxx_amb = N\b_eye;
+                    Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
+                    
+                    idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
+                    
+                    idxFix2idxFlo = 1 : length(x);
+                    idxFlo2idxFix = nan(length(x),1);
+                    A_fixed = false(size(this.A_idx(:,4)));
+                    for i = 1 : length(idx_fix)
+                        Ni = N(:,idx_amb(i));
+                        if idx_fix(i)
+                            b_if_fix = 0.1070 * (amb_n1_fix(i));
+                            B = B - Ni* ( b_if_fix);
+                            A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
+                        end
+                    end
+                    
+                    
+                    B(idx_amb(idx_fix)) = [];
+                    B(end) = 0;
+                    N(idx_amb(idx_fix),:) = [];
+                    N(:,idx_amb(idx_fix)) = [];
+                    idxFix2idxFlo(idx_amb(idx_fix)) = [];
+                    idxFlo2idxFix(idx_amb(idx_fix)) = 0;
+                    idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
+                    xf = N \ B;
+                    % ---------------- try to fix again
+                    new_idx_amb = idxFlo2idxFix(idx_amb);
+                    new_idx_amb(new_idx_amb == 0) = [];
+                    amb_n1 = xf(new_idx_amb)/0.1070;
+                    weight = min(n_ep_wl(~idx_fix),100); % <- downweight too short arc
+                    weight = weight / sum(weight);
+                    [~, wl_frac] = Core_Utils.getFracBias(amb_n1,weight);
+                    amb_n1_fix(~idx_fix) = round(amb_n1 - wl_frac);
+                    frac_part_n1(~idx_fix) = amb_n1 - amb_n1_fix(~idx_fix) - wl_frac;
+                    idx_fix_old = idx_fix;
+                    idx_fix(~idx_fix) = abs(frac_part_n1(~idx_fix)) < 0.20 & n_ep_wl(~idx_fix) > 30; % fixing criteria (very rough)
+                    new_fix_idx = idx_fix(~idx_fix_old);
+                    new2old_idx_fix = find(~idx_fix_old);
+                    for i = 1 : length(new_fix_idx)
+                        Ni = N(:,new_idx_amb(i));
+                        if new_fix_idx(i)
+                            b_if_fix = 0.1070 * (amb_n1_fix(new2old_idx_fix(i)));
+                            B = B - Ni* ( b_if_fix);
+                            A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(new2old_idx_fix(i));
+                        end
+                    end
+                    B(idx_amb(new_fix_idx)) = [];
+                    B(end) = 0;
+                    N(idx_amb(new_fix_idx),:) = [];
+                    N(:,idx_amb(new_fix_idx)) = [];
+                    idxFix2idxFlo = 1 : length(x);
+                    idxFlo2idxFix = nan(length(x),1);
+                    idxFix2idxFlo(idx_amb(idx_fix)) = [];
+                    idxFlo2idxFix(idx_amb(idx_fix)) = 0;
+                    idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
+                    %-------------------------------------------------------------
+                    xf = N \ B;
+                    x_old = x;
+                    x(idxFix2idxFlo) = xf;
+                    x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
+                    this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
+                    this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
+                else
+                    idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                    xe = x(idx_est);
+                    amb = xe(idx_amb_par,1);
+                    
+%                     wl =  ones(size(amb)) * GPS_SS.L_VEC(1);
+%                     amb = amb./wl;
+                    idx_fix = fracFNI(amb) < 0.1;
+                    amb_fix = round(amb);
+                    
+                    for i = 1 : length(idx_fix)
+                        Ni = N(:,idx_amb_par(i));
+                        if idx_fix(i)
+                            b_if_fix = (amb_fix(i));
+                            B = B - Ni* ( b_if_fix);
+                        end
+                    end
+                     
+                    
+                    B(idx_amb_par(idx_fix)) = [];
+                    N(idx_amb_par(idx_fix),:) = [];
+                    N(:,idx_amb_par(idx_fix)) = [];
+                    
+                    
+                    idx_nf = true(sum(idx_est,1),1);
+                    idx_nf(idx_amb_par(idx_fix)) = false;
+                    xf = zeros(size(idx_nf));
+                    
+                    xf(idx_nf) = N \ B;
+                    xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
+                    
+                    
+
+                    x(idx_est) = xf;
                     
                 end
-                
-                weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
-                weight = weight / sum(weight);
-                [~, wl_frac] = Core_Utils.getFracBias(amb_n1(amb_wl_fixed),weight);
-                
-                amb_n1_fix = round(amb_n1 - wl_frac);
-                frac_part_n1 = amb_n1 - amb_n1_fix - wl_frac;
-                
-                idx_amb = find(x_class == 5);
-                % get thc cxx of the ambiguities
-                n_amb  = length(idx_amb);
-                b_eye = zeros(length(B),n_amb);
-                idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
-                b_eye(idx) = 1;
-                b_eye = sparse(b_eye);
-                Cxx_amb = N\b_eye;
-                Cxx_amb = Cxx_amb(idx_amb,:) / 0.1070^2;
-                
-                idx_fix = abs(frac_part_n1) < 0.20 & amb_wl_fixed & n_ep_wl > 30; % fixing criteria (very rough)
-                
-                idxFix2idxFlo = 1 : length(x);
-                idxFlo2idxFix = nan(length(x),1);
-                A_fixed = false(size(this.A_idx(:,4)));
-                for i = 1 : length(idx_fix)
-                    Ni = N(:,idx_amb(i));
-                    if idx_fix(i)
-                        b_if_fix = 0.1070 * (amb_n1_fix(i));
-                        B = B - Ni* ( b_if_fix);
-                        A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(i);
-                    end                    
-                end
-                
-                
-                B(idx_amb(idx_fix)) = [];
-                B(end) = 0;
-                N(idx_amb(idx_fix),:) = [];
-                N(:,idx_amb(idx_fix)) = [];
-                idxFix2idxFlo(idx_amb(idx_fix)) = [];
-                idxFlo2idxFix(idx_amb(idx_fix)) = 0;
-                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
-                xf = N \ B;
-                % ---------------- try to fix again
-                new_idx_amb = idxFlo2idxFix(idx_amb);
-                new_idx_amb(new_idx_amb == 0) = [];
-                amb_n1 = xf(new_idx_amb)/0.1070;
-                weight = min(n_ep_wl(~idx_fix),100); % <- downweight too short arc
-                weight = weight / sum(weight);
-                [~, wl_frac] = Core_Utils.getFracBias(amb_n1,weight);
-                amb_n1_fix(~idx_fix) = round(amb_n1 - wl_frac);
-                frac_part_n1(~idx_fix) = amb_n1 - amb_n1_fix(~idx_fix) - wl_frac;
-                idx_fix_old = idx_fix;
-                idx_fix(~idx_fix) = abs(frac_part_n1(~idx_fix)) < 0.20 & n_ep_wl(~idx_fix) > 30; % fixing criteria (very rough)
-                new_fix_idx = idx_fix(~idx_fix_old);
-                new2old_idx_fix = find(~idx_fix_old);
-                for i = 1 : length(new_fix_idx)
-                    Ni = N(:,new_idx_amb(i));
-                    if new_fix_idx(i)
-                        b_if_fix = 0.1070 * (amb_n1_fix(new2old_idx_fix(i)));
-                        B = B - Ni* ( b_if_fix);
-                        A_fixed = A_fixed | this.A_idx(:,4) == idx_amb(new2old_idx_fix(i));
-                    end                    
-                end
-                B(idx_amb(new_fix_idx)) = [];
-                B(end) = 0;
-                N(idx_amb(new_fix_idx),:) = [];
-                N(:,idx_amb(new_fix_idx)) = [];
-                idxFix2idxFlo = 1 : length(x);
-                idxFlo2idxFix = nan(length(x),1);
-                idxFix2idxFlo(idx_amb(idx_fix)) = [];
-                idxFlo2idxFix(idx_amb(idx_fix)) = 0;
-                idxFlo2idxFix(idxFlo2idxFix ~=0) = 1:length(B);
-                %-------------------------------------------------------------
-                xf = N \ B;
-                x_old = x;
-                x(idxFix2idxFlo) = xf;
-                x(idx_amb(idx_fix)) = amb_n1_fix(idx_fix) * 0.1070;
-                this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
-                this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
-                
             end
             if nargout > 1
                 x_res = zeros(size(x));
@@ -1039,8 +1545,6 @@ classdef Least_Squares_Manipulator < handle
             end
             x = [x, x_class];
         end
-        
-        
         
         function reduceNormalEquation(this, keep_param)
             % reduce number of parmeters (STUB)
@@ -1056,5 +1560,82 @@ classdef Least_Squares_Manipulator < handle
             B2 = B(rd_idx);
             this.B = B1 - RD * B2;
         end
+    end
+    
+    methods (Static)
+        function [resulting_gps_time, idxes] = intersectObsSet(obs_set_lst)
+            % get the times common to at leas 2 receiver between observation set and return the index of each observation set
+            %
+            % SYNTAX:
+            % [resulting_gps_time, idxes] = intersectObsSet(obs_set_lst)
+            
+            % OUTPUT:
+            % resulting_gps_time = common time in gpstime (double)
+            % idxe = double [n_time, n_obs_set] indx to which the commontimes correnspond in each ob_set_time
+            
+            % get min time, max time, and min common rate
+            n_rec = length(obs_set_lst);
+            min_gps_time = Inf;
+            max_gps_time = 0;
+            rate = zeros(n_rec,1);
+            n_sat = 0;
+            for i = 1 : n_rec
+                % note: excluding receivers that wiche samples are shifted w.r.t. the start of the minute e.g -> sampling rate of 30 s starting at 5s and 35s of the minute
+                tmp_rate = obs_set_lst(i).time.getRate();
+                if median(fracFNI(obs_set_lst(i).time.getSecond()/ tmp_rate)*tmp_rate,95) > 1 % if more than 50 percent of the samples are shifted of more than one second fromstart of the minute skip the receiver
+                    rate(i) = -1;
+                    this.log.addWarning(sprintf('Receiver %d sample are shifted from start of the minute, skipping',i));
+                else
+                    min_gps_time = min(min_gps_time, obs_set_lst(i).time.getNominalTime().first.getGpsTime);
+                    max_gps_time = max(max_gps_time, obs_set_lst(i).time.getNominalTime().last.getGpsTime);
+                    rate(i) = tmp_rate;
+                    n_sat = max([n_sat; obs_set_lst(i).go_id(:)]);
+                end
+            end
+            rate(rate < 0 ) = [];
+            loop = true;
+            while (loop) % find the minimum rate common to at least 2 receivers
+                min_rate = min(rate);
+                rate_idx = rate == min_rate;
+                if sum(rate_idx) > 1
+                    loop = false;
+                else
+                    rate(rate_idx) = [];
+                end
+            end
+            % for each receiver check which time of the common time are present
+            resulting_gps_time = min_gps_time : min_rate : max_gps_time;
+            idxes = zeros(length(resulting_gps_time), n_rec);
+            presence_mat = zeros(length(resulting_gps_time),n_sat);
+            for i = 1 : n_rec
+                [idx_is, idx_pos] = ismembertol(obs_set_lst(i).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
+                obs_set_lst(i).keepEpochs(idx_is)
+                pos_vec = 1 : obs_set_lst(i).time.length;
+                idxes(idx_pos,i) = pos_vec;
+                
+                for j = 1 : n_sat
+                    presence_idx = obs_set_lst(i).obs(idx_is,obs_set_lst(i).go_id == j) ~= 0;
+                    presence_idx = idx_pos(presence_idx);
+                    presence_mat(presence_idx,j) = presence_mat(presence_idx,j) + 1;
+                end
+         
+            end
+            idx_rem = sum(presence_mat>1,2) == 0;
+            
+            % remove not useful observations
+            for i = 1 : n_rec
+                idx_rm = false(size(obs_set_lst(i).obs));
+                for j = 1 : n_sat
+                    idx  = presence_mat(idxes(idxes(:,i)~=0,i),j) == 1;
+                    idx_rm(idx,obs_set_lst(i).go_id == j) = true;
+                end
+                obs_set_lst(i).remObs(idx_rm(:),false)
+            end
+            idxes(idx_rem,:) = [];
+            resulting_gps_time(idx_rem) = [];
+        end
+        
+       
+        
     end
 end
