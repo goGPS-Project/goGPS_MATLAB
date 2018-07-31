@@ -43,6 +43,10 @@
 %--------------------------------------------------------------------------
 classdef Least_Squares_Manipulator < handle
     
+    % ==================================================================================================================================================
+    %% Parameter columns id (order)
+    % ==================================================================================================================================================
+    
     properties (Constant)
         PAR_X = 1;
         PAR_Y = 2;
@@ -60,66 +64,81 @@ classdef Least_Squares_Manipulator < handle
     end
     
     properties
-        A_ep % Stacked epochwise design matrices [n_obs x n_param_per_epoch]
-        A_idx % index of the paramter [n_obs x n_param_per_epoch]
-        amb_idx % index of the columns per satellite
-        go_id_amb % go ids of the amb idx
-        out_idx % index to tell if observation is outlier [ n_obs x 1]
-        N_ep  % Stacked epochwise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
-        G % hard constraints (Lagrange multiplier)
-        D % known term of the hard constraints
-        y % observations  [ n_obs x 1]
+        A_ep         % Stacked epoch-wise design matrices [n_obs x n_param_per_epoch]
+        A_idx        % index of the paramter [n_obs x n_param_per_epoch]
+        amb_idx      % index of the columns per satellite
+        go_id_amb    % go ids of the amb idx
+        out_idx      % logical index to tell if an observation is an outlier [ n_obs x 1]
+        N_ep         % Stacked epoch-wise normal matrices [ n_param_per_epoch x n_param_per_epoch x n_obs]
+        G            % hard constraints (Lagrange multiplier)
+        D            % known term of the hard constraints
+        y            % observations  [ n_obs x 1]
         system_split % limits of the ambiguity splits
-        variance % observation variance [ n_obs x 1]
-        rw % reweight factor
-        res % observations residuals
-        epoch % epoch of the obseravtions and of the A lines [ n_obs x 1]
-        sat % satellite of the obseravtions and of the A lines [ n_obs x 1]
+        variance     % observation variance [ n_obs x 1]
+        rw           % reweight factor
+        res          % observations residuals
+        epoch        % epoch of the obseravtions and of the A lines [ n_obs x 1]
+        sat          % satellite of the obseravtions and of the A lines [ n_obs x 1]
         n_epochs
-        param_class % [n_param_per_epoch x 1] each paramter can be part of a class
-        %   [ 1 : x
-        %     2 : y
-        %     3 : z
-        %     4 : inter channel/frequency/system biases,
-        %     5 : ambiguity,
-        %     6 : clock
-        %     7 : tropo
-        %     8 : tropo inclination north
-        %     9 : tropo inclination east ]
-        param_flag % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
-        time_regularization %[ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
-        mean_regularization
-        true_epoch % true epoch of the epochwise paramters
-        sat_go_id  % go id of the satindeces
-        receiver_id % id of the receiver , in case of differenced obsercation two columns are used
+        param_class  % [n_param_per_epoch x 1] each paramter can be part of a class
+        %                 [   1 : x
+        %                     2 : y
+        %                     3 : z
+        %                     4 : inter channel/frequency/system biases
+        %                     5 : ambiguity
+        %                     6 : clock
+        %                     7 : tropo
+        %                     8 : tropo inclination north
+        %                     9 : tropo inclination east ]
+        param_flag          % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
+        time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
+        mean_regularization 
+        true_epoch          % true epoch of the epoch-wise paramters
+        sat_go_id           % go id of the sat indexes
+        receiver_id         % id of the receiver, in case of differenced observations two columns are used
         
-        wl_amb    % widelane ambuiguity
-        wl_fixed  % is widelane fixed
+        wl_amb              % wide-lane ambuiguity
+        wl_fixed            % is wide-lane fixed
         
-        amb_set_jmp % cell conatinin for each receiver the jmps on all ambiguity
+        amb_set_jmp         % cell conatinin for each receiver the jmps on all ambiguity
         
         network_solution = false;
     end
     
     properties(Access = private)
-        Ncc % part of the normal matrix with costant paramters
-        Nee % diagonal part of the normal matrix with epoch wise or multi epoch wise paramters
-        Nce % cross element between constant and epoch varying paramters
-        state % current settings
-        rf % reference frame
-        cc % constellation collector
+        Ncc         % part of the normal matrix with costant paramters
+        Nee         % diagonal part of the normal matrix with epoch wise or multi epoch wise paramters
+        Nce         % cross element between constant and epoch varying paramters
         
-        log % logger
+        rf          % reference frame
+        
+        state       % link to the current settings        
+        cc          % link to the current constellation collector
+        
+        log         % link to the logger
     end
     
     methods
         function this = Least_Squares_Manipulator()
+            % Creator Brahma
+            this.init();
+        end
+        
+        function init(this)
+            % Init the singletons (create links)
+            % 
+            % SYNTAX
+            %   this.init();
             this.state = Global_Configuration.getCurrentSettings();
             this.rf = Core_Reference_Frame.getInstance();
             this.log = Logger.getInstance();
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)
+            % Init the object for the phase stand alone positioning
+            %
+            % SYNTAX
+            %   id_sync = this.setUpPPP(rec, id_sync,  <cut_off>, <dynamic>, <pos_idx>)
             if nargin < 4
                 cut_off = [];
             end
@@ -129,10 +148,14 @@ classdef Least_Squares_Manipulator < handle
             if nargin < 6
                 pos_idx = [];
             end
-            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off,'',dynamic,pos_idx);
+            id_sync = this.setUpSA(rec, id_sync, 'L', cut_off, '', dynamic, pos_idx);
         end
         
         function id_sync = setUpCodeSatic(this, rec, id_sync, cut_off)
+            % Init the object for the code static positioning
+            %
+            % SYNTAX
+            %   id_sync = setUpCodeSatic(this, rec, id_sync, <cut_off>)
             if nargin < 4
                 cut_off = [];
             end
@@ -147,27 +170,32 @@ classdef Least_Squares_Manipulator < handle
         end
         
         function id_sync_out = setUpSA(this, rec, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec)
+            % Init the object for static positioning
             % return the id_sync of the epochs to be computed
-            % get double frequency iono_free for all the systems
+            %
             % INPUT:
             %    rec : receiver
             %    id_sync : epoch to be used
             %    obs_type : 'C' 'L' 'CL'
             %    cut_off : cut off angle [optional]
             %
+            % SYNTAX
+            %   id_sync_out = this.setUpSA(rec, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>)
             if nargin < 8
                 pos_idx_vec = [];
             end
             if nargin < 7
                 dynamic = false;
             end
-            % extract the observations to be used for the solution
+            
+            % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
             flag_amb_fix = this.state.flag_amb_fix;
             if nargin < 6 || isempty(custom_obs_set)
                 obs_set = Observation_Set();
                 if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
                     
+                    % Using smoothed iono fromg geometry free
                     for sys_c = rec.cc.sys_c
                         for i = 1 : length(obs_type)
                             if this.state.isIonoFree || ~phase_present
@@ -187,6 +215,7 @@ classdef Least_Squares_Manipulator < handle
                         obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
                     end
                 else
+                    % Using the best combination available
                     for sys_c = rec.cc.sys_c
                         f = rec.getFreqs(sys_c);
                         for i = 1 : length(obs_type)
@@ -291,8 +320,6 @@ classdef Least_Squares_Manipulator < handle
             end
             idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
             obs_set.setZeroEpochs(~idx_valid_ep_l);
-            
-            
             
             obs_set.remEmptyColumns();
             
@@ -740,16 +767,16 @@ classdef Least_Squares_Manipulator < handle
             
         end
         
-         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
-             % get reference observations and satellite positions
-             
-             tropo = rec.state.flag_tropo;
-             tropo_g = rec.state.flag_tropo_gradient;
-             dynamic = rec.state.rec_dyn_mode;
-             global_sol = false; %this.state.global_solution;
-             amb_flag = true;
-             phase_present= true;
-             
+        function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
+            % get reference observations and satellite positions
+            
+            tropo = rec.state.flag_tropo;
+            tropo_g = rec.state.flag_tropo_gradient;
+            dynamic = rec.state.rec_dyn_mode;
+            global_sol = false; %this.state.global_solution;
+            amb_flag = true;
+            phase_present= true;
+            
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
@@ -797,7 +824,7 @@ classdef Least_Squares_Manipulator < handle
             % separte antenna phase centers
             apc_flag = rec.state.isSeparateApc();
             n_apc = 3 * n_iob * apc_flag;
-            apc_p_idx =  zeros(length(obs_set.wl),3); 
+            apc_p_idx =  zeros(length(obs_set.wl),3);
             u_sys_c = unique(obs_set.obs_code(:,1));
             idx_gps = u_sys_c == 'G';
             if sum(idx_gps) > 0 % put gps in first position if presetn
@@ -811,13 +838,13 @@ classdef Least_Squares_Manipulator < handle
             % total number of observations
             n_obs = sum(sum(diff_obs ~= 0));
             
-           
+            
             if global_sol
                 n_sat_clk_par = 1;
             else
                 n_sat_clk_par = 0;
             end
-                
+            
             % Building Design matrix
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + 2 * double(tropo_g) + n_sat_clk_par; % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
@@ -894,16 +921,16 @@ classdef Least_Squares_Manipulator < handle
                 % ----------- Separate antenna phase centers ------------------
                 if n_apc > 0
                     if obs_set.obs_code(s,1) ~= u_sys_c(1)
-                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;  
+                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;
                     end
                     A_idx(lines_stream,prog_p_col + ( 1 : 3)) = repmat(apc_p_idx(s,:),length(lines_stream),1);
                     prog_p_col = prog_p_col +3;
                 end
                 % ----------- Abiguity ------------------
                 if phase_present
-                     prog_p_col = prog_p_col + 1;
-                     A(lines_stream, prog_p_col) = obs_set.wl(s);
-                     A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = obs_set.wl(s);
+                    A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + amb_idx(id_ok_stream, s);
                 end
                 % ----------- Clock ------------------
                 prog_p_col = prog_p_col + 1;
@@ -941,9 +968,9 @@ classdef Least_Squares_Manipulator < handle
             p_class = [this.PAR_X*ones(~rec.isFixed()) , this.PAR_Y*ones(~rec.isFixed()), this.PAR_Z*ones(~rec.isFixed()), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag),...
                 this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), ...
                 this.PAR_TROPO_E*ones(tropo_g), this.PAR_SAT_CLK*ones(global_sol)];
-           % find the ambiguity set jmp
-           amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2))+1;
-  
+            % find the ambiguity set jmp
+            amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2))+1;
+            
             
             
         end

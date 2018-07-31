@@ -67,6 +67,7 @@ classdef Command_Interpreter < handle
         CMD_PREPRO      % Pre-processing command
         CMD_CODEPP      % Code point positioning
         CMD_PPP         % Precise point positioning
+        CMD_NET         % Network undifferenced solution
         CMD_SEID        % SEID processing (synthesise L2)
         CMD_REMIONO     % SEID processing (reduce L*)
         CMD_KEEP        % Function to keep just some observations into receivers (e.g. rate => constellation)
@@ -306,6 +307,11 @@ classdef Command_Interpreter < handle
             this.CMD_PPP.rec = 'T';
             this.CMD_PPP.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
             
+            this.CMD_NET.name = {'NET', 'network'};
+            this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
+            this.CMD_NET.rec = 'T';
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
+            
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
             this.CMD_SEID.rec = 'RT';
@@ -442,6 +448,8 @@ classdef Command_Interpreter < handle
                         this.runCodePP(rec, tok(2:end));                        
                     case this.CMD_PPP.name                  % PPP
                         this.runPPP(rec, tok(2:end));
+                    case this.CMD_NET.name                  % NET
+                        this.runNET(rec, tok(2:end));
                     case this.CMD_SEID.name                 % SEID
                         this.runSEID(rec, tok(2:end));
                     case this.CMD_REMIONO.name              % REMIONO
@@ -671,7 +679,26 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-    
+
+        function runNET(this, rec, tok)
+            % Execute Network undifferenced solution
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runPPP(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                [sys_list, sys_found] = this.getConstellation(tok);
+                net = Network();
+                net.setup(rec, iif(sys_found), sys_list, []));                
+            end
+        end
+
         function runCodePP(this, rec, tok)
             % Execute Code Point Positioning
             %
