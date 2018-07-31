@@ -719,7 +719,7 @@ classdef Least_Squares_Manipulator < handle
                     idx_ph = obs_set_lst(i).obs_code(:, 2) == 'L';
                     obs_set_lst(i).obs(:, idx_ph) = obs_set_lst(i).obs(:, idx_ph) .* repmat(obs_set_lst(i).wl(idx_ph)', size(obs_set_lst(i).obs,1),1);
                  end
-               obs_set_lst(i).sanitizeEmpty(); 
+                obs_set_lst(i).sanitizeEmpty(); 
             end
             [commom_gps_time, idxes] = this.intersectObsSet(obs_set_lst);
             for i = 1 : n_rec
@@ -729,6 +729,7 @@ classdef Least_Squares_Manipulator < handle
             end
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
+                obs_set_lst(i).sanitizeEmpty(); 
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
@@ -1289,7 +1290,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % get the oidx for the common parameters
                 u_sat = unique(this.sat); % <- very lazy, once it work it has to be oprimized
-                p_idx = 0
+                p_idx = 0;
                 for i = 1 :length(u_sat)
                     sat_idx = u_sat(i) == this.sat;
                     ep_sat = this.epoch(sat_idx);
@@ -1302,14 +1303,14 @@ classdef Least_Squares_Manipulator < handle
                 
                 
                 
-                n_common = max(common_idx);
-                B_comm = zeros(n_common,1);
+                n_common  = max(common_idx);
+                B_comm    = zeros(n_common,1);
                 diag_comm = zeros(n_common,1);
                 n_s_r_p = size(this.A_idx,2); % number single receiver parameters
-                N_stack_comm = zeros(n_common,n_rec* n_s_r_p);
-                N_stack_idx= zeros(n_common,n_rec* n_s_r_p);
+                N_stack_comm = zeros(n_common, n_rec * n_s_r_p);
+                N_stack_idx  = zeros(n_common, n_rec * n_s_r_p);
                 
-                for i = 1: n_obs
+                for i = 1 : n_obs
                     idx_common = common_idx(i);
                     variance = this.variance(i);
                     rw = this.rw(i);
@@ -1329,7 +1330,7 @@ classdef Least_Squares_Manipulator < handle
 %                 Nreccom = [Nreccom ones(n_common,1)];
 %                 B = [B; 0];
 %                 N = [[N ; zeros(1,n_par)] zeros(n_par+1,1)];
-                i_diag_comm = 1./diag_comm;
+                i_diag_comm = 1 ./ diag_comm;
                 i_diag_comm = spdiags(i_diag_comm,0, n_common,n_common);
                 rNcomm = Nreccom'*i_diag_comm;
                 
@@ -1647,16 +1648,18 @@ classdef Least_Squares_Manipulator < handle
                 end
          
             end
-            idx_rem = sum(presence_mat>1,2) == 0;
+            idx_rem = sum(presence_mat > 1,2) == 0;
             
             % remove not useful observations
             for i = 1 : n_rec
                 idx_rm = false(size(obs_set_lst(i).obs));
                 for j = 1 : n_sat
-                    idx  = presence_mat(idxes(idxes(:,i)~=0,i),j) == 1;
+                    idx = presence_mat(:,j) == 1;
+                    idx = idxes(idx,i);
+                    idx(idx==0) = [];
                     idx_rm(idx,obs_set_lst(i).go_id == j) = true;
                 end
-                obs_set_lst(i).remObs(idx_rm(:),false)
+                obs_set_lst(i).remObs(idx_rm,false);
             end
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
