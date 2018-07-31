@@ -103,6 +103,8 @@ classdef Least_Squares_Manipulator < handle
         amb_set_jmp         % cell conatinin for each receiver the jmps on all ambiguity
         
         network_solution = false;
+        
+        sat_jmp_idx         % satelite jmp index
     end
     
     properties(Access = private)
@@ -721,7 +723,7 @@ classdef Least_Squares_Manipulator < handle
                  end
                 obs_set_lst(i).sanitizeEmpty(); 
             end
-            [commom_gps_time, idxes] = this.intersectObsSet(obs_set_lst);
+            [commom_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
             for i = 1 : n_rec
                 idx = idxes(idxes(:,i)~=0,i);
                 obs_set_lst(i).keepEpochs(idx);
@@ -763,6 +765,7 @@ classdef Least_Squares_Manipulator < handle
             this.param_flag = p_flag;
             this.param_class = p_class;
             this.receiver_id = r;
+            this.sat_jmp_idx = sat_jmp_idx;
             
             this.network_solution = true; 
             
@@ -970,7 +973,7 @@ classdef Least_Squares_Manipulator < handle
                 this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), ...
                 this.PAR_TROPO_E*ones(tropo_g), this.PAR_SAT_CLK*ones(global_sol)];
             % find the ambiguity set jmp
-            amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2))+1;
+            amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
             
             
             
@@ -1275,10 +1278,11 @@ classdef Least_Squares_Manipulator < handle
                     
                     N2A_idx = [ a_idx_const; a_idx_ep_wise];
                 %mix the reciver indexes
+                par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                 for j = 2 : n_rec
                     rec_idx = this.receiver_id == j;
                     % update the indexes
-                    
+                    par_rec_id = [par_rec_id ; j*ones(max(max(this.A_idx(this.receiver_id == j,:))),1)];
                     this.A_idx(rec_idx,:) = this.A_idx(this.receiver_id == j,:) + max(max(this.A_idx(this.receiver_id == j-1,:)));
                     
                     a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
@@ -1362,14 +1366,25 @@ classdef Least_Squares_Manipulator < handle
                 idx_amb_rm = []
                 % 4)remove one ambiguity per satellite form the firs receiver 
                 for i = 1 :length(u_sat)
-                    idx_amb_rec = this.A_idx(this.receiver_id == 1 & this.sat == u_sat(i),this.param_class == this.PAR_AMB);
-                    idx_amb_rec = idx_amb_rec(1);
-                    idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                    jmp_idx = [1 ; find(diff([this.sat_jmp_idx(:,u_sat(i))]) == -1) + 1];
+                    for j = jmp_idx(:)'
+                        idx_amb_rec = [];
+                        d = 1;
+                        while isempty(idx_amb_rec) && d <= n_rec
+                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= j,this.param_class == this.PAR_AMB);
+                            d = d + 1;
+                        end
+                        if ~isempty(idx_amb_rec)
+                            idx_amb_rec = idx_amb_rec(1);
+                        end
+                        idx_amb_rm = [idx_amb_rm; idx_amb_rec];
+                    end
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
                 for i = 1 : n_rec
-                    for jmp = [1 this.amb_set_jmp{i}']
-                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch == jmp,this.param_class == this.PAR_AMB);
+                    jmps = [1*ones(i>1) this.amb_set_jmp{i}']; 
+                    for jmp = jmps
+                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp,this.param_class == this.PAR_AMB);
                         g = 1;
                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
                             g = g +1;
@@ -1378,6 +1393,7 @@ classdef Least_Squares_Manipulator < handle
                         idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
                 end
+                idx_rm = unique(idx_rm);
                 idx_rm = [idx_rm ; idx_amb_rm];
                 N(idx_rm, :) = [];
                 N(:, idx_rm) = [];
@@ -1591,7 +1607,7 @@ classdef Least_Squares_Manipulator < handle
     end
     
     methods (Static)
-        function [resulting_gps_time, idxes] = intersectObsSet(obs_set_lst)
+        function [resulting_gps_time, idxes, sat_jmp_idx] = intersectObsSet(obs_set_lst)
             % get the times common to at leas 2 receiver between observation set and return the index of each observation set
             %
             % SYNTAX:
@@ -1648,7 +1664,7 @@ classdef Least_Squares_Manipulator < handle
                 end
          
             end
-            idx_rem = sum(presence_mat > 1,2) == 0;
+            idx_rem = sum(presence_mat > 1, 2) == 0;
             
             % remove not useful observations
             for i = 1 : n_rec
@@ -1659,13 +1675,22 @@ classdef Least_Squares_Manipulator < handle
                     idx(idx==0) = [];
                     idx_rm(idx,obs_set_lst(i).go_id == j) = true;
                 end
-                obs_set_lst(i).remObs(idx_rm,false);
+                obs_set_lst(i).remObs(idx_rm, false);
             end
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
+            
+            sat_jmp_idx =  true(length(resulting_gps_time),n_sat);
+            for i = 1 : n_sat
+                for j = 1 : n_rec
+                    goid_idx = obs_set_lst(j).go_id == i;
+                    for k = find(goid_idx)'
+                        idx_rec = obs_set_lst(j).obs(:,k) ==0 | obs_set_lst(j).cycle_slip(:,k);
+                        [idx_is, idx_pos] = ismembertol(obs_set_lst(j).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
+                        sat_jmp_idx(idx_pos(idx_is),i) =  sat_jmp_idx(idx_pos(idx_is),i) & idx_rec(idx_is);
+                    end
+                end
+            end
         end
-        
-       
-        
     end
 end
