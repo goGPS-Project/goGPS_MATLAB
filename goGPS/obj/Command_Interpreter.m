@@ -309,7 +309,7 @@ classdef Command_Interpreter < handle
             
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
-            this.CMD_NET.rec = 'T';
+            this.CMD_NET.rec = 'TR';
             this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
@@ -694,8 +694,13 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
+                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
+                if ~found_ref
+                    id_ref = id_trg; % Use all the receiver as mean reference
+                end
+                id_ref = intersect(id_trg, id_ref);
                 net = Network();
-                net.setup(rec, iif(sys_found), sys_list, []));                
+                net.setup(rec(id_trg), iif(sys_found, sys_list, []), id_ref);                
             end
         end
 
@@ -713,6 +718,7 @@ classdef Command_Interpreter < handle
                 this.log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
+                [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
                 for r = id_trg
                     this.log.newLine();
                     this.log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
