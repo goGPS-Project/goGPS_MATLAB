@@ -333,5 +333,20 @@ classdef Observation_Set < handle
             amb_idx = zero2nan(amb_idx .* (this.obs ~= 0));
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
+        
+        function remShortArc(this, min_arc_len)
+            if nargin < 2
+                min_arc_len = 2;
+            end
+            amb_idx = this.getAmbIdx();
+            for i = 1 : size(this.obs,2)
+                [flag_intervals] = getOutliers(isnan(amb_idx(:,i)));
+                signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1)) < (min_arc_len-1);
+                this.obs(flag_intervals(signle_arcs,1),i) = 0;
+                [flag_intervals] = getOutliers(this.obs(:,i)~=0);
+                signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1)) < (min_arc_len-1);
+                this.obs(flag_intervals(signle_arcs,1),i) = 0;
+            end
+        end
     end
 end

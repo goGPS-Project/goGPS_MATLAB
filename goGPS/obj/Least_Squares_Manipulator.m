@@ -760,7 +760,7 @@ classdef Least_Squares_Manipulator < handle
             this.y = y;
             this.epoch = ep;
             time = GPS_Time.fromGpsTime(commom_gps_time);
-            this.true_epoch = round(time.getNominalTime().getRefTime()) + 1;
+            this.true_epoch = round(time.getNominalTime().getRefTime()) + 1; %/time.getRate
             this.sat = sat;
             this.param_flag = p_flag;
             this.param_class = p_class;
@@ -1049,10 +1049,10 @@ classdef Least_Squares_Manipulator < handle
             else
                  res = zeros(n_epochs, n_sat, n_rec);
                  for j = 1 : n_rec
-                     for i = 1:length(this.sat_go_id)
+                     for i = 1:n_sat
                          idx = this.sat == i & this.receiver_id == j;
                          ep = this.epoch(idx);
-                         res(this.true_epoch(ep), this.sat_go_id(i), j) = res_l(idx);
+                         res(this.true_epoch(ep), i, j) = res_l(idx);
                      end
                  end
                  av_res = sum(res,3) ./  sum(res ~= 0,3);
@@ -1682,9 +1682,12 @@ classdef Least_Squares_Manipulator < handle
                     % gte one epoch arcs
                     [flag_intervals] = getOutliers(presence_mat(:,j)>1);
                     signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
-                    idx_rm(flag_intervals(signle_arcs,1), obs_set_lst(i).go_id == j) = true;
+                    idx = idxes(flag_intervals(signle_arcs,1));
+                    idx(idx==0) = [];
+                    idx_rm(idx, obs_set_lst(i).go_id == j) = true;
                 end
                 obs_set_lst(i).remObs(idx_rm, false);
+                %obs_set_lst(i).remShortArc();
             end
             idx_rem = sum(presence_mat > 1, 2) == 0;
             
@@ -1706,7 +1709,7 @@ classdef Least_Squares_Manipulator < handle
 %             for i = 1 : n_rec
 %                 idx_rm = false(size(obs_set_lst(i).obs));
 %                 for j = 1 : n_sat
-%                     % gte one epoch arcs
+%                     gte one epoch arcs
 %                     [flag_intervals] = getOutliers(sat_jmp_idx(:,j)==0);
 %                     signle_arcs = (flag_intervals(:,1) - flag_intervals(:,2)) == 0;
 %                     idx_rm(idxes(flag_intervals(signle_arcs,1),i),obs_set_lst(i).go_id == j) = true;
