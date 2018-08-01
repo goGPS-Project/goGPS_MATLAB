@@ -122,7 +122,7 @@ function goGPS(ini_settings, use_gui, flag_online)
     ok_go = err_code.go == 0; % here a check on the validity of the parameters should be done
     
     if ~ok_go
-        log.addError('Invalid configuration found!!!');
+        log.addError('Invalid configuration found! Check the log messages above.');
     else
         
         core.prepareProcessing(flag_online); % download important files
