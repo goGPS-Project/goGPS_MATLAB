@@ -184,13 +184,13 @@ classdef Core < handle
             this.state.import(state);
         end
         
-        function prepareProcessing(this, flag_rem_check)
+        function prepareProcessing(this, flag_download)
             % Init settings, and download necessary files
             %
             % SYNTAX:
-            %   this.prepareProcessing(flag_rem_check)
+            %   this.prepareProcessing(flag_download)
             if nargin == 2
-                this.state.setRemCheck(flag_rem_check);
+                this.state.setAutomaticDownload(flag_download);
             end
             
             this.log.newLine();
@@ -318,12 +318,12 @@ classdef Core < handle
         end
         
         function go(this, session_num)
-            % Run a session and execut the command list in the settings
+            % Run a session and execute the command list in the settings
             %
             % SYNTAX
             %   this.go(session_num)
             
-            t0 = tic;            
+            t0 = tic;
             if nargin == 1
                 session_list = 1 : this.state.getSessionCount();
             else
@@ -332,26 +332,49 @@ classdef Core < handle
             % init refererecne frame object
             rf = Core_Reference_Frame.getInstance();
             rf.init();
-            for s = session_list
-                this.prepareSession(s);
-                this.cmd.exec(this.rec);                   
-                % to eventually reset the Out
-                % for r = 1 : numel(this.rec)
-                %     this.rec(r).resetOut();
-                % end
-
-                if ispc
-                    fclose('all'); % this will close the log :-(
-                    this.log.setOutFile(this.log.getFilePath);
-                end 
-            end
+            
+            [cmd_list, ~, execution_block, sss_list, sss_level] = this.cmd.fastCheck(this.state.cmd_list);
+            
+            cmd_line = 1;
+            last_sss = 0;
+            for eb = unique(execution_block) % for each execution block
+                if cmd_line <= numel(sss_list)
+                    sessions = sss_list{cmd_line};
+                    for s = sessions
+                        if s ~= last_sss
+                            this.prepareSession(s)
+                        end
+                        last_sss = s;
+                        this.exec(cmd_list(execution_block == eb), sss_level(execution_block == eb));
+                        cmd_line = find(execution_block == eb, 1, 'last') + 1;
+                        
+                        % to eventually reset the Out
+                        % for r = 1 : numel(this.rec)
+                        %     this.rec(r).resetOut();
+                        % end
+                    end
+                    
+                    this.log.newLine;
+                    this.log.simpleSeparator();
+                    if ~isempty(sessions)
+                        this.log.addMessage(sprintf('End of session loop from %d to %d', sessions(1), sessions(end)));
+                    end
+                end
+            end            
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
             this.log.newLine;          
         end
         
-        function exec(this, cmd)
-            this.cmd.exec(this.rec, cmd);
+        function exec(this, cmd_list, level)
+            % Execute a list of commands on the current session
+            %
+            % SYNTAX
+            %   this.exec(cmd_list, level)
+            % 
+            % EXAMPLE
+            %   core.exec({'LOAD T*', 'PREPRO T*', 'PPP T*'})
+            this.cmd.exec(this.rec, cmd_list, level);
         end
     end
     

@@ -228,7 +228,7 @@ classdef File_Wizard < handle
                 this.log.addMessage(this.log.indent('Some files not found locally\n'))
             end
             % check remote
-            if  this.state.isRemCheck && ~status
+            if  this.state.isAutomaticDownload && ~status
                 if n_h_passed  < latency(1)
                     this.log.addMessage(this.log.indent(sprintf('Not enough latency for finding all the %s orbits...\n', resource_name)));
                     status = false;
@@ -478,7 +478,7 @@ classdef File_Wizard < handle
             this.state.updateNavFileName();
             this.state.updateErpFileName();
             this.conjureNavFiles(dsa, dso);
-            if this.state.isRemCheck()
+            if this.state.isAutomaticDownload()
                 this.conjureDCBFiles(dsa, dso);
                 this.conjureCRXFiles(dsa, dso);
             end

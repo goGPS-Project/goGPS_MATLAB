@@ -1219,75 +1219,81 @@ classdef Receiver_Commons < handle
             
         end
         
-        function showTropoPar(this, par_name, new_fig)
-            % one function to rule them all
-            rec_ok = false(size(this,2), 1);
-            for r = 1 : size(this, 2)
+        function [tropo, time] = getTropoPar(sta_list, par_name)
+            % get a tropo parameter among 'ztd', 'zwd', 'pwv', 'zhd'
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getAprZhd()
+            
+            tropo = {};
+            time = {};
+            for r = 1 : numel(sta_list)
+                time{r} = sta_list(r).getTime();
                 switch lower(par_name)
                     case 'ztd'
-                        rec_ok(r) = any(~isnan(this(:,r).getZtd));
+                        [tropo{r}] = sta_list(r).getZtd();
                     case 'zwd'
-                        rec_ok(r) = any(~isnan(this(:,r).getZwd));
+                        [tropo{r}] = sta_list(r).getZwd();
+                        if isempty(tropo{r}) || all(isnan(zero2nan(tropo{r})))
+                            [tropo{r}] = sta_list(r).getAprZwd();
+                        end
                     case 'pwv'
-                        rec_ok(r) = any(~isnan(this(:,r).getPwv));
+                        [tropo{r}] = sta_list(r).getPwv();
                     case 'zhd'
-                        rec_ok(r) = any(~isnan(this(:,r).getAprZhd));
+                        [tropo{r}] = sta_list(r).getAprZhd();
                 end
             end
-            rec_list = this(:, rec_ok);
-            if numel(rec_list) == 0
-                this(1).log.addError('No valid troposphere is present in the receiver list');
+            
+            if numel(tropo) == 1
+                tropo = tropo{1};
+                time = time{1};
+            end
+        end
+        
+        function showTropoPar(sta_list, par_name, new_fig)
+            % one function to rule them all
+            
+            [tropo, t] = sta_list.getTropoPar(par_name);
+            if ~iscell(tropo)
+                tropo = {tropo};
+                t = {t};
+            end
+            
+            rec_ok = false(numel(sta_list), 1);
+            for r = 1 : size(sta_list, 2)
+                rec_ok(r) = ~isempty(tropo{r});
+            end
+            
+            sta_list = sta_list(rec_ok);
+            tropo = tropo(rec_ok);
+            t = t(rec_ok);
+            
+            if numel(sta_list) == 0
+                log = Logger.getInstance();
+                log.addError('No valid troposphere is present in the receiver list');
             else
-                
                 if nargin < 3
                     new_fig = true;
-                end
+                end                                
                 
-                switch lower(par_name)
-                    case 'ztd'
-                        tropo = rec_list.getZtd();
-                    case 'zwd'
-                        tropo = rec_list.getZwd();
-                    case 'pwv'
-                        tropo = rec_list.getPwv();
-                    case 'zhd'
-                        tropo = rec_list.getAprZhd();
-                end
-                
-                if ~iscell(tropo)
-                    tropo = {tropo};
-                end
                 if isempty(tropo)
-                    rec_list(1).log.addWarning([par_name ' and slants have not been computed']);
+                    sta_list(1).log.addWarning([par_name ' and slants have not been computed']);
                 else
                     if new_fig
-                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, rec_list(1).cc.sys_c); f.NumberTitle = 'off';
+                        f = figure; f.Name = sprintf('%03d: %s %s', f.Number, par_name, sta_list(1).cc.sys_c); f.NumberTitle = 'off';
                         old_legend = {};
                     else
                         l = legend;
                         old_legend = get(l,'String');
                     end
-                    for r = 1 : size(rec_list, 2)
-                        rec = rec_list(~rec_list(:,r).isEmpty, r);
-                        if ~isempty(rec)
-                            t = rec.getTime();
-                            switch lower(par_name)
-                                case 'ztd'
-                                    tropo = rec.getZtd();
-                                case 'zwd'
-                                    tropo = rec.getZwd();
-                                case 'pwv'
-                                    tropo= rec.getPwv();
-                                case 'zhd'
-                                    tropo = rec.getAprZhd();
-                            end
-                            if new_fig
-                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(rec_list, 2))); hold on;
-                            else
-                                plot(t.getMatlabTime(), zero2nan(tropo'), '.', 'LineWidth', 4); hold on;
-                            end
-                            outm{r} = rec(1).parent.getMarkerName();
+                    for r = 1 : numel(sta_list)
+                        rec = sta_list(r);
+                        if new_fig
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4, 'Color', Core_UI.getColor(r, size(sta_list, 2))); hold on;
+                        else
+                            plot(t{r}.getMatlabTime(), zero2nan(tropo{r}'), '.', 'LineWidth', 4); hold on;
                         end
+                        outm{r} = rec(1).parent.getMarkerName();
                     end
                     
                     outm = [old_legend, outm];

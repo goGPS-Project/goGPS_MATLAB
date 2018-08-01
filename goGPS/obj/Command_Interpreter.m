@@ -76,6 +76,9 @@ classdef Command_Interpreter < handle
         CMD_SHOW        % Display plots and images
         CMD_EXPORT      % Export results
         
+        KEY_FOR         % For each session keyword
+        KEY_ENDFOR      % For marker end
+
         PAR_RATE        % Parameter select rate
         PAR_CUTOFF      % Parameter select cutoff
         PAR_SNRTHR      % Parameter select snrthr
@@ -101,10 +104,12 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_MAT % Tropo paramters mat format
 
         PAR_S_SAVE      % flage for saving
-        
+                
+        KEY_LIST = {'FOR', 'ENDFOR'};
         CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
+        KEY_ID = [];
         % Struct containing cells are not created properly as constant => see init method
     end
     %
@@ -347,15 +352,35 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.rec = 'T';
             this.CMD_EXPORT.par = [this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
 
+            this.KEY_FOR.name = {'FOR', 'for'};
+            this.KEY_FOR.descr = 'For session loop start';
+            this.KEY_FOR.rec = '';
+            this.KEY_FOR.sss = 'S';
+            this.KEY_FOR.par = [];
+
+            this.KEY_ENDFOR.name = {'ENDFOR', 'END_FOR', 'end_for'};
+            this.KEY_ENDFOR.descr = 'For loop end';
+            this.KEY_ENDFOR.rec = '';
+            this.KEY_ENDFOR.sss = '';
+            this.KEY_ENDFOR.par = [];
+
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
             % and modify the method exec to allow execution
             this.VALID_CMD = {};
             this.CMD_ID = [];
+            this.KEY_ID = [];
             for c = 1 : numel(this.CMD_LIST)
                 this.VALID_CMD = [this.VALID_CMD(:); this.(sprintf('CMD_%s', this.CMD_LIST{c})).name(:)];
                 this.CMD_ID = [this.CMD_ID, c * ones(size(this.(sprintf('CMD_%s', this.CMD_LIST{c})).name))];
+                this.(sprintf('CMD_%s', this.CMD_LIST{c})).id = c;
             end
+            for c = 1 : numel(this.KEY_LIST)
+                this.VALID_CMD = [this.VALID_CMD(:); this.(sprintf('KEY_%s', this.KEY_LIST{c})).name(:)];
+                this.CMD_ID = [this.CMD_ID, (c + numel(this.CMD_LIST)) * ones(size(this.(sprintf('KEY_%s', this.KEY_LIST{c})).name))];
+                this.KEY_ID = [this.KEY_ID, (c + numel(this.CMD_LIST)) * ones(size(this.(sprintf('KEY_%s', this.KEY_LIST{c})).name))];
+                this.(sprintf('KEY_%s', this.KEY_LIST{c})).id = (c + numel(this.CMD_LIST));
+            end            
         end
         
         function str = getHelp(this)
@@ -380,6 +405,37 @@ classdef Command_Interpreter < handle
                         rec_par = sprintf('%c%s', cmd.rec(1), sprintf(', %c', cmd.rec(2:end)));
                     else
                         rec_par = cmd.rec(1);
+                    end
+                    str = sprintf('%s %s\n', str, rec_par);
+                end                                
+                
+                if ~isempty(cmd.par)
+                    str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
+                    for p = 1 : numel(cmd.par)
+                        str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
+                    end
+                end
+            str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
+            end
+            for c = 1 : numel(this.KEY_LIST)
+                cmd = this.(sprintf('KEY_%s', this.KEY_LIST{c}));
+                str = sprintf('%s - %s%s%s\n', str, cmd.name{1}, ones(1, 10-numel(cmd.name{1})) * ' ', cmd.descr);
+                if ~isempty(cmd.rec)
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory receivers:');
+                    if numel(cmd.rec) > 1
+                        rec_par = sprintf('%c%s', cmd.rec(1), sprintf(', %c', cmd.rec(2:end)));
+                    else
+                        rec_par = cmd.rec(1);
+                    end
+                    str = sprintf('%s %s\n', str, rec_par);
+                end
+                
+                if ~isempty(cmd.sss)
+                    str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory session:');
+                    if numel(cmd.sss) > 1
+                        rec_par = sprintf('%c%s', cmd.sss(1), sprintf(', %c', cmd.sss(2:end)));
+                    else
+                        rec_par = cmd.sss(1);
                     end
                     str = sprintf('%s %s\n', str, rec_par);
                 end
@@ -411,20 +467,24 @@ classdef Command_Interpreter < handle
     %% METHODS EXECUTE
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
-    methods        
-        function exec(this, rec, cmd_list)
+    methods         
+        function exec(this, rec, cmd_list, level)
             % run a set of commands (divided in cells of cmd_list)
             %
             % SYNTAX:
-            %   this.exec(rec, cmd_list)
-            if nargin == 2
+            %   this.exec(rec, cmd_list, level)
+            if nargin < 3
                 state = Global_Configuration.getCurrentSettings();
                 cmd_list = state.getCommandList();
             end
             if ~iscell(cmd_list)
                 cmd_list = {cmd_list};
+            end            
+            [cmd_list, ~, ~, ~, cmd_lev] = this.fastCheck(cmd_list);
+            if nargin < 4 || isempty(level)
+                level = cmd_lev;
             end
-            cmd_list = this.fastCheck(cmd_list);
+
             
             % run each line
             for l = 1 : numel(cmd_list)
@@ -441,11 +501,11 @@ classdef Command_Interpreter < handle
                     case this.CMD_AZEL.name                 % AZEL
                         this.runUpdateAzEl(rec, tok(2:end));
                     case this.CMD_BASICPP.name              % BASICPP
-                        this.runBasicPP(rec, tok(2:end));                        
-                    case this.CMD_PREPRO.name               % PREP                 
+                        this.runBasicPP(rec, tok(2:end));
+                    case this.CMD_PREPRO.name               % PREP
                         this.runPrePro(rec, tok(2:end));
                     case this.CMD_CODEPP.name               % CODEPP
-                        this.runCodePP(rec, tok(2:end));                        
+                        this.runCodePP(rec, tok(2:end));
                     case this.CMD_PPP.name                  % PPP
                         this.runPPP(rec, tok(2:end));
                     case this.CMD_NET.name                  % NET
@@ -457,13 +517,13 @@ classdef Command_Interpreter < handle
                     case this.CMD_KEEP.name                 % KEEP
                         this.runKeep(rec.getWork(), tok(2:end));
                     case this.CMD_SYNC.name                 % SYNC
-                        this.runSync(rec, tok(2:end));                        
+                        this.runSync(rec, tok(2:end));
                     case this.CMD_OUTDET.name               % OUTDET
-                        this.runOutDet(rec, tok);                        
+                        this.runOutDet(rec, tok);
                     case this.CMD_SHOW.name                 % SHOW
-                        this.runShow(rec, tok);  
+                        this.runShow(rec, tok, level(l));
                     case this.CMD_EXPORT.name               % EXPORT
-                        this.runExport(rec, tok);   
+                        this.runExport(rec, tok, level(l));
                 end
             end
         end
@@ -875,7 +935,7 @@ classdef Command_Interpreter < handle
             end
         end
         
-        function runShow(this, rec, tok)
+        function runShow(this, rec, tok, sss_lev)
             % Show Images
             %
             % INPUT
@@ -883,22 +943,31 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runShow(rec, tok)
+            %   this.runShow(rec, tok, level)
+            if nargin < 3 || isempty(sss_lev)
+                sss_lev = 0;
+            end
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
             else
                 for t = 1 : numel(tok) % gloabal for all target
                     try
-                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
-                            rec(id_trg).showMap();
-                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
-                            rec(id_trg).showZtd();
-                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
-                            rec(id_trg).showPwv();
-                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
-                            rec(id_trg).showZtdSlant();
+                        if sss_lev == 0
+                            trg = rec(id_trg);
+                        else
+                            trg = [rec(id_trg).work];
                         end
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
+                            trg.showMap();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ZTD.par ')*$'], 'once'))
+                            trg.showZtd();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_PWV.par ')*$'], 'once'))
+                            trg.showPwv();
+                        elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_STD.par ')*$'], 'once'))
+                            trg.showZtdSlant();
+                        end
+                        
                     catch ex
                         this.log.addError(sprintf('%s',ex.message));
                     end
@@ -907,38 +976,44 @@ classdef Command_Interpreter < handle
                 for r = id_trg % different for each target
                     for t = 1 : numel(tok)
                         try
+                            if sss_lev == 0
+                                trg = rec(r);
+                            else
+                                trg = [rec(r).work];
+                            end
+                            
                             if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALL.par ')*$'], 'once'))
-                                rec(r).showAll();
+                                trg.showAll();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_DA.par ')*$'], 'once'))
-                                rec(r).showDataAvailability();
+                                trg.showDataAvailability();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ENU.par ')*$'], 'once'))
-                                rec(r).showPositionENU();
+                                trg.showPositionENU();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_XYZ.par ')*$'], 'once'))
-                                rec(r).showPositionXYZ();
+                                trg.showPositionXYZ();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_CK.par ')*$'], 'once'))
-                                rec(r).showDt();
+                                trg.showDt();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_SNR.par ')*$'], 'once'))
-                                rec(r).showSNR_p();
+                                trg.showSNR_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCS.par ')*$'], 'once'))
-                                rec(r).showOutliersAndCycleSlip();
+                                trg.showOutliersAndCycleSlip();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
-                                rec(r).showOutliersAndCycleSlip_p();
+                                trg.showOutliersAndCycleSlip_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
-                                rec(r).showResSky_c();
+                                trg.showResSky_c();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))
-                                rec(r).showResSky_p();
+                                trg.showResSky_p();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_STD.par ')*$'], 'once'))
-                                rec(r).showZtdSlantRes_p();
+                                trg.showZtdSlantRes_p();
                             end
                         catch ex
-                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+                            this.log.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
                         end
                     end
                 end
             end
         end
         
-        function runExport(this, rec, tok)
+        function runExport(this, rec, tok, sss_lev)
             % Export results
             %
             % INPUT
@@ -946,7 +1021,11 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   this.runExport(rec, tok)
+            %   this.runExport(rec, tok, level)
+            if nargin < 3 || isempty(sss_lev)
+                sss_lev = 0;
+            end
+
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             if ~found_trg
                 this.log.addWarning('No target found -> nothing to do');
@@ -959,10 +1038,18 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     for t = 1 : numel(tok)
                         try
-                            if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
-                                rec(r).out.exportTropoSINEX();
-                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
-                                rec(r).out.exportTropoMat();
+                            if sss_lev == 0 % run on all teh results (out)
+                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
+                                    rec(r).out.exportTropoSINEX();
+                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                    rec(r).out.exportTropoMat();
+                                end
+                            else % run in single session mode (work)
+                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
+                                    rec(r).work.exportTropoSINEX();
+                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                    rec(r).work.exportTropoMat();
+                                end
                             end
                         catch ex
                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
@@ -1079,10 +1166,17 @@ classdef Command_Interpreter < handle
                 cmd = [];
                 err = this.ERR_UNK; % command unknown
             else
-                cmd = this.(sprintf('CMD_%s', this.CMD_LIST{id}));
+                if id > numel(this.CMD_LIST)
+                    cmd = this.(sprintf('KEY_%s', this.KEY_LIST{id - numel(this.CMD_LIST)}));
+                else
+                    cmd = this.(sprintf('CMD_%s', this.CMD_LIST{id}));
+                end
+                if ~isfield(cmd, 'sss')
+                    cmd.sss = '';
+                end
                 if numel(tok) < (1 + numel(cmd.rec))
                     err = this.ERR_NEI; % not enough input parameters
-                elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par))
+                elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.sss))
                     err = this.WRN_TMI; % too many input parameters
                 end
                 
@@ -1093,7 +1187,7 @@ classdef Command_Interpreter < handle
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
-        function [cmd_list, err_list] = fastCheck(this, cmd_list)
+        function [cmd_list, err_list, execution_block, sss_list, sss_lev] = fastCheck(this, cmd_list)
             % Check a cmd list keeping the valid commands only
             %
             % INPUT
@@ -1104,10 +1198,30 @@ classdef Command_Interpreter < handle
             %   err         error list
             %
             % SYNTAX
-            %  [cmd, err, id] = getCommandValidity(this, str_cmd)
+            %  [cmd, err_list, execution_block, sss_list, sss_lev] = getCommandValidity(this, str_cmd)
+            state = Global_Configuration.getCurrentSettings;
             err_list = zeros(size(cmd_list));
+            
+            sss = 1;
+            lev = 0;
+            sss_id_counter = 0;
+            execution_block = zeros(1, numel(cmd_list));
+            sss_list = cell(numel(cmd_list), 1);
+            sss_lev = zeros(1, numel(cmd_list));
             for c = 1 : numel(cmd_list)
-                [~, err_list(c)] = this.getCommandValidity(cmd_list{c});
+                [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
+                if err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)                    
+                    % I need to loop
+                    sss_id_counter = sss_id_counter + 1;
+                    lev = lev + 1;
+                    sss = 1 : state.getSessionCount(); % in the future use the session from a a command like FOR S1:0
+                end
+                if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
+                    % I need to loop
+                    sss_id_counter = sss_id_counter + 1;
+                    lev = lev - 1;
+                    sss = sss(end);
+                end
                 
                 if err_list(c) > 0
                     this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
@@ -1115,8 +1229,19 @@ classdef Command_Interpreter < handle
                 if err_list(c) < 0
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
+                execution_block(c) = sss_id_counter;
+                sss_lev(c) = lev;
+                sss_list{c} = sss;
+            end            
+            cmd_list = cmd_list(~err_list);
+            execution_block = execution_block(~err_list);
+            sss_list = sss_list(~err_list);
+            sss_lev = sss_lev(~err_list);
+            if sss_id_counter == 0 % no FOR found
+                for s = 1 : numel(sss_list)
+                    sss_list{s} = 1 : state.getSessionCount();
+                end
             end
-            cmd_list = cmd_list(err_list == 0);
-        end
+        end                
     end    
 end

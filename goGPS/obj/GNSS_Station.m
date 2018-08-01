@@ -540,7 +540,7 @@ classdef GNSS_Station < handle
             
             tropo = {};
             time = {};
-            for r = 1 : length(sta_list)
+            for r = 1 : numel(sta_list)
                 time{r} = sta_list(r).out.getTime();
                 switch lower(par_name)
                     case 'ztd'

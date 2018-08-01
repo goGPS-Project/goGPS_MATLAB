@@ -114,8 +114,6 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         OCEAN_NAME = '';  % Location of the ocean loading file
 
         % REFERENCE
-        %REMOTE_RES_CONF_DIR = [Main_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
-        REMOTE_RES_CONF_DIR = '';
         ERP_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep '${YYYY}' filesep]; % Earth Rotation Parameters
         ERP_NAME = ''; % Name of ERP files
         IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep '${YYYY}' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
@@ -133,10 +131,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
+        %REMOTE_RES_CONF_DIR = [Main_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
+        REMOTE_RES_CONF_DIR = './';
+
+        FLAG_DOWNLOAD = true;
+        
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast'}
         PREFERRED_CENTER = {'default'}
         PREFERRED_IONO = {'final', 'predicted1', 'predicted2', 'broadcast'}
-        FLAG_CHECK_REMOTE = true;
 
         % SATELLITES
         EPH_DIR = [Main_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep '${WWWW}' filesep]; % Path to Ephemeris files folder
@@ -339,10 +341,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % COMPUTATION CENTERS
         %------------------------------------------------------------------
         % Centers for computation of orbits and other related parameters
-        preferred_eph = Main_Settings.PREFERRED_EPH;          % kind of orbits to prefer
+        flag_download = Main_Settings.FLAG_DOWNLOAD;         % enable auto download of missing resources
+        
+        preferred_eph = Main_Settings.PREFERRED_EPH;         % kind of orbits to prefer
         preferred_iono = Main_Settings.PREFERRED_IONO;
         preferred_center = Main_Settings.PREFERRED_CENTER;
-        flag_check_remote = Main_Settings.FLAG_CHECK_REMOTE;
 
         %------------------------------------------------------------------
         % SATELLITES
@@ -631,6 +634,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.vmf_dir   = fnp.getFullDirPath(state.getData('vmf_dir'), this.prj_home, [], fnp.getFullDirPath(this.(upper('vmf_dir')), this.prj_home));
 
                 % COMPUTATION CENTERS
+                this.flag_download = state.getData('flag_download');
+                
                 this.preferred_eph = fnp.checkPath(state.getData('preferred_eph'));
                 this.preferred_iono = fnp.checkPath(state.getData('preferred_iono'));
                 this.preferred_center = fnp.checkPath(state.getData('preferred_center'));
@@ -654,9 +659,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 end
                 this.out_prefix = fnp.checkPath(state.getData('out_prefix'));
                 this.run_counter = state.getData('run_counter');
-                this.run_counter_is_set = ~isempty(this.run_counter);
-                
-                
+                this.run_counter_is_set = ~isempty(this.run_counter);                
                 
                 % RECEIVER DEFAULT PARAMETERS
                 this.std_code = state.getData('std_code');
@@ -753,6 +756,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.vmf_dir   = state.vmf_dir;
 
                 % COMPUTATION CENTERS
+                this.flag_download = state.flag_download;
+                
                 this.preferred_eph = state.preferred_eph;
                 this.preferred_iono = state.preferred_iono;
                 this.preferred_center = state.preferred_center;
@@ -899,6 +904,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             
             str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
+            str = [str sprintf(' Try to download the missing resources:            %d\n\n', this.flag_download)];
             str = [str sprintf(' Preferred order for orbits products:              %s\n', strCell2Str(this.preferred_eph))];
             str = [str sprintf(' Preferred order for iono products:                %s\n', strCell2Str(this.preferred_iono))];
             str = [str sprintf(' Preferred center:                                 %s\n\n', strCell2Str(this.preferred_center))];
@@ -1136,6 +1142,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('The config file "remote_resource.ini" of the products is stored in:', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' => "%s"', fnp.getRelDirPath(this.remote_res_conf_dir, this.prj_home)), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Try to download missing resources from the net (0 / 1)', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniString('flag_download', this.flag_download, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Preferred ephemeris type, valid only for source "igs",', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('accepted values: %s', Ini_Manager.strCell2Str(this.PREFERRED_EPH)), str_cell);
             str_cell = Ini_Manager.toIniString('preferred_eph', this.preferred_eph, str_cell);
@@ -1683,6 +1692,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             CHECK_EXISTENCE = iif(is_existing, 2, 1);
             this.checkStringField('cur_ini', EMPTY_IS_NOT_VALID);
 
+            this.checkLogicalField('flag_download');
+            
             this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_iono', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_center', EMPTY_IS_NOT_VALID);
@@ -3068,20 +3079,23 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   this.isSmoothTropoOut(is_smt)
-            
             this.flag_smooth_tropo_out = is_smt;
         end
         
         function setRemoteSourceDir(this, dir_path)
+            % Set Remote Source Dir
+            %
+            % SYNTAX
+            %   this.setRemoteSourceDir(dir_path)
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
         
-        function setRemCheck(this, flag)
-            % Set the Remote Check flag
+        function setAutomaticDownload(this, flag)
+            % Set the download flag
             %
             % SYNTAX
-            %   this.setRemoteCheck(flag)
-            this.flag_check_remote = flag;
+            %   this.setAutomaticDownload(flag)
+            this.flag_download = flag;
         end
  
         function setPrjHome(this, prj_home)
@@ -3200,12 +3214,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             err_thr = this.pp_max_phase_err_thr;
         end
         
-        function is_rem_check = isRemCheck(this)
-            % Get the Remote Check flag
+        function is_dwn = isAutomaticDownload(this)
+            % Get the status of download request
             %
             % SYNTAX
-            %   is_rem_check = this.isRemCheck()
-            is_rem_check = this.flag_check_remote;
+            %   is_dwn = this.isAutomaticDownload()
+            is_dwn = this.flag_download;
         end
         
         function is_vmf = isVMF(this)
