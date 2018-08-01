@@ -226,7 +226,7 @@ classdef Least_Squares_Manipulator < handle
                     end
                     idx_ph = obs_set.obs_code(:, 2) == 'L';
                     if sum(idx_ph) > 0
-                        obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(obs_set.wl(idx_ph), size(obs_set.obs,1), 1);
+                        obs_set.obs(:, idx_ph) = obs_set.obs(:, idx_ph) .* repmat(serialize(obs_set.wl(idx_ph))', size(obs_set.obs,1), 1);
                     end
                 end
             else
@@ -890,7 +890,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 %--- Observation related vectors------------
                 obs(lines_stream) = ep_p_idx(id_ok_stream);
-                sat(lines_stream) = s;
+                sat(lines_stream) = obs_set.go_id(s);
                 y(lines_stream) = obs_stream;
                 variance(lines_stream) =  obs_set.sigma(s)^2;
                 % ----------- FILL IMAGE MATRIX ------------
@@ -1366,7 +1366,11 @@ classdef Least_Squares_Manipulator < handle
                 idx_amb_rm = []
                 % 4)remove one ambiguity per satellite form the firs receiver 
                 for i = 1 :length(u_sat)
-                    jmp_idx = [1 ; find(diff([this.sat_jmp_idx(:,u_sat(i))]) == -1) + 1];
+                    jmp_idx = [1 ; find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1];
+                    end_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == 1) + 1;
+                    if ~isempty(end_idx) % a last signle epoch arc might have remained
+                        jmp_idx = [jmp_idx; end_idx(end)];
+                    end
                     for j = jmp_idx(:)'
                         idx_amb_rec = [];
                         d = 1;
@@ -1670,13 +1674,21 @@ classdef Least_Squares_Manipulator < handle
             for i = 1 : n_rec
                 idx_rm = false(size(obs_set_lst(i).obs));
                 for j = 1 : n_sat
+                    % get observation observed only from one satellite
                     idx = presence_mat(:,j) == 1;
                     idx = idxes(idx,i);
                     idx(idx==0) = [];
                     idx_rm(idx,obs_set_lst(i).go_id == j) = true;
+                    % gte one epoch arcs
+                    [flag_intervals] = getOutliers(presence_mat(:,j)>1);
+                    signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
+                    idx_rm(flag_intervals(signle_arcs,1), obs_set_lst(i).go_id == j) = true;
                 end
                 obs_set_lst(i).remObs(idx_rm, false);
             end
+            idx_rem = sum(presence_mat > 1, 2) == 0;
+            
+            
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
             
@@ -1685,12 +1697,23 @@ classdef Least_Squares_Manipulator < handle
                 for j = 1 : n_rec
                     goid_idx = obs_set_lst(j).go_id == i;
                     for k = find(goid_idx)'
-                        idx_rec = obs_set_lst(j).obs(:,k) ==0 | obs_set_lst(j).cycle_slip(:,k);
-                        [idx_is, idx_pos] = ismembertol(obs_set_lst(j).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
+                        idx_rec = obs_set_lst(j).obs(:,k) == 0 | obs_set_lst(j).cycle_slip(:,k);
+                        [idx_is, idx_pos] = ismembertol(obs_set_lst(j).time.getNominalTime().getGpsTime(), resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
                         sat_jmp_idx(idx_pos(idx_is),i) =  sat_jmp_idx(idx_pos(idx_is),i) & idx_rec(idx_is);
                     end
                 end
             end
+%             for i = 1 : n_rec
+%                 idx_rm = false(size(obs_set_lst(i).obs));
+%                 for j = 1 : n_sat
+%                     % gte one epoch arcs
+%                     [flag_intervals] = getOutliers(sat_jmp_idx(:,j)==0);
+%                     signle_arcs = (flag_intervals(:,1) - flag_intervals(:,2)) == 0;
+%                     idx_rm(idxes(flag_intervals(signle_arcs,1),i),obs_set_lst(i).go_id == j) = true;
+%                 end
+%                 obs_set_lst(i).remObs(idx_rm, false);
+%             end
+            
         end
     end
 end

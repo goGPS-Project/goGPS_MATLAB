@@ -1,10 +1,10 @@
-function [flagIntervals] = getOutliers(flags, split_point)
+function [flag_intervals] = getOutliers(flags, split_point)
 % INPUT
 %   flags           flag array (as logical)
 %   split_point     points with forced splits (as logical)
 %
 % SYNTAX
-%   [flagIntervals] = getOutliers(flags, <split_point>)
+%   [flag_intervals] = getOutliers(flags, <split_point>)
 %
 % DESCRIPTION
 %   Returns start and end of flagged intervals
@@ -64,13 +64,13 @@ function [flagIntervals] = getOutliers(flags, split_point)
                 f_i2(i) = [];
             end
         end
-        flagIntervals = [f_i1, f_i2 - 1];
+        flag_intervals = [f_i1, f_i2 - 1];
     else
-        flagIntervals = [find(diff_tmp < 0), find(diff_tmp > 0) - 1];
+        flag_intervals = [find(diff_tmp < 0), find(diff_tmp > 0) - 1];
     end
 end
 
-function [flagArray] = struct2flagVec(flags, maxSize)
-    flagArray = false(maxSize,1);
-    flagArray(flags.pos) = flags.val;
+function [flag_array] = struct2flagVec(flags, maxSize)
+    flag_array = false(maxSize,1);
+    flag_array(flags.pos) = flags.val;
 end
