@@ -95,7 +95,7 @@ classdef Network < handle
                 end
                 idx_rec = x(:,3) == i;
                 this.coo(i,:) = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)] + this.rec_list(i).work.xyz;
-                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime,0.002);
+                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime,0.002, 'DataScale', 1);
                 clk = [x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1)];
                 clk_rec = this.rec_list(i).work.getDt();
                 this.clock(idx_pos,i) = clk_rec(idx_is);
@@ -155,7 +155,7 @@ classdef Network < handle
                 
                 this.rec_list(i).work.xyz = this.coo(i,:);
                 idx_res_av = ~isnan(this.clock(:,i));
-                [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002);
+                [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
                 clk = this.clock(idx_res_av,i);
                 this.rec_list(i).work.dt(idx_pos) = clk(idx_is);
                 if this.state.flag_tropo
