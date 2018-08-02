@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Efficently manipulate sparse least squares system
+%   Manipulate least squares system
 %
 % EXAMPLE
 %   LSM = Least_Square_Manipulator();
@@ -94,8 +94,11 @@ classdef Least_Squares_Manipulator < handle
         time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
         mean_regularization 
         true_epoch          % true epoch of the epoch-wise paramters
+        rec_time_idxes      % for each receiver tell which epochof the common time are used
+        rate                % rate of the true epoch
         sat_go_id           % go id of the sat indexes
         receiver_id         % id of the receiver, in case of differenced observations two columns are used
+        
         
         wl_amb              % wide-lane ambuiguity
         wl_fixed            % is wide-lane fixed
@@ -584,120 +587,11 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
-        function setUpNetworkAdjOLDTEST(this, rec_list, datum_definition, rate, obs_type, sys_c)
-            % set up a network adjustement for the receiver in the list using sigle difference ( rec - rec)  observations
-            % SYNTAX: ls_manipulator = Network.setUpNetworkAdj(rec_list)
-            % INPUT:
-            %      rec_list = list of receivers (cell)
-            %      datum_definition = struct with field .type [ F (Free network) | C Costrained ( either by lagrange multiplier or pseudo observations)]
-            %                                           .station matrix,
-            %                                           case free netwrok [st_nums]
-            %                                           case constarined network [ st_num (1 hard 2 soft) sigma_x sigma_y sigma_z] if hard sigma ccan be left to 0 since the will be ignored
-            %      rate : rate of observations in seconds
-            %      obs_type: I : iono free, 1 first frequency, 2 second frequency, 3 third frequency
-            % NOTE: if one wants to set up a single baseline processing he can simpy set up and hard contrsaint on the coordinates of the master see (setUpBaselineAdj)
-            % IMPRTANT: when specifing the rate it is assumed for instance that 30 seconds observations are sampled in the vivicinity if 00 and 30 seconds of the minute, if
-            %           this is not the case the method will not work
-            if nargin < 5
-                sys_c = this.state.cc.getAvailableSys();
-            end
-            % check consistency onf obs_type:
-            if ~isempty(strfind(obs_type,'I')) && length(obs_type > 1)
-                obs_type = 'I';
-                this.log.addWarning('Network Adjustement: When using Iono Free combination no other frequency or combination is allowed');
-            end
-            
-            obs_sets  = {};
-            % rates of all recievers this serve also as an indicatpr of if the receiver is used in fact it remains nan of the receiver is not used
-            rates = nan(length(rec_list),1);
-            
-            min_time = GPS_Time(datenum([9999 0 0 0 0 0])); % Warning! to be updated in year 9999
-            % get Observations
-            for i = 1 : length(rec_list)
-                % chek if sampling is compatible
-                rate_ratio = max(rate, rec_list(i).getRate()) / min(rate, rec_list(i).getRate());
-                st_time_ratio = rec_list(i).getTime().first.getSecond() / rec_list(i).getRate();
-                n_skip_epochs = [];
-                if abs( rate_ratio - round(rate_ratio)) > 10e-9
-                    this.log.addWarning(sprintf('Receiver %s not compatible with selected rate, skipping',rec_list(i).marker_name));
-                    obs_sets{end+1} = [];
-                elseif abs( st_time_ratio - round(st_time_ratio)) > 10e-3
-                    this.log.addWarning(sprintf('Receiver %s has starting time not multiple of sampling rate. Not supported skipping',rec_list(i).marker_name));
-                    obs_sets{end+1} = [];
-                else
-                    if abs(st_time_ratio - round(st_time_ratio)) > 1e-3 % chek if we have to skip epochs
-                        skip_time = ceil(st_time_ratio)*rate - second;
-                        n_skip_epochs = skip_time / rec_list(i).getRate();
-                    end
-                    if rec_list(i).time.first < min_time % detemine the staring time to form the single diffferences
-                        second = rec_list(i).time.first.getSecond();
-                        st_time_ratio = second / rate;
-                        if abs(st_time_ratio - round(st_time_ratio)) > 1e-3 % chek if we have to skip epochs
-                            min_time = rec_list(i).time.first ;
-                            mid_time.addSeconds(skip_time); %skip epochs and round the time
-                            
-                        else % round to an epoch muliple of rate
-                            round_time =round(st_time_ratio)*rate - second;
-                            min_time = rec_list(i).time.first ;
-                            mid_time.addSeconds(round_time);
-                        end
-                    end
-                    obs_set = Observation_Set();
-                    for j = 1 : length(obs_type) % get the observiont set
-                        if obs_type(j) == 'I'
-                            for sys_c = rec.cc.sys_c
-                                for i = 1 : length(obs_type)
-                                    obs_set.merge(rec_list(i).getPrefIonoFree(obs_type(i), sys_c));
-                                end
-                            end
-                        else
-                            for sys_c = rec.cc.sys_c
-                                f = rec.getFreqs(sys_c);
-                                for i = 1 : length(obs_type)
-                                    obs_set.merge(rec_list(i).getPrefObsSetCh([obs_type(i) obs_type(j)], sys_c));
-                                end
-                            end
-                        end
-                    end
-                    if ~isempty(n_skip_epochs) % remove epochs to homogenize start times
-                        obs_set.removeEpochs([1 : n_skip_epochs])
-                    end
-                    obs_sets{end+1} = obs_set; % add to the list
-                    rates(i) = rec_list(i).getRate();
-                    
-                end
-            end
-            % get offset from min epochs and estiamted num of valid epochs
-            
-            start_off_set = nan(length(rec_list),1);
-            est_num_ep = nan(length(rec_list),1);
-            for i = 1 : length(rec_list)
-                if ~ismepty(obs_sets{i})
-                    start_off_set(i) = round((obs_sets{i}.time.first - min_time)/rate); % off ste from min epochs
-                    est_num_ep = round(obs_sets{i}.time.length / rate);
-                end
-            end
-            %estimate roughly an upper bound for the numebr of observations, so that memeory can be preallocated
-            % num_pochs x num_sat/2 x num_valid_receiver
-            num_sat = this.state.cc.getNumSat(sys_c);
-            est_n_obs = max(est_num_ep,'omitnan') * num_sat/2 * sum(~isnan(rates));
-            n_par = n_coo + iob_flag + amb_flag + double(tropo) + 2 * double(tropo_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
-            A = zeros(est_n_obs, n_par);
-            A_idx = zeros(est_n_obs, n_par);
-            
-            cond_stop = true;
-            while cond_stop
-                for i = 1 : num_sat
-                    
-                end
-                
-            end
-            
-            
-        end
-        
-        function setUpNetworkAdj(this, rec_list)
+        function [common_time,idxes ]  = setUpNetworkAdj(this, rec_list)
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
+            %
+            % OUTPUT:
+            % common_time : common gps time used for the processing 
             n_rec = length(rec_list);
             obs_set_lst  = Observation_Set.empty(n_rec,0);
             this.cc = rec_list(1).cc;
@@ -723,7 +617,7 @@ classdef Least_Squares_Manipulator < handle
                  end
                 obs_set_lst(i).sanitizeEmpty(); 
             end
-            [commom_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
+            [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
             for i = 1 : n_rec
                 idx = idxes(idxes(:,i)~=0,i);
                 obs_set_lst(i).keepEpochs(idx);
@@ -731,7 +625,6 @@ classdef Least_Squares_Manipulator < handle
             end
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
-                obs_set_lst(i).sanitizeEmpty(); 
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
@@ -759,8 +652,10 @@ classdef Least_Squares_Manipulator < handle
             this.variance = variance;
             this.y = y;
             this.epoch = ep;
-            time = GPS_Time.fromGpsTime(commom_gps_time);
-            this.true_epoch = round(time.getNominalTime().getRefTime()) + 1; %/time.getRate
+            time = GPS_Time.fromGpsTime(common_gps_time);
+            this.true_epoch = round(time.getNominalTime().getRefTime()/time.getRate) + 1; %
+            this.rec_time_idxes = idxes;
+            this.rate = time.getRate;
             this.sat = sat;
             this.param_flag = p_flag;
             this.param_class = p_class;
@@ -768,6 +663,7 @@ classdef Least_Squares_Manipulator < handle
             this.sat_jmp_idx = sat_jmp_idx;
             
             this.network_solution = true; 
+            common_time = GPS_Time.fromGpsTime(common_gps_time);
             
         end
         
@@ -852,7 +748,7 @@ classdef Least_Squares_Manipulator < handle
             % Building Design matrix
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + 2 * double(tropo_g) + n_sat_clk_par; % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
-            obs = zeros(n_obs, 1);
+            ep = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
             
             A_idx = zeros(n_obs, n_par);
@@ -889,7 +785,7 @@ classdef Least_Squares_Manipulator < handle
                 lines_stream = obs_count + (0:(n_obs_stream - 1));
                 
                 %--- Observation related vectors------------
-                obs(lines_stream) = ep_p_idx(id_ok_stream);
+                ep(lines_stream) = ep_p_idx(id_ok_stream);
                 sat(lines_stream) = obs_set.go_id(s);
                 y(lines_stream) = obs_stream;
                 variance(lines_stream) =  obs_set.sigma(s)^2;
@@ -962,7 +858,6 @@ classdef Least_Squares_Manipulator < handle
             % ---- Suppress weighting until solution is more stable/tested
             %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
-            ep = obs;
             sat = sat;
             if dynamic
                 p_flag = [1, 1, 1, -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g) , ones(global_sol)];
@@ -976,18 +871,6 @@ classdef Least_Squares_Manipulator < handle
             amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
             
             
-            
-        end
-        
-        function setUpBaselineAdj(this, receivers, master)
-            % set up baseline adjustment
-            % SYNTAX: ls_manipulator = Network.setUpBaselineAdj(receivers, master)
-            % INPUT: receivers = {rec1 , rec2}
-            %        master = 1  first is master , 2 second is master
-            % NOTE: wrapper to setUPNetworkAdj function
-            datum_definition.type = 'C';
-            datum_definition.station = [master 1 0 0 0]; % hard constarint on master
-            ls_manipulator = setUpSDNetworkAdj(receivers, datum_definition);
             
         end
         
@@ -1047,16 +930,20 @@ classdef Least_Squares_Manipulator < handle
                     res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
                 end
             else
-                 res = zeros(n_epochs, n_sat, n_rec);
+                 res = nan(n_epochs, n_sat, n_rec);
+                 idx_tot = [];
                  for j = 1 : n_rec
                      for i = 1:n_sat
                          idx = this.sat == i & this.receiver_id == j;
                          ep = this.epoch(idx);
                          res(this.true_epoch(ep), i, j) = res_l(idx);
+                         idx_tot = [idx_tot; find(idx)];
                      end
                  end
                  av_res = sum(res,3) ./  sum(res ~= 0,3);
-                 res = nan2zero(zero2nan(res) - repmat(av_res,1,1,n_rec));
+                 res = res - repmat(av_res,1,1,n_rec);
+                 this.res(idx_tot) = res(~isnan(res));
+                 res = nan2zero(res);
             end
         end
         %-----------------------------------------------
@@ -1097,7 +984,7 @@ classdef Least_Squares_Manipulator < handle
         
         function reweightDanish(this)
             threshold = 2;
-            wfun = @(x) - exp(x.^2 ./threshold.^2);
+            wfun = @(x)  exp(-x.^2 ./threshold.^2);
             this.weightOnResidual(wfun, threshold);
         end
         
@@ -1267,7 +1154,6 @@ classdef Least_Squares_Manipulator < handle
             
             if is_network
                 n_obs = size(this.A_idx,1);
-                common_idx = zeros(n_obs,1);
                 % create the part of the normal that considers common parameters
                 
                 
@@ -1279,6 +1165,7 @@ classdef Least_Squares_Manipulator < handle
                     N2A_idx = [ a_idx_const; a_idx_ep_wise];
                 %mix the reciver indexes
                 par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
+                A_idx_not_mix = this.A_idx;
                 for j = 2 : n_rec
                     rec_idx = this.receiver_id == j;
                     % update the indexes
@@ -1293,6 +1180,7 @@ classdef Least_Squares_Manipulator < handle
                     N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                 end
                 % get the oidx for the common parameters
+                common_idx = zeros(n_obs,1);
                 u_sat = unique(this.sat); % <- very lazy, once it work it has to be oprimized
                 p_idx = 0;
                 for i = 1 :length(u_sat)
@@ -1321,7 +1209,7 @@ classdef Least_Squares_Manipulator < handle
                     y = this.y(i);
                     r = this.receiver_id(i);
                     B_comm(idx_common) = B_comm(idx_common) + rw * (1 ./ variance) * y; % the entrace in the idx for the common parameters are all one
-                    N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p))= N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
+                    N_stack_comm(idx_common, (r-1)*n_s_r_p +(1:n_s_r_p) )= N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
                     diag_comm(idx_common) = diag_comm(idx_common) + rw * (1 ./ variance);
                     N_stack_idx(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p))= this.A_idx(i,:);
                 end
@@ -1371,11 +1259,16 @@ classdef Least_Squares_Manipulator < handle
                     if ~isempty(end_idx) % a last signle epoch arc might have remained
                         jmp_idx = [jmp_idx; end_idx(end)];
                     end
-                    for j = jmp_idx(:)'
+                    for j = 1: length(jmp_idx(:))
                         idx_amb_rec = [];
                         d = 1;
+                        jmp = jmp_idx(j);
+                        jmp2 = jmp_idx(min(j+1, length(jmp_idx)));
+                        if jmp == jmp2
+                            jmp2 = Inf;
+                        end
                         while isempty(idx_amb_rec) && d <= n_rec
-                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= j,this.param_class == this.PAR_AMB);
+                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
                             d = d + 1;
                         end
                         if ~isempty(idx_amb_rec)
@@ -1385,10 +1278,15 @@ classdef Least_Squares_Manipulator < handle
                     end
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
-                for i = 1 : n_rec
+                for i = 2 : n_rec
                     jmps = [1*ones(i>1) this.amb_set_jmp{i}']; 
-                    for jmp = jmps
-                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp,this.param_class == this.PAR_AMB);
+                    for j = 1 : length(jmps)
+                        jmp = jmps(j);
+                        jmp2 = jmps(min(j+1,length(jmps)));
+                        if jmp == jmp2
+                            jmp2 = Inf;
+                        end
+                        idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
                         g = 1;
                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
                             g = g +1;
@@ -1592,6 +1490,17 @@ classdef Least_Squares_Manipulator < handle
                 end
             end
             x = [x, x_class];
+            % restore old Idx 
+        if is_network
+            this.A_idx = A_idx_not_mix;
+            x_rec = ones(size(x,1),1);
+            id_rec = find(diff(x_class) < 0);
+            for i = 1 : length(id_rec)
+                idx = id_rec(i)+1;
+                x_rec(idx:end) = i+1;
+            end
+            x = [x, x_rec];
+        end
         end
         
         function reduceNormalEquation(this, keep_param)
@@ -1608,6 +1517,8 @@ classdef Least_Squares_Manipulator < handle
             B2 = B(rd_idx);
             this.B = B1 - RD * B2;
         end
+        
+        
     end
     
     methods (Static)
