@@ -59,12 +59,15 @@ classdef Network < handle
             this.rec_list = rec_list;
             this.state = Global_Configuration.getCurrentSettings;
         end
-        function adjustNetwork(this, idx_ref)
+        function adjust(this, idx_ref)
             %  adjust the gnss network
             %
+            % SYNATAX; 
+            %    this. adjustNetwork(idx_ref)
             % INPUT:
-            %     idx_ref : receivers to be choosen as reference, their value mean will be set to zero
+            %     idx_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
             
+            % set up the the network adjustment
             ls =Least_Squares_Manipulator();
             [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list);
             n_time = this.common_time.length;
@@ -74,12 +77,15 @@ classdef Network < handle
                 ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
             end
             [x, res] = ls.solve;
+            % intilaize array for results
             n_rec = length(this.rec_list);
             this.clock = zeros(n_time, n_rec);
             this.coo = nan(n_rec, 3);
             this.ztd = nan(n_time, n_rec);
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
+            
+            %---- fill the values in the network
             for i = 1 : n_rec;
                 % if all value in the recievra are set to nan iniatlize them to zero
                 if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
@@ -112,7 +118,7 @@ classdef Network < handle
                     this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) + ge;
                 end
             end
-             % tranform the result in the desidered free network
+            % --- tranform the result in the desidered free network
             if nargin > 1 | (idx_ref(1) & sum(idx_ref) == 1)
                 S = zeros(n_rec);
                 S(:,idx_ref) = - 1 / sum(sum(idx_ref));
@@ -123,6 +129,7 @@ classdef Network < handle
                 this.coo(:,2) = S*this.coo(:,2);
                 this.coo(:,3) = S*this.coo(:,3);
                 
+                % apply the S transform to the epochwise parameters
                 for i = 1 : n_time
                     id_present = ~isnan(this.clock(i,:));
                     idx_ref_t = idx_ref(id_present);
@@ -143,7 +150,7 @@ classdef Network < handle
                     end
                 end
             end
-            % push back the resulta in the receivers
+            % --- push back the resulta in the receivers
             for i = 1 : n_rec
                 
                 this.rec_list(i).work.xyz = this.coo(i,:);

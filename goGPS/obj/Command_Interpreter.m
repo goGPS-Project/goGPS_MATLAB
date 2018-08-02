@@ -759,8 +759,10 @@ classdef Command_Interpreter < handle
                     id_ref = id_trg; % Use all the receiver as mean reference
                 end
                 id_ref = intersect(id_trg, id_ref);
-                net = Network();
-                net.setup(rec(id_trg), iif(sys_found, sys_list, []), id_ref);                
+                net = Network(rec(id_trg));
+                ref_idx = false(1,length(id_trg));
+                ref_idx(id_ref) = true;
+                net.adjust(ref_idx);       
             end
         end
 

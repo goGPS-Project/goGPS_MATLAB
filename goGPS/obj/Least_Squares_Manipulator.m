@@ -595,6 +595,7 @@ classdef Least_Squares_Manipulator < handle
             n_rec = length(rec_list);
             obs_set_lst  = Observation_Set.empty(n_rec,0);
             this.cc = rec_list(1).cc;
+            %--- for each receiver get the onesrvations set
             for i = 1 : n_rec
                 obs_set_lst(i) = Observation_Set();
                  if rec_list(i).work.isMultiFreq() && ~rec_list(i).work.state.isIonoExtModel %% case multi frequency
@@ -617,12 +618,14 @@ classdef Least_Squares_Manipulator < handle
                  end
                 obs_set_lst(i).sanitizeEmpty(); 
             end
+            % --- intersect the observation set to a common time
             [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
             for i = 1 : n_rec
                 idx = idxes(idxes(:,i)~=0,i);
                 obs_set_lst(i).keepEpochs(idx);
                 idxes(idxes(:,i)~=0,i) = 1 : length(idx);
             end
+            % get the oneravtion euation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
@@ -643,6 +646,8 @@ classdef Least_Squares_Manipulator < handle
             
            
             this.A_idx = Aidx;
+            
+            % get the number of used epochs for each receiver
             n_epochs = zeros(n_rec,1);
             for i = 1:n_rec
                 this.n_epochs(i) = length(unique(this.A_idx(r == i,p_class == this.PAR_REC_CLK)));
@@ -1251,7 +1256,7 @@ classdef Least_Squares_Manipulator < handle
                     idx_rm = [idx_rm ; idx_rec_clk(1)];
                 end
                 
-                idx_amb_rm = []
+                idx_amb_rm = [];
                 % 4)remove one ambiguity per satellite form the firs receiver 
                 for i = 1 :length(u_sat)
                     jmp_idx = [1 ; find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1];
