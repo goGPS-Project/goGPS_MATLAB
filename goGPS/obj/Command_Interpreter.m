@@ -532,7 +532,7 @@ classdef Command_Interpreter < handle
     %% METHODS EXECUTE (PRIVATE)
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
-    methods (Access = private)    
+    methods (Access = public)    
         
         function runLoad(this, rec, tok)
             % Load the RINEX file into the object
@@ -1063,7 +1063,7 @@ classdef Command_Interpreter < handle
     %
     %% METHODS UTILITIES (PRIVATE)
     % ==================================================================================================================================================
-    methods (Access = private)       
+    methods (Access = public)       
         function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type) %#ok<INUSL>
             % Extract from a set of tokens the receivers to be used
             %
@@ -1095,6 +1095,24 @@ classdef Command_Interpreter < handle
                     else
                         [ids, pos_ids] = regexp(str_rec,'[0-9]*', 'match');
                         ids = str2double(ids);
+                        
+                        % find *:*:*
+                        [sequence, pos_sss] = regexp(str_rec,'[0-9]*:[0-9]*:[0-9]*', 'match');
+                        
+                        for s = 1 : numel(sequence)
+                            pos_par = regexp(sequence{s},'[0-9]*');
+                            id_before = find(pos_ids(:) == (pos_sss(s) + pos_par(1) - 1), 1, 'last');
+                            %id_step = find(pos_ids(:) == (pos_sss(s) + pos_par(2) - 1), 1, 'first');                            
+                            %id_after = find(pos_ids(:) == (pos_sss(s) + pos_par(3) - 1), 1, 'first');
+                            id_step = id_before + 1; 
+                            id_after = id_before + 2; 
+                            if ~isempty(id_before)
+                                id_sss = [id_sss ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
+                                ids(id_before : id_after) = [];
+                                pos_ids(id_before : id_after) = [];
+                            end                            
+                        end
+                        
                         pos_colon = regexp(str_rec,':*');
                         for p = 1 : numel(pos_colon)
                             id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
@@ -1114,6 +1132,73 @@ classdef Command_Interpreter < handle
                 end
             end            
         end
+        
+        function [id_sss, found] = getMatchingSession(this, tok) %#ok<INUSL>
+            % Extract from a set of tokens the receivers to be used
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [id_sss, found] = this.getMatchingSession(tok)            
+            type = 'S';
+            
+            id_sss = [];
+            found = false;
+            t = 0;
+            state = Global_Configuration.getCurrentSettings();
+            while ~found && t < numel(tok)
+                t = t + 1;
+                % Search receiver identified after the key character "type"
+                if ~isempty(tok{t}) && tok{t}(1) == type
+                    % Analyse all the receiver identified on the string
+                    % e.g. T*        all the receivers
+                    %      T1,3:5    receiver 1,3,4,5
+                    str_rec = tok{t}(2:end);
+                    take_all = ~isempty(regexp(str_rec,'[\*]*', 'once'));
+                    if take_all
+                        id_sss = 1 : state.getSessionCount();
+                    else
+                        [ids, pos_ids] = regexp(str_rec,'[0-9]*', 'match');
+                        ids = str2double(ids);
+                        
+                        % find *:*:*
+                        [sequence, pos_sss] = regexp(str_rec,'[0-9]*:[0-9]*:[0-9]*', 'match');
+                        
+                        for s = 1 : numel(sequence)
+                            pos_par = regexp(sequence{s},'[0-9]*');
+                            id_before = find(pos_ids(:) == (pos_sss(s) + pos_par(1) - 1), 1, 'last');
+                            %id_step = find(pos_ids(:) == (pos_sss(s) + pos_par(2) - 1), 1, 'first');                            
+                            %id_after = find(pos_ids(:) == (pos_sss(s) + pos_par(3) - 1), 1, 'first');
+                            id_step = id_before + 1; 
+                            id_after = id_before + 2; 
+                            if ~isempty(id_before)
+                                id_sss = [id_sss ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
+                                ids(id_before : id_after) = [];
+                                pos_ids(id_before : id_after) = [];
+                            end                            
+                        end
+                        
+                        % find *:*                                                
+                        pos_colon = regexp(str_rec,':*');
+                        for p = 1 : numel(pos_colon)
+                            id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
+                            id_after = find(pos_ids(:) > pos_colon(p), 1, 'first');
+                            if ~isempty(id_before) && ~isempty(id_after)
+                                id_sss = [id_sss ids(id_before) : ids(id_after)]; %#ok<AGROW>
+                            end
+                        end
+                        id_sss = unique([ids id_sss]);
+                        id_sss(id_sss > state.getSessionCount()) = [];
+                    end
+                    found = ~isempty(id_sss);
+                end
+            end
+            if isempty(id_sss) % as default return all the sessions
+                id_sss = 1 : state.getSessionCount();
+            end
+
+        end        
         
         function [num, found] = getNumericPar(this, tok, par_regexp)
             % Extract from a set of tokens a number for a certain parameter
@@ -1199,7 +1284,9 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %  [cmd, err_list, execution_block, sss_list, sss_lev] = getCommandValidity(this, str_cmd)
-            state = Global_Configuration.getCurrentSettings;
+            if nargout > 3
+                state = Global_Configuration.getCurrentSettings;
+            end
             err_list = zeros(size(cmd_list));
             
             sss = 1;
@@ -1210,13 +1297,14 @@ classdef Command_Interpreter < handle
             sss_lev = zeros(1, numel(cmd_list));
             for c = 1 : numel(cmd_list)
                 [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
-                if err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)                    
+                if (nargout > 2) && err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)                    
                     % I need to loop
                     sss_id_counter = sss_id_counter + 1;
                     lev = lev + 1;
-                    sss = 1 : state.getSessionCount(); % in the future use the session from a a command like FOR S1:0
+                    tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
+                    sss = this.getMatchingSession(tok); % in the future use the session from a a command like FOR S1:0
                 end
-                if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
+                if (nargout > 2) && err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
                     % I need to loop
                     sss_id_counter = sss_id_counter + 1;
                     lev = lev - 1;
@@ -1237,7 +1325,7 @@ classdef Command_Interpreter < handle
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);
             sss_lev = sss_lev(~err_list);
-            if sss_id_counter == 0 % no FOR found
+            if nargout > 3 && sss_id_counter == 0 % no FOR found
                 for s = 1 : numel(sss_list)
                     sss_list{s} = 1 : state.getSessionCount();
                 end
