@@ -106,7 +106,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving
                 
         KEY_LIST = {'FOR', 'ENDFOR'};
-        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
+        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
         KEY_ID = [];
@@ -509,7 +509,7 @@ classdef Command_Interpreter < handle
                     case this.CMD_PPP.name                  % PPP
                         this.runPPP(rec, tok(2:end));
                     case this.CMD_NET.name                  % NET
-                        this.runNET(rec, tok(2:end));
+                        this.runNet(rec, tok(2:end));
                     case this.CMD_SEID.name                 % SEID
                         this.runSEID(rec, tok(2:end));
                     case this.CMD_REMIONO.name              % REMIONO
@@ -740,7 +740,7 @@ classdef Command_Interpreter < handle
             end
         end
 
-        function runNET(this, rec, tok)
+        function runNet(this, rec, tok)
             % Execute Network undifferenced solution
             %
             % INPUT
@@ -1297,18 +1297,20 @@ classdef Command_Interpreter < handle
             sss_lev = zeros(1, numel(cmd_list));
             for c = 1 : numel(cmd_list)
                 [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
-                if (nargout > 2) && err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)                    
-                    % I need to loop
-                    sss_id_counter = sss_id_counter + 1;
-                    lev = lev + 1;
-                    tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
-                    sss = this.getMatchingSession(tok); % in the future use the session from a a command like FOR S1:0
-                end
-                if (nargout > 2) && err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
-                    % I need to loop
-                    sss_id_counter = sss_id_counter + 1;
-                    lev = lev - 1;
-                    sss = sss(end);
+                if (nargout > 2)
+                    if err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)
+                        % I need to loop
+                        sss_id_counter = sss_id_counter + 1;
+                        lev = lev + 1;
+                        tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
+                        sss = this.getMatchingSession(tok); % in the future use the session from a a command like FOR S1:0
+                    end
+                    if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
+                        % I need to loop
+                        sss_id_counter = sss_id_counter + 1;
+                        lev = lev - 1;
+                        sss = sss(end);
+                    end
                 end
                 
                 if err_list(c) > 0
