@@ -1338,9 +1338,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
+            str_cell = Ini_Manager.toIniStringComment('Separate the antenna phase center for each constellations', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_separate_apc', this.flag_separate_apc, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
-            str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_separate_apc, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
 
