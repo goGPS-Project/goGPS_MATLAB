@@ -110,7 +110,7 @@ classdef Least_Squares_Manipulator < handle
         sat_jmp_idx         % satelite jmp index
     end
     
-    properties(Access = private)
+    properties (Access = private)
         Ncc         % part of the normal matrix with costant paramters
         Nee         % diagonal part of the normal matrix with epoch wise or multi epoch wise paramters
         Nce         % cross element between constant and epoch varying paramters

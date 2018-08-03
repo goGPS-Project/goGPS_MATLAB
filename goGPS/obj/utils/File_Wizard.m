@@ -152,6 +152,7 @@ classdef File_Wizard < handle
         center_name;% center code
         rm;         % resource manager
         sys_c;      % system collector
+        current_resource; % current resource being processed 
         
         nrt = false;%near real time flag % continue even if all the files have not been found
     end
@@ -207,6 +208,7 @@ classdef File_Wizard < handle
             if nargin < 5
                 center_name  = this.center_name;
             end
+            this.current_resource = resource_name;
             [file_tree, latency] = this.rm.getFileStr(center_name, resource_name);
             if isempty(file_tree)
                 [file_tree, latency] = this.rm.getFileStr('default', resource_name);
@@ -330,7 +332,7 @@ classdef File_Wizard < handle
                         this.log.addError(sprintf('File resource "%s" not found: remote_resource.ini seems to be corrupted', file_tree{1}));
                     else
                         f_name = f_struct.filename;
-                        this.state.setFile(f_name);
+                        this.state.setFile(f_name, this.current_resource);
                         if strcmp(mode, 'local_check')
                             f_path = this.fnp.checkPath([this.state.getFileDir(f_name) filesep f_name]);
                             step_s = this.fnp.getStepSec(f_path);
@@ -760,6 +762,9 @@ classdef File_Wizard < handle
                 if status
                     break
                 end
+            end
+            if this.state.iono_model == 2 & (this.state.iono_management == 3 || this.state.flag_apr_iono)
+                status = this.conjureResource(['iono_broadcast'], date_start, date_stop);
             end
             if status
                 this.log.addMarkedMessage('All iono files present')

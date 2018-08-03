@@ -736,7 +736,6 @@ classdef Core_Sky < handle
                     empty_clk = true;
                 else
                     empty_clk = false;
-                    [ref_week, ref_sow] = this.time_ref_clock.getGpsWeek(); %%%% GIULIO ??????
                 end
                 
                 % open RINEX observation file

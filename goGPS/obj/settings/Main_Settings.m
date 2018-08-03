@@ -2866,13 +2866,13 @@ classdef Main_Settings < Settings_Interface & Command_Settings
     %%  SETTERS IO
     % =========================================================================
     methods        
-        function setFile(this, filename)
+        function setFile(this, filename, resouce_name)
             % set file
             %
             % SYNTAX
             %   setFile(this, filename)
             [~, fname, ext] = fileparts(filename);
-            if strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n')
+            if (strcmpi(ext,'.sp3') || strcmpi(ext,'.eph')  || strcmpi(ext,'.pre')  || strcmpi(ext,'.${YY}p')  || strcmpi(ext,'.${YY}n'))  && isempty(strfind(resouce_name,'iono'))
                 this.setNavEphFile(filename);
             elseif strcmpi(ext,'.erp')
                 this.setErpFile(filename);
@@ -2881,7 +2881,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif strcmpi(ext,'.CRX')
             elseif strcmpi(ext,'.apl')
                 this.setAtmLoadFile(filename);
-            elseif ~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i')
+            elseif (~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i'))  && ~isempty(strfind(resouce_name,'iono'))
                 this.setIonoFile(filename);
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);
