@@ -64,6 +64,7 @@ classdef GUI_Main < handle
         ui_sss_stop
         
         j_settings  % Java settings panel
+        j_cmd       % Java command list panel
         ini_path    % ini path text box
         check_boxes % List of chgoGPS
         pop_ups     % List of drop down menu
@@ -192,21 +193,24 @@ classdef GUI_Main < handle
             end
             
             % Main Panel > tab3 data sources
-            this.insertDataSources(tab_panel);
+            this.j_cmd = this.insertCommands(tab_panel);
             
-            % Main Panel > tab4 processing options
+            % Main Panel > tab4 data sources
+            this.insertDataSources(tab_panel);            
+            
+            % Main Panel > tab5 processing options
             this.insertProcessing(tab_panel);
             
-            % Main Panel > tab5 atmosphere options
+            % Main Panel > tab6 atmosphere options
             this.insertAtmosphere(tab_panel);
             
             
             % Tabs settings --------------------------------------------------------------------------------------------
             
             if enable_rri
-                tab_panel.TabTitles = {'Settings', 'Resources', 'Data sources', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Resources', 'Commands', 'Data sources', 'Processing', 'Atmosphere'};
             else
-                tab_panel.TabTitles = {'Settings', 'Data sources', 'Processing', 'Atmosphere'};
+                tab_panel.TabTitles = {'Settings', 'Commands', 'Data sources', 'Processing', 'Atmosphere'};
             end
             
             % Botton Panel ---------------------------------------------------------------------------------------------
@@ -304,6 +308,113 @@ classdef GUI_Main < handle
                 'BackgroundColor', resources_BG);
             
             this.uip.tab_res = tab;
+        end
+        
+        function j_cmd = insertCommands(this, container)
+            cmd_bg = Core_UI.LIGHT_GRAY_BG;
+            tab = uix.HBox('Parent', container, ...
+                'Padding', 5, ...
+                'BackgroundColor', cmd_bg);
+             
+            v_left = uix.VBox('Parent', tab, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            Core_UI.insertEmpty(tab);
+            v_right = uix.VBox('Parent', tab, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            tab.Widths = [-3 5 -2];
+            
+            % HELP
+            % --------------------------------------------------------
+            help_box = uix.VBox('Parent', v_left, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            uicontrol('Parent', help_box, ...
+                'Style', 'Text', ...
+                'String', 'Command list help:', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', cmd_bg);
+            
+            j_help = com.mathworks.widgets.SyntaxTextPane;
+            codeType = j_help.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            j_help.setContentType(codeType);
+            
+            j_help.setText(strrep(strCell2Str(this.state.exportCmdListHelp(), 10),'#','%'));
+            j_help.setEditable(0)
+            % Create the ScrollPanel containing the widget
+            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_help);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            javacomponent(j_scroll_rri, [1 1 1 1], help_box);
+
+            help_box.Heights = [23, -1];
+
+            % --------------------------------------------------------
+
+            Core_UI.insertEmpty(v_left);
+            
+            % COMMAND LIST
+            % --------------------------------------------------------
+            cmd_box = uix.VBox('Parent', v_left, ...
+                'Padding', 0, ...
+                'BackgroundColor', cmd_bg);
+            
+            uicontrol('Parent', cmd_box, ...
+                'Style', 'Text', ...
+                'String', 'Insert here the goGPS command list:', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', cmd_bg);
+
+            j_cmd = com.mathworks.widgets.SyntaxTextPane;
+            codeType = j_cmd.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            j_cmd.setContentType(codeType);
+            str = strrep(strCell2Str(this.state.exportCmdList(), 10),'#','%');
+            j_cmd.setText(str);
+            % Create the ScrollPanel containing the widget
+            j_scroll_settings = com.mathworks.mwswing.MJScrollPane(j_cmd);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            [panel_j, panel_h] = javacomponent(j_scroll_settings, [1 1 1 1], cmd_box);
+            
+            set(j_cmd, 'FocusLostCallback', @this.refreshCmdList);
+            set(j_cmd, 'FocusGainedCallback', @this.refreshCmdList);
+        
+            cmd_box.Heights = [23, -1];
+        
+            % --------------------------------------------------------
+
+            % EXAMPLES
+            % --------------------------------------------------------
+            eg_box = uix.VBox('Parent', v_right);
+            
+            uicontrol('Parent', eg_box, ...
+                'Style', 'Text', ...
+                'String', 'Execution examples:', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(9), ...
+                'BackgroundColor', cmd_bg);
+            
+            j_eg = com.mathworks.widgets.SyntaxTextPane;
+            codeType = j_eg.M_MIME_TYPE;  % j_settings.contentType='text/m-MATLAB'
+            j_eg.setContentType(codeType);
+            
+            j_eg.setText(strrep(strCell2Str(this.state.exportCmdListExamples(), 10),'#','%'));
+            j_eg.setEditable(0)
+            % Create the ScrollPanel containing the widget
+            j_scroll_rri = com.mathworks.mwswing.MJScrollPane(j_eg);
+            % Inject edit box with the Java Scroll Pane into the main_window
+            javacomponent(j_scroll_rri, [1 1 1 1], eg_box);
+
+            eg_box.Heights = [23, -1];
+
+            % --------------------------------------------------------
+            
+            v_left.Heights = [-2 5 -1];            
         end
         
         function insertDataSources(this, container)
@@ -1130,6 +1241,12 @@ classdef GUI_Main < handle
             this.updateUI();
         end
         
+        function refreshCmdList(this, caller, event)
+            txt = textscan(strrep(char(this.j_cmd.getText()),'%','#'),'%s','Delimiter', '\n');
+            this.state.importPlainCommands(txt{1});
+            this.updateUI();
+        end
+        
         function updateINI(this)
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
@@ -1143,6 +1260,17 @@ classdef GUI_Main < handle
                     % Check is always needed
                     this.state.check()
                     % this.log.addWarning('Warning invalid config not updating j_settings');
+                end
+            end
+        end
+        
+        function updateCmdList(this)
+            if ~isempty(this.w_main) && isvalid(this.w_main)                
+                if this.j_cmd.isValid
+                    str = strrep(strCell2Str(this.state.exportCmdList(), 10),'#','%');
+                    if ~strcmp(str, char(this.j_cmd.getText()))
+                        this.j_cmd.setText(str);
+                    end               
                 end
             end
         end
@@ -1330,16 +1458,19 @@ classdef GUI_Main < handle
         end
         
         function updateUI(this)
-            this.updateINI();
-            this.ini_path.String = this.state.getIniPath();
-            this.updateRecList();
-            this.updateSessionSummary()
-            this.updateSessionFromState();
-            this.updateCCFromState();
-            this.updateCheckBoxFromState();
-            this.updateEditFromState();
-            this.updateEditArraysFromState();
-            this.updatePopUpsState();
+            if isvalid(this.w_main)
+                this.updateINI();
+                this.updateCmdList();
+                this.ini_path.String = this.state.getIniPath();
+                this.updateRecList();
+                this.updateSessionSummary()
+                this.updateSessionFromState();
+                this.updateCCFromState();
+                this.updateCheckBoxFromState();
+                this.updateEditFromState();
+                this.updateEditArraysFromState();
+                this.updatePopUpsState();
+            end
         end
         
         function updateRecList(this)
@@ -1352,6 +1483,7 @@ classdef GUI_Main < handle
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
             str = '';
+            t0 = tic;
             for r = 1 : n_rec
                 if ~isempty(rec_path{r})
                     name = File_Name_Processor.getFileName(rec_path{r}{1});
@@ -1379,7 +1511,9 @@ classdef GUI_Main < handle
                 %    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
                 %end
             end
-            this.log.addMessage('Receiver files checked');
+            if toc(t0) > 1
+                this.log.addMessage('Receiver files checked');
+            end
             if n_rec == 0
                 str = 'No receivers found';
             end
@@ -1411,7 +1545,6 @@ classdef GUI_Main < handle
                     'Buffer: %6d, %6d [s]\n'], ...                    
                     this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
             end
-            
         end
         
         function setCheckBox(this, name_prop, value)

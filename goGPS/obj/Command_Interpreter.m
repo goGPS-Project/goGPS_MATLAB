@@ -45,10 +45,11 @@ classdef Command_Interpreter < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant, GetAccess = private)
-        OK       = 0;   % No errors
-        ERR_UNK  = 1;   % Command unknown
-        ERR_NEI  = 2;   % Not Enough Input Parameters
-        WRN_TMI  = -3;  % Too Many Inputs
+        OK       = 0;    % No errors
+        ERR_UNK  = 1;    % Command unknown
+        ERR_NEI  = 2;    % Not Enough Input Parameters
+        WRN_TMI  = -3;   % Too Many Inputs
+        WRN_MPT  = -100; % Command empty
         
         STR_ERR = {'Commad unknown', ...
             'Not enough input parameters', ...
@@ -407,7 +408,7 @@ classdef Command_Interpreter < handle
                         rec_par = cmd.rec(1);
                     end
                     str = sprintf('%s %s\n', str, rec_par);
-                end                                
+                end
                 
                 if ~isempty(cmd.par)
                     str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
@@ -415,7 +416,7 @@ classdef Command_Interpreter < handle
                         str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
                     end
                 end
-            str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
+                str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
             end
             for c = 1 : numel(this.KEY_LIST)
                 cmd = this.(sprintf('KEY_%s', this.KEY_LIST{c}));
@@ -446,21 +447,42 @@ classdef Command_Interpreter < handle
                         str = sprintf('%s%s%s\n', str, ones(1, 15) * ' ', cmd.par(p).descr);
                     end
                 end
-            str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
+                str = sprintf('%s\n--------------------------------------------------------------------------------\n', str);
             end
             
             str = sprintf(['%s\n   Note: "T" refers to Target receiver' ...
                 '\n         "R" refers to reference receiver' ...
                 '\n         Receivers can be identified with their id (as defined in "obs_name")' ...
-                '\n         It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)' ...
-                '\n\n         Command example: cmd_001 = "LOAD T*"' ...
-                '\n                          cmd_002 = "AZEL T*"' ...
-                '\n                          cmd_003 = "KEEP T* @30s -s=G -q=40 -e=10"' ...
-                '\n                          cmd_004 = "PREPRO T*"' ...
-                '\n                          cmd_005 = "PPP T*"' ...
-                '\n                          cmd_006 = "SHOW T* ALL"' ...
+                '\n         It is possible to provide multiple receivers (e.g. T* or T1:4 or T1,3:5)\n' ...
                 ], str);
             
+        end
+        
+        function str = getExamples(this)
+            % Get a string containing the "examples" of processing
+            %
+            % SYNTAX:
+            %   str = this.getHelp()
+            str = sprintf(['# PPP processing', ...
+                '\n# @30 seconds rate GPS GALILEO', ...
+                '\n\n FOR S*' ...
+                '\n    LOAD T* @30s -s=GE', ...
+                '\n    PREPRO T*', ...
+                '\n    PPP T*', ...
+                '\n ENDFOR', ...
+                '\n SHOW T* ZTD', ...
+                '\n\n# Network undifferenced processing', ...
+                '\n# @5 seconds rate GPS only', ...
+                '\n# processing sessions from 5 to 10', ...
+                '\n# using receivers 1,2 as reference\n# for the mean', ...                
+                '\n\n FOR S5:10' ...
+                '\n    LOAD T* @30s -s=G', ...
+                '\n    PREPRO T*', ...
+                '\n    PPP T1:2', ...
+                '\n    NET T* R1,2', ...
+                '\n ENDFOR', ...
+                '\n SHOW T* MAP', ...
+                '\n EXPORT T* TRP_SNX']);
         end
     end
     %
@@ -1247,26 +1269,30 @@ classdef Command_Interpreter < handle
             %  [cmd, err, id] = getCommandValidity(this, str_cmd)
             err = 0;
             tok = regexp(str_cmd,'[^ ]*', 'match');
-            str_cmd = tok{1};
-            id = this.CMD_ID((strcmp(str_cmd, this.VALID_CMD)));
-            if isempty(id)
-                cmd = [];
-                err = this.ERR_UNK; % command unknown
+            cmd = [];
+            id = [];
+            if isempty(tok)
+                err = this.WRN_MPT; % no command found
             else
-                if id > numel(this.CMD_LIST)
-                    cmd = this.(sprintf('KEY_%s', this.KEY_LIST{id - numel(this.CMD_LIST)}));
+                str_cmd = tok{1};
+                id = this.CMD_ID((strcmp(str_cmd, this.VALID_CMD)));
+                if isempty(id)
+                    err = this.ERR_UNK; % command unknown
                 else
-                    cmd = this.(sprintf('CMD_%s', this.CMD_LIST{id}));
+                    if id > numel(this.CMD_LIST)
+                        cmd = this.(sprintf('KEY_%s', this.KEY_LIST{id - numel(this.CMD_LIST)}));
+                    else
+                        cmd = this.(sprintf('CMD_%s', this.CMD_LIST{id}));
+                    end
+                    if ~isfield(cmd, 'sss')
+                        cmd.sss = '';
+                    end
+                    if numel(tok) < (1 + numel(cmd.rec))
+                        err = this.ERR_NEI; % not enough input parameters
+                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.sss))
+                        err = this.WRN_TMI; % too many input parameters
+                    end
                 end
-                if ~isfield(cmd, 'sss')
-                    cmd.sss = '';
-                end
-                if numel(tok) < (1 + numel(cmd.rec))
-                    err = this.ERR_NEI; % not enough input parameters
-                elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.sss))
-                    err = this.WRN_TMI; % too many input parameters
-                end
-                
             end
         end
     end
@@ -1285,7 +1311,7 @@ classdef Command_Interpreter < handle
             %   err         error list
             %
             % SYNTAX
-            %  [cmd, err_list, execution_block, sss_list, sss_lev] = getCommandValidity(this, str_cmd)
+            %  [cmd, err_list, execution_block, sss_list, sss_lev] = fastCheck(this, cmd_list)
             if nargout > 3
                 state = Global_Configuration.getCurrentSettings;
             end
@@ -1318,7 +1344,7 @@ classdef Command_Interpreter < handle
                 if err_list(c) > 0
                     this.log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
-                if err_list(c) < 0
+                if err_list(c) < 0 && err_list(c) > -100
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
                 execution_block(c) = sss_id_counter;

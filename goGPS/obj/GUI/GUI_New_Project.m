@@ -181,7 +181,7 @@ classdef GUI_New_Project < handle
             
             % Folder
             [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [120 -1 25]);                      
-            dir_base.String = [fnp.getFullDirPath(([this.state.getHomeDir, '..' filesep])) filesep];
+            dir_base.String = [fnp.getFullDirPath((fullfile(this.state.getHomeDir, '..'))) filesep];
             this.dir_base = dir_base;
             
             % Project Name
@@ -211,7 +211,7 @@ classdef GUI_New_Project < handle
             
             exit_but = uicontrol( 'Parent', bottom_bhl, ...
                 'String', 'Cancel', ...
-                'Callback', @this.close); %#ok<NASGU>
+                'Callback', @this.close); %#ok<NASGU> 
             
             ok_but = uicontrol( 'Parent', bottom_bhr, ...
                 'String', 'ok', ...

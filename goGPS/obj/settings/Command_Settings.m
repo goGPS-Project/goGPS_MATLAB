@@ -70,6 +70,14 @@ classdef Command_Settings < Settings_Interface
     %  INTERFACE REQUIREMENTS
     % =========================================================================
     methods
+        function importPlainCommands(this, txt)
+            log = Logger.getInstance;
+            ci = Command_Interpreter.getInstance();
+            n_cmd = size(txt, 1);
+            [cmd, err_list] = ci.fastCheck(txt);
+            this.cmd_list = cmd;
+        end
+        
         function import(this, settings)
             % This function import Mode (only) settings from another setting object
             %
@@ -135,7 +143,6 @@ classdef Command_Settings < Settings_Interface
             if (nargin == 1)
                 str_cell = {};
             end
-            
             str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
             str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);
@@ -146,8 +153,60 @@ classdef Command_Settings < Settings_Interface
                 str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), this.cmd_list{l}, str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-
         end
+        
+        function str_cell = exportCmdListHelp(this, str_cell)
+            % Conversion to string ini format of the help
+            %
+            % SYNTAX:
+            %   str_cell = this.exportCmdListHelp(str_cell);
+            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            
+            cmd = Command_Interpreter.getInstance();
+            % To be moved in the manual in the future
+            str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
+        end
+        
+        function str_cell = exportCmdListExamples(this, str_cell)
+            % Conversion to string ini format of the example list
+            %
+            % SYNTAX:
+            %   str_cell = this.exportCmdListExamples(str_cell);
+            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            
+            cmd = Command_Interpreter.getInstance();
+            % To be moved in the manual in the future
+            str_cell = strrep(cmd.getExamples,'#','%');
+        end
+        
+        function str_cell = exportCmdList(this, str_cell)
+            % Conversion to string ini format of the command list
+            %
+            % SYNTAX:
+            %   str_cell = this.export(str_cell);
+            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            
+            cmd = Command_Interpreter.getInstance();
+            [~, err_list, ~, ~, sss_lev] = cmd.fastCheck(this.cmd_list);
+            % find how to indent commands:
+            sss_lev = sss_lev - (diff([0 sss_lev]) > 0);
+            this.cmd_list = this.cmd_list(~err_list);
+            % To be moved in the manual in the future            
+            for l = 1 : numel(this.cmd_list)
+                str_cell = [str_cell; {sprintf('%s%s', char(32 * ones(1,3 * sss_lev(l))), strtrim(this.cmd_list{l}))}];
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+        
     end
    
     % =========================================================================
