@@ -92,7 +92,7 @@ classdef Least_Squares_Manipulator < handle
         %                     9 : tropo inclination east ]
         param_flag          % 0: constant in time always same param, -1: constant in time differents param (e.g ambiguity), 1: same param changing epochwise
         time_regularization % [ param_class time_varability] simple time regularization constructed from psudo obs p_ep+1 - p_ep = 0 with given accuracy
-        mean_regularization 
+        mean_regularization
         true_epoch          % true epoch of the epoch-wise paramters
         rec_time_idxes      % for each receiver tell which epochof the common time are used
         rate                % rate of the true epoch
@@ -117,7 +117,7 @@ classdef Least_Squares_Manipulator < handle
         
         rf          % reference frame
         
-        state       % link to the current settings        
+        state       % link to the current settings
         cc          % link to the current constellation collector
         
         log         % link to the logger
@@ -131,7 +131,7 @@ classdef Least_Squares_Manipulator < handle
         
         function init(this)
             % Init the singletons (create links)
-            % 
+            %
             % SYNTAX
             %   this.init();
             this.state = Global_Configuration.getCurrentSettings();
@@ -224,7 +224,7 @@ classdef Least_Squares_Manipulator < handle
                     for sys_c = rec.cc.sys_c
                         f = rec.getFreqs(sys_c);
                         for i = 1 : length(obs_type)
-                            obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c)); 
+                            obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
                         end
                     end
                     idx_ph = obs_set.obs_code(:, 2) == 'L';
@@ -403,7 +403,7 @@ classdef Least_Squares_Manipulator < handle
             % separte antenna phase centers
             apc_flag = this.state.isSeparateApc() & phase_present ;
             n_apc = 3 * n_iob * apc_flag;
-            apc_p_idx =  zeros(length(obs_set.wl),3); 
+            apc_p_idx =  zeros(length(obs_set.wl),3);
             u_sys_c = unique(obs_set.obs_code(:,1));
             idx_gps = u_sys_c == 'G';
             if sum(idx_gps) > 0 % put gps in first position if presetn
@@ -494,14 +494,14 @@ classdef Least_Squares_Manipulator < handle
                 % ----------- Separate antenna phase centers ------------------
                 if n_apc > 0
                     if obs_set.obs_code(s,1) ~= u_sys_c(1)
-                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;  
+                        A(lines_stream, prog_p_col + ( 1 : 3)) = - los_stream;
                     end
                     A_idx(lines_stream,prog_p_col + ( 1 : 3)) = repmat(apc_p_idx(s,:),length(lines_stream),1);
                     prog_p_col = prog_p_col +3;
                 end
                 % ----------- Abiguity ------------------
                 if phase_present
-                     prog_p_col = prog_p_col + 1;
+                    prog_p_col = prog_p_col + 1;
                     if not(flag_amb_fix)
                         A(lines_stream, prog_p_col) = 1;%obs_set.wl(s);
                     else
@@ -540,20 +540,20 @@ classdef Least_Squares_Manipulator < handle
             if phase_present
                 % Ambiguity set
                 %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-%                 if ~flag_amb_fix
-%                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
-%                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
-                    % setting the first clock of each connected set of arc to 0
-                    system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                %                 if ~flag_amb_fix
+                %                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
+                %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
+                % setting the first clock of each connected set of arc to 0
+                system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                clock_const = zeros(1,n_clocks);
+                clock_const([1]) = 1;
+                G = [zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const];
+                for i = 1: length(system_jmp)
                     clock_const = zeros(1,n_clocks);
-                    clock_const([1]) = 1;
-                    G = [zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const];
-                    for i = 1: length(system_jmp)
-                        clock_const = zeros(1,n_clocks);
-                        clock_const(system_jmp(i)+1) = 1;
-                        G = [G ;[zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const]];
-                    end
-%                 end
+                    clock_const(system_jmp(i)+1) = 1;
+                    G = [G ;[zeros(1, n_coo + n_iob + n_apc)  zeros(1,n_amb)  clock_const]];
+                end
+                %                 end
                 if tropo
                     G = [G zeros(size(G,1), n_clocks)];
                 end
@@ -625,7 +625,7 @@ classdef Least_Squares_Manipulator < handle
                 obs_set_lst(i).keepEpochs(idx);
                 idxes(idxes(:,i)~=0,i) = 1 : length(idx);
             end
-            % get the oneravtion euation for each receiver
+            % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
@@ -935,20 +935,20 @@ classdef Least_Squares_Manipulator < handle
                     res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
                 end
             else
-                 res = nan(n_epochs, n_sat, n_rec);
-                 idx_tot = [];
-                 for j = 1 : n_rec
-                     for i = 1:n_sat
-                         idx = this.sat == i & this.receiver_id == j;
-                         ep = this.epoch(idx);
-                         res(this.true_epoch(ep), i, j) = res_l(idx);
-                         idx_tot = [idx_tot; find(idx)];
-                     end
-                 end
-                 av_res = sum(res,3) ./  sum(res ~= 0,3);
-                 res = res - repmat(av_res,1,1,n_rec);
-                 this.res(idx_tot) = res(~isnan(res));
-                 res = nan2zero(res);
+                res = nan(n_epochs, n_sat, n_rec);
+                idx_tot = [];
+                for j = 1 : n_rec
+                    for i = 1:n_sat
+                        idx = this.sat == i & this.receiver_id == j;
+                        ep = this.epoch(idx);
+                        res(this.true_epoch(ep), i, j) = res_l(idx);
+                        idx_tot = [idx_tot; find(idx)];
+                    end
+                end
+                av_res = sum(res,3) ./  sum(res ~= 0,3);
+                res = res - repmat(av_res,1,1,n_rec);
+                this.res(idx_tot) = res(~isnan(res));
+                res = nan2zero(res);
             end
         end
         %-----------------------------------------------
@@ -1025,15 +1025,15 @@ classdef Least_Squares_Manipulator < handle
             if isempty(this.N_ep)
                 this.Astack2Nstack();
             end
-             is_network = this.network_solution;
+            is_network = this.network_solution;
             u_r = unique(this.receiver_id);
             n_rec = length(u_r);
             idx_rec_common_l = this.param_flag == 2;
             N = [];
             B = [];
-            A2N_idx_tot = []; 
-            for k = 1 : length(u_r)
-                idx_r_l = this.receiver_id == u_r(k);
+            A2N_idx_tot = [];
+            for r = 1 : length(u_r)
+                idx_r_l = this.receiver_id == u_r(r);
                 idx_r = find(idx_r_l);
                 A_rec = this.A_idx(idx_r_l, ~idx_rec_common_l);
                 idx_constant_l = this.param_flag(~idx_rec_common_l) == 0 | this.param_flag(~idx_rec_common_l) == -1;
@@ -1051,10 +1051,10 @@ classdef Least_Squares_Manipulator < handle
                 if isempty(n_ep_wise)
                     n_ep_wise = 0;
                 end
-  
-                n_epochs = this.n_epochs(k);
-                if  is_network 
-                    u_ep = unique(this.epoch(this.receiver_id == k));
+                
+                n_epochs = this.n_epochs(r);
+                if  is_network
+                    u_ep = unique(this.epoch(this.receiver_id == r)); % <- consider not using unique
                     r2p_ep = zeros(u_ep(end),1);
                     r2p_ep(u_ep) = 1: length(u_ep);
                 else
@@ -1149,25 +1149,25 @@ classdef Least_Squares_Manipulator < handle
                 d_N_rec = size(N_rec,1);
                 N = [ [N sparse(d_N, d_N_rec)]; [sparse(d_N_rec, d_N)  N_rec]];
                 B = [B; B_rec];
-                if k > 1
+                if r > 1
                     A2N_idx = A2N_idx +max(A2N_idx_tot);
                 end
-                A2N_idx_tot = [A2N_idx_tot; A2N_idx]; 
+                A2N_idx_tot = [A2N_idx_tot; A2N_idx];
             end
             
-           
+            
             
             if is_network
                 n_obs = size(this.A_idx,1);
                 % create the part of the normal that considers common parameters
                 
                 
-                 a_idx_const =unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
-                    a_idx_const(a_idx_const == 0) = [];
-                    a_idx_ep_wise = unique(this.A_idx(this.receiver_id == 1, idx_ep_wise));
-                    a_idx_ep_wise(a_idx_ep_wise == 0) = [];
-                    
-                    N2A_idx = [ a_idx_const; a_idx_ep_wise];
+                a_idx_const =unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
+                a_idx_const(a_idx_const == 0) = [];
+                a_idx_ep_wise = unique(this.A_idx(this.receiver_id == 1, idx_ep_wise));
+                a_idx_ep_wise(a_idx_ep_wise == 0) = [];
+                
+                N2A_idx = [ a_idx_const; a_idx_ep_wise];
                 %mix the reciver indexes
                 par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                 A_idx_not_mix = this.A_idx;
@@ -1223,17 +1223,17 @@ classdef Least_Squares_Manipulator < handle
                 idx_full = N_stack_idx~=0;
                 Nreccom = sparse(line_idx(idx_full), N_stack_idx(idx_full), N_stack_comm(idx_full), n_common,n_par);
                 % add the rank deficency considtion
-%                 1) sum of the satellites clock == 0
-%                 Nreccom = [Nreccom ones(n_common,1)];
-%                 B = [B; 0];
-%                 N = [[N ; zeros(1,n_par)] zeros(n_par+1,1)];
+                %                 1) sum of the satellites clock == 0
+                %                 Nreccom = [Nreccom ones(n_common,1)];
+                %                 B = [B; 0];
+                %                 N = [[N ; zeros(1,n_par)] zeros(n_par+1,1)];
                 i_diag_comm = 1 ./ diag_comm;
                 i_diag_comm = spdiags(i_diag_comm,0, n_common,n_common);
                 rNcomm = Nreccom'*i_diag_comm;
                 
-                N = N - rNcomm*Nreccom;
+                N = N - rNcomm*Nreccom; % N11r = N11 - N21 * inv(N22) * N12
                 
-                B = B - rNcomm*B_comm;
+                B = B - rNcomm*B_comm;  % B1r = N1 - N21 * inv(N22) * B2
                 
                 
                 
@@ -1257,7 +1257,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 
                 idx_amb_rm = [];
-                % 4)remove one ambiguity per satellite form the firs receiver 
+                % 4)remove one ambiguity per satellite form the firs receiver
                 for i = 1 :length(u_sat)
                     jmp_idx = [1 ; find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1];
                     end_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == 1) + 1;
@@ -1284,7 +1284,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
                 for i = 2 : n_rec
-                    jmps = [1*ones(i>1) this.amb_set_jmp{i}']; 
+                    jmps = [1*ones(i>1) this.amb_set_jmp{i}'];
                     for j = 1 : length(jmps)
                         jmp = jmps(j);
                         jmp2 = jmps(min(j+1,length(jmps)));
@@ -1300,12 +1300,12 @@ classdef Least_Squares_Manipulator < handle
                         idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
                 end
-                idx_rm = unique(idx_rm);
                 idx_rm = [idx_rm ; idx_amb_rm];
+                idx_rm = unique(idx_rm);
                 N(idx_rm, :) = [];
                 N(:, idx_rm) = [];
                 B(idx_rm) = [];
-
+                
             end
             if ~isempty(this.G)
                 if ~is_network
@@ -1453,8 +1453,8 @@ classdef Least_Squares_Manipulator < handle
                     xe = x(idx_est);
                     amb = xe(idx_amb_par,1);
                     
-%                     wl =  ones(size(amb)) * GPS_SS.L_VEC(1);
-%                     amb = amb./wl;
+                    %                     wl =  ones(size(amb)) * GPS_SS.L_VEC(1);
+                    %                     amb = amb./wl;
                     idx_fix = fracFNI(amb) < 0.1;
                     amb_fix = round(amb);
                     
@@ -1465,7 +1465,7 @@ classdef Least_Squares_Manipulator < handle
                             B = B - Ni* ( b_if_fix);
                         end
                     end
-                     
+                    
                     
                     B(idx_amb_par(idx_fix)) = [];
                     N(idx_amb_par(idx_fix),:) = [];
@@ -1480,7 +1480,7 @@ classdef Least_Squares_Manipulator < handle
                     xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
                     
                     
-
+                    
                     x(idx_est) = xf;
                     
                 end
@@ -1495,17 +1495,17 @@ classdef Least_Squares_Manipulator < handle
                 end
             end
             x = [x, x_class];
-            % restore old Idx 
-        if is_network
-            this.A_idx = A_idx_not_mix;
-            x_rec = ones(size(x,1),1);
-            id_rec = find(diff(x_class) < 0);
-            for i = 1 : length(id_rec)
-                idx = id_rec(i)+1;
-                x_rec(idx:end) = i+1;
+            % restore old Idx
+            if is_network
+                this.A_idx = A_idx_not_mix;
+                x_rec = ones(size(x,1),1);
+                id_rec = find(diff(x_class) < 0);
+                for i = 1 : length(id_rec)
+                    idx = id_rec(i)+1;
+                    x_rec(idx:end) = i+1;
+                end
+                x = [x, x_rec];
             end
-            x = [x, x_rec];
-        end
         end
         
         function reduceNormalEquation(this, keep_param)
@@ -1584,7 +1584,7 @@ classdef Least_Squares_Manipulator < handle
                     presence_idx = idx_pos(presence_idx);
                     presence_mat(presence_idx,j) = presence_mat(presence_idx,j) + 1;
                 end
-         
+                
             end
             
             % remove not useful observations
@@ -1624,7 +1624,7 @@ classdef Least_Squares_Manipulator < handle
                         sat_jmp_idx(idx_pos(idx_is),i) =  sat_jmp_idx(idx_pos(idx_is),i) & idx_rec(idx_is);
                     end
                 end
-            end           
+            end
         end
     end
 end
