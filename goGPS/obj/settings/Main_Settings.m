@@ -2881,7 +2881,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             elseif strcmpi(ext,'.CRX')
             elseif strcmpi(ext,'.apl')
                 this.setAtmLoadFile(filename);
-            elseif (~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i'))  && ~isempty(strfind(resouce_name,'iono'))
+            elseif (~isempty(regexp(ext,'\.\d\di', 'once')) || strcmpi(ext,'.${YY}i') || strcmpi(ext,'.${YY}p'))  && ~isempty(strfind(resouce_name,'iono'))
                 this.setIonoFile(filename);
             elseif strcmpi(ext,'.DCB') || (strcmpi(ext,'.SNX') && strcmpi(name(1:3),'DCB'))
                 this.setDcbFile(filename);

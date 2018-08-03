@@ -164,6 +164,11 @@ classdef Core_Sky < handle
                     this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
                 end
                 
+                if this.state.iono_model == 2 & (this.state.iono_management == 3 || this.state.flag_apr_iono)
+                    f_name = this.state.getIonoFileName(start_date, stop_date);
+                    this.importIono(f_name{1});
+                end
+                
                 if not(clock_in_eph)
                     this.log.addMarkedMessage('Importing satellite clock files...');
                     for i = 1:length(clock_f_name)
