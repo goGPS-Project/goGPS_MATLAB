@@ -45,14 +45,14 @@ classdef Network < handle
         rec_list
         state
         
-        common_time % gps_time
+        common_time      % gps_time
         rec_time_indexes % indexes
-        coo    % [n_coo x n_rec] receiver coordinates
-        clock  % [n_epoch x n_rec] reciever clock
-        ztd    % [n_epoch x n_rec] reciever ZTD
-        ztd_gn % [n_epoch x n_rec] reciever ZTD gradients north
-        ztd_ge % [n_epoch x n_rec] reciever ZTD gradients east
-        amb    % {n_rec} recievers ambiguity
+        coo              % [n_coo x n_rec] receiver coordinates
+        clock            % [n_epoch x n_rec] reciever clock
+        ztd              % [n_epoch x n_rec] reciever ZTD
+        ztd_gn           % [n_epoch x n_rec] reciever ZTD gradients north
+        ztd_ge           % [n_epoch x n_rec] reciever ZTD gradients east
+        amb              % {n_rec} recievers ambiguity
     end
     methods
         function this = Network(rec_list)
@@ -87,39 +87,43 @@ classdef Network < handle
             
             %---- fill the values in the network
             for i = 1 : n_rec;
-                % if all value in the recievra are set to nan iniatlize them to zero
+                % if all value in the receiver are set to nan initilaize them to zero
                 if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
                     this.rec_list(i).work.ztd(:) = 0;
                     this.rec_list(i).work.tge(:) = 0;
                     this.rec_list(i).work.tgn(:) = 0;
                 end
+                % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
                 idx_rec = x(:,3) == i;
                 this.coo(i,:) = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)] + this.rec_list(i).work.xyz;
-                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime,0.002, 'DataScale', 1);
-                clk = [x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1)];
+                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
+                clk = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                 clk_rec = this.rec_list(i).work.getDt();
                 this.clock(idx_pos,i) = clk_rec(idx_is);
                 this.clock(this.rec_time_indexes(:,i) ~= 0,i) = this.clock(this.rec_time_indexes(:,i) ~= 0,i) + clk;
+                
                 if this.state.flag_tropo
-                    ztd = [x(x(:,2) == ls.PAR_TROPO & idx_rec,1)];
+                    ztd = x(x(:,2) == ls.PAR_TROPO & idx_rec,1);
                     ztd_rec = this.rec_list(i).work.getZtd();
                     this.ztd(idx_pos,i) = ztd_rec(idx_is);
                     this.ztd(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd(this.rec_time_indexes(:,i) ~= 0,i) + ztd;
                 end
+                
                 if this.state.flag_tropo_gradient
                     [gn_rec, ge_rec] = this.rec_list(i).work.getGradient();
                      
-                    gn = [x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1)];
+                    gn = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                     this.ztd_gn(idx_pos,i) = gn_rec(idx_is);
                     this.ztd_gn(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd_gn(this.rec_time_indexes(:,i) ~= 0,i) + gn;
                     
-                    ge = [x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1)];
+                    ge = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                     this.ztd_ge(idx_pos,i) = ge_rec(idx_is);
                     this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) + ge;
                 end
             end
-            % --- tranform the result in the desidered free network
-            if nargin > 1 | (idx_ref(1) & sum(idx_ref) == 1)
+            
+            % --- tranform the result in the desired free network
+            if nargin > 1 || (idx_ref(1) && sum(idx_ref) == 1)
                 S = zeros(n_rec);
                 S(:,idx_ref) = - 1 / sum(sum(idx_ref));
                 S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure 
@@ -146,13 +150,12 @@ classdef Network < handle
                     %gradients
                     if this.state.flag_tropo_gradient
                         this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
-                        this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
+                        this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
                     end
                 end
             end
             % --- push back the resulta in the receivers
             for i = 1 : n_rec
-                
                 this.rec_list(i).work.xyz = this.coo(i,:);
                 idx_res_av = ~isnan(this.clock(:,i));
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);

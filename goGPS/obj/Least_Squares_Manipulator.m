@@ -591,22 +591,22 @@ classdef Least_Squares_Manipulator < handle
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
             %
             % OUTPUT:
-            % common_time : common gps time used for the processing 
+            % common_time : common gps time used for the processing
             n_rec = length(rec_list);
             obs_set_lst  = Observation_Set.empty(n_rec,0);
             this.cc = rec_list(1).cc;
-            %--- for each receiver get the onesrvations set
+            %--- for each receiver get one observation set
             for i = 1 : n_rec
                 obs_set_lst(i) = Observation_Set();
-                 if rec_list(i).work.isMultiFreq() && ~rec_list(i).work.state.isIonoExtModel %% case multi frequency
+                if rec_list(i).work.isMultiFreq() && ~rec_list(i).work.state.isIonoExtModel %% case multi frequency
                     for sys_c = rec_list(i).work.cc.sys_c
-                            if this.state.isIonoFree 
-                                obs_set_lst(i).merge(rec_list(i).work.getPrefIonoFree('L', sys_c));
-                            else
-                                obs_set_lst(i).merge(rec_list(i).work.getSmoothIonoFreeAvg('L', sys_c));
-                                obs_set_lst(i).iono_free = true;
-                                obs_set_lst(i).sigma = obs_set_lst(i).sigma * 1.5;
-                            end
+                        if this.state.isIonoFree
+                            obs_set_lst(i).merge(rec_list(i).work.getPrefIonoFree('L', sys_c));
+                        else
+                            obs_set_lst(i).merge(rec_list(i).work.getSmoothIonoFreeAvg('L', sys_c));
+                            obs_set_lst(i).iono_free = true;
+                            obs_set_lst(i).sigma = obs_set_lst(i).sigma * 1.5;
+                        end
                     end
                 else
                     for sys_c = rec_list(i).work.cc.sys_c
@@ -615,8 +615,8 @@ classdef Least_Squares_Manipulator < handle
                     end
                     idx_ph = obs_set_lst(i).obs_code(:, 2) == 'L';
                     obs_set_lst(i).obs(:, idx_ph) = obs_set_lst(i).obs(:, idx_ph) .* repmat(obs_set_lst(i).wl(idx_ph)', size(obs_set_lst(i).obs,1),1);
-                 end
-                obs_set_lst(i).sanitizeEmpty(); 
+                end
+                obs_set_lst(i).sanitizeEmpty();
             end
             % --- intersect the observation set to a common time
             [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
@@ -641,10 +641,10 @@ classdef Least_Squares_Manipulator < handle
                 r = [r; ones(size(y_rec))*i];
                 this.amb_set_jmp{i} = r2c(amb_set_jmp);
             end
-
+            
             p_flag(p_flag == 0) = -1;
             
-           
+            
             this.A_idx = Aidx;
             
             % get the number of used epochs for each receiver
@@ -667,7 +667,7 @@ classdef Least_Squares_Manipulator < handle
             this.receiver_id = r;
             this.sat_jmp_idx = sat_jmp_idx;
             
-            this.network_solution = true; 
+            this.network_solution = true;
             common_time = GPS_Time.fromGpsTime(common_gps_time);
             
         end
@@ -1536,6 +1536,7 @@ classdef Least_Squares_Manipulator < handle
             % OUTPUT:
             % resulting_gps_time = common time in gpstime (double)
             % idxe = double [n_time, n_obs_set] indx to which the commontimes correnspond in each ob_set_time
+            % sat_jmp_idx = [n_time, n_sat] index of all satellite jumping
             
             % get min time, max time, and min common rate
             n_rec = length(obs_set_lst);
@@ -1544,9 +1545,9 @@ classdef Least_Squares_Manipulator < handle
             rate = zeros(n_rec,1);
             n_sat = 0;
             for i = 1 : n_rec
-                % note: excluding receivers that wiche samples are shifted w.r.t. the start of the minute e.g -> sampling rate of 30 s starting at 5s and 35s of the minute
+                % note: excluding receivers which samples are shifted w.r.t. the start of the minute e.g -> sampling rate of 30 s starting at 5s and 35s of the minute
                 tmp_rate = obs_set_lst(i).time.getRate();
-                if median(fracFNI(obs_set_lst(i).time.getSecond()/ tmp_rate)*tmp_rate,95) > 1 % if more than 50 percent of the samples are shifted of more than one second fromstart of the minute skip the receiver
+                if median(fracFNI(obs_set_lst(i).time.getSecond()/ tmp_rate)*tmp_rate) > 1 % if more than 50 percent of the samples are shifted of more than one second fromstart of the minute skip the receiver
                     rate(i) = -1;
                     this.log.addWarning(sprintf('Receiver %d sample are shifted from start of the minute, skipping',i));
                 else
@@ -1560,7 +1561,7 @@ classdef Least_Squares_Manipulator < handle
             loop = true;
             while (loop) % find the minimum rate common to at least 2 receivers
                 min_rate = min(rate);
-                rate_idx = rate == min_rate;
+                rate_idx = rate <= min_rate;
                 if sum(rate_idx) > 1
                     loop = false;
                 else
@@ -1570,6 +1571,7 @@ classdef Least_Squares_Manipulator < handle
             % for each receiver check which time of the common time are present
             resulting_gps_time = min_gps_time : min_rate : max_gps_time;
             idxes = zeros(length(resulting_gps_time), n_rec);
+            % number of reciever seeing a satellite per epoch
             presence_mat = zeros(length(resulting_gps_time),n_sat);
             for i = 1 : n_rec
                 [idx_is, idx_pos] = ismembertol(obs_set_lst(i).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
@@ -1584,7 +1586,6 @@ classdef Least_Squares_Manipulator < handle
                 end
          
             end
-            idx_rem = sum(presence_mat > 1, 2) == 0;
             
             % remove not useful observations
             for i = 1 : n_rec
@@ -1595,22 +1596,24 @@ classdef Least_Squares_Manipulator < handle
                     idx = idxes(idx,i);
                     idx(idx==0) = [];
                     idx_rm(idx,obs_set_lst(i).go_id == j) = true;
-                    % gte one epoch arcs
+                    % get one epoch arcs
                     [flag_intervals] = getOutliers(presence_mat(:,j)>1);
-                    signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
-                    idx = idxes(flag_intervals(signle_arcs,1));
+                    single_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
+                    idx = idxes(flag_intervals(single_arcs,1));
                     idx(idx==0) = [];
                     idx_rm(idx, obs_set_lst(i).go_id == j) = true;
                 end
                 obs_set_lst(i).remObs(idx_rm, false);
                 %obs_set_lst(i).remShortArc();
             end
+            
+            
+            % -- reomving epoch for which no satellite is seen by at least teo receivers
             idx_rem = sum(presence_mat > 1, 2) == 0;
-            
-            
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
             
+            % --- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx =  true(length(resulting_gps_time),n_sat);
             for i = 1 : n_sat
                 for j = 1 : n_rec
@@ -1621,18 +1624,7 @@ classdef Least_Squares_Manipulator < handle
                         sat_jmp_idx(idx_pos(idx_is),i) =  sat_jmp_idx(idx_pos(idx_is),i) & idx_rec(idx_is);
                     end
                 end
-            end
-%             for i = 1 : n_rec
-%                 idx_rm = false(size(obs_set_lst(i).obs));
-%                 for j = 1 : n_sat
-%                     gte one epoch arcs
-%                     [flag_intervals] = getOutliers(sat_jmp_idx(:,j)==0);
-%                     signle_arcs = (flag_intervals(:,1) - flag_intervals(:,2)) == 0;
-%                     idx_rm(idxes(flag_intervals(signle_arcs,1),i),obs_set_lst(i).go_id == j) = true;
-%                 end
-%                 obs_set_lst(i).remObs(idx_rm, false);
-%             end
-            
+            end           
         end
     end
 end
