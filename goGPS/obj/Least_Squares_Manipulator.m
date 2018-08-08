@@ -927,25 +927,25 @@ classdef Least_Squares_Manipulator < handle
             n_epochs = max(this.true_epoch);
             n_sat = max(this.sat_go_id);
             n_rec = max(this.receiver_id);
-            if ~this.network_solution;
+            if ~this.network_solution
                 res = zeros(n_epochs, n_sat);
-                for i = 1:length(this.sat_go_id)
-                    idx = this.sat == i;
+                for s = 1 : length(this.sat_go_id)
+                    idx = this.sat == s;
                     ep = this.epoch(idx);
-                    res(this.true_epoch(ep), this.sat_go_id(i)) = res_l(idx);
+                    res(this.true_epoch(ep), this.sat_go_id(s)) = res_l(idx);
                 end
             else
                 res = nan(n_epochs, n_sat, n_rec);
                 idx_tot = [];
-                for j = 1 : n_rec
-                    for i = 1:n_sat
-                        idx = this.sat == i & this.receiver_id == j;
+                for r = 1 : n_rec
+                    for s = 1 : n_sat
+                        idx = this.sat == s & this.receiver_id == r;
                         ep = this.epoch(idx);
-                        res(this.true_epoch(ep), i, j) = res_l(idx);
+                        res(this.true_epoch(ep), s, r) = res_l(idx);
                         idx_tot = [idx_tot; find(idx)];
                     end
                 end
-                av_res = sum(res,3) ./  sum(res ~= 0,3);
+                av_res = sum(res, 3, 'omitnan') ./  sum(~isnan(zero2nan(res)),3);
                 res = res - repmat(av_res,1,1,n_rec);
                 this.res(idx_tot) = res(~isnan(res));
                 res = nan2zero(res);
