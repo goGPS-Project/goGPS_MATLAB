@@ -393,6 +393,30 @@ classdef GNSS_Station < handle
                 enu{r} = sta_list(r).out.getPosENU();
             end
         end
+        
+        function [enu, p_time] = getPosENU_mr(sta_list)
+            % return the positions computed for n receivers
+            % multi_rec mode (synced)
+            %
+            % OUTPUT
+            %   enu     enu synced coordinates
+            %
+            % SYNTAX
+            %   enu = sta_list.getPosENU_mr()
+            [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(sta_list, [], true);
+            
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+            
+            n_rec = numel(sta_list);
+            enu = nan(size(id_sync, 1), 3, n_rec);
+            for r = 1 : n_rec
+                enu_rec = sta_list(r).out.getPosENU();
+                id_rec = id_sync(:,r);
+                enu(~isnan(id_rec), :, r) = enu_rec(~isnan(id_rec), :);
+            end
+        end
     
         function xyz = getMedianPosXYZ(this)
             % return the computed median position of the receiver
