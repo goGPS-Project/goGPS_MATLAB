@@ -374,6 +374,9 @@ classdef Core < handle
             % 
             % EXAMPLE
             %   core.exec({'LOAD T*', 'PREPRO T*', 'PPP T*'})
+            if nargin < 3 || isempty(level)
+                level = zeros(size(cmd_list,1), 1);
+            end
             this.cmd.exec(this.rec, cmd_list, level);
         end
     end

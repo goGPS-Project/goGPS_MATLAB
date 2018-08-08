@@ -224,8 +224,7 @@ classdef GNSS_Station < handle
             for r = 1 : numel(sta_list)
                 is_empty(r) =  sta_list(r).out.isEmpty();
             end
-        end
-        
+        end        
         
         function is_empty = isEmpty(this)
             % Return if the object does not cantains any observation
@@ -471,7 +470,7 @@ classdef GNSS_Station < handle
             this(1).log.addMessage(this(1).log.indent('using ocean tide model FES2004'));
             this(1).log.addMessage(this(1).log.indent('select also to compensate the values for the motion'));            
             this(1).log.addMessage(this(1).log.indent('Use the following string for the staion locations:'));
-            this(1).log.addMessage('//------------------------------------------------------------------------');
+            this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
 
             for r = 1 : size(this, 2)
                 rec = this(~this(:,r).isEmpty, r);
@@ -480,11 +479,11 @@ classdef GNSS_Station < handle
                     if isempty(xyz)
                         xyz = rec.work.getMedianPosXYZ();
                     end                        
-                    fprintf('%-24s %16.4f%16.4f%16.4f\n', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3));
+                    this(1).log.addMessage([char(8) sprintf('%-24s %16.4f%16.4f%16.4f', rec(1).getMarkerName4Ch, xyz(1), xyz(2),xyz(3))]);
                 end
             end
             
-            this(1).log.addMessage('//------------------------------------------------------------------------');
+            this(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);
         end
         
         function [ztd, p_time, id_sync] = getZtd_mr(sta_list)
@@ -794,7 +793,17 @@ classdef GNSS_Station < handle
                     end
                 end
             end
-        end      
+        end
+        
+        function bsl_ids = getBaselineId(n_rec)
+            % Get id of all the combinations of the stations
+            %
+            % SYNTAX:
+            %   bsl_id = GNSS_Station.getBaselineId(n_rec);
+            [r1, r2] = meshgrid(1 : n_rec, 1 : n_rec);
+            bsl_ids = [serialize(tril(r1, -1)) serialize(tril(r2, -1))];
+            bsl_ids = bsl_ids(bsl_ids(:, 1) > 0 & bsl_ids(:, 2) > 0, :);
+        end
     end
     
     %% METHODS PLOTTING FUNCTIONS
@@ -914,9 +923,9 @@ classdef GNSS_Station < handle
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
-        end % --> ask andrea
+        end % ==> ask Andrea? Andrea say: "what?"
         
-        function showScatteredMap(lat, lon, s_time, data);
+        function showScatteredMap(lat, lon, s_time, data) % todo
             
         end
             
@@ -1248,6 +1257,110 @@ classdef GNSS_Station < handle
                 else
                     this.out.showZtdSlantRes_p(time_start, time_stop)
                 end
+            end
+        end
+ 
+        function showBaselineENU(sta_list, baseline_ids, plot_relative_variation, one_plot)
+            % Function to plot baseline between 2 or more stations
+            %
+            % INPUT:
+            %   sta_list                 list of GNSS_Station objects
+            %   baseline_ids             n_baseline x 2 - couple of id in sta_list to be used
+            %   plot_relative_variation  show full baseline dimension / variation wrt the median value 
+            %   one_plot                 use subplots (E, N, U) or a single plot
+            %
+            % SYNTAX
+            %   showBaselineENU(sta_list, <baseline_ids = []>, <plot_relative_variation = true>, <one_plot = false>)
+            %
+            
+            if (nargin < 4) || isempty(one_plot)
+                one_plot = false;
+            end
+            if (nargin < 3) || isempty(plot_relative_variation)
+                plot_relative_variation = true;
+            end
+            if nargin < 2 || isempty(baseline_ids)
+                n_rec = numel(sta_list);
+                baseline_ids = GNSS_Station.getBaselineId(n_rec);
+            end
+            
+            for b = 1 : size(baseline_ids, 1)
+                rec = sta_list(baseline_ids(b, :));
+                if ~isempty(rec(1)) && ~isempty(rec(2))
+                    [enu, time] = rec.getPosENU_mr();
+                    if size(enu, 1) > 1
+                        rec(1).log.addMessage('Plotting positions');
+                        
+                        % prepare data
+                        baseline = diff(enu, 1, 3);
+                        if plot_relative_variation
+                            baseline = bsxfun(@minus, baseline, median(baseline, 'omitnan')) * 1e2;
+                        end
+                        t = time.getMatlabTime();
+                        
+                        f = figure; f.Name = sprintf('%03d: BSL ENU %s - %s', f.Number, rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch); f.NumberTitle = 'off';
+                        color_order = handle(gca).ColorOrder;
+                        
+                        if ~one_plot, subplot(3,1,1); end
+                        plot(t, baseline(:, 1), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
+                        ax(3) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        if plot_relative_variation
+                            h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                        else
+                            h = ylabel('East [m]'); h.FontWeight = 'bold';
+                        end
+                        grid on;
+                        h = title(sprintf('Baseline %s - %s', rec(1).getMarkerName4Ch, rec(2).getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        if ~one_plot, subplot(3,1,2); end
+                        plot(t, baseline(:, 2), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
+                        ax(2) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        if plot_relative_variation
+                            h = ylabel('North [cm]'); h.FontWeight = 'bold';
+                        else
+                            h = ylabel('North [m]'); h.FontWeight = 'bold';
+                        end
+
+                        grid on;
+                        if ~one_plot, subplot(3,1,3); end
+                        plot(t, baseline(:,3), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
+                        ax(1) = gca();
+                        if (t(end) > t(1))
+                            xlim([t(1) t(end)]);
+                        end
+                        setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
+                        if plot_relative_variation
+                            h = ylabel('Up [cm]'); h.FontWeight = 'bold';
+                        else
+                            h = ylabel('Up [m]'); h.FontWeight = 'bold';
+                        end
+                        
+                        grid on;
+                        if one_plot
+                            if plot_relative_variation
+                                h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
+                            else
+                                h = ylabel('ENU [m]'); h.FontWeight = 'bold';
+                            end                            
+                            legend({'East', 'North', 'Up'}, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                            
+                        else
+                            linkaxes(ax, 'x');
+                        end
+                        grid on;
+                        
+                    else
+                        rec(1).log.addMessage('Plotting a single point static position is not yet supported');
+                    end
+                end
+                
             end
         end
     end 
