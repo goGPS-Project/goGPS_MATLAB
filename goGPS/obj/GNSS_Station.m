@@ -602,32 +602,44 @@ classdef GNSS_Station < handle
             % Setter multi_receiver to change filtering windows size for slant export
             % SYNTAX
             %   this.setSlantFilterSize(win_size)
-            for r = 1:numel(this)
+            for r = 1 : numel(this)
                 this(r).slant_filter_win = win_size;
             end
-    end
+        end
     end
     
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function [p_time, id_sync] = getSyncTimeExpanded(rec, p_rate)
+        function [p_time, id_sync] = getSyncTimeExpanded(rec, p_rate, use_pos_time)
             % Get the common time among all the receivers
             %
             % SYNTAX
-            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, p_rate);
+            %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, <p_rate>, <use_pos_time>);
             %
             % EXAMPLE:
             %   [p_time, id_sync] = GNSS_Station.getSyncTimeExpanded(rec, 30);
+            
+            if nargin < 3 || isempty(use_pos_time)
+                use_pos_time = false;
+            end
             
             if sum(~rec.isEmpty_mr) == 0
                 % no valid receiver
                 p_time = GPS_Time;
                 id_sync = [];
             else
-                if nargin == 1
+                if nargin < 2 || isempty(p_rate)
                     p_rate = 1e-6;
+                    
+                    for r = 1 : numel(rec)
+                        if use_pos_time
+                            p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time_pos.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                        else
+                            p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                        end
+                    end
                 end
                 
                 % prepare reference time
@@ -636,21 +648,30 @@ classdef GNSS_Station < handle
                 
                 first_id_ok = find(~rec.isEmpty_mr, 1, 'first');
                 if ~isempty(first_id_ok)
-                    p_time_zero = round(rec(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
+                    if use_pos_time
+                        p_time_zero = round(rec(first_id_ok).out.time_pos.first.getMatlabTime() * 24)/24; % get the reference time for positions
+                    else
+                        p_time_zero = round(rec(first_id_ok).out.time.first.getMatlabTime() * 24)/24; % get the reference time
+                    end
                 end
                 
                 % Get all the common epochs
                 t = [];
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).out.time.getRate);
-                    t = [t; round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate];
+                    if use_pos_time
+                        rec_rate = min(3600, rec(r).out.time_pos.getRate) / 2;
+                        t = [t; round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate];
+                    else
+                        rec_rate = min(1, rec(r).out.time.getRate);
+                        t = [t; round(rec(r).out.time.getRefTime(p_time_zero) / rec_rate) * rec_rate];
+                    end
                     % p_rate = lcm(round(p_rate * 1e6), round(rec(r).out.time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
                 end
                 t = unique(t);
                 
                 % If p_rate is specified use it
                 if nargin > 1
-                    t = intersect(t, (0 : p_rate : t(end) + p_rate)');
+                    t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
                 end
                 
                 % Create reference time
@@ -659,8 +680,14 @@ classdef GNSS_Station < handle
                 
                 % Get intersected times
                 for r = 1 : numel(rec)
-                    rec_rate = min(1, rec(r).out.time.getRate);
-                    [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) * rec_rate) / rec_rate);
+                    if use_pos_time
+                        rec_rate = rec(r).out.time_pos.getRate / 2;
+                        [~, id1, id2] = intersect(t, round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate);
+                    else
+                        rec_rate = min(1, rec(r).out.time.getRate);
+                        [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
+                    end
+                    
                     id_sync(id1 ,r) = id2;
                 end
             end
