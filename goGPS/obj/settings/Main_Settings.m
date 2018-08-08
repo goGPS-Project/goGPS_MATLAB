@@ -116,7 +116,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % REFERENCE
         ERP_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep '${YYYY}' filesep]; % Earth Rotation Parameters
         ERP_NAME = ''; % Name of ERP files
-        IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep '${YYYY}' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
+        IGRF_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         IGRF_NAME = 'igrf12coeff.txt';
 
         GEOID_DIR = [Main_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
