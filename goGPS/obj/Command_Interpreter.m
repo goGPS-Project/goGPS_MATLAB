@@ -797,11 +797,9 @@ classdef Command_Interpreter < handle
                 if ~found_ref
                     id_ref = id_trg; % Use all the receiver as mean reference
                 end
-                id_ref = intersect(id_trg, id_ref);
+                [~, id_ref] = intersect(id_trg, id_ref);
                 net = Network(rec(id_trg));
-                ref_idx = false(1,length(id_trg));
-                ref_idx(id_ref) = true;
-                net.adjust(ref_idx);       
+                net.adjust(id_ref);       
             end
         end
 
