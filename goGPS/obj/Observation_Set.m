@@ -335,17 +335,26 @@ classdef Observation_Set < handle
         end
         
         function remShortArc(this, min_arc_len)
+            % Remove short arcs
+            %
+            % SYNTAX:
+            % this.remShortArc(min_arc_len)
             if nargin < 2
                 min_arc_len = 2;
             end
             amb_idx = this.getAmbIdx();
-            for i = 1 : size(this.obs,2)
-                [flag_intervals] = getOutliers(isnan(amb_idx(:,i)));
-                signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1)) < (min_arc_len-1);
-                this.obs(flag_intervals(signle_arcs,1),i) = 0;
-                [flag_intervals] = getOutliers(this.obs(:,i)~=0);
-                signle_arcs = (flag_intervals(:,2) - flag_intervals(:,1)) < (min_arc_len-1);
-                this.obs(flag_intervals(signle_arcs,1),i) = 0;
+            for i = 1 : size(this.obs, 2)
+                [lim] = getOutliers(isnan(amb_idx(:,i)));
+                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
+                for s = 1 : numel(single_arcs)
+                    this.obs(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = 0;
+                end
+                
+                [lim] = getOutliers(this.obs(:,i)~=0);
+                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
+                for s = 1 : numel(single_arcs)
+                    this.obs(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = 0;
+                end
             end
         end
     end
