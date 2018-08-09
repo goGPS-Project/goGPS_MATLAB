@@ -276,6 +276,61 @@ classdef Observation_Set < handle
             idx = round((this.time -time_st)/rate) +1;
         end
         
+        function [p_time, id_sync] = getSyncTimeExpanded(obs_set_list, p_rate)
+            % Get the common time among all the observation_sets
+            %
+            % SYNTAX
+            %   [p_time, id_sync] = getSyncTimeExpanded(obs_set_list, <p_rate>, <use_pos_time>);
+            %
+            % EXAMPLE:
+            %   [p_time, id_sync] = obs_set_list.getSyncTimeExpanded(30);
+            
+            
+            if nargin < 2 || isempty(p_rate)
+                p_rate = 1e-6;
+                
+                for r = 1 : numel(obs_set_list)
+                    p_rate = lcm(round(p_rate * 1e6), round(obs_set_list(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+                end
+            end
+            
+            % prepare reference time
+            % processing time will start with the obs_set with the last first epoch
+            %          and it will stop  with the obs_set with the first last epoch
+            
+            % first_id_ok = find(~obs_set_list.isEmpty_mr, 1, 'first');
+            first_id_ok = 1;
+            if ~isempty(first_id_ok)
+                p_time_zero = round(obs_set_list(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
+            end
+            
+            % Get all the common epochs
+            t = [];
+            for r = 1 : numel(obs_set_list)
+                rec_rate = min(1, obs_set_list(r).time.getRate);
+                t = [t; round(obs_set_list(r).time.getRefTime(p_time_zero) / rec_rate) * rec_rate];
+                % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
+            end
+            t = unique(t);
+            
+            % If p_rate is specified use it
+            if nargin > 1
+                t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
+            end
+            
+            % Create reference time
+            p_time = GPS_Time(p_time_zero, t);
+            id_sync = nan(p_time.length(), numel(obs_set_list));
+            
+            % Get intersected times
+            for r = 1 : numel(obs_set_list)
+                rec_rate = min(1, obs_set_list(r).time.getRate);
+                [~, id1, id2] = intersect(t, round(obs_set_list(r).time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
+                
+                id_sync(id1, r) = id2;
+            end
+        end
+        
         function removeColumn(this, idx_col)
             % Remove colums from observations
             %
