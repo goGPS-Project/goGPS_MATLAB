@@ -3742,7 +3742,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             offset = 0;
             n_rec = numel(this);
             for r = 1 : n_rec
-                id_sync = [id_sync; this(r).id_sync + offset]; %#ok<AGROW>
+                id_sync = [id_sync; this(r).id_sync(:) + offset]; %#ok<AGROW>
                 offset = offset + this.length();
             end
             if islogical(id_sync)
