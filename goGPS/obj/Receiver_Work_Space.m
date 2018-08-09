@@ -1001,7 +1001,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remShortArc(this, min_arc)
-            % remS arc shorter than
+            % removes arc shorter than
             % SYNTAX
             %   this.remShortArc()
             if min_arc > 1
