@@ -682,7 +682,7 @@ classdef GNSS_Station < handle
                 t = [];
                 for r = 1 : numel(rec)
                     if use_pos_time
-                        rec_rate = min(3600, rec(r).out.time_pos.getRate) / 2;
+                        rec_rate = min(86400, iif(rec(r).out.time_pos.length == 1, 86400, rec(r).out.time_pos.getRate)) / 2;
                         t = [t; round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate];
                     else
                         rec_rate = min(1, rec(r).out.time.getRate);
@@ -704,14 +704,14 @@ classdef GNSS_Station < handle
                 % Get intersected times
                 for r = 1 : numel(rec)
                     if use_pos_time
-                        rec_rate = rec(r).out.time_pos.getRate / 2;
+                        rec_rate = iif(rec(r).out.time_pos.length == 1, 86400, rec(r).out.time_pos.getRate) / 2;
                         [~, id1, id2] = intersect(t, round(rec(r).out.time_pos.getRefTime(p_time_zero) / rec_rate) * rec_rate);
                     else
                         rec_rate = min(1, rec(r).out.time.getRate);
                         [~, id1, id2] = intersect(t, round(rec(r).out.time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
                     end
                     
-                    id_sync(id1 ,r) = id2;
+                    id_sync(id1, r) = id2;
                 end
             end
         end
