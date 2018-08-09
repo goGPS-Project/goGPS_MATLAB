@@ -663,7 +663,7 @@ classdef Core_UI < handle
         end
         
         function openGUI(this)
-            this.main = GUI_Main();
+            this.main = GUI_Main.getInstance();
         end
     end
     %% METHODS INSERT

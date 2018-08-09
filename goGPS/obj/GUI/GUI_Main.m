@@ -82,16 +82,34 @@ classdef GUI_Main < handle
     
     %% METHOD CREATOR
     % ==================================================================================================================================================
-    methods (Static)
+    methods (Static, Access = private)
         function this = GUI_Main()
             % GUI_MAIN object creator
             this.init();
             this.openGUI();
         end
     end    
+    
+    methods (Static, Access = public)
+        function this = getInstance()
+            % Get the persistent instance of the class
+            persistent unique_instance_gui_main__
+            
+            if isempty(unique_instance_gui_main__)
+                this = GUI_Main();
+                unique_instance_gui_main__ = this;
+                uiwait(this.w_main);                
+            else
+                this = unique_instance_gui_main__;
+                this.init();
+                this.openGUI();
+                uiwait(this.w_main);                
+            end
+    end
+end
     %% METHODS INIT
     % ==================================================================================================================================================
-    methods
+    methods                
         function init(this)
             this.log = Logger.getInstance();
             this.state = Global_Configuration.getCurrentSettings();
@@ -127,6 +145,7 @@ classdef GUI_Main < handle
                 'NumberTitle', 'off', ...
                 'Position', [0 0 1000 600]);
             
+            this.w_main = win;            
             
             if isunix && not(ismac())
                 win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
@@ -135,7 +154,6 @@ classdef GUI_Main < handle
                 win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-            this.w_main = win;
                         
             try
                 main_bv = uix.VBox('Parent', win, ...
@@ -287,7 +305,6 @@ classdef GUI_Main < handle
             this.log.setColorMode(false);
             this.log.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t_win));
             this.log.setColorMode(cm);
-            uiwait(this.w_main);
         end
     end
     %% METHODS INSERT
