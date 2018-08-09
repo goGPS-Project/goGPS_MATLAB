@@ -41,6 +41,7 @@
 
 classdef Observation_Set < handle
     properties
+        time     % GPS_Time [n_epochs x 1]
         obs      % the actual observatiions [n_epochs x n_obs_type]
         obs_code % the code for each observation [n_obs_type x max_n_char_obs_code] , general obs_code structure [sys xxx yyy comb_type], exmaple [GC1WC2WI]
                  % comb_type : I -> iono free
@@ -53,8 +54,7 @@ classdef Observation_Set < handle
         az       % azimuth
         prn      % prn
         snr      % signla to naoise ration
-        cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip
-        time     % GPS_Time 
+        cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip        
         go_id    % go_ids of the observations
         sigma    % teoretical precision of the measurements [m]
         iono_free%
@@ -266,7 +266,7 @@ classdef Observation_Set < handle
             this.remEpochs(idx_rem);
         end
         
-        function idx = getTimeIdx(this,time_st, rate)
+        function idx = getTimeIdx(this, time_st, rate)
             % Using a start time and a rate return at which integer
             % multiple o rate the observations are closer
             %
