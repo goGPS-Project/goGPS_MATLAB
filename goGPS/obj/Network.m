@@ -59,6 +59,7 @@ classdef Network < handle
             this.rec_list = rec_list;
             this.state = Global_Configuration.getCurrentSettings;
         end
+        
         function adjust(this, idx_ref)
             %  adjust the gnss network
             %
@@ -68,7 +69,11 @@ classdef Network < handle
             %     idx_ref : [1,n_rec] boolean, receivers to be choosen as reference, their value mean will be set to zero
             
             % set up the the network adjustment
-            ls =Least_Squares_Manipulator();
+            if nargin < 2 || any(isnan(idx_ref))
+                idx_ref = 1 : numel(this);
+            end
+            
+            ls = Least_Squares_Manipulator();
             [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list);
             n_time = this.common_time.length;
             ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
@@ -85,8 +90,8 @@ classdef Network < handle
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
             
-            %---- fill the values in the network
-            for i = 1 : n_rec;
+            % --- fill the values in the network
+            for i = 1 : n_rec
                 % if all value in the receiver are set to nan initilaize them to zero
                 if sum(isnan(this.rec_list(i).work.ztd)) == length(this.rec_list(i).work.ztd)
                     this.rec_list(i).work.ztd(:) = 0;
@@ -97,6 +102,7 @@ classdef Network < handle
                 idx_rec = x(:,3) == i;
                 this.coo(i,:) = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)] + this.rec_list(i).work.xyz;
                 [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
+                idx_pos = idx_pos(idx_pos > 0);
                 clk = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                 clk_rec = this.rec_list(i).work.getDt();
                 this.clock(idx_pos,i) = clk_rec(idx_is);
@@ -122,43 +128,52 @@ classdef Network < handle
                 end
             end
             
-            % --- tranform the result in the desired free network
-            if nargin > 1 || (idx_ref(1) && sum(idx_ref) == 1)
-                S = zeros(n_rec);
-                S(:,idx_ref) = - 1 / sum(sum(idx_ref));
-                S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure 
-                                     % it is the paramter itself  the mean of the reference paramter
-                                     % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
-                this.coo(:,1) = S*this.coo(:,1);
-                this.coo(:,2) = S*this.coo(:,2);
-                this.coo(:,3) = S*this.coo(:,3);
-                
-                % apply the S transform to the epochwise parameters
-                for i = 1 : n_time
-                    id_present = ~isnan(this.clock(i,:));
-                    idx_ref_t = idx_ref(id_present);
-                    n_rec_t = sum(id_present);
-                    S = zeros(n_rec_t);
-                    S(:,idx_ref) = - 1 / sum(sum(idx_ref_t));
-                    S = S + eye(n_rec_t);
-                    %clock
-                    this.clock(i,:) = (S*this.clock(i,:)')';
-                    %ztd
-                    if this.state.flag_tropo
-                        this.ztd(i,:) = (S*this.ztd(i,:)')';
-                    end
-                    %gradients
-                    if this.state.flag_tropo_gradient
-                        this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
-                        this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
-                    end
-                end
-            end
-            % --- push back the resulta in the receivers
+            % ALL OF THIS MAKES ABSOLUTELY NO SENSE TO ME (Andrea)
+            % --- transform the result in the desired free network
+            % if ~isnan(idx_ref(1))
+            %     S = zeros(n_rec);
+            %     S(:, idx_ref) = - 1 / numel(idx_ref);
+            %     S = S + eye(n_rec);  % < - this should be an S trasform but i am not sure 
+            %                          % it is the paramter itself  the mean of the reference paramter
+            %                          % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
+            % 
+            %     % Applying the S transform I obtain the corrections with respect to the reference
+            %     this.coo(:,1) = S * this.coo(:,1);
+            %     this.coo(:,2) = S * this.coo(:,2);
+            %     this.coo(:,3) = S * this.coo(:,3);
+            % 
+            %     % apply the S transform to the epochwise parameters
+            %     for i = 1 : n_time
+            %         id_present = ~isnan(this.clock(i,:));
+            %         idx_ref_t = intersect(idx_ref, find(id_present));
+            %         if isempty(idx_ref_t)
+            %             S = nan;
+            %         else
+            %             n_rec_t = sum(id_present);
+            %             S = zeros(n_rec_t);
+            %             S(:,idx_ref) = - 1 / numel(idx_ref_t);
+            %             S = S + eye(n_rec_t);
+            %         end
+            %         % clock
+            %         this.clock(i,:) = (S*this.clock(i,:)')';
+            %         % ztd
+            %         if this.state.flag_tropo
+            %             this.ztd(i,:) = (S*this.ztd(i,:)')';
+            %         end
+            %         % gradients
+            %         if this.state.flag_tropo_gradient
+            %             this.ztd_gn(i,:) = (S*this.ztd_gn(i,:)')';
+            %             this.ztd_ge(i,:) = (S*this.ztd_ge(i,:)')';
+            %         end
+            %     end
+            % end
+            
+            % --- push back the results in the receivers
             for i = 1 : n_rec
                 this.rec_list(i).work.xyz = this.coo(i,:);
                 idx_res_av = ~isnan(this.clock(:,i));
                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
+                idx_pos = idx_pos(idx_pos > 0);
                 clk = this.clock(idx_res_av,i);
                 this.rec_list(i).work.dt(idx_pos) = clk(idx_is);
                 if this.state.flag_tropo
@@ -171,6 +186,7 @@ classdef Network < handle
                     ge = this.ztd_ge(idx_res_av,i);
                     this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
                 end
+                this.rec_list(i).work.pushResult();
             end
            
         end

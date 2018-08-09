@@ -587,7 +587,7 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
-        function [common_time,idxes ]  = setUpNetworkAdj(this, rec_list)
+        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list)
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
             %
             % OUTPUT:
@@ -618,20 +618,65 @@ classdef Least_Squares_Manipulator < handle
                 end
                 obs_set_lst(i).sanitizeEmpty();
             end
-            % --- intersect the observation set to a common time
-            [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
-            for i = 1 : n_rec
-                idx = idxes(idxes(:,i)~=0,i);
-                obs_set_lst(i).keepEpochs(idx);
-                idxes(idxes(:,i)~=0,i) = 1 : length(idx);
+
+%             IT SEEMS BROKEN            
+%             % --- intersect the observation set to a common time
+%             [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
+%             for i = 1 : n_rec
+%                 idx = idxes(idxes(:,i)~=0,i);
+%                 obs_set_lst(i).keepEpochs(idx);
+%                 idxes(idxes(:,i)~=0,i) = 1 : length(idx);
+%             end
+            
+            % SUBSTITUTE OF THE BROKEN CODE
+            % Sync obs_sets
+            sanitized = false;
+            while ~sanitized
+                for r = 1 : n_rec
+                    obs_set_lst(r).remShortArc(max(this.state.getMinArc, 1));
+                    obs_set_lst(r).sanitizeEmpty();
+                end
+                [common_time, id_sync] = obs_set_lst.getSyncTimeExpanded();
+                % keep the epochs common to at least 2 receivers
+                id_ok = sum(~isnan(id_sync), 2) >= 2;
+                if any(~id_ok)
+                    id_sync = id_sync(id_ok, :);
+                    % filter the observation sets
+                    for r = 1 : n_rec
+                        obs_set_lst(r).keepEpochs(noNaN(id_sync(:,r)));
+                    end                    
+                else
+                    sanitized = true;
+                end
             end
+            
+            n_sat = 0;
+            for r = 1 : n_rec
+                n_sat = max([n_sat; obs_set_lst(r).go_id(:)]);                
+            end
+            
+            % --- for each satellite checks epochs for which all receiver-satellite observations continuity is broken
+            sat_jmp_idx = true(size(id_sync, 1), n_sat);
+            for s = 1 : n_sat
+                for r = 1 : n_rec
+                    goid_idx = obs_set_lst(r).go_id == s;
+                    for k = find(goid_idx)'
+                        idx_rec = obs_set_lst(r).obs(:,k) == 0 | obs_set_lst(r).cycle_slip(:,k);
+                        [idx_is, idx_pos] = ismembertol(obs_set_lst(r).time.getNominalTime().getGpsTime(), common_time.getGpsTime()); % tolleranc to 1 ms double check cause is already nominal rtime
+                        idx_pos = idx_pos(idx_pos > 0);
+                        sat_jmp_idx(idx_pos(idx_is), s) = sat_jmp_idx(idx_pos(idx_is), s) & idx_rec(idx_is);
+                    end
+                end
+            end
+            % END OF SUBSTITUTE OF THE BROKEN CODE
+            
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
-                r2c = find(idxes(:,i));
+                r2c = id_sync(:,i);
                 ep= [ep; r2c(ep_rec)];
                 sat = [sat; sat_rec];
                 p_flag = [p_flag_rec];
@@ -643,8 +688,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             p_flag(p_flag == 0) = -1;
-            
-            
+                        
             this.A_idx = Aidx;
             
             % get the number of used epochs for each receiver
@@ -657,9 +701,9 @@ classdef Least_Squares_Manipulator < handle
             this.variance = variance;
             this.y = y;
             this.epoch = ep;
-            time = GPS_Time.fromGpsTime(common_gps_time);
+            time = common_time;
             this.true_epoch = round(time.getNominalTime().getRefTime()/time.getRate) + 1; %
-            this.rec_time_idxes = idxes;
+            this.rec_time_idxes = id_sync;
             this.rate = time.getRate;
             this.sat = sat;
             this.param_flag = p_flag;
@@ -667,9 +711,7 @@ classdef Least_Squares_Manipulator < handle
             this.receiver_id = r;
             this.sat_jmp_idx = sat_jmp_idx;
             
-            this.network_solution = true;
-            common_time = GPS_Time.fromGpsTime(common_gps_time);
-            
+            this.network_solution = true;            
         end
         
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
@@ -685,7 +727,7 @@ classdef Least_Squares_Manipulator < handle
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-            
+            diff_obs = nan2zero(zero2nan(diff_obs) - cumsum(median(Core_Utils.diffAndPred(zero2nan(diff_obs)), 2, 'omitnan'))); % for DEBUGGING: remove receiver clock
             
             amb_idx = obs_set.getAmbIdx();
             n_amb = max(max(amb_idx));
@@ -715,8 +757,9 @@ classdef Least_Squares_Manipulator < handle
             
             % get the list  of observation codes used
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
-            n_u_obs_code = size(u_obs_code, 1);
-            % if multiple observations types are present inter observations biases need be compouted
+            % n_u_obs_code = size(u_obs_code, 1);
+            
+            % if multiple observations types are present in the observations, biases need be computed
             iob_idx = zeros(size(obs_set.wl));
             for c = 1 : size(u_obs_code, 1)
                 idx_b = strLineMatch(obs_set.obs_code, u_obs_code(c, :));
@@ -726,23 +769,22 @@ classdef Least_Squares_Manipulator < handle
             n_iob = size(u_obs_code, 1) - 1;
             iob_flag = double(n_iob > 0);
             
-            % separte antenna phase centers
+            % separate antenna phase centers
             apc_flag = rec.state.isSeparateApc();
             n_apc = 3 * n_iob * apc_flag;
             apc_p_idx =  zeros(length(obs_set.wl),3);
             u_sys_c = unique(obs_set.obs_code(:,1));
             idx_gps = u_sys_c == 'G';
-            if sum(idx_gps) > 0 % put gps in first position if presetn
+            if sum(idx_gps) > 0 % put gps in first position if present
                 u_sys_c(idx_gps) = [];
                 u_sys_c = ['G'; u_sys_c(:)];
             end
-            for i = 1 : length(u_sys_c)
+            for i = 1 : length(u_sys_c) % ***REVIEW*** maybe this cycle should start from 2
                 sys_idx = obs_set.obs_code(:,1) == u_sys_c(i);
                 apc_p_idx(sys_idx,:) = n_coo + n_iob + repmat(max((i-2),0)*3 + (1:3), sum(sys_idx),1);
             end
             % total number of observations
             n_obs = sum(sum(diff_obs ~= 0));
-            
             
             if global_sol
                 n_sat_clk_par = 1;
@@ -800,7 +842,7 @@ classdef Least_Squares_Manipulator < handle
                     A(lines_stream, 1:3) = - los_stream;
                 end
                 prog_p_col = 0;
-                if dynamic & ~rec.isFixed()
+                if dynamic && ~rec.isFixed()
                     prog_p_col = prog_p_col +1;
                     A_idx(lines_stream, prog_p_col) = ep_p_idx(id_ok_stream);
                     prog_p_col = prog_p_col +1;
@@ -817,7 +859,7 @@ classdef Least_Squares_Manipulator < handle
                 elseif  ~rec.isFixed()
                     prog_p_col = prog_p_col + 3 ;
                 end
-                % ----------- Inster observation bias ------------------
+                % ----------- Inter observation bias ------------------
                 if n_iob > 0
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = iob_idx(s) > 0;
@@ -920,6 +962,9 @@ classdef Least_Squares_Manipulator < handle
             %end
             %res_l = zeros(size(this.y));
             % speed-up of the previous lines
+            if any(isnan(x))
+                this.log.addError('Some parameters are NaN!');
+            end
             res_l = this.y - sum(this.A_ep .* reshape(x(this.A_idx), size(this.A_idx,1), size(this.A_idx,2)),2);
             
             this.res = res_l;
@@ -1162,20 +1207,20 @@ classdef Least_Squares_Manipulator < handle
                 % create the part of the normal that considers common parameters
                 
                 
-                a_idx_const =unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
+                a_idx_const = unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
                 a_idx_const(a_idx_const == 0) = [];
                 a_idx_ep_wise = unique(this.A_idx(this.receiver_id == 1, idx_ep_wise));
                 a_idx_ep_wise(a_idx_ep_wise == 0) = [];
                 
                 N2A_idx = [ a_idx_const; a_idx_ep_wise];
-                %mix the reciver indexes
+                %mix the receiver indexes
                 par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                 A_idx_not_mix = this.A_idx;
                 for j = 2 : n_rec
                     rec_idx = this.receiver_id == j;
                     % update the indexes
                     par_rec_id = [par_rec_id ; j*ones(max(max(this.A_idx(this.receiver_id == j,:))),1)];
-                    this.A_idx(rec_idx,:) = this.A_idx(this.receiver_id == j,:) + max(max(this.A_idx(this.receiver_id == j-1,:)));
+                    this.A_idx(rec_idx,:) = this.A_idx(this.receiver_id == j, :) + max(max(this.A_idx(this.receiver_id == j-1,:)));
                     
                     a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
                     a_idx_const(a_idx_const == 0) = [];
@@ -1196,9 +1241,6 @@ classdef Least_Squares_Manipulator < handle
                     common_idx(sat_idx) = idx_ep + p_idx;
                     p_idx = p_idx + max(idx_ep);
                 end
-                
-                
-                
                 
                 n_common  = max(common_idx);
                 B_comm    = zeros(n_common,1);
@@ -1234,13 +1276,10 @@ classdef Least_Squares_Manipulator < handle
                 N = N - rNcomm*Nreccom; % N11r = N11 - N21 * inv(N22) * N12
                 
                 B = B - rNcomm*B_comm;  % B1r = N1 - N21 * inv(N22) * B2
-                
-                
-                
-                
+                                
                 % resolve the rank deficency
-                % ALL paramters has a rank deficency beacause the entrance of the images  matrix are very similar and we also estimated the clok of the satellite
-                % 2)remove coordinates and tropo paramters of the first receiver
+                % ALL paramters has a rank deficency beacause the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
+                % 2) remove coordinates and tropo paramters of the first receiver
                 % we can do theta beacuase tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
                 idx_rec_x = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_X));
                 idx_rec_y = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Y));
@@ -1575,6 +1614,8 @@ classdef Least_Squares_Manipulator < handle
             presence_mat = zeros(length(resulting_gps_time),n_sat);
             for i = 1 : n_rec
                 [idx_is, idx_pos] = ismembertol(obs_set_lst(i).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
+                idx_pos = idx_pos(idx_pos > 0);
+
                 obs_set_lst(i).keepEpochs(idx_is)
                 pos_vec = 1 : obs_set_lst(i).time.length;
                 idxes(idx_pos,i) = pos_vec;
@@ -1608,7 +1649,7 @@ classdef Least_Squares_Manipulator < handle
             end
             
             
-            % -- reomving epoch for which no satellite is seen by at least teo receivers
+            % -- removing epoch for which no satellite is seen by at least teo receivers
             idx_rem = sum(presence_mat > 1, 2) == 0;
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
@@ -1621,6 +1662,7 @@ classdef Least_Squares_Manipulator < handle
                     for k = find(goid_idx)'
                         idx_rec = obs_set_lst(j).obs(:,k) == 0 | obs_set_lst(j).cycle_slip(:,k);
                         [idx_is, idx_pos] = ismembertol(obs_set_lst(j).time.getNominalTime().getGpsTime(), resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
+                        idx_pos = idx_pos(idx_pos > 0);
                         sat_jmp_idx(idx_pos(idx_is),i) =  sat_jmp_idx(idx_pos(idx_is),i) & idx_rec(idx_is);
                     end
                 end
