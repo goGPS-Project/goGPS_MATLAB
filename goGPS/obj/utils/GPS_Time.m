@@ -918,7 +918,7 @@ classdef GPS_Time < Exportable & handle
             end
         end
         
-        function [rate]  = getRate(this)
+        function [rate] = getRate(this)
             % get observation rate approximated at 3 digits
             %
             % SYNTAX
@@ -1235,7 +1235,7 @@ classdef GPS_Time < Exportable & handle
             if nargin == 1
                 idx = ones(this.length(),1) > 0;
             end
-            str_time=this.toString();
+            str_time = this.toString();
             year = str2num(str_time(idx,1:4));
             month = str2num(str_time(idx,6:7));
             day = str2num(str_time(idx,9:10));
@@ -1257,11 +1257,12 @@ classdef GPS_Time < Exportable & handle
                     time(isnan(time)) = 0;
                     date_string = datestr(time, date_format);
                 else
-                    time = this.getMatlabTime();
+                    time = round(this.getMatlabTime() * 86400 * 1e7) / 1e7 / 86400;
                     time(isnan(time)) = 0;
                     [~, fraction_of_seconds] = this.getUnixTime();
-                    date_6col = datevec(time - (round(fraction_of_seconds)) / 86400);
-                    date_6col(:,6) = round(date_6col(:,6)) + fraction_of_seconds;
+                    fraction_of_seconds = round(fraction_of_seconds * 1e7) / 1e7;
+                    date_6col = datevec(time - (mod(fraction_of_seconds, 1) / 86400));
+                    date_6col(:,6) = round(date_6col(:,6)) + mod(fraction_of_seconds, 1);
                     date_string = reshape(sprintf('%04d/%02d/%02d %02d:%02d:%010.7f', date_6col')',27,numel(time))';
                 end
                 if (nargin == 1)
