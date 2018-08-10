@@ -632,6 +632,7 @@ classdef Least_Squares_Manipulator < handle
             % Sync obs_sets
             sanitized = false;
             while ~sanitized
+                % remove short arcs and remove "empty" satellites 
                 for r = 1 : n_rec
                     obs_set_lst(r).remShortArc(max(this.state.getMinArc, 1));
                     obs_set_lst(r).sanitizeEmpty();
@@ -727,7 +728,7 @@ classdef Least_Squares_Manipulator < handle
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-            diff_obs = nan2zero(zero2nan(diff_obs) - cumsum(median(Core_Utils.diffAndPred(zero2nan(diff_obs)), 2, 'omitnan'))); % for DEBUGGING: remove receiver clock
+            % diff_obs = nan2zero(zero2nan(diff_obs) - cumsum(median(Core_Utils.diffAndPred(zero2nan(diff_obs)), 2, 'omitnan'))); % for DEBUGGING: remove receiver clock
             
             amb_idx = obs_set.getAmbIdx();
             n_amb = max(max(amb_idx));

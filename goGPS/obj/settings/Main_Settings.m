@@ -227,11 +227,11 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                                                         % 1: standard atmopshere
                                                         % 2: GPT
                                                         % 3: MET File
-        %SIGMA0_TROPO = 0.2;                             % Std of a priori tropospheric delay
-        %SIGMA0_TROPO_GRADIENT = 1;                      % Std of a priori tropospheric gradient
+        %SIGMA0_TROPO = 0.2;                            % Std of a priori tropospheric delay
+        %SIGMA0_TROPO_GRADIENT = 1;                     % Std of a priori tropospheric gradient
 
-        STD_TROPO = 0.0015;                             % Std of tropospheric delay [m/h]
-        STD_TROPO_GRADIENT = 0.0004;                    % Std of tropospheric gradient [m/h]
+        STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
+        STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
     end
 
     properties (Constant, Access = 'public')

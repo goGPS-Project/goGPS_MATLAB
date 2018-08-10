@@ -2972,13 +2972,36 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl = this.wl(id_ph);
         end
         
-        function obs_code = getAvailableObsCode(this)
+        function obs_code = getAvailableObsCode(this, flag, sys_c)
             % Get all the observation codes stored into the receiver
             %
             % SYNTAX
-            %   obs_code = thisgetAvailableObsCode();
+            %   obs_code = thisgetAvailableObsCode(flag, sys_c);
             
-            obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code)));
+            if nargin < 3 || isempty(sys_c) 
+                lid = (1 : numel(this.system))';
+            else
+                lid = (this.system == sys_c)';
+            end
+            
+            obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code(lid,:))));
+            
+            flag = [flag '?' * char(ones(1, 3 - size(flag, 1)))];
+            
+            lid = iif(flag(1) == '?', true(size(obs_code, 1), 1), obs_code(:, 1) == flag(1)) & ...
+                iif(flag(2) == '?', true(size(obs_code, 1), 1), obs_code(:, 2) == flag(2)) & ...
+                iif(flag(3) == '?', true(size(obs_code, 1), 1), obs_code(:, 3) == flag(3));
+            
+            obs_code = obs_code(lid, :);   
+        end
+        
+        function sys_c = getAvailableSS(this)
+            % Get all the available satellite systems
+            %
+            % SYNTAX
+            %   sys_c = getAvailableSS(flag, sys_c);
+            
+            sys_c = unique(this.system(:))';
         end
         
         function [ph, wl, id_ph] = getPhases(this, sys_c)
@@ -3459,7 +3482,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             iono_pref = this.cc.getSys(system).IONO_FREE_PREF;
             is_present = false(size(iono_pref,1),1);
             for i = 1 : size(iono_pref,1)
-                % check if there are observation for the selected channel
+                % check if there are observations for the selected channel
                 if sum(iono_pref(i,1) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & obs_type == this.obs_code(:,1)) > 0
                     is_present(i) = true;
                 end
