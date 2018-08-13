@@ -1,6 +1,7 @@
 function setTimeTicks(num,format,ax)
 % SYNTAX:
-%    setTimeTicks(num,format);
+%   setTimeTicks(num,format);
+%   setTimeTicks(ax, num,format);
 %
 % EXAMPLE:
 %   setTimeTicks(4,'dd/mm/yyyy HH:MMPM');
@@ -53,23 +54,23 @@ function setTimeTicks(num,format,ax)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-if (nargin==3)
-    h = num;
-    num = format;
-    format = ax;
-else
-    h=gcf;
-end
+    if (nargin == 3)
+        h = num;
+        num = format;
+        format = ax;
+    else
+        h = gcf;
+    end
     ttData.num = num;
     ttData.format = format;
 
-     hZoom = zoom(h);
-     hPan = pan(h);
+    hZoom = zoom(h);
+    hPan = pan(ancestor(h,'figure'));
 
-%     ttData.hZoom = get(hZoom,'ActionPostCallback');
-%     ttData.hPan = get(hPan,'ActionPostCallback');
+    %     ttData.hZoom = get(hZoom,'ActionPostCallback');
+    %     ttData.hPan = get(hPan,'ActionPostCallback');
 
-    set(h,'userdata',ttData);
+    set(h, 'userdata', ttData);
 
     set(hZoom, 'ActionPostCallback', @zoomCallback);
     set(hPan , 'ActionPostCallback', @panCallback);
@@ -78,14 +79,14 @@ end
 end
 
 function zoomCallback(obj, ev)
-    resetTimeTicks(obj,obj.UserData.num, obj.UserData.format);
+    resetTimeTicks(ev.Axes, ev.Axes.UserData.num, ev.Axes.UserData.format);
 %     if ~isempty(obj.UserData.hZoom)
 %         obj.UserData.hZoom(obj,ev);
 %     end
 end
 
 function panCallback(obj, ev)
-    resetTimeTicks(obj,obj.UserData.num, obj.UserData.format);
+    resetTimeTicks(ev.Axes, ev.Axes.UserData.num, ev.Axes.UserData.format);
 %     if ~isempty(obj.UserData.hPan)
 %         obj.UserData.hPan(obj,ev);
 %     end

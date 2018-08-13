@@ -43,12 +43,12 @@ function resetTimeTicks(h, num, format)
     for i = 1 : numel(h)
         try
             ax = axis(h(i));
-            step=(ax(2)-ax(1))/(num);
-            tickPos = (ax(1)+(step/2)):step:(ax(2)-(step/2));
-            set(h(i), 'XTick', tickPos);
+            step = (ax(2)-ax(1))/(num);
+            tick_pos = (ax(1) + 0*(step/2)) : step : (ax(2) - 0*(step/2));
+            set(h(i), 'XTick', tick_pos);
             datetick(h(i),'x',format,'keepticks');
             axis(h(i),ax);
-        catch
+        catch 
         end
     end
 end
