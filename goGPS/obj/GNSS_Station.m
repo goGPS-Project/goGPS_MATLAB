@@ -994,7 +994,7 @@ classdef GNSS_Station < handle
             % Plot Clock error
             %
             % SYNTAX 
-            %   this.plotDt
+            %   sta_list.plotDt
             
             for r = 1 : size(this, 2)
                 rec = this(r);
@@ -1003,6 +1003,25 @@ classdef GNSS_Station < handle
                 end                
             end
         end
+        
+        function showResiduals(sta_list)
+            % Plot Satellite Residuals
+            %
+            % SYNTAX 
+            %   sta_list.showResiduals
+            
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(r);
+                if ~isempty(rec)
+                    if ~rec.out.isEmpty
+                        rec.out.showResiduals();
+                    else
+                        rec.work.showResiduals();
+                    end
+                end                
+            end
+        end
+        
         
         function showZtdSlant(sta_list, time_start, time_stop)
             for r = 1 : size(sta_list, 2)

@@ -96,6 +96,7 @@ classdef Command_Interpreter < handle
         PAR_S_SNR       % SNR Signal to Noise Ratio
         PAR_S_OCS       % Outliers and cycle slips
         PAR_S_OCSP      % Outliers and cycle slips (polar plot)
+        PAR_S_RES       % Residuals satellite per satellite
         PAR_S_RES_SKY   % Residuals sky plot
         PAR_S_RES_SKYP  % Residuals sky plot (polar plot)
         PAR_S_ZTD       % ZTD
@@ -248,6 +249,10 @@ classdef Command_Interpreter < handle
             this.PAR_S_OCSP.descr = 'OCSP             Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.par = '(ocsp)|(OCSP)';
             
+            this.PAR_S_RES.name = 'Residuals plot';
+            this.PAR_S_RES.descr = 'RES              Residual plot';
+            this.PAR_S_RES.par = '(res)|(RES)';
+
             this.PAR_S_RES_SKY.name = 'Residuals sky plot';
             this.PAR_S_RES_SKY.descr = 'RES_SKY          Residual sky plot';
             this.PAR_S_RES_SKY.par = '(res_sky)|(RES_SKY)';
@@ -351,7 +356,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.name = {'SHOW'};
             this.CMD_SHOW.descr = 'Display various plots / images';
             this.CMD_SHOW.rec = 'T';
-            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
+            this.CMD_SHOW.par = [this.PAR_S_DA this.PAR_S_ENU this.PAR_S_ENUBSL this.PAR_S_XYZ this.PAR_S_CK this.PAR_S_SNR this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES this.PAR_S_RES_SKY this.PAR_S_RES_SKYP this.PAR_S_ZTD this.PAR_S_PWV this.PAR_S_STD this.PAR_S_RES_STD];
 
             this.CMD_EXPORT.name = {'EXPORT', 'export_results', 'export_results'};
             this.CMD_EXPORT.descr = 'Export results';
@@ -947,7 +952,7 @@ classdef Command_Interpreter < handle
             else
                 for r = id_trg
                     this.log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
-                    rec(r).updateRemoveOutlierMarkCycleSlip();
+                    rec(r).work.updateRemOutlierMarkCycleSlip();
                 end
             end
         end
@@ -1039,6 +1044,8 @@ classdef Command_Interpreter < handle
                                 trg.showOutliersAndCycleSlip();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_OCSP.par ')*$'], 'once'))
                                 trg.showOutliersAndCycleSlip_p();
+                            elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES.par ')*$'], 'once'))
+                                trg.showResiduals();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKY.par ')*$'], 'once'))
                                 trg.showResSky_c();
                             elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RES_SKYP.par ')*$'], 'once'))

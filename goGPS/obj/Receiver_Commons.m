@@ -978,6 +978,83 @@ classdef Receiver_Commons < handle
             end
         end
         
+        function showResiduals(sta_list)
+            
+            % In a future I could use multiple tabs for each constellation
+            for r = numel(sta_list)                
+                work = sta_list(r);
+                
+                win = figure( 'Name', sprintf('%s goGPS Residuals', work.parent.getMarkerName4Ch), ...
+                    'Visible', 'off', ...
+                    'NumberTitle', 'off', ...
+                    'Position', [0 0 1000 600]);
+                maximizeFig(win)
+                
+                v_main = uix.VBoxFlex('Parent', win, ...
+                    'Spacing', 5);
+                
+                % Axe with all the satellites
+                overview_box = uix.VBoxFlex('Parent', v_main, ...
+                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                
+                ax_all = axes('Parent', overview_box, 'Units', 'normalized');
+                
+                
+                % Single sat axes
+                n_sat = work.getMaxSat;
+                
+                sat_box = uix.VBoxFlex('Parent', v_main, ...
+                    'Padding', 5, ...
+                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                
+                v_main.Heights = [-2 -5];
+                
+                scroller = uix.ScrollingPanel('Parent', sat_box);
+                sat_grid = uix.Grid('Parent', scroller, ...
+                    'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                scroller.Heights = 120 * ceil(n_sat / 4);
+                for s = 1 : n_sat
+                    single_sat(s) = uix.VBox('Parent', sat_grid, ...
+                        'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                    uicontrol('Parent', single_sat(s), ...
+                        'Style', 'Text', ...
+                        'String', sprintf('Satellite %s', work.cc.getSatName(s)), ...
+                        'ForegroundColor', Core_UI.BLACK, ...
+                        'HorizontalAlignment', 'center', ...
+                        'FontSize', Core_UI.getFontSize(7), ...
+                        'FontWeight', 'Bold', ...
+                        'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                    ax_sat(s) = axes('Parent', single_sat(s));
+                    single_sat(s).Heights = [18, -1];
+                end
+                sat_grid.Heights = -ones(1, ceil(n_sat / 4));
+                
+                %% fill the axes
+                win.Visible = 'on';
+                colors = Core_UI.getColor(1 : n_sat, n_sat);
+                ax_all.ColorOrder = colors; hold(ax_all, 'on');               
+                plot(ax_all, work.time.getMatlabTime, zero2nan(work.sat.res)*1e3, '.-');                 
+                setTimeTicks(ax_all, 3,'dd/mm/yyyy HH:MMPM');
+                drawnow; ylabel('residuals [mm]'); grid on;
+                
+                id_ok = false(n_sat, 1);
+                for s = 1 : n_sat
+                    res = zero2nan(work.sat.res(:,s))*1e3;
+                    id_ok(s) = any(res);
+                    if id_ok(s)
+                        plot(ax_sat(s), work.time.getMatlabTime, res, '-', 'LineWidth', 2, 'Color', colors(s, :));
+                        grid on; ax_sat(s).YMinorGrid = 'on'; ax_sat(s).XMinorGrid = 'on';
+                        setTimeTicks(ax_sat(s), 2,'HH:MMPM');
+                    else
+                        single_sat(s).Visible = 'off';
+                    end
+                end
+                linkaxes([ax_sat(id_ok), ax_all]);
+                drawnow
+            end
+            
+        end
+        
         function showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             if isempty(this.ztd) || ~any(this.sat.slant_td(:))
                 this.log.addWarning('ZTD and slants have not been computed');

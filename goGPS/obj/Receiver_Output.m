@@ -165,6 +165,28 @@ classdef Receiver_Output < Receiver_Commons
             dt_pp = this.dt_ip;
         end
         
+        function n_sat = getMaxSat(sta_list, sys_c)
+            % get the number of satellites stored in the object
+            %
+            % SYNTAX
+            %   n_sat = getNumSat(<sys_c>)
+            n_sat = zeros(size(sta_list));
+            
+            for r = 1 : size(sta_list, 2)
+                rec = sta_list(~sta_list(r).isEmpty, r);
+                
+                if ~isempty(rec)
+                    if nargin == 2
+                        tmp = rec.cc.getMaxNumSat(sys_c);
+                        n_sat(r) = iif(isempty(tmp), 0, tmp);
+                    else
+                        tmp = rec.cc.getMaxNumSat();
+                        n_sat(r) = iif(isempty(tmp), 0, tmp);
+                    end
+                end
+            end
+        end
+        
         function time = getPositionTime(this)
             % return the time of the computed positions
             %
