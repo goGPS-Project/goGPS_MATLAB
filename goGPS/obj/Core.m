@@ -171,7 +171,7 @@ classdef Core < handle
             % SYNTAX:
             %   this.importIniFile(ini_settings_file)
             if  exist(ini_settings_file, 'file')
-                this.importIniFile(ini_settings_file);
+                this.state.importIniFile(ini_settings_file);
             end
         end
         
