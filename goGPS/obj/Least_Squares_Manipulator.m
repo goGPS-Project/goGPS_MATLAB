@@ -624,7 +624,7 @@ classdef Least_Squares_Manipulator < handle
             % Sync obs_sets
             sanitized = false;
             while ~sanitized
-                % remove short arcs and remove "empty" satellites 
+                % remove short arcs and remove "empty" satellites
                 for r = 1 : n_rec
                     obs_set_list(r).remShortArc(max(this.state.getMinArc, 1));
                     obs_set_list(r).sanitizeEmpty();
@@ -637,15 +637,15 @@ classdef Least_Squares_Manipulator < handle
                     % filter the observation sets
                     for r = 1 : n_rec
                         obs_set_list(r).keepEpochs(noNaN(id_sync(:,r)));
-                    end                    
+                    end
                 else
                     sanitized = true;
                 end
-            end                       
+            end
             
             n_sat = 0;
-            for r = 1 : n_rec                
-                n_sat = max([n_sat; obs_set_list(r).go_id(:)]);                
+            for r = 1 : n_rec
+                n_sat = max([n_sat; obs_set_list(r).go_id(:)]);
             end
             
             % --- full jump check - check when all the satellites are jumping (there's a discontinuity in the series of data)
