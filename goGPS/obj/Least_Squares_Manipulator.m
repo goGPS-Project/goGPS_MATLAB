@@ -21,7 +21,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Giulio Tagliaferro
-%  Contributors:
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -593,94 +593,94 @@ classdef Least_Squares_Manipulator < handle
             % OUTPUT:
             % common_time : common gps time used for the processing
             n_rec = length(rec_list);
-            obs_set_lst  = Observation_Set.empty(n_rec,0);
+            obs_set_list  = Observation_Set.empty(n_rec,0);
+            work_list = [rec_list.work];
             this.cc = rec_list(1).cc;
+            
             %--- for each receiver get one observation set
             for i = 1 : n_rec
-                obs_set_lst(i) = Observation_Set();
-                if rec_list(i).work.isMultiFreq() && ~rec_list(i).work.state.isIonoExtModel %% case multi frequency
+                obs_set_list(i) = Observation_Set();
+                if work_list(i).isMultiFreq() && ~work_list(i).state.isIonoExtModel %% case multi frequency
                     for sys_c = rec_list(i).work.cc.sys_c
                         if this.state.isIonoFree
-                            obs_set_lst(i).merge(rec_list(i).work.getPrefIonoFree('L', sys_c));
+                            obs_set_list(i).merge(work_list(i).getPrefIonoFree('L', sys_c));
                         else
-                            obs_set_lst(i).merge(rec_list(i).work.getSmoothIonoFreeAvg('L', sys_c));
-                            obs_set_lst(i).iono_free = true;
-                            obs_set_lst(i).sigma = obs_set_lst(i).sigma * 1.5;
+                            obs_set_list(i).merge(work_list(i).getSmoothIonoFreeAvg('L', sys_c));
+                            obs_set_list(i).iono_free = true;
+                            obs_set_list(i).sigma = obs_set_list(i).sigma * 1.5;
                         end
                     end
                 else
-                    for sys_c = rec_list(i).work.cc.sys_c
-                        f = rec_list(i).work.getFreqs(sys_c);
-                        obs_set_lst(i).merge(rec_list(i).work.getPrefObsSetCh(['L' num2str(f(1))], sys_c));
+                    for sys_c = work_list(i).cc.sys_c
+                        f = work_list(i).getFreqs(sys_c);
+                        obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(1))], sys_c));
                     end
-                    idx_ph = obs_set_lst(i).obs_code(:, 2) == 'L';
-                    obs_set_lst(i).obs(:, idx_ph) = obs_set_lst(i).obs(:, idx_ph) .* repmat(obs_set_lst(i).wl(idx_ph)', size(obs_set_lst(i).obs,1),1);
+                    idx_ph = obs_set_list(i).obs_code(:, 2) == 'L';
+                    obs_set_list(i).obs(:, idx_ph) = obs_set_list(i).obs(:, idx_ph) .* repmat(obs_set_list(i).wl(idx_ph)', size(obs_set_list(i).obs,1),1);
                 end
-                obs_set_lst(i).sanitizeEmpty();
+                obs_set_list(i).sanitizeEmpty();
             end
-
-%             IT SEEMS BROKEN            
-%             % --- intersect the observation set to a common time
-%             [common_gps_time, idxes, sat_jmp_idx] = this.intersectObsSet(obs_set_lst);
-%             for i = 1 : n_rec
-%                 idx = idxes(idxes(:,i)~=0,i);
-%                 obs_set_lst(i).keepEpochs(idx);
-%                 idxes(idxes(:,i)~=0,i) = 1 : length(idx);
-%             end
             
-            % SUBSTITUTE OF THE BROKEN CODE
             % Sync obs_sets
             sanitized = false;
             while ~sanitized
                 % remove short arcs and remove "empty" satellites 
                 for r = 1 : n_rec
-                    obs_set_lst(r).remShortArc(max(this.state.getMinArc, 1));
-                    obs_set_lst(r).sanitizeEmpty();
+                    obs_set_list(r).remShortArc(max(this.state.getMinArc, 1));
+                    obs_set_list(r).sanitizeEmpty();
                 end
-                [common_time, id_sync] = obs_set_lst.getSyncTimeExpanded();
+                [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
                 % keep the epochs common to at least 2 receivers
                 id_ok = sum(~isnan(id_sync), 2) >= 2;
                 if any(~id_ok)
                     id_sync = id_sync(id_ok, :);
                     % filter the observation sets
                     for r = 1 : n_rec
-                        obs_set_lst(r).keepEpochs(noNaN(id_sync(:,r)));
+                        obs_set_list(r).keepEpochs(noNaN(id_sync(:,r)));
                     end                    
                 else
                     sanitized = true;
                 end
-            end
+            end                       
             
             n_sat = 0;
-            for r = 1 : n_rec
-                n_sat = max([n_sat; obs_set_lst(r).go_id(:)]);                
+            for r = 1 : n_rec                
+                n_sat = max([n_sat; obs_set_list(r).go_id(:)]);                
             end
             
-            % --- for each satellite checks epochs for which all receiver-satellite observations continuity is broken
+            % --- full jump check - check when all the satellites are jumping (there's a discontinuity in the series of data)
             sat_jmp_idx = true(size(id_sync, 1), n_sat);
             for s = 1 : n_sat
                 for r = 1 : n_rec
-                    goid_idx = obs_set_lst(r).go_id == s;
+                    goid_idx = obs_set_list(r).go_id == s;
                     for k = find(goid_idx)'
-                        idx_rec = obs_set_lst(r).obs(:,k) == 0 | obs_set_lst(r).cycle_slip(:,k);
-                        [idx_is, idx_pos] = ismembertol(obs_set_lst(r).time.getNominalTime().getGpsTime(), common_time.getGpsTime()); % tolleranc to 1 ms double check cause is already nominal rtime
+                        idx_rec = obs_set_list(r).obs(:,k) == 0 | obs_set_list(r).cycle_slip(:,k);
+                        [idx_is, idx_pos] = ismembertol(obs_set_list(r).time.getNominalTime().getGpsTime(), common_time.getGpsTime()); % tolleranc to 1 ms double check cause is already nominal rtime
                         idx_pos = idx_pos(idx_pos > 0);
                         sat_jmp_idx(idx_pos(idx_is), s) = sat_jmp_idx(idx_pos(idx_is), s) & idx_rec(idx_is);
                     end
                 end
             end
-            % END OF SUBSTITUTE OF THE BROKEN CODE
+
+            % at this point trg and ref are syncronized (in the obs_set)
+            % find the id_sync for the receivers            
+            for r = 1 : n_rec
+                time_ref = floor(work_list(r).time.first.getMatlabTime);
+                [~, idx_pos] = ismembertol(work_list(r).time.getNominalTime().getRefTime(time_ref), common_time.getRefTime(time_ref)); % tolleranc to 1 ms double check cause is already nominal rtime
+                idx_pos = idx_pos(idx_pos > 0);
+                idx_sync_rec{r} = idx_pos;
+            end
             
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
-                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_lst(i), []);
+                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), []);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
-                r2c = id_sync(:,i);
-                ep= [ep; r2c(ep_rec)];
+                r2c = idx_sync_rec{i};
+                ep = [ep; r2c(ep_rec)];
                 sat = [sat; sat_rec];
-                p_flag = [p_flag_rec];
+                p_flag = p_flag_rec;
                 p_class = p_class_rec;
                 y = [y; y_rec];
                 variance = [variance; variance_rec];
@@ -693,8 +693,8 @@ classdef Least_Squares_Manipulator < handle
             this.A_idx = Aidx;
             
             % get the number of used epochs for each receiver
-            n_epochs = zeros(n_rec,1);
-            for i = 1:n_rec
+            this.n_epochs = zeros(n_rec,1);
+            for i = 1 : n_rec
                 this.n_epochs(i) = length(unique(this.A_idx(r == i,p_class == this.PAR_REC_CLK)));
             end
             this.A_ep = A;
@@ -714,7 +714,7 @@ classdef Least_Squares_Manipulator < handle
             
             this.network_solution = true;            
         end
-        
+                        
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
             % get reference observations and satellite positions
             
@@ -723,7 +723,7 @@ classdef Least_Squares_Manipulator < handle
             dynamic = rec.state.rec_dyn_mode;
             global_sol = false; %this.state.global_solution;
             amb_flag = true;
-            phase_present= true;
+            phase_present = true;
             
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
@@ -780,7 +780,7 @@ classdef Least_Squares_Manipulator < handle
                 u_sys_c(idx_gps) = [];
                 u_sys_c = ['G'; u_sys_c(:)];
             end
-            for i = 1 : length(u_sys_c) % ***REVIEW*** maybe this cycle should start from 2
+            for i = 1 : length(u_sys_c)
                 sys_idx = obs_set.obs_code(:,1) == u_sys_c(i);
                 apc_p_idx(sys_idx,:) = n_coo + n_iob + repmat(max((i-2),0)*3 + (1:3), sum(sys_idx),1);
             end
@@ -816,6 +816,17 @@ classdef Least_Squares_Manipulator < handle
                 mfw(mfw  > 60 ) = nan;
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
+            
+            %%% DEBUG PURPOSES: removing an empirically estimated clock
+            sensor = Core_Utils.diffAndPred(zero2nan(diff_obs));
+            sensor = median(sensor, 2, 'omitnan'); % using median to disregard cycle-slips
+            % rough estimation of clock, the median is not a good estimator
+            % but for now it could stay like this
+            clock_diff = detrend(cumsum(sensor));
+            %%% END
+            
+            diff_obs = nan2zero(bsxfun(@minus, zero2nan(diff_obs), clock_diff));
+            
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
                 
@@ -932,7 +943,7 @@ classdef Least_Squares_Manipulator < handle
             idx_param = this.time_regularization == param_class;
             if sum(idx_param) > 0
                 this.mean_regularization(idx_param, 2) = var;
-            else %if not prestn add it
+            else %if not present add it
                 this.mean_regularization = [this.mean_regularization; [param_class, var]];
             end
         end
@@ -1075,7 +1086,7 @@ classdef Least_Squares_Manipulator < handle
             N = [];
             B = [];
             A2N_idx_tot = [];
-            for r = 1 : length(u_r)
+            for r = u_r(:)'
                 idx_r_l = this.receiver_id == u_r(r);
                 idx_r = find(idx_r_l);
                 A_rec = this.A_idx(idx_r_l, ~idx_rec_common_l);
@@ -1133,7 +1144,7 @@ classdef Least_Squares_Manipulator < handle
                     p_e_idx(p_e_idx <= 0) = 1;  % does not matter since terms are zeros
                     p_c_idx = A2N_idx(p_c_idx);
                     p_e_idx = A2N_idx(p_e_idx) - n_constant;
-                    p_idx =A2N_idx(p_idx);
+                    p_idx = A2N_idx(p_idx);
                     
                     % fill Ncc
                     Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + N_ep(idx_constant, idx_constant);
@@ -1197,8 +1208,6 @@ classdef Least_Squares_Manipulator < handle
                 end
                 A2N_idx_tot = [A2N_idx_tot; A2N_idx];
             end
-            
-            
             
             if is_network
                 n_obs = size(this.A_idx,1);
@@ -1560,7 +1569,32 @@ classdef Least_Squares_Manipulator < handle
             this.B = B1 - RD * B2;
         end
         
-        
+        function [A_full, col_type, epoch, A_small, col_type_small, epoch_small] = getDesignMatrix(this, max_ep)
+            % Get the full Design matrix for debug purposes
+            %   
+            % SYNTAX
+            %   [A_full, col_type, A_small, col_type_small] = this.getDesignMatrix(max_ep)
+            %
+            tic
+            A_full = sparse(size(this.A_idx,1), max(this.A_idx(:)));
+            A_serial_id = serialize(repmat((1 : size(this.A_idx,1))', 1, size(this.A_idx, 2)) + (this.A_idx - 1) * size(this.A_idx, 1));
+            col_type = nan(max(this.A_idx(:)), 1);
+            for t = 1 : size(this.A_idx, 2)
+                col_type(this.A_idx(:, t)) = t;
+            end
+            A_full(A_serial_id) = this.A_ep(:);
+            col_type = this.param_class(col_type);
+            epoch = this.epoch;
+            toc
+            
+            if nargin == 2
+                id_ok = epoch < max_ep;
+                epoch_small = this.epoch(id_ok);
+                col_ok = sum(abs(A_full(id_ok, :)) ~= 0);
+                col_type_small = col_type(col_ok > 0);
+                A_small = A_full(id_ok, col_ok > 0);                
+            end
+        end
     end
     
     methods (Static)

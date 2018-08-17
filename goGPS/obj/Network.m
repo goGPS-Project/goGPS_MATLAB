@@ -59,7 +59,7 @@ classdef Network < handle
             this.rec_list = rec_list;
             this.state = Global_Configuration.getCurrentSettings;
         end
-        
+                
         function adjust(this, idx_ref)
             %  adjust the gnss network
             %
@@ -128,7 +128,7 @@ classdef Network < handle
                 end
             end
             
-            % ALL OF THIS MAKES ABSOLUTELY NO SENSE TO ME (Andrea)
+            % ALL OF THIS MAKES NO SENSE TO ME (Andrea)
             % --- transform the result in the desired free network
             % if ~isnan(idx_ref(1))
             %     S = zeros(n_rec);
@@ -169,6 +169,7 @@ classdef Network < handle
             % end
             
             % --- push back the results in the receivers
+            % Commented because it is necessary to fix the Network solution before doing this
             % for i = 1 : n_rec
             %     this.rec_list(i).work.xyz = this.coo(i,:);
             %     idx_res_av = ~isnan(this.clock(:,i));
