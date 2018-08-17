@@ -916,10 +916,7 @@ classdef Least_Squares_Manipulator < handle
                 this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), ...
                 this.PAR_TROPO_E*ones(tropo_g), this.PAR_SAT_CLK*ones(global_sol)];
             % find the ambiguity set jmp
-            amb_set_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
-            
-            
-            
+            amb_set_jmp = find(sum(diff(nan2zero(amb_idx)) > 0, 2) == sum(~isnan(amb_idx(1 : end - 1, :)),2) | sum(diff(nan2zero(amb_idx)) > 0,2) == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
         end
         
         function setTimeRegularization(this, param_class, time_variability)
