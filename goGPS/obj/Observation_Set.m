@@ -331,6 +331,34 @@ classdef Observation_Set < handle
             end
         end
         
+        function [obs_c_matrix] = getMRObsMat(obs_set_list, p_time, id_sync)
+            % get the common obesrvation matrix for all eleent of the reciever list,
+            % first direction time, second direction satellites. third direction receiver
+            %
+            % SYNTAX:
+            %   [obs_c_matrix] = getMRObsMat(obs_set_list, p_time, id_sync)
+            if nargin < 2
+                [p_time, id_sync] = getSyncTimeExpanded(obs_set_list)
+            end
+            % finde the unique vectors of go id
+            n_r = length(obs_set_list);
+            go_ids = [];
+            for i = 1 : n_r
+                go_ids = [go_ids; obs_set_list(i).go_id(:)];
+            end
+            n_s = max(go_ids);
+            %initialize the matrix
+            obs_c_matrix = nan(p_time.length, n_s, n_r);
+            % fill it
+            for i = 1 : n_r
+                id_sync_t = id_sync(:,i);
+                id_sync_t(isnan(id_sync_t)) = [];
+                obs_c_matrix(id_sync_t, obs_set_list(i).go_id, i) = obs_set_list(i).obs;
+            end
+            % tranform zeros to nan
+            obs_c_matrix = zero2nan(obs_c_matrix);
+        end
+        
         function removeColumn(this, idx_col)
             % Remove colums from observations
             %

@@ -630,15 +630,24 @@ classdef Least_Squares_Manipulator < handle
                     obs_set_list(r).sanitizeEmpty();
                 end
                 [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
+                % remove satellites arcs seen only by one receiver
+                 common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
+                id_rm = sum(~isnan(common_obs_mat),3) == 1;
+                for r = 1 : n_rec
+                    id_rm_o = false(size(obs_set_list(r).obs));
+                    id_rm_o(id_sync(~isnan(id_sync(:,r)),r),:) = id_rm(~isnan(id_sync(:,r)), obs_set_list(r).go_id);
+                    obs_set_list(r).remObs(id_rm_o, false);
+                end
                 % keep the epochs common to at least 2 receivers
                 id_ok = sum(~isnan(id_sync), 2) >= 2;
-                if any(~id_ok)
+               
+                if any(~id_ok) 
                     id_sync = id_sync(id_ok, :);
                     % filter the observation sets
                     for r = 1 : n_rec
                         obs_set_list(r).keepEpochs(noNaN(id_sync(:,r)));
                     end
-                else
+                elseif sum(sum(id_rm)) == 0
                     sanitized = true;
                 end
             end
