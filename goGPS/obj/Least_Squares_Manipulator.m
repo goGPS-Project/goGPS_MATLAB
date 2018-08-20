@@ -630,14 +630,28 @@ classdef Least_Squares_Manipulator < handle
                     obs_set_list(r).sanitizeEmpty();
                 end
                 [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
-                % remove satellites arcs seen only by one receiver
+                % remove satellites arcs seen only by one receiver and sigle epochs arcs
                  common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
+                
                 id_rm = sum(~isnan(common_obs_mat),3) == 1;
+                valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
+                for i = 1 : size(id_rm,2)
+                    % get one epoch arcs
+                    [flag_intervals] = getOutliers(valid_epoch(:,i));
+                    single_arcs = (flag_intervals(:,2) - flag_intervals(:,1))  == 0;
+                    idx_sa_rm = flag_intervals(single_arcs,1);
+                    if ~isempty(idx_sa_rm)
+                        id_rm(idx_sa_rm, i) = true;
+                    end
+                end
+                % rem obs in each ob set
                 for r = 1 : n_rec
                     id_rm_o = false(size(obs_set_list(r).obs));
                     id_rm_o(id_sync(~isnan(id_sync(:,r)),r),:) = id_rm(~isnan(id_sync(:,r)), obs_set_list(r).go_id);
                     obs_set_list(r).remObs(id_rm_o, false);
                 end
+                 
+                
                 % keep the epochs common to at least 2 receivers
                 id_ok = sum(~isnan(id_sync), 2) >= 2;
                
@@ -657,36 +671,25 @@ classdef Least_Squares_Manipulator < handle
                 n_sat = max([n_sat; obs_set_list(r).go_id(:)]);
             end
             
-            % --- full jump check - check when all the satellites are jumping (there's a discontinuity in the series of data)
+            %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx = true(size(id_sync, 1), n_sat);
             for s = 1 : n_sat
                 for r = 1 : n_rec
                     goid_idx = obs_set_list(r).go_id == s;
                     for k = find(goid_idx)'
                         idx_rec = obs_set_list(r).obs(:,k) == 0 | obs_set_list(r).cycle_slip(:,k);
-                        [idx_is, idx_pos] = ismembertol(obs_set_list(r).time.getNominalTime().getGpsTime(), common_time.getGpsTime()); % tolleranc to 1 ms double check cause is already nominal rtime
-                        idx_pos = idx_pos(idx_pos > 0);
-                        sat_jmp_idx(idx_pos(idx_is), s) = sat_jmp_idx(idx_pos(idx_is), s) & idx_rec(idx_is);
+                        sat_jmp_idx(~isnan(id_sync(:,r)), s) = sat_jmp_idx(~isnan(id_sync(:,r)), s) & idx_rec(id_sync(~isnan(id_sync(:,r)),r));
                     end
                 end
             end
 
-            % at this point trg and ref are syncronized (in the obs_set)
-            % find the id_sync for the receivers            
-            for r = 1 : n_rec
-                time_ref = floor(work_list(r).time.first.getMatlabTime);
-                [~, idx_pos] = ismembertol(work_list(r).time.getNominalTime().getRefTime(time_ref), common_time.getRefTime(time_ref)); % tolleranc to 1 ms double check cause is already nominal rtime
-                idx_pos = idx_pos(idx_pos > 0);
-                idx_sync_rec{r} = idx_pos;
-            end
-            
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
             for i = 1 : n_rec
                 [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), []);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
-                r2c = idx_sync_rec{i};
+                r2c = find(~isnan(id_sync(:,i)));
                 ep = [ep; r2c(ep_rec)];
                 sat = [sat; sat_rec];
                 p_flag = p_flag_rec;

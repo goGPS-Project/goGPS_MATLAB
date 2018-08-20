@@ -76,7 +76,9 @@ classdef Network < handle
             ls = Least_Squares_Manipulator();
             [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list);
             n_time = this.common_time.length;
-            ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
+            if this.state.flag_tropo
+                ls.setTimeRegularization(ls.PAR_TROPO, (this.state.std_tropo)^2 / 3600 * ls.rate );
+            end
             if this.state.flag_tropo_gradient
                 ls.setTimeRegularization(ls.PAR_TROPO_N, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
                 ls.setTimeRegularization(ls.PAR_TROPO_E, (this.state.std_tropo_gradient)^2 / 3600 * ls.rate );
