@@ -1318,9 +1318,12 @@ classdef Least_Squares_Manipulator < handle
                 idx_amb_rm = [];
                 % 4)remove one ambiguity per satellite form the firs receiver
                 for i = 1 :length(u_sat)
-                    jmp_idx = [1 ; find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1];
+                    jmp_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == -1) + 1;
+                    if ~this.sat_jmp_idx(1,u_sat(i))
+                        jmp_idx = [1; jmp_idx];
+                    end
                     end_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == 1) + 1;
-                    if ~isempty(end_idx) % a last signle epoch arc might have remained
+                    if ~isempty(end_idx) % a last signle epoch arc might have remained % WARNING: is still useful??
                         jmp_idx = [jmp_idx; end_idx(end)];
                     end
                     for j = 1: length(jmp_idx(:))
@@ -1332,8 +1335,8 @@ classdef Least_Squares_Manipulator < handle
                             jmp2 = Inf;
                         end
                         while isempty(idx_amb_rec) && d <= n_rec
-                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
-                            d = d + 1;
+                           idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+                           d = d + 1;
                         end
                         if ~isempty(idx_amb_rec)
                             idx_amb_rec = idx_amb_rec(1);
@@ -1342,7 +1345,7 @@ classdef Least_Squares_Manipulator < handle
                     end
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
-                for i = 2 : n_rec
+                for i = 1 : n_rec
                     jmps = [1*ones(i>1) this.amb_set_jmp{i}'];
                     for j = 1 : length(jmps)
                         jmp = jmps(j);
@@ -1352,9 +1355,9 @@ classdef Least_Squares_Manipulator < handle
                         end
                         idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
                         g = 1;
-                        while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
-                            g = g +1;
-                        end
+%                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+%                             g = g +1;
+%                         end
                         idx_amb_rec = idx_amb_rec(g);
                         idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
