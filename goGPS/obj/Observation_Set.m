@@ -353,7 +353,7 @@ classdef Observation_Set < handle
             for i = 1 : n_r
                 id_sync_t = id_sync(:,i);
                 id_sync_t(isnan(id_sync_t)) = [];
-                obs_c_matrix(id_sync_t, obs_set_list(i).go_id, i) = obs_set_list(i).obs;
+                obs_c_matrix(~isnan(id_sync(:,i)), obs_set_list(i).go_id, i) = obs_set_list(i).obs(id_sync_t,:);
             end
             % tranform zeros to nan
             obs_c_matrix = zero2nan(obs_c_matrix);
