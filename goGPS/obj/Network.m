@@ -108,13 +108,13 @@ classdef Network < handle
                 clk = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                 clk_rec = this.rec_list(i).work.getDt();
                 this.clock(idx_pos,i) = clk_rec(idx_is);
-                this.clock(this.rec_time_indexes(:,i) ~= 0,i) = this.clock(this.rec_time_indexes(:,i) ~= 0,i) + clk;
+                this.clock(~isnan(this.rec_time_indexes(:,i)),i) = this.clock(~isnan(this.rec_time_indexes(:,i)),i) + clk;
                 
                 if this.state.flag_tropo
                     ztd = x(x(:,2) == ls.PAR_TROPO & idx_rec,1);
                     ztd_rec = this.rec_list(i).work.getZtd();
                     this.ztd(idx_pos,i) = ztd_rec(idx_is);
-                    this.ztd(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd(this.rec_time_indexes(:,i) ~= 0,i) + ztd;
+                    this.ztd(~isnan(this.rec_time_indexes(:,i)),i) = this.ztd(~isnan(this.rec_time_indexes(:,i)),i) + ztd;
                 end
                 
                 if this.state.flag_tropo_gradient
@@ -122,11 +122,11 @@ classdef Network < handle
                      
                     gn = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                     this.ztd_gn(idx_pos,i) = gn_rec(idx_is);
-                    this.ztd_gn(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd_gn(this.rec_time_indexes(:,i) ~= 0,i) + gn;
+                    this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) = this.ztd_gn(~isnan(this.rec_time_indexes(:,i)),i) + gn;
                     
                     ge = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                     this.ztd_ge(idx_pos,i) = ge_rec(idx_is);
-                    this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) = this.ztd_ge(this.rec_time_indexes(:,i) ~= 0,i) + ge;
+                    this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) = this.ztd_ge(~isnan(this.rec_time_indexes(:,i)),i) + ge;
                 end
             end
             
