@@ -417,6 +417,40 @@ classdef Observation_Set < handle
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
+        function arc_jmp_mat = getArcJmpMat(this)
+            % gte a matrix of the dimension of observation set that has true value if the ambiguity is jumping and flase value if the ambiguity is not jumping
+            %
+            % SYNTAX:
+            % arc_jmp_mat = this.getArcJmpMat()
+            
+            arc_jmp_mat = false(size(this.obs));
+            ne = size(this.obs,1);
+            for s = 1 : size(this.obs,2)
+                css = find(this.cycle_slip(:,s));
+                for cs = css'
+                    % marks as jump the epoch of the cycle slip and all the epochs before the cycle slip that have no obersvatiobn
+                    arc_jmp_mat(cs,s) = true;
+                    it = cs -1;
+                    while it > 0 && this.obs(it,s) ==0
+                        arc_jmp_mat(it,s) = true;
+                        it = it -1;
+                    end
+                    
+                end
+                % mark as jmp all the epoch after the last valid one
+                if isempty(css)
+                    cs = 0;
+                else
+                    cs = css(end);
+                end
+                
+                le = find(this.obs((cs+1):end,s) == 0,1,'first');
+                if ~isempty(le) && (le+cs) < ne
+                    arc_jmp_mat(le+cs+1:end,s) = true;
+                end
+            end
+        end
+        
         function remShortArc(this, min_arc_len)
             % Remove short arcs
             %

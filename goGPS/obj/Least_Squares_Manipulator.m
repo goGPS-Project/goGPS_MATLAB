@@ -621,6 +621,9 @@ classdef Least_Squares_Manipulator < handle
                 obs_set_list(i).sanitizeEmpty();
             end
             
+           
+            
+            
             % Sync obs_sets
             sanitized = false;
             while ~sanitized
@@ -671,17 +674,15 @@ classdef Least_Squares_Manipulator < handle
                 n_sat = max([n_sat; obs_set_list(r).go_id(:)]);
             end
             
-            %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
+             %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx = true(size(id_sync, 1), n_sat);
-            for s = 1 : n_sat
-                for r = 1 : n_rec
-                    goid_idx = obs_set_list(r).go_id == s;
-                    for k = find(goid_idx)'
-                        idx_rec = obs_set_list(r).obs(:,k) == 0 | obs_set_list(r).cycle_slip(:,k);
-                        sat_jmp_idx(~isnan(id_sync(:,r)), s) = sat_jmp_idx(~isnan(id_sync(:,r)), s) & idx_rec(id_sync(~isnan(id_sync(:,r)),r));
-                    end
-                end
+            for r = 1 : n_rec
+                idx_rec = ~isnan(id_sync(:,r));
+                sat_jmp_rec = obs_set_list(r).getArcJmpMat();
+                sat_jmp_idx(idx_rec, obs_set_list(r).go_id) = sat_jmp_idx(idx_rec, obs_set_list(r).go_id) & sat_jmp_rec(id_sync(idx_rec,r),:);
             end
+            
+         
 
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
