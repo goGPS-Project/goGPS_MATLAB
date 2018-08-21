@@ -631,7 +631,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 [common_time, id_sync] = obs_set_list.getSyncTimeExpanded();
                 % remove satellites arcs seen only by one receiver and sigle epochs arcs
-                 common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
+                common_obs_mat = obs_set_list.getMRObsMat(common_time, id_sync);
                 
                 id_rm = sum(~isnan(common_obs_mat),3) == 1;
                 valid_epoch =  sum(~isnan(common_obs_mat),3) > 1;
@@ -650,12 +650,12 @@ classdef Least_Squares_Manipulator < handle
                     id_rm_o(id_sync(~isnan(id_sync(:,r)),r),:) = id_rm(~isnan(id_sync(:,r)), obs_set_list(r).go_id);
                     obs_set_list(r).remObs(id_rm_o, false);
                 end
-                 
+                
                 
                 % keep the epochs common to at least 2 receivers
                 id_ok = sum(~isnan(id_sync), 2) >= 2;
-               
-                if any(~id_ok) 
+                
+                if any(~id_ok)
                     id_sync = id_sync(id_ok, :);
                     % filter the observation sets
                     for r = 1 : n_rec
@@ -939,7 +939,7 @@ classdef Least_Squares_Manipulator < handle
                 this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), ...
                 this.PAR_TROPO_E*ones(tropo_g), this.PAR_SAT_CLK*ones(global_sol)];
             % find the ambiguity set jmp
-            amb_set_jmp = find(sum(diff(nan2zero(amb_idx)) > 0, 2) == sum(~isnan(amb_idx(1 : end - 1, :)),2) | sum(diff(nan2zero(amb_idx)) > 0,2) == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
+            amb_set_jmp = find(sum(diff(nan2zero(amb_idx)) < 0, 2) == sum(~isnan(amb_idx(1 : end - 1, :)),2) | sum(diff(nan2zero(amb_idx)) > 0,2) == sum(~isnan(amb_idx(2 : end, :)),2)) + 1;
         end
         
         function setTimeRegularization(this, param_class, time_variability)
