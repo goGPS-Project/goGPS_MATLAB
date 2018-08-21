@@ -5985,8 +5985,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             last_ep_coarse = min(100, this.time.length);
             ep_coarse = 1 : last_ep_coarse;
-            while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs)) % checking if the selected epochs contains at least some usabele obseravables
+            while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) & sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
                 ep_coarse = ep_coarse + 1;
+                ep_coarse = min(ep_coarse,this.time.length);
             end
             this.initAvailIndex(ep_coarse);
             this.updateAllTOT();

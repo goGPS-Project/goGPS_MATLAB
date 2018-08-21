@@ -655,8 +655,8 @@ classdef Least_Squares_Manipulator < handle
                 end
                 
                 
-                % keep the epochs common to at least 2 receivers
-                id_ok = sum(~isnan(id_sync), 2) >= 2;
+                % keep the epochs common to at least 2 receivers and that sees more than 2 staellites
+                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) > 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
                 
                 if any(~id_ok)
                     id_sync = id_sync(id_ok, :);
