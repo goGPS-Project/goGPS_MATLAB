@@ -103,7 +103,7 @@ classdef Network < handle
                 % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
                 idx_rec = x(:,3) == i;
                 this.coo(i,:) = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)] + this.rec_list(i).work.xyz;
-                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.time.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
+                [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.getTime.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
                 clk = x(x(:,2) == ls.PAR_REC_CLK & idx_rec,1);
                 clk_rec = this.rec_list(i).work.getDt();
