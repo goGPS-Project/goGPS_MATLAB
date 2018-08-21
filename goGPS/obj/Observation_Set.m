@@ -438,15 +438,10 @@ classdef Observation_Set < handle
                     
                 end
                 % mark as jmp all the epoch after the last valid one
-                if isempty(css)
-                    cs = 0;
-                else
-                    cs = css(end);
-                end
-                
-                le = find(this.obs((cs+1):end,s) == 0,1,'first');
-                if ~isempty(le) && (le+cs) < ne
-                    arc_jmp_mat(le+cs+1:end,s) = true;
+                it = ne;
+                while it > 0 && this.obs(it,s) == 0
+                        arc_jmp_mat(it,s) = true;
+                        it = it -1;
                 end
             end
         end
