@@ -455,19 +455,15 @@ classdef Observation_Set < handle
                 min_arc_len = 2;
             end
             amb_idx = this.getAmbIdx();
+            id_rm = false(size(this.obs));
             for i = 1 : size(this.obs, 2)
-                [lim] = getOutliers(isnan(amb_idx(:,i)));
+                [lim] = getOutliers(isnan(amb_idx(:,i)) | [true; diff(amb_idx(:,i)) ==1] | this.obs(:,i)==0);
                 single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
                 for s = 1 : numel(single_arcs)
-                    this.obs(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = 0;
-                end
-                
-                [lim] = getOutliers(this.obs(:,i)~=0);
-                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
-                for s = 1 : numel(single_arcs)
-                    this.obs(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = 0;
+                    id_rm(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = true;
                 end
             end
+            this.remObs(id_rm);
         end
     end
 end

@@ -656,7 +656,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 
                 % keep the epochs common to at least 2 receivers and that sees more than 2 staellites
-                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) > 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
+                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) >= 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
                 
                 if any(~id_ok)
                     id_sync = id_sync(id_ok, :);
@@ -830,15 +830,16 @@ classdef Least_Squares_Manipulator < handle
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             
-            %%% DEBUG PURPOSES: removing an empirically estimated clock
-            sensor = Core_Utils.diffAndPred(zero2nan(diff_obs));
-            sensor = median(sensor, 2, 'omitnan'); % using median to disregard cycle-slips
-            % rough estimation of clock, the median is not a good estimator
-            % but for now it could stay like this
-            clock_diff = detrend(cumsum(sensor));
-            %%% END
+%             %%% DEBUG PURPOSES: removing an empirically estimated clock
+%             sensor = Core_Utils.diffAndPred(zero2nan(diff_obs));
+%             sensor = median(sensor, 2, 'omitnan'); % using median to disregard cycle-slips
+%             % rough estimation of clock, the median is not a good estimator
+%             % but for now it could stay like this
+%             clock_diff = detrend(cumsum(sensor));
+%             diff_obs = nan2zero(bsxfun(@minus, zero2nan(diff_obs), clock_diff));
+%             %%% END
             
-            diff_obs = nan2zero(bsxfun(@minus, zero2nan(diff_obs), clock_diff));
+           
             
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
@@ -1322,10 +1323,6 @@ classdef Least_Squares_Manipulator < handle
                     if ~this.sat_jmp_idx(1,u_sat(i))
                         jmp_idx = [1; jmp_idx];
                     end
-                    end_idx = find(diff(this.sat_jmp_idx(:,u_sat(i))) == 1) + 1;
-                    if ~isempty(end_idx) % a last signle epoch arc might have remained % WARNING: is still useful??
-                        jmp_idx = [jmp_idx; end_idx(end)];
-                    end
                     for j = 1: length(jmp_idx(:))
                         idx_amb_rec = [];
                         d = 1;
@@ -1346,7 +1343,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
                 for i = 1 : n_rec
-                    jmps = [1*ones(i>1) this.amb_set_jmp{i}'];
+                    jmps = [1 this.amb_set_jmp{i}'];
                     for j = 1 : length(jmps)
                         jmp = jmps(j);
                         jmp2 = jmps(min(j+1,length(jmps)));
