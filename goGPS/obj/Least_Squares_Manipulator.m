@@ -1410,7 +1410,13 @@ classdef Least_Squares_Manipulator < handle
                 idx_p = A2N_idx_tot(this.A_idx(:, c));
                 x_class(idx_p) = this.param_class(c);
             end
-            if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0)
+            if (this.state.flag_amb_fix && length(x(x_class == 5,1))> 0) 
+                % IMPORTANT NOTE:
+                % This part on ambiguity fixing use a simple integer rounding, this is done mainly for two reason:
+                % 1) For long observing time  it seem sufficient in most of the cases
+                % 2) The VCV of the ambiguity derived from several hours joint multi epoch adjustmnet seem far too optimistic (well known fact). 
+                %    This to our understending might cause problem in the usage of more sofisticated search method in ambiguity space such as the LAMBDA method.
+                % A better understanding is required
                 if ~is_network
                     amb = x(x_class == 5,1);
                     amb_wl_fixed = false(size(amb));
@@ -1508,40 +1514,63 @@ classdef Least_Squares_Manipulator < handle
                     this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',sum(idx_fix),length(idx_fix))));
                     this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',sum(A_fixed)/length(A_fixed)*100)));
                 else
-                    idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
-                    xe = x(idx_est);
-                    amb = xe(idx_amb_par,1);
-                    
-                    %                     wl =  ones(size(amb)) * GPS_SS.L_VEC(1);
-                    %                     amb = amb./wl;
-                    idx_fix = fracFNI(amb) < 0.1;
-                    amb_fix = round(amb);
-                    
-                    for i = 1 : length(idx_fix)
-                        Ni = N(:,idx_amb_par(i));
-                        if idx_fix(i)
-                            b_if_fix = (amb_fix(i));
-                            B = B - Ni* ( b_if_fix);
+                    f = 0;
+                    nf_loop = 2;
+                    while f < nf_loop
+                        idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
+                        idx_est2idx = 1:size(x,1); % index to convert from the actual estimated varibles to the tototal one
+                        idx_est2idx = idx_est2idx(idx_est);
+                        n_amb = length(idx_amb_par);
+                        
+                        xe = x(idx_est);
+                        amb = xe(idx_amb_par,1);
+                        n_ep_amb = zeros(size(amb));
+                        for i = 1 : n_amb
+                            n_ep_amb(i) = sum(this.A_idx(:,4) == idx_est2idx(idx_amb_par(i)));
                         end
+                        
+                        if f == 0 % keep record of fixed ambiguities to show statistics at the end
+                            n_amb_ini = n_amb;
+                            n_obs_tot = sum(n_ep_amb);
+                            n_amb_fix = 0;
+                            n_obs_fix = 0;
+                        end
+                        
+                        idx_fix = abs(fracFNI(amb)) < 0.15;
+                        n_amb_fix = n_amb_fix + sum(idx_fix); % update the record of fixed ambiguities
+                        n_obs_fix = n_obs_fix + sum(n_ep_amb(idx_fix)); % update the record of fixed ambiguities
+                        amb_fix = round(amb);
+                        
+                        for i = 1 : length(idx_fix)
+                            Ni = N(:,idx_amb_par(i));
+                            if idx_fix(i)
+                                b_if_fix = (amb_fix(i));
+                                B = B - Ni* ( b_if_fix);
+                            end
+                        end
+                        
+                        B(idx_amb_par(idx_fix)) = [];
+                        N(idx_amb_par(idx_fix),:) = [];
+                        N(:,idx_amb_par(idx_fix)) = [];
+                        
+                        idx_nf = true(sum(idx_est,1),1);
+                        idx_nf(idx_amb_par(idx_fix)) = false;
+                        xf = zeros(size(idx_nf));
+                        
+                        xf(idx_nf) = N \ B;
+                        xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
+                        
+                        x(idx_est) = xf;
+                        % chenge the index of estaimted values
+                        n_p = length(idx_est);
+                        idx_est = find(idx_est);
+                        idx_est(~idx_nf) = [];
+                        idx_est = num2LogIdx(idx_est,n_p);
+                        
+                        f = f +1;
                     end
-                    
-                    
-                    B(idx_amb_par(idx_fix)) = [];
-                    N(idx_amb_par(idx_fix),:) = [];
-                    N(:,idx_amb_par(idx_fix)) = [];
-                    
-                    
-                    idx_nf = true(sum(idx_est,1),1);
-                    idx_nf(idx_amb_par(idx_fix)) = false;
-                    xf = zeros(size(idx_nf));
-                    
-                    xf(idx_nf) = N \ B;
-                    xf(~idx_nf) = amb_fix(idx_fix);%.*wl(idx_fix);
-                    
-                    
-                    
-                    x(idx_est) = xf;
-                    
+                    this.log.addMessage(this.log.indent(sprintf('%d of %d ambiguity fixed\n',n_amb_fix,n_amb_ini)));
+                    this.log.addMessage(this.log.indent(sprintf('%.2f %% of observation has the ambiguity fixed\n',n_obs_fix/n_obs_tot*100)));
                 end
             end
             if nargout > 1
