@@ -454,15 +454,29 @@ classdef Observation_Set < handle
             if nargin < 2
                 min_arc_len = 2;
             end
-            amb_idx = this.getAmbIdx();
+            cs = full(this.cycle_slip);
+            cs(this.obs == 0) = true;
+            n_ep = size(this.obs,1);
             id_rm = false(size(this.obs));
             for i = 1 : size(this.obs, 2)
-                [lim] = getOutliers(isnan(amb_idx(:,i)) | [true; diff(amb_idx(:,i)) ==1] | this.obs(:,i)==0);
-                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
-                for s = 1 : numel(single_arcs)
-                    id_rm(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = true;
+                % remove single arcs
+                for j = 2:(n_ep)
+                    if cs(j, i) && cs(j-1, i) 
+                        id_rm(j-1, i) = true;
+                    end
                 end
+                if cs(j, i) && cs(j-1, i)
+                    id_rm(j, i) = true;
+                end
+                % remove arcs less than desidered
+                [lim] = getOutliers(this.obs(:, i)~=0 & ~this.cycle_slip(:, i));
+                single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1)); 
+                for s = 1 : numel(single_arcs) 
+                    id_rm(lim(single_arcs(s),1) : lim(single_arcs(s),2), i) = true; 
+                end
+
             end
+            id_rm(this.obs == 0) = false; %do not remove observation that are not there
             this.remObs(id_rm);
         end
     end
