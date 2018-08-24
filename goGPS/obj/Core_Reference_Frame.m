@@ -205,7 +205,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.isFixed(sta_code)
             status = false;
             if size(this.station_code) >0
-                sta_idx  = strLineMatch(this.station_code, sta_code);
+                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
                     status  = this.flag(sta_idx) == 2;
                 end
@@ -222,7 +222,22 @@ classdef Core_Reference_Frame < handle
             if size(this.station_code) >0
                 sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1;
+                    status  = this.flag(sta_idx) == 2 || this.flag(sta_idx) == 1  || this.flag(sta_idx) == 3;
+                end
+            end
+        end
+        
+        function [status] = hasGoodAPriori(this, sta_code)
+            % tell if station coordiantes are good enough to skip initla code postioining
+            % in case sation not sound return false
+            %
+            % SYNTAX:
+            %  [status] = this.hasAPriori(sta_code)
+            status = false;
+            if size(this.station_code) >0
+                sta_idx  = strLineMatch(lower(this.station_code), lower(sta_code));
+                if sum(sta_idx) > 0
+                    status  = this.flag(sta_idx) == 3 || this.flag(sta_idx) == 2;
                 end
             end
         end

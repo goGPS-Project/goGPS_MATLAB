@@ -372,8 +372,8 @@ classdef Least_Squares_Manipulator < handle
             
             this.true_epoch = obs_set.getTimeIdx(rec.time.first, rec.getRate); % link between original epoch, and epochs used here
             id_sync_out = this.true_epoch;
-            
-            n_coo_par =  ~rec.isFixed() * 3; % number of coordinates
+            is_fixed = rec.isFixed() || (rec.hasGoodApriori && ~phase_present);
+            n_coo_par =  ~is_fixed * 3; % number of coordinates
             
             if dynamic
                 n_coo = n_coo_par * n_epochs;
@@ -424,7 +424,7 @@ classdef Least_Squares_Manipulator < handle
             sat = zeros(n_obs, 1);
             
             A_idx = zeros(n_obs, n_par);
-            if ~rec.isFixed()
+            if ~is_fixed
                 if isempty(pos_idx_vec)
                     A_idx(:, 1:3) = repmat([1, 2, 3], n_obs, 1);
                 end
@@ -464,11 +464,11 @@ classdef Least_Squares_Manipulator < handle
                 variance(lines_stream) =  obs_set.sigma(s)^2;
                 % ----------- FILL IMAGE MATRIX ------------
                 % ----------- coordinates ------------------
-                if ~rec.isFixed()
+                if ~is_fixed
                     A(lines_stream, 1:3) = - los_stream;
                 end
                 prog_p_col = 0;
-                if dynamic & ~rec.isFixed()
+                if dynamic & ~is_fixed
                     prog_p_col = prog_p_col +1;
                     A_idx(lines_stream, prog_p_col) = ep_p_idx(id_ok_stream);
                     prog_p_col = prog_p_col +1;
@@ -482,7 +482,7 @@ classdef Least_Squares_Manipulator < handle
                     A_idx(lines_stream, prog_p_col) = n_pos  + pos_idx_vec(id_ok_stream);
                     prog_p_col = prog_p_col +1;
                     A_idx(lines_stream, prog_p_col) = 2*n_pos + pos_idx_vec(id_ok_stream);
-                elseif  ~rec.isFixed()
+                elseif  ~is_fixed
                     prog_p_col = prog_p_col + 3 ;
                 end
                 % ----------- Inster observation bias ------------------
@@ -576,7 +576,7 @@ classdef Least_Squares_Manipulator < handle
             else
                 this.param_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, ones(tropo), ones(tropo_g), ones(tropo_g)];
             end
-            this.param_class = [this.PAR_X*ones(~rec.isFixed()) , this.PAR_Y*ones(~rec.isFixed()), this.PAR_Z*ones(~rec.isFixed()), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
+            this.param_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag), this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*ones(tropo), this.PAR_TROPO_N*ones(tropo_g), this.PAR_TROPO_E*ones(tropo_g)];
             if phase_present
                 system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
                 fprintf('#### DEBUG #### \n');

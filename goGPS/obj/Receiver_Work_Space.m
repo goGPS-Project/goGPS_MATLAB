@@ -2255,6 +2255,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             is_fixed = this.rf.isFixed(this.parent.getMarkerName4Ch);
         end
         
+        function is_fixed = hasGoodApriori(this)
+            % this is meant to skip any positionin based on code and estimate the postionon only in PPP or network phase adjutsment
+            is_fixed = this.rf.hasGoodAPriori(this.parent.getMarkerName4Ch);
+        end
+        
         function has_apr = hasAPriori(this)
             has_apr = this.rf.hasAPriori(this.parent.getMarkerName4Ch);
         end
