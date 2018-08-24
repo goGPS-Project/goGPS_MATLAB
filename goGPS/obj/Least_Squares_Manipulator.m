@@ -656,7 +656,7 @@ classdef Least_Squares_Manipulator < handle
                 
                 
                 % keep the epochs common to at least 2 receivers and that sees more than 2 staellites
-                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) >= 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
+                id_ok = sum(~isnan(id_sync), 2) >= 2 & sum(sum(~isnan(common_obs_mat),3) > 1,2) > 2; % NOTE: if a constraint on clock is applied the trehsold might be lowered to 1 satellite, the gain will be probabily low for consumer receiver
                 
                 if any(~id_ok)
                     id_sync = id_sync(id_ok, :);
@@ -677,9 +677,8 @@ classdef Least_Squares_Manipulator < handle
              %--- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx = true(size(id_sync, 1), n_sat);
             for r = 1 : n_rec
-                idx_rec = ~isnan(id_sync(:,r));
-                sat_jmp_rec = obs_set_list(r).getArcJmpMat();
-                sat_jmp_idx(idx_rec, obs_set_list(r).go_id) = sat_jmp_idx(idx_rec, obs_set_list(r).go_id) & sat_jmp_rec(id_sync(idx_rec,r),:);
+                sat_jmp_rec = obs_set_list(r).getArcJmpMat(id_sync(:,r));
+                sat_jmp_idx(:, obs_set_list(r).go_id) = sat_jmp_idx(:, obs_set_list(r).go_id) & sat_jmp_rec;
             end
             
          
@@ -1123,7 +1122,7 @@ classdef Least_Squares_Manipulator < handle
                 n_epochs = this.n_epochs(r);
                 if  is_network
                     u_ep = unique(this.epoch(this.receiver_id == r)); % <- consider not using unique
-                    r2p_ep = zeros(u_ep(end),1);
+                    r2p_ep = zeros(u_ep(end),1); % receiver to progressive epoch
                     r2p_ep(u_ep) = 1: length(u_ep);
                 else
                     r2p_ep = 1:n_epochs;
@@ -1258,7 +1257,7 @@ classdef Least_Squares_Manipulator < handle
                     sat_idx = u_sat(i) == this.sat;
                     ep_sat = this.epoch(sat_idx);
                     u_ep = unique(ep_sat);
-                    [~, idx_ep] = ismember(ep_sat,u_ep);
+                    [~, idx_ep] = ismember(ep_sat, u_ep);
                     common_idx(sat_idx) = idx_ep + p_idx;
                     p_idx = p_idx + max(idx_ep);
                 end
@@ -1277,9 +1276,9 @@ classdef Least_Squares_Manipulator < handle
                     y = this.y(i);
                     r = this.receiver_id(i);
                     B_comm(idx_common) = B_comm(idx_common) + rw * (1 ./ variance) * y; % the entrace in the idx for the common parameters are all one
-                    N_stack_comm(idx_common, (r-1)*n_s_r_p +(1:n_s_r_p) )= N_stack_comm(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
+                    N_stack_comm(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p) )= N_stack_comm(idx_common,(r - 1) * n_s_r_p +(1 : n_s_r_p)) +this.A_ep(i,:) * rw * (1 ./ variance);
                     diag_comm(idx_common) = diag_comm(idx_common) + rw * (1 ./ variance);
-                    N_stack_idx(idx_common,(r-1)*n_s_r_p +(1:n_s_r_p))= this.A_idx(i,:);
+                    N_stack_idx(idx_common, (r - 1) * n_s_r_p + (1 : n_s_r_p))= this.A_idx(i, :);
                 end
                 n_par = max(max(this.A_idx));
                 line_idx = repmat([1:n_common]',1,size(N_stack_comm,2));
@@ -1301,7 +1300,7 @@ classdef Least_Squares_Manipulator < handle
                 % resolve the rank deficency
                 % ALL paramters has a rank deficency beacause the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
                 % 2) remove coordinates and tropo paramters of the first receiver
-                % we can do theta beacuase tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
+                % we can do that because tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
                 idx_rec_x = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_X));
                 idx_rec_y = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Y));
                 idx_rec_z = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Z));
@@ -1310,7 +1309,9 @@ classdef Least_Squares_Manipulator < handle
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
                 idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_t; idx_rec_tn; idx_rec_te];
                 % 3 ) remove one clock per epoch for the minim receiver available
+                % NOTE: VERY SLOW impemplementation, first candiadte for a speed up once all is stable
                 clk_idx = this.param_class == this.PAR_REC_CLK;
+                n_epochs = length(unique(this.epoch));
                 for i = 1 : n_epochs
                     idx_rec_clk = this.A_idx(this.epoch == i,clk_idx); % the minimum index is the one of the first receiver if it has a clock at the epoch either wise is the second then thrid etc...
                     idx_rm = [idx_rm ; idx_rec_clk(1)];

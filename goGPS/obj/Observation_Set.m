@@ -326,7 +326,6 @@ classdef Observation_Set < handle
             for r = 1 : numel(obs_set_list)
                 rec_rate = min(1, obs_set_list(r).time.getRate);
                 [~, id1, id2] = intersect(t, round(obs_set_list(r).time.getRefTime(p_time_zero) / rec_rate) * rec_rate);
-                
                 id_sync(id1, r) = id2;
             end
         end
@@ -417,21 +416,32 @@ classdef Observation_Set < handle
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
-        function arc_jmp_mat = getArcJmpMat(this)
+        function arc_jmp_mat = getArcJmpMat(this, id_comm)
             % gte a matrix of the dimension of observation set that has true value if the ambiguity is jumping and flase value if the ambiguity is not jumping
             %
             % SYNTAX:
-            % arc_jmp_mat = this.getArcJmpMat()
-            
-            arc_jmp_mat = false(size(this.obs));
-            ne = size(this.obs,1);
-            for s = 1 : size(this.obs,2)
-                css = find(this.cycle_slip(:,s));
+            % arc_jmp_mat = this.getArcJmpMat(<id_comm>)
+            if nargin < 2
+                arc_jmp_mat = false(size(this.obs));
+                cycle_slip = this.cycle_slip;
+                obs = this.obs;
+            else
+                % rfer everything to the common index
+                arc_jmp_mat = false(length(id_comm),size(this.obs,2));
+                cycle_slip = false(length(id_comm),size(this.obs,2));
+                obs = false(length(id_comm),size(this.obs,2));
+                id_sync = id_comm(~isnan(id_comm));
+                cycle_slip(~isnan(id_comm),:) = this.cycle_slip(id_sync,:);
+                obs(~isnan(id_comm),:) = this.obs(id_sync,:);
+            end
+            ne = size(obs,1);
+            for s = 1 : size(obs,2)
+                css = find(cycle_slip(:,s));
                 for cs = css'
                     % marks as jump the epoch of the cycle slip and all the epochs before the cycle slip that have no obersvatiobn
                     arc_jmp_mat(cs,s) = true;
                     it = cs -1;
-                    while it > 0 && this.obs(it,s) ==0
+                    while it > 0 && obs(it,s) ==0
                         arc_jmp_mat(it,s) = true;
                         it = it -1;
                     end
@@ -439,7 +449,7 @@ classdef Observation_Set < handle
                 end
                 % mark as jmp all the epoch after the last valid one
                 it = ne;
-                while it > 0 && this.obs(it,s) == 0
+                while it > 0 && obs(it,s) == 0
                         arc_jmp_mat(it,s) = true;
                         it = it -1;
                 end

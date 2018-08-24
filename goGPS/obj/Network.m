@@ -197,26 +197,26 @@ classdef Network < handle
 
             
             % --- push back the results in the receivers
-            % Commented because it is necessary to fix the Network solution before doing this
-            % for i = 1 : n_rec
-            %     this.rec_list(i).work.xyz = this.coo(i,:);
-            %     idx_res_av = ~isnan(this.clock(:,i));
-            %     [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
-            %     idx_pos = idx_pos(idx_pos > 0);
-            %     clk = this.clock(idx_res_av,i);
-            %     this.rec_list(i).work.dt(idx_pos) = clk(idx_is);
-            %     if this.state.flag_tropo
-            %         ztd = this.ztd(idx_res_av,i);
-            %         this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);
-            %     end
-            %     if this.state.flag_tropo_gradient
-            %         gn = this.ztd_gn(idx_res_av,i);
-            %         this.rec_list(i).work.tgn(idx_pos) = gn(idx_is);
-            %         ge = this.ztd_ge(idx_res_av,i);
-            %         this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
-            %     end
-            %     this.rec_list(i).work.pushResult();
-            % end
+            %Commented because it is necessary to fix the Network solution before doing this
+%             for i = 1 : n_rec
+%                 this.rec_list(i).work.xyz = this.coo(i,:);
+%                 idx_res_av = ~isnan(this.clock(:,i));
+%                 [idx_is, idx_pos] = ismembertol(this.common_time.getEpoch(idx_res_av).getGpsTime(), this.rec_list(i).work.time.getGpsTime, 0.002, 'DataScale', 1);
+%                 idx_pos = idx_pos(idx_pos > 0);
+%                 clk = this.clock(idx_res_av,i);
+%                 this.rec_list(i).work.dt(idx_pos) = clk(idx_is);
+%                 if this.state.flag_tropo
+%                     ztd = this.ztd(idx_res_av,i);
+%                     this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);
+%                 end
+%                 if this.state.flag_tropo_gradient
+%                     gn = this.ztd_gn(idx_res_av,i);
+%                     this.rec_list(i).work.tgn(idx_pos) = gn(idx_is);
+%                     ge = this.ztd_ge(idx_res_av,i);
+%                     this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
+%                 end
+%                 this.rec_list(i).work.pushResult();
+%             end
         end
     end
 end
