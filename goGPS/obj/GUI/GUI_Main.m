@@ -1501,6 +1501,36 @@ end
             rec_path = state.getRecPath;
             str = '';
             t0 = tic;
+            
+            % Get the maximum number of session to check
+            max_sss = 0;
+            for r = 1 : n_rec
+                max_sss = max(max_sss, numel(rec_path{r}));
+            end
+            
+            % If I need to check a lot of file use as a method to check
+            % dir list, otherwise use exist
+            available_files = [];
+            if max_sss * n_rec > 1000
+                % Get all the folders in wich the receivers are stored
+                i = 0;
+                for r = 1 : numel(rec_path)
+                    for s = 1 : numel(rec_path{r})
+                        i = i + 1;
+                        [dir_path{i}] = fileparts(rec_path{r}{s});
+                    end
+                end
+                
+                % Remove duplicates
+                unique_dir = unique(dir_path);
+                
+                for d = 1 : numel(unique_dir)
+                    dir_list = dir(fullfile(unique_dir{d}, '*.*'));
+                    available_files = [available_files {dir_list.name}];
+                end
+                available_files = [available_files{:}];
+            end
+                        
             for r = 1 : n_rec
                 if ~isempty(rec_path{r})
                     name = File_Name_Processor.getFileName(rec_path{r}{1});
@@ -1512,22 +1542,34 @@ end
                 %this.log.addMessage(sprintf('Checking %s', upper(name(1:4))));
                 
                 n_ok = 0; n_ko = 0;
-                for s = 1 : numel(rec_path{r})
-                    if (exist(rec_path{r}{s}, 'file') == 2)
-                        n_ok = n_ok + 1;
-                    else
-                        n_ko = n_ko + 1;
+                if ~isempty(available_files)
+                    for s = 1 : numel(rec_path{r})
+                        [~, file_name, ext] = fileparts(rec_path{r}{s});
+                        if (~isempty(strfind(available_files, [file_name ext])))
+                            n_ok = n_ok + 1;
+                        else
+                            n_ko = n_ko + 1;
+                        end
+                    end
+                else
+                    for s = 1 : numel(rec_path{r})
+                        if (exist(rec_path{r}{s}, 'file') == 2)
+                            n_ok = n_ok + 1;
+                        else
+                            n_ko = n_ko + 1;
+                        end
                     end
                 end
                 
                 %fr = File_Rinex(rec_path{r}, 100);
                 %n_ok = sum(fr.is_valid_list);
                 %n_ko = sum(~fr.is_valid_list);
-                str = sprintf('%s%02d %s   %3d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
+                str = sprintf('%s%02d %s  %4d OK %3d KO\n', str, r, upper(name(1:4)), n_ok, n_ko);
                 %else
                 %    str = sprintf('%s%02d %s   %3d sessions\n', str, r, upper(name(1:4)), numel(rec_path{r}));
                 %end
             end
+            
             if toc(t0) > 1
                 this.log.addMessage('Receiver files checked');
             end
