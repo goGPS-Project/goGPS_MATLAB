@@ -1312,9 +1312,15 @@ classdef Least_Squares_Manipulator < handle
                 % NOTE: VERY SLOW impemplementation, first candiadte for a speed up once all is stable
                 clk_idx = this.param_class == this.PAR_REC_CLK;
                 n_epochs = length(unique(this.epoch));
-                for i = 1 : n_epochs
-                    idx_rec_clk = this.A_idx(this.epoch == i,clk_idx); % the minimum index is the one of the first receiver if it has a clock at the epoch either wise is the second then thrid etc...
-                    idx_rm = [idx_rm ; idx_rec_clk(1)];
+                idx_clk_to_rm = true(n_epochs,i);
+                i = 1;
+                while sum(idx_clk_to_rm) > 0
+                     idx_i_c = this.receiver_id == i;
+                     idx_rec_clk = unique(this.A_idx(idx_i_c, clk_idx)); 
+                     idx_rec_clk_ep =  unique(this.epoch(idx_i_c));
+                     idx_to_rm = idx_clk_to_rm(idx_rec_clk_ep);
+                     idx_rm = [idx_rm ; idx_rec_clk(idx_to_rm)];
+                     idx_clk_to_rm(idx_rec_clk_ep(idx_to_rm)) = false;
                 end
                 
                 idx_amb_rm = [];
