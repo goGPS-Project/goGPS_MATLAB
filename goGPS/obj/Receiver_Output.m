@@ -290,7 +290,7 @@ classdef Receiver_Output < Receiver_Commons
             
             work_time = rec_work.getTime();
             initial_len = this.time.length;
-            is_this_empty = this.time.isempty || ~any(this.ztd);
+            is_this_empty = this.time.isempty;
             if is_this_empty
                 idx1 = 1;
                 idx2 = 0;

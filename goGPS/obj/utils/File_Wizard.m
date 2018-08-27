@@ -319,9 +319,17 @@ classdef File_Wizard < handle
                                 %out_dir = out_dir{1};
                                 if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port);
-                                    status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                    if ~this.nrt
+                                        status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
+                                    else
+                                        status = this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir) && status;
+                                    end
                                 else
-                                    status = status && Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir);
+                                    if ~this.nrt
+                                        status = status && Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir);
+                                    else
+                                        status = Core_Utils.downloadHttpTxtRes([s_ip file_name], out_dir) && status;
+                                    end
                                 end
                             end
                         end
@@ -427,7 +435,9 @@ classdef File_Wizard < handle
                         status  = status || status_b;
                         if status
                             file_tree.(b_name).(branch{i}) = file_tree_b;
-                            break
+                            if ~this.nrt
+                                break
+                            end
                         end
                     elseif and_flag
                         status  = status && status_b;
@@ -445,7 +455,7 @@ classdef File_Wizard < handle
             %     this.conjureFiles(date_start, date_stop, center_name)
             dsa = date_start.getCopy();
             dso = date_stop.getCopy();
-            if (dso - GPS_Time.now()) > -(6*3600)
+            if (GPS_Time.now() - dso) < (6*3600)
                 this.nrt = true;
             end
             if nargin < 4

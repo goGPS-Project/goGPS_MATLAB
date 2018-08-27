@@ -124,9 +124,12 @@ classdef Least_Squares_Manipulator < handle
     end
     
     methods
-        function this = Least_Squares_Manipulator()
+        function this = Least_Squares_Manipulator(cc)
             % Creator Brahma
             this.init();
+            if nargin > 0
+                this.cc = cc;
+            end
         end
         
         function init(this)
@@ -137,6 +140,7 @@ classdef Least_Squares_Manipulator < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.rf = Core_Reference_Frame.getInstance();
             this.log = Logger.getInstance();
+            
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)
@@ -992,7 +996,7 @@ classdef Least_Squares_Manipulator < handle
             this.res = res_l;
             res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);
-            n_sat = max(this.sat_go_id);
+            n_sat = this.cc.getNumSat;
             n_rec = max(this.receiver_id);
             if ~this.network_solution
                 res = zeros(n_epochs, n_sat);

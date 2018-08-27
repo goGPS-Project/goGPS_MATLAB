@@ -75,7 +75,7 @@ classdef Network < handle
                 idx_ref = 1 : numel(this);
             end
             
-            ls = Least_Squares_Manipulator();
+            ls = Least_Squares_Manipulator(this.rec_list(1).cc);
             [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list);
             n_time = this.common_time.length;
             if this.state.flag_tropo
@@ -202,7 +202,6 @@ classdef Network < handle
                 
                 
                 % --- push back the results in the receivers
-                %Commented because it is necessary to fix the Network solution before doing this
                 for i = 1 : n_rec
                     this.rec_list(i).work.xyz = this.coo(i,:);
                     idx_res_av = ~isnan(this.clock(:, i));
@@ -220,8 +219,16 @@ classdef Network < handle
                         ge = this.ztd_ge(idx_res_av, i);
                         this.rec_list(i).work.tge(idx_pos) = ge(idx_is);
                     end
+                    % sigma of the session
+                    this.rec_list(i).work.s0 = s0;
+                    % residual
+                    this.rec_list(i).work.sat.res(:) = 0;
+                    this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
+                    
                     this.rec_list(i).work.pushResult();
                 end
+            else
+                this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
             end
         end
     end

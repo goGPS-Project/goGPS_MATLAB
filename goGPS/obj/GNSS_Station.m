@@ -1313,7 +1313,7 @@ classdef GNSS_Station < handle
                         % prepare data
                         baseline = diff(enu, 1, 3);
                         if plot_relative_variation
-                            baseline = bsxfun(@minus, baseline, median(baseline, 'omitnan')) * 1e2;
+                            baseline = bsxfun(@minus, baseline, median(baseline, 'omitnan')) * 1e3;
                         end
                         t = time.getMatlabTime();
                         
@@ -1328,7 +1328,7 @@ classdef GNSS_Station < handle
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
                         if plot_relative_variation
-                            h = ylabel('East [cm]'); h.FontWeight = 'bold';
+                            h = ylabel('East [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('East [m]'); h.FontWeight = 'bold';
                         end
@@ -1342,7 +1342,7 @@ classdef GNSS_Station < handle
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
                         if plot_relative_variation
-                            h = ylabel('North [cm]'); h.FontWeight = 'bold';
+                            h = ylabel('North [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('North [m]'); h.FontWeight = 'bold';
                         end
@@ -1356,7 +1356,7 @@ classdef GNSS_Station < handle
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); 
                         if plot_relative_variation
-                            h = ylabel('Up [cm]'); h.FontWeight = 'bold';
+                            h = ylabel('Up [mm]'); h.FontWeight = 'bold';
                         else
                             h = ylabel('Up [m]'); h.FontWeight = 'bold';
                         end
@@ -1364,7 +1364,7 @@ classdef GNSS_Station < handle
                         grid on;
                         if one_plot
                             if plot_relative_variation
-                                h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
+                                h = ylabel('ENU [mm]'); h.FontWeight = 'bold';
                             else
                                 h = ylabel('ENU [m]'); h.FontWeight = 'bold';
                             end                            

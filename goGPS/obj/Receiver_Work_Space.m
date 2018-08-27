@@ -6025,7 +6025,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
-            ls = Least_Squares_Manipulator();
+            ls = Least_Squares_Manipulator(this.cc);
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
@@ -6075,7 +6075,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function [dpos, s0] = codeDynamicPositioning(this, id_sync, cut_off)
-            ls = Least_Squares_Manipulator();
+            ls = Least_Squares_Manipulator(this.cc);
             if nargin < 2
                 if ~isempty(this.id_sync)
                     id_sync = this.id_sync;
@@ -6501,7 +6501,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if this.state.flag_amb_fix
                     this.coarseAmbEstimation();
                 end
-                ls = Least_Squares_Manipulator();
+                ls = Least_Squares_Manipulator(this.cc);
                 pos_idx = [];
                 id_sync = ls.setUpPPP(this, id_sync,'',false, pos_idx);
                 ls.Astack2Nstack();
@@ -6627,7 +6627,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time >= this.out_stop_time),1);];
                                 
                                 
-                                ls = Least_Squares_Manipulator();
+                                ls = Least_Squares_Manipulator(this.cc);
                                 id_sync = ls.setUpPPP(this, id_sync_in,'',false, pos_idx);
                                 ls.Astack2Nstack();
                                 
@@ -6714,7 +6714,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.log.addMessage(this.log.indent('Preparing the system'));
                 %this.updateAllAvailIndex
                 %this.updateAllTOT
-                ls = Least_Squares_Manipulator();
+                ls = Least_Squares_Manipulator(this.cc);
                 id_sync = ls.setUpPPP(this, id_sync, this.state.getCutOff, true);
                 ls.Astack2Nstack();
                 
