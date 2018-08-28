@@ -1824,7 +1824,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 txt = [txt repmat(' ',1,32 - lim(end,3))];
             end
             % find all the observation lines
-            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & (txt(lim(eoh+1:end,1) + 28) ~= '4')' & lim(eoh+1:end,3) > 25]);
+            t_line = find([false(eoh, 1); (txt(lim(eoh+1:end,1) + 2) ~= ' ')' & (txt(lim(eoh+1:end,1) + 3) == ' ')' & ...
+                (txt(lim(eoh+1:end,1) + 28) <= '1')' & ... % discard any problematic event 
+                lim(eoh+1:end,3) > 25]);
             n_epo = numel(t_line);
             % extract all the epoch lines
             string_time = txt(repmat(lim(t_line,1),1,25) + repmat(1:25, n_epo, 1))';
