@@ -156,7 +156,9 @@ classdef File_Rinex < Exportable
                         end
                         this.eoh(f) = l;
                         epoch_line = fgetl(fid);
-
+                        if epoch_line == -1
+                            error('Empty file');
+                        end
                         % try to guess the time format
                         [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
                         this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
@@ -203,12 +205,6 @@ classdef File_Rinex < Exportable
                         this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         this.is_valid_list(f) = true;
                     catch ex
-                        if this.first_epoch.length < f
-                            this.first_epoch.addEpoch(0);
-                        end
-                        if this.last_epoch.length < f
-                            this.last_epoch.addEpoch(0);
-                        end
                         this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file'], this.verbosity_lev);
                         this.is_valid_list(f) = false;
                     end
