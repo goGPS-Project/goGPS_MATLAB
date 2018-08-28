@@ -2427,11 +2427,11 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   xyz = this.getTime()
-            if ~isempty(this(1).id_sync)
+            %if ~isempty(this(1).id_sync)
                 time = this(1).time.getEpoch(this(1).id_sync);
-            else
-                time = this(1).time.getCopy();
-            end
+            %else
+            %    time = this(1).time.getCopy();
+            %end
         end
         
         function missing_epochs = getMissingEpochs(this)
