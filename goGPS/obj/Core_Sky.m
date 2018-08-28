@@ -1258,6 +1258,7 @@ classdef Core_Sky < handle
             [year_t, month_t, day_t ] = time.getCalEpoch();
             n_ep = size(this.wsb_date);
             n_ep = n_ep(1);
+            wsb = 0;
             for i = 1:n_ep
                 [year, month, day ] = this.wsb_date(i).getCalEpoch();
                 if year == year_t && month == month_t && day == day_t
