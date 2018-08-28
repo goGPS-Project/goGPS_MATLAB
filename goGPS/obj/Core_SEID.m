@@ -83,7 +83,8 @@ classdef Core_SEID < handle
             %   Core_SEID.getSyntL2(ref, trg)
             %%
             trg = trg(~trg.isEmpty_mr);
-            if ~isempty(trg)
+            ref = ref(~ref.isEmpty_mr);
+            if ~isempty(trg) && ~isempty(ref)                
                 rec(1:numel(ref)) = ref;
                 rec(numel(ref) + (1 : numel(trg))) = trg;
                 obs_type(1:numel(ref)) = 2;
