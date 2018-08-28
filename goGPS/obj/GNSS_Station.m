@@ -413,7 +413,7 @@ classdef GNSS_Station < handle
             for r = 1 : n_rec
                 enu_rec = sta_list(r).out.getPosENU();
                 id_rec = id_sync(:,r);
-                enu(~isnan(id_rec), :, r) = enu_rec(~isnan(id_rec), :);
+                enu(~isnan(id_rec), :, r) = enu_rec(id_rec(~isnan(id_rec)), :);
             end
         end
     
