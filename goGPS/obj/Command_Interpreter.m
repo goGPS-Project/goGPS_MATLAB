@@ -140,7 +140,6 @@ classdef Command_Interpreter < handle
         function this = getInstance(varargin)
             % Get the persistent instance of the class
             persistent unique_instance_cmdi__
-            unique_instance_cmdi__ = [];
             
             if isempty(unique_instance_cmdi__)
                 this = Command_Interpreter(varargin);
