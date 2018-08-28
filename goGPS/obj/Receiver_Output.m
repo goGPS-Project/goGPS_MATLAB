@@ -286,7 +286,7 @@ classdef Receiver_Output < Receiver_Commons
                 basic_export = true;
             end
             is_last_session = rec_work.time.last >= this.state.sss_date_stop;
-            rec_work.cropIdSync4out(true, ~this.state.isSmoothTropoOut() || is_last_session);
+            rec_work.cropIdSync4out(~this.state.isSmoothTropoOut(), ~this.state.isSmoothTropoOut() || is_last_session);
             
             work_time = rec_work.getTime();
             initial_len = this.time.length;
