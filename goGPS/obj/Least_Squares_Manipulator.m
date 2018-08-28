@@ -1064,6 +1064,12 @@ classdef Least_Squares_Manipulator < handle
             this.weightOnResidual(wfun, threshold);
         end
         
+         function reweightDanishWM(this)
+            threshold = 2;
+            wfun = @(x)  max(0.5,exp(-x.^2 ./threshold.^2));
+            this.weightOnResidual(wfun, threshold);
+        end
+        
         function reweightHubNoThr(this)
             wfun = @(x) 1 ./ abs(x);
             this.weightOnResidual(wfun);
@@ -1316,7 +1322,7 @@ classdef Least_Squares_Manipulator < handle
                 % NOTE: VERY SLOW impemplementation, first candiadte for a speed up once all is stable
                 clk_idx = this.param_class == this.PAR_REC_CLK;
                 n_epochs = length(unique(this.epoch));
-                idx_clk_to_rm = true(n_epochs,i);
+                idx_clk_to_rm = true(n_epochs,1);
                 i = 1;
                 while sum(idx_clk_to_rm) > 0
                      idx_i_c = this.receiver_id == i;
@@ -1325,6 +1331,7 @@ classdef Least_Squares_Manipulator < handle
                      idx_to_rm = idx_clk_to_rm(idx_rec_clk_ep);
                      idx_rm = [idx_rm ; idx_rec_clk(idx_to_rm)];
                      idx_clk_to_rm(idx_rec_clk_ep(idx_to_rm)) = false;
+                     i = i+1;
                 end
                 
                 idx_amb_rm = [];

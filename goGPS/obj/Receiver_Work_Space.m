@@ -4671,6 +4671,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 3
                 iono_model_override = this.state.getIonoModel;
             end
+            atm = Atmosphere.getInstance();
+            if iono_model_override == 3 && isempty(atm.ionex.data) && ~empty(this.sat.cs.iono) && sum(sum(this.sat.cs.iono~=0)) > 0
+                this.log.addWarning('No ionex file present switching to Klobuckar');
+                iono_model_override = 2;
+            end
+            if iono_model_override == 3 && isempty(atm.ionex.data) && (empty(this.sat.cs.iono) || sum(sum(this.sat.cs.iono~=0)) > 0)
+                this.log.addEroor('No iono model present');
+                iono_model_override = 1;
+            end
             this.updateCoordinates();
             switch iono_model_override
                 case 1 % no model
@@ -4687,7 +4696,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed');
                     end
                 case 3 % IONEX
-                    atm = Atmosphere.getInstance();
                     this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
         end
