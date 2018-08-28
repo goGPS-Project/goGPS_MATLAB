@@ -188,6 +188,8 @@ classdef Network < handle
                     
                     if this.state.flag_tropo
                         ztd_rec = this.rec_list(i).work.getZtd();
+                        ztd_rec_apr = this.rec_list(i).work.getZwd() + this.rec_list(i).work.getAprZhd();
+                        ztd_rec(ztd_rec == 0) = ztd_rec_apr(ztd_rec == 0);
                         this.ztd(idx_pos,i) = this.ztd(idx_pos,i) + ztd_rec(idx_is);
                     end
                     
@@ -212,6 +214,8 @@ classdef Network < handle
                     if this.state.flag_tropo
                         ztd = this.ztd(idx_res_av, i);
                         this.rec_list(i).work.ztd(idx_pos) = ztd(idx_is);
+                        zhd = this.rec_list(i).work.getAprZhd();
+                        this.rec_list(i).work.zwd(idx_pos) = ztd(idx_is) - zhd(idx_pos);
                     end
                     if this.state.flag_tropo_gradient
                         gn = this.ztd_gn(idx_res_av, i);
