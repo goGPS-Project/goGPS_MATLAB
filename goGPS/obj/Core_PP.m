@@ -7,7 +7,7 @@
 % EXAMPLE
 %   go_block = Core_Block();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Core_PP
 %
 % Note for the future: the class uses the current obs storage of goGPS
 % -> switch to objects for rover and master observations is suggested

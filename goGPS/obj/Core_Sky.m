@@ -2337,7 +2337,6 @@ classdef Core_Sky < handle
                 %eccentric anomaly
                 [Ek, n] = ecc_anomaly(t, Eph);
                 
-                %cr = goGNSS.CIRCLE_RAD;
                 cr = 6.283185307179600;
                 
                 A = roota*roota;             %semi-major axis

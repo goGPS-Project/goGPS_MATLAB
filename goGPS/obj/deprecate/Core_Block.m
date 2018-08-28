@@ -7,7 +7,7 @@
 % EXAMPLE
 %   go_block = Core_Block();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Core_Block
 %
 % Note for the future: the class uses the current obs storage of goGPS
 % -> switch to objects for rover and master observations is suggested
@@ -2976,7 +2976,7 @@ classdef Core_Block < handle
 
         function [data_track, id_track] = computeDataTrack(this, data, id_track, A, obs_track, n_pos)
             % Get a matrix of n_obs x n_arcs with the values of the observations in data
-            % Where no observations are present for a certain arcs it contains zerosÿ
+            % Where no observations are present for a certain arcs it contains zerosï¿½
             %
             % INPUT:
             %   data       data to be put in the matrix [n_obs x n_set]

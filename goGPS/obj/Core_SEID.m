@@ -8,7 +8,7 @@
 % EXAMPLE
 %   seid = Core_SEID();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Core_SEID
 
 
 %--------------------------------------------------------------------------

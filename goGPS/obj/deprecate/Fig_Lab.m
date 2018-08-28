@@ -6,7 +6,7 @@
 %
 % EXAMPLE
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc Fig_Lab
 
 
 %--------------------------------------------------------------------------

@@ -7075,7 +7075,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     keep_idx = time > this.out_start_time & time < this.out_stop_time;
                 elseif crop_left
                     keep_idx = time > this.out_start_time;
-                elseif crop_right;
+                elseif crop_right
                     keep_idx = time < this.out_stop_time;
                 end
                 if ~isempty(keep_idx)
