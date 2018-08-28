@@ -200,8 +200,7 @@ classdef Network < handle
                         
                         this.ztd_ge(idx_pos,i) = this.ztd_ge(idx_pos,i) + ge_rec(idx_is);
                     end
-                end
-                
+                end                
                 
                 % --- push back the results in the receivers
                 for i = 1 : n_rec
