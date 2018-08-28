@@ -260,7 +260,12 @@ classdef FTP_Downloader < handle
                         this.log.addWarning('connected with remote FTP has been closed, trying to re-open it');
                         this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                     end
-
+                    
+                    warning('off')
+                    sf = struct(this.ftp_server);
+                    warning('on')
+                    sf.jobject.enterLocalPassiveMode();
+                    
                     % convert file_name in a cell array
                     if ~iscell(this.file_name)
                         this.file_name = {this.file_name};
