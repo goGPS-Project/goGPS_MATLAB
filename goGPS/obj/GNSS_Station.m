@@ -1298,6 +1298,10 @@ classdef GNSS_Station < handle
             if (nargin < 3) || isempty(plot_relative_variation)
                 plot_relative_variation = true;
             end
+            
+            % remove empty receivers
+            sta_list = sta_list(~sta_list.isEmpty_mr);
+            
             if nargin < 2 || isempty(baseline_ids)
                 n_rec = numel(sta_list);
                 baseline_ids = GNSS_Station.getBaselineId(n_rec);
