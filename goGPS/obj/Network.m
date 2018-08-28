@@ -230,6 +230,8 @@ classdef Network < handle
                     this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
                     
                     this.rec_list(i).work.pushResult();
+                    this.rec_list(i).work.updateErrTropo();
+                    
                 end
             else
                 this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
