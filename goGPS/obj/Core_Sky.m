@@ -1059,8 +1059,14 @@ classdef Core_Sky < handle
             % get end of header
             eoh = strfind(txt,'*BIAS SVN_ PRN ');
             eoh = find(lim(:,1) > eoh);
-            eoh = eoh(1) - 1;
             
+            eoh = eoh(1) - 1;
+            head_line = txt(lim(eoh,1):lim(eoh,2));
+            svn_idx = strfind(head_line,'PRN') - 1;
+            c1_idx = strfind(head_line,'OBS1') -1 ;
+            c2_idx = strfind(head_line,'OBS2') -1 ;
+            val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
+            std_idx = strfind(head_line,'_STD_DEV___') - 1;
             % removing header lines from lim
             lim(1:eoh, :) = [];
             
@@ -1075,10 +1081,10 @@ classdef Core_Sky < handle
             % find dcb names presents
             fl = lim(:,1);
             
-            tmp = [txt(fl+11)' txt(fl+12)' txt(fl+13)' txt(fl+30)' txt(fl+31)' txt(fl+32)' txt(fl+35)' txt(fl+36)' txt(fl+37)'];
-            idx = repmat(fl,1,12) + repmat([80:91],length(fl),1);
+            tmp = [txt(fl+svn_idx)' txt(fl+svn_idx+1)' txt(fl+svn_idx+2)' txt(fl+c1_idx)' txt(fl+c1_idx+1)' txt(fl+c1_idx+2)' txt(fl+c2_idx)' txt(fl+c2_idx+1)' txt(fl+c2_idx+2)'];
+            idx = repmat(fl+val_idx,1,20) + repmat([0:19],length(fl),1);
             dcb = sscanf(txt(idx)','%f');
-            idx = repmat(fl,1,12) + repmat([92:103],length(fl),1);
+            idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
             dcb_std = sscanf(txt(idx)','%f');
             % between C2C C2W the std are 0 -> unestimated
             % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
@@ -1115,18 +1121,34 @@ classdef Core_Sky < handle
                     W = diag(1./sat_dcb_std.^2);
                     % set the refernce iono-free combination to zero using lagrange multiplier
                    
-                    if sum(sum(sat_dcb_name == repmat('C1WC2W',n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat('C2WC1W',n_dcb,1),2) == 6) > 0
-                        const = zeros(1,size(A,2));
+                    if sum(sum(sat_dcb_name == repmat(ref_dcb_name,n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat([ref_dcb_name(4:6) ref_dcb_name(1:3)],n_dcb,1),2) == 6) > 0
+                        
                         iono_free = this.cc.getSys(sys).getIonoFree();
-                        ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
-                        const(ref_col1) = iono_free.alpha1;
-                        ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
-                        const(ref_col2) = - iono_free.alpha2;
-                        N = [ A'*W*A  const'; const 0];
-                        gd = N \ ([A'* W * sat_dcb; 0]);
-                        gd(end) = []; %t aking off lagrange multiplier
+                        if sys == 'E' && (size(A,2)-1) > rank(A) % special case galaile Q and X tracking are not connected
+                            const = zeros(2,size(A,2));
+                            ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                            const(1,ref_col1) = iono_free.alpha1;
+                            ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                            const(1,ref_col2) = - iono_free.alpha2;
+                            ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num('C1X');
+                            const(2,ref_col1) = iono_free.alpha1;
+                            ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num('C5X');
+                            const(2,ref_col2) = - iono_free.alpha2;
+                            N = [ A'*W*A  const'; const zeros(2)];
+                            gd = N \ ([A'* W * sat_dcb; zeros(2,1)]);
+                            gd(end-1:end) = []; %taking off lagrange multiplier
+                        else
+                            const = zeros(1,size(A,2));
+                            ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                            const(ref_col1) = iono_free.alpha1;
+                            ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                            const(ref_col2) = - iono_free.alpha2;
+                            N = [ A'*W*A  const'; const 0];
+                            gd = N \ ([A'* W * sat_dcb; 0]);
+                            gd(end) = []; %taking off lagrange multiplier
+                        end
                     else
-                        this.log.addWarning('C1WC2W DCB missing, this will add error in case of single frequency code positioning');
+                        this.log.addWarning([ref_dcb_name ' DCB missing, this will add error in case of single frequency code positioning']);
                         const = zeros(2,size(A,2));
                         ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
                         const(1,ref_col1) = 1;
