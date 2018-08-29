@@ -143,7 +143,7 @@ end
                 'MenuBar', 'none', ...
                 'ToolBar', 'none', ...
                 'NumberTitle', 'off', ...
-                'Position', [0 0 1000 600]);
+                'Position', [0 0 1010, 610]);
             
             this.w_main = win;            
             
@@ -294,7 +294,7 @@ end
             %session_height = sum(left_bv.Children(2).Children(1).Heights);
             session_height = sum(left_bv.Children(2).Heights);
             left_bv.Heights = [82 session_height -1];
-            top_bh.Widths = [200 -1];
+            top_bh.Widths = [210 -1];
             bottom_bh.Widths = [60 -1 260];
             this.updateUI;
             
@@ -641,14 +641,15 @@ end
             opt_r = uix.VBox('Parent', opt_h, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            ocean_panel = this.insertOceanOptions(opt_r);
-            Core_UI.insertEmpty(opt_r);
-            amb_panel = this.insertAmbFixOptions(opt_r);
+            amb_panel = this.insertProcessingOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
             coo_panel = this.insertCooOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
             
-            opt_r.Heights = [50, 5, 50,5,90, -1];
+            Core_UI.insertEmpty(tab);
+            ocean_panel = this.insertOceanOptions(tab);
+            
+            opt_r.Heights = [70,5,90, -1];
             
             opt_h.Widths = [200 5 -1];
             
@@ -656,7 +657,7 @@ end
             
             ds_box_g.Heights = [18 15 -1];
             
-            tab.Heights = [230 5 210];
+            tab.Heights = [230 5 210 5 50];
             
             this.uip.tab_proc = tab;
         end
@@ -680,12 +681,12 @@ end
             set( opt_grid, 'Widths', [300 300], 'Heights', [23 23] );
         end
         
-        function proc_opt = insertAmbFixOptions(this, container)
-             proc_opt = Core_UI.insertPanelLight(container, 'Ambiguity fixing');
-             opt_grid = uix.Grid('Parent', proc_opt,...
-                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+        function proc_opt = insertProcessingOptions(this, container)
+             proc_opt = Core_UI.insertPanelLight(container, 'Options');
+             opt_grid = uix.VBox('Parent', proc_opt,...
+                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+             [~, this.pop_ups{end+1}] = Core_UI.insertPopUpLight(opt_grid, 'Snooping / Reweight', this.state.REWEIGHT_LABEL, 'reweight_mode', @this.onPopUpChange);
              this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Try to fix Ambiguity', 'flag_amb_fix', @this.onCheckBoxChange);
-              opt_grid.Widths = -1;
         end
         
         function crd_panel = insertCrdFile(this, container)
@@ -798,14 +799,14 @@ end
             ppp_panel = Core_UI.insertPanelLight(container, 'Observations "corrections"');
             opt_grid = uix.Grid('Parent', ppp_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Receiver PCO/PCV',      'flag_rec_pcv', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Solid Earth Tide',      'flag_solid_earth', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Pole Earth Tide',       'flag_pole_tide', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Phase Wind Up',         'flag_phase_wind', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Shapiro Delay',         'flag_shapiro', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Ocean Loading',         'flag_ocean_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',   'flag_atm_load', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere', 'flag_hoi', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Receiver PCO/PCV',        'flag_rec_pcv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Solid Earth Tide',        'flag_solid_earth', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Pole Earth Tide',         'flag_pole_tide', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Phase Wind Up',           'flag_phase_wind', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Shapiro Delay',           'flag_shapiro', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Ocean Loading',           'flag_ocean_load', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Atmospheric Loading',     'flag_atm_load', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'High Order Ionosphere',   'flag_hoi', @this.onCheckBoxChange);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Use a-priori Iono Model', 'flag_apr_iono', @this.onCheckBoxChange);
             
             opt_grid.Widths = -1;

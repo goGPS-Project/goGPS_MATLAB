@@ -184,11 +184,22 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
 
         % PROCESSING PARAMETERS
-        W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
-                                                        %  - weights = 0: same weight for all the observations
-                                                        %  - weights = 1: weight based on satellite elevation (sin)
-                                                        %  - weights = 2: weight based on signal-to-noise ratio
-                                                        
+        W_MODE = 1                                      % Parameter used to select the weightening mode for GPS observations
+                                                        %  - weights = 1: same weight for all the observations
+                                                        %  - weights = 2: weight based on satellite elevation (sin)
+                                                        %  - weights = 3: weight based on satellite elevation (exp)
+                                                
+        
+        REWEIGHT_MODE = 1                               % PPP re-weight / snooping
+                                                        % 1: none
+                                                        % 2: re-weight Huber
+                                                        % 3: re-weight Huber (no threshold)
+                                                        % 4: re-weight Danish
+                                                        % 5: re-weight DanishWM
+                                                        % 6: re-weight Tukey
+                                                        % 7: simple snooping
+                                                        % 8: smart snooping
+        
         FLAG_AMB_FIX = false;                           % try to fix ambiguity
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
          
@@ -248,6 +259,25 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         IONO_LABEL = {'No model', ...
                       'Klobuchar model', ...
                       'IONEX'}
+                  
+        % id to string of reweight/snooping mode
+        REWEIGHT_SMODE = {'1: none', ...
+                      '2: re-weight Huber', ...
+                      '3: re-weight Huber (no threshold)', ...
+                      '4: re-weight Danish', ...
+                      '5: re-weight DanishWM', ...
+                      '6: re-weight Tukey', ...
+                      '7: simple snooping', ...
+                      '8: smart snooping'}
+        REWEIGHT_LABEL = {'none', ...
+                      're-weight Huber', ...
+                      're-weight Huber (no threshold)', ...
+                      're-weight Danish', ...
+                      're-weight DanishWM', ...
+                      're-weight Tukey', ...
+                      'simple snooping', ...
+                      'smart snooping'}
+
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
             '2: Vienna Mapping Function gridded'}
@@ -475,9 +505,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
         %  - weights = 4: weight based on satellite elevation (exp)
 
-        flag_amb_fix = Main_Settings.FLAG_AMB_FIX;
+        % PPP re-weight / snooping
+        reweight_mode = Main_Settings.REWEIGHT_MODE;
         
-        
+        flag_amb_fix = Main_Settings.FLAG_AMB_FIX;        
         
         % Flag for enabling the usage of iono-free combination
         iono_management  = Main_Settings.IONO_MANAGEMENT;
@@ -683,6 +714,10 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % PROCESSING PARAMETERS
                 this.w_mode = state.getData('w_mode');
+                
+                this.reweight_mode = state.getData('reweight_mode');
+                this.flag_amb_fix = state.getData('flag_amb_fix');
+                
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
                 this.flag_phase_wind = state.getData('flag_phase_wind');
@@ -803,6 +838,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
                 % PROCESSING PARAMETERS
                 this.w_mode = state.w_mode;
+                this.reweight_mode = state.reweight_mode;
+                this.flag_amb_fix = state.flag_amb_fix;
+                
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
                 this.flag_phase_wind = state.flag_phase_wind;
@@ -953,7 +991,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', this.pp_max_phase_err_thr)];
 
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
-            str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
+            str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
+            str = [str sprintf(' Using rewight/snooping: %s\n\n', this.REWEIGHT_SMODE{this.reweight_mode})];
+            str = [str sprintf(' Enable ambiguity fixing:                          %d\n\n', this.flag_amb_fix)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
             str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
@@ -1318,6 +1358,17 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
+            str_cell = Ini_Manager.toIniStringComment('Processing using reweight/snooping mode:', str_cell);
+            str_cell = Ini_Manager.toIniString('reweight_mode', this.reweight_mode, str_cell);
+            for i = 1 : numel(this.REWEIGHT_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.REWEIGHT_SMODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+
+            str_cell = Ini_Manager.toIniStringComment('Enable ambiguity fixing', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_amb_fix', this.flag_amb_fix, str_cell);
+
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Enable corrections', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable solid earth tide corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_solid_earth', this.flag_solid_earth, str_cell);
@@ -1948,6 +1999,9 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
             % PROCESSING PARAMETERS
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
+            this.checkNumericField('reweight_mode',[1 numel(this.REWEIGHT_SMODE)]);
+            
+            this.checkLogicalField('flag_amb_fix');
             
             this.checkLogicalField('flag_smooth_tropo_out');
             [buf_lft, buf_rgt] = this.getBuffer();
