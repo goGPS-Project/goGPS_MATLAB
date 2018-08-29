@@ -59,7 +59,7 @@ function setTimeTicks(num,format,ax)
         num = format;
         format = ax;
     else
-        h = gcf;
+        h = gca;
     end
     ttData.num = num;
     ttData.format = format;
