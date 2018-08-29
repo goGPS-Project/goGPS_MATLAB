@@ -1101,8 +1101,9 @@ classdef Core_Sky < handle
                     
                     % Set up the desing matrix
                     sys_gd = this.group_delays_flags(this.group_delays_flags(:,1) == sys,2:4);
-                    A = zeros(size(sat_dcb_name,1),size(sys_gd,1));
-                    for d = 1 : size(sat_dcb_name,1)
+                    n_dcb = size(sat_dcb_name,1);
+                    A = zeros(n_dcb,size(sys_gd,1));
+                    for d = 1 : n_dcb
                         idx1 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,1:3));
                         A(d,idx1) =  1;
                         idx2 = this.prnName2Num(sys_gd)  == this.prnName2Num(sat_dcb_name(d,4:6));
@@ -1113,18 +1114,31 @@ classdef Core_Sky < handle
                     A = A(:,connected);
                     W = diag(1./sat_dcb_std.^2);
                     % set the refernce iono-free combination to zero using lagrange multiplier
-                    const = zeros(1,size(A,2));
-                    iono_free = this.cc.getSys(sys).getIonoFree();
-                    ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
-                    const(ref_col1) = iono_free.alpha1;
-                    ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
-                    const(ref_col2) = - iono_free.alpha2;
-                    N = [ A'*W*A  const'; const 0];
-                    gd = N \ ([A'* W * sat_dcb; 0]);
+                   
+                    if sum(sum(sat_dcb_name == repmat('C1WC2W',n_dcb,1),2) == 6) > 0 || sum(sum(sat_dcb_name == repmat('C2WC1W',n_dcb,1),2) == 6) > 0
+                        const = zeros(1,size(A,2));
+                        iono_free = this.cc.getSys(sys).getIonoFree();
+                        ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                        const(ref_col1) = iono_free.alpha1;
+                        ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                        const(ref_col2) = - iono_free.alpha2;
+                        N = [ A'*W*A  const'; const 0];
+                        gd = N \ ([A'* W * sat_dcb; 0]);
+                        gd(end) = []; %t aking off lagrange multiplier
+                    else
+                        this.log.addWarning('C1WC2W DCB missing, this will add error in case of single frequency code positioning');
+                        const = zeros(2,size(A,2));
+                        ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
+                        const(1,ref_col1) = 1;
+                        ref_col2 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(4:6));
+                        const(2,ref_col2) =1;
+                        N = [ A'*W*A  const'; const zeros(2)];
+                        gd = N \ ([A'* W * sat_dcb; zeros(2,1)]);
+                        gd(end-1:end) = []; %t aking off lagrange multiplier
+                    end
                     if sum(isnan(gd)) > 0 || sum(abs(gd) == Inf) > 0
                         this.log.addWarning('Invalid set of DCB ignoring them')
                     else
-                        gd(end) = []; %t aking off lagrange multiplier
                         dcb_col   = strLineMatch(this.group_delays_flags,[repmat(sys,sum(connected),1) sys_gd(connected,:)]);
                         this.group_delays(prn, dcb_col) = - gd * Global_Configuration.V_LIGHT * 1e-9;
                     end
