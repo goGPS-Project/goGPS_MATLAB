@@ -1314,10 +1314,11 @@ classdef Least_Squares_Manipulator < handle
                 idx_rec_x = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_X));
                 idx_rec_y = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Y));
                 idx_rec_z = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_Z));
+                idx_rec_isb = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_ISB));
                 idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
                 idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
                 idx_rec_te = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_E));
-                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_t; idx_rec_tn; idx_rec_te];
+                idx_rm = [idx_rec_x; idx_rec_y; idx_rec_z; idx_rec_isb; idx_rec_t; idx_rec_tn; idx_rec_te];
                 % 3 ) remove one clock per epoch for the minim receiver available
                 % NOTE: VERY SLOW impemplementation, first candiadte for a speed up once all is stable
                 clk_idx = this.param_class == this.PAR_REC_CLK;
