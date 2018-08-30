@@ -742,7 +742,7 @@ classdef Receiver_Commons < handle
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('East [cm]'); h.FontWeight = 'bold';
                         grid on;
-                        h = title(sprintf('Receiver %s', rec(1).parent.marker_name),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
+                        h = title(sprintf('Receiver %s \n std %.2f [cm]', rec(1).parent.marker_name,sqrt(var(enu(:,1)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         if ~one_plot, subplot(3,1,2); end
                         plot(t, (1e2 * (enu(:,2) - enu0(2))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:));
                         ax(2) = gca();
@@ -750,6 +750,7 @@ classdef Receiver_Commons < handle
                             xlim([t(1) t(end)]);
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('North [cm]'); h.FontWeight = 'bold';
+                        h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,2)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if ~one_plot, subplot(3,1,3); end
                         plot(t, (1e2 * (enu(:,3) - enu0(3))), '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:));
@@ -758,6 +759,7 @@ classdef Receiver_Commons < handle
                             xlim([t(1) t(end)]);
                         end
                         setTimeTicks(4,'dd/mm/yyyy HH:MMPM'); h = ylabel('Up [cm]'); h.FontWeight = 'bold';
+                        h = title(sprintf('std %.2f [cm]',sqrt(var(enu(:,3)*1e2))),'interpreter', 'none'); h.FontWeight = 'bold';
                         grid on;
                         if one_plot
                             h = ylabel('ENU [cm]'); h.FontWeight = 'bold';
