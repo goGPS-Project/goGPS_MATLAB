@@ -1148,7 +1148,7 @@ classdef Core_Sky < handle
                             gd(end) = []; %taking off lagrange multiplier
                         end
                     else
-                        this.log.addWarning([ref_dcb_name ' DCB missing, this will add error in case of single frequency code positioning']);
+                        this.log.addWarning([ref_dcb_name 'DCB missing, the bias will be eliminated \nonly using iono-free combination']);
                         const = zeros(2,size(A,2));
                         ref_col1 = this.prnName2Num(sys_gd(connected,:))  == this.prnName2Num(ref_dcb_name(1:3));
                         const(1,ref_col1) = 1;
