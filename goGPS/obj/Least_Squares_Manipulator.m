@@ -1350,12 +1350,14 @@ classdef Least_Squares_Manipulator < handle
                         if jmp == jmp2
                             jmp2 = Inf;
                         end
-                        while isempty(idx_amb_rec) && d <= n_rec
-                           idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
-                           d = d + 1;
-                        end
+%                         while isempty(idx_amb_rec) && d <= n_rec
+%                            idx_amb_rec = this.A_idx(this.receiver_id == d & this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
+%                            d = d + 1;
+%                         end
+                        idx_amb_rec = this.A_idx(this.sat == u_sat(i) & this.epoch >= jmp & this.epoch < jmp2 ,this.param_class == this.PAR_AMB);
                         if ~isempty(idx_amb_rec)
-                            idx_amb_rec = idx_amb_rec(1);
+                            
+                            idx_amb_rec = mode(idx_amb_rec);%(1);%idx_amb_rec(min(120,length(idx_amb_rec)));
                         end
                         idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
@@ -1372,10 +1374,10 @@ classdef Least_Squares_Manipulator < handle
                         end
                         idx_amb_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_AMB);
                         g = 1;
-                        while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
-                            g = g +1;
-                        end
-                        idx_amb_rec = idx_amb_rec(g);
+%                         while sum(idx_amb_rec(g) == idx_amb_rm) > 0 && g < length(idx_amb_rec)
+%                             g = g +1;
+%                         end
+                        idx_amb_rec = mode(idx_amb_rec);%(g);
                         idx_amb_rm = [idx_amb_rm; idx_amb_rec];
                     end
                 end
@@ -1478,6 +1480,11 @@ classdef Least_Squares_Manipulator < handle
                     idxFix2idxFlo = 1 : length(x);
                     idxFlo2idxFix = nan(length(x),1);
                     A_fixed = false(size(this.A_idx(:,4)));
+                    % removing amb setted to 0 to solve the rank def
+                    for i = 1 : length(idx_rm)
+                        A_fixed(A_fixed == i) = [];
+                    end
+                   
                     for i = 1 : length(idx_fix)
                         Ni = N(:,idx_amb(i));
                         if idx_fix(i)
