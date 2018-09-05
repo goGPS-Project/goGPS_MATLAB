@@ -307,6 +307,7 @@ classdef Atmosphere < handle
             h_data = cell2mat(textscan(fid,formatSpec,91));
             h_data(:,end) = [];
             this.vmf_coeff.ell_height = h_data;
+            fclose(fid);
         end
         
         function importTidalAtmLoadHarmonics(this)
@@ -342,6 +343,7 @@ classdef Atmosphere < handle
             if not(isempty_obj) && (file_ref_ep >= this.atm_load_nt.first_time) && (file_ref_ep - this.atm_load_nt.first_time) < this.atm_load_nt.dt *  this.atm_load_nt.n_t
                 % file is contained in the data already
                 this.log.addMessage(this.log.indent('File already present, skipping'));
+                fclose(fid);
             else
                 if not(isempty_obj) && ((file_ref_ep - this.atm_load_nt.first_time) > (this.atm_load_nt.dt *  this.atm_load_nt.n_t +3600*6) || (file_ref_ep - this.atm_load_nt.first_time) < (-3600*6))
                     % file too far away emptying the object
@@ -420,6 +422,7 @@ classdef Atmosphere < handle
                 if not(isempty_obj) && (file_ref_ep >= this.vmf_coeff.first_time) && (file_ref_ep - this.vmf_coeff.first_time) < this.vmf_coeff.dt *  this.vmf_coeff.n_t
                     % file is contained in the data already
                     this.log.addMessage(this.log.indent(sprintf('%s already present, skipping', fnp.getFileName(file_name))));
+                    fclose(fid);
                 else
                     if not(isempty_obj) && ((file_ref_ep - this.vmf_coeff.first_time) > (this.vmf_coeff.dt *  this.vmf_coeff.n_t +3600*6) || (file_ref_ep - this.vmf_coeff.first_time) < (-3600*6))
                         % file too far away emptying the object
