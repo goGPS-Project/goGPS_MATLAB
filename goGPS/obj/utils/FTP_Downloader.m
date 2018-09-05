@@ -169,43 +169,46 @@ classdef FTP_Downloader < handle
                     mkdir(out_dir);
                 end
                 retry = 0;
+                status = false;
                 while(retry < 2)
                     try
                         fpath = mget(this.ftp_server, [fname '*'], out_dir);
                         retry = 10;
+                        
+                        
+                        if isempty(fpath)
+                            status = false;
+                            return
+                        else
+                            status = true;
+                            fprintf('\b');
+                            this.log.addMessage(' Done');
+                            [~, ~, fext] = fileparts(fpath{1});
+                            if strcmp(fext,'.Z') || strcmp(fext,'.gz')
+                                if (isunix())
+                                    system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
+                                else
+                                    try
+                                        [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
+                                        if (status == 0)
+                                            status = true;
+                                        end
+                                        delete([fpath{1}]);
+                                    catch
+                                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
+                                        status = false;
+                                    end
+                                end
+                            end
+                            
+                        end
                     catch ex
                         pause(0.5 * (retry - 1));
                         this.log.addError(sprintf('%s - %s', fname, ex.message));
                         retry = retry + 1;
                     end
                 end
-                if isempty(fpath)
-                    status = false;
-                    return
-                else
-                    status = true;
-                    fprintf('\b');
-                    this.log.addMessage(' Done');
-                    [~, ~, fext] = fileparts(fpath{1});
-                    if strcmp(fext,'.Z') || strcmp(fext,'.gz')
-                    if (isunix())
-                        system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
-                    else
-                        try
-                            [status, result] = system(['.\utility\thirdParty\7z1602-extra\7za.exe -y x '  fpath{1} ' -o'  out_dir ]); %#ok<ASGLU>
-                            if (status == 0)
-                                status = true;
-                            end
-                            delete([fpath{1}]);
-                        catch
-                            this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
-                            status = false;
-                        end
-                    end
-                    end
-                    
-                end
-%             catch
+                %             catch
 %             end
         end
 

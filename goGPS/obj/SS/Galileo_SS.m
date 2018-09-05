@@ -75,8 +75,8 @@ classdef Galileo_SS < Satellite_System
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ Galileo_SS.F_VEC;
 
-        N_SAT = 30;       % Maximum number of satellite in the constellation
-        PRN = (1 : 30)';  % Satellites id numbers as defined in the constellation
+        N_SAT = 36;       % Maximum number of satellite in the constellation
+        PRN = (1 : 36)';  % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
         CODE_RIN3_ATTRIB  = {'ZXACB ' 'XQI ' 'XQI ', 'XQI ', 'ZXACB '}; % last letter of the observation code Assumption: Public regualted service (PRS ) better than Pilot (C) better than data (A), pilot channel seems to be the quadra pahse one

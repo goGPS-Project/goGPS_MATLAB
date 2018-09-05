@@ -76,10 +76,9 @@ classdef Network < handle
             end
             is_empty_recs = this.rec_list.isEmpty_mr;
             if sum(~is_empty_recs) > 1
-                for e = find(is_empty_recs)'
-                    this.rec_list(e) = [];
-                    idx_ref(idx_ref == e) = [];
-                end
+                e = find(is_empty_recs);
+                this.rec_list(e) = [];
+                idx_ref(idx_ref == e) = [];
                 ls = Least_Squares_Manipulator(this.rec_list(1).cc);
                 [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list);
                 n_time = this.common_time.length;
