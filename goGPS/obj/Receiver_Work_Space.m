@@ -647,7 +647,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             %   this.keepEpochs(good_epochs)
-            bad_epochs = 1 : this.length;
+            bad_epochs = 1 : this.time.length;
             bad_epochs(good_epochs) = [];
             this.remEpochs(bad_epochs)
         end
