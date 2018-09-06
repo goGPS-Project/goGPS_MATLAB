@@ -586,21 +586,36 @@ classdef GNSS_Station < handle
             end
         end
         
-        % wrappers to getTropoPar()
         function [tropo, time] = getZtd(sta_list)
-            sta_list.getTropoPar('ztd');
+            % Get ZTD
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getZtd()
+            [tropo, time] = sta_list.getTropoPar('ztd');
         end
         
         function [tropo, time] = getZwd(sta_list)
-            sta_list.getTropoPar('zwd');
+            % Get ZWD
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getZwd()
+            [tropo, time] = sta_list.getTropoPar('zwd');
         end
         
         function [tropo, time] = getPwv(sta_list)
-            sta_list.getTropoPar('ztd');
+            % Get PWV
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getPwv()
+            [tropo, time] = sta_list.getTropoPar('pwv');
         end
         
         function [tropo, time] = getAprZhd(sta_list)
-            sta_list.getTropoPar('zhd');
+            % Get ZHD
+            %
+            % SYNTAX
+            %  [tropo, p_time] = sta_list.getZhd()
+            [tropo, time] = sta_list.getTropoPar('zhd');
         end
         
         function rec_works = getWork(sta_list, id)
