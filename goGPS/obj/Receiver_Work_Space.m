@@ -1443,9 +1443,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % GLONASS P2 -> C2P
                 idx = this.getObsIdx('P2 ','R');
                 this.obs_code(idx,:) = repmat('C2P',length(idx),1);
-                % GALILEO C1 -> C1C
+                % GALILEO C1 -> C1A
                 idx = this.getObsIdx('C1 ','E');
                 this.obs_code(idx,:) = repmat('C1A',length(idx),1);
+                % GALILEO L1 -> L1A
+                idx = this.getObsIdx('L1 ','E');
+                this.obs_code(idx,:) = repmat('L1A',length(idx),1);
                 % other flags to be investiagated
                 
                 this.log.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)));
