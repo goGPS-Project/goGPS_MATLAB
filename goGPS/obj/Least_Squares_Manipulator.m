@@ -1480,11 +1480,7 @@ classdef Least_Squares_Manipulator < handle
                     idxFix2idxFlo = 1 : length(x);
                     idxFlo2idxFix = nan(length(x),1);
                     A_fixed = false(size(this.A_idx(:,4)));
-                    % removing amb setted to 0 to solve the rank def
-                    for i = 1 : length(idx_rm)
-                        A_fixed(A_fixed == i) = [];
-                    end
-                   
+                    
                     for i = 1 : length(idx_fix)
                         Ni = N(:,idx_amb(i));
                         if idx_fix(i)
