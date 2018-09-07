@@ -1062,8 +1062,11 @@ classdef GPS_Time < Exportable & handle
         function [time_diff, time_ref] = getRefTime(this, new_time_mat_ref)
             % get Reference Time, precision up to the ps precision
             %
+            % INPUT:
+            %   new_time_mat_ref: reference time in matlab time (double)
             % SYNTAX
             %   [time_diff, time_ref] = this.getRefTime(new_time_mat_ref)
+            
             if this.length == 0
                 time_diff = [];
                 time_ref = [];

@@ -60,9 +60,10 @@ classdef Coordinates < Exportable & handle
         RAD2DEG = 180/pi;           % Convert radius to degree
     end
     
-    properties (SetAccess = private, GetAccess = public)
+    properties (SetAccess = public, GetAccess = public) % set permission have been changed from private to public (Giulio)
         xyz = [];                   % Coordinates are stored in meters in as cartesian XYZ ECEF
         precision = 0.0001;         % 3D limit [m] to check the equivalence among coordinates
+        Cxx = [];
     end
         
     % =========================================================================
@@ -83,6 +84,7 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   this.copyFrom(pos)
             this.xyz = pos.xyz;
+            this.Cxx = pos.Cxx;
         end
         
         function copy = getCopy(this)
@@ -101,6 +103,19 @@ classdef Coordinates < Exportable & handle
             %   this = append(this, pos)
             
             this.xyz = [this.xyz; pos.xyz];
+            if ~isempty(this.Cxx) &&  ~isempty(pos.Cxx)
+                this.Cxx = cat(this.Cxx, pos.Cxx, 3);
+            end
+        end
+        function rem(this, idx)
+            % Remove coordinates into the this
+            %
+            % SYNTAX
+            %   this = rem(this, idx)
+            this.xyz(idx,:) = [];
+            if ~isempty(this.Cxx) 
+                this.Cxx(:,:,idx) = [];
+            end
         end
     end
         

@@ -411,13 +411,31 @@ classdef Receiver_Output < Receiver_Commons
             
             %--- append additional coo
             if this.state.flag_coo_rate
-                this.add_coo.coo =  [this.add_coo.coo ; rec_work.add_coo.coo];
-                if isempty(this.add_coo.time)
-                    this.add_coo.time = rec_work.add_coo.time.getCopy();
+                if isempty(this.add_coo)
+                    is_empty_coo = true;
+                    this.add_coo = struct('rate',[],'time',[],'coo',[]);
                 else
-                    this.add_coo.time.append(rec_work.add_coo.time);
+                   is_empty_coo = false;
                 end
-                this.add_coo.rate =  [this.add_coo.rate ; rec_work.add_coo.rate];
+                for i = 1:length(rec_work.add_coo);
+                    if is_empty_coo
+                        this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
+                        this.add_coo(i).rate = rec_work.add_coo(i).rate;
+                        this.add_coo(i).time = rec_work.add_coo(i).time.getCopy();
+                        this.add_coo(i).coo = rec_work.add_coo(i).coo.getCopy();
+                    else
+                        time_o = rec_work.add_coo(i).time.getCopy();
+                        coo_o = rec_work.add_coo(i).coo.getCopy();
+                        idx_rem = time_o < work_time.first;
+                        time_o.remEpoch(idx_rem);
+                        coo_o.rem(idx_rem);
+                        [this.add_coo(i).time, idx1, idx2] = this.add_coo(i).time.injectBatch(time_o);
+                        this.add_coo(i).coo.xyz    = Core_Utils.injectData(this.add_coo(i).coo.xyz , coo_o.xyz , idx1, idx2);
+                        if ~isempty(this.add_coo(i).coo.Cxx) && ~isempty(rec_work.add_coo(i).coo.Cxx)
+                            this.add_coo(i).coo.Cxx    = [this.add_coo(i).coo.Cxx(:,:,1 : idx1 - 1); coo_o.Cxx; this.add_coo(i).coo.Cxx(:,:,idx2 + 1 : end)];
+                        end
+                    end
+                end
             end
         end
 
