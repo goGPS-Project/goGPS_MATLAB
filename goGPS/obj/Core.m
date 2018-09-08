@@ -66,8 +66,7 @@ classdef Core < handle
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        cur_session     % id of the current session
-        
+      
         rin_list        % List of observation file (as File_Rinex objects) to store minimal information on the input files
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
@@ -143,7 +142,7 @@ classdef Core < handle
             this.sky = Core_Sky.getInstance(force_clean);
             this.cmd = Command_Interpreter.getInstance(this);
             if force_clean
-                this.cur_session = 0;
+                this.state.setCurSession(0);
                 this.rec = [];
             end
         end
@@ -242,7 +241,7 @@ classdef Core < handle
             % SYNTAX
             %   this.prepareSession(session_number)
             
-            this.cur_session = session_number;
+            this.state.setCurSession(session_number);
             session = session_number;
             
             this.log.newLine;
@@ -824,7 +823,7 @@ classdef Core < handle
             %
             % SYNTAX
             %   cur_session = this.getCurSession()            
-            cur_session = this.cur_session;
+            cur_session = this.state.getCurSession;
         end
         
         function id = findStationId(this, marker_name)

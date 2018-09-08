@@ -232,6 +232,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
+            this.add_coo               = [];
         end
         
         function resetObs(this)
@@ -392,6 +393,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.sat.amb_mat           = [];
             this.sat.amb_idx           = [];
             this.sat.amb               = [];
+            
+            this.add_coo               = [];
         end
         
         function load(this, t_start, t_stop, rate)
@@ -6031,7 +6034,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % requires approximate postioin and approx clock estimate
             [pr, id_pr] = this.getPseudoRanges;
             %[ph, wl, id_ph] = this.getPhases;
-            sensor =  pr - this.getSyntPrObs -repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
+            sensor =  pr - this.getSyntPrObs - repmat(this.dt,1,size(pr,2))*Global_Configuration.V_LIGHT;
             bad_track = abs(sensor) > 1e4;
             bad_track = flagExpand(bad_track, 2);
             pr(bad_track) = 0;
@@ -6678,15 +6681,17 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 %this.id_sync = unique([serialize(this.id_sync); serialize(id_sync)]);
                                 
                                 coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
-                                this.add_coo.coo = [this.add_coo.coo; coo];
                                 time_coo = this.out_start_time.getCopy;
                                 time_coo.addSeconds([0 : this.state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
-                                if isempty(this.add_coo.time)
-                                    this.add_coo.time = time_coo.getCopy();
+                                sub_coo = struct();
+                                sub_coo.coo = Coordinates.fromXYZ(coo);
+                                sub_coo.time = time_coo.getCopy();
+                                sub_coo.rate = this.state.coo_rates(i);
+                                if isempty(this.add_coo)
+                                    this.add_coo = sub_coo;
                                 else
-                                    this.add_coo.time.append(time_coo);
+                                    this.add_coo(end+1) = sub_coo;
                                 end
-                                this.add_coo.rate = [this.add_coo.rate ; ones(size(coo,1),1)*this.state.coo_rates(i)];
                             end
                             
                         end

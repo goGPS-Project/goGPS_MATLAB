@@ -323,6 +323,8 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         %------------------------------------------------------------------
         % SESSION
         %------------------------------------------------------------------
+        cur_session     % id of the current session
+        
 
         sss_date_start = Main_Settings.SSS_DATE_START;    % start of the processing session
         sss_date_stop =  Main_Settings.SSS_DATE_STOP;     % end of the processing session
@@ -3145,6 +3147,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
         
+        function  setCurSession(this, cur_session)
+            % Get the id of the current session
+            %
+            % SYNTAX
+            %   cur_session = this.getCurSession()            
+            this.cur_session = cur_session;
+        end
+        
         function setAutomaticDownload(this, flag)
             % Set the download flag
             %
@@ -3227,6 +3237,14 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   cc = this.getCC();
             cc = handle(this.cc);
+        end
+        
+        function cur_session = getCurSession(this)
+            % Get the id of the current session
+            %
+            % SYNTAX
+            %   cur_session = this.getCurSession()            
+            cur_session = this.cur_session;
         end
 
         function cut_off = getCutOff(this)

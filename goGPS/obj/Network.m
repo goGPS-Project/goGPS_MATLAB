@@ -54,6 +54,7 @@ classdef Network < handle
         ztd_ge           % [n_epoch x n_rec] reciever ZTD gradients east
         amb              % {n_rec} recievers ambiguity
         log
+        pos_indexs_tc       % index for subpositions
     end
     methods
         function this = Network(rec_list)
@@ -79,8 +80,10 @@ classdef Network < handle
             is_empty_recs = this.rec_list.isEmpty_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
-                this.rec_list(e) = [];
-                idx_ref(idx_ref == e) = [];
+                if ~isempty(e)
+                    this.rec_list(e) = [];
+                    idx_ref(idx_ref == e) = [];
+                end
                 ls = Least_Squares_Manipulator(this.rec_list(1).cc);
                 [this.common_time, this.rec_time_indexes]  = ls.setUpNetworkAdj(this.rec_list, coo_rate);
                 n_time = this.common_time.length;
@@ -97,22 +100,62 @@ classdef Network < handle
                 this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
                 if s0 < 0.01
                     % intilaize array for results
-                    this.clock = zeros(n_time, n_rec);
-                    this.coo = nan(n_rec, 3);
-                    this.ztd = nan(n_time, n_rec);
-                    this.ztd_gn = nan(n_time, n_rec);
-                    this.ztd_ge = nan(n_time, n_rec);
+                    this.initOut(ls);
                     this.addAdjValues(x);
                     this.changeReferenceFrame(idx_ref);
                     this.addAprValues();
-                    this.pushBackInReceiver(s0,res);
+                    this.pushBackInReceiver(s0, res);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
+                end
+                if this.state.flag_coo_rate
+                    [~, sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
+                    st_time = sss_lim.first;
+                    for i = 1 : 3
+                        if this.state.coo_rates(i) ~= 0
+                            ls.pos_indexs_tc = {};
+                            for j = 2 : n_rec
+                                [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(this.common_time.getEpoch(~isnan(this.rec_time_indexes(:,j))), st_time, this.state.coo_rates(i));
+                                ls.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
+                                r2c = ~isnan(this.rec_time_indexes(:,j));
+                                pos_idx = zeros(n_time,1);
+                                pos_idx(r2c) = pos_idx_nh;
+                                ls.changePosIdx(j, pos_idx);
+                            end
+                            [x, res] = ls.solve;
+                            s0 = mean(abs(res(res~=0)));
+                            this.log.addMessage(this.log.indent(sprintf('Network solution computed,  s0 = %.4f',s0)));
+                            % intilaize array for results
+                            this.initOut(ls);
+                            if s0 < 0.01
+                                this.addAdjValues(x);
+                                this.changeReferenceFrame(idx_ref);
+                                this.addAprValues();
+                                
+                            else
+                                this.log.addWarning(sprintf('s0 ( %.4f) for sub coo solution ( %f s)too high! not updating the results ', s0, this.state.coo_rates(i)));
+                            end
+                            time_coo = st_time.getCopy;
+                            time_coo.addSeconds([0 : this.state.coo_rates(i) :  (sss_lim.last - st_time)]);
+                            this.pushBackSubCooInReceiver(time_coo, this.state.coo_rates(i));
+                        end
+                    end
                 end
             else
                 this.log.addWarning('Not enough receivers (< 2), skipping network solution');
             end
             
+        end
+        function initOut(this,ls)
+            n_time = this.common_time.length;
+            n_rec = length(this.rec_list);
+            n_set_coo = length(ls.getCommonPosIdx);
+            this.pos_indexs_tc = ls.pos_indexs_tc;
+            this.clock = zeros(n_time, n_rec);
+            this.coo = nan(n_rec, 3, n_set_coo);
+            this.ztd = nan(n_time, n_rec);
+            this.ztd_gn = nan(n_time, n_rec);
+            this.ztd_ge = nan(n_time, n_rec);
         end
         
         function addAdjValues(this, x)
@@ -127,9 +170,16 @@ classdef Network < handle
                         end
                         % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
                         idx_rec = x(:,3) == i;
-                        coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
-                        this.coo(i,:) = this.coo(i,:) + coo;
-                        
+                        if i > 1 % coordiantes are always zero on first receiver
+                            coo = [x(x(:,2) == 1 & idx_rec,1) x(x(:,2) == 2 & idx_rec,1) x(x(:,2) == 3 & idx_rec,1)];
+                            if ~isempty(this.pos_indexs_tc)
+                            this.coo(i,:,this.pos_indexs_tc{i-1}) = nan2zero(this.coo(i,:,this.pos_indexs_tc{i-1})) + permute(coo, [3 2 1]);
+                            else
+                                 this.coo(i,:) = nan2zero(this.coo(i,:)) + coo;
+                            end
+                        else
+                            this.coo(i,:) = nan2zero(this.coo(i,:));
+                        end
                         clk = x(x(:,2) == Least_Squares_Manipulator.PAR_REC_CLK & idx_rec,1);
                         this.clock(~isnan(this.rec_time_indexes(:,i)),i) = this.clock(~isnan(this.rec_time_indexes(:,i)),i) + clk;
                         
@@ -162,9 +212,11 @@ classdef Network < handle
                         % it is in matrix form so it can be used in the future for variance covariance matrix of the coordinates
                         
                         % Applying the S transform I obtain the corrections with respect to the reference
-                        this.coo(:,1) = S * this.coo(:,1);
-                        this.coo(:,2) = S * this.coo(:,2);
-                        this.coo(:,3) = S * this.coo(:,3);
+                        for i = 1 : size(this.coo,3)
+                            this.coo(:,1,i) = S * this.coo(:,1,i);
+                            this.coo(:,2,i) = S * this.coo(:,2,i);
+                            this.coo(:,3,i) = S * this.coo(:,3,i);
+                        end
                         
                         % apply the S transform to the epochwise parameters
                         for i = 1 : n_time
@@ -203,7 +255,8 @@ classdef Network < handle
                     this.rec_list(i).work.tgn(:) = 0;
                 end
                 % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
-                this.coo(i,:) = this.coo(i,:) + this.rec_list(i).work.xyz;
+                n_coo_set = size(this.coo,3);
+                this.coo(i,:,:) = this.coo(i,:,:) + repmat(this.rec_list(i).work.xyz,1,1,n_coo_set);
                 %
                 [idx_is, idx_pos] = ismembertol(this.rec_list(i).work.getTime.getGpsTime(), this.common_time.getGpsTime, 0.002, 'DataScale', 1);
                 idx_pos = idx_pos(idx_pos > 0);
@@ -259,6 +312,22 @@ classdef Network < handle
                 this.rec_list(i).work.pushResult();
                 this.rec_list(i).work.updateErrTropo();
                 
+            end
+        end
+        function pushBackSubCooInReceiver(this, time, rate)
+            n_rec = length(this.rec_list);
+            
+            % --- push back the results in the receivers
+            for i = 1 : n_rec
+                coo = struct();
+                coo.coo = Coordinates.fromXYZ(this.coo(:,:,i));
+                coo.time = time.getCopy();
+                coo.rate = rate;
+                if isempty( this.rec_list(i).work.add_coo)
+                    this.rec_list(i).work.add_coo = coo;
+                else
+                    this.rec_list(i).work.add_coo(end + 1) = coo;
+                end
             end
         end
     end

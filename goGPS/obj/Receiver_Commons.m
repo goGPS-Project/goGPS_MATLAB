@@ -65,11 +65,12 @@ classdef Receiver_Commons < handle
         h_ellips       % ellipsoidal height
         h_ortho        % orthometric height
         
-        add_coo = struct( ...
-            'coo',      [], ...    % additional estimated coo
-            'time',         [], ...    % time of the coo
-            'rate',          [] ...    % rate of the coo
-            )
+        add_coo 
+%         = struct( ...
+%             'coo',      [], ...    % additional estimated coo
+%             'time',         [], ...    % time of the coo
+%             'rate',          [] ...    % rate of the coo
+%             )
        
 
     end

@@ -108,6 +108,8 @@ classdef Least_Squares_Manipulator < handle
         network_solution = false;
         
         sat_jmp_idx         % satelite jmp index
+        
+        pos_indexs_tc = {}  % to whivh index of the sampled time the progessive index correspond
     end
     
     properties (Access = private)
@@ -591,7 +593,7 @@ classdef Least_Squares_Manipulator < handle
             end
         end
         
-        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list)
+        function [common_time, id_sync]  = setUpNetworkAdj(this, rec_list, coo_rate)
             % NOTE : free netwrok is set up -> soft constarint on apriori coordinates to be implemnted
             %
             % OUTPUT:
@@ -689,8 +691,18 @@ classdef Least_Squares_Manipulator < handle
 
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
+            [~, sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
+            st_time = sss_lim.first;
+            
             for i = 1 : n_rec
-                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), []);
+                % get the poitiong idx
+                if ~isempty(coo_rate) && i~=1 % first receiver do not need any sub rate since is the reference
+                    [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(obs_set_list(i).time, st_time, coo_rate);
+                    this.pos_indexs_tc{end+1} = pos_idx_tc; % to be used afterwards to push back postions
+                else
+                    pos_idx_nh = [];
+                end
+                [A_rec, Aidx_rec, ep_rec, sat_rec, p_flag_rec, p_class_rec, y_rec, variance_rec, amb_set_jmp] = this.getObsEq(rec_list(i).work, obs_set_list(i), pos_idx_nh);
                 A = [A ; A_rec];
                 Aidx = [Aidx; Aidx_rec];
                 r2c = find(~isnan(id_sync(:,i)));
@@ -729,6 +741,20 @@ classdef Least_Squares_Manipulator < handle
             this.sat_jmp_idx = sat_jmp_idx;
             
             this.network_solution = true;            
+        end
+        
+        function changePosIdx(this, r_id, pos_idx)
+            % Change the index of the position in the design matrix
+            %
+            % SYNTAX:
+            %   this.changePosIdx(pos_idx)
+            max_idx = max(pos_idx);
+            idx_rec = this.receiver_id == r_id;
+            o_max_idx = max(this.A_idx(idx_rec, 1)) - min(this.A_idx(idx_rec, 1)) +1;
+            pos_idx_coo = [pos_idx pos_idx+max_idx pos_idx+max_idx*2];
+            
+            this.A_idx(idx_rec, 1:3) = pos_idx_coo(this.epoch(idx_rec), :);
+            this.A_idx(idx_rec, 4:end) = this.A_idx(idx_rec, 4:end) + 3*(max_idx-o_max_idx);
         end
                         
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp] = getObsEq(this, rec, obs_set, pos_idx_vec)
@@ -1660,6 +1686,17 @@ classdef Least_Squares_Manipulator < handle
                 A_small = A_full(id_ok, col_ok > 0);                
             end
         end
+        
+        function pos_idx = getCommonPosIdx(this)
+            % get the unique position idx fro all receiver
+            pos_idx = [];
+            for i = 1 : length(this.pos_indexs_tc)
+                pos_idx = unique([pos_idx; this.pos_indexs_tc{i}]);
+            end
+            if isempty(pos_idx)
+                pos_idx = 1;
+            end
+        end
     end
     
     methods (Static)
@@ -1764,6 +1801,18 @@ classdef Least_Squares_Manipulator < handle
                     end
                 end
             end
+        end
+        
+        function [pos_idx_nh, pos_idx_tc] = getPosIdx(time, st_time, coo_rate)
+            % given a time and the sampling rate return the position index referring to the given sampling rate, the first index is porgressive, the seocond id time consistent
+            sec_from_sod = time.getRefTime(st_time.getMatlabTime);
+            pos_idx_tc = ceil(sec_from_sod / coo_rate);
+            u_pos = unique(pos_idx_tc);
+            pos_idx_nh = pos_idx_tc;
+            for i = 1 : length(u_pos)
+                pos_idx_nh(pos_idx_tc==u_pos(i)) = i;
+            end
+            pos_idx_tc = unique(pos_idx_tc);
         end
     end
 end
