@@ -1038,7 +1038,7 @@ classdef Core_Sky < handle
             end
             fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', file_name));
+                this.log.addWarning(sprintf('Core_Sky: File %s not found', file_name));
                 return
             end
             this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', file_name)));
@@ -2296,7 +2296,7 @@ classdef Core_Sky < handle
                     iono = iono_I;
                 else
                     iono = zeros(8,1);
-                    log.addWarning('Klobuchar ionosphere parameters not found in navigation file(s).\n');
+                    log.addWarning(sprintf('Klobuchar ionosphere parameters not found in navigation file\n("%s")\n', filename));
                 end
                 
                 if (wait_dlg_PresenceFlag)

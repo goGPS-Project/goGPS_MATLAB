@@ -2844,7 +2844,12 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(strcat(this.iono_dir, filesep, this.iono_name));
+            if this.isIonoBroadcast()
+                % Search broadcast orbits in the ephemerides folderåß
+                file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name));
+            else
+                file_name = fnp.checkPath(fullfile(this.iono_dir, this.iono_name));
+            end
 
             if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                 date_start = date_start.getCopy;
@@ -3359,6 +3364,15 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             is_iono_free = this.iono_management == 1;
         end
         
+        function is_brdc = isIonoBroadcast(this)
+            % Return the kind of iono data used (are the iono parameters broadcast?)
+            %
+            % SYNTAX
+            %   is_brdc = this.isIonoBroadcast();
+            
+            is_brdc = length(this.iono_name) > 4 && strcmp(this.iono_name(1:4), 'brdm');
+        end
+        
         function is_iono_ext = isIonoExtModel(this)
             % Check whether the iono external model is enabled
             %
@@ -3366,6 +3380,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   is_iono_ext = isIonoExtModel(this)
             is_iono_ext = this.iono_management == 3;
         end
+        
         function is_solid_earth = isSolidEarth(this)
             % Check whether the iono free combination is enabled
             %

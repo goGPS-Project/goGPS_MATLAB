@@ -85,70 +85,72 @@ classdef Core_Reference_Frame < handle
             this.is_valid = true;
             try
                 fname = this.state.getCrdFile();
-                fid = fopen([fname],'r');
-                if fid == -1
-                    this.log.addWarning(sprintf('      File %s not found', fname));
-                    return
-                end
-                this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fname)));
-                txt = fread(fid,'*char')';
-                fclose(fid);
-                
-                % get new line separators
-                nl = regexp(txt, '\n')';
-                if nl(end) <  numel(txt)
-                    nl = [nl; numel(txt)];
-                end
-                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
-                lim = [lim lim(:,2) - lim(:,1)];
-                if lim(end,3) < 3
-                    lim(end,:) = [];
-                end
-                header_line = find(txt(lim(:,1)) == '#');
-                for i = header_line
-                    line = txt(lim(i,1):lim(i,2));
-                    idx = strfind(line,'Reference epoch');
-                    if ~isempty(idx)
-                        this.ref_epoch = GPS_Time( sscanf(line((idx+15):end),'%f %f %f %f %f %f')');
+                if ~isempty(fname)
+                    fid = fopen([fname],'r');
+                    if fid == -1
+                        this.log.addWarning(sprintf('Core RF: File %s not found', fname));
+                        return
                     end
-                end
-                lim(header_line,:) = [];
-                %initilaize array
-                n_sta = size(lim,1);
-                
-                this.station_code=char(' '*ones(n_sta,4));
-                this.xyz = zeros(n_sta,3);
-                this.vxvyvz = zeros(n_sta,3);
-                this.flag = zeros(n_sta,1);
-                re_date = zeros(n_sta,1);
-                st_date = zeros(n_sta,1);
-                en_date = zeros(n_sta,1);
-                for i = 1:n_sta
-                    line = txt(lim(i,1):lim(i,2));
-                    parts = strsplit(line);
-                    l = length(parts);
-                    this.station_code(i,:) = parts{1};
-                    this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
-                    if l > 4
-                        this.flag(i) = str2double(parts{5});
-                        if l > 7
-                            this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
-                            if l > 9
-                                re_date(i) = datenum([parts{9} ' ' parts{10}]);
-                                if l > 11
-                                    st_date(i) = datenum([parts{11} ' ' parts{12}]);
-                                    if l > 13
-                                        en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                    this.log.addMessage(this.log.indent(sprintf('Opening file %s for reading', fname)));
+                    txt = fread(fid,'*char')';
+                    fclose(fid);
+                    
+                    % get new line separators
+                    nl = regexp(txt, '\n')';
+                    if nl(end) <  numel(txt)
+                        nl = [nl; numel(txt)];
+                    end
+                    lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                    lim = [lim lim(:,2) - lim(:,1)];
+                    if lim(end,3) < 3
+                        lim(end,:) = [];
+                    end
+                    header_line = find(txt(lim(:,1)) == '#');
+                    for i = header_line
+                        line = txt(lim(i,1):lim(i,2));
+                        idx = strfind(line,'Reference epoch');
+                        if ~isempty(idx)
+                            this.ref_epoch = GPS_Time( sscanf(line((idx+15):end),'%f %f %f %f %f %f')');
+                        end
+                    end
+                    lim(header_line,:) = [];
+                    %initilaize array
+                    n_sta = size(lim,1);
+                    
+                    this.station_code=char(' '*ones(n_sta,4));
+                    this.xyz = zeros(n_sta,3);
+                    this.vxvyvz = zeros(n_sta,3);
+                    this.flag = zeros(n_sta,1);
+                    re_date = zeros(n_sta,1);
+                    st_date = zeros(n_sta,1);
+                    en_date = zeros(n_sta,1);
+                    for i = 1:n_sta
+                        line = txt(lim(i,1):lim(i,2));
+                        parts = strsplit(line);
+                        l = length(parts);
+                        this.station_code(i,:) = parts{1};
+                        this.xyz(i,:) = [str2double(parts{2}) str2double(parts{3}) str2double(parts{4})];
+                        if l > 4
+                            this.flag(i) = str2double(parts{5});
+                            if l > 7
+                                this.vxvyvz(i,:) = [str2double(parts{6}) str2double(parts{7}) str2double(parts{8})];
+                                if l > 9
+                                    re_date(i) = datenum([parts{9} ' ' parts{10}]);
+                                    if l > 11
+                                        st_date(i) = datenum([parts{11} ' ' parts{12}]);
+                                        if l > 13
+                                            en_date(i) = datenum([parts{13} ' ' parts{14}]);
+                                        end
                                     end
                                 end
                             end
                         end
                     end
+                    this.ref_epoch            = GPS_Time(re_date);
+                    this.start_validity_epoch = GPS_Time(st_date);
+                    en_date(en_date == 0)     = datenum(2099, 1,1);
+                    this.end_validity_epoch   = GPS_Time(en_date);
                 end
-                this.ref_epoch            = GPS_Time(re_date);
-                this.start_validity_epoch = GPS_Time(st_date);
-                en_date(en_date == 0)     = datenum(2099, 1,1);
-                this.end_validity_epoch   = GPS_Time(en_date);
             catch
                 this.is_valid = false;
                 log = Logger.getInstance();

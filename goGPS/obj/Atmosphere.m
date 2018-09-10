@@ -328,7 +328,7 @@ classdef Atmosphere < handle
             %   importAtmLoadCoeffFile(this, filename)
             fid = fopen([filename],'r');
             if fid == -1
-                this.log.addWarning(sprintf('      File %s not found', filename));
+                this.log.addWarning(sprintf('Athmosphere: File %s not found', filename));
                 return
             else
                 this.log.addMessage(this.log.indent(sprintf('Loading  %s', File_Name_Processor.getFileName(filename))));
@@ -407,7 +407,7 @@ classdef Atmosphere < handle
             fnp = File_Name_Processor;
             fid = fopen(file_name,'r');
             if fid == -1
-                this.log.addWarning(sprintf('File %s not found', file_name));                              
+                this.log.addWarning(sprintf('Atmosphere: File %s not found', file_name));                              
             else
                 % Parsing title
                 [~, file_name, ext ] = fileparts(file_name);
@@ -926,7 +926,7 @@ classdef Atmosphere < handle
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
                 t_time= gps_time(t);
-                [stec, pp,mfpp, k] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
+                [stec, pp, mfpp, k] = this.getSTEC(lat,lon, az(t,idx_sat),el(t,idx_sat),h, t_time);
                     A = 80.6;
                     
                     t_stec(t,idx_sat) = stec;
