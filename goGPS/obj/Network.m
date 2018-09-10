@@ -104,6 +104,13 @@ classdef Network < handle
                     this.addAdjValues(x);
                     this.changeReferenceFrame(idx_ref);
                     this.addAprValues();
+                    if this.state.flag_coo_rate
+                        % save old apriori values to be used later
+                        coo_old = zeros(n_rec,3);
+                        for i = 1 : n_rec
+                            coo_old(i,:) =  this.rec_list(i).work.xyz;
+                        end
+                    end
                     this.pushBackInReceiver(s0, res);
                 else
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
@@ -130,8 +137,11 @@ classdef Network < handle
                             if s0 < 0.01
                                 this.addAdjValues(x);
                                 this.changeReferenceFrame(idx_ref);
-                                this.addAprValues();
-                                
+                                for k = 1 : n_rec
+                                    % for all paramter take the apriori in the receiver and sum the netwrok estimated correction
+                                    n_coo_set = size(this.coo,3);
+                                    this.coo(k,:,:) = this.coo(k,:,:) + repmat(coo_old(k,:),1,1,n_coo_set);
+                                end
                             else
                                 this.log.addWarning(sprintf('s0 ( %.4f) for sub coo solution ( %f s)too high! not updating the results ', s0, this.state.coo_rates(i)));
                             end
@@ -140,6 +150,10 @@ classdef Network < handle
                             this.pushBackSubCooInReceiver(time_coo, this.state.coo_rates(i));
                         end
                     end
+                end
+                for i = 1 : n_rec
+                    this.rec_list(i).work.pushResult();
+                    this.rec_list(i).work.updateErrTropo();
                 end
             else
                 this.log.addWarning('Not enough receivers (< 2), skipping network solution');
@@ -307,11 +321,7 @@ classdef Network < handle
                 this.rec_list(i).work.s0 = s0;
                 % residual
                 this.rec_list(i).work.sat.res(:) = 0;
-                this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);
-                
-                this.rec_list(i).work.pushResult();
-                this.rec_list(i).work.updateErrTropo();
-                
+                this.rec_list(i).work.sat.res(idx_pos, :) = res(idx_is, :, i);                
             end
         end
         function pushBackSubCooInReceiver(this, time, rate)
@@ -320,7 +330,7 @@ classdef Network < handle
             % --- push back the results in the receivers
             for i = 1 : n_rec
                 coo = struct();
-                coo.coo = Coordinates.fromXYZ(this.coo(:,:,i));
+                coo.coo = Coordinates.fromXYZ(permute(this.coo(i,:,:),[3 2 1]));
                 coo.time = time.getCopy();
                 coo.rate = rate;
                 if isempty( this.rec_list(i).work.add_coo)
