@@ -1390,7 +1390,7 @@ classdef Least_Squares_Manipulator < handle
                 end
                 % 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
                 % first recievr does not have clocks any more so no rank defricency
-                for i = 2 : n_rec
+                for i = 1 : n_rec
                     jmps = [1 this.amb_set_jmp{i}'];
                     for j = 1 : length(jmps)
                         jmp = jmps(j);
