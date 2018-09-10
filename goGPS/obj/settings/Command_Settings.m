@@ -71,8 +71,8 @@ classdef Command_Settings < Settings_Interface
     % =========================================================================
     methods
         function importPlainCommands(this, txt)
-            log = Logger.getInstance;
-            ci = Command_Interpreter.getInstance();
+            log = Core.getLogger();
+            ci = Core.getCommandInterpreter();
             n_cmd = size(txt, 1);
             [cmd, err_list] = ci.fastCheck(txt);
             this.cmd_list = cmd;
@@ -146,7 +146,7 @@ classdef Command_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringSection(this.CMD_SECTION, str_cell);
             str_cell = Ini_Manager.toIniStringComment('goGPS command list', str_cell);
             str_cell = Ini_Manager.toIniStringComment('NOTE: All the commands will be executed for each session', str_cell);
-            cmd = Command_Interpreter.getInstance();
+            cmd = Core.getCommandInterpreter();
             % To be moved in the manual in the future
             str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
             for l = 1 : numel(this.cmd_list)
@@ -165,7 +165,7 @@ classdef Command_Settings < Settings_Interface
                 str_cell = {};
             end
             
-            cmd = Command_Interpreter.getInstance();
+            cmd = Core.getCommandInterpreter();
             % To be moved in the manual in the future
             str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
         end
@@ -180,7 +180,7 @@ classdef Command_Settings < Settings_Interface
                 str_cell = {};
             end
             
-            cmd = Command_Interpreter.getInstance();
+            cmd = Core.getCommandInterpreter();
             % To be moved in the manual in the future
             str_cell = strrep(cmd.getExamples,'#','%');
         end
@@ -195,7 +195,7 @@ classdef Command_Settings < Settings_Interface
                 str_cell = {};
             end
             
-            cmd = Command_Interpreter.getInstance();
+            cmd = Core.getCommandInterpreter();
             [~, err_list, ~, ~, sss_lev] = cmd.fastCheck(this.cmd_list);
             % find how to indent commands:
             sss_lev = sss_lev - (diff([0 sss_lev]) > 0);

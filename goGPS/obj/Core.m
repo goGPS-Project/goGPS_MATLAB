@@ -55,12 +55,14 @@ classdef Core < handle
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-        log         % Logger
-        gc          % global configuration
-        state       % state (gc.state)
-        w_bar       % WaitBar
-        sky         % Core_Sky 
-        cmd         % Command_Interpreter
+        log         % Logger handler
+        gc          % global configuration handler
+        state       % state (gc.state) handler
+        w_bar       % WaitBar handler
+        sky         % Core_Sky handler
+        atmo        % Atmosphere handler
+        rf          % Reference Frame handler
+        cmd         % Command_Interpreter handler
     end
 
     %% PROPERTIES RECEIVERS
@@ -87,13 +89,17 @@ classdef Core < handle
         end
     end
     
-    %% METHODS UI
+    %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        function this = getInstance(force_clean)
-            if nargin < 1
+        function this = getInstance(force_clean, skip_init)
+            if nargin < 1 || isempty(force_clean)
                 force_clean = false;
             end
+            if nargin < 2 || isempty(skip_init)
+                skip_init = false;
+            end
+
             % Get the persistent instance of the class
             persistent unique_instance_core__
 
@@ -102,13 +108,156 @@ classdef Core < handle
                 unique_instance_core__ = this;
             else
                 this = unique_instance_core__;
-                this.init(force_clean);
+                if ~skip_init
+                    this.init(force_clean);
+                end
             end            
         end
 
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
+        
+        function atmo = getLogger()
+            % Return the pointer to the Atmosphere Object
+            %
+            % SYNTAX
+            %   atmo = getAtmosphere()
+            
+            core = Core.getInstance(false, true);
+            atmo = core.log;
+        end
+        
+        function atmo = getAtmosphere()
+            % Return the pointer to the Atmosphere Object
+            %
+            % SYNTAX
+            %   atmo = getAtmosphere()
+            
+            core = Core.getInstance(false, true);
+            atmo = core.atmo;
+        end
+        
+        function rf = getReferenceFrame()
+            % Return the pointer to the Reference Frame
+            %
+            % SYNTAX
+            %   rf = getReferenceFrame()
+            
+            core = Core.getInstance(false, true);
+            rf = core.rf;
+        end
+        
+        function sky = getCoreSky()
+            % Return the pointer to the Core Sky Object
+            %
+            % SYNTAX
+            %   atmo = getCoreSky()
+            
+            core = Core.getInstance(false, true);
+            sky = core.sky;
+        end
+        
+        function state = getState()
+            % Return the pointer to the State pointed by Core
+            %
+            % SYNTAX
+            %   state = getState()
+            
+            core = Core.getInstance(false, true);
+            state = core.state;
+        end
+
+        function gc = getGlobalConfig()
+            % Return the pointer to the Global Configuration
+            %
+            % SYNTAX
+            %   gc = getGlobalConfig()
+            
+            core = Core.getInstance(false, true);
+            gc = core.gc;
+        end
+        
+        function cmd = getCommandInterpreter()
+            % Return the pointer to the Command Interpreter
+            %
+            % SYNTAX
+            %   cmd = getCommandInterpreter()
+            
+            core = Core.getInstance(false, true);
+            cmd = core.cmd;
+        end
+
+        function core = getCurrentCore()
+            % Return the pointer to the actual Core instance
+            %
+            % SYNTAX
+            %   core = getCurrentCore()
+            
+            core = Core.getInstance(false, true);
+        end
+
+        function setAtmosphere(atmo)
+            % Set the pointer to the Atmosphere Object
+            %
+            % SYNTAX
+            %   Core.setAtmosphere(atmo)
+            
+            core = Core.getInstance(false, true);
+            core.atmo = atmo;
+        end
+
+        function setReferenceFrame(rf)
+            % Return the pointer to the Reference Frame
+            %
+            % SYNTAX
+            %   setReferenceFrame(rf)
+            
+            core = Core.getInstance(false, true);
+            core.rf = rf;
+        end
+
+        function setCoreSky(sky)
+            % Set the pointer to the Core Sky Object
+            %
+            % SYNTAX
+            %   Core.setCoreSky(sky)
+            
+            core = Core.getInstance(false, true);
+            core.sky = sky;
+        end
+        
+        function setState(state)
+            % Set the pointer to the State pointed by Core
+            %
+            % SYNTAX
+            %   Core.setState(state)
+            
+            core = Core.getInstance(false, true);
+            core.state = state;
+        end
+
+        function setGlobalConfig(gc)
+            % Return the pointer to the Global Configuration
+            %
+            % SYNTAX
+            %   Core.setGlobalConfig(gc)
+            
+            core = Core.getInstance(false, true);
+            core.gc = gc;
+            core.state = gc.getCurrentSettings;
+        end
+        
+        function setCommandInterpreter(cmd)
+            % Return the pointer to the Command Interpreter
+            %
+            % SYNTAX
+            %   setCommandInterpreter(cmd)
+            
+            core = Core.getInstance(false, true);
+            core.cmd = cmd;
+        end
+
     end
     
     %% METHODS INIT
@@ -140,6 +289,8 @@ classdef Core < handle
             this.state = Global_Configuration.getCurrentSettings();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.sky = Core_Sky.getInstance(force_clean);
+            this.atmo = Atmosphere.getInstance();
+            this.rf = Core_Reference_Frame.getInstance();
             this.cmd = Command_Interpreter.getInstance(this);
             if force_clean
                 this.state.setCurSession(0);
@@ -220,7 +371,7 @@ classdef Core < handle
     %% METHODS EXPORT
     methods
         function logCurrentSettings(this)
-            log = Logger.getInstance();
+            log = Core.getLogger();
             log.addMessageToFile('\n============================================================================================');
             log.addMessageToFile('== CONFIG FILE =============================================================================');
             log.addMessageToFile('============================================================================================\n');
@@ -293,13 +444,11 @@ classdef Core < handle
                 this.log.simpleSeparator();
                 
                 % init atmo object
-                if this.state.isVMF()
-                    atmo = Atmosphere.getInstance();
-                    atmo.initVMF(time_lim_large.first,time_lim_large.last);
+                if this.state.isVMF()                    
+                    this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
                 end
-                if this.state.needIonoMap()
-                    atmo = Atmosphere.getInstance();
-                    atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
+                    this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
                 end
             end
         end  
@@ -328,9 +477,8 @@ classdef Core < handle
             else
                 session_list = session_num;
             end
-            % init refererecne frame object
-            rf = Core_Reference_Frame.getInstance();
-            rf.init();
+            % init refererecne frame object            
+            this.rf.init();
             
             [cmd_list, ~, execution_block, sss_list, sss_level] = this.cmd.fastCheck(this.state.cmd_list);
             
@@ -492,7 +640,7 @@ classdef Core < handle
                 err_code.atm = 0;
             end
             
-            err_code.atx   = state.checkDir('atx_dir', 'Antenna dir', flag_verbose);
+            err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);
             err_code.eph   = state.checkDir('eph_dir', 'Ephemerides dir', flag_verbose);
             err_code.clk   = state.checkDir('clk_dir', 'Clock Offset dir', flag_verbose);
             err_code.erp   = state.checkDir('erp_dir', 'Earth Rotation Parameters dir', flag_verbose);
@@ -836,8 +984,7 @@ classdef Core < handle
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
-        end
-            
+        end            
     end
     
     methods

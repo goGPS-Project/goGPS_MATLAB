@@ -73,8 +73,8 @@ classdef Core_PP < handle
             %
             % SYNTAX
             %   this.init()
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
         end
                 
         function [ph] = jmpFix(this, ph, lambda)
@@ -417,7 +417,7 @@ classdef Core_PP < handle
             % SYNTAX:
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
-            log = Logger.getInstance();
+            log = Core.getLogger();
                         
             id_not_empty = time ~= 0;
 

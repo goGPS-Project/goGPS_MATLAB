@@ -48,7 +48,7 @@ classdef Meteo_Network < handle
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Meteo_Network()
-            this.log = Logger.getInstance();
+            this.log = Core.getLogger();
         end
     end
     

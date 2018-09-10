@@ -48,7 +48,7 @@ function [ocean_load_disp, status] = load_BLQ(filename, marker)
 % ocean_load_disp struct definition
 % ocean_load_disp.marker : marker name
 % ocean_load_disp.matrix : ocean loading displacement matrix
-log = Logger.getInstance();
+log = Core.getLogger();
 ocean_load_disp=[];
 for m = 1 : length(marker)
     ocean_load_disp(m).name = marker{m}; %#ok<*AGROW>

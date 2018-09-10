@@ -85,7 +85,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             end            
             
             this.readFile();
-            this.log = Logger.getInstance();
+            this.log = Core.getLogger();
         end
                 
     end
@@ -114,7 +114,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
 
             if force_clean
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 clear unique_instance_resource_manager__;
                 unique_instance_resource_manager__ = [];
             end

@@ -110,8 +110,8 @@ classdef GNSS_Station < handle
         end
         
         function init(this)
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
             this.w_bar = Go_Wait_Bar.getInstance();
             %this.work.resetWorkSpace();
             this.work = Receiver_Work_Space(this.cc, this);
@@ -1072,7 +1072,7 @@ classdef GNSS_Station < handle
             t = t(rec_ok);
             
             if numel(sta_list) == 0
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 log.addError('No valid troposphere is present in the receiver list');
             else
                 if nargin < 3

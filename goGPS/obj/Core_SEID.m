@@ -53,7 +53,7 @@ classdef Core_SEID < handle
         function this = Core_SEID()
             % Core object creator
             this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.state = Core.getState();
         end
 
         % Concrete implementation.  See Singleton superclass.
@@ -122,8 +122,10 @@ classdef Core_SEID < handle
                 for t = 1 : numel(trg)
                     log.addMessage(log.indent(sprintf('Computing interpolated geometry free for target %d / %d', t, numel(trg))));
                     
-                    ph_gf = nan(size(id_sync{t}, 1), max_sat, numel(ref));
-                    pr_gf = nan(size(id_sync{t}, 1), max_sat, numel(ref));
+                    max_sat_trg = max(max_sat, max(trg(t).go_id));
+                    
+                    ph_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
+                    pr_gf = nan(size(id_sync{t}, 1), max_sat_trg, numel(ref));
                     for r = 1 : numel(ref)
                         ph_gf(:, phase_gf(r).go_id, r) = zero2nan(phase_gf(r).obs(id_sync{t}(:,r), :));
                         % Import CS and outliers from receivers

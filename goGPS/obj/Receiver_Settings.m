@@ -162,7 +162,7 @@ classdef Receiver_Settings < Exportable
                 elseif obs_code(1) == 'L'
                     std = 0.003;
                  else
-                    log = Logger.getInstance();
+                    log = Core.getLogger();
                     log.addWarning(['No std present for obesrvation type:_',obs_code(1)])
                 end
             else
@@ -172,7 +172,7 @@ classdef Receiver_Settings < Exportable
                 elseif obs_code(1) == 'L'
                     std = std(2);
                 else
-                    log = Logger.getInstance();
+                    log = Core.getLogger();
                     log.addWarning(['No std present for obesrvation type:_',obs_code(1)])
                 end
             end

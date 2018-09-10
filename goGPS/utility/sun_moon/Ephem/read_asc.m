@@ -8,7 +8,7 @@ if nargin < 3
     dontSave = false;
 end
 
-log = Logger.getInstance();
+log = Core.getLogger();
 error = 0;
 if exist(fn, 'file') == 2
     % found locally

@@ -129,7 +129,7 @@ classdef Command_Interpreter < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Command_Interpreter(varargin)
             % Core object creator
-            this.log = Logger.getInstance();
+            this.log = Logger.getInstance;
             this.init(varargin{1});
         end
     end

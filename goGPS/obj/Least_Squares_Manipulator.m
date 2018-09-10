@@ -139,10 +139,9 @@ classdef Least_Squares_Manipulator < handle
             %
             % SYNTAX
             %   this.init();
-            this.state = Global_Configuration.getCurrentSettings();
-            this.rf = Core_Reference_Frame.getInstance();
-            this.log = Logger.getInstance();
-            
+            this.state = Core.getState();
+            this.rf = Core.getReferenceFrame();
+            this.log = Core.getLogger();            
         end
         
         function id_sync = setUpPPP(this, rec, id_sync,  cut_off, dynamic, pos_idx)

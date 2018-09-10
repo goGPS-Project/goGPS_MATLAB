@@ -54,7 +54,7 @@ classdef Exportable < handle
     % =========================================================================
     methods
         function out = toStruct(this)
-            log = Logger.getInstance();
+            log = Core.getLogger();
             cm = log.getColorMode();
             log.setColorMode(false);
             warning off
@@ -85,7 +85,7 @@ classdef Exportable < handle
         end
         
         function importFromStruct(this, fields)
-            log = Logger.getInstance();
+            log = Core.getLogger();
 
             prp = fieldnames(fields);
             for p = 1 : numel(prp)

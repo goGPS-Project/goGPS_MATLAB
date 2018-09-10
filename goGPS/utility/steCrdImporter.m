@@ -54,7 +54,7 @@ function [time, xyz, enu, std_enu, std_3d] = steCrdImporter (file_name)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-    log = Logger.getInstance();
+    log = Core.getLogger();
 
     fid = fopen(file_name,'r');
 

@@ -55,7 +55,7 @@ function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-log = Logger.getInstance();
+log = Core.getLogger();
 
 log.addMarkedMessage('Reading SP3s (precise ephemeris) and clocks');
 

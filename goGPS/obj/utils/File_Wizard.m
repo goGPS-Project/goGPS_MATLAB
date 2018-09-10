@@ -162,7 +162,7 @@ classdef File_Wizard < handle
     end
     
     properties (SetAccess = private, GetAccess = private)
-        log = Logger.getInstance(); % Handler to the log object
+        log = Core.getLogger(); % Handler to the log object
         fnp = File_Name_Processor();
         ftp_downloaders;
     end
@@ -177,7 +177,7 @@ classdef File_Wizard < handle
             if (nargin >= 1)
                 this.state = handle(state);
             else
-                this.state = Global_Configuration.getCurrentSettings();
+                this.state = Core.getState();
             end
             this.rm = Remote_Resource_Manager(this.state.getRemoteSourceFile());
             this.sys_c = this.state.cc.SYS_C(this.state.cc.active_list);

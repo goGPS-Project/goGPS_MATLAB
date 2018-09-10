@@ -86,9 +86,9 @@ classdef Receiver_Output < Receiver_Commons
         end
         
         function init(this)
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
-            this.rf = Core_Reference_Frame.getInstance();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
+            this.rf = Core.getReferenceFrame();
             this.w_bar = Go_Wait_Bar.getInstance();
             
             this.reset();

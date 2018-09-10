@@ -50,7 +50,7 @@ function [CRX, found] = load_crx(data_dir_crx, time, cc)
 %output initialization
 %CRX = sparse(false(cc.getNumSat, length(time_R)));
 CRX = sparse(false(cc.getNumSat, time.length));
-log = Logger.getInstance();
+log = Core.getLogger();
 
 %detect starting and ending year/month
 date6_start = time.first.get6ColDate();

@@ -186,8 +186,8 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function init(this)
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
             this.rf = Core_Reference_Frame.getInstance();
             this.w_bar = Go_Wait_Bar.getInstance();
             this.reset();
@@ -415,7 +415,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
                 this.importAntModel();
             end
-            rf = Core_Reference_Frame.getInstance();
+            rf = Core.getReferenceFrame();
             coo = rf.getCoo(this.parent.getMarkerName4Ch, this.getCentralTime);
             if ~isempty(coo)
                 this.xyz = coo;
@@ -553,7 +553,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         function initR2S(this)
             % initialize satellite related parameters
             % SYNTAX this.initR2S();            
-            this.sat.cs           = Core_Sky.getInstance();
+            this.sat.cs           = Core.getCoreSky();
             % this.sat.avail_index  = false(this.length, this.cc.getMaxNumSat);
             % this.sat.XS_tx     = NaN(n_epoch, n_pr); % --> consider what to initialize
         end
@@ -2728,7 +2728,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Get Iono mapping function for all the valid elevations
             [lat, ~, ~, h_ortho] = this.getMedianPosGeodetic_mr();
             
-            atmo = Atmosphere.getInstance();
+            atmo = Core.getAtmosphere();
             [iono_mf] = atmo.getIonoMF(lat ./180 * pi, h_ortho, this.getEl ./180 * pi);
         end
         
@@ -2750,7 +2750,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             t = 1;
             
-            atmo = Atmosphere.getInstance();
+            atmo = Core.getAtmosphere();
             [lat, lon, h_ellipse, h_ortho] = this.getMedianPosGeodetic();
             lat = median(lat);
             lon = median(lon);
@@ -2810,7 +2810,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             l = time.length;
             switch flag
                 case 1 % standard atmosphere
-                    atmo = Atmosphere.getInstance();
+                    atmo = Core.getAtmosphere();
                     this.updateCoordinates();
                     Pr = atmo.STD_PRES;
                     % temperature [K]
@@ -2831,7 +2831,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         H = Hr * exp(-0.0006396*h);
                     end
                 case 2 % gpt
-                    atmo = Atmosphere.getInstance();
+                    atmo = Core.getAtmosphere();
                     this.updateCoordinates();
                     time = time.getGpsTime();
                     if this.isStatic()
@@ -2847,7 +2847,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         H = atmo.STD_HUMI;%* exp(-0.0006396*this.h_ortho);
                     end
                 case 3 % local meteo data
-                    atmo = Atmosphere.getInstance();
+                    atmo = Core.getAtmosphere();
                     
                     P = this.meteo_data.getPressure(time);
                     T = this.meteo_data.getTemperature(time);
@@ -2909,7 +2909,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     lat = this.lat;
                     this.apr_zhd = Atmosphere.saast_dry(P,h,lat);
                 case 2 %% vmf gridded
-                    atmo = Atmosphere.getInstance();
+                    atmo = Core.getAtmosphere();
                     this.apr_zhd = atmo.getVmfZhd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
             
@@ -2928,7 +2928,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     h = this.h_ortho;
                     this.apr_zwd = Atmosphere.saast_wet(T,H,h);
                 case 2 %% vmf gridded
-                    atmo = Atmosphere.getInstance();
+                    atmo = Core.getAtmosphere();
                     this.apr_zwd = atmo.getVmfZwd(this.time.getGpsTime, this.lat, this.lon, this.h_ellips);
             end
         end
@@ -4442,7 +4442,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 case 'I'
                     omegae_dot = this.cc.irn.ORBITAL_P.OMEGAE_DOT;
                 otherwise
-                    Logger.getInstance.addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
+                    Core.getLogger.addWarning('Something went wrong in Receiver.earthRotationCorrection() \nUnrecognized Satellite system!\n');
                     omegae_dot = this.cc.gps.ORBITAL_P.OMEGAE_DOT;
             end
             omega_tau = omegae_dot * travel_time;
@@ -4623,7 +4623,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % flag: flag of the tropo model
             %DESCRIPTION update the tropospheric correction
             
-            atmo = Atmosphere.getInstance();
+            atmo = Core.getAtmosphere();
             
             if isempty(this.sat.err_tropo)
                 this.sat.err_tropo = zeros(size(this.sat.avail_index));
@@ -4680,12 +4680,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 3
                 iono_model_override = this.state.getIonoModel;
             end
-            atm = Atmosphere.getInstance();
-            if iono_model_override == 3 && isempty(atm.ionex.data) && ~empty(this.sat.cs.iono) && sum(sum(this.sat.cs.iono~=0)) > 0
+            atmo = Core.getAtmosphere();
+            if iono_model_override == 3 && isempty(atmo.ionex.data) && ~empty(this.sat.cs.iono) && sum(sum(this.sat.cs.iono~=0)) > 0
                 this.log.addWarning('No ionex file present switching to Klobuckar');
                 iono_model_override = 2;
             end
-            if iono_model_override == 3 && isempty(atm.ionex.data) && (empty(this.sat.cs.iono) || sum(sum(this.sat.cs.iono~=0)) > 0)
+            if iono_model_override == 3 && isempty(atmo.ionex.data) && (empty(this.sat.cs.iono) || sum(sum(this.sat.cs.iono~=0)) > 0)
                 this.log.addEroor('No iono model present');
                 iono_model_override = 1;
             end
@@ -4705,7 +4705,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.log.addWarning('No klobuchar parameter found, iono correction not computed');
                     end
                 case 3 % IONEX
-                    this.sat.err_iono = atm.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
+                    this.sat.err_iono = atmo.getFOIdelayCoeff(this.lat, this.lon, this.sat.az, this.sat.el, this.h_ellips, this.time);
             end
         end
         
@@ -5164,8 +5164,12 @@ classdef Receiver_Work_Space < Receiver_Commons
         function applyHOI(this)
             if this.hoi_delay_status == 0 && this.state.isHOI
                 this.log.addMarkedMessage('Applying High Order Ionospheric Effect');
-                this.HOI(1);
-                this.hoi_delay_status = 1; %applied
+                if this.state.isIonoBroadcast()
+                    this.log.addWarning('Ionosphere parameters from broadcast do not allow HOI computation (yet)\nplease use IONEX files');
+                else
+                    this.HOI(1);
+                    this.hoi_delay_status = 1; %applied
+                end
             end
         end
         
@@ -5190,7 +5194,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   Computation of thigh order ionospheric effect
             
             this.updateCoordinates();
-            atmo = Atmosphere.getInstance();
+            atmo = Core.getAtmosphere();
             [hoi_delay2_coeff, hoi_delay3_coeff, bending_coeff] = atmo.getHOIdelayCoeff(this.lat,this.lon, this.sat.az,this.sat.el,this.h_ellips,this.time);
             
         end
@@ -5255,7 +5259,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sat = 1 : this.parent.cc.getMaxNumSat();
             end
             this.updateCoordinates();
-            atmo = Atmosphere.getInstance();
+            atmo = Core.getAtmosphere();
             dsa = this.time.first.getCopy();
             dso = this.time.getSubSet(this.time.length).getCopy();
             dso.addSeconds(6*3600);
@@ -7366,7 +7370,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %outliers_phase1 = [];                     % phase double difference outlier? (fixed solution)
             %outliers_phase2 = [];                     % phase double difference outlier? (fixed solution)
             % observations reading
-            log = Logger.getInstance();
+            log = Core.getLogger();
             log.addMessage(['Reading: ' File_Name_Processor.getFileName(res_bin_file_name)]);
             d = dir(res_bin_file_name);
             fid_sat = fopen(res_bin_file_name,'r+');       % file opening

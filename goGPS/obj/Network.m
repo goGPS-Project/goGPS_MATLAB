@@ -59,8 +59,8 @@ classdef Network < handle
     methods
         function this = Network(rec_list)
             this.rec_list = rec_list;
-            this.state = Global_Configuration.getCurrentSettings;
-            this.log = Logger.getInstance();
+            this.state = Core.getState;
+            this.log = Core.getLogger();
         end
         
         function adjust(this, idx_ref, coo_rate)

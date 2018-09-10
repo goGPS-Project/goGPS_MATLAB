@@ -23,7 +23,7 @@ n_col = size(ztd_map, 2);
 % file_name = 'sar_map';
 qc_ztd = uint32(qc_ztd * 1e4); % expressed in tenths of millimeters
 
-log = Logger.getInstance;
+log = Core.getLogger();
 save_on_disk = true;
 no_data = -888888.00000;
 qc_no_data = -888888;

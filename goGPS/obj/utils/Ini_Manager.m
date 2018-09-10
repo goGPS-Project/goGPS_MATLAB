@@ -64,7 +64,7 @@ classdef Ini_Manager < handle
     end
 
     properties (GetAccess = 'private', SetAccess = 'private')
-        log = Logger.getInstance(); % Handler to the log object
+        log = Logger.getInstance();        % Handler to the log object
         raw_data = {};                 % Cell array containing the file, each cell is a line
     end
 

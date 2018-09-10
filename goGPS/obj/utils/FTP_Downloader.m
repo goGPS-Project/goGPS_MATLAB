@@ -67,7 +67,7 @@ classdef FTP_Downloader < handle
 
 
     properties (SetAccess = private, GetAccess = public)
-        log = Logger.getInstance(); % Handler to the log object
+        log = Core.getLogger();
         fnp = File_Name_Processor();
     end
 
@@ -396,7 +396,7 @@ classdef FTP_Downloader < handle
                 fclose(fid);
             catch ex
                 file = '';
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 log.addError(ex.message);
             end
         end

@@ -47,7 +47,7 @@ classdef Sinex_Reader < handle
         % Creator
         function this = Sinex_Reader(file_name)
             % Core object creator
-            this.log = Logger.getInstance();
+            this.log = Core.getLogger();
             this.reset();
             if nargin == 1
                 if iscell(file_name)

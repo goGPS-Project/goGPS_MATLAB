@@ -333,7 +333,7 @@ classdef Coordinates < Exportable & handle
             end
             
             set_time = false;
-            log = Logger.getInstance();
+            log = Core.getLogger();
             for i = 1 : numel(coo_list)
                 pos = coo_list(i);
                 if ~pos.isEmpty
@@ -412,7 +412,7 @@ classdef Coordinates < Exportable & handle
             end
                  
             set_time = false;
-            log = Logger.getInstance();
+            log = Core.getLogger();
             for i = 1 : numel(coo_list)
                 coo = coo_list(i);
                 if ~coo.isEmpty
@@ -494,7 +494,7 @@ classdef Coordinates < Exportable & handle
             % SYNTAX:
             %   ondu = getOrthometricCorrFromLatLon(lat, lon);
             
-            gs = Global_Configuration.getInstance();
+            gs = Core.getGlobalConfig();
             geoid = gs.getRefGeoid();
             
             ondu = zeros(numel(lon), 1);
@@ -773,7 +773,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   test()
-            log = Logger.getInstance(); % Handler to the log object
+            log = Core.getLogger();
             
             log.addMessage('Testing Class Coordinates');
             tic;

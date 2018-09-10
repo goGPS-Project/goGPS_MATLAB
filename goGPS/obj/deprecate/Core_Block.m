@@ -131,8 +131,8 @@ classdef Core_Block < handle
             % Core object creator initialize the structures needed for the computation:
             % EXAMPLE: go_block = Core_Block(n_epoch, n_pr_obs, n_ph_obs)
             
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
             
             % number of position solutions to be estimated
             this.n_pos = 1;
@@ -1731,7 +1731,7 @@ classdef Core_Block < handle
             % go_block = Core_Block.goMultiHighRate(time_GPS_diff, pos_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M,  Eph, SP3, iono, lambda, antenna_PCV, 3600);
             %%
             state = Global_Configuration.getCurrentSettings();
-            log = Logger.getInstance();
+            log = Core.getLogger();
 
             s_rate = s_rate(1);
             idx = (unique([0 : s_rate : max(time_diff) max(time_diff)]) / state.getProcessingRate)';
@@ -3221,7 +3221,7 @@ classdef Core_Block < handle
                 pos = reshape(x_float(1 : n_pos * 3) - cov_cross * cholinv(cov_amb) * (x_float(3 * n_pos + 1 : end) - amb_fix(:, 1)), 3, n_pos);
                 pos_cov = cov_pos  - cov_cross * cholinv(cov_amb) * cov_cross';
             catch ex
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 log.addWarning(sprintf('Phase ambiguities covariance matrix unstable - %s', ex.message));
                 pos = reshape(x_float(1 : n_pos * 3) - cov_cross * (cov_amb)^-1 * (x_float(3 * n_pos + 1 : end) - amb_fix(:, 1)), 3, n_pos);
                 pos_cov = cov_pos  - cov_cross * (cov_amb)^-1 * cov_cross';

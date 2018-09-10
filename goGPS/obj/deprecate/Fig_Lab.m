@@ -278,7 +278,7 @@ classdef Fig_Lab < handle
                 plot_list = 1;
             end
 
-            log = Logger.getInstance();
+            log = Core.getLogger();
 
             fid = fopen(file_name_extraction,'r');
 
@@ -347,7 +347,7 @@ classdef Fig_Lab < handle
                 hold_on = 0;
             end
 
-            log = Logger.getInstance();
+            log = Core.getLogger();
 
             fid = fopen(file_name_pos,'r');
 

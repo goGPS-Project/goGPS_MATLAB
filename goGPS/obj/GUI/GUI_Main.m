@@ -111,8 +111,8 @@ end
     % ==================================================================================================================================================
     methods                
         function init(this)
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
         end
         
         function openGUI(this)

@@ -657,8 +657,8 @@ classdef Core_UI < handle
     % ==================================================================================================================================================
     methods
         function init(this)
-            this.log = Logger.getInstance();
-            this.state = Global_Configuration.getCurrentSettings();
+            this.log = Core.getLogger();
+            this.state = Core.getState();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
         

@@ -184,7 +184,7 @@ classdef Core_Utils < handle
             % antenna_PCV.tablePCV_zen   : zenith angles corresponding to each column of antenna_PCV.tablePCV
             % antenna_PCV.tablePCV_azi   : azimutal angles corresponding to each row of antenna_PCV.tablePCV
             
-            log = Logger.getInstance();
+            log = Core.getLogger();
             
             for m = numel(antmod) : -1 : 1
                 antenna_PCV(m) = struct('name', antmod{m}, ...
@@ -461,7 +461,7 @@ classdef Core_Utils < handle
         end
         
         function [status] = downloadHttpTxtRes(filename, out_dir)
-            log = Logger.getInstance();
+            log = Core.getLogger();
             fnp = File_Name_Processor();
             try
                 options = weboptions;
@@ -866,7 +866,7 @@ classdef Core_Utils < handle
                 base_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
             end
             
-            log = Logger.getInstance();
+            log = Core.getLogger();
             log.addMarkedMessage(sprintf('Creating a new project "%s" into %s', prj_name, [base_dir filesep prj_name]));
             
             [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name]));

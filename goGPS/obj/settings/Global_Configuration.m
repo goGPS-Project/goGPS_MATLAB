@@ -124,7 +124,7 @@ classdef Global_Configuration < Settings_Interface
             end
 
             if force_clean
-                log = Logger.getInstance();
+                log = Core.getLogger();
                 log.addWarning('Cleaning settings of the session');
                 clear unique_instance_settings__;
                 unique_instance_settings__ = [];

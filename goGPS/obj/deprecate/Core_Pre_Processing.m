@@ -66,9 +66,9 @@ classdef Core_Pre_Processing < handle
             % Core object creator initialize the structures needed for the pre_processing of the data:
             % EXAMPLE: pp = Core_Pre_Processing()
             
-            this.log = Logger.getInstance();
+            this.log = Core.getLogger();
             if nargin == 0
-                this.state = Global_Configuration.getCurrentSettings();
+                this.state = Core.getState();
             else
                 this.state = state;
                 this.eph = eph;
@@ -1234,7 +1234,7 @@ classdef Core_Pre_Processing < handle
             % SYNTAX:
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
-            log = Logger.getInstance();
+            log = Core.getLogger();
             
             time_desync  = round((time_ref - time) * 1e7) / 1e7;
             %figure(1); clf; plot(diff(zero2nan(ph))); hold on;
@@ -1300,7 +1300,7 @@ classdef Core_Pre_Processing < handle
             % SYNTAX:
             %   [pr, ph, dt_pr, dt_ph] = correctTimeDesync(time_ref, time, pr, ph)
 
-            log = Logger.getInstance();
+            log = Core.getLogger();
                         
             id_not_empty = time ~= 0;
 
