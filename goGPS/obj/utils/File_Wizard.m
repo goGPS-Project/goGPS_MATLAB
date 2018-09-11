@@ -231,7 +231,7 @@ classdef File_Wizard < handle
             end
             % check remote
             if  this.state.isAutomaticDownload && ~status
-                if n_h_passed  < latency(1)
+                if latency(1)~=0 && n_h_passed  < latency(1)
                     this.log.addMessage(this.log.indent(sprintf('Not enough latency for finding all the %s orbits...\n', resource_name)));
                     status = false;
                 else

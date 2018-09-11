@@ -942,8 +942,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                         is = st_idx(i);
                         ie = end_idx(i);
                         c_rate = this.sat.cs.clock_rate;
-                        bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.getRate())));
-                        bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.getRate())));
+                        bad_ep_st = min(this.time.length,max(1, floor((-clock_ref_time_diff + is*c_rate - c_rate * 1)/this.time.getRate())));
+                        bad_ep_en = max(1,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate + c_rate * 1)/this.time.getRate())));
                         this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
                     end
                 else
@@ -1062,6 +1062,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             sensor_ph = Core_Utils.diffAndPred(ph - synt_ph);
             
             % subtract median (clock error)
+
+            % subtract median (clock error)
+            %sensor_ph = bsxfun(@minus, sensor_ph, getNrstZero(sensor_ph')');
             sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
             % divide for wavelength
             sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -1078,7 +1081,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 der = 2; % use second
                 % try with second time derivate
                 sensor_ph = Core_Utils.diffAndPred(ph - synt_ph, der);
-                % subtract median (clock error)
                 sensor_ph = bsxfun(@minus, sensor_ph, median(sensor_ph, 2, 'omitnan'));
                 % divide for wavelength
                 sensor_ph = bsxfun(@rdivide, sensor_ph, wl');
@@ -1108,6 +1110,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             
             % subtract median
+            %sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, getNrstZero(sensor_ph_cs')');
             sensor_ph_cs2 = bsxfun(@minus, sensor_ph_cs, median(sensor_ph_cs, 2, 'omitnan'));
             % divide for wavelength
             sensor_ph_cs2 = bsxfun(@rdivide, sensor_ph_cs2, wl');
