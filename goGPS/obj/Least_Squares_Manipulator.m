@@ -229,7 +229,9 @@ classdef Least_Squares_Manipulator < handle
                     for sys_c = rec.cc.sys_c
                         f = rec.getFreqs(sys_c);
                         for i = 1 : length(obs_type)
-                            obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                            if ~isempty(f)
+                                obs_set.merge(rec.getPrefObsSetCh([obs_type(i) num2str(f(1))], sys_c));
+                            end
                         end
                     end
                     idx_ph = obs_set.obs_code(:, 2) == 'L';
@@ -618,7 +620,9 @@ classdef Least_Squares_Manipulator < handle
                 else
                     for sys_c = work_list(i).cc.sys_c
                         f = work_list(i).getFreqs(sys_c);
-                        obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(1))], sys_c));
+                        if ~isempty(f)
+                            obs_set_list(i).merge(work_list(i).getPrefObsSetCh(['L' num2str(f(1))], sys_c));
+                        end
                     end
                     idx_ph = obs_set_list(i).obs_code(:, 2) == 'L';
                     obs_set_list(i).obs(:, idx_ph) = obs_set_list(i).obs(:, idx_ph) .* repmat(obs_set_list(i).wl(idx_ph)', size(obs_set_list(i).obs,1),1);
@@ -1695,6 +1699,26 @@ classdef Least_Squares_Manipulator < handle
             if isempty(pos_idx)
                 pos_idx = 1;
             end
+        end
+        
+        function remAmb(this, p_idx, r_id, amb_value)
+            % remove an ambiguity from the system
+            %
+            % SYNTAX:
+            % this.remAmb(p_idx, r_id, amb_value)
+            
+            rc_idx = this.receiver_id == r_id;
+            p_amb = this.param_class == this.PAR_AMB;
+            o_idx = rc_idx & this.A_idx(:,p_amb)== p_idx;
+            wl = this.A(o_idx,p_amb);
+            wl=wl(1);
+            this.A(o_idx,p_amb) = 0;
+            this.A_idx(o_idx,p_amb) = 0;
+            % reduce the idx by one
+            rd_idx = repmat(rec_idx,1,size(this.A_idx,2)) & this.A_id > p_idx;
+            this.A_idx(rd_idx) = this.A_idx(rd_idx) - 1;
+            this.obs(o_idx) = this.obs(o_idx) + amb_value * wl;
+            
         end
     end
     

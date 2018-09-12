@@ -141,7 +141,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             'XS_tx',            [], ...    % compute Satellite postion a t transmission time
             'crx',              [], ...    % bad epochs based on crx file
             'res',              [], ...    % residual per staellite
-            'amb_idx',          [], ...    % temporary variable to test PPP ambiguity fixing
+            'amb_idx',          [], ...    % idex of the ambiguity for each epoch of the pahse measurement
+            'is_amb_fixed',     [], ...    % for each index of amb_idx tell is the ambiguity is fixed
+            'amb_val',          [], ...    % Value of the fixed amngituiy
             'amb_mat',          [], ...
             'amb',              [] ...
             )
@@ -1443,6 +1445,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % GLONASS C2 -> C2C
                 idx = this.getObsIdx('C2 ','R');
                 this.obs_code(idx,:) = repmat('C2C',length(idx),1);
+                % GLONASS C1 -> C1C
+                idx = this.getObsIdx('L1 ','R');
+                this.obs_code(idx,:) = repmat('L1C',length(idx),1);
+                % GLONASS C2 -> C2C
+                idx = this.getObsIdx('L2 ','R');
+                this.obs_code(idx,:) = repmat('L2C',length(idx),1);
                 % GLONASS P1 -> C1P
                 idx = this.getObsIdx('P1 ','R');
                 this.obs_code(idx,:) = repmat('C1P',length(idx),1);
@@ -1909,7 +1917,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system = [];
                 this.f_id = [];
                 this.wl = [];
-                
+                ss_id = find(this.cc.active_list);
                 for  s = 1 : n_ss
                     sys = sys_c(s);
                     n_sat = numel(prn.(sys)); % number of satellite system
@@ -1927,13 +1935,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                     
                     f_id = obs_code(:,2);
-                    ss = this.cc.(char(this.cc.SYS_NAME{s} + 32));
+                    ss = this.cc.(char(this.cc.SYS_NAME{ss_id(s)} + 32));
                     [~, f_id] = ismember(f_id, ss.CODE_RIN3_2BAND);
                     
                     ismember(this.system, this.cc.SYS_C);
                     this.f_id = [this.f_id; f_id];
                     
-                    if s == 2
+                    if ss_id(s) == 2 % glonass FDMA system 
                         wl = ss.L_VEC((max(1, f_id) - 1) * size(ss.L_VEC, 1) + ss.PRN2IDCH(min(prn_ss, ss.N_SAT))');
                         wl(prn_ss > ss.N_SAT) = NaN;
                         wl(f_id == 0) = NaN;
@@ -4670,6 +4678,33 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        
+        function updateAmbIdx(this)
+            % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation and save them into this.sat.amb_idx
+            %
+            % SYNTAX:
+            % this.updateAmbIdx()
+            
+            amb_idx = ones(size(this.sat.cycle_slip_idx_ph));
+            n_epochs = size(amb_idx,1);
+            n_stream = size(amb_idx,2);
+            for s = 1:n_stream
+                if s > 1
+                    amb_idx(:, s) = amb_idx(:, s) + amb_idx(n_epochs, s-1);
+                end
+                cs = find(this.sat.cycle_slip_idx_ph(:, s) > 0)';
+                for c = cs
+                    amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
+                end
+            end
+            amb_idx = zero2nan(amb_idx .* (this.getPhases ~= 0));
+            amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
+            this.sat.amb_idx      = amb_idx;
+            this.sat.amb_val      = nan(max(max(amb_idx)),1);
+            this.sat.is_amb_fixed = false(max(max(amb_idx)),1);
+        end
+        
+        
         function updateErrIono(this, go_id, iono_model_override)
             if isempty(this.sat.err_iono)
                 this.sat.err_iono = zeros(size(this.sat.avail_index));
@@ -5964,7 +5999,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 else
                     for sys_c = this.cc.sys_c
                         f = this.getFreqs(sys_c);
-                        obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                        if ~isempty(f)
+                            obs_set.merge(this.getPrefObsSetCh(['C' num2str(f(1))], sys_c));
+                        end
                     end
                 end
                 
