@@ -220,39 +220,46 @@ classdef Global_Configuration < Settings_Interface
             this.initGeoid();
         end
 
-        function initGeoid(this)
+        function initGeoid(this, geoid)
             % load external geoid
-            % SYNTAX: this.initGeoid();
-            try
-                geoid_file = this.cur_settings.getGeoidFile();
-                if ~exist(this.cur_settings.getGeoidDir, 'file')
-                    this.cur_settings.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
+            %
+            % SYNTAX
+            %   this.initGeoid(); -> load from file
+            %   this.initGeoid(geoid); -> import from obj
+            if nargin == 2
+                this.geoid = geoid;
+            else
+                try
                     geoid_file = this.cur_settings.getGeoidFile();
+                    if ~exist(this.cur_settings.getGeoidDir, 'file')
+                        this.cur_settings.geoid_dir = File_Name_Processor.getFullDirPath('../data/reference/geoid', pwd);
+                        geoid_file = this.cur_settings.getGeoidFile();
+                    end
+                    if ~strcmp(this.geoid.file, geoid_file)
+                        g = load(geoid_file);
+                        fn = fieldnames(g);
+                        % geoid grid and parameters
+                        this.geoid.file = geoid_file;
+                        this.geoid.grid = g.(fn{1});
+                        this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
+                        this.geoid.Xll = -180 + this.geoid.cellsize / 2;
+                        this.geoid.Yll = -90 + this.geoid.cellsize / 2;
+                        this.geoid.ncols = size(this.geoid.grid, 2);
+                        this.geoid.nrows = size(this.geoid.grid, 1);
+                        clear g
+                    end
+                catch
+                    this.log.addWarning('Reference geoid not found');
+                    % geoid unavailable
+                    this.geoid.grid = 0;
+                    this.geoid.cellsize = 0;
+                    this.geoid.Xll = 0;
+                    this.geoid.Yll = 0;
+                    this.geoid.ncols = 0;
+                    this.geoid.nrows = 0;
                 end
-                if ~strcmp(this.geoid.file, geoid_file)
-                    g = load(geoid_file);
-                    fn = fieldnames(g);
-                    % geoid grid and parameters
-                    this.geoid.file = geoid_file;
-                    this.geoid.grid = g.(fn{1});
-                    this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
-                    this.geoid.Xll = -180 + this.geoid.cellsize / 2;
-                    this.geoid.Yll = -90 + this.geoid.cellsize / 2;
-                    this.geoid.ncols = size(this.geoid.grid, 2);
-                    this.geoid.nrows = size(this.geoid.grid, 1);
-                    clear g
-                end
-            catch
-                this.log.addWarning('Reference geoid not found');
-                % geoid unavailable
-                this.geoid.grid = 0;
-                this.geoid.cellsize = 0;
-                this.geoid.Xll = 0;
-                this.geoid.Yll = 0;
-                this.geoid.ncols = 0;
-                this.geoid.nrows = 0;
             end
-        end                
+        end
     end
 
     % =========================================================================

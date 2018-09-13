@@ -1,0 +1,456 @@
+%   CLASS Go_Master
+% =========================================================================
+%
+% DESCRIPTION
+%   Master controller for parallel goGPS computation
+%
+% EXAMPLE
+%   gom = Go_Master
+%
+% FOR A LIST OF CONSTANTs and METHODS use doc Command_Interpreter
+
+
+%--------------------------------------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.6.0 alpha 4 - nightly
+%
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2018 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
+
+classdef Go_Master < Com_Interface       
+    %
+    %% PROPERTIES CONSTANTS
+    % ==================================================================================================================================================
+    properties (Constant, GetAccess = public)
+        ID = 'MASTER'
+        
+        MSG_KILLALL = 'KILLALL_'
+        MSG_RESTART = 'RESTART_'
+        MSG_ASKACK = 'ASKACK_'
+        MSG_ASKWORK = 'ASKWORK_'
+        
+        MSG_DO = 'DO_'
+        
+        BRD_STATE = 'BRD_STATE_'
+        BRD_SKY = 'BRD_SKY_'
+        BRD_CMD = 'BRD_CMD_'
+    end
+    
+    properties (GetAccess = private, SetAccess = private)
+        worker_id = {}; % list of active workers
+    end
+   
+    %% METHOD CREATOR
+    % ==================================================================================================================================================
+    methods (Static, Access = private)
+        % Concrete implementation.  See Singleton superclass.
+        function this = Go_Master(com_dir)
+            % Core object creator
+            this.id = this.ID;
+            this.initComDir(com_dir);
+            this.init();
+            this.log.addMarkedMessage('Creating goGPS Master');
+            if ~exist(this.getComDir, 'file')
+                mkdir(this.getComDir);
+            end
+        end
+    end
+    
+    %% METHOD DESTRUCTOR
+    % ==================================================================================================================================================
+    methods (Access = private)
+
+        function delete(this)
+            % delete 
+             
+            this.log.addMarkedMessage('Closing goGPS Master');
+        end
+    end
+    %
+    %% METHOD INTERFACE
+    % ==================================================================================================================================================
+    methods (Static, Access = public)        
+        function this = getInstance(com_dir, destroy_this)
+            % Get the persistent instance of the class
+            persistent unique_instance_gom__
+            if nargin >= 2 && ~isempty(destroy_this) && destroy_this
+                if ~isempty(unique_instance_gom__)
+                    unique_instance_gom__.delete();
+                    clear unique_instance_gom__
+                end
+            else                
+                if isempty(unique_instance_gom__)
+                    if nargin < 1 || isempty(com_dir)
+                        com_dir = fullfile(pwd, 'com');
+                    end
+                    this = Go_Master(com_dir);
+                    unique_instance_gom__ = this;
+                else
+                    this = unique_instance_gom__;
+                    this.init();
+                    if nargin > 1 && ~isempty(com_dir)
+                        this.initComDir(com_dir);
+                    end
+                end
+            end
+        end
+        
+        function createWorkers(n_workers, com_dir, goGPS_folder)
+            % Start new sessions of matlab executing the slave worker
+            %
+            % INPUT
+            %   n_workers     number of slaves to launch
+            %   com_dir       directory of comunication
+            %   goGPS_folder  goGPS source directory
+            % 
+            % DEFAULT
+            %   com_dir       fullfile(pwd, 'com')
+            %   goGPS_folde   pwd
+            % SYNTAX
+            %   this.createWorkers(n_workers, com_dir, goGPS_folder);
+            if isunix
+                if ismac
+                    mat_exe = [matlabroot '/bin/maci64/matlab'];
+                else
+                    mat_exe = [matlabroot '/bin/matlab'];
+                end
+            elseif ispc
+                mat_exe = [matlabroot '/bin/matlab.exe'];
+            end
+            
+            if nargin < 2 || isempty(com_dir)
+                com_dir = fullfile(pwd, 'com');
+            end
+            if nargin < 3 || isempty(goGPS_folder)
+                goGPS_folder = pwd;
+            end
+                        
+            run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+            log = Core.getLogger();
+            log.addMarkedMessage(sprintf('Creating %03d workers\n - MATLAB executable path: %s\n - goGPS source folder:    %s\n - comunication folder:    %s', n_workers, mat_exe, goGPS_folder, com_dir));
+            log.newLine;
+            
+            for i = 1 : n_workers
+                log.addMessage(log.indent(sprintf('Creating slave worker %03d / %03d', i, n_workers)));
+                dos(run_cmd);
+                pause(0.5); % pause is necessary to avoid twin slaves (slaves with the same id)
+            end            
+        end
+    end
+    
+    methods (Access = public)
+        function die(this)
+            % Kill the go Master
+            % 
+            % SYNTAX:
+            %   this.die();
+            this.log.addMarkedMessage('Bye bye!');
+            Go_Master.getInstance([], true)
+        end
+        
+        function n_workers = getNumWorkers(this)
+            % Get the active workers number
+            % 
+            % SYNTAX
+            %   n_workers = this.getNumWorkers();
+            n_workers = numel(this.worker_id);
+        end
+        
+        function n_workers = activateWorkers(this)
+            % Get the available workers,
+            % Activate them by sending state and core_sky objects
+            % 
+            % OUTPUT
+            %   n_workers       number of available workers
+            %   this.worker_id  (implicit) id of the available ready workers
+            %
+            % SYNTAX
+            %   n_workers = this.activateWorkers();
+            
+            % Checking available slaves
+            t0 = tic();
+            this.deleteMsg('*'); % delete all master massages
+            this.deleteMsg(Go_Slave.MSG_DIE, true);
+            this.deleteMsg(Go_Slave.MSG_ACK, true);
+            this.deleteMsg([Go_Slave.MSG_BORN, Go_Slave.SLAVE_READY_PREFIX '*'], true);
+            
+            slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN '*']));
+            n_slaves = numel(slave_list);
+            this.log.addMessage(this.log.indent(sprintf('%d slaves found', n_slaves)));
+            
+            % Check the life of slaves (ask ack)
+            for w = 1 : n_slaves
+                slave_id = regexp(slave_list(w).name, [Go_Slave.SLAVE_WAIT_PREFIX, '[0-9]*'], 'match');
+                slave_id = slave_id{1};
+                msg = [slave_id, '_' this.MSG_ASKACK];
+                this.sendMsg(msg, sprintf('"%s" are you ready to work?', slave_id));
+            end
+            
+            % Wait 1 seconds for slave answers or till all the slaves have responded
+            n_workers = 0;
+            elapsed_time = 0;
+            while elapsed_time < 1 && (n_workers < n_slaves)
+                pause(0.1);
+                elapsed_time = elapsed_time + 0.1;
+                slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
+                n_workers = numel(slave_list);
+            end
+            this.log.addMessage(this.log.indent(sprintf('%d workers found', n_workers)));
+            this.deleteMsg([Go_Slave.MSG_BORN, Go_Slave.SLAVE_WAIT_PREFIX '*'], true);
+            this.deleteMsg([Go_Master.MSG_ASKACK, Go_Slave.SLAVE_WAIT_PREFIX '*'], true);
+            
+            % Activate answering workers
+            this.worker_id = {};
+            for w = 1 : n_workers
+                delete(fullfile(this.getComDir, slave_list(w).name));
+                slave_id = regexp(slave_list(w).name, [Go_Slave.SLAVE_WAIT_PREFIX, '[0-9]*'], 'match');
+                slave_id = slave_id{1};
+                this.worker_id{w} = [Go_Slave.SLAVE_READY_PREFIX sprintf('%03d_', w)];
+                msg = [slave_id, '_' this.MSG_ASKWORK this.worker_id{w} '_'];
+                this.sendMsg(msg, sprintf('"%s" you will be known as "%s', slave_id, this.worker_id{w}));
+            end
+            
+            if n_workers == 0
+                this.log.addError('I need slaves! Please create some slaves!\nsee Go_Master.createWorkers(n);');
+            else
+                this.sendState();
+                this.sendSkyData();
+                n_workers = this.waitForWorkerAck(n_workers);
+                this.deleteMsg('*');
+                delete(fullfile(this.getComDir, '*.mat'));
+            end
+            this.log.addMarkedMessage(sprintf('Parallel init took %.3f seconds', toc(t0)));
+        end
+        
+        function sendCommandList(this, cmd_list)
+            % Send command list to the slaves
+            %
+            % SYNTAX
+            %   this.sendCommandList()
+            %
+            
+            % Save state on file
+            gc = Core.getGlobalConfig();
+            state = gc.getCurrentSettings();
+            save(fullfile(this.getComDir, 'cmd_list.mat'), 'cmd_list');
+            this.sendMsg(this.BRD_CMD, 'Broadcast state');
+        end
+        
+        function sendState(this)
+            % Send state to the slaves
+            %
+            % SYNTAX
+            %   this.sendState()
+            %
+            
+            % Save state on file
+            gc = Core.getGlobalConfig();
+            geoid = gc.getRefGeoid();
+            state = gc.getCurrentSettings();
+            cur_session = Core.getCurrentSession();
+            [rin_list, met_list] = Core.getRinLists();
+            save(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
+            this.sendMsg(this.BRD_STATE, 'Broadcast state');
+        end
+        
+        function sendSkyData(this)
+            % Send core sky to the slaves
+            %
+            % SYNTAX
+            %   this.sendSkyData()
+            %
+            
+            % Save core sky on file
+            sky = Core.getCoreSky();
+            atmo = Core.getAtmosphere();
+            mn = Core.getMeteoNetwork();
+            save(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
+            this.sendMsg(this.BRD_SKY, 'Broadcast core sky');
+        end
+        
+        function n_workers = waitForWorkerAck(this, n_slaves)
+            % Wait for the workers to load the state and core sky
+            %
+            % INPUT
+            %   n_slaves    number of slave process ready to work
+            %
+            % OUTPUT
+            %   n_workers   number of workers ready to work
+            %
+            % SYNTAX
+            %   n_workers = this.waitForWorkerAck(n_slaves)
+            %
+            
+            % Keep workers that have loaded the files
+            % Wait 10 seconds for slave answers or till all the slaves have responded
+            n_workers = 0;
+            elapsed_time = 0;
+            while elapsed_time < 10 && (n_workers < n_slaves)
+                pause(0.1);
+                elapsed_time = elapsed_time + 0.1;
+                slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
+                n_workers = numel(slave_list);
+            end
+            this.log.addMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
+            this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
+        end
+        
+        function [active_jobs, completed_job, worker_stack] = waitCompletedJob(this, active_jobs, completed_job, worker_stack)
+            % Wait for the workers for sending new jobs
+            %
+            % INPUT
+            %   n_slaves    number of slave process ready to work
+            %
+            % OUTPUT
+            %   n_workers   number of workers ready to work
+            %
+            % SYNTAX
+            %   n_workers = this.waitCompletedJob(n_slaves)
+            %
+            
+            if active_jobs > 0
+                core = Core.getCurrentCore();
+                
+                n_workers = 0;
+                elapsed_time = 0;
+                n_job_done = 0;
+                while (n_job_done < 1) || (active_jobs == 0)
+                    pause(0.1);
+                    elapsed_time = elapsed_time + 0.1;
+                    % Search for finished jobs
+                    slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_JOBREADY '*']));
+                    n_job_done = numel(slave_list);
+                    for j = 1 : numel(slave_list)                        
+                        worker_id = regexp(slave_list(j).name, [ Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
+                        % get the result stored into jobXXXX_WORKER_YYYY.mat
+                        job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
+                        job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
+                        tmp = load(fullfile(job_file(1).folder, job_file(1).name));
+                        if core.rec(job_id).out.isEmpty
+                            % import all
+                        tmp.rec.out = core.rec(job_id).out;
+                        core.rec(job_id) = tmp.rec;
+                        % relink singletons                        
+                        core.rec(job_id).log = Core.getLogger;
+                        core.rec(job_id).state = Core.getState;
+                        % import results in out
+                        else
+                            % import only work
+                            core.rec(job_id).work = tmp.rec.work;
+                            core.rec(job_id).work.parent = core.rec(job_id);                            
+                        end
+                        core.rec(job_id).work.pushResult();
+                        delete(fullfile(job_file(1).folder, job_file(1).name));
+                        this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
+                        completed_job = [completed_job; job_id]; %#ok<AGROW>
+                        worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
+                    end
+                end
+                active_jobs = active_jobs - n_job_done;
+                this.log.addMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
+                this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
+            end
+        end
+        
+        function cleanDummy(obj, rootname)
+            dos(['del ' obj.COM_DIR 'dummy' rootname '* > nil']);
+        end
+        
+        function rmComDir(this)
+            % Delete the comunication dir
+            % 
+            % SYNTAX:
+            %   this.rmComDir();            
+            if exist(this.getComDir, 'file')
+                rmdir(this.getComDir, 's');
+            end
+        end 
+        
+        function killThemAll(this)
+            this.sendMsg(this.MSG_KILLALL, 'As the mad king said: Kill them all!!!');
+            pause(2);
+            this.deleteMsg(Go_Slave.MSG_DIE, true);            
+            this.deleteMsg(this.MSG_KILLALL);
+        end
+        
+        function resurgit(this)
+            this.sendMsg(this.MSG_RESTART, 'There is no time for resting!\nWait for other jobs!');
+            pause(2);
+            this.deleteMsg(Go_Slave.MSG_DIE, true);            
+            this.deleteMsg('*');
+        end
+        
+        function  orderProcessing(this, cmd_list, trg_list)
+            % order to the slaves to execute some work
+            %
+            % SINTAX
+            %   orderProcessing(this, cmd_list, trg_list)
+            %
+            % EXAMLE
+            %   gom.orderProcessing(par_cmd_list, trg_list{l});
+            this.sendCommandList(cmd_list);
+            
+            worker_stack = this.worker_id;
+            
+            missing_job = trg_list;
+            completed_job = [];
+            active_jobs = 0;
+            while numel(completed_job) < numel(trg_list)
+                % Send work to slaves
+                parallel_job = 1 : min(numel(worker_stack), numel(missing_job));
+                t = 0;
+                for w = parallel_job
+                    t = t + 1;
+                    
+                    % send an order to a worker
+                    msg = [worker_stack{w}, this.MSG_DO num2str(missing_job(t), '%04d') '_'];
+                    this.sendMsg(msg, sprintf('"%s" you have a job to do!', worker_stack{w}(1 : end-1)));
+                    active_jobs = active_jobs + 1;
+                end
+                missing_job(1 : t) = []; % remove the currently executing jobs
+                worker_stack(parallel_job) = []; %  remove the active worker from the worker stack
+                
+                % wait for complete job
+                pause(0.1);
+                
+                % check for complete jobs
+                [active_jobs, completed_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, worker_stack);
+            end
+            delete(fullfile(this.getComDir, 'cmd_list.mat'));
+            this.sendMsg(this.MSG_RESTART, 'My slaves, your job is done!\nThere is no time for resting!\nWait for other jobs!');            
+        end
+    end
+    %
+    %% METHODS INIT
+    % ==================================================================================================================================================
+    methods
+        function init(this)
+            this.log = Core.getLogger();
+        end        
+    end
+  
+end

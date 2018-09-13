@@ -76,9 +76,11 @@ classdef Command_Interpreter < handle
         CMD_OUTDET      % Outlier and cycle-slip detection
         CMD_SHOW        % Display plots and images
         CMD_EXPORT      % Export results
-        
+                
         KEY_FOR         % For each session keyword
+        KEY_PAR         % For each target (parallel) keyword
         KEY_ENDFOR      % For marker end
+        KEY_ENDPAR      % Par marker end
 
         PAR_RATE        % Parameter select rate
         PAR_CUTOFF      % Parameter select cutoff
@@ -106,9 +108,9 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_SNX % Tropo paramters sinex format
         PAR_E_TROPO_MAT % Tropo paramters mat format
 
-        PAR_S_SAVE      % flage for saving
+        PAR_S_SAVE      % flage for saving                
                 
-        KEY_LIST = {'FOR', 'ENDFOR'};
+        KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
         CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
         VALID_CMD = {};
         CMD_ID = [];
@@ -129,7 +131,7 @@ classdef Command_Interpreter < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Command_Interpreter(varargin)
             % Core object creator
-            this.log = Logger.getInstance;
+            this.log = Logger.getInstance();
             this.init(varargin{1});
         end
     end
@@ -365,14 +367,26 @@ classdef Command_Interpreter < handle
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
             this.KEY_FOR.rec = '';
-            this.KEY_FOR.sss = 'S';
+            this.KEY_FOR.key = 'S';
             this.KEY_FOR.par = [];
+
+            this.KEY_PAR.name = {'PAR', 'par'};
+            this.KEY_PAR.descr = ['Parallel section start (run on targets)' new_line 'use T$ as target in this section'];
+            this.KEY_PAR.rec = '';
+            this.KEY_PAR.key = 'T';
+            this.KEY_PAR.par = [];
 
             this.KEY_ENDFOR.name = {'ENDFOR', 'END_FOR', 'end_for'};
             this.KEY_ENDFOR.descr = 'For loop end';
             this.KEY_ENDFOR.rec = '';
-            this.KEY_ENDFOR.sss = '';
+            this.KEY_ENDFOR.key = '';
             this.KEY_ENDFOR.par = [];
+
+            this.KEY_ENDPAR.name = {'ENDPAR', 'END_PAR', 'end_par'};
+            this.KEY_ENDPAR.descr = 'Parallel section end';
+            this.KEY_ENDPAR.rec = '';
+            this.KEY_ENDPAR.key = '';
+            this.KEY_ENDPAR.par = [];
 
             % When adding a command remember to add it to the valid_cmd list
             % Create the launcher exec function
@@ -440,12 +454,12 @@ classdef Command_Interpreter < handle
                     str = sprintf('%s %s\n', str, rec_par);
                 end
                 
-                if ~isempty(cmd.sss)
+                if ~isempty(cmd.key)
                     str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Mandatory session:');
-                    if numel(cmd.sss) > 1
-                        rec_par = sprintf('%c%s', cmd.sss(1), sprintf(', %c', cmd.sss(2:end)));
+                    if numel(cmd.key) > 1
+                        rec_par = sprintf('%c%s', cmd.key(1), sprintf(', %c', cmd.key(2:end)));
                     else
-                        rec_par = cmd.sss(1);
+                        rec_par = cmd.key(1);
                     end
                     str = sprintf('%s %s\n', str, rec_par);
                 end
@@ -523,50 +537,88 @@ classdef Command_Interpreter < handle
             if ~iscell(cmd_list)
                 cmd_list = {cmd_list};
             end            
-            [cmd_list, ~, ~, ~, cmd_lev] = this.fastCheck(cmd_list);
+            [cmd_list, ~, ~, ~, trg_list, cmd_lev] = this.fastCheck(cmd_list);
             if nargin < 4 || isempty(level)
                 level = cmd_lev;
             end
 
             
             % run each line
-            for l = 1 : numel(cmd_list)
+            l = 0;
+            while l < numel(cmd_list)
+                l = l + 1;
+            
                 tok = regexp(cmd_list{l},'[^ ]*', 'match'); % get command tokens
                 this.log.newLine();
                 this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
                 this.log.starSeparator();
                 
-                switch upper(tok{1})
-                    case this.CMD_LOAD.name                 % LOAD
-                        this.runLoad(rec, tok(2:end));
-                    case this.CMD_EMPTY.name                % EMPTY
-                        this.runEmpty(rec, tok(2:end));
-                    case this.CMD_AZEL.name                 % AZEL
-                        this.runUpdateAzEl(rec, tok(2:end));
-                    case this.CMD_BASICPP.name              % BASICPP
-                        this.runBasicPP(rec, tok(2:end));
-                    case this.CMD_PREPRO.name               % PREP
-                        this.runPrePro(rec, tok(2:end));
-                    case this.CMD_CODEPP.name               % CODEPP
-                        this.runCodePP(rec, tok(2:end));
-                    case this.CMD_PPP.name                  % PPP
-                        this.runPPP(rec, tok(2:end));
-                    case this.CMD_NET.name                  % NET
-                        this.runNet(rec, tok(2:end));
-                    case this.CMD_SEID.name                 % SEID
-                        this.runSEID(rec, tok(2:end));
-                    case this.CMD_REMIONO.name              % REMIONO
-                        this.runRemIono(rec, tok(2:end));
-                    case this.CMD_KEEP.name                 % KEEP
-                        this.runKeep(rec.getWork(), tok(2:end));
-                    case this.CMD_SYNC.name                 % SYNC
-                        this.runSync(rec, tok(2:end));
-                    case this.CMD_OUTDET.name               % OUTDET
-                        this.runOutDet(rec, tok);
-                    case this.CMD_SHOW.name                 % SHOW
-                        this.runShow(rec, tok, level(l));
-                    case this.CMD_EXPORT.name               % EXPORT
-                        this.runExport(rec, tok, level(l));
+                % Init parallel controller when a parallel section is found
+                switch tok{1}
+                    case this.KEY_PAR.name, this.runParInit();
+                end
+                
+                n_workers = 0;
+                if ~isempty(trg_list{l})
+                    % The user wants to go parallel, but are workers active?
+                    gom = Go_Master.getInstance;
+                    n_workers = gom.getNumWorkers;
+                    if n_workers == 0
+                        this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');                        
+                    end
+                end
+                if n_workers > 0
+                    % go parallel
+                    % Get the parallel target => remove not available targets
+                    tmp = trg_list{l}; 
+                    trg_list{l} = tmp(tmp <= numel(rec));
+                    
+                    % find the last command of this parallel section
+                    last_par_id = find((cmd_lev(l : end) - cmd_lev(l)) < 0, 1, 'first');
+                    if isempty(last_par_id)
+                        last_par_id = numel(cmd_lev);
+                    else
+                        last_par_id = last_par_id + l - 2;
+                    end
+                    par_cmd_id = (l + 1) : last_par_id;
+                    
+                    par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
+                    
+                    gom.orderProcessing(par_cmd_list, trg_list{l});
+                    l = par_cmd_id(end);
+                else
+                    switch upper(tok{1})
+                        case this.CMD_LOAD.name                 % LOAD
+                            this.runLoad(rec, tok(2:end));
+                        case this.CMD_EMPTY.name                % EMPTY
+                            this.runEmpty(rec, tok(2:end));
+                        case this.CMD_AZEL.name                 % AZEL
+                            this.runUpdateAzEl(rec, tok(2:end));
+                        case this.CMD_BASICPP.name              % BASICPP
+                            this.runBasicPP(rec, tok(2:end));
+                        case this.CMD_PREPRO.name               % PREP
+                            this.runPrePro(rec, tok(2:end));
+                        case this.CMD_CODEPP.name               % CODEPP
+                            this.runCodePP(rec, tok(2:end));
+                        case this.CMD_PPP.name                  % PPP
+                            this.runPPP(rec, tok(2:end));
+                        case this.CMD_NET.name                  % NET
+                            this.runNet(rec, tok(2:end));
+                        case this.CMD_SEID.name                 % SEID
+                            this.runSEID(rec, tok(2:end));
+                        case this.CMD_REMIONO.name              % REMIONO
+                            this.runRemIono(rec, tok(2:end));
+                        case this.CMD_KEEP.name                 % KEEP
+                            this.runKeep(rec.getWork(), tok(2:end));
+                        case this.CMD_SYNC.name                 % SYNC
+                            this.runSync(rec, tok(2:end));
+                        case this.CMD_OUTDET.name               % OUTDET
+                            this.runOutDet(rec, tok);
+                        case this.CMD_SHOW.name                 % SHOW
+                            this.runShow(rec, tok, level(l));
+                        case this.CMD_EXPORT.name               % EXPORT
+                            this.runExport(rec, tok, level(l));
+                    end
                 end
             end
         end
@@ -1085,7 +1137,7 @@ classdef Command_Interpreter < handle
                     this.log.newLine();
                     for t = 1 : numel(tok)
                         try
-                            if sss_lev == 0 % run on all teh results (out)
+                            if sss_lev == 0 % run on all thw results (out)
                                 if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
                                     rec(r).out.exportTropoSINEX();
                                 elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
@@ -1106,12 +1158,20 @@ classdef Command_Interpreter < handle
             end
         end
 
+        function runParInit(this)
+            % Init parallel workers
+            %
+            % SYNTAX
+            %   this.runParInit()
+            this.core.initParallelWorkers();
+        end
+        
     end
     %
     %% METHODS UTILITIES (PRIVATE)
     % ==================================================================================================================================================
     methods (Access = public)       
-        function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type) %#ok<INUSL>
+        function [id_rec, found, matching_rec] = getMatchingRec(this, rec, tok, type)
             % Extract from a set of tokens the receivers to be used
             %
             % INPUT
@@ -1124,76 +1184,46 @@ classdef Command_Interpreter < handle
             if nargin == 2
                 type = 'T';
             end
-            id_rec = [];
-            found = false;
-            matching_rec = [];
-            t = 0;
-            while ~found && t < numel(tok)
-                t = t + 1;
-                % Search receiver identified after the key character "type"
-                if ~isempty(tok{t}) && tok{t}(1) == type
-                    % Analyse all the receiver identified on the string
-                    % e.g. T*        all the receivers
-                    %      T1,3:5    receiver 1,3,4,5
-                    str_rec = tok{t}(2:end);
-                    take_all = ~isempty(regexp(str_rec,'[\*]*', 'once'));
-                    if take_all
-                        id_rec = 1 : numel(rec);
-                    else
-                        [ids, pos_ids] = regexp(str_rec,'[0-9]*', 'match');
-                        ids = str2double(ids);
-                        
-                        % find *:*:*
-                        [sequence, pos_sss] = regexp(str_rec,'[0-9]*:[0-9]*:[0-9]*', 'match');
-                        
-                        for s = 1 : numel(sequence)
-                            pos_par = regexp(sequence{s},'[0-9]*');
-                            id_before = find(pos_ids(:) == (pos_sss(s) + pos_par(1) - 1), 1, 'last');
-                            %id_step = find(pos_ids(:) == (pos_sss(s) + pos_par(2) - 1), 1, 'first');                            
-                            %id_after = find(pos_ids(:) == (pos_sss(s) + pos_par(3) - 1), 1, 'first');
-                            id_step = id_before + 1; 
-                            id_after = id_before + 2; 
-                            if ~isempty(id_before)
-                                id_sss = [id_sss ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
-                                ids(id_before : id_after) = [];
-                                pos_ids(id_before : id_after) = [];
-                            end                            
-                        end
-                        
-                        pos_colon = regexp(str_rec,':*');
-                        for p = 1 : numel(pos_colon)
-                            id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
-                            id_after = find(pos_ids(:) > pos_colon(p), 1, 'first');
-                            if ~isempty(id_before) && ~isempty(id_after)
-                                id_rec = [id_rec ids(id_before) : ids(id_after)]; %#ok<AGROW>
-                            end
-                        end
-                        id_rec = unique([ids id_rec]);
-                    end
-                    found = ~isempty(id_rec);
-                    if id_rec <= length(rec)
-                        matching_rec = rec(id_rec);
-                    else
-                        matching_rec = [];
-                    end
-                end
-            end            
+            [id_rec, found] = getMatchingKey(this, tok, type, numel(rec));
         end
         
-        function [id_sss, found] = getMatchingSession(this, tok) %#ok<INUSL>
-            % Extract from a set of tokens the receivers to be used
+        function [id_sss, found] = getMatchingSession(this, tok)
+            % Extract from a set of tokens the session to be used
             %
             % INPUT
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
             %   [id_sss, found] = this.getMatchingSession(tok)            
-            type = 'S';
+                    state = Global_Configuration.getCurrentSettings(); 
+                    n_key = state.getSessionCount();
+                    [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
+        end
+        
+        function [id_sss, found] = getMatchingTarget(this, tok)
+            % Extract from a set of tokens the target to be used
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [id_sss, found] = this.getMatchingSession(tok)            
+            [id_sss, found] = getMatchingKey(this, tok, 'T', 1000); % 1000 maximum number of targets
+        end
+        
+        function [id_key, found] = getMatchingKey(this, tok, type, n_key)
+            % Extract from a set of tokens the ids to be used
+            %
+            % INPUT
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   [id_sss, found] = this.getMatchingKey(tok)            
             
-            id_sss = [];
+            id_key = [];
             found = false;
             t = 0;
-            state = Global_Configuration.getCurrentSettings();
+            
             while ~found && t < numel(tok)
                 t = t + 1;
                 % Search receiver identified after the key character "type"
@@ -1204,7 +1234,7 @@ classdef Command_Interpreter < handle
                     str_rec = tok{t}(2:end);
                     take_all = ~isempty(regexp(str_rec,'[\*]*', 'once'));
                     if take_all
-                        id_sss = 1 : state.getSessionCount();
+                        id_key = 1 : n_key;
                     else
                         [ids, pos_ids] = regexp(str_rec,'[0-9]*', 'match');
                         ids = str2double(ids);
@@ -1220,7 +1250,7 @@ classdef Command_Interpreter < handle
                             id_step = id_before + 1; 
                             id_after = id_before + 2; 
                             if ~isempty(id_before)
-                                id_sss = [id_sss ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
+                                id_key = [id_key ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
                                 ids(id_before : id_after) = [];
                                 pos_ids(id_before : id_after) = [];
                             end                            
@@ -1232,20 +1262,19 @@ classdef Command_Interpreter < handle
                             id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
                             id_after = find(pos_ids(:) > pos_colon(p), 1, 'first');
                             if ~isempty(id_before) && ~isempty(id_after)
-                                id_sss = [id_sss ids(id_before) : ids(id_after)]; %#ok<AGROW>
+                                id_key = [id_key ids(id_before) : ids(id_after)]; %#ok<AGROW>
                             end
                         end
-                        id_sss = unique([ids id_sss]);
-                        id_sss(id_sss > state.getSessionCount()) = [];
+                        id_key = unique([ids id_key]);
+                        id_key(id_key > n_key) = [];
                     end
-                    found = ~isempty(id_sss);
+                    found = ~isempty(id_key);
                 end
             end
-            if isempty(id_sss) % as default return all the sessions
-                id_sss = 1 : state.getSessionCount();
+            if isempty(id_key) % as default return all the sessions
+                id_key = 1 : n_key;
             end
-
-        end        
+        end    
         
         function [num, found] = getNumericPar(this, tok, par_regexp)
             % Extract from a set of tokens a number for a certain parameter
@@ -1307,12 +1336,12 @@ classdef Command_Interpreter < handle
                     else
                         cmd = this.(sprintf('CMD_%s', this.CMD_LIST{id}));
                     end
-                    if ~isfield(cmd, 'sss')
-                        cmd.sss = '';
+                    if ~isfield(cmd, 'key')
+                        cmd.key = '';
                     end
                     if numel(tok) < (1 + numel(cmd.rec))
                         err = this.ERR_NEI; % not enough input parameters
-                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.sss))
+                    elseif numel(tok) > (1 + numel(cmd.rec) + numel(cmd.par) + numel(cmd.key))
                         err = this.WRN_TMI; % too many input parameters
                     end
                 end
@@ -1323,7 +1352,7 @@ classdef Command_Interpreter < handle
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
-        function [cmd_list, err_list, execution_block, sss_list, sss_lev] = fastCheck(this, cmd_list)
+        function [cmd_list, err_list, execution_block, sss_list, trg_list, key_lev] = fastCheck(this, cmd_list)
             % Check a cmd list keeping the valid commands only
             %
             % INPUT
@@ -1334,18 +1363,21 @@ classdef Command_Interpreter < handle
             %   err         error list
             %
             % SYNTAX
-            %  [cmd, err_list, execution_block, sss_list, sss_lev] = fastCheck(this, cmd_list)
+            %  [cmd, err_list, execution_block, sss_list, trg_list, key_lev] = fastCheck(this, cmd_list)
             if nargout > 3
                 state = Global_Configuration.getCurrentSettings;
             end
             err_list = zeros(size(cmd_list));
             
             sss = 1;
+            trg = [];
             lev = 0;
             sss_id_counter = 0;
+            par_id_counter = 0;
             execution_block = zeros(1, numel(cmd_list));
             sss_list = cell(numel(cmd_list), 1);
-            sss_lev = zeros(1, numel(cmd_list));
+            trg_list = cell(numel(cmd_list), 1);
+            key_lev = zeros(1, numel(cmd_list));
             for c = 1 : numel(cmd_list)
                 [cmd, err_list(c)] = this.getCommandValidity(cmd_list{c});
                 if (nargout > 2)
@@ -1354,7 +1386,20 @@ classdef Command_Interpreter < handle
                         sss_id_counter = sss_id_counter + 1;
                         lev = lev + 1;
                         tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
-                        sss = this.getMatchingSession(tok); % in the future use the session from a a command like FOR S1:0
+                        sss = this.getMatchingSession(tok);
+                    end
+                    if err_list(c) == 0 && (cmd.id == this.KEY_PAR.id)
+                        % I need to loop
+                        par_id_counter = par_id_counter + 1;
+                        lev = lev + 1;
+                        tok = regexp(cmd_list{c},'[^ ]*', 'match'); % get command tokens
+                        trg = this.getMatchingTarget(tok);
+                    end
+                    if err_list(c) == 0 && (cmd.id == this.KEY_ENDPAR.id)
+                        % I need to loop
+                        par_id_counter = par_id_counter + 1;
+                        lev = lev - 1;
+                        trg = [];
                     end
                     if err_list(c) == 0 && (cmd.id == this.KEY_ENDFOR.id)
                         % I need to loop
@@ -1371,13 +1416,14 @@ classdef Command_Interpreter < handle
                     this.log.addWarning(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
                 end
                 execution_block(c) = sss_id_counter;
-                sss_lev(c) = lev;
+                key_lev(c) = lev;
                 sss_list{c} = sss;
+                trg_list{c} = trg;
             end            
             cmd_list = cmd_list(~err_list);
             execution_block = execution_block(~err_list);
             sss_list = sss_list(~err_list);
-            sss_lev = sss_lev(~err_list);
+            key_lev = key_lev(~err_list);
             if nargout > 3 && sss_id_counter == 0 % no FOR found
                 for s = 1 : numel(sss_list)
                     sss_list{s} = 1 : state.getSessionCount();

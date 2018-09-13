@@ -61,14 +61,18 @@ classdef Core < handle
         w_bar       % WaitBar handler
         sky         % Core_Sky handler
         atmo        % Atmosphere handler
+        mn          % Meteorological Network handler
         rf          % Reference Frame handler
         cmd         % Command_Interpreter handler
+        
+        gom         % go Master parallel controller
     end
 
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
-      
+        cur_session     % id of the current session
+        
         rin_list        % List of observation file (as File_Rinex objects) to store minimal information on the input files
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
@@ -138,6 +142,16 @@ classdef Core < handle
             atmo = core.atmo;
         end
         
+        function mn = getMeteoNetwork()
+            % Return the pointer to the Meteorological Network Object
+            %
+            % SYNTAX
+            %   mn = getMeteoNetwork()
+            
+            core = Core.getInstance(false, true);
+            mn = core.mn;
+        end
+        
         function rf = getReferenceFrame()
             % Return the pointer to the Reference Frame
             %
@@ -152,12 +166,12 @@ classdef Core < handle
             % Return the pointer to the Core Sky Object
             %
             % SYNTAX
-            %   atmo = getCoreSky()
+            %   sky = getCoreSky()
             
             core = Core.getInstance(false, true);
             sky = core.sky;
         end
-        
+                
         function state = getState()
             % Return the pointer to the State pointed by Core
             %
@@ -167,7 +181,26 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             state = core.state;
         end
+        
+        function cur_session = getCurrentSession()
+            % Get the id of the current session
+            %
+            % SYNTAX
+            %   cur_session = this.getCurrentSession() 
+            core = Core.getInstance(false, true);
+            cur_session = core.state.getCurSession;
+        end
 
+         function [rin_list, met_list] = getRinLists()
+            % Get the rinex lists (GNSS observations and meteorological)
+            %
+            % SYNTAX
+            %   cur_session = this.getRinLists()
+            core = Core.getInstance(false, true);
+            rin_list = core.rin_list;
+            met_list = core.met_list;
+        end
+       
         function gc = getGlobalConfig()
             % Return the pointer to the Global Configuration
             %
@@ -205,6 +238,16 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             core.atmo = atmo;
+        end
+
+        function setMeteoNetwork(mn)
+            % Set the pointer to the Meteorological Network Object
+            %
+            % SYNTAX
+            %   setMeteoNetwork(mn)
+            
+            core = Core.getInstance(false, true);
+            core.mn = mn;
         end
 
         function setReferenceFrame(rf)
@@ -366,6 +409,11 @@ classdef Core < handle
             fw.conjureFiles(time_lim_large.first, time_lim_large.last);
             this.log.setColorMode(c_mode);
         end        
+        
+        function initParallelWorkers(this)
+            this.gom = Go_Master.getInstance;
+            this.gom.activateWorkers();
+        end
     end
     
     %% METHODS EXPORT
@@ -461,8 +509,8 @@ classdef Core < handle
         
         function initMeteoNetwork(this, time_lim)
             % Init the meteo network            
-            mn = Meteo_Network.getInstance();
-            mn.initSession(time_lim.first, time_lim.last);            
+            this.mn = Meteo_Network.getInstance();
+            this.mn.initSession(time_lim.first, time_lim.last);            
         end
         
         function go(this, session_num)
@@ -970,7 +1018,7 @@ classdef Core < handle
             % Get the id of the current session
             %
             % SYNTAX
-            %   cur_session = this.getCurSession()            
+            %   cur_session = this.getCurSession()             
             cur_session = this.state.getCurSession;
         end
         
@@ -984,7 +1032,8 @@ classdef Core < handle
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
-        end            
+        end
+            
     end
     
     methods

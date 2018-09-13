@@ -863,7 +863,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function remEmptyObs(this)
-            %DESCRIPTION remove empty obs lines
+            % remove empty obs lines
             empty_sat = sum(abs(this.obs),2) == 0;
             this.remObs(empty_sat);
         end
@@ -1504,7 +1504,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function importOceanLoading(this)
-            %DESCRIPTION load ocean loading displcement matrix from
+            % load ocean loading displcement matrix from
             %ocean_loading.blq if satation is present
             [this.ocean_load_disp, found] = load_BLQ( this.state.getOceanFile,{this.parent.getMarkerName4Ch});
             if not(found) && ~strcmpi(this.parent.getMarkerName4Ch, this.parent.getMarkerName)
@@ -1518,9 +1518,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function importMeteoData(this)
-            %DESCRIPTION load meteo data from Meteo Network object
+            % load meteo data from Meteo Network object
             %and get a virtual station at receiver positions
-            mn = Meteo_Network.getInstance();
+            mn = Core.getMeteoNetwork();
             if ~isempty(mn.mds)
                 this.log.addMarkedMessage('importing meteo data');
                 this.meteo_data = mn.getVMS(this.parent.marker_name, this.xyz, this.getNominalTime);
@@ -3939,7 +3939,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function updateSyntPhases(this, sys_c)
-            %DESCRIPTION update the content of the syntetic phase
+            % update the content of the syntetic phase
             if nargin < 2
                 sys_c = this.cc.sys_c;
             end
@@ -4632,7 +4632,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %INPUT
             % sat : number of sat
             % flag: flag of the tropo model
-            %DESCRIPTION update the tropospheric correction
+            % update the tropospheric correction
             
             atmo = Core.getAtmosphere();
             
@@ -4916,7 +4916,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         end
         
         function updateSolidEarthCorr(this, sat)
-            %DESCRIPTION upadte the correction related to solid earth
+            % upadte the correction related to solid earth
             % solid tides, ocean loading, pole tides.
             if isempty(this.sat.solid_earth_corr)
                 this.log.addMessage(this.log.indent('Updating solid earth corrections'))
@@ -6468,7 +6468,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                     this.remUnderCutOff();
                     this.setAvIdx2Visibility();
                     this.meteo_data = [];
-                    this.importMeteoData();
+                    this.importMeteoData(); % now with more precise coordinates
                     
                     % if the clock is stable I can try to smooth more => this.smoothAndApplyDt([0 this.length/2]);
                     this.dt_ip = simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
