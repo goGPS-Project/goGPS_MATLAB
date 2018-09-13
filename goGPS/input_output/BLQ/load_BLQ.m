@@ -67,7 +67,7 @@ for file_blq = 1 : size(filename,1)
             while (~feof(fid) && status < length(marker))
                 line = fgetl(fid);
                 for m = 1 : length(marker)
-                    if (~strcmp(line(1:2),'$$'))
+                    if ~isempty(strtrim(line))  && (~strcmp(line(1:2),'$$'))
                         if (strfind(upper(line),upper(marker{m})))
                             line = fgetl(fid);
                             while(strcmp(line(1:2),'$$'))
