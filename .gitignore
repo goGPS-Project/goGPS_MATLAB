@@ -142,6 +142,7 @@
 !/data/old/settings/goGPS_iniDefaultKeywords.ini
 last_settings.ini
 /goGPS/bin
+/goGPS/com
 /goGPS/reserved
 /goGPS/positioning/lambda/lambda_v3
 !/data/goGPSconfig
