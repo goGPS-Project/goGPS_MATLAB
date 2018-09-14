@@ -1241,15 +1241,17 @@ classdef Core_Sky < handle
         
         function toCOM(this)
             %DESCRIPTION : convert coord to center of mass
-            if this.coord_type == 0
-                return %already ceneter of amss
+            if ~isempty(this.coord)
+                if this.coord_type == 0
+                    return %already ceneter of amss
+                end
+                this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
+                this.COMtoAPC(-1);
+                if isempty(this.coord_pol_coeff)
+                    this.computeSatPolyCoeff(10, 11);
+                end
+                this.coord_type = 0;
             end
-            this.log.addMarkedMessage('Sat Ephemerids: switching to center of mass');
-            this.COMtoAPC(-1);
-            if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff(10, 11);
-            end
-            this.coord_type = 0;
         end
         
         function coord = getCOM(this)
@@ -1268,15 +1270,17 @@ classdef Core_Sky < handle
         
         function toAPC(this)
             %DESCRIPTION : convert coord to center of antenna phase center
-            if this.coord_type == 1
-                return %already antennna phase center
+            if ~isempty(this.coord)
+                if this.coord_type == 1
+                    return %already antennna phase center
+                end
+                this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
+                this.COMtoAPC(1);
+                if isempty(this.coord_pol_coeff)
+                    this.computeSatPolyCoeff(10, 11);
+                end
+                this.coord_type = 1;
             end
-            this.log.addMarkedMessage('Sat Ephemerids: switching to antenna phase center');
-            this.COMtoAPC(1);
-            if isempty(this.coord_pol_coeff)
-                this.computeSatPolyCoeff(10, 11);
-            end
-            this.coord_type = 1;
         end
         
         function coord = getAPC(this)
