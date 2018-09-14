@@ -122,14 +122,18 @@ classdef Core < handle
             ok_go = gui_goGPS;
         end
         
-        function atmo = getLogger()
-            % Return the pointer to the Atmosphere Object
+        function log = getLogger()
+            % Return the pointer to the Logger Object
             %
             % SYNTAX
-            %   atmo = getAtmosphere()
+            %   log = getLogger()
             
             core = Core.getInstance(false, true);
-            atmo = core.log;
+            log = core.log;
+            if isempty(log)
+                log = Logger.getInstance();
+                core.log = log;
+            end            
         end
         
         function atmo = getAtmosphere()
@@ -140,6 +144,10 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             atmo = core.atmo;
+            if isempty(atmo)
+                atmo = Atmosphere.getInstance();
+                core.mn = atmo;
+            end            
         end
         
         function mn = getMeteoNetwork()
@@ -150,6 +158,10 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             mn = core.mn;
+            if isempty(mn)
+                mn = Meteo_Network.getInstance();
+                core.mn = mn;
+            end
         end
         
         function rf = getReferenceFrame()
@@ -160,6 +172,10 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             rf = core.rf;
+            if isempty(rf)
+                rf = Core_Reference_Frame.getInstance();
+                core.rf = rf;
+            end
         end
         
         function sky = getCoreSky()
@@ -170,6 +186,11 @@ classdef Core < handle
             
             core = Core.getInstance(false, true);
             sky = core.sky;
+            if isempty(sky)
+                sky = Core_Sky.getInstance();
+                core.sky = sky;
+            end
+            
         end
                 
         function state = getState()
@@ -411,7 +432,7 @@ classdef Core < handle
         end        
         
         function initParallelWorkers(this)
-            this.gom = Go_Master.getInstance;
+            this.gom = Parallel_Manager.getInstance;
             this.gom.activateWorkers();
         end
     end
@@ -533,6 +554,7 @@ classdef Core < handle
             cmd_line = 1;
             last_sss = 0;
             for eb = unique(execution_block) % for each execution block
+                t1 = tic;
                 if cmd_line <= numel(sss_list)
                     sessions = sss_list{cmd_line};
                     for s = sessions
@@ -552,7 +574,7 @@ classdef Core < handle
                     this.log.newLine;
                     this.log.simpleSeparator();
                     if ~isempty(sessions)
-                        this.log.addMessage(sprintf('End of session loop from %d to %d', sessions(1), sessions(end)));
+                        this.log.addMessage(sprintf('End of session loop from %d to %d in %.3f seconds', sessions(1), sessions(end), toc(t1)));
                     end
                 end
             end            

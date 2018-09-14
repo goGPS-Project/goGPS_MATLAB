@@ -1,13 +1,13 @@
-%   CLASS Go_Master
+%   CLASS Parallel_Manager
 % =========================================================================
 %
 % DESCRIPTION
 %   Master controller for parallel goGPS computation
 %
 % EXAMPLE
-%   gom = Go_Master
+%   gom = Parallel_Manager
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Command_Interpreter
+% FOR A LIST OF CONSTANTs and METHODS use doc Parallel_Manager
 
 
 %--------------------------------------------------------------------------
@@ -41,7 +41,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef Go_Master < Com_Interface       
+classdef Parallel_Manager < Com_Interface       
     %
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
@@ -68,7 +68,7 @@ classdef Go_Master < Com_Interface
     % ==================================================================================================================================================
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
-        function this = Go_Master(com_dir)
+        function this = Parallel_Manager(com_dir)
             % Core object creator
             this.id = this.ID;
             this.initComDir(com_dir);
@@ -93,7 +93,7 @@ classdef Go_Master < Com_Interface
     %
     %% METHOD INTERFACE
     % ==================================================================================================================================================
-    methods (Static, Access = public)        
+    methods (Static, Access = public)
         function this = getInstance(com_dir, destroy_this)
             % Get the persistent instance of the class
             persistent unique_instance_gom__
@@ -102,12 +102,12 @@ classdef Go_Master < Com_Interface
                     unique_instance_gom__.delete();
                     clear unique_instance_gom__
                 end
-            else                
+            else
                 if isempty(unique_instance_gom__)
                     if nargin < 1 || isempty(com_dir)
                         com_dir = fullfile(pwd, 'com');
                     end
-                    this = Go_Master(com_dir);
+                    this = Parallel_Manager(com_dir);
                     unique_instance_gom__ = this;
                 else
                     this = unique_instance_gom__;
@@ -126,12 +126,12 @@ classdef Go_Master < Com_Interface
             %   n_workers     number of slaves to launch
             %   com_dir       directory of comunication
             %   goGPS_folder  goGPS source directory
-            % 
+            %
             % DEFAULT
             %   com_dir       fullfile(pwd, 'com')
             %   goGPS_folde   pwd
             % SYNTAX
-            %   this.createWorkers(n_workers, com_dir, goGPS_folder);
+            %   this.gimmeWorkers(n_workers, com_dir, goGPS_folder);
             if isunix
                 if ismac
                     mat_exe = [matlabroot '/bin/maci64/matlab'];
@@ -148,7 +148,7 @@ classdef Go_Master < Com_Interface
             if nargin < 3 || isempty(goGPS_folder)
                 goGPS_folder = pwd;
             end
-                        
+            
             run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
             log = Core.getLogger();
             log.addMarkedMessage(sprintf('Creating %03d workers\n - MATLAB executable path: %s\n - goGPS source folder:    %s\n - comunication folder:    %s', n_workers, mat_exe, goGPS_folder, com_dir));
@@ -158,8 +158,17 @@ classdef Go_Master < Com_Interface
                 log.addMessage(log.indent(sprintf('Creating slave worker %03d / %03d', i, n_workers)));
                 dos(run_cmd);
                 pause(0.5); % pause is necessary to avoid twin slaves (slaves with the same id)
-            end            
+            end
         end
+        
+        function killAll()
+            % Kill all the slaves
+            %
+            % SYNTAX
+            %   Parallel_Manager.killAll();
+            gom = Parallel_Manager.getInstance;
+            gom.killThemAll
+        end        
     end
     
     methods (Access = public)
@@ -169,7 +178,7 @@ classdef Go_Master < Com_Interface
             % SYNTAX:
             %   this.die();
             this.log.addMarkedMessage('Bye bye!');
-            Go_Master.getInstance([], true)
+            Parallel_Manager.getInstance([], true)
         end
         
         function n_workers = getNumWorkers(this)
@@ -221,7 +230,7 @@ classdef Go_Master < Com_Interface
             end
             this.log.addMessage(this.log.indent(sprintf('%d workers found', n_workers)));
             this.deleteMsg([Go_Slave.MSG_BORN, Go_Slave.SLAVE_WAIT_PREFIX '*'], true);
-            this.deleteMsg([Go_Master.MSG_ASKACK, Go_Slave.SLAVE_WAIT_PREFIX '*'], true);
+            this.deleteMsg([Parallel_Manager.MSG_ASKACK, Go_Slave.SLAVE_WAIT_PREFIX '*'], true);
             
             % Activate answering workers
             this.worker_id = {};
@@ -235,7 +244,7 @@ classdef Go_Master < Com_Interface
             end
             
             if n_workers == 0
-                this.log.addError('I need slaves! Please create some slaves!\nsee Go_Master.createWorkers(n);');
+                this.log.addError('I need slaves! Please create some slaves!\nsee Parallel_Manager.createWorkers(n);');
             else
                 this.sendState();
                 this.sendSkyData();
@@ -316,7 +325,7 @@ classdef Go_Master < Com_Interface
                 slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
                 n_workers = numel(slave_list);
             end
-            this.log.addMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
+            this.log.addMarkedMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
             this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
         end
         
@@ -336,7 +345,6 @@ classdef Go_Master < Com_Interface
             if active_jobs > 0
                 core = Core.getCurrentCore();
                 
-                n_workers = 0;
                 elapsed_time = 0;
                 n_job_done = 0;
                 while (n_job_done < 1) || (active_jobs == 0)
@@ -372,7 +380,7 @@ classdef Go_Master < Com_Interface
                     end
                 end
                 active_jobs = active_jobs - n_job_done;
-                this.log.addMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
+                this.log.addMarkedMessage(this.log.indent(sprintf('%d jobs completed', numel(completed_job))));
                 this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
             end
         end
@@ -396,6 +404,7 @@ classdef Go_Master < Com_Interface
             pause(2);
             this.deleteMsg(Go_Slave.MSG_DIE, true);            
             this.deleteMsg(this.MSG_KILLALL);
+            delete(fullfile(this.COM_DIR,'*.mat'));
         end
         
         function resurgit(this)
@@ -452,6 +461,5 @@ classdef Go_Master < Com_Interface
         function init(this)
             this.log = Core.getLogger();
         end        
-    end
-  
+    end    
 end

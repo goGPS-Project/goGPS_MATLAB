@@ -542,6 +542,7 @@ classdef Command_Interpreter < handle
                 level = cmd_lev;
             end
 
+            t0 = tic();
             
             % run each line
             l = 0;
@@ -551,6 +552,7 @@ classdef Command_Interpreter < handle
                 tok = regexp(cmd_list{l},'[^ ]*', 'match'); % get command tokens
                 this.log.newLine();
                 this.log.addMarkedMessage(sprintf('Executing: %s', cmd_list{l}));
+                t1 = tic;
                 this.log.starSeparator();
                 
                 % Init parallel controller when a parallel section is found
@@ -561,7 +563,7 @@ classdef Command_Interpreter < handle
                 n_workers = 0;
                 if ~isempty(trg_list{l})
                     % The user wants to go parallel, but are workers active?
-                    gom = Go_Master.getInstance;
+                    gom = Parallel_Manager.getInstance;
                     n_workers = gom.getNumWorkers;
                     if n_workers == 0
                         this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');                        
@@ -620,7 +622,13 @@ classdef Command_Interpreter < handle
                             this.runExport(rec, tok, level(l));
                     end
                 end
+                this.log.newLine();
+                this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
+                this.log.newLine();
             end
+            this.log.simpleSeparator();        
+            this.log.addMarkedMessage(sprintf('Core execution done in %.3f seconds', toc(t0)));
+            this.log.simpleSeparator();
         end
     end
     %

@@ -7,7 +7,7 @@
 % EXAMPLE
 %   gom = Go_Slave
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Command_Interpreter
+% FOR A LIST OF CONSTANTs and METHODS use doc Go_Slave
 
 
 %--------------------------------------------------------------------------
@@ -55,6 +55,10 @@ classdef Go_Slave < Com_Interface
         
         EXIT = -1;
         RESTART = 0;
+    end
+    
+    properties (SetAccess = private, GetAccess = private)        
+        rnd_id = 0;     % personal serial number of the slave
     end
         
     %% METHOD CREATOR
@@ -129,8 +133,11 @@ classdef Go_Slave < Com_Interface
                 this.sendMsg(this.MSG_DIE, sprintf('I was "%s", goodbye cruel world!', this.id));
             end
             if nargin > 1 && ~isempty(reborn) && reborn
-                rng shuffle;
-                this.id = [this.SLAVE_WAIT_PREFIX sprintf('%06d', randi(1000000))];
+                if this.rnd_id == 0
+                    rng('shuffle', 'simdTwister');
+                    this.rnd_id = randi(1e15);
+                end
+                this.id = [this.SLAVE_WAIT_PREFIX sprintf('%015d', this.rnd_id)];
             else
                 Go_Slave.getInstance([], true)
             end
@@ -150,12 +157,12 @@ classdef Go_Slave < Com_Interface
             is_active = false;
             reset_count = 1;
             while ~is_active
-                slave_list = dir(fullfile(this.getComDir, [Go_Master.MSG_KILLALL Go_Master.ID]));
+                slave_list = dir(fullfile(this.getComDir, [Parallel_Manager.MSG_KILLALL Parallel_Manager.ID]));
                 if ~isempty(slave_list)
                    is_active = true;
                    msg = this.EXIT; % This means exit and die
                 else
-                    slave_list = dir(fullfile(this.getComDir, [Go_Master.MSG_RESTART Go_Master.ID]));
+                    slave_list = dir(fullfile(this.getComDir, [Parallel_Manager.MSG_RESTART Parallel_Manager.ID]));
                     if check_revive && ~isempty(slave_list)
                         is_active = true;
                         msg = this.RESTART; % This means exit and die
@@ -187,16 +194,16 @@ classdef Go_Slave < Com_Interface
             while stay_alive
                 this.revive();
                 this.sendMsg(this.MSG_BORN, sprintf('Helo! My name is "%s"', this.id));
-                this.waitMsg([this.id, '_' Go_Master.MSG_ASKACK Go_Master.ID], true); % WAIT ACK MESSAGE
+                this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKACK Parallel_Manager.ID], true); % WAIT ACK MESSAGE
                 this.deleteMsg();
                 this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
-                msg = this.waitMsg([this.id, '_' Go_Master.MSG_ASKWORK '*' Go_Master.ID], true); % WAIT WORK MESSAGE
+                msg = this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true); % WAIT WORK MESSAGE
                 if ~(isnumeric(msg))
                     this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
                     
                     % Creating worker
                     core = Core.getInstance(); % Init Core
-                    this.waitMsg([Go_Master.BRD_STATE Go_Master.ID], false, true); % WAIT WORK MESSAGE
+                    this.waitMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
                     tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
                     core.state = tmp.state; % load the state
                     core.gc.cur_settings = tmp.state; % load the state
@@ -206,7 +213,7 @@ classdef Go_Slave < Com_Interface
                     core.met_list = tmp.met_list; % load the meteorological list of files
                     this.log.addMarkedMessage('State updated');
                     clear tmp;
-                    this.waitMsg([Go_Master.BRD_SKY Go_Master.ID]); % WAIT WORK MESSAGE
+                    this.waitMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID]); % WAIT WORK MESSAGE
                     clear Core_Sky Atmosphere Meteo_Network;
                     tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
                     core.sky  = tmp.sky;  % load the state
@@ -217,11 +224,11 @@ classdef Go_Slave < Com_Interface
                     this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
                     
                     % Waiting work
-                    this.waitMsg([Go_Master.BRD_CMD Go_Master.ID], false); % WAIT ACK MESSAGE
+                    this.waitMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false); % WAIT ACK MESSAGE
                     
                     active_ps = true;
                     while active_ps
-                        msg = this.waitMsg([this.id '_' Go_Master.MSG_DO '*' Go_Master.ID], true, true); % WAIT ACK MESSAGE
+                        msg = this.waitMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
                         if isnumeric(msg)
                             active_ps = false;
                         else

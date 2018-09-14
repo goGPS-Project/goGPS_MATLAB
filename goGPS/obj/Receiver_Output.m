@@ -273,166 +273,168 @@ classdef Receiver_Output < Receiver_Commons
     
     methods
         function injectResult(this, rec_work)
-            %inject the results of receiver work into receiver output
+            % inject the results of receiver work into receiver output
             %
             % SYNTAX
             %  this.injectResult(rec_work)
             
-            % set the id_sync only to time in between out times
-            basic_export = false;
-            id_sync_old = rec_work.getIdSync();
-            if isempty(id_sync_old)
-                rec_work.id_sync = 1 : rec_work.time.length;
-                basic_export = true;
-            end
-            is_last_session = rec_work.time.last >= this.state.sss_date_stop;
-            rec_work.cropIdSync4out(~this.state.isSmoothTropoOut(), ~this.state.isSmoothTropoOut() || is_last_session);
-            
-            work_time = rec_work.getTime();
-            initial_len = this.time.length;
-            is_this_empty = this.time.isempty;
-            if is_this_empty
-                idx1 = 1;
-                idx2 = 0;
-                this.time = work_time;
-            else
-                [this.time, idx1, idx2] = this.time.injectBatch(work_time);
-                if this.state.isSmoothTropoOut()
-                    smt_buf_rgt = this.time.getNominalTime().getEpoch(numel(this.ztd));
-                    smt_buf_lft = rec_work.time.getNominalTime().first();
-                    idx_smt1 = this.time.getEpoch(1 : numel(this.ztd)).getNominalTime >= smt_buf_lft;                    
-                    idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime <= smt_buf_rgt;
-                    time_1 = this.time.getEpoch(idx_smt1);
-                    time_2 = rec_work.time.getEpoch(id_sync_old(idx_smt2));
+            if ~(rec_work.isEmpty)
+                % set the id_sync only to time in between out times
+                basic_export = false;
+                id_sync_old = rec_work.getIdSync();
+                if isempty(id_sync_old)
+                    rec_work.id_sync = 1 : rec_work.time.length;
+                    basic_export = true;
                 end
-            end
-            %%% inject data
-            if ~basic_export                
-                % Inject times
-                this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
-                this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
-                this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
-                this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
-                this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+                is_last_session = rec_work.time.last >= this.state.sss_date_stop;
+                rec_work.cropIdSync4out(~this.state.isSmoothTropoOut(), ~this.state.isSmoothTropoOut() || is_last_session);
                 
-                % Inject used meteo parameters
-                [p, t, h]         = rec_work.getPTH(true);
-                this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
-                this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
-                this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
-                
-                % Inject mapping functions
-                [mfh, mfw]            = rec_work.getSlantMF();
-                this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
-                this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
-                                
-                % Inject outliers and cs
-                this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
-                this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
-                
-                if ~this.state.isSmoothTropoOut() || is_this_empty
-                    % Inject tropo related parameters
-                    this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
-                    this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
-                    this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
-                    [gn, ge]     = rec_work.getGradient();
-                    this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
-                    this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
-                    this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                work_time = rec_work.getTime();
+                initial_len = this.time.length;
+                is_this_empty = this.time.isempty;
+                if is_this_empty
+                    idx1 = 1;
+                    idx2 = 0;
+                    this.time = work_time;
                 else
-                    % there is probblably smoothing
-                    % save idx, they might be useful
-                    bk_idx1 = idx1;
-                    bk_idx2 = idx2;
-                end
-            end
-            
-            if (initial_len == size(this.sat.az,1)) && (idx2 == 0)
-                [~, idx1, idx2] = this.time.injectBatch(work_time);                
-            end
-            [az, el] = rec_work.getAzEl;
-            this.sat.az      = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
-            this.sat.el      = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
-            this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
-            
-            %%% single results
-            if isempty(this.time_pos)
-                idx1 = 1;
-                idx2 = 0;
-                this.time_pos = rec_work.getPositionTime();
-                data_len  = rec_work.getPositionTime().length;
-            else
-                [this.time_pos, idx1, idx2] = this.time_pos.injectBatch(rec_work.getPositionTime());
-                data_len  = rec_work.getPositionTime().length;
-            end
-            
-            this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
-            this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
-            
-            this.s0_ip    = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
-            this.s0       = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
-            
-            % reset the old  complete id_sync
-            rec_work.id_sync = id_sync_old;
-            % inject with smoothing
-            if ~basic_export && ~is_this_empty && this.state.isSmoothTropoOut()
-                rec_work.cropIdSync4out(false, is_last_session);
-                idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
-                id_start     = find(time_1 >= rec_work.out_start_time, 1, 'first'); % The first id of the new session
-                if ~isempty(id_start)
-                    this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                    this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                    this.pwv     = Core_Utils.injectSmtData(this.pwv, rec_work.getPwv(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                    [gn, ge]     = rec_work.getGradient();
-                    this.tgn     = Core_Utils.injectSmtData(this.tgn, gn, idx_smt1, idx_smt2, time_1, time_2, id_start);
-                    this.tge     = Core_Utils.injectSmtData(this.tge, ge, idx_smt1, idx_smt2, time_1, time_2, id_start);
-                    res = nan(size(this.ztd,1),size(this.sat.res,2));
-                    res_in = rec_work.getResidual();
-                    for i = 1 : size(this.sat.res,2)
-                        res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                    [this.time, idx1, idx2] = this.time.injectBatch(work_time);
+                    if this.state.isSmoothTropoOut()
+                        smt_buf_rgt = this.time.getNominalTime().getEpoch(numel(this.ztd));
+                        smt_buf_lft = rec_work.time.getNominalTime().first();
+                        idx_smt1 = this.time.getEpoch(1 : numel(this.ztd)).getNominalTime >= smt_buf_lft;
+                        idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime <= smt_buf_rgt;
+                        time_1 = this.time.getEpoch(idx_smt1);
+                        time_2 = rec_work.time.getEpoch(id_sync_old(idx_smt2));
                     end
-                    this.sat.res = res;
-                else                    
-                    % Inject tropo related parameters
-                    tmp = rec_work.getZtd();
-                    this.ztd     = [this.ztd; tmp(~idx_smt2)];
-                    tmp = rec_work.getZwd();
-                    this.zwd     = [this.zwd; tmp(~idx_smt2)];
-                    tmp = rec_work.getPwv();
-                    this.pwv     = [this.pwv; tmp(~idx_smt2)];
-                    [gn, ge]     = rec_work.getGradient();
-                    this.tgn     = [this.tgn; gn(~idx_smt2)];
-                    this.tge     = [this.tge; ge(~idx_smt2)];
-                    res_in = rec_work.getResidual();
-                    this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
                 end
-                rec_work.id_sync = id_sync_old; % restore id_sync_old
-            end
-            
-            %--- append additional coo
-            if this.state.flag_coo_rate
-                if isempty(this.add_coo)
-                    is_empty_coo = true;
-                    this.add_coo = struct('rate',[],'time',[],'coo',[]);
-                else
-                   is_empty_coo = false;
-                end
-                for i = 1:length(rec_work.add_coo);
-                    if is_empty_coo
-                        this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
-                        this.add_coo(i).rate = rec_work.add_coo(i).rate;
-                        this.add_coo(i).time = rec_work.add_coo(i).time.getCopy();
-                        this.add_coo(i).coo = rec_work.add_coo(i).coo.getCopy();
+                %%% inject data
+                if ~basic_export
+                    % Inject times
+                    this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+                    this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
+                    this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+                    this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
+                    this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+                    
+                    % Inject used meteo parameters
+                    [p, t, h]         = rec_work.getPTH(true);
+                    this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
+                    this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
+                    this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
+                    
+                    % Inject mapping functions
+                    [mfh, mfw]            = rec_work.getSlantMF();
+                    this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
+                    this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
+                    
+                    % Inject outliers and cs
+                    this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
+                    this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+                    
+                    if ~this.state.isSmoothTropoOut() || is_this_empty
+                        % Inject tropo related parameters
+                        this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
+                        this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
+                        this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
+                        [gn, ge]     = rec_work.getGradient();
+                        this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
+                        this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
+                        this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
                     else
-                        time_o = rec_work.add_coo(i).time.getCopy();
-                        coo_o = rec_work.add_coo(i).coo.getCopy();
-                        idx_rem = time_o < work_time.first;
-                        time_o.remEpoch(idx_rem);
-                        coo_o.rem(idx_rem);
-                        [this.add_coo(i).time, idx1, idx2] = this.add_coo(i).time.injectBatch(time_o);
-                        this.add_coo(i).coo.xyz    = Core_Utils.injectData(this.add_coo(i).coo.xyz , coo_o.xyz , idx1, idx2);
-                        if ~isempty(this.add_coo(i).coo.Cxx) && ~isempty(rec_work.add_coo(i).coo.Cxx)
-                            this.add_coo(i).coo.Cxx    = [this.add_coo(i).coo.Cxx(:,:,1 : idx1 - 1); coo_o.Cxx; this.add_coo(i).coo.Cxx(:,:,idx2 + 1 : end)];
+                        % there is probblably smoothing
+                        % save idx, they might be useful
+                        bk_idx1 = idx1;
+                        bk_idx2 = idx2;
+                    end
+                end
+                
+                if (initial_len == size(this.sat.az,1)) && (idx2 == 0)
+                    [~, idx1, idx2] = this.time.injectBatch(work_time);
+                end
+                [az, el] = rec_work.getAzEl;
+                this.sat.az      = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
+                this.sat.el      = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
+                this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
+                
+                %%% single results
+                if isempty(this.time_pos)
+                    idx1 = 1;
+                    idx2 = 0;
+                    this.time_pos = rec_work.getPositionTime();
+                    data_len  = rec_work.getPositionTime().length;
+                else
+                    [this.time_pos, idx1, idx2] = this.time_pos.injectBatch(rec_work.getPositionTime());
+                    data_len  = rec_work.getPositionTime().length;
+                end
+                
+                this.xyz      = Core_Utils.injectData(this.xyz, rec_work.getPosXYZ, idx1, idx2, [data_len, 3]);
+                this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
+                
+                this.s0_ip    = Core_Utils.injectData(this.s0_ip, rec_work.s0_ip, idx1, idx2, [data_len, 1]);
+                this.s0       = Core_Utils.injectData(this.s0, rec_work.s0, idx1, idx2, [data_len, 1]);
+                
+                % reset the old  complete id_sync
+                rec_work.id_sync = id_sync_old;
+                % inject with smoothing
+                if ~basic_export && ~is_this_empty && this.state.isSmoothTropoOut()
+                    rec_work.cropIdSync4out(false, is_last_session);
+                    idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
+                    id_start     = find(time_1 >= rec_work.out_start_time, 1, 'first'); % The first id of the new session
+                    if ~isempty(id_start)
+                        this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        this.pwv     = Core_Utils.injectSmtData(this.pwv, rec_work.getPwv(), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        [gn, ge]     = rec_work.getGradient();
+                        this.tgn     = Core_Utils.injectSmtData(this.tgn, gn, idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        this.tge     = Core_Utils.injectSmtData(this.tge, ge, idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        res = nan(size(this.ztd,1),size(this.sat.res,2));
+                        res_in = rec_work.getResidual();
+                        for i = 1 : size(this.sat.res,2)
+                            res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        end
+                        this.sat.res = res;
+                    else
+                        % Inject tropo related parameters
+                        tmp = rec_work.getZtd();
+                        this.ztd     = [this.ztd; tmp(~idx_smt2)];
+                        tmp = rec_work.getZwd();
+                        this.zwd     = [this.zwd; tmp(~idx_smt2)];
+                        tmp = rec_work.getPwv();
+                        this.pwv     = [this.pwv; tmp(~idx_smt2)];
+                        [gn, ge]     = rec_work.getGradient();
+                        this.tgn     = [this.tgn; gn(~idx_smt2)];
+                        this.tge     = [this.tge; ge(~idx_smt2)];
+                        res_in = rec_work.getResidual();
+                        this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
+                    end
+                    rec_work.id_sync = id_sync_old; % restore id_sync_old
+                end
+                
+                %--- append additional coo
+                if this.state.flag_coo_rate
+                    if isempty(this.add_coo)
+                        is_empty_coo = true;
+                        this.add_coo = struct('rate',[],'time',[],'coo',[]);
+                    else
+                        is_empty_coo = false;
+                    end
+                    for i = 1:length(rec_work.add_coo);
+                        if is_empty_coo
+                            this.add_coo(i) = struct('rate',[],'time',[],'coo',[]);
+                            this.add_coo(i).rate = rec_work.add_coo(i).rate;
+                            this.add_coo(i).time = rec_work.add_coo(i).time.getCopy();
+                            this.add_coo(i).coo = rec_work.add_coo(i).coo.getCopy();
+                        else
+                            time_o = rec_work.add_coo(i).time.getCopy();
+                            coo_o = rec_work.add_coo(i).coo.getCopy();
+                            idx_rem = time_o < work_time.first;
+                            time_o.remEpoch(idx_rem);
+                            coo_o.rem(idx_rem);
+                            [this.add_coo(i).time, idx1, idx2] = this.add_coo(i).time.injectBatch(time_o);
+                            this.add_coo(i).coo.xyz    = Core_Utils.injectData(this.add_coo(i).coo.xyz , coo_o.xyz , idx1, idx2);
+                            if ~isempty(this.add_coo(i).coo.Cxx) && ~isempty(rec_work.add_coo(i).coo.Cxx)
+                                this.add_coo(i).coo.Cxx    = [this.add_coo(i).coo.Cxx(:,:,1 : idx1 - 1); coo_o.Cxx; this.add_coo(i).coo.Cxx(:,:,idx2 + 1 : end)];
+                            end
                         end
                     end
                 end

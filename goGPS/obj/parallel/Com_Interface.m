@@ -139,7 +139,7 @@ classdef Com_Interface < handle
             %
             % SINTAX
             %   this.isMaster()
-            is_master = strcmp(this.id, Go_Master.ID);
+            is_master = strcmp(this.id, Parallel_Manager.ID);
         end
         
         function deleteAllMsg(this)
