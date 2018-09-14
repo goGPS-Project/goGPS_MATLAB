@@ -150,6 +150,8 @@ classdef Core_Sky < handle
                 
                 if  instr(lower(eph_f_name{1}), '.sp3') || instr(lower(eph_f_name{1}), '.eph') || instr(lower(eph_f_name{1}), '.pre') % assuming all files have the same extensions
                    this.toCOM();
+                   this.clearPolyCoeff();
+                   this.clearSunMoon();
                     this.log.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
                         [~,name,ext] = fileparts(eph_f_name{i});
@@ -162,6 +164,8 @@ classdef Core_Sky < handle
                     end
                 else %% if not sp3 assume is a rinex navigational file
                     this.toAPC();
+                    this.clearPolyCoeff();
+                   this.clearSunMoon();
                     this.log.addMarkedMessage('Importing broadcast ephemerides...');
                     this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
                      this.coord_type = 1; % antenna phase center
@@ -278,6 +282,13 @@ classdef Core_Sky < handle
             end
             this.X_sun = [];
             this.X_moon = [];
+            this.sun_pol_coeff = [];
+            this.moon_pol_coeff = [];
+        end
+        
+        function clearPolyCoeff(this)
+            % DESCRIPTION : clear the precomupetd poly coefficent
+            this.coord_pol_coeff = [];
             this.sun_pol_coeff = [];
             this.moon_pol_coeff = [];
         end
