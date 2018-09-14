@@ -1755,7 +1755,7 @@ classdef Core_Sky < handle
             c_idx = round((t - this.time_ref_coord) / this.coord_rate) - 4;
             
             c_idx(c_idx<1) = 1;
-            c_idx(c_idx > size(this.coord,1)-10) = size(this.coord,1)-10;
+            c_idx(c_idx > size(this.X_sun,1)-10) = size(this.X_sun,1)-10;
             
             c_times = this.getCoordTime();
             
