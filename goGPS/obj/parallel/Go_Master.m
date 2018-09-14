@@ -241,6 +241,7 @@ classdef Go_Master < Com_Interface
                 this.sendSkyData();
                 n_workers = this.waitForWorkerAck(n_workers);
                 this.deleteMsg('*');
+                this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
                 delete(fullfile(this.getComDir, '*.mat'));
             end
             this.log.addMarkedMessage(sprintf('Parallel init took %.3f seconds', toc(t0)));
@@ -428,7 +429,7 @@ classdef Go_Master < Com_Interface
                     
                     % send an order to a worker
                     msg = [worker_stack{w}, this.MSG_DO num2str(missing_job(t), '%04d') '_'];
-                    this.sendMsg(msg, sprintf('"%s" you have a job to do!', worker_stack{w}(1 : end-1)));
+                    this.sendMsg(msg, sprintf('"%s" process rec %d', worker_stack{w}(1 : end-1), missing_job(t)));
                     active_jobs = active_jobs + 1;
                 end
                 missing_job(1 : t) = []; % remove the currently executing jobs

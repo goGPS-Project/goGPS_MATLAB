@@ -1093,7 +1093,7 @@ classdef Least_Squares_Manipulator < handle
             this.weightOnResidual(wfun, threshold);
         end
         
-         function reweightDanishWM(this)
+        function reweightDanishWM(this)
             threshold = 2;
             wfun = @(x)  max(0.5,exp(-x.^2 ./threshold.^2));
             this.weightOnResidual(wfun, threshold);

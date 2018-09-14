@@ -149,9 +149,9 @@ classdef Core_Sky < handle
                 end
                 
                 if  instr(lower(eph_f_name{1}), '.sp3') || instr(lower(eph_f_name{1}), '.eph') || instr(lower(eph_f_name{1}), '.pre') % assuming all files have the same extensions
-                   this.toCOM();
-                   this.clearPolyCoeff();
-                   this.clearSunMoon();
+                    this.toCOM();
+                    this.clearPolyCoeff();
+                    this.clearSunMoon();
                     this.log.addMarkedMessage('Importing ephemerides...');
                     for i = 1:length(eph_f_name)
                         [~,name,ext] = fileparts(eph_f_name{i});
@@ -165,13 +165,13 @@ classdef Core_Sky < handle
                 else %% if not sp3 assume is a rinex navigational file
                     this.toAPC();
                     this.clearPolyCoeff();
-                   this.clearSunMoon();
+                    this.clearSunMoon();
                     this.log.addMarkedMessage('Importing broadcast ephemerides...');
                     this.importBrdcs(eph_f_name,start_date, stop_date, clock_in_eph);
-                     this.coord_type = 1; % antenna phase center
+                    this.coord_type = 1; % antenna phase center
                 end
                 
-                if this.state.iono_model == 2 & (this.state.iono_management == 3 || this.state.flag_apr_iono)
+                if this.state.iono_model == 2 && (this.state.iono_management == 3 || this.state.flag_apr_iono)
                     f_name = this.state.getIonoFileName(start_date, stop_date);
                     this.importIono(f_name{1});
                 end

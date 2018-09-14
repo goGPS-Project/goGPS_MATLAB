@@ -531,7 +531,7 @@ classdef Command_Interpreter < handle
             % SYNTAX:
             %   this.exec(rec, cmd_list, level)
             if nargin < 3
-                state = Global_Configuration.getCurrentSettings();
+                state = Core.getState();
                 cmd_list = state.getCommandList();
             end
             if ~iscell(cmd_list)
@@ -648,21 +648,22 @@ classdef Command_Interpreter < handle
                     this.log.addMarkedMessage(sprintf('Importing data for receiver %d: %s', r, rec(r).getMarkerName()));
                     this.log.smallSeparator();
                     this.log.newLine();
+                    state = Core.getState();
                     if sys_found
-                        state = Global_Configuration.getCurrentSettings();
                         state.cc.setActive(sys_list);
                     end
                     [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                     if ~found
                         rate = []; % get the rate of the RINEX
                     end
-                    if this.core.state.isRinexSession()
-                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, this.core.getCurSession()), rate);
+                    cur_session = Core.getCurrentSession();
+                    if state.isRinexSession()
+                        rec(r).importRinexLegacy(this.core.state.getRecPath(r, cur_session), rate);
                         rec(r).work.loaded_session = this.core.getCurSession();
                     else
-                        [session_limits, out_limits] = this.core.state.getSessionLimits(this.core.getCurSession());
+                        [session_limits, out_limits] = state.getSessionLimits(cur_session);
                         rec(r).importRinexes(this.core.rin_list(r).getCopy(), session_limits.first, session_limits.last, rate);
-                        rec(r).work.loaded_session = this.core.getCurSession();
+                        rec(r).work.loaded_session = cur_session;
                         rec(r).work.setOutLimits(out_limits.first, out_limits.last);
                     end
                 end

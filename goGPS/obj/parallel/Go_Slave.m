@@ -207,6 +207,7 @@ classdef Go_Slave < Com_Interface
                     this.log.addMarkedMessage('State updated');
                     clear tmp;
                     this.waitMsg([Go_Master.BRD_SKY Go_Master.ID]); % WAIT WORK MESSAGE
+                    clear Core_Sky Atmosphere Meteo_Network;
                     tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
                     core.sky  = tmp.sky;  % load the state
                     core.atmo = tmp.atmo; % load the atmosphere
