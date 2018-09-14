@@ -143,6 +143,7 @@
 last_settings.ini
 /goGPS/bin
 /goGPS/com
+/goGPS/logs
 /goGPS/reserved
 /goGPS/positioning/lambda/lambda_v3
 !/data/goGPSconfig

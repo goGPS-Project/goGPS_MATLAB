@@ -149,15 +149,30 @@ classdef Parallel_Manager < Com_Interface
                 goGPS_folder = pwd;
             end
             
-            run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+            if ispc
+                fid = fopen('win_create_worker.bat','w');
+                run_cmd = ['"' mat_exe '" -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+                fwrite(fid, run_cmd);
+                fclose(fid);
+            else
+                run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+            end
             log = Core.getLogger();
             log.addMarkedMessage(sprintf('Creating %03d workers\n - MATLAB executable path: %s\n - goGPS source folder:    %s\n - comunication folder:    %s', n_workers, mat_exe, goGPS_folder, com_dir));
             log.newLine;
             
             for i = 1 : n_workers
                 log.addMessage(log.indent(sprintf('Creating slave worker %03d / %03d', i, n_workers)));
-                dos(run_cmd);
+                if ispc
+                    system('start /b win_create_worker.bat');
+                else
+                    dos(run_cmd);
+                end
                 pause(0.5); % pause is necessary to avoid twin slaves (slaves with the same id)
+            end
+            
+            if ispc
+                delete('win_create_worker.bat');
             end
         end
         
@@ -358,7 +373,7 @@ classdef Parallel_Manager < Com_Interface
                         % get the result stored into jobXXXX_WORKER_YYYY.mat
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
-                        tmp = load(fullfile(job_file(1).folder, job_file(1).name));
+                        tmp = load(fullfile(this.getComDir, job_file(1).name));
                         if core.rec(job_id).out.isEmpty
                             % import all
                         tmp.rec.out = core.rec(job_id).out;
@@ -373,7 +388,7 @@ classdef Parallel_Manager < Com_Interface
                             core.rec(job_id).work.parent = core.rec(job_id);                            
                         end
                         core.rec(job_id).work.pushResult();
-                        delete(fullfile(job_file(1).folder, job_file(1).name));
+                        delete(fullfile(this.getComDir, job_file(1).name));
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
                         completed_job = [completed_job; job_id]; %#ok<AGROW>
                         worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
