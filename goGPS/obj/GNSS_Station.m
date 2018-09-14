@@ -1042,7 +1042,8 @@ classdef GNSS_Station < handle
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);
                 if isempty(rec)
-                    rec.log.addWarning('ZTD and/or slants have not been computed');
+                    log = Core.getLogger();
+                    log.addWarning('ZTD and/or slants have not been computed');
                 else
                     if nargin < 3
                         rec.out.showZtdSlant();
