@@ -268,6 +268,7 @@ classdef Go_Slave < Com_Interface
                         otherwise % RESTART
                             this.log.addMarkedMessage('Thank you Master!');
                     end
+                    clear core state rec_id r msg
                 end
             end
             

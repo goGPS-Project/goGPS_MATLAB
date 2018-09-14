@@ -622,13 +622,17 @@ classdef Command_Interpreter < handle
                             this.runExport(rec, tok, level(l));
                     end
                 end
-                this.log.newLine();
-                this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
-                this.log.newLine();
+                if toc(t1) > 1
+                    this.log.newLine();
+                    this.log.addMessage(this.log.indent(sprintf('%s executed in %.3f seconds', cmd_list{l}, toc(t1))));
+                    this.log.newLine();
+                end
             end
-            this.log.simpleSeparator();        
-            this.log.addMarkedMessage(sprintf('Core execution done in %.3f seconds', toc(t0)));
-            this.log.simpleSeparator();
+            if toc(t0) > 1
+                this.log.simpleSeparator();
+                this.log.addMarkedMessage(sprintf('Core execution done in %.3f seconds', toc(t0)));
+                this.log.simpleSeparator();
+            end
         end
     end
     %

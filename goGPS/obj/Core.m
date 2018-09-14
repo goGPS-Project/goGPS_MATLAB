@@ -1045,17 +1045,20 @@ classdef Core < handle
         end
         
         function id = findStationId(this, marker_name)
+            % Given a marker_name get the sequencial id of a station
+            %
+            % SYNTAX
+            %   id = findStationId(this, marker_name)
             marker4ch_list = '';
             for r = 1 : numel(this.rin_list)
                 try
-                    marker4ch_list(r, :) = char(this.rin_list(r).file_name_list{1}(1 : 4)); %#ok<AGROW>
+                    marker4ch_list(r, :) = char(this.rin_list(r).file_name_list{1}(1 : 4));
                 catch
                     % the name is shorter or missing => ignore
                 end
             end
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
-        end
-            
+        end            
     end
     
     methods
@@ -1070,8 +1073,7 @@ classdef Core < handle
             else
                 file_list = {};
             end
-        end
-        
+        end        
     end
     
     %% METHODS UTILITIES

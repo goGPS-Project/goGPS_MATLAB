@@ -73,7 +73,7 @@ classdef Parallel_Manager < Com_Interface
             this.id = this.ID;
             this.initComDir(com_dir);
             this.init();
-            this.log.addMarkedMessage('Creating goGPS Master');
+            this.log.addMarkedMessage('Creating goGPS Master Parallel Manager');
             if ~exist(this.getComDir, 'file')
                 mkdir(this.getComDir);
             end
@@ -85,8 +85,7 @@ classdef Parallel_Manager < Com_Interface
     methods (Access = private)
 
         function delete(this)
-            % delete 
-             
+            % delete              
             this.log.addMarkedMessage('Closing goGPS Master');
         end
     end
@@ -132,16 +131,6 @@ classdef Parallel_Manager < Com_Interface
             %   goGPS_folde   pwd
             % SYNTAX
             %   this.gimmeWorkers(n_workers, com_dir, goGPS_folder);
-            if isunix
-                if ismac
-                    mat_exe = [matlabroot '/bin/maci64/matlab'];
-                else
-                    mat_exe = [matlabroot '/bin/matlab'];
-                end
-            elseif ispc
-                mat_exe = [matlabroot '/bin/matlab.exe'];
-            end
-            
             if nargin < 2 || isempty(com_dir)
                 com_dir = fullfile(pwd, 'com');
             end
@@ -149,14 +138,22 @@ classdef Parallel_Manager < Com_Interface
                 goGPS_folder = pwd;
             end
             
-            if ispc
+            if isunix
+                if ismac
+                    mat_exe = [matlabroot '/bin/maci64/matlab'];
+                else
+                    mat_exe = [matlabroot '/bin/matlab'];
+                end
+                run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; log = Logger.getInstance; log.setColorMode(0); log.setVerbosityLev(0); gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+            elseif ispc
+                mat_exe = [matlabroot '/bin/matlab.exe'];
+                % In windows I need to create a bat to be able to run different matlab in background
                 fid = fopen('win_create_worker.bat','w');
-                run_cmd = ['"' mat_exe '" -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+                run_cmd = ['"' mat_exe '" -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; cd ' goGPS_folder '; addPathGoGPS; log = Logger.getInstance; log.setColorMode(0); log.setVerbosityLev(0); Cregos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
                 fwrite(fid, run_cmd);
                 fclose(fid);
-            else
-                run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
             end
+                        
             log = Core.getLogger();
             log.addMarkedMessage(sprintf('Creating %03d workers\n - MATLAB executable path: %s\n - goGPS source folder:    %s\n - comunication folder:    %s', n_workers, mat_exe, goGPS_folder, com_dir));
             log.newLine;
@@ -172,6 +169,7 @@ classdef Parallel_Manager < Com_Interface
             end
             
             if ispc
+                % Under windows I created a file to be removed
                 delete('win_create_worker.bat');
             end
         end
@@ -183,7 +181,16 @@ classdef Parallel_Manager < Com_Interface
             %   Parallel_Manager.killAll();
             gom = Parallel_Manager.getInstance;
             gom.killThemAll
-        end        
+        end
+        
+        function restart()
+            % Force all the slaves to die and resurge
+            %
+            % SYNTAX
+            %   Parallel_Manager.restart();
+            gom = Parallel_Manager.getInstance;
+            gom.resurgit
+        end
     end
     
     methods (Access = public)
@@ -340,7 +347,7 @@ classdef Parallel_Manager < Com_Interface
                 slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_ACK '*']));
                 n_workers = numel(slave_list);
             end
-            this.log.addMarkedMessage(this.log.indent(sprintf('%d workers ready', n_workers)));
+            this.log.addMarkedMessage(sprintf('%d workers ready', n_workers));
             this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
         end
         
@@ -373,7 +380,7 @@ classdef Parallel_Manager < Com_Interface
                         % get the result stored into jobXXXX_WORKER_YYYY.mat
                         job_file = dir(fullfile(this.getComDir, ['job*' worker_id '.mat']));
                         job_id = str2double(regexp(job_file(1).name, '(?<=job)[0-9]*', 'match', 'once'));
-                        tmp = load(fullfile(this.getComDir, job_file(1).name));
+                        tmp = load(fullfile(this.getComDir(), job_file(1).name));
                         if core.rec(job_id).out.isEmpty
                             % import all
                         tmp.rec.out = core.rec(job_id).out;
@@ -388,14 +395,14 @@ classdef Parallel_Manager < Com_Interface
                             core.rec(job_id).work.parent = core.rec(job_id);                            
                         end
                         core.rec(job_id).work.pushResult();
-                        delete(fullfile(this.getComDir, job_file(1).name));
+                        delete(fullfile(this.getComDir(), job_file(1).name));
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
                         completed_job = [completed_job; job_id]; %#ok<AGROW>
                         worker_stack = [worker_stack {[worker_id '_']}]; %#ok<AGROW>
                     end
                 end
                 active_jobs = active_jobs - n_job_done;
-                this.log.addMarkedMessage(this.log.indent(sprintf('%d jobs completed', numel(completed_job))));
+                this.log.addMarkedMessage(sprintf('%d jobs completed', numel(completed_job)));
                 this.deleteMsg([Go_Slave.MSG_ACK, Go_Slave.SLAVE_READY_PREFIX '*'], true);
             end
         end
@@ -418,7 +425,7 @@ classdef Parallel_Manager < Com_Interface
             this.sendMsg(this.MSG_KILLALL, 'As the mad king said: Kill them all!!!');
             pause(2);
             this.deleteMsg(Go_Slave.MSG_DIE, true);            
-            this.deleteMsg(this.MSG_KILLALL);
+            this.deleteMsg('*');
             delete(fullfile(this.COM_DIR,'*.mat'));
         end
         
@@ -429,7 +436,7 @@ classdef Parallel_Manager < Com_Interface
             this.deleteMsg('*');
         end
         
-        function  orderProcessing(this, cmd_list, trg_list)
+        function orderProcessing(this, cmd_list, trg_list)
             % order to the slaves to execute some work
             %
             % SINTAX
