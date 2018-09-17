@@ -192,6 +192,16 @@ classdef Core < handle
             end
             
         end
+        
+         function rec_list = getRecList()
+            % Get receiver list
+            %
+            % SYNTAX
+            %   rec_list = this.getRecList()          
+            core = Core.getInstance(false, true);
+            rec_list = core.rec;
+        end
+        
                 
         function state = getState()
             % Return the pointer to the State pointed by Core
@@ -212,7 +222,7 @@ classdef Core < handle
             cur_session = core.state.getCurSession;
         end
 
-         function [rin_list, met_list] = getRinLists()
+        function [rin_list, met_list] = getRinLists()
             % Get the rinex lists (GNSS observations and meteorological)
             %
             % SYNTAX

@@ -341,14 +341,14 @@ classdef Receiver_Output < Receiver_Commons
                         this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
                         this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
                     else
-                        % there is probblably smoothing
+                        % there is probably smoothing
                         % save idx, they might be useful
                         bk_idx1 = idx1;
                         bk_idx2 = idx2;
                     end
                 end
                 
-                if (initial_len == size(this.sat.az,1)) && (idx2 == 0)
+                if (initial_len == size(this.sat.az,1)) && (idx2 == 0) && ~is_this_empty
                     [~, idx1, idx2] = this.time.injectBatch(work_time);
                 end
                 [az, el] = rec_work.getAzEl;
@@ -390,7 +390,7 @@ classdef Receiver_Output < Receiver_Commons
                         res = nan(size(this.ztd,1),size(this.sat.res,2));
                         res_in = rec_work.getResidual();
                         for i = 1 : size(this.sat.res,2)
-                            res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                            res(:,i)   = Core_Utils.injectSmtData(this.getResidual(), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
                         end
                         this.sat.res = res;
                     else

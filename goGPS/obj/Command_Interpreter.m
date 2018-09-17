@@ -596,6 +596,7 @@ classdef Command_Interpreter < handle
                     
                     gom.orderProcessing(par_cmd_list, trg_list{l});
                     l = par_cmd_id(end);
+                    rec = Core.getRecList();
                 else
                     if ~isempty(trg_list)
                         if ~isempty(trg_list{l})

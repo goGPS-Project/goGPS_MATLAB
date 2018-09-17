@@ -383,16 +383,16 @@ classdef Parallel_Manager < Com_Interface
                         tmp = load(fullfile(this.getComDir(), job_file(1).name));
                         if core.rec(job_id).out.isEmpty
                             % import all
-                        tmp.rec.out = core.rec(job_id).out;
-                        core.rec(job_id) = tmp.rec;
-                        % relink singletons                        
-                        core.rec(job_id).log = Core.getLogger;
-                        core.rec(job_id).state = Core.getState;
-                        % import results in out
+                            tmp.rec.out = core.rec(job_id).out;
+                            core.rec(job_id) = tmp.rec;
+                            % relink singletons
+                            core.rec(job_id).log = Core.getLogger;
+                            core.rec(job_id).state = Core.getState;
+                            % import results in out
                         else
                             % import only work
                             core.rec(job_id).work = tmp.rec.work;
-                            core.rec(job_id).work.parent = core.rec(job_id);                            
+                            core.rec(job_id).work.parent = core.rec(job_id);
                         end
                         core.rec(job_id).work.pushResult();
                         delete(fullfile(this.getComDir(), job_file(1).name));

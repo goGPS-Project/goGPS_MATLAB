@@ -2401,6 +2401,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        
+        function res = getResidual(this)
+            if size(this.sat.res,1) < max(this.id_sync)
+                res = nan(numel(this.id_sync), this.cc.getMaxNumSat());
+            else
+                res =  this.sat.res(this.id_sync,:);
+            end
+        end
+        
         function dt_ip = getDtIp(this)
             if numel(this.dt_ip) < max(this.id_sync)
                 dt_ip = nan(numel(this.id_sync), 1);
