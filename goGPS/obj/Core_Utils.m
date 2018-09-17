@@ -575,7 +575,11 @@ classdef Core_Utils < handle
                     data2 = nan(data_size(1), data_size(2));
                 end
             end
-            data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
+            if ~isempty(data2)
+                data = [data1(1 : idx1 - 1, :); data2; data1(idx2 + 1 : end, :)];
+            else
+                data = data1;
+            end
         end
         
         function data = injectSmtData(data_lft, data_rgt, idx_smt1, idx_smt2, time_1, time_2, id_start)
