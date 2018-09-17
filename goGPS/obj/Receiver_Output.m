@@ -427,7 +427,9 @@ classdef Receiver_Output < Receiver_Commons
                         else
                             time_o = rec_work.add_coo(i).time.getCopy();
                             coo_o = rec_work.add_coo(i).coo.getCopy();
-                            idx_rem = time_o < work_time.first;
+                            discard_time = work_time.first;
+                            discard_time.addSeconds(-this.add_coo(i).rate/2);
+                            idx_rem = time_o < discard_time;
                             time_o.remEpoch(idx_rem);
                             coo_o.rem(idx_rem);
                             [this.add_coo(i).time, idx1, idx2] = this.add_coo(i).time.injectBatch(time_o);

@@ -1521,7 +1521,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % load meteo data from Meteo Network object
             %and get a virtual station at receiver positions
             mn = Core.getMeteoNetwork();
-            if ~isempty(mn.mds)
+            if ~isempty(mn) && ~isempty(mn.mds)
                 this.log.addMarkedMessage('importing meteo data');
                 this.meteo_data = mn.getVMS(this.parent.marker_name, this.xyz, this.getNominalTime);
             end
@@ -4053,7 +4053,9 @@ classdef Receiver_Work_Space < Receiver_Commons
         function updateAllAvailIndex(this)
             %  update avaliabilty of measurement on all
             % satellite based on all code and phase
-            
+            if isempty(this.sat.avail_index)
+                this.sat.avail_index = false(this.time.length, this.parent.cc.getMaxNumSat);
+            end
             for s = unique(this.go_id)'
                 obs_idx = this.go_id == s & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L');
                 if sum(obs_idx) > 0

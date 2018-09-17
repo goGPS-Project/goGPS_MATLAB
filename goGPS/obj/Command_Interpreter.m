@@ -107,6 +107,7 @@ classdef Command_Interpreter < handle
         PAR_S_RES_STD   % Slant Total Delay Residuals (polar plot)
         PAR_E_TROPO_SNX % Tropo paramters sinex format
         PAR_E_TROPO_MAT % Tropo paramters mat format
+        PAR_E_COO_CRD   % Coordinates in bernese crd format
 
         PAR_S_SAVE      % flage for saving                
                 
@@ -286,6 +287,13 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
             
+            this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
+            this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
+            this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
+            this.PAR_E_COO_CRD.class = '';
+            this.PAR_E_COO_CRD.limits = [];
+            this.PAR_E_COO_CRD.accepted_values = [];
+            
             % definition of commands
             
             new_line = [char(10) '             ']; %#ok<CHARTEN>
@@ -327,7 +335,7 @@ classdef Command_Interpreter < handle
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
-            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC];
+            this.CMD_NET.par = [this.PAR_RATE this.PAR_SS this.PAR_SYNC this.PAR_E_COO_CRD];
             
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations'];
@@ -868,7 +876,12 @@ classdef Command_Interpreter < handle
                 end
                 [~, id_ref] = intersect(id_trg, id_ref);
                 net = Network(rec(id_trg));
-                net.adjust(id_ref);       
+                net.adjust(id_ref); 
+                for t = 1 : numel(tok)
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))
+                        net.exportCrd();
+                    end
+                end
             end
         end
 

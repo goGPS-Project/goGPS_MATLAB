@@ -694,7 +694,7 @@ classdef Least_Squares_Manipulator < handle
 
             % get the observation equation for each receiver
             A = []; Aidx = []; ep = []; sat = []; p_flag = []; p_class = []; y = []; variance = []; r = [];
-            [~, sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
+            [sss_lim, ~] = this.state.getSessionLimits(this.state.getCurSession());
             st_time = sss_lim.first;
             
             for i = 1 : n_rec
@@ -1576,6 +1576,14 @@ classdef Least_Squares_Manipulator < handle
                         
                         xe = x(idx_est);
                         amb = xe(idx_amb_par,1);
+                        % getting tht VCV matrix for the ambiuities
+%                         b_eye = zeros(length(B),n_amb);
+%                         idx = sub2ind(size(b_eye),idx_amb_par,[1:n_amb]');
+%                         b_eye(idx) = 1;
+%                         b_eye = sparse(b_eye);
+%                         Cxx_amb = N\b_eye;
+%                         Cxx_amb = Cxx_amb(idx_amb_par,:);
+                        %end
                         n_ep_amb = zeros(size(amb));
                         for i = 1 : n_amb
                             n_ep_amb(i) = sum(this.A_idx(:,4) == idx_est2idx(idx_amb_par(i)));
@@ -1829,7 +1837,7 @@ classdef Least_Squares_Manipulator < handle
         function [pos_idx_nh, pos_idx_tc] = getPosIdx(time, st_time, coo_rate)
             % given a time and the sampling rate return the position index referring to the given sampling rate, the first index is porgressive, the seocond id time consistent
             sec_from_sod = time.getRefTime(st_time.getMatlabTime);
-            pos_idx_tc = ceil(sec_from_sod / coo_rate);
+            pos_idx_tc = max(1,ceil((sec_from_sod - 0.002) / coo_rate));
             u_pos = unique(pos_idx_tc);
             pos_idx_nh = pos_idx_tc;
             for i = 1 : length(u_pos)

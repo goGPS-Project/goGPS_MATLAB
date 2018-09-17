@@ -47,7 +47,8 @@ classdef Network < handle
         
         common_time      % gps_time
         rec_time_indexes % indexes
-        coo              % [n_coo x n_rec] receiver coordinates
+        coo              % [n_coo x n_rec x n_sol] receiver coordinates
+        coo_rate         % rate of the coordinate solution in seconds
         clock            % [n_epoch x n_rec] reciever clock
         ztd              % [n_epoch x n_rec] reciever ZTD
         ztd_gn           % [n_epoch x n_rec] reciever ZTD gradients north
@@ -55,14 +56,14 @@ classdef Network < handle
         amb              % {n_rec} recievers ambiguity
         log
         pos_indexs_tc       % index for subpositions
+        idx_ref
     end
     methods
         function this = Network(rec_list)
             this.rec_list = rec_list;
             this.state = Core.getState;
             this.log = Core.getLogger();
-        end
-        
+        end    
         function adjust(this, idx_ref, coo_rate)
             %  adjust the gnss network
             %
@@ -77,6 +78,7 @@ classdef Network < handle
             if nargin < 2 || any(isnan(idx_ref))
                 idx_ref = 1 : numel(this);
             end
+            this.idx_ref = idx_ref;
             is_empty_recs = this.rec_list.isEmpty_mr;
             if sum(~is_empty_recs) > 1
                 e = find(is_empty_recs);
@@ -116,10 +118,11 @@ classdef Network < handle
                     this.log.addWarning(sprintf('s0 ( %.4f) too high! not updating the results',s0));
                 end
                 if this.state.flag_coo_rate
-                    [~, sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
+                    [sss_lim] = this.state.getSessionLimits(this.state.getCurSession());
                     st_time = sss_lim.first;
                     for i = 1 : 3
                         if this.state.coo_rates(i) ~= 0
+                            this.coo_rate = this.state.coo_rates(i);
                             ls.pos_indexs_tc = {};
                             for j = 2 : n_rec
                                 [pos_idx_nh, pos_idx_tc] = Least_Squares_Manipulator.getPosIdx(this.common_time.getEpoch(~isnan(this.rec_time_indexes(:,j))), st_time, this.state.coo_rates(i));
@@ -171,7 +174,6 @@ classdef Network < handle
             this.ztd_gn = nan(n_time, n_rec);
             this.ztd_ge = nan(n_time, n_rec);
         end
-        
         function addAdjValues(this, x)
             n_rec = length(this.rec_list);
             % --- fill the correction values in the network
@@ -292,8 +294,7 @@ classdef Network < handle
                     this.ztd_ge(idx_pos,i) = this.ztd_ge(idx_pos,i) + ge_rec(idx_is);
                 end
             end
-        end
-        
+        end     
         function pushBackInReceiver(this, s0, res)
             n_rec = length(this.rec_list);
             
@@ -339,6 +340,50 @@ classdef Network < handle
                     this.rec_list(i).work.add_coo(end + 1) = coo;
                 end
             end
+        end
+        
+        function exportCrd(this, file_prefix)
+            % export the current value of the coordinate to a bernese CRD file, if multiple session are available for the stations save only the last coordinates
+            %
+            % SYNTAX:
+            % this.exportCrd(this)
+            if nargin < 2 || isempty(file_prefix)
+                %[~,file_prefix] =fileparts( rec.state.getHomeDir);
+                file_prefix = [this.state.getOutPrefix '_'];
+            end
+            if ndims(this.coo) < 3
+                st_time  = this.common_time.first;
+                en_time = this.common_time.last;
+                coo = this.coo;
+            else
+                st_time = this.state.getSessionLimits(this.state.getCurSession).first;
+                st_time.addSeconds(this.coo_rate * (size(this.coo,3) - 1));
+                en_time = this.state.getSessionLimits(this.state.getCurSession).first;
+                en_time.addSeconds(this.coo_rate * size(this.coo,3));
+                coo = this.coo(:,:,end);
+            end
+            [~,~,sod_s] = st_time.getDOY();
+            [~,~,sod_f] = en_time.getDOY();
+            if sum(sod_f == '0') == 5
+                sod_f = '86400';
+            end
+            [~,doy] = st_time.getDOY();
+            fpath  = sprintf('%s/%s%02d%03d.%05d-%05d.CRD',this.state.getOutDir,file_prefix,st_time.getYY,doy,sod_s,sod_f);
+            fid = fopen(fpath,'w');
+            now_time = GPS_Time.now();
+            fprintf(fid, ['                                                                 ' upper(now_time.toString('dd-mmm-yy HH:MM')) ' \n']);
+            
+            fprintf(fid, ['--------------------------------------------------------------------------------\n']);
+            fprintf(fid, ['LOCAL GEODETIC DATUM: WGS - 84          EPOCH: ' st_time.toString('dd-mm-yy HH:MM:SS') '\n\n']);
+            
+            fprintf(fid,'NUM  STATION NAME           X (M)          Y (M)          Z (M)     FLAG\n\n');
+            n_rec = length(this.rec_list);
+            for i = 1 : n_rec
+                fprintf(fid,sprintf('%3d  %s              %13.5f  %13.5f  %13.5f    %s\n',i,upper(this.rec_list(i).getMarkerName4Ch),coo(i,:),iif(sum(this.idx_ref == i)>0,'F','P')));
+            end
+            fclose(fid);
+
+            
         end
     end
 end

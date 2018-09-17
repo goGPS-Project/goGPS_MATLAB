@@ -888,6 +888,14 @@ classdef GPS_Time < Exportable & handle
             n_epochs = round((this.last.getMatlabTime() - this.first.getMatlabTime()) * (86400 / this.getRate())) + 1;
         end
         
+        function [len_sec] = getSecLen(this)
+            %get the legnth of time in second
+            %
+            % SYNTAX
+            %   [len_sec] = this.getSecLen()
+            len_sec = this.last - this.first;
+        end
+        
         function [empty]  = isempty(this)
             % return the status of emptyness of the object
             %
@@ -1046,6 +1054,11 @@ classdef GPS_Time < Exportable & handle
             tmp.toUnixTime; % to be safe
             fractional_part = round((tmp - this) * 1e10) * 1e-10;
             date6col(:,6) = date6col(:,6) - fractional_part ;
+        end
+        
+        function yy = getYY(this)
+            [yy, ~, ~] = getDOY(this);
+            yy = yy - floor(yy/1000)*1000;
         end
         
         function changeRef(this, new_time_mat_ref)
