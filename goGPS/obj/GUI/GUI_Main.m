@@ -58,7 +58,8 @@ classdef GUI_Main < handle
         
         info_g      % Info group
         rec_list    % Receiver list
-        session_g   % Session group
+        session_panel % panel of the session definition 
+        session_info    % Session info
         session_summary % summary of the session
         ui_sss_start
         ui_sss_stop
@@ -453,8 +454,8 @@ end
             % --------------------------------------------------------
             % Time limits
             
-            sss_box = Core_UI.insertPanelLight(tab, 'Session');
-            sss_box_v = uix.VBox('Parent', sss_box, ...
+            this.session_panel = Core_UI.insertPanelLight(tab, 'Session');
+            sss_box_v = uix.VBox('Parent', this.session_panel, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
             sss_box_h = uix.HBox('Parent', sss_box_v, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);                        
@@ -501,8 +502,10 @@ end
             
             sss_bounds = uix.VBox('Parent', sss_box_r, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 60 5 40]);
+            [el_group, this.edit_texts{end+1}] = Core_UI.insertEditBox(sss_bounds, 'Session duration', 'sss_duration','s', @this.onEditChange, [170 60 5 40]);
+            el_group.Tag = 'sss_duration';
             [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(sss_bounds, 2, 'Buffers [left right]', 'sss_buffer', 's', @this.onEditArrayChange, [170 60 5 40]);
+            this.edit_texts_array{end}.Tag = 'sss_buffer';
             sss_bounds.Heights = [23 23];
 
             Core_UI.insertEmpty(sss_box_r);
@@ -515,9 +518,10 @@ end
             sss_check_box = uix.HBox('Parent', sss_box_v, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onCheckBoxChange);
-            
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'Smooth troposphere at boundaries', 'flag_smooth_tropo_out', @this.onSSSCheckBoxChange);
+            this.check_boxes{end}.Tag = 'sss_smooth';
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(sss_check_box, 'RINEX based session', 'sss_file_based', @this.onSSSCheckBoxChange);
+
             Core_UI.insertEmpty(sss_box_v);
             
             % --------------------------------------------------------
@@ -911,11 +915,11 @@ end
             %session_p = uix.Panel('Parent', container, ...
             %    'Padding', 0, ...
             %    'BackgroundColor', session_bg);
-            this.session_g = uix.VBox('Parent', container, ...
+            this.session_info = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
                 'BackgroundColor', session_bg);
             
-            v_text = uix.VBox( 'Parent', this.session_g, ...
+            v_text = uix.VBox( 'Parent', this.session_info, ...
                 'Padding', 5, ...
                 'BackgroundColor', session_bg);
             Core_UI.insertEmpty(v_text, session_bg);
@@ -937,8 +941,8 @@ end
             
             Core_UI.insertEmpty(v_text, session_bg);
             v_text.Heights = [5, 23, -1];
-            Core_UI.insertHBarDark(this.session_g);
-            sss_g = uix.VBox('Parent', this.session_g, ...
+            Core_UI.insertHBarDark(this.session_info);
+            sss_g = uix.VBox('Parent', this.session_info, ...
                 'Padding', 0, ...
                 'BackgroundColor', session_bg);
             
@@ -967,7 +971,7 @@ end
                 'BackgroundColor', session_bg);
             
             % % button sync => not used autp-sync on
-            % but_session = uix.HButtonBox( 'Parent', this.session_g, ...
+            % but_session = uix.HButtonBox( 'Parent', this.session_info, ...
             %     'Padding', 5, ...
             %     'Spacing', 5, ...
             %     'HorizontalAlignment', 'right', ...
@@ -978,8 +982,8 @@ end
             %     'String', 'Sync Session UI => INI', ...
             %     'Callback', @this.onSessionChange);
             %
-            % this.session_g.Heights = [26 2 5 50 30];
-            this.session_g.Heights = [30 5 165];
+            % this.session_info.Heights = [26 2 5 50 30];
+            this.session_info.Heights = [30 5 165];
             sss_g.Heights = [55 5 55 5 55];
         end
         
@@ -1153,6 +1157,7 @@ end
                 this.updateINI();
                 this.updateRecList();
                 this.updateSessionSummary()
+                this.updateSessionGUI();
             end
         end       
         
@@ -1197,6 +1202,12 @@ end
             
         end
         
+        function onSSSCheckBoxChange(this, caller, event)
+            this.onCheckBoxChange(caller, event)
+            this.updateSessionSummary();
+            this.updateSessionGUI();
+        end
+    
         function onCheckBoxChange(this, caller, event)
             this.state.setProperty(caller.UserData, caller.Value);
             this.updateINI();
@@ -1481,6 +1492,7 @@ end
                 this.updateCmdList();
                 this.ini_path.String = this.state.getIniPath();
                 this.updateRecList();
+                this.updateSessionGUI();
                 this.updateSessionSummary()
                 this.updateSessionFromState();
                 this.updateCCFromState();
@@ -1600,11 +1612,33 @@ end
                     '  %s\n', ...
                     '  week: %d doy: %d\n'], ...
                     this.state.sss_date_stop.toString('yyyy-mm-dd  HH:MM:SS'), week_en, doy_en);
-                this.session_summary.size.String = sprintf( ...
-                    ['Duration: %10d [s]\n', ...
-                    'Buffer: %6d, %6d [s]\n'], ...                    
-                    this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
-            end
+                if this.state.isRinexSession()
+                    this.session_summary.size.String = sprintf( ...
+                        ['Duration: rinex based\n', ...
+                        'Buffer: none\n']);
+                else
+                    this.session_summary.size.String = sprintf( ...
+                        ['Duration: %10d [s]\n', ...
+                        'Buffer: %6d, %6d [s]\n'], ...
+                        this.state.sss_duration, this.state.sss_buffer(1), this.state.sss_buffer(end));
+                end
+            end           
+        end
+        
+        function updateSessionGUI(this)
+            % enable disable fields
+            ui_tspan = findobj(this.w_main, 'Tag', 'sss_duration');
+            ui_buffer = findobj(this.w_main, 'Tag', 'sss_buffer');
+            ui_smooth_tropo = findobj(this.w_main, 'Tag', 'sss_smooth');
+            if this.state.isRinexSession()
+                Core_UI.disableElement(ui_tspan);
+                Core_UI.disableElement(ui_buffer);
+                Core_UI.disableElement(ui_smooth_tropo);
+            else
+                Core_UI.enableElement(ui_tspan);
+                Core_UI.enableElement(ui_buffer);                
+                Core_UI.enableElement(ui_smooth_tropo);                
+            end            
         end
         
         function setCheckBox(this, name_prop, value)

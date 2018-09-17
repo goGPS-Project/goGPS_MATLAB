@@ -1297,6 +1297,37 @@ classdef Core_UI < handle
         end
     end
     
+        %% METHODS INSERT
+    % ==================================================================================================================================================
+    methods (Static)
+        function disableElement(el)
+            Core_UI.enableElement(el, false)
+        end
+        
+        function enableElement(el, status)
+            if nargin == 1
+                status = true;
+            end
+            for e = 1 : numel(el)
+                if isprop(el, 'Enable')
+                    %switch el(e).Style
+                    %    case {'edit', 'text'}
+                            if status
+                                el(e).Enable = 'on';
+                            else
+                                el(e).Enable = 'off';
+                            end
+                    %end
+                else % is Grid, VBox, HBox, ...
+                    obj = findobj(el);
+                    if numel(obj) > 1
+                        Core_UI.enableElement(obj(2:end), status);
+                    end
+                end
+            end
+        end
+    end
+    
     %% METHODS EVENTS
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -1388,7 +1419,7 @@ classdef Core_UI < handle
                     callbackCell(caller.Parent.Parent.Children(1).Children(2));
                 end
             end
-        end
+        end        
     end
     
     %% METHODS getters
