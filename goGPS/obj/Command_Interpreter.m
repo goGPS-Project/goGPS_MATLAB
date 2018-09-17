@@ -577,26 +577,35 @@ classdef Command_Interpreter < handle
                         this.log.addWarning('No parallel workers have been found\n Launch some slaves!!!\nrunning in serial mode');                        
                     end
                 end
+                % go parallel
+                % Get the parallel target => remove not available targets
+                tmp = trg_list{l};
+                trg_list{l} = tmp(tmp <= numel(rec));
+                
+                % find the last command of this parallel section
+                last_par_id = find((cmd_lev(l : end) - cmd_lev(l)) < 0, 1, 'first');
+                if isempty(last_par_id)
+                    last_par_id = numel(cmd_lev);
+                else
+                    last_par_id = last_par_id + l - 2;
+                end
+                par_cmd_id = (l + 1) : last_par_id;
+                
                 if n_workers > 0
-                    % go parallel
-                    % Get the parallel target => remove not available targets
-                    tmp = trg_list{l}; 
-                    trg_list{l} = tmp(tmp <= numel(rec));
-                    
-                    % find the last command of this parallel section
-                    last_par_id = find((cmd_lev(l : end) - cmd_lev(l)) < 0, 1, 'first');
-                    if isempty(last_par_id)
-                        last_par_id = numel(cmd_lev);
-                    else
-                        last_par_id = last_par_id + l - 2;
-                    end
-                    par_cmd_id = (l + 1) : last_par_id;
-                    
                     par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
                     
                     gom.orderProcessing(par_cmd_list, trg_list{l});
                     l = par_cmd_id(end);
                 else
+                    if ~isempty(trg_list)
+                        if ~isempty(trg_list{l})
+                            rec_list = sprintf('%d%s',trg_list{l}(1), sprintf(',%d',trg_list{l}(2:end)));
+                            for c = (l + 1) : last_par_id
+                                cmd_list{c} = strrep(cmd_list{c}, '$', rec_list);
+                            end
+                        end
+                    end
+                    
                     switch upper(tok{1})
                         case this.CMD_LOAD.name                 % LOAD
                             this.runLoad(rec, tok(2:end));
@@ -823,7 +832,6 @@ classdef Command_Interpreter < handle
             end
         end
 
-        
         function runPPP(this, rec, tok)
             % Execute Precise Point Positioning
             %
