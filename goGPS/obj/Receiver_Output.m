@@ -310,36 +310,56 @@ classdef Receiver_Output < Receiver_Commons
                 %%% inject data
                 if ~basic_export
                     % Inject times
-                    this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
-                    this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
-                    this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
-                    this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
-                    this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+                    if this.state.flag_out_dt
+                        this.dt      = Core_Utils.injectData(this.dt, rec_work.getDt(), idx1, idx2);
+                        this.desync  = Core_Utils.injectData(this.desync, rec_work.getDesync(), idx1, idx2);
+                        this.dt_ip   = Core_Utils.injectData(this.dt_ip, rec_work.getDtIp(), idx1, idx2);
+                    end
+                    if this.state.flag_out_apr_tropo
+                        this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
+                        this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
+                    end
                     
                     % Inject used meteo parameters
-                    [p, t, h]         = rec_work.getPTH(true);
-                    this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
-                    this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
-                    this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
+                    if this.state.flag_out_pth
+                        [p, t, h]         = rec_work.getPTH(true);
+                        this.pressure     = Core_Utils.injectData(this.pressure, p, idx1, idx2);
+                        this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
+                        this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
+                    end
                     
                     % Inject mapping functions
-                    [mfh, mfw]            = rec_work.getSlantMF();
-                    this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
-                    this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
+                    if this.state.flag_out_mf
+                        [mfh, mfw]            = rec_work.getSlantMF();
+                        this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
+                        this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
+                    end
                     
                     % Inject outliers and cs
-                    this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
-                    this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+                    if this.state.flag_out_ocs
+                        this.sat.outlier_idx_ph    = Core_Utils.injectData(this.sat.outlier_idx_ph, rec_work.getOOutPh(), idx1, idx2);
+                        this.sat.cycle_slip_idx_ph = Core_Utils.injectData(this.sat.cycle_slip_idx_ph, rec_work.getOCsPh(), idx1, idx2);
+                    end
                     
                     if ~this.state.isSmoothTropoOut() || is_this_empty
                         % Inject tropo related parameters
-                        this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
-                        this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
-                        this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
-                        [gn, ge]     = rec_work.getGradient();
-                        this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
-                        this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
-                        this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                        if this.state.flag_out_ztd
+                            this.ztd     = Core_Utils.injectData(this.ztd, rec_work.getZtd(), idx1, idx2);
+                        end
+                        if this.state.flag_out_zwd
+                            this.zwd     = Core_Utils.injectData(this.zwd, rec_work.getZwd(), idx1, idx2);
+                        end
+                        if this.state.flag_out_pwv
+                            this.pwv     = Core_Utils.injectData(this.pwv, rec_work.getPwv(), idx1, idx2);
+                        end
+                        if this.state.flag_out_tropo_g
+                            [gn, ge]     = rec_work.getGradient();
+                            this.tgn     = Core_Utils.injectData(this.tgn, gn, idx1, idx2);
+                            this.tge     = Core_Utils.injectData(this.tge, ge, idx1, idx2);
+                        end
+                        if this.state.flag_out_res
+                            this.sat.res = Core_Utils.injectData(this.sat.res, rec_work.getResidual(), idx1, idx2);
+                        end
                     else
                         % there is probably smoothing
                         % save idx, they might be useful
@@ -352,9 +372,13 @@ classdef Receiver_Output < Receiver_Commons
                     [~, idx1, idx2] = this.time.injectBatch(work_time);
                 end
                 [az, el] = rec_work.getAzEl;
-                this.sat.az      = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
-                this.sat.el      = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
-                this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
+                if this.state.flag_out_azel
+                    this.sat.az      = Core_Utils.injectData(this.sat.az, az, idx1, idx2);
+                    this.sat.el      = Core_Utils.injectData(this.sat.el, el, idx1, idx2);
+                end
+                if this.state.flag_out_quality
+                    this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
+                end
                 
                 %%% single results
                 if isempty(this.time_pos)
@@ -381,31 +405,51 @@ classdef Receiver_Output < Receiver_Commons
                     idx_smt2 = idx_smt2(1 : numel(rec_work.getZtd));
                     id_start     = find(time_1 >= rec_work.out_start_time, 1, 'first'); % The first id of the new session
                     if ~isempty(id_start)
-                        this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                        this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                        this.pwv     = Core_Utils.injectSmtData(this.pwv, rec_work.getPwv(), idx_smt1, idx_smt2, time_1, time_2, id_start);
-                        [gn, ge]     = rec_work.getGradient();
-                        this.tgn     = Core_Utils.injectSmtData(this.tgn, gn, idx_smt1, idx_smt2, time_1, time_2, id_start);
-                        this.tge     = Core_Utils.injectSmtData(this.tge, ge, idx_smt1, idx_smt2, time_1, time_2, id_start);
-                        res = nan(size(this.ztd,1),size(this.sat.res,2));
-                        res_in = rec_work.getResidual();
-                        for i = 1 : size(this.sat.res,2)
-                            res(:,i)   = Core_Utils.injectSmtData(this.getResidual(), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        if this.state.flag_out_ztd
+                            this.ztd     = Core_Utils.injectSmtData(this.ztd, rec_work.getZtd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
                         end
-                        this.sat.res = res;
+                        if this.state.flag_out_zwd
+                            this.zwd     = Core_Utils.injectSmtData(this.zwd, rec_work.getZwd(), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        end
+                        if this.state.flag_out_pwv
+                            this.pwv     = Core_Utils.injectSmtData(this.pwv, rec_work.getPwv(), idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        end
+                        if this.state.flag_out_tropo_g
+                            [gn, ge]     = rec_work.getGradient();
+                            this.tgn     = Core_Utils.injectSmtData(this.tgn, gn, idx_smt1, idx_smt2, time_1, time_2, id_start);
+                            this.tge     = Core_Utils.injectSmtData(this.tge, ge, idx_smt1, idx_smt2, time_1, time_2, id_start);
+                        end
+                        if this.state.flag_out_res
+                            res = nan(this.time.length, size(this.sat.res, 2));
+                            res_in = rec_work.getResidual();
+                            for i = 1 : size(this.sat.res,2)
+                                res(:,i)   = Core_Utils.injectSmtData(this.sat.res(:,i), res_in(:,i), idx_smt1, idx_smt2, time_1, time_2, id_start);                                                                
+                            end
+                            this.sat.res = res;
+                        end
                     else
                         % Inject tropo related parameters
-                        tmp = rec_work.getZtd();
-                        this.ztd     = [this.ztd; tmp(~idx_smt2)];
-                        tmp = rec_work.getZwd();
-                        this.zwd     = [this.zwd; tmp(~idx_smt2)];
-                        tmp = rec_work.getPwv();
-                        this.pwv     = [this.pwv; tmp(~idx_smt2)];
-                        [gn, ge]     = rec_work.getGradient();
-                        this.tgn     = [this.tgn; gn(~idx_smt2)];
-                        this.tge     = [this.tge; ge(~idx_smt2)];
-                        res_in = rec_work.getResidual();
-                        this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
+                        if this.state.flag_out_ztd
+                            tmp = rec_work.getZtd();
+                            this.ztd     = [this.ztd; tmp(~idx_smt2)];
+                        end
+                        if this.state.flag_out_zwd
+                            tmp = rec_work.getZwd();
+                            this.zwd     = [this.zwd; tmp(~idx_smt2)];
+                        end
+                        if this.state.flag_out_pwv
+                            tmp = rec_work.getPwv();
+                            this.pwv     = [this.pwv; tmp(~idx_smt2)];
+                        end
+                        if this.state.flag_out_tropo_g
+                            [gn, ge]     = rec_work.getGradient();
+                            this.tgn     = [this.tgn; gn(~idx_smt2)];
+                            this.tge     = [this.tge; ge(~idx_smt2)];
+                        end
+                        if this.state.flag_out_res
+                            res_in = rec_work.getResidual();
+                            this.sat.res = [this.sat.res; res_in(~idx_smt2,:)];
+                        end
                     end
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end

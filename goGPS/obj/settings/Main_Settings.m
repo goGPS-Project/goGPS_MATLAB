@@ -243,6 +243,24 @@ classdef Main_Settings < Settings_Interface & Command_Settings
 
         STD_TROPO = 0.015;                              % Std of tropospheric delay [m/h]
         STD_TROPO_GRADIENT = 0.001;                     % Std of tropospheric gradient [m/h]
+        
+        % OUT DATA flags => what shall I store in rec.out?
+        
+        FLAG_OUT_DT = true;         % Clock "delta"
+        
+        FLAG_OUT_PWV = true;        % PWV
+        FLAG_OUT_ZWD = true;        % ZWD
+        FLAG_OUT_ZTD = true;        % ZTD
+        FLAG_OUT_TROPO_G = true;    % gradients
+        FLAG_OUT_APR_TROPO = true;  % a-priori values
+        
+        FLAG_OUT_PTH = true;        % pressure  / temperature / humidity        
+        
+        FLAG_OUT_OCS = true;        % outliers and cycle slips        
+        FLAG_OUT_QUALITY = true;    % Quality (SNR)        
+        FLAG_OUT_AZEL = true;       % Azimuth / Elevation        
+        FLAG_OUT_RES = true;        % residuals
+        FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
     end
 
     properties (Constant, Access = 'public')
@@ -557,6 +575,26 @@ classdef Main_Settings < Settings_Interface & Command_Settings
         % Std of tropospheric delay [m / h]
         std_tropo = Main_Settings.STD_TROPO;
         std_tropo_gradient = Main_Settings.STD_TROPO;
+        
+        %------------------------------------------------------------------
+        % OUTPUT TO KEEP
+        %------------------------------------------------------------------
+        
+        flag_out_dt = true;         % Dt
+        
+        flag_out_pwv = true;        % PWV
+        flag_out_zwd = true;        % ZWD
+        flag_out_ztd = true;        % ZTD
+        flag_out_tropo_g = true;    % gradients
+        flag_out_apr_tropo = true;  % a-priori values
+        
+        flag_out_pth = true;        % pressure  / temperature / humidity        
+        
+        flag_out_ocs = true;        % outliers and cycle slips        
+        flag_out_quality = true;    % quality (SNR)        
+        flag_out_azel = true;       % azimuth / elevation        
+        flag_out_res = true;        % residuals
+        flag_out_mf = true;         % mapping functions (wet / hydrostatic)
     end
 
     % =========================================================================
@@ -747,6 +785,22 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
                 this.std_tropo   = state.getData('std_tropo');
                 this.std_tropo_gradient   = state.getData('std_tropo_gradient');
+                
+                % OUTPUT TO KEEP                
+                this.flag_out_dt = state.getData('flag_out_dt');                % Dt
+                this.flag_out_pwv = state.getData('flag_out_pwv');              % PWV
+                this.flag_out_zwd = state.getData('flag_out_zwd');              % ZWD
+                this.flag_out_ztd = state.getData('flag_out_ztd');              % ZTD
+                this.flag_out_tropo_g = state.getData('flag_out_tropo_g');      % gradients
+                this.flag_out_apr_tropo = state.getData('flag_out_apr_tropo');  % a-priori values
+                
+                this.flag_out_pth = state.getData('flag_out_pth');              % pressure  / temperature / humidity
+                
+                this.flag_out_ocs = state.getData('flag_out_ocs');              % outliers and cycle slips
+                this.flag_out_quality = state.getData('flag_out_quality');      % quality (SNR)
+                this.flag_out_azel = state.getData('flag_out_azel');            % azimuth / elevation
+                this.flag_out_res = state.getData('flag_out_res');              % residuals
+                this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
             else
                 % PROJECT
                 this.prj_name   = state.prj_name;
@@ -871,6 +925,23 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
                 this.std_tropo = state.std_tropo;
                 this.std_tropo_gradient = state.std_tropo_gradient;
+                
+                % OUTPUT TO KEEP
+                this.flag_out_dt = state.flag_out_dt;                % PWV
+
+                this.flag_out_pwv = state.flag_out_pwv;              % PWV
+                this.flag_out_zwd = state.flag_out_zwd;              % ZWD
+                this.flag_out_ztd = state.flag_out_ztd;              % ZTD
+                this.flag_out_tropo_g = state.flag_out_tropo_g;      % gradients
+                this.flag_out_apr_tropo = state.flag_out_apr_tropo;  % a-priori values
+                
+                this.flag_out_pth = state.flag_out_pth;              % pressure  / temperature / humidity
+                
+                this.flag_out_ocs = state.flag_out_ocs;              % outliers and cycle slips
+                this.flag_out_quality = state.flag_out_quality;      % quality (SNR)
+                this.flag_out_azel = state.flag_out_azel;            % azimuth / elevation
+                this.flag_out_res = state.flag_out_res;              % residuals
+                this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)                
             end
 
             this.check(); % check after import
@@ -1025,6 +1096,22 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %str = [str sprintf(' STD of a priori tropospheric gradient:            %g\n', this.sigma0_tropo_gradient)];
             str = [str sprintf(' STD of tropospheric gradient:                     %g\n\n', this.std_tropo_gradient)];
             str = this.toString@Command_Settings(str);
+            
+            str = [str '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
+            str = [str sprintf(' Keep Dt                                           %d\n', this.flag_out_dt)];
+            str = [str sprintf(' Keep PWV                                          %d\n', this.flag_out_pwv)];
+            str = [str sprintf(' Keep ZWD                                          %d\n', this.flag_out_zwd)];
+            str = [str sprintf(' Keep ZTD                                          %d\n', this.flag_out_ztd)];
+            str = [str sprintf(' Keep tropospheric gradientents                    %d\n', this.flag_out_tropo_g)];
+            str = [str sprintf(' Keep a-priori troposphere                         %d\n', this.flag_out_apr_tropo)];
+            
+            str = [str sprintf(' Keep pressure / temperature / humidity            %d\n', this.flag_out_pth)];
+            
+            str = [str sprintf(' Keep satellite outlier flags and cycle slips      %d\n', this.flag_out_ocs)];
+            str = [str sprintf(' Keep satellite quality (snr)                      %d\n', this.flag_out_quality)];
+            str = [str sprintf(' Keep satellite azimuth and elevation              %d\n', this.flag_out_azel)];
+            str = [str sprintf(' Keep satellite residuals                          %d\n', this.flag_out_res)];
+            str = [str sprintf(' Keep mapping functions (wet / hydrostatic)        %d\n', this.flag_out_mf)];
         end
 
         function str_cell = exportIO_project(this, str_cell)
@@ -1397,18 +1484,18 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
-
+            
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Management of ionosphere', str_cell);
             str_cell = Ini_Manager.toIniString('iono_management', this.iono_management, str_cell);
-             for i = 1 : numel(this.IE_SMODE)
+            for i = 1 : numel(this.IE_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IE_SMODE{i}), str_cell);
-             end
+            end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('iono_model', this.iono_model, str_cell);
-             for i = 1 : numel(this.IONO_SMODE)
+            for i = 1 : numel(this.IONO_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_SMODE{i}), str_cell);
             end
             
@@ -1445,6 +1532,38 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %str_cell = Ini_Manager.toIniString('sigma0_tropo_gradient', this.sigma0_tropo_gradient, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Standard deviation of tropospheric gradient [m/h] (default = %.4f)', this.STD_TROPO_GRADIENT), str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo_gradient', this.std_tropo_gradient, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            % OUT TO KEEP
+            str_cell = Ini_Manager.toIniStringSection('OUT TO KEEP', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Results to be keep in the "out" object stored in rec', str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep Dt', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_dt', this.flag_out_dt, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep PWV', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pwv', this.flag_out_pwv, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep ZWD', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_zwd', this.flag_out_zwd, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep ZTD', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_ztd', this.flag_out_ztd, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep tropospheric gradientents', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_tropo_g', this.flag_out_tropo_g, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep a-priori troposphere', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_apr_tropo', this.flag_out_apr_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep pressure / temperature / humidity', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_pth', this.flag_out_pth, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite outlier flags and cycle slips', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_ocs', this.flag_out_ocs, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite quality (snr)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_quality', this.flag_out_quality, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite azimuth and elevation', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_azel', this.flag_out_azel, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite satellite residuals', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_res', this.flag_out_res, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Keep satellite mapping functions (wet / hydrostatic)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_out_mf', this.flag_out_mf, str_cell);
+
+            % COMMANDs
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = this.export@Command_Settings(str_cell);
         end
@@ -1497,7 +1616,7 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             %   this.importIniFile(<file_path>);
             % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
-            % property "cur_ini" defined in the superclass Main_Settings            if (nargin == 1)
+            % property "cur_ini" defined in the superclass Main_Settings
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
@@ -2038,14 +2157,27 @@ classdef Main_Settings < Settings_Interface & Command_Settings
                 this.flag_tropo_gradient = false;
                 this.log.addWarning('Gradients estimation appears to be requested\nbut troposphere estimation is disabled\n=> disabling gradients estimation');
             end
-            
-            
-
+                        
             % ADV ATMOSPHERE
             % this.checkNumericField('sigma0_tropo',[1e-11 10]);
             this.checkNumericField('std_tropo',[1e-12 1e50]);
             % this.checkNumericField('sigma0_tropo_gradient',[1e-11 10]);
             this.checkNumericField('std_tropo_gradient',[1e-12 1e50]);
+            
+            % RESULTS KEEP IN OUT
+            this.checkLogicalField('flag_out_dt');
+            this.checkLogicalField('flag_out_pwv');
+            this.checkLogicalField('flag_out_zwd');
+            this.checkLogicalField('flag_out_ztd');
+            this.checkLogicalField('flag_out_tropo_g');
+            this.checkLogicalField('flag_out_apr_tropo');
+            this.checkLogicalField('flag_out_pth');
+            this.checkLogicalField('flag_out_ocs');
+            this.checkLogicalField('flag_out_quality');
+            this.checkLogicalField('flag_out_azel');
+            this.checkLogicalField('flag_out_res');
+            this.checkLogicalField('flag_out_mf');
+
             this.cc.check();
         end
         

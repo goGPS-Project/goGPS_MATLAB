@@ -532,7 +532,7 @@ classdef Receiver_Commons < handle
             %
             % SYNTAX
             %   res = this.getResidual()
-            res = this.sat.res(this.getIdSync,:);
+            res = this.sat.res(this.getIdSync(),:);
         end
         
         function out_prefix = getOutPrefix(this)

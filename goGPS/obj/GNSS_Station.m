@@ -1036,8 +1036,7 @@ classdef GNSS_Station < handle
                 end                
             end
         end
-        
-        
+                
         function showZtdSlant(sta_list, time_start, time_stop)
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);

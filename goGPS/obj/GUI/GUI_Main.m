@@ -576,7 +576,9 @@ end
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observations', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
             Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
-            box_g.Heights = [-1 5 23];
+            Core_UI.insertEmpty(box_g);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
+            box_g.Heights = [-1 5 23 5 23];
         end
         
         function insertProcessing(this, container)
@@ -638,30 +640,35 @@ end
             opt_h = uix.HBox('Parent', tab, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
-            ppp_panel = this.insertPPPOptions(opt_h); %#ok<NASGU>
+            opt_l = uix.VBox('Parent', opt_h, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            ppp_panel = this.insertPPPOptions(opt_l); %#ok<NASGU>
+            Core_UI.insertEmpty(opt_l);
+            opt_l.Heights = [200 -1];
             
             Core_UI.insertEmpty(opt_h);
             
             opt_r = uix.VBox('Parent', opt_h, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                        
+            Core_UI.insertEmpty(opt_h);
+            
+            out_panel = this.insertOutOptions(opt_h); %#ok<NASGU>
             
             amb_panel = this.insertProcessingOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
             coo_panel = this.insertCooOptions(opt_r);
             Core_UI.insertEmpty(opt_r);
+                        
+            opt_r.Heights = [70, 5, 125, -1];
             
-            Core_UI.insertEmpty(tab);
-            ocean_panel = this.insertOceanOptions(tab);
-            
-            opt_r.Heights = [70,5,90, -1];
-            
-            opt_h.Widths = [200 5 -1];
+            opt_h.Widths = [180 5 -1 5 160];
             
             % --------------------------------------------------------
             
             ds_box_g.Heights = [18 15 -1];
             
-            tab.Heights = [230 5 210 5 50];
+            tab.Heights = [230 5 -1];
             
             this.uip.tab_proc = tab;
         end
@@ -675,14 +682,13 @@ end
         
         function ocean_panel = insertCooOptions(this, container)
             ocean_panel = Core_UI.insertPanelLight(container, 'Coordinates estimation');
-            opt_grid = uix.Grid('Parent', ocean_panel,...
+            opt_v = uix.VBox('Parent', ocean_panel,...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_grid, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
-            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_grid, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
-            Core_UI.insertEmpty(opt_grid);
-            set( opt_grid, 'Widths', [300 300], 'Heights', [23 23] );
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Separate antenna center for each GNSS','flag_separate_apc', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dynamic solution','rec_dyn_mode', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Additional coordinates rate','flag_coo_rate', @this.onCheckBoxChange);
+            [this.edit_texts_array{end+1}] = Core_UI.insertEditBoxArray(opt_v, 3, '', 'coo_rates', 's', @this.onEditArrayChange, [0 60 5 40]);
+            set( opt_v, 'Heights', [23 23 23 23] );
         end
         
         function proc_opt = insertProcessingOptions(this, container)
@@ -796,6 +802,29 @@ end
             n_b_sbs.ButtonSize(1) = 72;
             
             h_box_cc.Widths = [80 20 -1];
+        end
+        
+        function out_panel = insertOutOptions(this, container)
+            %%% processing options
+            opt_container = uix.VBox('Parent', container,...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            out_panel = Core_UI.insertPanelLight(opt_container, 'Results to store in out');
+            opt_v = uix.VBox('Parent', out_panel,...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Dt (clock errors)',       'flag_out_dt', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'PWV',                     'flag_out_pwv', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZWD',                     'flag_out_zwd', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'ZTD',                     'flag_out_ztd', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Tropo Gradients',         'flag_out_tropo_g', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'A-priori tropo',          'flag_out_apr_tropo', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'P / T / H',               'flag_out_pth', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Outliers / CS',           'flag_out_ocs', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Quality (SNR)',           'flag_out_quality', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Azimuth / Elevation',     'flag_out_azel', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Residuals',               'flag_out_res', @this.onCheckBoxChange);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(opt_v, 'Mapping functions',       'flag_out_mf', @this.onCheckBoxChange);           
+            Core_UI.insertEmpty(opt_container);
+            opt_container.Heights = [260 -1];
         end
         
         function ppp_panel = insertPPPOptions(this, container)
@@ -1253,9 +1282,13 @@ end
         
         function onTabChange(this, caller, event)
             if event.NewValue == 1
-                if ~isempty(this.j_settings) && this.j_settings.isValid
-                    str = strrep(strCell2Str(this.state.export(), 10),'#','%');
-                    this.j_settings.setText(str);
+                if ~isempty(this.j_settings)
+                    try
+                        str = strrep(strCell2Str(this.state.export(), 10),'#','%');
+                        this.j_settings.setText(str);
+                    catch ex
+                        this.log.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
+                    end
                 else
                     % Check is always needed
                     this.state.check()
@@ -1280,26 +1313,26 @@ end
             if ~isempty(this.w_main) && isvalid(this.w_main)
                 this.w_main.Name = sprintf('%s @ %s', this.state.getPrjName, this.state.getHomeDir);
                 
-                if this.j_settings.isValid
+                try
                     str = strrep(strCell2Str(this.state.export(), 10),'#','%');
                     if ~strcmp(str, char(this.j_settings.getText()))
                         this.j_settings.setText(str);
                     end
-                else
+                catch ex
                     % Check is always needed
                     this.state.check()
-                    % this.log.addWarning('Warning invalid config not updating j_settings');
+                    this.log.addWarning(sprintf('I cannot update j_settings\n%s', ex.message));
                 end
             end
         end
         
         function updateCmdList(this)
-            if ~isempty(this.w_main) && isvalid(this.w_main)                
+            if ~isempty(this.w_main) && isvalid(this.w_main)
                 if this.j_cmd.isValid
                     str = strrep(strCell2Str(this.state.exportCmdList(), 10),'#','%');
                     if ~strcmp(str, char(this.j_cmd.getText()))
                         this.j_cmd.setText(str);
-                    end               
+                    end
                 end
             end
         end
