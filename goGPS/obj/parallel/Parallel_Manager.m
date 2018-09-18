@@ -138,18 +138,27 @@ classdef Parallel_Manager < Com_Interface
                 goGPS_folder = pwd;
             end
             
+            slave_cmd = [...
+                'cd ' goGPS_folder '; ' ...
+                'addPathGoGPS;', ...
+                'log = Logger.getInstance;' ...
+                'log.setColorMode(0);' ...
+                'log.setVerbosityLev(0);' ...
+                'gos = Go_Slave.getInstance(''' com_dir ''');' ...
+                'gos.live; exit'];
+            
             if isunix
                 if ismac
                     mat_exe = [matlabroot '/bin/maci64/matlab'];
                 else
                     mat_exe = [matlabroot '/bin/matlab'];
                 end
-                run_cmd = [mat_exe ' -nodisplay -nosplash -r "cd ' goGPS_folder '; addPathGoGPS; log = Logger.getInstance; log.setColorMode(0); log.setVerbosityLev(0); gos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+                run_cmd = [mat_exe ' -singleCompThread -nodisplay -nosplashmaxNumCompThreadsmaxNumCompThreads -r "' slave_cmd '" &'];
             elseif ispc
                 mat_exe = [matlabroot '/bin/matlab.exe'];
                 % In windows I need to create a bat to be able to run different matlab in background
                 fid = fopen('win_create_worker.bat','w');
-                run_cmd = ['"' mat_exe '" -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; cd ' goGPS_folder '; addPathGoGPS; log = Logger.getInstance; log.setColorMode(0); log.setVerbosityLev(0); Cregos = Go_Slave.getInstance(''' com_dir '''); gos.live; exit" &'];
+                run_cmd = ['"' mat_exe '" -singleCompThread -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; ' slave_cmd '" &'];
                 fwrite(fid, run_cmd);
                 fclose(fid);
             end
