@@ -575,10 +575,12 @@ end
             
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBoxObsML(box_g, 'Observations', 'obs_dir', 'obs_name', @this.onEditChange, {[170 -1 25], [170 -1 25]});
             Core_UI.insertEmpty(box_g);
+            [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Antex (ATX) filename', 'atx_dir', 'atx_name', @this.onEditChange, [170 -3 5 -1 25]);
+            Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'CRD filename', 'crd_dir', 'crd_name', @this.onEditChange, [170 -3 5 -1 25]);
             Core_UI.insertEmpty(box_g);
             [~, this.edit_texts{end+1}, this.edit_texts{end+2}] = Core_UI.insertDirFileBox(box_g, 'Ocean loading filename', 'ocean_dir', 'ocean_name', @this.onEditChange, [170 -3 5 -1 25]);
-            box_g.Heights = [-1 5 23 5 23];
+            box_g.Heights = [-1 5 23 5 23 5 23];
         end
         
         function insertProcessing(this, container)
@@ -636,33 +638,50 @@ end
             Core_UI.insertEmpty(tab);
             
             % --------------------------------------------------------
+            %  ----h-----------------
+            %  -ppp--E--r--E--out--
             
             opt_h = uix.HBox('Parent', tab, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
             
             opt_l = uix.VBox('Parent', opt_h, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
-            ppp_panel = this.insertPPPOptions(opt_l); %#ok<NASGU>
-            Core_UI.insertEmpty(opt_l);
-            opt_l.Heights = [200 -1];
             
-            Core_UI.insertEmpty(opt_h);
-            
-            opt_r = uix.VBox('Parent', opt_h, ...
+            opt_tlh = uix.HBox('Parent', opt_l, ...
                 'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            opt_tll = uix.VBox('Parent', opt_tlh, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+            
+            Core_UI.insertEmpty(opt_tlh);
+            
+            opt_tlr = uix.VBox('Parent', opt_tlh, ...
+                'BackgroundColor', Core_UI.LIGHT_GRAY_BG);
+                         
+            % left top left
+            ppp_panel = this.insertPPPOptions(opt_tll); %#ok<NASGU>
                         
+            % left top left right
+            pp_panel = this.insertProcessingOptions(opt_tlr);
+            Core_UI.insertEmpty(opt_tlr);            
+            coo_panel = this.insertCooOptions(opt_tlr);
+
+            % left bottom
+            Core_UI.insertEmpty(opt_l);
+            [~, this.edit_texts{end + 1}] = Core_UI.insertDirBox(opt_l, 'Out directory', 'out_dir', @this.onEditChange, [100 -1 25]);
+            Core_UI.insertEmpty(opt_l);
+
             Core_UI.insertEmpty(opt_h);
             
-            out_panel = this.insertOutOptions(opt_h); %#ok<NASGU>
+            % right                                                           
+            opt_out = this.insertOutOptions(opt_h); %#ok<NASGU>
             
-            amb_panel = this.insertProcessingOptions(opt_r);
-            Core_UI.insertEmpty(opt_r);
-            coo_panel = this.insertCooOptions(opt_r);
-            Core_UI.insertEmpty(opt_r);
-                        
-            opt_r.Heights = [70, 5, 125, -1];
+            opt_l.Heights = [200 5 23 -1];
+            opt_tll.Heights = 200;
+            opt_tlr.Heights = [70, 5, 125];
             
-            opt_h.Widths = [180 5 -1 5 160];
+            opt_tlh.Widths = [190 5 -1];
+            opt_h.Widths = [-1 5 170];
             
             % --------------------------------------------------------
             
