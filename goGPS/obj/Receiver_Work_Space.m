@@ -1476,6 +1476,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % remove empty observables
                 this.remObs(~this.active_ids);
+                % remove empty sets very useful when reading RINEX 2
+                % multiconstellations files
+                this.remObs(not(any(this.obs')));
                 % remove unselected obsevartions
                 u_sys_c = unique(this.system);
                 for i = 1 : length(u_sys_c)
