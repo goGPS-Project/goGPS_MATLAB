@@ -1840,7 +1840,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 7
                 rate = [];
             end
-            comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
+            comment_pos = repmat(lim(:,1),1,7) + repmat(60:66, size(lim,1), 1);
+            % avoid searching out of txt boundaries
+            id_ko = find(comment_pos(:,end) > numel(txt), 1, 'first');
+            if not(isempty(id_ko))
+                comment_pos(id_ko : end, :) = [];
+            end
+            comment_line = sum(txt(comment_pos) == repmat('COMMENT', size(comment_pos, 1), 1),2) == 7;
             comment_line(1:eoh) = false;
             lim(comment_line,:) = [];
             if lim(end,3) < 32
