@@ -3030,6 +3030,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 lid = (this.system == sys_c)';
             end
+            if nargin < 2 || isempty(flag)
+                flag = '???';
+            end
             
             obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code(lid,:))));
             
