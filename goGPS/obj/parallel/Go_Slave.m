@@ -198,68 +198,74 @@ classdef Go_Slave < Com_Interface
                 this.deleteMsg();
                 this.sendMsg(this.MSG_ACK, sprintf('I''m ready to work!'));
                 msg = this.waitMsg([this.id, '_' Parallel_Manager.MSG_ASKWORK '*' Parallel_Manager.ID], true); % WAIT WORK MESSAGE
-                if ~(isnumeric(msg))
-                    this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
-                    
-                    % Creating worker
-                    core = Core.getInstance(); % Init Core
-                    this.waitMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
-                    tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
-                    core.state = tmp.state; % load the state
-                    core.gc.cur_settings = tmp.state; % load the state
-                    core.gc.initGeoid(tmp.geoid); % load the geoid
-                    core.cur_session = tmp.cur_session; % load the current session number
-                    core.rin_list = tmp.rin_list; % load the rinex list of files
-                    core.met_list = tmp.met_list; % load the meteorological list of files
-                    this.log.addMarkedMessage('State updated');
-                    clear tmp;
-                    this.waitMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID]); % WAIT WORK MESSAGE
-                    clear Core_Sky Atmosphere Meteo_Network;
-                    tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
-                    core.sky  = tmp.sky;  % load the state
-                    core.atmo = tmp.atmo; % load the atmosphere
-                    core.mn = tmp.mn; % load the meteorological network
-                    clear tmp;
-                    this.sendMsg(this.MSG_ACK, sprintf('Sky loaded'));
-                    this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
-                    
-                    % Waiting work
-                    this.waitMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false); % WAIT ACK MESSAGE
-                    
-                    active_ps = true;
-                    while active_ps
-                        msg = this.waitMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
-                        if isnumeric(msg)
-                            active_ps = false;
-                        else
-                            cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
-                            rec_id = str2double(regexp(msg, '[0-9]*(?=_MASTER)', 'match', 'once'));
-                            
-                            % prepare receiver
-                            state = core.getState();
-                            clear rec
-                            for r = 1 : rec_id
-                                rec(r) = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0); %#ok<AGROW>
+                try
+                    if ~(isnumeric(msg))
+                        this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX '[0-9]*'], 'match', 'once');
+                        
+                        % Creating worker
+                        core = Core.getInstance(); % Init Core
+                        this.waitMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
+                        tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'cur_session', 'rin_list', 'met_list');
+                        core.state = tmp.state; % load the state
+                        core.gc.cur_settings = tmp.state; % load the state
+                        core.gc.initGeoid(tmp.geoid); % load the geoid
+                        core.cur_session = tmp.cur_session; % load the current session number
+                        core.rin_list = tmp.rin_list; % load the rinex list of files
+                        core.met_list = tmp.met_list; % load the meteorological list of files
+                        this.log.addMarkedMessage('State updated');
+                        clear tmp;
+                        this.waitMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID]); % WAIT WORK MESSAGE
+                        clear Core_Sky Atmosphere Meteo_Network;
+                        tmp = load(fullfile(this.getComDir, 'sky.mat'), 'sky', 'atmo', 'mn');
+                        core.sky  = tmp.sky;  % load the state
+                        core.atmo = tmp.atmo; % load the atmosphere
+                        core.mn = tmp.mn; % load the meteorological network
+                        clear tmp;
+                        this.sendMsg(this.MSG_ACK, sprintf('Sky loaded'));
+                        this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
+                        
+                        % Waiting work
+                        this.waitMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false); % WAIT ACK MESSAGE
+                        
+                        active_ps = true;
+                        while active_ps
+                            msg = this.waitMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
+                            if isnumeric(msg)
+                                active_ps = false;
+                            else
+                                cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
+                                rec_id = str2double(regexp(msg, '[0-9]*(?=_MASTER)', 'match', 'once'));
+                                
+                                % prepare receiver
+                                state = core.getState();
+                                clear rec
+                                for r = 1 : rec_id
+                                    rec(r) = GNSS_Station(state.getConstellationCollector(), state.getDynMode() == 0); %#ok<AGROW>
+                                end
+                                core.rec = rec;
+                                
+                                for c = 1 : numel(cmd_file.cmd_list)
+                                    cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(rec_id));
+                                end
+                                core.exec(cmd_file.cmd_list);
+                                
+                                % Export work
+                                rec = core.rec(rec_id);
+                                rec.out = []; % do not want to save out
+                                save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
+                                clear rec;
+                                core.rec = []; % empty space
+                                this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                             end
-                            core.rec = rec;
-                            
-                            for c = 1 : numel(cmd_file.cmd_list)
-                                cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'$', num2str(rec_id));
-                            end
-                            core.exec(cmd_file.cmd_list);
-                            
-                            % Export work
-                            rec = core.rec(rec_id);
-                            rec.out = []; % do not want to save out
-                            save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', rec_id, this.id)), 'rec');
-                            clear rec;
-                            core.rec = []; % empty space
-                            this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
                         end
+                        clear cmd_file;
                     end
-                    clear cmd_file;
+                catch ex
+                    % If something bad happen during work restart
+                    this.log.addError(sprintf('Something bad happen: %s\n', ex.message));
+                    msg = this.RESTART;
                 end
-                if isnumeric(msg)                    
+                if isnumeric(msg)
                     switch msg
                         case this.EXIT
                             % It means that my services are no more needed
