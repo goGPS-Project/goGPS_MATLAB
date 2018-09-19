@@ -2832,6 +2832,10 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             time = this.time;
             l = time.length;
+            
+            if isempty(this.meteo_data)
+                flag = 1;
+            end
             switch flag
                 case 1 % standard atmosphere
                     atmo = Core.getAtmosphere();

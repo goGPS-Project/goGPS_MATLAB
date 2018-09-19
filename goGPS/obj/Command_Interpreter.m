@@ -915,9 +915,9 @@ classdef Command_Interpreter < handle
                     this.log.smallSeparator();
                     this.log.newLine();
                     if sys_found
-                        rec(r).initPositioning(sys_list);
+                        rec(r).work.initPositioning(sys_list);
                     else
-                        rec(r).initPositioning();
+                        rec(r).work.initPositioning();
                     end
                 end
             end
