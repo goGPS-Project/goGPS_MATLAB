@@ -1476,6 +1476,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 
                 % remove empty observables
                 this.remObs(~this.active_ids);
+                % remove empty sets very useful when reading RINEX 2
+                % multiconstellations files
+                this.remObs(not(any(this.obs')));
                 % remove unselected obsevartions
                 u_sys_c = unique(this.system);
                 for i = 1 : length(u_sys_c)
@@ -1837,7 +1840,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             if nargin < 7
                 rate = [];
             end
-            comment_line = sum(txt(repmat(lim(1:end-2,1),1,7) + repmat(60:66, size(lim,1)-2, 1)) == repmat('COMMENT', size(lim,1)-2, 1),2) == 7;
+            comment_pos = repmat(lim(:,1),1,7) + repmat(60:66, size(lim,1), 1);
+            % avoid searching out of txt boundaries
+            id_ko = find(comment_pos(:,end) > numel(txt), 1, 'first');
+            if not(isempty(id_ko))
+                comment_pos(id_ko : end, :) = [];
+            end
+            comment_line = sum(txt(comment_pos) == repmat('COMMENT', size(comment_pos, 1), 1),2) == 7;
             comment_line(1:eoh) = false;
             lim(comment_line,:) = [];
             if lim(end,3) < 32
@@ -3026,6 +3035,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 lid = (1 : numel(this.system))';
             else
                 lid = (this.system == sys_c)';
+            end
+            if nargin < 2 || isempty(flag)
+                flag = '???';
             end
             
             obs_code = this.obsNum2Code(unique(this.obsCode2Num(this.obs_code(lid,:))));
