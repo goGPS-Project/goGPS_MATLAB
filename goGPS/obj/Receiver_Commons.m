@@ -237,7 +237,7 @@ classdef Receiver_Commons < handle
         function dt = getTotalDt(this)
             dt = this.getDt + this.getDtPrePro;
         end
-                
+        
         function coo = getPos(this)
             % return the positions computed for the receiver
             % as Coordinates object
@@ -248,7 +248,14 @@ classdef Receiver_Commons < handle
             % SYNTAX
             %   coo = this.getPos()
             
-            coo = Coordinates.fromXYZ(this.xyz);
+            if ~isempty(this.xyz)
+                coo = Coordinates.fromXYZ(this.xyz);
+            elseif ~isempty(this.parent.work.xyz)
+                coo = Coordinates.fromXYZ(this.parent.work.xyz);
+            else
+                coo = Coordinates.fromXYZ([0 0 0]);
+            end
+            
         end
         
         function xyz = getPosXYZ(this)
@@ -261,7 +268,11 @@ classdef Receiver_Commons < handle
             %   xyz = this.getPosXYZ()
             xyz = [];
             for r = 1 : numel(this)
-                xyz = [xyz; this(r).xyz]; %#ok<AGROW>
+                if ~isempty(this(r).xyz)
+                    xyz = [xyz; this(r).xyz]; %#ok<AGROW>
+                else
+                    xyz = [xyz; this(r).parent.work.xyz]; %#ok<AGROW>
+                end
             end
         end
         
@@ -275,18 +286,18 @@ classdef Receiver_Commons < handle
             %   lat_geoc = geocentric spherical latitude [rad]
             %   h_ortho  = orthometric height            [m]
             %
-            % SYNTAX 
+            % SYNTAX
             %   [lat, lon, h_ellips, h_ortho] = this.getGeodetic()
-
+            
             coo = this.getPos();
-
+            
             if nargout > 3
                 [lat, lon, h_ellips, h_ortho] = coo.getGeodetic();
             elseif nargout > 2
                 [lat, lon, h_ellips] = coo.getGeodetic();
             else
                 [lat, lon] = coo.getGeodetic();
-            end            
+            end
         end
         
         function enu = getPosENU(this)

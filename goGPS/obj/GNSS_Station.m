@@ -367,6 +367,19 @@ classdef GNSS_Station < handle
             end
         end
         
+        function coo = getPos(sta_list)
+            % return the positions computed for the receiver
+            %
+            % OUTPUT
+            %   coo     Coordinate object array
+            %
+            % SYNTAX
+            %   coo = sta_list.getPos()
+            for r = 1 : numel(sta_list)
+                coo(r) = sta_list(r).out.getPos();
+            end
+        end
+        
         function xyz = getPosXYZ(sta_list)
             % return the positions computed for the receiver
             %

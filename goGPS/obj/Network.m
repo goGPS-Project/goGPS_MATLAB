@@ -368,7 +368,7 @@ classdef Network < handle
                 sod_f = '86400';
             end
             [~,doy] = st_time.getDOY();
-            fpath  = sprintf('%s/%s%02d%03d.%05d-%05d.CRD',this.state.getOutDir,file_prefix,st_time.getYY,doy,sod_s,sod_f);
+            fpath  = sprintf('%s/%s%02d%03d.%05d-%05d.CRD',this.state.getOutDir, file_prefix, st_time.getYY, doy, sod_s,sod_f);
             fid = fopen(fpath,'w');
             now_time = GPS_Time.now();
             fprintf(fid, ['                                                                 ' upper(now_time.toString('dd-mmm-yy HH:MM')) ' \n']);
@@ -379,11 +379,9 @@ classdef Network < handle
             fprintf(fid,'NUM  STATION NAME           X (M)          Y (M)          Z (M)     FLAG\n\n');
             n_rec = length(this.rec_list);
             for i = 1 : n_rec
-                fprintf(fid,sprintf('%3d  %s              %13.5f  %13.5f  %13.5f    %s\n',i,upper(this.rec_list(i).getMarkerName4Ch),coo(i,:),iif(sum(this.idx_ref == i)>0,'F','P')));
+                fprintf(fid,sprintf('%3d  %s              %13.5f  %13.5f  %13.5f    %s\n', i, upper(this.rec_list(i).getMarkerName4Ch), coo(i,:), iif(sum(this.idx_ref == i) > 0, 'F', 'P')));
             end
             fclose(fid);
-
-            
         end
     end
 end
