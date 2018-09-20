@@ -236,6 +236,7 @@ classdef Parallel_Manager < Com_Interface
             this.deleteMsg('*'); % delete all master massages
             this.deleteMsg(Go_Slave.MSG_DIE, true);
             this.deleteMsg(Go_Slave.MSG_ACK, true);
+            this.deleteMsg(Go_Slave.MSG_JOBREADY, true);
             this.deleteMsg([Go_Slave.MSG_BORN, Go_Slave.SLAVE_READY_PREFIX '*'], true);
             
             slave_list = dir(fullfile(this.getComDir, [Go_Slave.MSG_BORN '*']));

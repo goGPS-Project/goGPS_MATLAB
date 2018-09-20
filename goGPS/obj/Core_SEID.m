@@ -94,10 +94,14 @@ classdef Core_SEID < handle
                 
                 log.addMarkedMessage('Starting SEID processing')
                 log.addMessage(log.indent('Getting Geometry free from reference receivers'));
-                
+                systems = unique(ref(1).system);
                 for r = 1 : numel(ref)
-                    phase_gf(r) = ref(r).getGeometryFree('L1','L2','G');
-                    code_gf(r) = ref(r).getGeometryFree('C1','C2','G');
+                    phase_gf(r) = Observation_Set();
+                    code_gf(r) = Observation_Set();
+                    for sys = systems
+                        phase_gf(r).merge(ref(r).getGeometryFree('L1','L2',sys));
+                        code_gf(r).merge(ref(r).getGeometryFree('C1','C2',sys));
+                    end
                     
                     %[phase_gf(r).obs, phase_gf(r).sigma] = Receiver.smoothCodeWithPhase(zero2nan(code_gf(r).obs), code_gf(r).sigma, code_gf(r).go_id, ...
                     %zero2nan(phase_gf(r).obs), phase_gf(r).sigma, phase_gf(r).go_id, phase_gf(r).cycle_slip);
@@ -163,8 +167,13 @@ classdef Core_SEID < handle
                     %     lon_lim = minMax(pierce_point(r).lon / pi * 180); lon_lim(1) = lon_lim(1) - 0.5; lon_lim(2) = lon_lim(2) + 0.5;
                     %     prettyScatter(tmp(id_ok(2 : end, :)), pierce_point(r).lat(id_ok) / pi * 180, pierce_point(r).lon(id_ok) / pi * 180, lat_lim(1), lat_lim(2), lon_lim(1), lon_lim(2), '10m'); hold on; colormap(jet);
                     % end
-                    
-                    [ph1, id_ph] = trg(t).getObs('L1','G');
+                    ph1 = [];
+                    id_ph = [];
+                    for sys = systems
+                        [ph1_t, id_ph_t] = trg(t).getObs('L1',sys);
+                        ph1 = [ph1; ph1_t];
+                        id_ph = [id_ph; id_ph_t];
+                    end
                     [lat, lon, ~, h_ortho] = trg(t).getMedianPosGeodetic;
                     ph1_goid = trg(t).go_id(id_ph)';
                     trg_go_id = unique(ph1_goid);
@@ -203,7 +212,13 @@ classdef Core_SEID < handle
                     ph2 = (ph1 * wl1 - trg_ph_gf(:, trg(t).go_id(id_ph))') / wl2;
                     
                     [~, ~, ~, flag] = trg(t).getBestCodeObs();
-                    [pr1, id_pr] = trg(t).getObs(flag(1,1:3),'G');
+                    pr1 = [];
+                    id_pr = [];
+                    for sys = systems
+                        [pr1_t, id_pr_t] = trg(t).getObs(flag(1,1:3),sys);
+                        pr1 = [pr1; pr1_t];
+                        id_pr = [id_pr; id_pr_t];
+                    end
                     pr1_goid = trg(t).go_id(id_pr);
                     % C2 - C1 = gf
                     % C2 = C1 + gf
@@ -216,12 +231,20 @@ classdef Core_SEID < handle
                     %fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
                     
                     % Remove the L2 stored in the object
-                    [ph_old, id_ph] = trg(t).getObs('L2','G');
+                    id_ph = [];
+                    for sys = systems
+                        [~, id_ph_t] = trg(t).getObs('L2',sys);
+                        id_ph = [id_ph; id_ph_t];
+                    end
                     if ~isempty(id_ph)
                         log.addMessage(log.indent(sprintf('Removing L2 observations already present in the target receiver %d / %d', t, numel(trg))));
                         trg(t).remObs(id_ph);
                     end
-                    [pr_old, id_pr] = trg(t).getObs('C2','G');
+                    id_pr = [];
+                    for sys = systems
+                        [~, id_pr_t] = trg(t).getObs('C2',sys);
+                        id_pr = [id_pr; id_pr_t];
+                    end
                     if ~isempty(id_pr)
                         log.addMessage(log.indent(sprintf('Removing C2 observations already present in the target receiver %d / %d', t, numel(trg))));
                         trg(t).remObs(id_pr);
