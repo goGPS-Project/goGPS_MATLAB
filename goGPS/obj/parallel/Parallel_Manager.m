@@ -158,7 +158,7 @@ classdef Parallel_Manager < Com_Interface
                 mat_exe = [matlabroot '/bin/matlab.exe'];
                 % In windows I need to create a bat to be able to run different matlab in background
                 fid = fopen('win_create_worker.bat','w');
-                run_cmd = ['"' mat_exe '" -singleCompThread -nodisplay -nosplash -r "com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame.hide; ' slave_cmd '" &'];
+                run_cmd = ['"' mat_exe '" -singleCompThread -nodisplay -nosplash -r "not_ready = true; while(not_ready); pause(0.1); jmf = com.mathworks.mde.desk.MLDesktop.getInstance.getMainFrame; if not(isempty(jmf)); not_ready = false; end; end; jmf.hide, ' slave_cmd '" &'];
                 fwrite(fid, run_cmd);
                 fclose(fid);
             end
