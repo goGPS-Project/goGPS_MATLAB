@@ -76,6 +76,7 @@ classdef Command_Interpreter < handle
         CMD_OUTDET      % Outlier and cycle-slip detection
         CMD_SHOW        % Display plots and images
         CMD_EXPORT      % Export results
+        CMD_PUSHOUT     % push results in output
                 
         KEY_FOR         % For each session keyword
         KEY_PAR         % For each target (parallel) keyword
@@ -112,7 +113,7 @@ classdef Command_Interpreter < handle
         PAR_S_SAVE      % flage for saving                
                 
         KEY_LIST = {'FOR', 'PAR', 'ENDFOR', 'ENDPAR'};
-        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT'};
+        CMD_LIST = {'LOAD', 'EMPTY', 'AZEL', 'BASICPP', 'PREPRO', 'CODEPP', 'PPP', 'NET', 'SEID', 'REMIONO', 'KEEP', 'SYNC', 'OUTDET', 'SHOW', 'EXPORT', 'PUSHOUT'};
         VALID_CMD = {};
         CMD_ID = [];
         KEY_ID = [];
@@ -373,6 +374,11 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.descr = 'Export results';
             this.CMD_EXPORT.rec = 'T';
             this.CMD_EXPORT.par = [this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT];
+            
+            this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
+            this.CMD_PUSHOUT.descr = 'Push results in output';
+            this.CMD_PUSHOUT.rec = 'T';
+            this.CMD_PUSHOUT.par = [];
 
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
@@ -640,6 +646,8 @@ classdef Command_Interpreter < handle
                             this.runShow(rec, tok, level(l));
                         case this.CMD_EXPORT.name               % EXPORT
                             this.runExport(rec, tok, level(l));
+                        case this.CMD_PUSHOUT.name              % PUSHOUT
+                            this.runPushOut(rec, tok, level(l));
                     end
                 end
                 if toc(t1) > 1
@@ -795,6 +803,26 @@ classdef Command_Interpreter < handle
                     end
                     rec(r).work.updateAzimuthElevation();
                     %rec(r).work.pushResult();
+                end
+            end
+        end
+        
+        function runPushOut(this, rec, tok, lvl)
+            % Execute Computation of azimuth and elevation
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runUpdateAzEl(rec, tok)
+            
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                this.log.addWarning('No target found -> nothing to do');
+            else
+                for i = 1 : length(id_trg)
+                    rec(id_trg(i)).work.pushResult();
                 end
             end
         end
