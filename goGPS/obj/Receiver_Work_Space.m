@@ -6118,6 +6118,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             %this.setPhases(ph, wl, id_ph);
         end
         
+        function adjustPrAmbiguity(this)
+            % sometimes the receiver might fail to resolve the pseudorange ambifuity
+            [pr, id_pr] = this.getPseudoRanges;
+            %[ph, wl, id_ph] = this.getPhases;
+            sensor =  pr - this.getSyntPrObs;
+            dt = median(zero2nan(sensor),2,'omitnan');
+            sensor = sensor - repmat(dt,1,size(pr,2));
+            pr_amb = 1e-3*Global_Configuration.V_LIGHT;
+            pr_amb_idx =  abs(sensor) > 1e4 & fracFNI(sensor/(pr_amb)) < 1e2;
+            pr(pr_amb_idx) = pr(pr_amb_idx) - round(sensor(pr_amb_idx)/pr_amb)*pr_amb;
+            this.setPseudoRanges(pr, id_pr);
+        end
+        
         function [dpos, s02] = codeStaticPositioning(this, id_sync, cut_off, num_reweight)
             ls = Least_Squares_Manipulator(this.cc);
             if nargin < 2
