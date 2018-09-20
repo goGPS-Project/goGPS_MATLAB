@@ -559,7 +559,7 @@ classdef Core < handle
             % init refererecne frame object            
             this.rf.init();
             
-            [cmd_list, ~, execution_block, sss_list, sss_level] = this.cmd.fastCheck(this.state.cmd_list);
+            [cmd_list, ~, execution_block, sss_list, ~, sss_level] = this.cmd.fastCheck(this.state.cmd_list);
             
             cmd_line = 1;
             last_sss = 0;
