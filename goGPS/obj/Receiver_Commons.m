@@ -576,10 +576,17 @@ classdef Receiver_Commons < handle
     % ==================================================================================================================================================
     
     methods
-        function exportTropoSINEX(this)
+        function exportTropoSINEX(this, param_to_export)
+            % exprot tropspheric product in a sinex file
+            %
+            % SYNTAX:
+            %    exportTropoSinex(this, <param_to_export>)
+            if nargin < 2
+                param_to_export = [ 1 1 1 0 0 0 0 0];
+            end
             for r = 1 : numel(this)
                 if max(this(r).s0) < 0.10
-                    try
+                    %try
                         rec = this(r);
                         if ~isempty(rec.getZtd)
                             [year, doy] = rec.time.first.getDOY();
@@ -592,19 +599,44 @@ classdef Receiver_Commons < handle
                             snx_wrt.writeFileReference()
                             snx_wrt.writeAcknoledgments()
                             smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
-                            val_flags = {'TROTOT','TGNTOT','TGETOT'};
-                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function},val_flags, false(3,1))
+                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function}, SINEX_Writer.SUPPORTED_PARAMETERS(param_to_export), false(length(param_to_export),1))
                             snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
                             snx_wrt.writeTropoSolutionSt()
-                            snx_wrt.writeTropoSolutionStation(  rec.parent.marker_name, rec.time.getSubSet(rec.getIdSync), [rec.ztd(rec.getIdSync,:) rec.tgn(rec.getIdSync,:) rec.tge(rec.getIdSync,:)]*1000, [], {'TROTOT','TGNTOT','TGETOT'})
+                            data = [];
+                            if param_to_export(1)
+                                data = [data rec.ztd(rec.getIdSync,:)*1e3 ];
+                            end
+                            if param_to_export(2)
+                                data = [data rec.tgn(rec.getIdSync,:)*1e3 ];
+                            end
+                            if param_to_export(3)
+                                data = [data rec.tge(rec.getIdSync,:)*1e3];
+                            end
+                            if param_to_export(4)
+                                data = [data rec.getZwd*1e3];
+                            end
+                            if param_to_export(5)
+                                data = [data rec.getPwv*1e3];
+                            end
+                            [P,T,H] = this.getPTH();
+                            if param_to_export(6)
+                                data = [data P];
+                            end
+                            if param_to_export(7)
+                                data = [data T];
+                            end
+                            if param_to_export(8)
+                                data = [data H];
+                            end
+                            snx_wrt.writeTropoSolutionStation(rec.parent.marker_name, rec.time.getSubSet(rec.getIdSync), data, [],param_to_export)
                             snx_wrt.writeTropoSolutionEnd()
                             snx_wrt.writeTroSinexEnd();
                             snx_wrt.close()
                             rec(1).log.addStatusOk(sprintf('Tropo saved into: %s', fname));
                         end
-                    catch ex
-                        rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
-                    end
+%                     catch ex
+%                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
+%                     end
                 else
                     this(1).log.addWarning(sprintf('s02(%f m) too bad, station skipped', max(this(r).s0)));
                 end
@@ -1732,7 +1764,7 @@ classdef Receiver_Commons < handle
                     id_sync{i} = nan(p_time(i).length, numel(id));
                     for rs = id % for each rec to sync
                         if ~sta_list(rs).isEmpty && ~(obs_type(rs) == 0 && (rs ~= r)) % if it's not another different target
-                            [~, id_ref, id_rec] = intersect(round(sta_list(rs).time.getRefTime(p_time_zero) * 1e5)/1e5, (pt0 : pr : pt1));
+                            [~, id_ref, id_rec] = intersect(round(sta_list(rs).time.getRefTime(p_time_zero) * 1e1)/1e1, (pt0 : pr : pt1));
                             id_sync{i}(id_rec, rs) = id_ref;
                         end
                     end

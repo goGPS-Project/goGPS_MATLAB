@@ -157,6 +157,23 @@ classdef Receiver_Output < Receiver_Commons
             time = this(1).time.getCopy();
         end
         
+        function [P,T,H] = getPTH(this)
+            % get ztd
+            %
+            % SYNTAX
+            %   ztd = this.getZtd()
+            if max(this.getIdSync) > numel(this.ztd)
+                P = nan(size(this.getIdSync));
+                T = nan(size(this.getIdSync));
+                H = nan(size(this.getIdSync));
+            else
+                P = this.pressure(this.getIdSync);
+                T = this.temperature(this.getIdSync);
+                H = this.humidity(this.getIdSync);
+            end
+        end
+        
+        
         function desync = getDesync(this)
             desync = this.desync;
         end        

@@ -282,10 +282,12 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_SNX.name = 'TROPO Sinex';
             this.PAR_E_TROPO_SNX.descr = 'TRP_SNX          Tropo parameters SINEX file';
             this.PAR_E_TROPO_SNX.par = '(trp_snx)|(TRP_SNX)';
+            this.PAR_E_TROPO_SNX.accepted_values = {'ZTD','GN','GE','ZWD','PWV','P','T','H'};
 
             this.PAR_E_TROPO_MAT.name = 'TROPO Matlab format';
             this.PAR_E_TROPO_MAT.descr = 'TRP_MAT          Tropo parameters matlab .mat file';
             this.PAR_E_TROPO_MAT.par = '(trp_mat)|(TRP_MAT)';
+            this.PAR_E_TROPO_MAT.accepted_values = {};
             
             this.PAR_E_COO_CRD.name = 'Coordinates bernese CRD format';
             this.PAR_E_COO_CRD.descr = 'COO_CRD          Coordinates Bernese .CRD file';
@@ -1171,11 +1173,26 @@ classdef Command_Interpreter < handle
                     this.log.smallSeparator();
                     this.log.newLine();
                     for t = 1 : numel(tok)
-                        try
+                       % try
                             if sss_lev == 0 % run on all thw results (out)
-                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*$'], 'once'))
-                                    rec(r).out.exportTropoSINEX();
-                                elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
+                                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
+                                    pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
+                                    export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
+                                    if isempty(pars)
+                                        export_par([1,2,3]) = true; % by defaul export only ztd and gradients
+                                    elseif strcmpi(pars{1},'ALL')
+                                        export_par(:) = true; % export all
+                                    else
+                                        for i = 1 : length(pars)
+                                            for j = 1 : length(export_par)
+                                                if strcmpi(pars{i}, this.PAR_E_TROPO_SNX.accepted_values{j})
+                                                    export_par(j) = true;
+                                                end
+                                            end
+                                        end
+                                    end
+                                    rec(r).out.exportTropoSINEX(export_par);
+                                elseif ~isempty(regexp(tok{t}, ['^*\( \)*$'], 'once'))
                                     rec(r).out.exportTropoMat();
                                 end
                             else % run in single session mode (work)
@@ -1185,9 +1202,9 @@ classdef Command_Interpreter < handle
                                     rec(r).work.exportTropoMat();
                                 end
                             end
-                        catch ex
-                            this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
-                        end
+%                         catch ex
+%                             this.log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
+%                         end
                     end
                 end
             end

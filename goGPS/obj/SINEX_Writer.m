@@ -42,7 +42,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 classdef SINEX_Writer < handle
-    properties
+    properties (Constant)
         TROPO_VERSION_HEADER = '%=TRO 1.00 GRD ${DATEPRODUCED} GRD ${STARTOFDATA} ${ENDOFDATA} P ${MARKERNAME}'
         
         
@@ -54,7 +54,8 @@ classdef SINEX_Writer < handle
         ACKNOWLEDGMENTS = 'International GNSS Service (IGS)';
         
         TROPO_HEADER = '*SITE EPOCH_______ TROTOT STDEV  TGNTOT  STDEV  TGETOT  STDEV';
-        SINEX_MAPPING_FLAGS = {'WET GMF','WET GRID VMF'}
+        SINEX_MAPPING_FLAGS = {'WET GMF','WET GRID VMF'};
+        SUPPORTED_PARAMETERS = {'TROTOT','TGNTOT','TGETOT','TROWET','PWV','PRESS','TEMDRY','HUMREL'};
     end
     properties
         state;
@@ -167,9 +168,9 @@ classdef SINEX_Writer < handle
             yy_doy_sod = gps_time.toSinexStrDate();
             mrk_name = repmat([' ' mrk_mame ' '], n_ep, 1);
             vals_mat = [];
-            
+            vals_flag = this.SUPPORTED_PARAMETERS(vals_flag);
             for i = 1 : size(vals,2)
-                if strfind(vals_flag{i},'TRO')
+                if strfind(vals_flag{i},'TROTOT')
                     vals_mat = [ vals_mat reshape(sprintf('%7.1f',vals(:,i)),7,n_ep)'];
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.1f',stds(:,i)),5,n_ep)'];
@@ -178,6 +179,11 @@ classdef SINEX_Writer < handle
                     vals_mat = [ vals_mat reshape(sprintf('%8.3f',vals(:,i)),8,n_ep)'];
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.3f',stds(:,i)),5,n_ep)'];
+                    end
+                else
+                    vals_mat = [ vals_mat reshape(sprintf('%7.1f',vals(:,i)),7,n_ep)'];
+                    if this.std_fields(i)
+                        vals_mat = [ vals_mat reshape(sprintf('%5.1f',stds(:,i)),5,n_ep)'];
                     end
                 end
             end
