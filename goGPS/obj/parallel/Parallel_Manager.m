@@ -404,7 +404,7 @@ classdef Parallel_Manager < Com_Interface
                             core.rec(job_id).work = tmp.rec.work;
                             core.rec(job_id).work.parent = core.rec(job_id);
                         end
-                        core.rec(job_id).work.pushResult();
+                        %core.rec(job_id).work.pushResult();
                         delete(fullfile(this.getComDir(), job_file(1).name));
                         this.deleteMsg([Go_Slave.MSG_JOBREADY, worker_id], true);
                         completed_job = [completed_job; job_id]; %#ok<AGROW>

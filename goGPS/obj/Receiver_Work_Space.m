@@ -6784,7 +6784,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             
                         end
                     end
-                    this.pushResult();
+                    %this.pushResult();
                 end
                 
                 

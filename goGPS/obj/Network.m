@@ -155,7 +155,7 @@ classdef Network < handle
                     end
                 end
                 for i = 1 : n_rec
-                    this.rec_list(i).work.pushResult();
+                    %this.rec_list(i).work.pushResult();
                     this.rec_list(i).work.updateErrTropo();
                 end
             else

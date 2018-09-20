@@ -77,6 +77,7 @@ classdef Core < handle
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
         
         rec             % List of all the receiver used
+        net             % List of all the network used
     end
 
     %% METHOD CREATOR
@@ -579,6 +580,9 @@ classdef Core < handle
                         % for r = 1 : numel(this.rec)
                         %     this.rec(r).resetOut();
                         % end
+                        for i = 1 : length(this.rec)
+                            this.rec(i).work.pushResult();
+                        end
                     end
                     
                     this.log.newLine;
