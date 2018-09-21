@@ -2879,6 +2879,16 @@ classdef Main_Settings < Settings_Interface & Command_Settings
             sss_lim.append(time_stop);
         end
         
+        function central_ss_time = getSessionCentralTime(this)
+            % get the central time of the session
+            %
+            % SYNTAX 
+            %    central_ss_time = this.getSessionCentralTime()
+             [~, sss_lim] = this.getSessionLimits(this.getCurSession());
+             central_ss_time = sss_lim.first();
+             central_ss_time.addSeconds((sss_lim.last - sss_lim.first)/2);
+        end
+        
         function [buf_lft, buf_rgt] = getBuffer(this)
             % get the session buffer
             %
