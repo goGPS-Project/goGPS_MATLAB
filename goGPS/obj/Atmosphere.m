@@ -351,26 +351,42 @@ classdef Atmosphere < handle
                     this.clearAtmLoad();
                     isempty_obj = true;
                 end
-                % find number of header lines
-                n_head = 0;
-%                 fid = fopen(filename);
-                tline = fgetl(fid);
-                while ischar(tline) && tline(1) == '!'
-                    n_head = n_head + 1;
-                    tline = fgetl(fid);
+                
+                txt = fread(fid, '*char')';
+                txt(txt == 13) = []; % remove carriage return - I hate you Bill!
+                fclose(fid);                
+                
+                % get new line separators
+                nl = regexp(txt, '\n')';
+                if nl(end) <  numel(txt)
+                    nl = [nl; numel(txt)];
                 end
-                fclose(fid);
-                %%% read data
-                %data_tmp = dlmread(filename, ' ', n_head, 0);
-                data_tmp = importdata(filename, ' ', n_head);
-                %%% important !!! we assume a regular grid
-                data_tmp_u = reshape(data_tmp.data(:,3),360,180)';
-                data_tmp_e = reshape(data_tmp.data(:,4),360,180)';
-                data_tmp_n = reshape(data_tmp.data(:,5),360,180)';
+                lim = [[1; nl(1 : end - 1) + 1] (nl - 1)];
+                lim = [lim lim(:,2) - lim(:,1)];
+                while lim(end,3) < 3
+                    lim(end,:) = [];
+                end
+                
+                % removing empty lines at end of file
+                while (lim(end,1) - lim(end-1,1))  < 2
+                    lim(end,:) = [];
+                end
+                
+                % searching for header
+                eoh = 0;
+                while txt(lim(eoh + 1)) == '!'
+                    eoh = eoh + 1;
+                end
+                
+                % parsing data
+                data = sscanf(txt(lim(eoh + 1, 1) : lim(end, 2)), '%f ');
+                data_u = reshape(data(3 : 5 : end), 360, 180)';
+                data_e = reshape(data(4 : 5 : end), 360, 180)';
+                data_n = reshape(data(5 : 5 : end), 360, 180)';
                 if isempty_obj
-                    this.atm_load_nt.data_u = data_tmp_u;
-                    this.atm_load_nt.data_e = data_tmp_e;
-                    this.atm_load_nt.data_n = data_tmp_n;
+                    this.atm_load_nt.data_u = data_u;
+                    this.atm_load_nt.data_e = data_e;
+                    this.atm_load_nt.data_n = data_n;
                     this.atm_load_nt.first_lat = 89.5;
                     this.atm_load_nt.first_lon = 0.5;
                     this.atm_load_nt.d_lat = -1;
@@ -379,19 +395,19 @@ classdef Atmosphere < handle
                     this.atm_load_nt.n_lon = 360;
                     this.atm_load_nt.first_time = file_ref_ep;
                     this.atm_load_nt.first_time_double = file_ref_ep.getGpsTime();
-                    this.atm_load_nt.dt = 3600*6;
+                    this.atm_load_nt.dt = 3600 * 6;
                     this.atm_load_nt.n_t = 1;
                 else
-                    if file_ref_ep < this.atm_load_nt.first_time ;
+                    if file_ref_ep < this.atm_load_nt.first_time
                         this.atm_load_nt.first_time = file_ref_ep;
                         this.atm_load_nt.first_time_double = file_ref_ep.getGpsTime();
-                        this.atm_load_nt.data_u = cat(3,data_tmp_u,this.atm_load_nt.data_u);
-                        this.atm_load_nt.data_e = cat(3,data_tmp_e,this.atm_load_nt.data_e);
-                        this.atm_load_nt.data_n = cat(3,data_tmp_n,this.atm_load_nt.data_n);
+                        this.atm_load_nt.data_u = cat(3, data_u, this.atm_load_nt.data_u);
+                        this.atm_load_nt.data_e = cat(3, data_e, this.atm_load_nt.data_e);
+                        this.atm_load_nt.data_n = cat(3, data_n, this.atm_load_nt.data_n);
                     else
-                        this.atm_load_nt.data_u = cat(3,this.atm_load_nt.data_u,data_tmp_u);
-                    this.atm_load_nt.data_e = cat(3,this.atm_load_nt.data_e,data_tmp_e);
-                    this.atm_load_nt.data_n = cat(3,this.atm_load_nt.data_n,data_tmp_n);
+                        this.atm_load_nt.data_u = cat(3, this.atm_load_nt.data_u, data_u);
+                        this.atm_load_nt.data_e = cat(3, this.atm_load_nt.data_e, data_e);
+                        this.atm_load_nt.data_n = cat(3, this.atm_load_nt.data_n, data_n);
                     end
                     this.atm_load_nt.n_t = this.atm_load_nt.n_t + 1;
                 end
