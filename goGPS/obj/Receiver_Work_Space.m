@@ -184,17 +184,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.cc = this.state.cc;
             end
             this.rec_settings = Receiver_Settings();
-            this.init();
+            this.initHandles();
+            this.reset();            
         end
-        
-        function init(this)
-            this.log = Core.getLogger();
-            this.state = Core.getState();
-            this.rf = Core_Reference_Frame.getInstance();
-            this.w_bar = Go_Wait_Bar.getInstance();
-            this.reset();
-        end
-        
+                
         function reset(this)
             this.reset@Receiver_Commons();
             this.resetObs();
@@ -2229,7 +2222,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX this.toString();
             if ~this.isEmpty
                 fprintf('----------------------------------------------------------------------------------\n')
-                this.log.addMarkedMessage(sprintf('Receiver Work Space %s', this.parent.marker_name));
+                this.log.addMarkedMessage(sprintf('Receiver Work Space %s', this.parent.getMarkerName()));
                 fprintf('----------------------------------------------------------------------------------\n')
                 this.log.addMessage(sprintf(' From     %s', this.time.first.toString()));
                 this.log.addMessage(sprintf(' to       %s', this.time.last.toString()));

@@ -76,7 +76,7 @@ classdef Parallel_Manager < Com_Interface
             % Core object creator
             this.id = this.ID;
             this.initComDir(com_dir);
-            this.init();
+            this.initHandles();
             this.log.addMarkedMessage('Creating goGPS Master Parallel Manager');
             if ~exist(this.getComDir, 'file')
                 mkdir(this.getComDir);
@@ -119,7 +119,7 @@ classdef Parallel_Manager < Com_Interface
                     unique_instance_gom__ = this;
                 else
                     this = unique_instance_gom__;
-                    this.init();
+                    this.initHandles();
                     if nargin > 1 && ~isempty(com_dir)
                         this.initComDir(com_dir);
                     end
@@ -587,6 +587,8 @@ classdef Parallel_Manager < Com_Interface
                         if core.rec(job_id).out.isEmpty
                             % import all
                             tmp.rec.out = core.rec(job_id).out;
+                            tmp.rec.out.parent = tmp.rec;
+                            tmp.rec.out.initHandles();
                             core.rec(job_id) = tmp.rec;
                             % relink singletons
                             core.rec(job_id).log = Core.getLogger;
@@ -594,6 +596,7 @@ classdef Parallel_Manager < Com_Interface
                             % import results in out
                         else
                             % import only work
+                            tmp.rec.work.initHandles();
                             core.rec(job_id).work = tmp.rec.work;
                             core.rec(job_id).work.parent = core.rec(job_id);
                         end
@@ -666,7 +669,7 @@ classdef Parallel_Manager < Com_Interface
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
-        function init(this)
+        function initHandles(this)
             this.log = Core.getLogger();
         end
     end

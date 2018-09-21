@@ -82,18 +82,10 @@ classdef Receiver_Output < Receiver_Commons
             end
             this.cc = cc;
             this.parent = parent;
-            this.init();
-        end
-        
-        function init(this)
-            this.log = Core.getLogger();
-            this.state = Core.getState();
-            this.rf = Core.getReferenceFrame();
-            this.w_bar = Go_Wait_Bar.getInstance();
-            
+            this.initHandles();
             this.reset();
         end
-        
+                
         function reset(this)
             this.reset@Receiver_Commons();
             
@@ -122,7 +114,7 @@ classdef Receiver_Output < Receiver_Commons
             for r = 1 : numel(this)
                 if ~this(r).isEmpty
                     fprintf('----------------------------------------------------------------------------------\n')
-                    this(r).log.addMarkedMessage(sprintf('Receiver (%d) %s', r, this(r).parent.getMarkerName));
+                    this(r).log.addMarkedMessage(sprintf('Receiver %s', this(r).parent.getMarkerName()));
                     fprintf('----------------------------------------------------------------------------------\n')
                     this(r).log.addMessage(sprintf(' From     %s', this(r).time.first.toString()));
                     this(r).log.addMessage(sprintf(' to       %s', this(r).time.last.toString()));

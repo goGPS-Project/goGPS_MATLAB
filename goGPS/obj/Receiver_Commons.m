@@ -126,14 +126,18 @@ classdef Receiver_Commons < handle
         rf                                     % handle to reference farme
     end
     
-    
-    
-    
     % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     
     methods
+        
+        function initHandles(this)
+            this.log = Core.getLogger();
+            this.state = Core.getState();
+            this.rf = Core.getReferenceFrame();
+            this.w_bar = Go_Wait_Bar.getInstance();
+        end
         
         function reset(this)
             this.time = GPS_Time();
@@ -176,7 +180,7 @@ classdef Receiver_Commons < handle
             for r = 1 : numel(this)
                 if ~this(r).isEmpty && ~isempty(this(r).xyz)
                     [lat, lon, h_ellips, h_ortho] = this(r).getMedianPosGeodetic_mr();
-                    this(r).log.addMarkedMessage(sprintf('Receiver (%02d) %s   %11.7f  %11.7f    %12.7f m (ellipsoidal) - %12.7f (orthometric)', r, this(r).parent.marker_name, lat, lon, h_ellips, h_ortho));
+                    this(r).log.addMarkedMessage(sprintf('Receiver %s   %11.7f  %11.7f    %12.7f m (ellipsoidal) - %12.7f (orthometric)', this(r).parent.getMarkerName, lat, lon, h_ellips, h_ortho));
                 end
             end
         end
