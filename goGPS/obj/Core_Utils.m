@@ -855,6 +855,32 @@ classdef Core_Utils < handle
             slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;        
         end
             
+        function response = permutedEqual(str1, str2)
+            % check if the two variables are permuted version of the same sequence
+            %
+            % SYNTAX:
+            %     response =Core_Utils.pertutedEqual(var1, var2)
+            if length(str1) ~= length(str2)
+                response = false;
+            else
+                ll = length(str1);
+                found_all = true;
+                i = 1;
+                j = 1;
+                while i <= ll
+                    found = false;
+                    while j <= ll && ~found
+                        found = found || str1(i) == str2(j);
+                        j = j+1;
+                    end
+                    found_all = found_all && found;
+                    i = i+1;
+                end
+                response = found_all;
+            end
+            
+        end
+        
         function createEmptyProject(base_dir, prj_name)
             % create empty config file
             %

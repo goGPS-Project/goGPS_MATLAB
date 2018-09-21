@@ -2217,7 +2217,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % SYNTAX
             %   xyz = this.getPositionTime()
             if this.isStatic()
-                time = this.getCentralTime;
+                time = this.state.getSessionCentralTime();
             else
                 time = this.getTime.getCopy();
             end

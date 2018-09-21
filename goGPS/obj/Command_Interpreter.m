@@ -914,7 +914,8 @@ classdef Command_Interpreter < handle
                     id_ref = id_trg; % Use all the receiver as mean reference
                 end
                 [~, id_ref] = intersect(id_trg, id_ref);
-                net = Network(rec(id_trg));
+                net = this.core.getNetwork(id_trg, rec);
+                net.reset();
                 net.adjust(id_ref); 
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_COO_CRD.par ')*$'], 'once'))

@@ -44,6 +44,7 @@ classdef Network < handle
     properties
         rec_list
         state
+        net_id           % id of the receiver in core, this uniquely identify the network
         
         common_time      % gps_time
         rec_time_indexes % indexes
@@ -57,13 +58,34 @@ classdef Network < handle
         log
         pos_indexs_tc       % index for subpositions
         idx_ref
+        
+        apriori_info     % field to keep apriori info [ambiguity, tropo, ...] to be used in the adjustment
     end
     methods
-        function this = Network(rec_list)
+        function this = Network(rec_list, net_id)
+            if nargin < 2
+                net_id = [];
+            end
+            this.net_id = net_id;
             this.rec_list = rec_list;
             this.state = Core.getState;
             this.log = Core.getLogger();
-        end    
+        end  
+        
+        function reset(this)
+            % clear the object keeping only its id and apriori info and the receivers
+            this.common_time = [];
+            this.rec_time_indexes = [];
+            this.coo = [];
+            this.coo_rate = [];
+            this.clock = [];
+            this.ztd = [];
+            this.ztd_gn = [];
+            this.ztd_ge = [];
+            this.amb = [];
+            this.pos_indexs_tc = [];
+            this.idx_ref = [];
+        end
         function adjust(this, idx_ref, coo_rate)
             %  adjust the gnss network
             %

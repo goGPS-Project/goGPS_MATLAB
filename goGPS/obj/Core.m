@@ -123,6 +123,9 @@ classdef Core < handle
             ok_go = gui_goGPS;
         end
         
+     
+        
+        
         function log = getLogger()
             % Return the pointer to the Logger Object
             %
@@ -484,6 +487,8 @@ classdef Core < handle
             else
                 rec = this.rec;
             end
+            
+            
             this.log.newLine();
             if ~this.state.isRinexSession()
                 rin_list = this.getRinFileList();
@@ -1048,6 +1053,29 @@ classdef Core < handle
             end
             time_lim_small.append(tmp_small);
             time_lim_large.append(tmp_large);
+        end
+        
+           function net = getNetwork(this, rid, rec_list)
+            % get a network based on the receiver id, 'if is not present crate a new one
+            %
+            % SYNTAX:
+            %    net = this.getNetwork(rid)
+            if nargin < 2
+                rec_list = [];
+            end
+            for i = 1: length(this.net)
+                if Core_Utils.permutedEqual(this.net(i).net_id,rid)
+                    net = this.net(i);
+                    return
+                end
+            end
+            % if not found
+            if isempty(this.net)
+                this.net = Network(rec_list, rid);
+            else
+                this.net(end+1) = Network(rec_list, rid);
+            end
+            net = this.net(end);
         end
         
         function cur_session = getCurSession(this)
